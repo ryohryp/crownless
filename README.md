@@ -20,45 +20,6 @@ Location is not a pedometer reward system. Walking through the real world reveal
 
 The player begins as an unknown, unarmed person. Bare hands are a valid fighting style, and the player can grow into many different combat styles and builds through play.
 
-## First playable prototype
-
-The current prototype deliberately uses simulated location data. Its only job is to prove the expedition loop before real GPS or backend work begins.
-
-### Run
-
-Requires Node.js 20+.
-
-```bash
-npm start
-```
-
-Then open `http://localhost:4173`.
-
-No application dependencies are required; the start script only launches a small static server.
-
-### Controls
-
-Desktop combat:
-
-- Move: `WASD` or arrow keys
-- Light attack: `J`
-- Heavy attack: `K`
-- Evade: `Space`
-
-Touch controls are shown automatically on narrow/mobile screens.
-
-### Prototype loop
-
-1. Leave the Grey Hearth safe hub.
-2. Pick an adjacent unexplored cell on the simulated map.
-3. Fight a short real-time encounter.
-4. Carry randomized **unsecured** loot.
-5. Decide whether to push deeper or return home.
-6. Returning secures the loot; defeat loses part of what was still unsecured.
-7. Equip secured gear and immediately start another expedition.
-
-Equipment modifiers already alter combat behavior, including heavy stagger, evade follow-ups, unarmed tempo, and a high-risk low-health damage style.
-
 ## Development principles
 
 1. **Fun beats technical novelty.**
@@ -67,19 +28,43 @@ Equipment modifiers already alter combat behavior, including heavy stagger, evad
 4. Keep exploration, combat, loot, and survival tightly connected.
 5. Respect existing design documents and implementation decisions.
 
-## Tests
-
-```bash
-npm test
-```
-
-GitHub Actions also runs JavaScript syntax checks and the deterministic game-rule tests on pushes and pull requests.
-
 ## Documents
 
 - [Game System Design v0.1](docs/game-system-design-v0.1.md)
 - [Development guide for coding agents](AGENTS.md)
 
+## Play the prototype
+
+The current prototype focuses on replayable expedition decisions rather than GPS integration.
+
+```bash
+npm start
+```
+
+Open `http://localhost:4173`.
+
+### Controls
+
+- Move: `WASD` or arrow keys
+- Light attack / 3-hit combo: `J`
+- Heavy attack / guard break: `K`
+- Evade / perfect evade: `Space`
+
+Touch controls appear on smaller screens.
+
+### What to test
+
+Try several expeditions in a row. The current slice is specifically testing whether different enemy roles, event outcomes, and loot choices prevent the loop from becoming repetitive.
+
+- **Rusher** closes distance aggressively.
+- **Guard** blocks ordinary pressure and rewards heavy attacks.
+- **Skirmisher** keeps range and fires telegraphed projectiles.
+- Exploration can lead to fights, ambushes, hidden caches, shrines, or travelers.
+- Fresh loot shows its combat style, playstyle modifier, and comparison with the equipped item.
+- Carried loot remains unsecured until the player returns to the Grey Hearth.
+
+Real GPS, parties, and faction warfare are intentionally deferred until this loop is consistently fun.
+
 ## Status
 
-First playable vertical slice in active development.
+Playable prototype / rapid iteration.
