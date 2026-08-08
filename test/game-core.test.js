@@ -2,45 +2,113 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const Core = require("../src/game-core.js");
 
+function findChoice(eventKind) {
+  for (let seed = 1; seed < 800; seed += 1) {
+    const state = Core.beginExpedition(Core.createInitialState(), seed);
+    const choice = Core.generateExplorationChoices(state).find((candidate) => candidate.eventKind === eventKind);
+    if (choice) return { seed, state, choice };
+  }
+  throw new Error(`No ${eventKind} choice found`);
+}
+
 test("same expedition seed produces the same exploration choices", () => {
   const firstState = Core.beginExpedition(Core.createInitialState(), 4242);
   const secondState = Core.beginExpedition(Core.createInitialState(), 4242);
 
-  assert.deepEqual(
-    Core.generateExplorationChoices(firstState),
-    Core.generateExplorationChoices(secondState)
-  );
+  assert.deepEqual(Core.generateExplorationChoices(firstState), Core.generateExplorationChoices(secondState));
 });
 
-test("exploration presents three distinct leads with risk and reward signals", () => {
+test("exploration presents three distinct leads with readable signals", () => {
   const state = Core.beginExpedition(Core.createInitialState(), 31337);
   const choices = Core.generateExplorationChoices(state);
 
   assert.equal(choices.length, 3);
-  assert.equal(new Set(choices.map((choice) => choice.locationId || choice.id)).size, 3);
+  assert.equal(new Set(choices.map((choice) => choice.id)).size, 3);
   assert.ok(choices.every((choice) => choice.name && choice.kicker && choice.description && choice.omen));
   assert.ok(choices.every((choice) => choice.risk >= 1 && choice.reward >= 1));
+  assert.ok(choices.every((choice) => choice.signal));
 });
 
-test("choosing a lead deterministically creates its encounter", () => {
-  const base = Core.beginExpedition(Core.createInitialState(), 5150);
-  const choice = Core.generateExplorationChoices(base)[1];
+test("event preview is deterministic for seed, depth, and lead", () => {
+  const first = Core.beginExpedition(Core.createInitialState(), 5150);
+  const second = Core.beginExpedition(Core.createInitialState(), 5150);
+  const firstChoices = Core.generateExplorationChoices(first);
+  const secondChoices = Core.generateExplorationChoices(second);
 
-  const first = Core.discoverLocation(base, choice.choiceId);
-  const second = Core.discoverLocation(Core.beginExpedition(Core.createInitialState(), 5150), choice.choiceId);
-
-  assert.equal(first.expedition.encounter.discovery.locationId, choice.id);
-  assert.deepEqual(first.expedition.encounter, second.expedition.encounter);
+  assert.deepEqual(firstChoices.map((choice) => choice.eventKind), secondChoices.map((choice) => choice.eventKind));
 });
 
-test("legacy discoverNextCell still produces a deterministic encounter", () => {
-  const first = Core.discoverNextCell(Core.beginExpedition(Core.createInitialState(), 4242));
-  const second = Core.discoverNextCell(Core.beginExpedition(Core.createInitialState(), 4242));
+test("enemy generation includes rusher, guard, and skirmisher identities", () => {
+  const kinds = new Set();
+  for (let seed = 1; seed <= 80; seed += 1) {
+    for (const location of Core.LOCATIONS) {
+      const enemies = Core.buildEnemies(2, Core.createRng(seed * 97), { ...location, risk: 5 });
+      enemies.forEach((enemy) => kinds.add(enemy.kind));
+    }
+  }
 
-  assert.deepEqual(first.expedition.encounter, second.expedition.encounter);
+  assert.deepEqual([...kinds].sort(), ["guard", "rusher", "skirmisher"]);
 });
 
-test("victory produces unsecured loot and remembers the fresh drops", () => {
+test("cache events can reward loot without combat", () => {
+  const { state, choice } = findChoice("cache");
+  const resolved = Core.discoverLocation(state, choice.choiceId);
+
+  assert.equal(resolved.phase, "decision");
+  assert.equal(resolved.expedition.encounter, null);
+  assert.ok(resolved.expedition.unsecuredLoot.length >= 1);
+  assert.ok(resolved.expedition.lastEventSummary);
+  assert.equal(resolved.stats.eventsResolved, 1);
+});
+
+test("shrine event offers a health-for-loot decision", () => {
+  const { state, choice } = findChoice("shrine");
+  let resolved = Core.discoverLocation(state, choice.choiceId);
+
+  assert.equal(resolved.phase, "event");
+  assert.equal(resolved.expedition.pendingEvent.kind, "shrine");
+
+  const beforeHealth = resolved.expedition.health;
+  resolved = Core.resolveEventChoice(resolved, "offer-blood");
+
+  assert.equal(resolved.phase, "decision");
+  assert.ok(resolved.expedition.health < beforeHealth);
+  assert.ok(resolved.expedition.unsecuredLoot.length >= 1);
+});
+
+test("traveler information makes the next leads safer", () => {
+  const { state, choice } = findChoice("traveler");
+  let resolved = Core.discoverLocation(state, choice.choiceId);
+  resolved = Core.resolveEventChoice(resolved, "take-rumor");
+
+  assert.equal(resolved.phase, "decision");
+  assert.ok(resolved.expedition.scouting >= 1);
+
+  resolved = Core.continueExpedition(resolved);
+  const choices = Core.generateExplorationChoices(resolved);
+  assert.ok(choices.every((candidate) => candidate.risk >= 1 && candidate.risk <= 5));
+});
+
+test("following traveler tracks creates a high-reward combat encounter", () => {
+  const { state, choice } = findChoice("traveler");
+  let resolved = Core.discoverLocation(state, choice.choiceId);
+  resolved = Core.resolveEventChoice(resolved, "follow-tracks");
+
+  assert.equal(resolved.phase, "combat");
+  assert.equal(resolved.expedition.encounter.kind, "ambush");
+  assert.ok(resolved.expedition.encounter.rewardBonus >= 3);
+  assert.ok(resolved.expedition.encounter.enemies.length >= 2);
+});
+
+test("legacy discoverNextCell still creates a combat encounter", () => {
+  const state = Core.beginExpedition(Core.createInitialState(), 4242);
+  const resolved = Core.discoverNextCell(state);
+
+  assert.equal(resolved.phase, "combat");
+  assert.ok(resolved.expedition.encounter.enemies.length >= 1);
+});
+
+test("victory produces unsecured loot and remembers fresh drops", () => {
   let state = Core.beginExpedition(Core.createInitialState(), 99);
   state = Core.discoverNextCell(state);
   state = Core.resolveVictory(state, 73);
@@ -71,7 +139,6 @@ test("defeat loses at least half of unsecured loot but never secured loot", () =
   let state = Core.createInitialState();
   state.securedLoot.push({ id: "old-keepsake", name: "Old Keepsake", modifier: { effect: {} } });
   state = Core.beginExpedition(state, 222);
-  state = Core.discoverNextCell(state);
   state.expedition.unsecuredLoot = [
     { id: "a", modifier: { effect: {} } },
     { id: "b", modifier: { effect: {} } },
@@ -97,7 +164,22 @@ test("only secured loot may be equipped", () => {
   assert.equal(Core.getEquippedItem(state).id, loot.id);
 });
 
-test("equipment modifiers change combat tuning", () => {
+test("loot comparison communicates power and style changes", () => {
+  let state = Core.createInitialState();
+  const item = Core.rollLoot(1234, 2, 0, 4);
+  const comparison = Core.compareItem(state, item);
+
+  assert.ok(typeof comparison.summary === "string" && comparison.summary.length > 0);
+  assert.equal(typeof comparison.delta, "number");
+
+  state.securedLoot.push({ ...item, secured: true });
+  state = Core.equipItem(state, item.id);
+  const sameComparison = Core.compareItem(state, item);
+  assert.equal(sameComparison.verdict, "同等");
+  assert.equal(sameComparison.styleChange, false);
+});
+
+test("equipment modifiers still change combat tuning", () => {
   let state = Core.createInitialState();
   state.securedLoot.push({
     id: "breaker-wraps",
