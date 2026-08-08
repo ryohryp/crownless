@@ -25,6 +25,12 @@ footer {
   padding-bottom: max(26px, calc(14px + env(safe-area-inset-bottom)));
 }
 
+/* app.js uses `show`; the base stylesheet historically used `active`. */
+.loot-reveal.show {
+  opacity: 1;
+  visibility: visible;
+}
+
 @media (min-width: 701px) and (max-height: 860px) {
   .topbar { height: 64px; }
   main { padding-top: 18px; padding-bottom: 18px; }
