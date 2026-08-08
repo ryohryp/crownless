@@ -2,7 +2,7 @@ name: test
 
 on:
   push:
-    branches: [main, "feat/**"]
+    branches: [main, "feat/**", "fix/**"]
   pull_request:
 
 permissions:
@@ -21,5 +21,6 @@ jobs:
           node --check src/game-core.js
           node --check src/hunt-system.js
           node --check src/app.js
+          node --check src/noncombat-presentation.js
       - name: Unit tests
         run: npm test
