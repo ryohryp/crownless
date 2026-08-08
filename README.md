@@ -20,6 +20,45 @@ Location is not a pedometer reward system. Walking through the real world reveal
 
 The player begins as an unknown, unarmed person. Bare hands are a valid fighting style, and the player can grow into many different combat styles and builds through play.
 
+## First playable prototype
+
+The current prototype deliberately uses simulated location data. Its only job is to prove the expedition loop before real GPS or backend work begins.
+
+### Run
+
+Requires Node.js 20+.
+
+```bash
+npm start
+```
+
+Then open `http://localhost:4173`.
+
+No application dependencies are required; the start script only launches a small static server.
+
+### Controls
+
+Desktop combat:
+
+- Move: `WASD` or arrow keys
+- Light attack: `J`
+- Heavy attack: `K`
+- Evade: `Space`
+
+Touch controls are shown automatically on narrow/mobile screens.
+
+### Prototype loop
+
+1. Leave the Grey Hearth safe hub.
+2. Pick an adjacent unexplored cell on the simulated map.
+3. Fight a short real-time encounter.
+4. Carry randomized **unsecured** loot.
+5. Decide whether to push deeper or return home.
+6. Returning secures the loot; defeat loses part of what was still unsecured.
+7. Equip secured gear and immediately start another expedition.
+
+Equipment modifiers already alter combat behavior, including heavy stagger, evade follow-ups, unarmed tempo, and a high-risk low-health damage style.
+
 ## Development principles
 
 1. **Fun beats technical novelty.**
@@ -28,6 +67,14 @@ The player begins as an unknown, unarmed person. Bare hands are a valid fighting
 4. Keep exploration, combat, loot, and survival tightly connected.
 5. Respect existing design documents and implementation decisions.
 
+## Tests
+
+```bash
+npm test
+```
+
+GitHub Actions also runs JavaScript syntax checks and the deterministic game-rule tests on pushes and pull requests.
+
 ## Documents
 
 - [Game System Design v0.1](docs/game-system-design-v0.1.md)
@@ -35,4 +82,4 @@ The player begins as an unknown, unarmed person. Bare hands are a valid fighting
 
 ## Status
 
-Early prototyping / pre-production.
+First playable vertical slice in active development.
