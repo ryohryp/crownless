@@ -2,14 +2,45 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const Core = require("../src/game-core.js");
 
-test("same expedition seed produces the same discovery and encounter", () => {
+test("same expedition seed produces the same exploration choices", () => {
+  const firstState = Core.beginExpedition(Core.createInitialState(), 4242);
+  const secondState = Core.beginExpedition(Core.createInitialState(), 4242);
+
+  assert.deepEqual(
+    Core.generateExplorationChoices(firstState),
+    Core.generateExplorationChoices(secondState)
+  );
+});
+
+test("exploration presents three distinct leads with risk and reward signals", () => {
+  const state = Core.beginExpedition(Core.createInitialState(), 31337);
+  const choices = Core.generateExplorationChoices(state);
+
+  assert.equal(choices.length, 3);
+  assert.equal(new Set(choices.map((choice) => choice.locationId || choice.id)).size, 3);
+  assert.ok(choices.every((choice) => choice.name && choice.kicker && choice.description && choice.omen));
+  assert.ok(choices.every((choice) => choice.risk >= 1 && choice.reward >= 1));
+});
+
+test("choosing a lead deterministically creates its encounter", () => {
+  const base = Core.beginExpedition(Core.createInitialState(), 5150);
+  const choice = Core.generateExplorationChoices(base)[1];
+
+  const first = Core.discoverLocation(base, choice.choiceId);
+  const second = Core.discoverLocation(Core.beginExpedition(Core.createInitialState(), 5150), choice.choiceId);
+
+  assert.equal(first.expedition.encounter.discovery.locationId, choice.id);
+  assert.deepEqual(first.expedition.encounter, second.expedition.encounter);
+});
+
+test("legacy discoverNextCell still produces a deterministic encounter", () => {
   const first = Core.discoverNextCell(Core.beginExpedition(Core.createInitialState(), 4242));
   const second = Core.discoverNextCell(Core.beginExpedition(Core.createInitialState(), 4242));
 
   assert.deepEqual(first.expedition.encounter, second.expedition.encounter);
 });
 
-test("victory produces unsecured loot instead of permanent loot", () => {
+test("victory produces unsecured loot and remembers the fresh drops", () => {
   let state = Core.beginExpedition(Core.createInitialState(), 99);
   state = Core.discoverNextCell(state);
   state = Core.resolveVictory(state, 73);
@@ -18,6 +49,8 @@ test("victory produces unsecured loot instead of permanent loot", () => {
   assert.ok(state.expedition.unsecuredLoot.length >= 1);
   assert.equal(state.securedLoot.length, 0);
   assert.equal(state.expedition.health, 73);
+  assert.ok(state.expedition.lastLootIds.length >= 1);
+  assert.ok(state.expedition.lastDiscovery);
 });
 
 test("returning home secures every carried item", () => {
@@ -71,7 +104,7 @@ test("equipment modifiers change combat tuning", () => {
     type: "handwraps",
     style: "unarmed",
     power: 4,
-    modifier: { effect: { heavyStagger: 1.8, unarmedTempo: 1.35 } }
+    modifier: { effect: { heavyStagger: 1.8, unarmedTempo: 1.35, comboFinisher: 1.25 } }
   });
   state = Core.equipItem(state, "breaker-wraps");
   const tuning = Core.getCombatTuning(state);
@@ -79,5 +112,6 @@ test("equipment modifiers change combat tuning", () => {
   assert.equal(tuning.style, "unarmed");
   assert.equal(tuning.heavyStagger, 1.8);
   assert.equal(tuning.unarmedTempo, 1.35);
+  assert.equal(tuning.comboFinisher, 1.25);
   assert.ok(tuning.lightDamage > Core.getCombatTuning(Core.createInitialState()).lightDamage);
 });
