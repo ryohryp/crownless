@@ -21,6 +21,7 @@
   const runStatus = document.getElementById("run-status");
   const input = { up: false, down: false, left: false, right: false };
   const lootReveal = document.getElementById("loot-reveal");
+  const combatBars = document.querySelector(".combat-bars");
 
   function clamp(value, min, max) {
     return Math.max(min, Math.min(max, value));
@@ -58,6 +59,13 @@
     return "✦";
   }
 
+  function comparisonLabel(item) {
+    const comparison = Core.compareItem(state, item);
+    const sign = comparison.delta > 0 ? "+" : "";
+    const delta = Math.abs(comparison.delta) < 0.1 ? "±0" : `${sign}${comparison.delta.toFixed(1)}`;
+    return `${comparison.summary} / ${delta}`;
+  }
+
   function lootCard(item, secured, featured = false) {
     const equipped = state.equippedItemId === item.id;
     const card = document.createElement("article");
@@ -72,8 +80,8 @@
     body.innerHTML = `
       <small>${rarityLabel(item)}</small>
       <strong>${item.name}</strong>
-      <p>${item.description}</p>
-      <em>${item.modifier.description}</em>
+      <p>${item.styleLabel || item.style} · ${item.playstyle || "戦型変化"} · ${comparisonLabel(item)}</p>
+      <em>${item.modifier.tag ? `${item.modifier.tag} — ` : ""}${item.modifier.description}</em>
     `;
 
     card.append(glyph, body);
@@ -95,13 +103,14 @@
 
   function renderHub() {
     stopCombatLoop();
-    hideLootReveal();
+    hideOverlay();
+    if (combatBars) combatBars.style.display = "";
 
     const equipped = Core.getEquippedItem(state);
-    document.getElementById("equipped-label").textContent = equipped ? equipped.name : "素手";
+    document.getElementById("equipped-label").textContent = equipped ? equipped.styleLabel || equipped.name : "素手";
     document.getElementById("loadout-title").textContent = equipped ? equipped.name : "拳だけで出る";
     document.getElementById("loadout-description").textContent = equipped
-      ? equipped.modifier.description
+      ? `${equipped.playstyle || "戦型"}。${equipped.modifier.description}`
       : "武器はない。けれど、拳は最初から最後まで選べる戦い方だ。";
 
     const secured = document.getElementById("secured-loot");
@@ -126,7 +135,9 @@
   }
 
   function renderExplore() {
-    hideLootReveal();
+    stopCombatLoop();
+    hideOverlay();
+    if (combatBars) combatBars.style.display = "";
     const exp = state.expedition;
     document.getElementById("explore-hp").textContent = exp.health;
     document.getElementById("explore-depth").textContent = exp.depth + 1;
@@ -148,6 +159,7 @@
           <p>${choice.description}</p>
           <div class="lead-omen">噂：${choice.omen}</div>
           <div class="lead-signals">
+            <label>気配 <strong>${choice.signal}</strong></label>
             <label>危険 ${pips(choice.risk, "risk")}</label>
             <label>期待 ${pips(choice.reward, "reward")}</label>
           </div>
@@ -158,28 +170,53 @@
     });
 
     const carried = exp.unsecuredLoot.length;
-    const riskCopy = document.getElementById("carried-warning");
-    riskCopy.classList.toggle("hot", carried > 0);
-    riskCopy.innerHTML = carried
-      ? `<strong>${carried}個の戦利品はまだ自分の物ではない。</strong><span>倒れれば失う。今なら帰れる。</span>`
-      : `<strong>まだ失う物はない。</strong><span>だからこそ、最初の一歩は軽い。</span>`;
+    const warning = document.getElementById("carried-warning");
+    warning.classList.toggle("hot", carried > 0);
+    const scoutCopy = exp.scouting > 0 ? ` 地図のおかげで、あと${exp.scouting}回は危険を読みやすい。` : "";
+    warning.innerHTML = carried
+      ? `<strong>${carried}個の戦利品はまだ自分の物ではない。</strong><span>倒れれば失う。今なら帰れる。${scoutCopy}</span>`
+      : `<strong>まだ失う物はない。</strong><span>だからこそ、最初の一歩は軽い。${scoutCopy}</span>`;
 
     showScreen("explore");
   }
 
   function enterLead(choiceId) {
     state = Core.discoverLocation(state, choiceId);
-    const discovery = state.expedition.encounter.discovery;
+    const exp = state.expedition;
+    const discovery = exp.lastDiscovery;
+    setCombatScene(discovery);
+
+    if (state.phase === "combat") {
+      if (combatBars) combatBars.style.display = "";
+      showScreen("combat");
+      startCombat();
+      return;
+    }
+
+    if (state.phase === "event") {
+      showScreen("combat");
+      renderStillScene(discovery);
+      showEvent(exp.pendingEvent);
+      return;
+    }
+
+    if (state.phase === "decision") {
+      showScreen("combat");
+      renderStillScene(discovery);
+      showOutcomeOverlay();
+    }
+  }
+
+  function setCombatScene(discovery) {
     document.getElementById("combat-location").textContent = discovery.name;
     document.getElementById("combat-title").textContent = discovery.kicker;
     document.getElementById("combat-flavor").textContent = discovery.flavor;
     document.getElementById("arena-wrap").dataset.palette = discovery.palette;
-    showScreen("combat");
-    startCombat();
   }
 
   function renderDecision() {
-    hideLootReveal();
+    hideOverlay();
+    if (combatBars) combatBars.style.display = "";
     const exp = state.expedition;
     const loot = document.getElementById("unsecured-loot");
     loot.innerHTML = "";
@@ -190,18 +227,113 @@
     document.getElementById("decision-count").textContent = exp.unsecuredLoot.length;
     document.getElementById("decision-place").textContent = exp.lastDiscovery ? exp.lastDiscovery.name : "名もない場所";
 
-    const nextRisk = exp.health <= 35
+    let nextRisk = exp.health <= 35
       ? "傷が深い。次の一戦はかなり危険だ。"
-      : exp.unsecuredLoot.length >= 2
-        ? "荷が重くなってきた。欲張るほど、帰路は長く感じる。"
-        : "まだ進める。だからこそ、帰る判断が難しい。";
+      : exp.unsecuredLoot.length >= 3
+        ? "荷が重い。ここから先は、強欲そのものが敵になる。"
+        : exp.unsecuredLoot.length >= 1
+          ? "持ち帰りたい物ができた。それでも次の気配が気になる。"
+          : "何も拾っていない。次へ進む理由は十分にある。";
+    if (exp.lastEventSummary) nextRisk = `${exp.lastEventSummary} ${nextRisk}`;
     document.getElementById("decision-risk-copy").textContent = nextRisk;
 
     showScreen("decision");
   }
 
+  function showEvent(event) {
+    stopCombatLoop();
+    if (combatBars) combatBars.style.display = "none";
+    const place = document.getElementById("loot-reveal-place");
+    const heading = lootReveal.querySelector("h2");
+    const copy = lootReveal.querySelector(".loot-reveal-inner > p:not(.eyebrow)");
+    const items = document.getElementById("loot-reveal-items");
+    const continueButton = document.getElementById("loot-reveal-continue");
+
+    place.textContent = event.discovery.name;
+    heading.textContent = event.title;
+    copy.textContent = event.text;
+    items.innerHTML = "";
+    items.style.display = "grid";
+    items.style.gap = "10px";
+
+    event.options.forEach((option) => {
+      const button = document.createElement("button");
+      button.className = option.id.includes("follow") || option.id.includes("blood") ? "danger-button" : "ghost";
+      button.innerHTML = `<strong>${option.label}</strong><small style="display:block;margin-top:4px">${option.detail}</small>`;
+      button.addEventListener("click", () => {
+        state = Core.resolveEventChoice(state, option.id);
+        hideOverlay();
+        if (state.phase === "combat") {
+          if (combatBars) combatBars.style.display = "";
+          setCombatScene(state.expedition.encounter.discovery);
+          startCombat();
+        } else {
+          showOutcomeOverlay();
+        }
+      });
+      items.appendChild(button);
+    });
+
+    continueButton.style.display = "none";
+    showOverlay();
+  }
+
+  function showOutcomeOverlay() {
+    stopCombatLoop();
+    if (combatBars) combatBars.style.display = "none";
+    const exp = state.expedition;
+    const place = document.getElementById("loot-reveal-place");
+    const heading = lootReveal.querySelector("h2");
+    const copy = lootReveal.querySelector(".loot-reveal-inner > p:not(.eyebrow)");
+    const items = document.getElementById("loot-reveal-items");
+    const continueButton = document.getElementById("loot-reveal-continue");
+    const fresh = exp.lastLootIds
+      .map((id) => exp.unsecuredLoot.find((item) => item.id === id))
+      .filter(Boolean);
+
+    place.textContent = exp.lastDiscovery ? exp.lastDiscovery.name : "遠征先";
+    heading.textContent = fresh.length ? "見つけた。" : "何かが残った。";
+    copy.textContent = exp.lastEventSummary || (fresh.length
+      ? "まだあなたの物ではない。持ち帰って初めて確保される。"
+      : "戦利品はない。だが、傷と情報も遠征の結果だ。");
+
+    items.innerHTML = "";
+    if (fresh.length) {
+      fresh.forEach((item) => items.appendChild(lootCard(item, false, true)));
+    } else {
+      const note = document.createElement("div");
+      note.className = "empty-state";
+      note.textContent = "新しい装備はない。";
+      items.appendChild(note);
+    }
+
+    continueButton.style.display = "";
+    continueButton.innerHTML = `結果を抱えて判断する <span>→</span>`;
+    continueButton.onclick = () => renderDecision();
+    showOverlay();
+  }
+
+  function showLootReveal() {
+    showOutcomeOverlay();
+  }
+
+  function showOverlay() {
+    lootReveal.classList.add("show");
+    lootReveal.style.display = "grid";
+  }
+
+  function hideOverlay() {
+    lootReveal.classList.remove("show");
+    lootReveal.style.display = "none";
+    const continueButton = document.getElementById("loot-reveal-continue");
+    continueButton.onclick = null;
+  }
+
   function startCombat() {
     stopCombatLoop();
+    hideOverlay();
+    if (combatBars) combatBars.style.display = "";
+
     const tuning = Core.getCombatTuning(state);
     const defs = state.expedition.encounter.enemies;
     const enemies = defs.map((enemy, index) => ({
@@ -211,14 +343,16 @@
       hp: enemy.maxHealth,
       vx: 0,
       vy: 0,
-      radius: enemy.kind === "guard" ? 28 : 25,
-      attackCooldown: 0.65 + index * 0.28,
+      radius: enemy.kind === "guard" ? 29 : enemy.kind === "skirmisher" ? 23 : 25,
+      attackCooldown: 0.7 + index * 0.32,
       telegraph: 0,
       telegraphTotal: 0,
       recover: 0,
       stagger: 0,
       hitFlash: 0,
       guarding: enemy.kind === "guard",
+      guardCycle: enemy.kind === "guard" ? 0.2 + index * 0.4 : 0,
+      strafeDir: index % 2 ? 1 : -1,
       deadTimer: 0
     }));
 
@@ -245,6 +379,7 @@
       particles: [],
       slashes: [],
       texts: [],
+      projectiles: [],
       hitStop: 0,
       shake: 0,
       elapsed: 0,
@@ -252,7 +387,12 @@
     };
 
     updateCombatHud();
-    flashMessage(`敵 ${enemies.length}体 — 攻撃の前兆を見ろ`, 1200);
+    const types = [...new Set(enemies.map((enemy) => enemy.kind))];
+    const lessons = [];
+    if (types.includes("rusher")) lessons.push("赤い突進は横へ避けろ");
+    if (types.includes("guard")) lessons.push("盾は重攻撃で割れ");
+    if (types.includes("skirmisher")) lessons.push("射手を放置するな");
+    flashMessage(lessons.join(" / "), 1500);
     lastFrame = performance.now();
     animationFrame = requestAnimationFrame(combatLoop);
   }
@@ -284,7 +424,7 @@
   function updateBattle(dt) {
     const p = battle.player;
     battle.elapsed += dt;
-    battle.shake = Math.max(0, battle.shake - dt * 20);
+    battle.shake = Math.max(0, battle.shake - dt * 22);
     p.invulnerable = Math.max(0, p.invulnerable - dt);
     p.evadeCooldown = Math.max(0, p.evadeCooldown - dt);
     p.evadeAge += dt;
@@ -306,9 +446,10 @@
       p.y += move.y * battle.tuning.moveSpeed * speedScale * dt;
     }
     p.x = clamp(p.x, 48, canvas.width - 48);
-    p.y = clamp(p.y, 70, canvas.height - 42);
+    p.y = clamp(p.y, 72, canvas.height - 42);
 
     battle.enemies.forEach((enemy) => updateEnemy(enemy, dt));
+    updateProjectiles(dt);
 
     battle.particles.forEach((particle) => {
       particle.life -= dt;
@@ -338,9 +479,9 @@
     const progress = attack.elapsed / attack.duration;
     if (!attack.lunged && progress > 0.12) {
       attack.lunged = true;
-      const lunge = attack.kind === "heavy" ? 24 : 18 + attack.step * 4;
+      const lunge = attack.kind === "heavy" ? 27 : 18 + attack.step * 5;
       p.x = clamp(p.x + p.facingX * lunge, 48, canvas.width - 48);
-      p.y = clamp(p.y + p.facingY * lunge, 70, canvas.height - 42);
+      p.y = clamp(p.y + p.facingY * lunge, 72, canvas.height - 42);
     }
 
     if (!attack.didHit && attack.elapsed >= attack.activeAt) {
@@ -352,7 +493,7 @@
       const wasLight = attack.kind === "light";
       p.attack = null;
       if (wasLight) {
-        p.comboTimer = 0.43;
+        p.comboTimer = 0.45;
         if (p.bufferedLight) {
           p.bufferedLight = false;
           performLight();
@@ -368,7 +509,7 @@
     if (!battle || battle.finished) return;
     const p = battle.player;
     if (p.attack) {
-      if (p.attack.kind === "light" && p.attack.elapsed > p.attack.duration * 0.48) p.bufferedLight = true;
+      if (p.attack.kind === "light" && p.attack.elapsed > p.attack.duration * 0.45) p.bufferedLight = true;
       return;
     }
 
@@ -376,7 +517,7 @@
     p.comboStep = p.comboTimer > 0 ? (p.comboStep % 3) + 1 : 1;
     const step = p.comboStep;
     const durations = [0, 0.27, 0.30, 0.39];
-    const active = [0, 0.085, 0.095, 0.13];
+    const active = [0, 0.082, 0.095, 0.13];
     p.attack = {
       kind: "light",
       step,
@@ -387,192 +528,311 @@
       lunged: false
     };
     p.comboTimer = 0;
-    addSlash(step === 3 ? "finisher" : "light");
   }
 
   function performHeavy() {
     if (!battle || battle.finished) return;
     const p = battle.player;
     if (p.attack) return;
-    p.comboStep = 0;
-    p.comboTimer = 0;
+    p.bufferedLight = false;
     p.attack = {
       kind: "heavy",
       step: 0,
       elapsed: 0,
-      duration: 0.64,
-      activeAt: 0.34,
+      duration: 0.62,
+      activeAt: 0.31,
       didHit: false,
       lunged: false
     };
-    addSlash("heavy");
-    flashMessage("HEAVY — 踏み込め", 420);
+    p.comboStep = 0;
+    p.comboTimer = 0;
+    flashMessage("HEAVY — 振り切れ", 380);
   }
 
   function applyAttackHits(attack) {
     const p = battle.player;
     const heavy = attack.kind === "heavy";
     const finisher = !heavy && attack.step === 3;
-    const reach = battle.tuning.reach + (heavy ? 28 : attack.step * 5);
-    let damage = heavy
+    const reach = battle.tuning.reach + (heavy ? 20 : finisher ? 12 : 0);
+    const baseDamage = heavy
       ? battle.tuning.heavyDamage
-      : battle.tuning.lightDamage * (attack.step === 1 ? 0.82 : attack.step === 2 ? 0.94 : 1.34 * battle.tuning.comboFinisher);
+      : battle.tuning.lightDamage * (attack.step === 2 ? 1.08 : finisher ? 1.32 * battle.tuning.comboFinisher : 1);
 
+    let damage = baseDamage;
     if (p.empowered) {
-      damage *= 1.55;
+      damage *= 1.65;
       p.empowered = false;
-      flashMessage("AFTERSTEP STRIKE", 500);
+      flashMessage("AFTERSTEP — 強化打撃", 520);
     }
     if (battle.tuning.lowHealthRisk && p.hp <= 35) damage *= 1.38;
 
-    let hitAny = false;
+    let hitSomething = false;
     battle.enemies.forEach((enemy) => {
-      if (enemy.hp <= 0) return;
-      const dist = distance(p, enemy);
-      if (dist > reach + enemy.radius) return;
+      if (enemy.hp <= 0 || enemy.deadTimer > 0) return;
+      if (distance(enemy, p) > reach + enemy.radius) return;
       const toEnemy = normalized(enemy.x - p.x, enemy.y - p.y);
-      const dot = toEnemy.x * p.facingX + toEnemy.y * p.facingY;
-      if (dot < 0.05) return;
+      const facingDot = toEnemy.x * p.facingX + toEnemy.y * p.facingY;
+      if (facingDot < 0.15) return;
 
       if (enemy.kind === "guard" && enemy.guarding && !heavy && !finisher) {
-        enemy.stagger = 0.12;
-        enemy.vx += toEnemy.x * 35;
-        enemy.vy += toEnemy.y * 35;
-        spawnImpact(enemy.x, enemy.y, "#d9c28d", 9);
-        battle.hitStop = 0.045;
-        battle.shake = 2;
-        addText(enemy.x, enemy.y - 38, "BLOCK", "#e5d09c");
-        hitAny = true;
+        enemy.stagger = 0.10;
+        spawnBurst(enemy.x, enemy.y, 8, "#d4c18c");
+        battle.hitStop = 0.025;
+        battle.shake = Math.max(battle.shake, 2);
+        addText(enemy.x, enemy.y - 44, "BLOCK", "#dfcf9b");
+        flashMessage("盾に弾かれた — 重攻撃で崩せ", 600);
+        hitSomething = true;
         return;
       }
 
-      const guardBreak = enemy.kind === "guard" && enemy.guarding && (heavy || finisher);
-      if (guardBreak) enemy.guarding = false;
+      let dealt = damage;
+      if (enemy.kind === "guard" && enemy.guarding && (heavy || finisher)) {
+        dealt *= heavy ? 1.2 : 0.9;
+        enemy.guarding = false;
+        enemy.guardCycle = 1.3;
+        addText(enemy.x, enemy.y - 48, "GUARD BREAK", "#f2c96f");
+      }
 
-      const dealt = damage * (guardBreak ? 1.12 : 1);
       enemy.hp = Math.max(0, enemy.hp - dealt);
-      enemy.hitFlash = 0.12;
-      enemy.telegraph = 0;
-      enemy.recover = 0.18;
-      enemy.stagger = heavy ? 0.48 * battle.tuning.heavyStagger : finisher ? 0.34 : 0.16;
-
-      const knock = heavy ? 105 * battle.tuning.heavyStagger : finisher ? 88 : 38 + attack.step * 8;
-      enemy.vx += toEnemy.x * knock;
-      enemy.vy += toEnemy.y * knock;
-
-      spawnImpact(enemy.x, enemy.y, heavy ? "#ffd27a" : "#f2e1bd", heavy ? 18 : finisher ? 15 : 9);
-      battle.hitStop = Math.max(battle.hitStop, heavy ? 0.095 : finisher ? 0.078 : 0.052);
+      enemy.hitFlash = 0.13;
+      const staggerScale = heavy ? battle.tuning.heavyStagger : 1;
+      enemy.stagger = heavy ? 0.42 * staggerScale : finisher ? 0.30 : 0.12;
+      const knock = heavy ? 42 * staggerScale : finisher ? 34 : 10;
+      enemy.vx += toEnemy.x * knock * 3.2;
+      enemy.vy += toEnemy.y * knock * 3.2;
+      spawnBurst(enemy.x, enemy.y, heavy ? 15 : finisher ? 12 : 8, heavy ? "#f0c96a" : "#e6d0a7");
+      battle.slashes.push({
+        x: p.x + p.facingX * 28,
+        y: p.y + p.facingY * 28,
+        angle: Math.atan2(p.facingY, p.facingX),
+        life: 0.13,
+        heavy,
+        finisher
+      });
+      battle.hitStop = Math.max(battle.hitStop, heavy ? 0.075 : finisher ? 0.060 : 0.035);
       battle.shake = Math.max(battle.shake, heavy ? 8 : finisher ? 6 : 3);
-      addText(enemy.x, enemy.y - 40, String(Math.round(dealt)), heavy ? "#ffd27a" : "#f5ead4");
-      hitAny = true;
+      addText(enemy.x, enemy.y - 43, `${Math.round(dealt)}`, heavy ? "#ffd875" : "#f5e0bd");
+      hitSomething = true;
 
       if (enemy.hp <= 0) {
-        enemy.deadTimer = 0.65;
-        enemy.vx += toEnemy.x * 125;
-        enemy.vy += toEnemy.y * 125;
-        spawnImpact(enemy.x, enemy.y, "#b94f42", 26);
-        addText(enemy.x, enemy.y - 55, "DOWN", "#e76e5b");
+        enemy.deadTimer = 0.46;
+        enemy.stagger = 1;
+        enemy.vx += toEnemy.x * 210;
+        enemy.vy += toEnemy.y * 210;
+        addText(enemy.x, enemy.y - 58, "DOWN", "#d96858");
       }
     });
 
-    if (hitAny) updateCombatHud();
+    if (!hitSomething) {
+      battle.slashes.push({
+        x: p.x + p.facingX * 31,
+        y: p.y + p.facingY * 31,
+        angle: Math.atan2(p.facingY, p.facingX),
+        life: 0.10,
+        heavy,
+        finisher
+      });
+    }
+
+    updateCombatHud();
     if (battle.enemies.every((enemy) => enemy.hp <= 0)) finishVictory();
   }
 
   function updateEnemy(enemy, dt) {
-    enemy.hitFlash = Math.max(0, enemy.hitFlash - dt);
-    enemy.attackCooldown = Math.max(0, enemy.attackCooldown - dt);
-    enemy.recover = Math.max(0, enemy.recover - dt);
-    enemy.stagger = Math.max(0, enemy.stagger - dt);
-
-    enemy.x += enemy.vx * dt;
-    enemy.y += enemy.vy * dt;
-    enemy.vx *= Math.pow(0.04, dt);
-    enemy.vy *= Math.pow(0.04, dt);
-
     if (enemy.hp <= 0) {
       enemy.deadTimer = Math.max(0, enemy.deadTimer - dt);
+      enemy.x += enemy.vx * dt;
+      enemy.y += enemy.vy * dt;
+      enemy.vx *= 0.90;
+      enemy.vy *= 0.90;
       return;
     }
 
-    const p = battle.player;
-    const toPlayer = normalized(p.x - enemy.x, p.y - enemy.y);
-    const dist = distance(enemy, p);
+    enemy.stagger = Math.max(0, enemy.stagger - dt);
+    enemy.hitFlash = Math.max(0, enemy.hitFlash - dt);
+    enemy.attackCooldown = Math.max(0, enemy.attackCooldown - dt);
+    enemy.recover = Math.max(0, enemy.recover - dt);
 
-    if (enemy.telegraph > 0) {
-      enemy.telegraph -= dt;
-      if (enemy.telegraph <= 0) enemyStrike(enemy);
-      return;
+    enemy.x += enemy.vx * dt;
+    enemy.y += enemy.vy * dt;
+    enemy.vx *= 0.84;
+    enemy.vy *= 0.84;
+
+    if (enemy.kind === "guard") {
+      enemy.guardCycle = (enemy.guardCycle + dt) % 2.7;
+      if (enemy.guardCycle < 1.18 && enemy.recover <= 0 && enemy.telegraph <= 0) enemy.guarding = true;
+      else if (enemy.guardCycle > 1.5) enemy.guarding = false;
     }
 
     if (enemy.stagger > 0 || enemy.recover > 0) return;
 
-    if (enemy.kind === "guard") {
-      enemy.guarding = enemy.attackCooldown > 0.55;
-    }
-
-    const desired = enemy.kind === "rusher" ? 66 : 82;
-    const speed = enemy.kind === "rusher" ? 112 : 78;
-
-    if (dist > desired) {
-      enemy.x += toPlayer.x * speed * dt;
-      enemy.y += toPlayer.y * speed * dt;
-    } else if (enemy.attackCooldown <= 0) {
-      enemy.telegraphTotal = enemy.kind === "rusher" ? 0.48 : 0.68;
-      enemy.telegraph = enemy.telegraphTotal;
-      enemy.guarding = false;
-      flashMessage(enemy.kind === "rusher" ? "来る。" : "大振りが来る。", 420);
-    }
-  }
-
-  function enemyStrike(enemy) {
-    const p = battle.player;
-    enemy.attackCooldown = enemy.kind === "rusher" ? 1.05 : 1.42;
-    enemy.recover = 0.34;
-    const toPlayer = normalized(p.x - enemy.x, p.y - enemy.y);
-    enemy.x += toPlayer.x * 24;
-    enemy.y += toPlayer.y * 24;
-
-    battle.slashes.push({
-      x: enemy.x,
-      y: enemy.y,
-      angle: Math.atan2(toPlayer.y, toPlayer.x),
-      life: 0.16,
-      maxLife: 0.16,
-      kind: "enemy"
-    });
-
-    if (distance(enemy, p) > (enemy.kind === "rusher" ? 86 : 102)) return;
-
-    if (p.invulnerable > 0) {
-      const perfect = p.evadeAge <= 0.19;
-      spawnImpact(p.x, p.y, perfect ? "#fff0a8" : "#b6cbd2", perfect ? 18 : 10);
-      if (perfect) {
-        battle.hitStop = 0.075;
-        battle.shake = 4;
-        p.empowered = true;
-        enemy.stagger = 0.55;
-        enemy.vx -= toPlayer.x * 45;
-        enemy.vy -= toPlayer.y * 45;
-        addText(p.x, p.y - 48, "PERFECT", "#fff0a8");
-        flashMessage("PERFECT EVADE — 次の一撃を叩き込め", 850);
+    if (enemy.telegraph > 0) {
+      enemy.telegraph -= dt;
+      if (enemy.telegraph <= 0) {
+        if (enemy.kind === "skirmisher") launchProjectile(enemy);
+        else resolveEnemyMelee(enemy);
       }
       return;
     }
 
-    let incoming = enemy.damage;
+    if (enemy.kind === "skirmisher") updateSkirmisher(enemy, dt);
+    else if (enemy.kind === "guard") updateGuard(enemy, dt);
+    else updateRusher(enemy, dt);
+
+    enemy.x = clamp(enemy.x, 50, canvas.width - 50);
+    enemy.y = clamp(enemy.y, 76, canvas.height - 42);
+  }
+
+  function updateRusher(enemy, dt) {
+    const p = battle.player;
+    const toPlayer = normalized(p.x - enemy.x, p.y - enemy.y);
+    const dist = distance(enemy, p);
+
+    if (dist > enemy.attackRange) {
+      enemy.x += toPlayer.x * enemy.moveSpeed * dt;
+      enemy.y += toPlayer.y * enemy.moveSpeed * dt;
+    }
+
+    if (dist <= enemy.attackRange + 8 && enemy.attackCooldown <= 0) startEnemyTelegraph(enemy, 0.34);
+  }
+
+  function updateGuard(enemy, dt) {
+    const p = battle.player;
+    const toPlayer = normalized(p.x - enemy.x, p.y - enemy.y);
+    const dist = distance(enemy, p);
+    const desired = 70;
+
+    if (dist > desired + 10) {
+      enemy.x += toPlayer.x * enemy.moveSpeed * dt;
+      enemy.y += toPlayer.y * enemy.moveSpeed * dt;
+    } else if (dist < desired - 16) {
+      enemy.x -= toPlayer.x * enemy.moveSpeed * 0.45 * dt;
+      enemy.y -= toPlayer.y * enemy.moveSpeed * 0.45 * dt;
+    }
+
+    if (dist <= enemy.attackRange + 8 && enemy.attackCooldown <= 0 && !enemy.guarding) startEnemyTelegraph(enemy, 0.58);
+  }
+
+  function updateSkirmisher(enemy, dt) {
+    const p = battle.player;
+    const toPlayer = normalized(p.x - enemy.x, p.y - enemy.y);
+    const dist = distance(enemy, p);
+    const desired = 205;
+
+    if (dist < 145) {
+      enemy.x -= toPlayer.x * enemy.moveSpeed * 1.25 * dt;
+      enemy.y -= toPlayer.y * enemy.moveSpeed * 1.25 * dt;
+    } else if (dist > 255) {
+      enemy.x += toPlayer.x * enemy.moveSpeed * 0.9 * dt;
+      enemy.y += toPlayer.y * enemy.moveSpeed * 0.9 * dt;
+    } else {
+      const tangent = { x: -toPlayer.y * enemy.strafeDir, y: toPlayer.x * enemy.strafeDir };
+      enemy.x += tangent.x * enemy.moveSpeed * 0.65 * dt;
+      enemy.y += tangent.y * enemy.moveSpeed * 0.65 * dt;
+      if (Math.abs(dist - desired) > 18) {
+        const correction = dist > desired ? 1 : -1;
+        enemy.x += toPlayer.x * enemy.moveSpeed * 0.25 * correction * dt;
+        enemy.y += toPlayer.y * enemy.moveSpeed * 0.25 * correction * dt;
+      }
+    }
+
+    if (enemy.attackCooldown <= 0 && dist <= 310) startEnemyTelegraph(enemy, 0.78);
+  }
+
+  function startEnemyTelegraph(enemy, duration) {
+    enemy.telegraph = duration;
+    enemy.telegraphTotal = duration;
+    enemy.guarding = false;
+  }
+
+  function resolveEnemyMelee(enemy) {
+    const p = battle.player;
+    enemy.attackCooldown = enemy.kind === "rusher" ? 0.82 : 1.28;
+    enemy.recover = enemy.kind === "rusher" ? 0.18 : 0.34;
+    const range = enemy.attackRange + 17;
+
+    if (distance(enemy, p) > range) {
+      addText(enemy.x, enemy.y - 44, "MISS", "#9b9b91");
+      return;
+    }
+
+    if (p.invulnerable > 0) {
+      perfectEvade(enemy.x, enemy.y);
+      return;
+    }
+
+    damagePlayer(enemy.damage, enemy.x, enemy.y);
+  }
+
+  function launchProjectile(enemy) {
+    const p = battle.player;
+    enemy.attackCooldown = 1.65;
+    enemy.recover = 0.25;
+    const dir = normalized(p.x - enemy.x, p.y - enemy.y);
+    battle.projectiles.push({
+      x: enemy.x + dir.x * 24,
+      y: enemy.y + dir.y * 24,
+      vx: dir.x * 360,
+      vy: dir.y * 360,
+      radius: 7,
+      damage: enemy.damage,
+      life: 1.8
+    });
+    spawnBurst(enemy.x, enemy.y, 5, "#b9c59d");
+  }
+
+  function updateProjectiles(dt) {
+    const p = battle.player;
+    battle.projectiles.forEach((projectile) => {
+      if (projectile.life <= 0) return;
+      projectile.life -= dt;
+      projectile.x += projectile.vx * dt;
+      projectile.y += projectile.vy * dt;
+
+      if (distance(projectile, p) <= projectile.radius + 18) {
+        projectile.life = 0;
+        if (p.invulnerable > 0) perfectEvade(projectile.x, projectile.y);
+        else damagePlayer(projectile.damage, projectile.x, projectile.y);
+      }
+    });
+    battle.projectiles = battle.projectiles.filter((projectile) =>
+      projectile.life > 0 &&
+      projectile.x > -30 &&
+      projectile.x < canvas.width + 30 &&
+      projectile.y > -30 &&
+      projectile.y < canvas.height + 30
+    );
+  }
+
+  function perfectEvade(x, y) {
+    const p = battle.player;
+    const perfect = p.evadeAge < 0.19;
+    if (perfect) {
+      p.empowered = true;
+      flashMessage("PERFECT EVADE — 次の一撃が強化", 850);
+      addText(p.x, p.y - 50, "PERFECT", "#d9d9b0");
+      battle.hitStop = 0.045;
+      battle.shake = Math.max(battle.shake, 3);
+    } else {
+      flashMessage("EVADE", 320);
+    }
+    spawnBurst(x, y, 9, "#b8c8b0");
+  }
+
+  function damagePlayer(amount, sourceX, sourceY) {
+    const p = battle.player;
+    let incoming = amount;
     if (battle.tuning.lowHealthRisk && p.hp <= 35) incoming *= 1.22;
     p.hp = Math.max(0, p.hp - incoming);
     p.flash = 0.18;
-    p.attack = null;
-    p.comboStep = 0;
-    p.comboTimer = 0;
-    p.x = clamp(p.x + toPlayer.x * 18, 48, canvas.width - 48);
-    p.y = clamp(p.y + toPlayer.y * 18, 70, canvas.height - 42);
-    spawnImpact(p.x, p.y, "#d95c4c", 16);
-    battle.hitStop = 0.065;
-    battle.shake = 7;
-    addText(p.x, p.y - 48, `-${Math.round(incoming)}`, "#ff7b69");
+    const away = normalized(p.x - sourceX, p.y - sourceY);
+    p.x = clamp(p.x + away.x * 24, 48, canvas.width - 48);
+    p.y = clamp(p.y + away.y * 24, 72, canvas.height - 42);
+    battle.hitStop = 0.055;
+    battle.shake = Math.max(battle.shake, 7);
+    spawnBurst(p.x, p.y, 11, "#c95d4e");
+    addText(p.x, p.y - 48, `-${Math.round(incoming)}`, "#ef7b66");
+    flashMessage(`${Math.round(incoming)} DAMAGE`, 500);
     updateCombatHud();
     if (p.hp <= 0) finishDefeat();
   }
@@ -588,89 +848,26 @@
       dx = p.facingX;
       dy = p.facingY;
     }
-
     const move = normalized(dx, dy);
-    p.attack = null;
-    p.bufferedLight = false;
-    p.x = clamp(p.x + move.x * 108, 48, canvas.width - 48);
-    p.y = clamp(p.y + move.y * 108, 70, canvas.height - 42);
+    p.x = clamp(p.x + move.x * 105, 48, canvas.width - 48);
+    p.y = clamp(p.y + move.y * 105, 72, canvas.height - 42);
     p.facingX = move.x;
     p.facingY = move.y;
-    p.invulnerable = 0.34;
-    p.evadeCooldown = 0.68;
+    p.invulnerable = 0.32;
     p.evadeAge = 0;
-    spawnTrail(p.x, p.y, "#a9c0b7", 10);
-  }
-
-  function spawnImpact(x, y, color, count) {
-    for (let i = 0; i < count; i += 1) {
-      const angle = Math.random() * Math.PI * 2;
-      const speed = 55 + Math.random() * 150;
-      battle.particles.push({
-        x,
-        y,
-        vx: Math.cos(angle) * speed,
-        vy: Math.sin(angle) * speed,
-        life: 0.18 + Math.random() * 0.28,
-        size: 2 + Math.random() * 4,
-        color
-      });
-    }
-  }
-
-  function spawnTrail(x, y, color, count) {
-    for (let i = 0; i < count; i += 1) {
-      battle.particles.push({
-        x: x + (Math.random() - 0.5) * 30,
-        y: y + (Math.random() - 0.5) * 30,
-        vx: (Math.random() - 0.5) * 20,
-        vy: (Math.random() - 0.5) * 20,
-        life: 0.2 + Math.random() * 0.22,
-        size: 3 + Math.random() * 4,
-        color
-      });
-    }
-  }
-
-  function addText(x, y, text, color) {
-    battle.texts.push({ x, y, text, color, life: 0.65 });
-  }
-
-  function addSlash(kind) {
-    const p = battle.player;
-    battle.slashes.push({
-      x: p.x,
-      y: p.y,
-      angle: Math.atan2(p.facingY, p.facingX),
-      life: kind === "heavy" ? 0.42 : 0.23,
-      maxLife: kind === "heavy" ? 0.42 : 0.23,
-      kind
-    });
+    p.evadeCooldown = 0.68;
+    p.attack = null;
+    p.bufferedLight = false;
+    spawnBurst(p.x, p.y, 8, "#8ea18b");
   }
 
   function finishVictory() {
     if (!battle || battle.finished) return;
     battle.finished = true;
     stopCombatLoop();
-    const remainingHp = battle.player.hp;
-    state = Core.resolveVictory(state, remainingHp);
+    state = Core.resolveVictory(state, battle.player.hp);
     updateCombatHud();
-    window.setTimeout(showLootReveal, 260);
-  }
-
-  function showLootReveal() {
-    const ids = state.expedition.lastLootIds || [];
-    const items = state.expedition.unsecuredLoot.filter((item) => ids.includes(item.id));
-    const list = document.getElementById("loot-reveal-items");
-    list.innerHTML = "";
-    items.forEach((item) => list.appendChild(lootCard(item, false, true)));
-    const place = state.expedition.lastDiscovery;
-    document.getElementById("loot-reveal-place").textContent = place ? place.name : "戦場";
-    lootReveal.classList.add("active");
-  }
-
-  function hideLootReveal() {
-    lootReveal.classList.remove("active");
+    window.setTimeout(showLootReveal, 320);
   }
 
   function finishDefeat() {
@@ -680,14 +877,14 @@
     const lost = carried - Math.floor(carried / 2);
     stopCombatLoop();
     state = Core.resolveDefeat(state);
-    lastOutcome = lost ? `敗北 / ${lost}個喪失` : "敗北 / 手ぶらで帰還";
+    lastOutcome = lost > 0 ? `DEFEATED / ${lost} LOOT LOST` : "DEFEATED / RETURNED EMPTY";
     window.setTimeout(() => {
       renderHub();
       window.setTimeout(() => {
         lastOutcome = "";
-        if (!state.expedition) showScreen("hub");
-      }, 2200);
-    }, 480);
+        runStatus.innerHTML = "<span>GREY HEARTH</span><strong>SAFE</strong>";
+      }, 2600);
+    }, 520);
   }
 
   function updateCombatHud() {
@@ -695,7 +892,6 @@
     const hpPercent = clamp((battle.player.hp / battle.player.maxHp) * 100, 0, 100);
     document.getElementById("player-health-bar").style.width = `${hpPercent}%`;
     document.getElementById("player-health-text").textContent = Math.ceil(battle.player.hp);
-
     const totalEnemyHp = battle.enemies.reduce((sum, enemy) => sum + Math.max(0, enemy.hp), 0);
     const totalEnemyMax = battle.enemies.reduce((sum, enemy) => sum + enemy.maxHealth, 0) || 1;
     document.getElementById("enemy-health-bar").style.width = `${(totalEnemyHp / totalEnemyMax) * 100}%`;
@@ -710,261 +906,309 @@
     messageTimer = window.setTimeout(() => element.classList.remove("show"), duration);
   }
 
-  function drawBattle() {
+  function spawnBurst(x, y, count, color) {
     if (!battle) return;
-    ctx.save();
-    const shakeX = battle.shake ? (Math.random() - 0.5) * battle.shake : 0;
-    const shakeY = battle.shake ? (Math.random() - 0.5) * battle.shake : 0;
-    ctx.translate(shakeX, shakeY);
-    ctx.clearRect(-20, -20, canvas.width + 40, canvas.height + 40);
-    drawGround();
-    drawShadows();
-    battle.slashes.forEach(drawSlash);
-    battle.enemies.forEach(drawEnemy);
-    drawPlayer();
-    drawParticles();
-    ctx.restore();
-    drawTexts();
+    for (let i = 0; i < count; i += 1) {
+      const angle = Math.random() * Math.PI * 2;
+      const speed = 35 + Math.random() * 120;
+      battle.particles.push({
+        x,
+        y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        life: 0.22 + Math.random() * 0.30,
+        color
+      });
+    }
   }
 
-  function drawGround() {
-    const palette = document.getElementById("arena-wrap").dataset.palette || "road";
-    const gradients = {
-      chapel: ["#1a1916", "#090a09", "#5a5042"],
-      woods: ["#141a13", "#080b08", "#314a31"],
-      road: ["#1b1813", "#0b0a08", "#5d4c37"],
-      marsh: ["#101918", "#070a0a", "#31524e"],
-      hill: ["#1b1713", "#090908", "#674530"],
-      cut: ["#181413", "#080707", "#583937"]
+  function addText(x, y, value, color) {
+    if (!battle) return;
+    battle.texts.push({ x, y, value, color, life: 0.62 });
+  }
+
+  function renderStillScene(discovery) {
+    battle = null;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    drawGround(discovery ? discovery.palette : "road", 0);
+    ctx.save();
+    ctx.globalAlpha = 0.75;
+    ctx.fillStyle = "#16130f";
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.restore();
+  }
+
+  function drawBattle() {
+    if (!battle) return;
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    const shakeX = battle.shake ? (Math.random() - 0.5) * battle.shake : 0;
+    const shakeY = battle.shake ? (Math.random() - 0.5) * battle.shake : 0;
+    ctx.save();
+    ctx.translate(shakeX, shakeY);
+
+    const discovery = state.expedition && state.expedition.lastDiscovery;
+    drawGround(discovery ? discovery.palette : "road", battle.elapsed);
+    battle.projectiles.forEach(drawProjectile);
+    battle.enemies.forEach(drawEnemy);
+    drawPlayer();
+    battle.slashes.forEach(drawSlash);
+
+    battle.particles.forEach((particle) => {
+      ctx.globalAlpha = Math.min(1, particle.life * 4);
+      ctx.fillStyle = particle.color;
+      ctx.fillRect(particle.x - 2, particle.y - 2, 4, 4);
+    });
+    ctx.globalAlpha = 1;
+
+    battle.texts.forEach((text) => {
+      ctx.globalAlpha = Math.min(1, text.life * 2.2);
+      ctx.fillStyle = text.color;
+      ctx.font = "700 14px ui-sans-serif, system-ui";
+      ctx.textAlign = "center";
+      ctx.fillText(text.value, text.x, text.y);
+    });
+    ctx.globalAlpha = 1;
+    ctx.restore();
+  }
+
+  function drawGround(palette, elapsed) {
+    const palettes = {
+      chapel: ["#17140f", "#262017", "#8b7449"],
+      woods: ["#10150f", "#1b281a", "#65714f"],
+      road: ["#17150f", "#272219", "#857452"],
+      marsh: ["#0f1716", "#172522", "#55766e"],
+      hill: ["#18140f", "#2a2017", "#98734b"],
+      cut: ["#151315", "#261e24", "#785e70"]
     };
-    const [base, edge, glow] = gradients[palette] || gradients.road;
-
-    ctx.fillStyle = base;
+    const colors = palettes[palette] || palettes.road;
+    ctx.fillStyle = colors[0];
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    const horizon = ctx.createLinearGradient(0, 0, 0, canvas.height);
-    horizon.addColorStop(0, `${glow}66`);
-    horizon.addColorStop(0.42, `${base}22`);
-    horizon.addColorStop(1, edge);
-    ctx.fillStyle = horizon;
+    const gradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+    gradient.addColorStop(0, colors[1]);
+    gradient.addColorStop(1, colors[0]);
+    ctx.fillStyle = gradient;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-    ctx.fillStyle = "rgba(0,0,0,.28)";
-    ctx.beginPath();
-    ctx.moveTo(0, 415);
-    ctx.quadraticCurveTo(230, 355, 430, 420);
-    ctx.quadraticCurveTo(710, 485, 960, 380);
-    ctx.lineTo(960, 540);
-    ctx.lineTo(0, 540);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.strokeStyle = "rgba(236,218,180,.055)";
+    ctx.strokeStyle = `${colors[2]}22`;
     ctx.lineWidth = 1;
-    for (let y = 385; y < 540; y += 32) {
+    for (let y = 110; y < canvas.height; y += 68) {
       ctx.beginPath();
       ctx.moveTo(0, y);
-      ctx.quadraticCurveTo(480, y - 28, 960, y + 6);
+      ctx.bezierCurveTo(230, y - 16, 610, y + 20, canvas.width, y - 8);
       ctx.stroke();
     }
 
-    ctx.fillStyle = "rgba(0,0,0,.22)";
-    for (let i = 0; i < 8; i += 1) {
-      const x = i * 145 - 40;
-      ctx.fillRect(x, 90 + (i % 2) * 34, 22, 280);
-      ctx.beginPath();
-      ctx.moveTo(x - 70, 145);
-      ctx.lineTo(x + 11, 35);
-      ctx.lineTo(x + 92, 145);
-      ctx.closePath();
-      ctx.fill();
+    if (palette === "woods" || palette === "marsh") {
+      ctx.fillStyle = `${colors[2]}14`;
+      for (let i = 0; i < 8; i += 1) {
+        const x = 70 + i * 130 + Math.sin(elapsed * 0.3 + i) * 6;
+        ctx.fillRect(x, 70, 12, 330);
+      }
     }
 
-    const vignette = ctx.createRadialGradient(480, 300, 170, 480, 280, 600);
+    if (palette === "chapel" || palette === "cut") {
+      ctx.strokeStyle = `${colors[2]}28`;
+      ctx.lineWidth = 8;
+      ctx.strokeRect(90, 80, 250, 350);
+      ctx.strokeRect(620, 120, 210, 300);
+    }
+
+    const vignette = ctx.createRadialGradient(480, 270, 90, 480, 270, 560);
     vignette.addColorStop(0, "rgba(0,0,0,0)");
-    vignette.addColorStop(1, "rgba(0,0,0,.62)");
+    vignette.addColorStop(1, "rgba(0,0,0,.46)");
     ctx.fillStyle = vignette;
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
-  function drawShadows() {
-    const actors = [battle.player, ...battle.enemies.filter((enemy) => enemy.hp > 0 || enemy.deadTimer > 0)];
-    actors.forEach((actor) => {
-      ctx.save();
-      ctx.translate(actor.x, actor.y + 27);
-      ctx.scale(1.8, 0.48);
-      ctx.fillStyle = "rgba(0,0,0,.42)";
-      ctx.beginPath();
-      ctx.arc(0, 0, 20, 0, Math.PI * 2);
-      ctx.fill();
-      ctx.restore();
-    });
-  }
-
-  function drawHumanoid(x, y, facingX, facingY, options = {}) {
-    const angle = Math.atan2(facingY, facingX);
-    const flash = options.flash;
-    const body = flash ? "#ffe2cf" : options.body;
-    const accent = options.accent;
-    const dead = options.dead || 0;
-    const attack = options.attack;
-
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.rotate(dead ? dead * 1.2 : 0);
-
-    ctx.strokeStyle = body;
-    ctx.fillStyle = body;
-    ctx.lineCap = "round";
-
-    ctx.lineWidth = 9;
-    ctx.beginPath();
-    ctx.moveTo(0, -18);
-    ctx.lineTo(0, 16);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(0, -32, 10, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.lineWidth = 7;
-    ctx.beginPath();
-    ctx.moveTo(-3, 13);
-    ctx.lineTo(-11, 34);
-    ctx.moveTo(3, 13);
-    ctx.lineTo(12, 34);
-    ctx.stroke();
-
-    const armReach = attack ? 26 + attack * 16 : 21;
-    const fx = Math.cos(angle);
-    const fy = Math.sin(angle);
-    const px = -fy;
-    const py = fx;
-    ctx.beginPath();
-    ctx.moveTo(0, -10);
-    ctx.lineTo(fx * armReach + px * 5, -10 + fy * armReach + py * 5);
-    ctx.moveTo(0, -8);
-    ctx.lineTo(fx * (armReach - 5) - px * 8, -8 + fy * (armReach - 5) - py * 8);
-    ctx.stroke();
-
-    if (accent) {
-      ctx.strokeStyle = accent;
-      ctx.lineWidth = 3;
-      ctx.beginPath();
-      ctx.moveTo(-9, -18);
-      ctx.lineTo(10, 7);
-      ctx.stroke();
-    }
-
-    ctx.restore();
-  }
-
   function drawPlayer() {
     const p = battle.player;
-    let attackPose = 0;
-    if (p.attack) {
-      const t = clamp(p.attack.elapsed / p.attack.duration, 0, 1);
-      attackPose = Math.sin(t * Math.PI);
-    }
-    drawHumanoid(p.x, p.y, p.facingX, p.facingY, {
-      body: p.invulnerable > 0 ? "#d9f0e5" : "#ead7ae",
-      accent: p.empowered ? "#ffd86b" : "#8a7354",
-      flash: p.flash > 0,
-      attack: attackPose
-    });
+    ctx.save();
+    ctx.translate(p.x, p.y);
+    ctx.rotate(Math.atan2(p.facingY, p.facingX));
+
+    const attackLean = p.attack ? Math.sin(Math.min(1, p.attack.elapsed / p.attack.activeAt) * Math.PI) * 5 : 0;
+    ctx.translate(attackLean, 0);
+    ctx.fillStyle = p.flash > 0 ? "#ef8c75" : p.invulnerable > 0 ? "#d9e1d2" : "#d8c39a";
+    ctx.strokeStyle = "#211b14";
+    ctx.lineWidth = 5;
+    ctx.lineCap = "round";
+
+    ctx.beginPath();
+    ctx.arc(0, -18, 10, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(0, -7);
+    ctx.lineTo(0, 17);
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.moveTo(0, 1);
+    ctx.lineTo(18, p.attack ? -6 : 4);
+    ctx.moveTo(0, 3);
+    ctx.lineTo(-13, 10);
+    ctx.moveTo(0, 17);
+    ctx.lineTo(11, 34);
+    ctx.moveTo(0, 17);
+    ctx.lineTo(-10, 34);
+    ctx.stroke();
 
     if (p.empowered) {
-      ctx.strokeStyle = "rgba(255,216,107,.72)";
+      ctx.strokeStyle = "#e3c66e";
       ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(p.x, p.y - 3, 38 + Math.sin(battle.elapsed * 9) * 3, 0, Math.PI * 2);
+      ctx.arc(0, 6, 31, 0, Math.PI * 2);
       ctx.stroke();
     }
+    ctx.restore();
   }
 
   function drawEnemy(enemy) {
     if (enemy.hp <= 0 && enemy.deadTimer <= 0) return;
-    const toward = normalized(battle.player.x - enemy.x, battle.player.y - enemy.y);
-    const deadRatio = enemy.hp <= 0 ? 1 - enemy.deadTimer / 0.65 : 0;
+    const p = battle.player;
+    const toward = normalized(p.x - enemy.x, p.y - enemy.y);
+    const angle = Math.atan2(toward.y, toward.x);
+    const alpha = enemy.hp <= 0 ? clamp(enemy.deadTimer / 0.46, 0, 1) : 1;
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.translate(enemy.x, enemy.y);
+    ctx.rotate(angle);
 
     if (enemy.telegraph > 0) {
-      const progress = 1 - enemy.telegraph / enemy.telegraphTotal;
-      ctx.strokeStyle = `rgba(232,91,67,${0.35 + progress * 0.55})`;
-      ctx.lineWidth = 3 + progress * 3;
+      const pulse = 1 - enemy.telegraph / enemy.telegraphTotal;
+      ctx.strokeStyle = enemy.kind === "skirmisher" ? `rgba(226,194,108,${0.35 + pulse * 0.6})` : `rgba(220,77,62,${0.35 + pulse * 0.6})`;
+      ctx.lineWidth = 3 + pulse * 4;
       ctx.beginPath();
-      ctx.arc(enemy.x, enemy.y, 38 + progress * 18, -Math.PI * 0.15, Math.PI * 2.15);
+      ctx.arc(0, 0, enemy.radius + 16 + pulse * 8, 0, Math.PI * 2);
       ctx.stroke();
 
-      ctx.fillStyle = `rgba(232,91,67,${0.08 + progress * 0.1})`;
-      ctx.beginPath();
-      ctx.moveTo(enemy.x, enemy.y);
-      const a = Math.atan2(toward.y, toward.x);
-      ctx.arc(enemy.x, enemy.y, 105, a - 0.28, a + 0.28);
-      ctx.closePath();
-      ctx.fill();
+      if (enemy.kind === "skirmisher") {
+        ctx.strokeStyle = `rgba(230,210,145,${0.25 + pulse * 0.6})`;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.moveTo(18, 0);
+        ctx.lineTo(180, 0);
+        ctx.stroke();
+      }
     }
 
-    drawHumanoid(enemy.x, enemy.y, toward.x, toward.y, {
-      body: enemy.kind === "guard" ? "#aaa084" : "#bb6658",
-      accent: enemy.kind === "guard" ? "#d2bd83" : "#5d2924",
-      flash: enemy.hitFlash > 0,
-      dead: deadRatio
-    });
+    const base = enemy.kind === "guard" ? "#77705c" : enemy.kind === "skirmisher" ? "#6f7658" : "#934d43";
+    ctx.fillStyle = enemy.hitFlash > 0 ? "#f0b28c" : base;
+    ctx.strokeStyle = "#1b1713";
+    ctx.lineWidth = enemy.kind === "guard" ? 7 : 5;
+    ctx.lineCap = "round";
 
-    if (enemy.kind === "guard" && enemy.guarding && enemy.hp > 0) {
-      const px = -toward.y;
-      const py = toward.x;
-      ctx.strokeStyle = "#cbb98a";
-      ctx.lineWidth = 9;
+    ctx.beginPath();
+    ctx.arc(0, -18, enemy.kind === "skirmisher" ? 9 : 10, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(0, -7);
+    ctx.lineTo(0, 18);
+    ctx.stroke();
+
+    if (enemy.kind === "rusher") {
       ctx.beginPath();
-      ctx.moveTo(enemy.x + toward.x * 28 + px * 14, enemy.y - 7 + toward.y * 28 + py * 14);
-      ctx.lineTo(enemy.x + toward.x * 28 - px * 14, enemy.y - 7 + toward.y * 28 - py * 14);
+      ctx.moveTo(0, 1);
+      ctx.lineTo(20, 8);
+      ctx.moveTo(0, 2);
+      ctx.lineTo(-14, 9);
+      ctx.moveTo(0, 18);
+      ctx.lineTo(14, 34);
+      ctx.moveTo(0, 18);
+      ctx.lineTo(-9, 35);
+      ctx.stroke();
+    } else if (enemy.kind === "guard") {
+      ctx.beginPath();
+      ctx.moveTo(0, 1);
+      ctx.lineTo(14, 5);
+      ctx.moveTo(0, 18);
+      ctx.lineTo(12, 34);
+      ctx.moveTo(0, 18);
+      ctx.lineTo(-11, 34);
+      ctx.stroke();
+      if (enemy.guarding) {
+        ctx.fillStyle = "#b19a67";
+        ctx.beginPath();
+        if (typeof ctx.roundRect === "function") ctx.roundRect(13, -8, 13, 31, 5);
+        else ctx.rect(13, -8, 13, 31);
+        ctx.fill();
+      }
+    } else {
+      ctx.beginPath();
+      ctx.moveTo(0, 2);
+      ctx.lineTo(15, -4);
+      ctx.moveTo(0, 2);
+      ctx.lineTo(-12, 12);
+      ctx.moveTo(0, 18);
+      ctx.lineTo(9, 35);
+      ctx.moveTo(0, 18);
+      ctx.lineTo(-13, 33);
+      ctx.stroke();
+      ctx.strokeStyle = "#b7a77b";
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(17, 0, 13, -1.1, 1.1);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(22, -12);
+      ctx.lineTo(22, 12);
       ctx.stroke();
     }
+
+    ctx.restore();
 
     if (enemy.hp > 0) {
       const ratio = enemy.hp / enemy.maxHealth;
-      ctx.fillStyle = "rgba(0,0,0,.55)";
-      ctx.fillRect(enemy.x - 29, enemy.y - 58, 58, 5);
-      ctx.fillStyle = enemy.telegraph > 0 ? "#e65f4e" : "#a94e44";
-      ctx.fillRect(enemy.x - 29, enemy.y - 58, 58 * ratio, 5);
+      ctx.fillStyle = "rgba(0,0,0,.5)";
+      ctx.fillRect(enemy.x - 25, enemy.y - enemy.radius - 29, 50, 4);
+      ctx.fillStyle = enemy.kind === "skirmisher" ? "#879064" : enemy.kind === "guard" ? "#aa9362" : "#a95649";
+      ctx.fillRect(enemy.x - 25, enemy.y - enemy.radius - 29, 50 * ratio, 4);
+
+      ctx.fillStyle = "rgba(235,226,204,.55)";
+      ctx.font = "700 9px ui-sans-serif, system-ui";
+      ctx.textAlign = "center";
+      const label = enemy.kind === "rusher" ? "RUSHER" : enemy.kind === "guard" ? "GUARD" : "SKIRMISHER";
+      ctx.fillText(label, enemy.x, enemy.y - enemy.radius - 36);
     }
+    ctx.globalAlpha = 1;
+  }
+
+  function drawProjectile(projectile) {
+    const angle = Math.atan2(projectile.vy, projectile.vx);
+    ctx.save();
+    ctx.translate(projectile.x, projectile.y);
+    ctx.rotate(angle);
+    ctx.strokeStyle = "#d9c993";
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-12, 0);
+    ctx.lineTo(12, 0);
+    ctx.stroke();
+    ctx.fillStyle = "#f1ddb0";
+    ctx.beginPath();
+    ctx.moveTo(12, 0);
+    ctx.lineTo(5, -4);
+    ctx.lineTo(5, 4);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
   }
 
   function drawSlash(slash) {
-    const ratio = clamp(slash.life / slash.maxLife, 0, 1);
+    const alpha = clamp(slash.life / 0.13, 0, 1);
     ctx.save();
+    ctx.globalAlpha = alpha;
     ctx.translate(slash.x, slash.y);
     ctx.rotate(slash.angle);
-    ctx.globalAlpha = ratio;
-    ctx.strokeStyle = slash.kind === "enemy" ? "#e66a55" : slash.kind === "heavy" ? "#ffd27a" : "#f3dfb5";
-    ctx.lineWidth = slash.kind === "heavy" ? 8 : 4;
+    ctx.strokeStyle = slash.heavy ? "#ffd875" : slash.finisher ? "#f2c96f" : "#e8d8b7";
+    ctx.lineWidth = slash.heavy ? 6 : slash.finisher ? 5 : 3;
     ctx.beginPath();
-    ctx.arc(0, -8, slash.kind === "heavy" ? 66 : 48, -0.75, 0.6);
+    ctx.arc(0, 0, slash.heavy ? 51 : 38, -0.85, 0.85);
     ctx.stroke();
     ctx.restore();
-    ctx.globalAlpha = 1;
-  }
-
-  function drawParticles() {
-    battle.particles.forEach((particle) => {
-      ctx.globalAlpha = clamp(particle.life * 4, 0, 1);
-      ctx.fillStyle = particle.color;
-      ctx.fillRect(particle.x - particle.size / 2, particle.y - particle.size / 2, particle.size, particle.size);
-    });
-    ctx.globalAlpha = 1;
-  }
-
-  function drawTexts() {
-    battle.texts.forEach((text) => {
-      ctx.save();
-      ctx.globalAlpha = clamp(text.life * 2.2, 0, 1);
-      ctx.fillStyle = text.color;
-      ctx.font = "800 15px system-ui";
-      ctx.textAlign = "center";
-      ctx.fillText(text.text, text.x, text.y);
-      ctx.restore();
-    });
   }
 
   function mapKey(code, down) {
@@ -975,7 +1219,7 @@
   }
 
   window.addEventListener("keydown", (event) => {
-    if (!screens.combat.classList.contains("active") || lootReveal.classList.contains("active")) return;
+    if (!screens.combat.classList.contains("active") || !battle) return;
     mapKey(event.code, true);
     if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "Space"].includes(event.code)) event.preventDefault();
     if (event.repeat) return;
@@ -996,23 +1240,23 @@
     button.addEventListener("pointerleave", end);
   });
 
-  document.getElementById("touch-light").addEventListener("pointerdown", (event) => { event.preventDefault(); performLight(); });
-  document.getElementById("touch-heavy").addEventListener("pointerdown", (event) => { event.preventDefault(); performHeavy(); });
-  document.getElementById("touch-evade").addEventListener("pointerdown", (event) => { event.preventDefault(); performEvade(); });
+  document.getElementById("touch-light").addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    performLight();
+  });
+  document.getElementById("touch-heavy").addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    performHeavy();
+  });
+  document.getElementById("touch-evade").addEventListener("pointerdown", (event) => {
+    event.preventDefault();
+    performEvade();
+  });
 
   document.getElementById("start-expedition").addEventListener("click", () => {
     state = Core.beginExpedition(state, Date.now());
     renderExplore();
   });
-
-  document.getElementById("return-from-explore").addEventListener("click", () => {
-    state = Core.returnHome(state);
-    lastOutcome = "生還 / 戦利品確保";
-    renderHub();
-    window.setTimeout(() => { lastOutcome = ""; }, 1800);
-  });
-
-  document.getElementById("loot-reveal-continue").addEventListener("click", renderDecision);
 
   document.getElementById("continue-expedition").addEventListener("click", () => {
     state = Core.continueExpedition(state);
@@ -1022,10 +1266,26 @@
   document.getElementById("return-home").addEventListener("click", () => {
     const count = state.expedition.unsecuredLoot.length;
     state = Core.returnHome(state);
-    lastOutcome = `生還 / ${count}個確保`;
+    lastOutcome = count ? `${count} LOOT SECURED` : "RETURNED SAFE";
     renderHub();
-    window.setTimeout(() => { lastOutcome = ""; }, 1800);
+    window.setTimeout(() => {
+      lastOutcome = "";
+      runStatus.innerHTML = "<span>GREY HEARTH</span><strong>SAFE</strong>";
+    }, 2500);
   });
+
+  document.getElementById("return-from-explore").addEventListener("click", () => {
+    const count = state.expedition.unsecuredLoot.length;
+    state = Core.returnHome(state);
+    lastOutcome = count ? `${count} LOOT SECURED` : "TURNED BACK";
+    renderHub();
+    window.setTimeout(() => {
+      lastOutcome = "";
+      runStatus.innerHTML = "<span>GREY HEARTH</span><strong>SAFE</strong>";
+    }, 2500);
+  });
+
+  document.getElementById("loot-reveal-continue").addEventListener("click", renderDecision);
 
   renderHub();
 })();
