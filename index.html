@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#15120f" />
+  <title>Crownless — First Expedition</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div>
+        <p class="eyebrow">CROWNLESS / FIELD PROTOTYPE</p>
+        <h1>Crownless</h1>
+      </div>
+      <div id="run-status" class="run-status">SAFE HAVEN</div>
+    </header>
+
+    <main>
+      <section id="hub-screen" class="screen active">
+        <div class="hero-card">
+          <div>
+            <p class="eyebrow">THE GREY HEARTH</p>
+            <h2>名もなき者の帰る場所</h2>
+            <p>武器も称号もない。外には、まだ地図にない道と、持ち帰れれば自分のものになる戦利品がある。</p>
+          </div>
+          <button id="start-expedition" class="primary">探索に出る</button>
+        </div>
+
+        <div class="two-column">
+          <section class="panel">
+            <div class="panel-heading">
+              <h3>装備</h3>
+              <span id="equipped-label" class="tag">素手</span>
+            </div>
+            <div id="equipped-card" class="empty-state">何も装備していない。拳だけが頼りだ。</div>
+          </section>
+
+          <section class="panel">
+            <div class="panel-heading">
+              <h3>確保済み戦利品</h3>
+              <span id="secured-count" class="tag">0</span>
+            </div>
+            <div id="secured-loot" class="loot-list empty-state">まだ何も持ち帰っていない。</div>
+          </section>
+        </div>
+
+        <section class="panel compact stats-panel">
+          <div><strong id="stat-runs">0</strong><span>遠征</span></div>
+          <div><strong id="stat-survived">0</strong><span>生還</span></div>
+          <div><strong id="stat-kills">0</strong><span>撃破</span></div>
+          <div><strong id="stat-defeats">0</strong><span>敗北</span></div>
+        </section>
+      </section>
+
+      <section id="explore-screen" class="screen">
+        <div class="expedition-header">
+          <div>
+            <p class="eyebrow">SIMULATED LOCATION LAYER</p>
+            <h2>霧の外へ</h2>
+          </div>
+          <div class="risk-box">
+            <span>HP <strong id="explore-hp">100</strong></span>
+            <span>未確定 <strong id="explore-loot-count">0</strong></span>
+          </div>
+        </div>
+
+        <div class="map-card">
+          <div id="map-grid" class="map-grid" aria-label="simulated exploration map"></div>
+          <p id="map-hint">隣接する未知の領域を選べ。</p>
+        </div>
+
+        <div class="screen-actions">
+          <button id="return-from-explore" class="secondary">拠点へ戻る</button>
+        </div>
+      </section>
+
+      <section id="combat-screen" class="screen combat-screen">
+        <div class="combat-head">
+          <div>
+            <p class="eyebrow" id="combat-location">UNKNOWN PLACE</p>
+            <h2 id="combat-title">遭遇</h2>
+          </div>
+          <div class="combat-bars">
+            <div class="health-row"><span>YOU</span><div class="bar"><i id="player-health-bar"></i></div><strong id="player-health-text">100</strong></div>
+            <div class="health-row"><span>FOES</span><div class="bar enemy"><i id="enemy-health-bar"></i></div><strong id="enemy-count">1</strong></div>
+          </div>
+        </div>
+
+        <div class="arena-wrap">
+          <canvas id="arena" width="960" height="540"></canvas>
+          <div id="combat-message" class="combat-message">構えろ。</div>
+        </div>
+
+        <div class="controls-copy">
+          <span>移動 WASD / 矢印</span>
+          <span>軽攻撃 J</span>
+          <span>重攻撃 K</span>
+          <span>回避 Space</span>
+        </div>
+
+        <div class="touch-controls" aria-label="touch combat controls">
+          <div class="dpad">
+            <button data-move="up">▲</button>
+            <div><button data-move="left">◀</button><button data-move="down">▼</button><button data-move="right">▶</button></div>
+          </div>
+          <div class="action-pad">
+            <button id="touch-evade" class="action evade">回避</button>
+            <button id="touch-heavy" class="action heavy">重</button>
+            <button id="touch-light" class="action light">軽</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="decision-screen" class="screen">
+        <div class="hero-card danger">
+          <div>
+            <p class="eyebrow">AFTER THE FIGHT</p>
+            <h2>持ち帰るか、さらに進むか</h2>
+            <p>ここで倒れれば、まだ確保していない戦利品の一部を失う。</p>
+          </div>
+          <div class="decision-buttons">
+            <button id="continue-expedition" class="danger-button">さらに進む</button>
+            <button id="return-home" class="primary">戦利品を確保して帰る</button>
+          </div>
+        </div>
+        <section class="panel">
+          <div class="panel-heading">
+            <h3>未確定戦利品</h3>
+            <span class="tag unsafe">UNSECURED</span>
+          </div>
+          <div id="unsecured-loot" class="loot-list"></div>
+        </section>
+      </section>
+    </main>
+
+    <footer>Prototype v0.1 — location is simulated. Get the loop fun before GPS.</footer>
+  </div>
+
+  <script src="src/game-core.js"></script>
+  <script src="src/app.js"></script>
+</body>
+</html>
