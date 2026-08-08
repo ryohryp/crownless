@@ -19,6 +19,7 @@ jobs:
       - name: Syntax check
         run: |
           node --check src/game-core.js
+          node --check src/hunt-system.js
           node --check src/app.js
       - name: Unit tests
         run: npm test

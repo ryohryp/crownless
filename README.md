@@ -54,7 +54,7 @@ Touch controls appear on smaller screens.
 
 ### What to test
 
-Try several expeditions in a row. The current slice is specifically testing whether different enemy roles, event outcomes, and loot choices prevent the loop from becoming repetitive.
+Try several expeditions in a row. The current slice is specifically testing whether different enemy roles, event outcomes, loot choices, and named hunts create a reason to start another run.
 
 - **Rusher** closes distance aggressively.
 - **Guard** blocks ordinary pressure and rewards heavy attacks.
@@ -62,6 +62,16 @@ Try several expeditions in a row. The current slice is specifically testing whet
 - Exploration can lead to fights, ambushes, hidden caches, shrines, or travelers.
 - Fresh loot shows its combat style, playstyle modifier, and comparison with the equipped item.
 - Carried loot remains unsecured until the player returns to the Grey Hearth.
+
+### Named hunts
+
+The Grey Hearth rumor board now tracks three named targets in sequence:
+
+1. **灰牙** — a Rusher hunt that awards the unarmed relic `灰牙の血布`.
+2. **鐘なき騎士** — a Guard hunt that awards the heavy-impact sword `鐘喰らいの武装剣`.
+3. **沼鴉** — a Skirmisher hunt that awards the evade-focused dagger `沼鴉の嘴`.
+
+Exploration leads in a target's territory can show `痕跡`. Resolving two relevant locations reveals the target's lair as a dedicated high-risk exploration lead. Hunt clues persist across safe returns and defeats. Defeating a target drops its signature relic as unsecured loot, so the player still has to survive the return trip to keep it.
 
 Real GPS, parties, and faction warfare are intentionally deferred until this loop is consistently fun.
 
