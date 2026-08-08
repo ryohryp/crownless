@@ -15,16 +15,14 @@
   const ITEM_BASES = [
     { type: "handwraps", name: "Gravecloth Wraps", style: "unarmed", damage: 2, description: "Keep your hands free and your reach short." },
     { type: "dagger", name: "Poacher's Knife", style: "blade", damage: 3, description: "Fast, close, and made for slipping around a guard." },
-    { type: "sword", name: "Notched Arming Sword", style: "blade", damage: 5, description: "Slower than fists, but gives attacks real reach." },
-    { type: "buckler", name: "Ashwood Buckler", style: "guard", damage: 1, description: "Turns defense into an opening for violence." }
+    { type: "sword", name: "Notched Arming Sword", style: "blade", damage: 5, description: "Slower than fists, but gives attacks real reach." }
   ];
 
   const MODIFIERS = [
     { id: "breaker", name: "of the Breaker", description: "Heavy attacks stagger guards much harder.", effect: { heavyStagger: 1.8 } },
     { id: "afterstep", name: "of the Afterstep", description: "A successful evade empowers your next light attack.", effect: { evadeEmpower: true } },
-    { id: "knuckle-saint", name: "of the Knuckle Saint", description: "Unarmed light attacks accelerate your combo and heavy charge.", effect: { unarmedTempo: 1.35 } },
-    { id: "last-blood", name: "of Last Blood", description: "Below 35% health, attacks hit harder but incoming damage also rises.", effect: { lowHealthRisk: true } },
-    { id: "stored-wrath", name: "of Stored Wrath", description: "Guarding a hit stores power for your next heavy attack.", effect: { guardCounter: true } }
+    { id: "knuckle-saint", name: "of the Knuckle Saint", description: "Unarmed light attacks accelerate your combo and heavy charge.", effect: { unarmedTempo: 1.35 }, styles: ["unarmed"] },
+    { id: "last-blood", name: "of Last Blood", description: "Below 35% health, attacks hit harder but incoming damage also rises.", effect: { lowHealthRisk: true } }
   ];
 
   function createRng(seed) {
@@ -116,7 +114,8 @@
   function rollLoot(seed, depth, index) {
     const rng = createRng(Number(seed) + depth * 211 + index * 43 + 7);
     const base = clone(pick(ITEM_BASES, rng));
-    const modifier = clone(pick(MODIFIERS, rng));
+    const compatibleModifiers = MODIFIERS.filter((modifier) => !modifier.styles || modifier.styles.includes(base.style));
+    const modifier = clone(pick(compatibleModifiers, rng));
     const rarityRoll = rng();
     const rarity = rarityRoll > 0.92 ? "relic" : rarityRoll > 0.68 ? "rare" : "uncommon";
     const power = base.damage + depth + (rarity === "relic" ? 3 : rarity === "rare" ? 2 : 1);
@@ -204,8 +203,7 @@
       heavyStagger: effect.heavyStagger || 1,
       evadeEmpower: Boolean(effect.evadeEmpower),
       unarmedTempo: effect.unarmedTempo || 1,
-      lowHealthRisk: Boolean(effect.lowHealthRisk),
-      guardCounter: Boolean(effect.guardCounter)
+      lowHealthRisk: Boolean(effect.lowHealthRisk)
     };
   }
 
