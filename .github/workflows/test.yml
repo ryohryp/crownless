@@ -20,6 +20,7 @@ jobs:
         run: |
           node --check src/game-core.js
           node --check src/hunt-system.js
+          node --check src/dungeon-system.js
           node --check src/app.js
           node --check src/noncombat-presentation.js
       - name: Unit tests
