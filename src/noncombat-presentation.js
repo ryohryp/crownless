@@ -13,7 +13,12 @@
     traveler: "探索イベント / 人物",
     combat: "戦闘 / 敵影",
     ambush: "戦闘 / 待ち伏せ",
-    hunt: "標的"
+    hunt: "標的",
+    dungeon: "ダンジョン / 入口",
+    "dungeon-trap": "坑道 / 罠",
+    "dungeon-combat": "坑道 / 戦闘",
+    "dungeon-elite": "坑道 / エリート",
+    "dungeon-boss": "坑道 / 最奥"
   };
 
   function discoveryKind(state) {
