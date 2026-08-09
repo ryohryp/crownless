@@ -31,6 +31,7 @@ The player begins as an unknown, unarmed person. Bare hands are a valid fighting
 ## Documents
 
 - [Game System Design v0.1](docs/game-system-design-v0.1.md)
+- [Deployment strategy](docs/deployment-strategy.md)
 - [Development guide for coding agents](AGENTS.md)
 
 ## Play the prototype
@@ -45,27 +46,32 @@ Open `http://localhost:4173`.
 
 ### Controls
 
-- Move: `WASD` or arrow keys
-- Light attack / 3-hit combo: `J`
-- Heavy attack / guard break: `K`
-- Evade / perfect evade: `Space`
+Combat is intentionally simple on phones:
 
-Touch controls appear on smaller screens.
+- Movement: **AUTO**
+- Normal attacks / combo: **AUTO**
+- Technique: `K` or the **技** button
+- Evade / perfect evade: `Space` or the **回避** button
+
+The player chooses the important moments rather than steering every step.
 
 ### What to test
 
-Try several expeditions in a row. The current slice is specifically testing whether different enemy roles, event outcomes, loot choices, and named hunts create a reason to start another run.
+Try several expeditions in a row. The current slice is specifically testing whether different enemy roles, event outcomes, loot choices, named hunts, dungeon retreat decisions, and Grey Hearth progression create a reason to start another run.
 
 - **Rusher** closes distance aggressively.
-- **Guard** blocks ordinary pressure and rewards heavy attacks.
+- **Guard** blocks ordinary pressure and rewards techniques / guard breaking.
 - **Skirmisher** keeps range and fires telegraphed projectiles.
-- Exploration can lead to fights, ambushes, hidden caches, shrines, or travelers.
+- Exploration can lead to fights, ambushes, hidden caches, shrines, travelers, named hunts, or dungeon entrances.
 - Fresh loot shows its combat style, playstyle modifier, and comparison with the equipped item.
 - Carried loot remains unsecured until the player returns to the Grey Hearth.
+- The **灰喰い坑道** adds three retreatable rooms with an elite fight, a boss, and a first-clear relic.
+- Successful returns build **Renown**, which grows the Grey Hearth through small functional milestones.
+- Safe Grey Hearth state is stored locally; unfinished expeditions are never saved as secured progress.
 
 ### Named hunts
 
-The Grey Hearth rumor board now tracks three named targets in sequence:
+The Grey Hearth rumor board tracks three named targets in sequence:
 
 1. **灰牙** — a Rusher hunt that awards the unarmed relic `灰牙の血布`.
 2. **鐘なき騎士** — a Guard hunt that awards the heavy-impact sword `鐘喰らいの武装剣`.
@@ -74,6 +80,16 @@ The Grey Hearth rumor board now tracks three named targets in sequence:
 Exploration leads in a target's territory can show `痕跡`. Resolving two relevant locations reveals the target's lair as a dedicated high-risk exploration lead. Hunt clues persist across safe returns and defeats. Defeating a target drops its signature relic as unsecured loot, so the player still has to survive the return trip to keep it.
 
 Real GPS, parties, and faction warfare are intentionally deferred until this loop is consistently fun.
+
+## Hosting
+
+During rapid development:
+
+- **GitHub Pages** publishes the latest `main` build for frequent browser / phone playtests.
+- **Vercel Git auto-deploys are disabled**; Vercel is reserved for deliberate stable production releases.
+- **ChatGPT Sites** can be used for isolated UI or interaction experiments before successful ideas are brought back into the repository.
+
+See [Deployment strategy](docs/deployment-strategy.md) for the reusable policy intended for future lightweight apps as well.
 
 ## Status
 
