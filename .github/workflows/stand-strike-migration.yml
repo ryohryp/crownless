@@ -23,6 +23,18 @@ jobs:
           node-version: 20
       - name: Apply combat migration
         run: node scripts/apply-main-stand-strike.mjs
+      - name: Repair generated contract assertion
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs');
+          const path = 'test/main-stand-strike.test.js';
+          let test = fs.readFileSync(path, 'utf8');
+          test = test.replace(
+            '  assert.match(app, /d > profile\\.range + target\\.radius/);',
+            '  assert.ok(app.includes("if (d > profile.range + target.radius) return;"));'
+          );
+          fs.writeFileSync(path, test);
+          NODE
       - name: Validate migration
         run: |
           node --check src/app.js
