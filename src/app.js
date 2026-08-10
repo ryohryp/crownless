@@ -327,6 +327,7 @@
       guarding: enemy.kind === "guard",
       guardCycle: enemy.kind === "guard" ? 0.2 + index * 0.4 : 0,
       strafeDir: index % 2 ? 1 : -1,
+      wobbleSeed: index * 1.73,
       deadTimer: 0
     }));
 
@@ -360,6 +361,10 @@
       hitStop: 0,
       shake: 0,
       elapsed: 0,
+      ending: false,
+      victoryTimer: 0,
+      lootBeacon: null,
+      lastDown: null,
       finished: false
     };
 
@@ -386,6 +391,16 @@
       raf = requestAnimationFrame(combatLoop);
       return;
     }
+    if (battle.ending) {
+      const done = updateVictoryOutro(dt);
+      drawBattle();
+      if (done) {
+        battle.finished = true;
+        stopCombat();
+        showOutcomeOverlay();
+      } else raf = requestAnimationFrame(combatLoop);
+      return;
+    }
     updateBattle(dt);
     drawBattle();
     raf = requestAnimationFrame(combatLoop);
@@ -394,7 +409,7 @@
   function updateBattle(dt) {
     const p = battle.player;
     battle.elapsed += dt;
-    battle.shake = Math.max(0, battle.shake - dt * 24);
+    battle.shake = Math.max(0, battle.shake - dt * 34);
     p.invulnerable = Math.max(0, p.invulnerable - dt);
     p.evadeCooldown = Math.max(0, p.evadeCooldown - dt);
     p.skillCooldown = Math.max(0, p.skillCooldown - dt);
@@ -410,6 +425,11 @@
     battle.enemies.forEach((enemy) => updateEnemy(enemy, dt));
     updateProjectiles(dt);
 
+    updateCombatEffects(dt);
+    updateActionButtons();
+  }
+
+  function updateCombatEffects(dt) {
     battle.particles.forEach((pt) => {
       pt.life -= dt;
       pt.x += pt.vx * dt;
@@ -422,7 +442,23 @@
     battle.slashes = battle.slashes.filter((slash) => slash.life > 0);
     battle.texts.forEach((text) => { text.life -= dt; text.y -= 24 * dt; });
     battle.texts = battle.texts.filter((text) => text.life > 0);
-    updateActionButtons();
+  }
+
+  function updateVictoryOutro(dt) {
+    battle.elapsed += dt;
+    battle.shake = Math.max(0, battle.shake - dt * 30);
+    battle.victoryTimer = Math.max(0, battle.victoryTimer - dt);
+    if (battle.lootBeacon) battle.lootBeacon.age += dt;
+    battle.enemies.forEach((enemy) => {
+      if (enemy.hp > 0) return;
+      enemy.deadTimer = Math.max(0, enemy.deadTimer - dt);
+      enemy.x += enemy.vx * dt;
+      enemy.y += enemy.vy * dt;
+      enemy.vx *= 0.9;
+      enemy.vy *= 0.9;
+    });
+    updateCombatEffects(dt);
+    return battle.victoryTimer <= 0;
   }
 
   function updateAutoPilot(dt) {
@@ -483,7 +519,7 @@
   }
 
   function performLight() {
-    if (!battle || battle.finished) return;
+    if (!battle || battle.finished || battle.ending) return;
     const p = battle.player;
     if (p.attack || p.recovery > 0) return;
     const tempo = battle.tuning.style === "unarmed" ? battle.tuning.unarmedTempo : 1;
@@ -496,7 +532,7 @@
   }
 
   function performTechnique() {
-    if (!battle || battle.finished) return;
+    if (!battle || battle.finished || battle.ending) return;
     const p = battle.player;
     if (p.recovery > 0) {
       flashMessage(`隙 ${p.recovery.toFixed(1)}s`, 300);
@@ -573,7 +609,7 @@
         enemy.stagger = 0.1;
         spawnBurst(enemy.x, enemy.y, 8, "#d4c18c");
         addText(enemy.x, enemy.y - 48, "BLOCK", "#dfcf9b");
-        battle.hitStop = 0.025;
+        battle.hitStop = 0.03;
         hit = true;
         attack.hitAny = true;
         return;
@@ -599,20 +635,21 @@
       enemy.hitFlash = 0.14;
       const staggerScale = technique ? battle.tuning.heavyStagger * (attack.staggerMultiplier || 1) : 1;
       enemy.stagger = Math.max(enemy.stagger, technique ? 0.42 * staggerScale : finisher ? 0.3 : 0.12);
-      const knock = technique ? 44 * staggerScale * (attack.knockMultiplier || 1) : finisher ? 34 : 10;
-      enemy.vx += toEnemy.x * knock * 3.1;
-      enemy.vy += toEnemy.y * knock * 3.1;
+      const knock = technique ? 50 * staggerScale * (attack.knockMultiplier || 1) : finisher ? 38 : 11;
+      enemy.vx += toEnemy.x * knock * 3.2;
+      enemy.vy += toEnemy.y * knock * 3.2;
       spawnBurst(enemy.x, enemy.y, technique ? 15 : finisher ? 12 : 8, technique ? "#f0c96a" : "#e6d0a7");
       battle.slashes.push({ x: p.x + p.facingX * 31, y: p.y + p.facingY * 31, angle: Math.atan2(p.facingY, p.facingX), life: 0.13, heavy: technique, finisher });
-      battle.hitStop = Math.max(battle.hitStop, technique ? (counter ? 0.1 : 0.075) : finisher ? 0.06 : 0.035);
-      battle.shake = Math.max(battle.shake, technique ? (counter ? 10 : 8) : finisher ? 6 : 3);
+      battle.hitStop = Math.max(battle.hitStop, technique ? (counter ? 0.13 : 0.095) : finisher ? 0.075 : 0.045);
+      battle.shake = Math.max(battle.shake, technique ? (counter ? 13 : 10) : finisher ? 7 : 4);
       addText(enemy.x, enemy.y - 48, `${Math.round(dealt)}`, technique ? "#ffd875" : "#f5e0bd");
       hit = true;
       attack.hitAny = true;
       if (enemy.hp <= 0) {
-        enemy.deadTimer = 0.46;
-        enemy.vx += toEnemy.x * 190;
-        enemy.vy += toEnemy.y * 190;
+        enemy.deadTimer = 0.9;
+        enemy.vx += toEnemy.x * 230;
+        enemy.vy += toEnemy.y * 230;
+        battle.lastDown = { x: enemy.x, y: enemy.y };
         addText(enemy.x, enemy.y - 78, "DOWN", "#d96858");
       }
     });
@@ -751,7 +788,7 @@
   }
 
   function performEvade() {
-    if (!battle || battle.finished) return;
+    if (!battle || battle.finished || battle.ending) return;
     const p = battle.player;
     if (p.evadeCooldown > 0) {
       flashMessage(`回避まで ${p.evadeCooldown.toFixed(1)}s`, 300);
@@ -810,8 +847,8 @@
     const away = norm(p.x - sx, p.y - sy);
     p.x = clamp(p.x + away.x * 24, 64, canvas.width - 64);
     p.y = clamp(p.y + away.y * 24, 92, canvas.height - 58);
-    battle.hitStop = 0.055;
-    battle.shake = Math.max(battle.shake, 7);
+    battle.hitStop = 0.065;
+    battle.shake = Math.max(battle.shake, 8);
     spawnBurst(p.x, p.y, 11, "#c95d4e");
     addText(p.x, p.y - 52, `-${Math.round(incoming)}`, "#ef7b66");
     updateCombatHud();
@@ -819,12 +856,25 @@
   }
 
   function finishVictory() {
-    if (!battle || battle.finished) return;
-    battle.finished = true;
+    if (!battle || battle.finished || battle.ending) return;
+    battle.ending = true;
+    battle.victoryTimer = 0.82;
+    battle.player.attack = null;
+    battle.projectiles = [];
     const hp = battle.player.hp;
-    stopCombat();
     state = Core.resolveVictory(state, hp);
-    window.setTimeout(showOutcomeOverlay, 260);
+
+    const exp = state.expedition;
+    const fresh = (exp.lastLootIds || []).map((id) => exp.unsecuredLoot.find((item) => item.id === id)).filter(Boolean);
+    const rarityRank = { uncommon: 1, rare: 2, relic: 3 };
+    const featured = fresh.slice().sort((a, b) => (rarityRank[b.rarity] || 0) - (rarityRank[a.rarity] || 0))[0];
+    if (featured) {
+      const origin = battle.lastDown || { x: canvas.width * 0.62, y: canvas.height * 0.56 };
+      battle.lootBeacon = { x: origin.x, y: origin.y, rarity: featured.rarity, age: 0, duration: battle.victoryTimer };
+      if ((rarityRank[featured.rarity] || 0) >= 2) {
+        flashMessage(featured.rarity === "relic" ? "RELIC DROP" : "RARE DROP", 720);
+      } else flashMessage("LOOT", 420);
+    }
   }
 
   function finishDefeat() {
@@ -915,6 +965,7 @@
     ctx.translate(canvas.width / 2 + shakeX, canvas.height / 2 + shakeY);
     ctx.scale(zoom, zoom);
     ctx.translate(-focusX, -focusY);
+    if (battle.lootBeacon) drawLootBeacon(battle.lootBeacon);
     battle.projectiles.forEach(drawProjectile);
     battle.enemies.forEach(drawEnemy);
     drawPlayer();
@@ -987,12 +1038,18 @@
   function drawEnemy(enemy) {
     if (enemy.hp <= 0 && enemy.deadTimer <= 0) return;
     const toward = norm(battle.player.x - enemy.x, battle.player.y - enemy.y);
-    const alpha = enemy.hp <= 0 ? clamp(enemy.deadTimer / 0.46, 0, 1) : 1;
+    const hpRatio = enemy.maxHealth ? enemy.hp / enemy.maxHealth : 0;
+    const wounded = enemy.hp > 0 && hpRatio <= 0.3;
+    const down = enemy.hp <= 0;
+    const alpha = down ? clamp(enemy.deadTimer / 0.9, 0, 1) : 1;
+    const wobble = wounded ? Math.sin(battle.elapsed * 13 + enemy.wobbleSeed) * 0.09 : 0;
+    const woundedDrop = wounded ? 4 + Math.sin(battle.elapsed * 8 + enemy.wobbleSeed) * 2 : 0;
+    const scale = enemy.boss ? 1.42 : 1.2;
     ctx.save();
     ctx.globalAlpha = alpha;
-    ctx.translate(enemy.x, enemy.y);
-    ctx.rotate(Math.atan2(toward.y, toward.x));
-    ctx.scale(enemy.boss ? 1.42 : 1.2, enemy.boss ? 1.42 : 1.2);
+    ctx.translate(enemy.x, enemy.y + woundedDrop + (down ? 10 : 0));
+    ctx.rotate(Math.atan2(toward.y, toward.x) + wobble + (down ? enemy.strafeDir * 1.15 : 0));
+    ctx.scale(scale, scale * (down ? 0.72 : wounded ? 0.9 : 1));
     if (enemy.telegraph > 0) {
       const pulse = 1 - enemy.telegraph / enemy.telegraphTotal;
       ctx.strokeStyle = enemy.kind === "skirmisher" ? `rgba(240,210,110,${0.45 + pulse * 0.5})` : `rgba(235,72,58,${0.45 + pulse * 0.5})`;
@@ -1017,6 +1074,41 @@
       ctx.fillText(enemy.boss ? enemy.name : enemy.kind.toUpperCase(), enemy.x, enemy.y - enemy.radius - 41);
     }
     ctx.globalAlpha = 1;
+  }
+
+  function drawLootBeacon(beacon) {
+    const rank = beacon.rarity === "relic" ? 3 : beacon.rarity === "rare" ? 2 : 1;
+    const progress = clamp(beacon.age / Math.max(0.01, beacon.duration), 0, 1);
+    const intro = clamp(progress / 0.16, 0, 1);
+    const fade = clamp((1 - progress) / 0.22, 0, 1);
+    const alpha = Math.min(intro, fade);
+    const tall = rank >= 2;
+    const height = rank === 3 ? 330 : rank === 2 ? 285 : 120;
+    const width = rank === 3 ? 46 : rank === 2 ? 34 : 18;
+    const color = rank === 3 ? [207, 177, 255] : rank === 2 ? [255, 216, 104] : [225, 214, 181];
+    const pulse = 1 + Math.sin(battle.elapsed * 16) * 0.08;
+
+    ctx.save();
+    ctx.globalCompositeOperation = "screen";
+    const beam = ctx.createLinearGradient(beacon.x, beacon.y - height, beacon.x, beacon.y + 18);
+    beam.addColorStop(0, `rgba(${color[0]},${color[1]},${color[2]},0)`);
+    beam.addColorStop(0.28, `rgba(${color[0]},${color[1]},${color[2]},${0.12 * alpha})`);
+    beam.addColorStop(1, `rgba(${color[0]},${color[1]},${color[2]},${(tall ? 0.68 : 0.34) * alpha})`);
+    ctx.fillStyle = beam;
+    ctx.fillRect(beacon.x - width / 2, beacon.y - height, width, height + 24);
+
+    ctx.strokeStyle = `rgba(${color[0]},${color[1]},${color[2]},${0.75 * alpha})`;
+    ctx.lineWidth = tall ? 4 : 2;
+    ctx.beginPath();
+    ctx.ellipse(beacon.x, beacon.y + 8, 34 * pulse, 12 * pulse, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    if (tall) {
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(beacon.x, beacon.y + 8, 54 * pulse, 19 * pulse, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.restore();
   }
 
   function drawProjectile(shot) {
