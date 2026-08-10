@@ -41,6 +41,25 @@
     return livingEnemies().sort((a, b) => dist(a, battle.player) - dist(b, battle.player))[0] || null;
   }
 
+  function techniqueTarget() {
+    if (!battle) return null;
+    return livingEnemies()
+      .filter((enemy) => enemy.telegraph > 0)
+      .sort((a, b) => a.telegraph - b.telegraph)[0] || nearestEnemy();
+  }
+
+  function techniqueProfile(counter = false) {
+    const weapon = battle ? battle.tuning.weaponType : "fists";
+    if (!counter) {
+      if (weapon === "dagger") return { duration: 0.5, activeAt: 0.2, lunge: 46, damage: 0.96, stagger: 0.95, knock: 0.9, label: "TECHNIQUE" };
+      if (weapon === "sword") return { duration: 0.68, activeAt: 0.34, lunge: 34, damage: 1.1, stagger: 1.18, knock: 1.2, label: "TECHNIQUE" };
+      return { duration: 0.54, activeAt: 0.23, lunge: 38, damage: 1, stagger: 1, knock: 1, label: "TECHNIQUE" };
+    }
+    if (weapon === "dagger") return { duration: 0.34, activeAt: 0.09, lunge: 78, damage: 1.75, stagger: 0.9, knock: 0.72, label: "RIPOSTE" };
+    if (weapon === "sword") return { duration: 0.5, activeAt: 0.18, lunge: 50, damage: 1.6, stagger: 1.75, knock: 1.5, label: "CLASH" };
+    return { duration: 0.37, activeAt: 0.1, lunge: 54, damage: 1.48, stagger: 1.15, knock: 1.08, label: "RUSH" };
+  }
+
   function showScreen(name) {
     Object.entries(screens).forEach(([key, el]) => el.classList.toggle("active", key === name));
     const exp = state.expedition;
@@ -324,12 +343,13 @@
         evadeCooldown: 0,
         evadeAge: 99,
         skillCooldown: 0,
+        counterWindow: 0,
+        recovery: 0,
         autoDelay: 0.14,
         flash: 0,
         attack: null,
         comboStep: 0,
         comboTimer: 0,
-        queuedSkill: false,
         empowered: false
       },
       enemies,
@@ -345,7 +365,7 @@
 
     updateCombatHud();
     drawBattle();
-    flashMessage("移動・通常攻撃は自動。赤い予兆を見て回避。隙に技。", 2200);
+    flashMessage("通常攻撃は自動。予兆へ技で割り込む。寸前回避なら反撃好機。", 2600);
     lastFrame = performance.now();
     raf = requestAnimationFrame(combatLoop);
   }
@@ -378,6 +398,8 @@
     p.invulnerable = Math.max(0, p.invulnerable - dt);
     p.evadeCooldown = Math.max(0, p.evadeCooldown - dt);
     p.skillCooldown = Math.max(0, p.skillCooldown - dt);
+    p.counterWindow = Math.max(0, p.counterWindow - dt);
+    p.recovery = Math.max(0, p.recovery - dt);
     p.evadeAge += dt;
     p.autoDelay = Math.max(0, p.autoDelay - dt);
     p.flash = Math.max(0, p.flash - dt);
@@ -406,7 +428,7 @@
   function updateAutoPilot(dt) {
     const p = battle.player;
     const target = nearestEnemy();
-    if (!target || p.invulnerable > 0.24) return;
+    if (!target || p.invulnerable > 0.24 || p.recovery > 0) return;
     const to = norm(target.x - p.x, target.y - p.y);
     const d = dist(p, target);
     if (!p.attack) {
@@ -438,7 +460,7 @@
     const progress = attack.elapsed / attack.duration;
     if (!attack.lunged && progress > 0.12) {
       attack.lunged = true;
-      const amount = attack.kind === "heavy" ? 31 : 18 + attack.step * 5;
+      const amount = attack.lunge || (attack.kind === "light" ? 18 + attack.step * 5 : 31);
       p.x = clamp(p.x + p.facingX * amount, 64, canvas.width - 64);
       p.y = clamp(p.y + p.facingY * amount, 92, canvas.height - 58);
     }
@@ -448,10 +470,13 @@
     }
     if (attack.elapsed >= attack.duration) {
       const wasLight = attack.kind === "light";
+      const wasTechnique = attack.kind === "heavy" || attack.kind === "counter";
+      const whiffed = wasTechnique && !attack.hitAny;
       p.attack = null;
-      if (p.queuedSkill) {
-        p.queuedSkill = false;
-        startHeavy();
+      if (whiffed) {
+        p.recovery = attack.kind === "counter" ? 0.28 : 0.44;
+        p.autoDelay = Math.max(p.autoDelay, p.recovery);
+        flashMessage("MISS — 技の隙", 520);
       } else if (wasLight) p.comboTimer = 0.5;
       else { p.comboStep = 0; p.comboTimer = 0; }
     }
@@ -460,53 +485,77 @@
   function performLight() {
     if (!battle || battle.finished) return;
     const p = battle.player;
-    if (p.attack) return;
+    if (p.attack || p.recovery > 0) return;
     const tempo = battle.tuning.style === "unarmed" ? battle.tuning.unarmedTempo : 1;
     p.comboStep = p.comboTimer > 0 ? (p.comboStep % 3) + 1 : 1;
     const step = p.comboStep;
     const duration = [0, 0.27, 0.30, 0.39][step] / tempo;
     const activeAt = [0, 0.082, 0.095, 0.13][step] / tempo;
-    p.attack = { kind: "light", step, elapsed: 0, duration, activeAt, didHit: false, lunged: false };
+    p.attack = { kind: "light", step, elapsed: 0, duration, activeAt, didHit: false, hitAny: false, lunged: false };
     p.comboTimer = 0;
   }
 
   function performTechnique() {
     if (!battle || battle.finished) return;
     const p = battle.player;
+    if (p.recovery > 0) {
+      flashMessage(`隙 ${p.recovery.toFixed(1)}s`, 300);
+      return;
+    }
     if (p.skillCooldown > 0) {
       flashMessage(`技まで ${p.skillCooldown.toFixed(1)}s`, 350);
       return;
     }
-    p.skillCooldown = 2.25;
-    if (p.attack) {
-      p.queuedSkill = true;
-      flashMessage("技を予約", 300);
-      return;
+    if (p.attack && p.attack.kind !== "light") return;
+    if (p.attack && p.attack.kind === "light") {
+      p.attack = null;
+      p.comboStep = 0;
+      p.comboTimer = 0;
     }
-    startHeavy();
+    const counter = p.counterWindow > 0;
+    p.skillCooldown = counter ? 1.05 : 1.8;
+    startTechnique(counter);
   }
 
-  function startHeavy() {
+  function startTechnique(counter = false) {
     const p = battle.player;
-    const target = nearestEnemy();
+    const target = techniqueTarget();
     if (target) {
       const to = norm(target.x - p.x, target.y - p.y);
       p.facingX = to.x;
       p.facingY = to.y;
     }
-    p.attack = { kind: "heavy", step: 0, elapsed: 0, duration: 0.62, activeAt: 0.31, didHit: false, lunged: false };
+    const profile = techniqueProfile(counter);
+    p.attack = {
+      kind: counter ? "counter" : "heavy",
+      step: 0,
+      elapsed: 0,
+      duration: profile.duration,
+      activeAt: profile.activeAt,
+      didHit: false,
+      hitAny: false,
+      lunged: false,
+      lunge: profile.lunge,
+      damageMultiplier: profile.damage,
+      staggerMultiplier: profile.stagger,
+      knockMultiplier: profile.knock,
+      label: profile.label
+    };
+    p.counterWindow = 0;
     p.comboStep = 0;
     p.comboTimer = 0;
-    flashMessage("TECHNIQUE — 技", 420);
+    flashMessage(counter ? `${profile.label} — 反撃` : "TECHNIQUE — 技", 460);
   }
 
   function applyAttackHits(attack) {
     const p = battle.player;
     const heavy = attack.kind === "heavy";
-    const finisher = !heavy && attack.step === 3;
-    const reach = battle.tuning.reach + (heavy ? 24 : finisher ? 13 : 0);
-    let damage = heavy
-      ? battle.tuning.heavyDamage
+    const counter = attack.kind === "counter";
+    const technique = heavy || counter;
+    const finisher = !technique && attack.step === 3;
+    const reach = battle.tuning.reach + (technique ? 24 : finisher ? 13 : 0);
+    let damage = technique
+      ? battle.tuning.heavyDamage * (attack.damageMultiplier || 1)
       : battle.tuning.lightDamage * (attack.step === 2 ? 1.08 : finisher ? 1.32 * battle.tuning.comboFinisher : 1);
     if (p.empowered) {
       damage *= 1.65;
@@ -520,43 +569,54 @@
       if (enemy.hp <= 0 || dist(enemy, p) > reach + enemy.radius) return;
       const toEnemy = norm(enemy.x - p.x, enemy.y - p.y);
       if (toEnemy.x * p.facingX + toEnemy.y * p.facingY < 0.05) return;
-      if (enemy.kind === "guard" && enemy.guarding && !heavy && !finisher) {
+      if (enemy.kind === "guard" && enemy.guarding && !technique && !finisher) {
         enemy.stagger = 0.1;
         spawnBurst(enemy.x, enemy.y, 8, "#d4c18c");
         addText(enemy.x, enemy.y - 48, "BLOCK", "#dfcf9b");
         battle.hitStop = 0.025;
         hit = true;
+        attack.hitAny = true;
         return;
       }
 
       let dealt = damage;
-      if (enemy.kind === "guard" && enemy.guarding && (heavy || finisher)) {
-        dealt *= heavy ? 1.2 : 0.9;
+      let reaction = counter ? attack.label : "";
+      if (technique && enemy.telegraph > 0) {
+        reaction = enemy.kind === "rusher" ? "COUNTER" : "INTERRUPT";
+        enemy.telegraph = 0;
+        enemy.telegraphTotal = 0;
+        enemy.recover = Math.max(enemy.recover, counter ? 0.72 : 0.52);
+      }
+      if (enemy.kind === "guard" && enemy.guarding && (technique || finisher)) {
+        dealt *= technique ? 1.2 : 0.9;
         enemy.guarding = false;
         enemy.guardCycle = 1.3;
-        addText(enemy.x, enemy.y - 52, "BREAK", "#f2c96f");
+        reaction = "BREAK";
       }
+      if (reaction) addText(enemy.x, enemy.y - 64, reaction, counter ? "#f6df83" : "#f2c96f");
+
       enemy.hp = Math.max(0, enemy.hp - dealt);
       enemy.hitFlash = 0.14;
-      const staggerScale = heavy ? battle.tuning.heavyStagger : 1;
-      enemy.stagger = heavy ? 0.42 * staggerScale : finisher ? 0.3 : 0.12;
-      const knock = heavy ? 44 * staggerScale : finisher ? 34 : 10;
+      const staggerScale = technique ? battle.tuning.heavyStagger * (attack.staggerMultiplier || 1) : 1;
+      enemy.stagger = Math.max(enemy.stagger, technique ? 0.42 * staggerScale : finisher ? 0.3 : 0.12);
+      const knock = technique ? 44 * staggerScale * (attack.knockMultiplier || 1) : finisher ? 34 : 10;
       enemy.vx += toEnemy.x * knock * 3.1;
       enemy.vy += toEnemy.y * knock * 3.1;
-      spawnBurst(enemy.x, enemy.y, heavy ? 15 : finisher ? 12 : 8, heavy ? "#f0c96a" : "#e6d0a7");
-      battle.slashes.push({ x: p.x + p.facingX * 31, y: p.y + p.facingY * 31, angle: Math.atan2(p.facingY, p.facingX), life: 0.13, heavy, finisher });
-      battle.hitStop = Math.max(battle.hitStop, heavy ? 0.075 : finisher ? 0.06 : 0.035);
-      battle.shake = Math.max(battle.shake, heavy ? 8 : finisher ? 6 : 3);
-      addText(enemy.x, enemy.y - 48, `${Math.round(dealt)}`, heavy ? "#ffd875" : "#f5e0bd");
+      spawnBurst(enemy.x, enemy.y, technique ? 15 : finisher ? 12 : 8, technique ? "#f0c96a" : "#e6d0a7");
+      battle.slashes.push({ x: p.x + p.facingX * 31, y: p.y + p.facingY * 31, angle: Math.atan2(p.facingY, p.facingX), life: 0.13, heavy: technique, finisher });
+      battle.hitStop = Math.max(battle.hitStop, technique ? (counter ? 0.1 : 0.075) : finisher ? 0.06 : 0.035);
+      battle.shake = Math.max(battle.shake, technique ? (counter ? 10 : 8) : finisher ? 6 : 3);
+      addText(enemy.x, enemy.y - 48, `${Math.round(dealt)}`, technique ? "#ffd875" : "#f5e0bd");
       hit = true;
+      attack.hitAny = true;
       if (enemy.hp <= 0) {
         enemy.deadTimer = 0.46;
         enemy.vx += toEnemy.x * 190;
         enemy.vy += toEnemy.y * 190;
-        addText(enemy.x, enemy.y - 63, "DOWN", "#d96858");
+        addText(enemy.x, enemy.y - 78, "DOWN", "#d96858");
       }
     });
-    if (!hit) battle.slashes.push({ x: p.x + p.facingX * 31, y: p.y + p.facingY * 31, angle: Math.atan2(p.facingY, p.facingX), life: 0.1, heavy, finisher });
+    if (!hit) battle.slashes.push({ x: p.x + p.facingX * 31, y: p.y + p.facingY * 31, angle: Math.atan2(p.facingY, p.facingX), life: 0.1, heavy: technique, finisher });
     updateCombatHud();
     if (battle.enemies.every((enemy) => enemy.hp <= 0)) finishVictory();
   }
@@ -697,6 +757,10 @@
       flashMessage(`回避まで ${p.evadeCooldown.toFixed(1)}s`, 300);
       return;
     }
+    if (p.attack && p.attack.kind !== "light") {
+      flashMessage("技の最中は回避できない", 340);
+      return;
+    }
     const move = smartEvadeVector();
     p.x = clamp(p.x + move.x * 112, 64, canvas.width - 64);
     p.y = clamp(p.y + move.y * 112, 92, canvas.height - 58);
@@ -706,7 +770,8 @@
     p.evadeAge = 0;
     p.evadeCooldown = 0.74;
     p.attack = null;
-    p.queuedSkill = false;
+    p.comboStep = 0;
+    p.comboTimer = 0;
     spawnBurst(p.x, p.y, 9, "#9cb59a");
     updateActionButtons();
   }
@@ -715,21 +780,33 @@
     const p = battle.player;
     const perfect = p.evadeAge < 0.21;
     if (perfect) {
-      p.empowered = true;
+      p.counterWindow = 0.9;
+      p.skillCooldown = 0;
+      p.empowered = battle.tuning.evadeEmpower;
       battle.hitStop = 0.05;
       battle.shake = Math.max(battle.shake, 3);
       addText(p.x, p.y - 55, "PERFECT", "#e6d98e");
-      flashMessage("PERFECT EVADE — 次の一撃強化", 800);
+      flashMessage(p.empowered ? "PERFECT — 反撃好機 / AFTERSTEP" : "PERFECT — 反撃好機", 900);
     } else flashMessage("EVADE", 320);
     spawnBurst(x, y, 9, "#b8c8b0");
   }
 
   function damagePlayer(amount, sx, sy) {
     const p = battle.player;
+    const committedTechnique = p.attack && (p.attack.kind === "heavy" || p.attack.kind === "counter");
     let incoming = amount;
     if (battle.tuning.lowHealthRisk && p.hp <= 35) incoming *= 1.22;
     p.hp = Math.max(0, p.hp - incoming);
     p.flash = 0.18;
+    p.counterWindow = 0;
+    p.empowered = false;
+    if (committedTechnique) {
+      p.attack = null;
+      p.recovery = Math.max(p.recovery, 0.38);
+      p.comboStep = 0;
+      p.comboTimer = 0;
+      flashMessage("CRUSHED — 技を潰された", 600);
+    }
     const away = norm(p.x - sx, p.y - sy);
     p.x = clamp(p.x + away.x * 24, 64, canvas.width - 64);
     p.y = clamp(p.y + away.y * 24, 92, canvas.height - 58);
@@ -780,8 +857,11 @@
     if (!battle) return;
     const p = battle.player;
     if (techniqueButton) {
-      techniqueButton.textContent = p.skillCooldown > 0 ? `技 ${p.skillCooldown.toFixed(1)}` : p.queuedSkill ? "技 予約" : "技";
-      techniqueButton.classList.toggle("cooling", p.skillCooldown > 0);
+      if (p.recovery > 0) techniqueButton.textContent = `隙 ${p.recovery.toFixed(1)}`;
+      else if (p.counterWindow > 0 && p.skillCooldown <= 0) techniqueButton.textContent = `反撃 ${p.counterWindow.toFixed(1)}`;
+      else techniqueButton.textContent = p.skillCooldown > 0 ? `技 ${p.skillCooldown.toFixed(1)}` : "技";
+      techniqueButton.classList.toggle("cooling", p.skillCooldown > 0 || p.recovery > 0);
+      techniqueButton.dataset.counter = p.counterWindow > 0 && p.skillCooldown <= 0 ? "ready" : "";
     }
     if (evadeButton) {
       evadeButton.textContent = p.evadeCooldown > 0 ? `回避 ${p.evadeCooldown.toFixed(1)}` : "回避";
@@ -896,7 +976,9 @@
     ctx.moveTo(0, 3); ctx.lineTo(-14, 10);
     ctx.moveTo(0, 18); ctx.lineTo(12, 35);
     ctx.moveTo(0, 18); ctx.lineTo(-11, 35); ctx.stroke();
-    if (p.empowered) {
+    if (p.counterWindow > 0) {
+      ctx.strokeStyle = "#f0d979"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 6, 35, 0, Math.PI * 2); ctx.stroke();
+    } else if (p.empowered) {
       ctx.strokeStyle = "#e3c66e"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 6, 32, 0, Math.PI * 2); ctx.stroke();
     }
     ctx.restore();
@@ -968,7 +1050,7 @@
     if (techniqueButton) { techniqueButton.textContent = "技"; techniqueButton.classList.add("technique"); }
     if (evadeButton) evadeButton.textContent = "回避";
     const help = document.querySelector(".combat-help");
-    if (help) help.innerHTML = `<span>移動・通常攻撃 <b>AUTO</b></span><span><kbd>K</kbd> 技</span><span><kbd>SPACE</kbd> 回避</span><span class="hint">予兆を見て回避。盾には技。</span>`;
+    if (help) help.innerHTML = `<span>移動・通常攻撃 <b>AUTO</b></span><span><kbd>K</kbd> 技 / 割込</span><span><kbd>SPACE</kbd> 回避</span><span class="hint">予兆に技。寸前回避の後は反撃。</span>`;
 
     techniqueButton?.addEventListener("pointerdown", (event) => { event.preventDefault(); performTechnique(); });
     evadeButton?.addEventListener("pointerdown", (event) => { event.preventDefault(); performEvade(); });
