@@ -84,6 +84,91 @@
     return { settle: 0.1, range: reach + 6, comboLength: 4, duration: 0.23 / tempo, activeAt: 0.07 / tempo, cadence: 0.02, lunge: 10, damage: 1, finisher: 1.38, arc: 0.04 };
   }
 
+  function battlefieldWeaponSpec(enemy) {
+    if (enemy.kind === "guard") return { type: "sword", name: "欠け盾兵の剣" };
+    if (enemy.kind === "skirmisher") return { type: "dagger", name: "藪射ちの狩猟刀" };
+    return { type: "dagger", name: "街道荒らしの短刀" };
+  }
+
+  function battlefieldWeaponTuning(type) {
+    const base = battle.baseTuning || battle.tuning;
+    const lightBase = Math.max(11, base.lightDamage);
+    const heavyBase = Math.max(21, base.heavyDamage);
+    if (type === "sword") {
+      return {
+        style: "blade", weaponType: "sword",
+        lightDamage: lightBase * 1.08, heavyDamage: heavyBase * 1.12,
+        reach: 82, moveSpeed: 190, heavyStagger: 1.15,
+        evadeEmpower: false, unarmedTempo: 1, comboFinisher: 1, lowHealthRisk: false
+      };
+    }
+    return {
+      style: "blade", weaponType: "dagger",
+      lightDamage: lightBase * 0.92, heavyDamage: heavyBase * 0.95,
+      reach: 62, moveSpeed: 218, heavyStagger: 0.95,
+      evadeEmpower: false, unarmedTempo: 1, comboFinisher: 1, lowHealthRisk: false
+    };
+  }
+
+  function dropEnemyWeapon(enemy) {
+    if (!battle || enemy.weaponDropped) return;
+    enemy.weaponDropped = true;
+    const spec = battlefieldWeaponSpec(enemy);
+    battle.droppedWeapons.push({
+      id: "field-" + enemy.id + "-" + battle.elapsed.toFixed(3),
+      type: spec.type,
+      name: spec.name,
+      x: enemy.x,
+      y: enemy.y + 10,
+      angle: enemy.strafeDir * 0.55,
+      age: 0,
+      pickup: 0,
+      picked: false
+    });
+    addText(enemy.x, enemy.y - 18, "WEAPON", "#e5cf91");
+  }
+
+  function equipBattlefieldWeapon(drop) {
+    const p = battle.player;
+    battle.tuning = battlefieldWeaponTuning(drop.type);
+    battle.heldBattlefieldWeapon = { type: drop.type, name: drop.name };
+    drop.picked = true;
+    p.attack = null;
+    p.comboStep = 0;
+    p.comboTimer = 0;
+    p.stationary = 0;
+    p.autoDelay = Math.max(p.autoDelay, 0.08);
+    spawnBurst(drop.x, drop.y, 12, drop.type === "sword" ? "#e5c875" : "#c8d3b1");
+    addText(p.x, p.y - 58, drop.type === "sword" ? "SWORD" : "DAGGER", "#f2df9c");
+    flashMessage(drop.name + " — 拾った。戦い方が変わる。", 950);
+  }
+
+  function updateBattlefieldPickup(dt) {
+    const p = battle.player;
+    const available = battle.droppedWeapons
+      .filter((drop) => !drop.picked && dist(drop, p) <= 48)
+      .sort((a, b) => dist(a, p) - dist(b, p));
+    const target = available[0] || null;
+    battle.droppedWeapons.forEach((drop) => {
+      if (drop !== target && !drop.picked) drop.pickup = 0;
+    });
+    if (!target) return false;
+    if (p.attack || p.recovery > 0) {
+      target.pickup = 0;
+      return true;
+    }
+    target.pickup += dt;
+    if (target.pickup >= 0.18) equipBattlefieldWeapon(target);
+    return true;
+  }
+
+  function beginVictoryPickupWindow() {
+    if (!battle || battle.ending || battle.victoryPickupTimer > 0) return;
+    const unpicked = battle.droppedWeapons.filter((drop) => !drop.picked);
+    battle.victoryPickupTimer = unpicked.length ? 1.6 : 0.35;
+    if (unpicked.length) flashMessage("敵の武器が落ちた。近くで止まれば拾える。", 1150);
+  }
+
   function showScreen(name) {
     Object.entries(screens).forEach(([key, el]) => el.classList.toggle("active", key === name));
     const exp = state.expedition;
@@ -356,11 +441,16 @@
       guardCycle: enemy.kind === "guard" ? 0.2 + index * 0.4 : 0,
       strafeDir: index % 2 ? 1 : -1,
       wobbleSeed: index * 1.73,
+      weaponDropped: false,
       deadTimer: 0
     }));
 
     battle = {
       tuning,
+      baseTuning: { ...tuning },
+      heldBattlefieldWeapon: null,
+      droppedWeapons: [],
+      victoryPickupTimer: 0,
       player: {
         x: close ? 360 : 300,
         y: 300,
@@ -455,6 +545,14 @@
     p.flash = Math.max(0, p.flash - dt);
     p.comboTimer = Math.max(0, p.comboTimer - dt);
 
+    if (battle.victoryPickupTimer > 0) {
+      battle.victoryPickupTimer = Math.max(0, battle.victoryPickupTimer - dt);
+      if (battle.victoryPickupTimer <= 0) {
+        finishVictory();
+        return;
+      }
+    }
+
     updatePlayerIntent(dt);
     updatePlayerAttack(dt);
     battle.enemies.forEach((enemy) => updateEnemy(enemy, dt));
@@ -477,6 +575,7 @@
     battle.slashes = battle.slashes.filter((slash) => slash.life > 0);
     battle.texts.forEach((text) => { text.life -= dt; text.y -= 24 * dt; });
     battle.texts = battle.texts.filter((text) => text.life > 0);
+    battle.droppedWeapons.forEach((drop) => { drop.age += dt; });
   }
 
   function updateVictoryOutro(dt) {
@@ -534,9 +633,10 @@
       p.comboStep = 0;
       p.comboTimer = 0;
       p.autoDelay = Math.max(p.autoDelay, 0.035);
+      battle.droppedWeapons.forEach((drop) => { if (!drop.picked) drop.pickup = 0; });
     } else {
       p.stationary += dt;
-      updateAutoStrike();
+      if (!updateBattlefieldPickup(dt)) updateAutoStrike();
     }
 
     p.x = clamp(p.x, 64, canvas.width - 64);
@@ -735,6 +835,7 @@
       hit = true;
       attack.hitAny = true;
       if (enemy.hp <= 0) {
+        dropEnemyWeapon(enemy);
         enemy.deadTimer = 0.9;
         enemy.vx += toEnemy.x * 230;
         enemy.vy += toEnemy.y * 230;
@@ -744,7 +845,7 @@
     });
     if (!hit) battle.slashes.push({ x: p.x + p.facingX * 31, y: p.y + p.facingY * 31, angle: Math.atan2(p.facingY, p.facingX), life: 0.1, heavy: technique, finisher });
     updateCombatHud();
-    if (battle.enemies.every((enemy) => enemy.hp <= 0)) finishVictory();
+    if (battle.enemies.every((enemy) => enemy.hp <= 0)) beginVictoryPickupWindow();
   }
 
   function updateEnemy(enemy, dt) {
@@ -956,6 +1057,7 @@
   function finishVictory() {
     if (!battle || battle.finished || battle.ending) return;
     battle.ending = true;
+    battle.victoryPickupTimer = 0;
     battle.victoryTimer = 0.82;
     battle.player.attack = null;
     battle.projectiles = [];
@@ -1066,6 +1168,7 @@
     if (battle.lootBeacon) drawLootBeacon(battle.lootBeacon);
     battle.projectiles.forEach(drawProjectile);
     battle.enemies.forEach(drawEnemy);
+    battle.droppedWeapons.filter((drop) => !drop.picked).forEach(drawDroppedWeapon);
     drawPlayer();
     battle.slashes.forEach(drawSlash);
     battle.particles.forEach((pt) => {
@@ -1158,10 +1261,59 @@
     ctx.moveTo(0, 3); ctx.lineTo(-14, 10);
     ctx.moveTo(0, 18); ctx.lineTo(12, 35);
     ctx.moveTo(0, 18); ctx.lineTo(-11, 35); ctx.stroke();
+    if (battle.tuning.weaponType === "sword") {
+      ctx.strokeStyle = battle.heldBattlefieldWeapon ? "#e9d38d" : "#d7c7a3";
+      ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(16, p.attack ? -7 : 3); ctx.lineTo(48, p.attack ? -18 : -6); ctx.stroke();
+      ctx.lineWidth = 3; ctx.beginPath(); ctx.moveTo(26, p.attack ? -15 : -4); ctx.lineTo(30, p.attack ? -4 : 8); ctx.stroke();
+    } else if (battle.tuning.weaponType === "dagger") {
+      ctx.strokeStyle = battle.heldBattlefieldWeapon ? "#dce0bd" : "#c8c6b7";
+      ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.moveTo(16, p.attack ? -7 : 3); ctx.lineTo(32, p.attack ? -16 : -5); ctx.stroke();
+    }
     if (p.counterWindow > 0) {
       ctx.strokeStyle = "#f0d979"; ctx.lineWidth = 3; ctx.beginPath(); ctx.arc(0, 6, 35, 0, Math.PI * 2); ctx.stroke();
     } else if (p.empowered) {
       ctx.strokeStyle = "#e3c66e"; ctx.lineWidth = 2; ctx.beginPath(); ctx.arc(0, 6, 32, 0, Math.PI * 2); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  function drawDroppedWeapon(drop) {
+    const p = battle.player;
+    const near = dist(drop, p) <= 62;
+    const pulse = 1 + Math.sin(battle.elapsed * 8 + drop.age) * 0.08;
+    ctx.save();
+    ctx.translate(drop.x, drop.y);
+    ctx.rotate(drop.angle);
+    ctx.shadowColor = drop.type === "sword" ? "rgba(237,202,112,.8)" : "rgba(194,210,173,.75)";
+    ctx.shadowBlur = near ? 18 : 10;
+    ctx.strokeStyle = drop.type === "sword" ? "#e8cf88" : "#cbd5b8";
+    ctx.lineCap = "round";
+    ctx.lineWidth = drop.type === "sword" ? 5 : 4;
+    ctx.beginPath();
+    ctx.moveTo(drop.type === "sword" ? -23 : -14, 0);
+    ctx.lineTo(drop.type === "sword" ? 24 : 15, 0);
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.moveTo(-8, -7); ctx.lineTo(-8, 7); ctx.stroke();
+    ctx.restore();
+
+    ctx.save();
+    ctx.strokeStyle = near ? "rgba(240,220,153,.72)" : "rgba(222,207,163,.24)";
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(drop.x, drop.y, 24 * pulse, 0, Math.PI * 2); ctx.stroke();
+    if (near) {
+      const progress = clamp(drop.pickup / 0.18, 0, 1);
+      ctx.strokeStyle = "#f1d77e";
+      ctx.lineWidth = 4;
+      ctx.beginPath(); ctx.arc(drop.x, drop.y, 30, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress); ctx.stroke();
+      ctx.fillStyle = "rgba(246,232,194,.95)";
+      ctx.font = "800 11px ui-sans-serif, system-ui";
+      ctx.textAlign = "center";
+      ctx.fillText("止まって拾う", drop.x, drop.y - 36);
     }
     ctx.restore();
   }
@@ -1275,7 +1427,7 @@
     if (techniqueButton) { techniqueButton.textContent = "技"; techniqueButton.classList.add("technique"); }
     if (evadeButton) evadeButton.textContent = "回避";
     const help = document.querySelector(".combat-help");
-    if (help) help.innerHTML = `<span><kbd>WASD</kbd> / ドラッグ 移動</span><span>停止 <b>AUTO STRIKE</b></span><span><kbd>K</kbd> 技</span><span><kbd>SPACE</kbd> 回避</span><span class="hint">敵の狙いを外す → 止まって反撃。</span>`;
+    if (help) help.innerHTML = '<span><kbd>WASD</kbd> / ドラッグ 移動</span><span>停止 <b>AUTO STRIKE</b></span><span>武器の上で停止 <b>PICK UP</b></span><span><kbd>K</kbd> 技</span><span><kbd>SPACE</kbd> 回避</span><span class="hint">敵の狙いを外す → 止まって反撃。倒した敵の武器も使える。</span>';
 
     const movementCodes = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "KeyW", "KeyA", "KeyS", "KeyD"]);
     const pointerPosition = (event) => {
