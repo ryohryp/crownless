@@ -26,6 +26,12 @@ Real-world movement should reveal, discover, unlock, or develop the game world. 
 
 Exploration is moving toward a progressively revealed map rather than a text-branch / gamebook flow. For exploration, map, location, regional-content, or AI-generation changes, read `docs/exploration-location-spec.md` and treat it as the detailed subsystem specification. If an older generic exploration description conflicts with that file, the subsystem specification takes precedence.
 
+## Combat presentation rule
+
+Combat is moving toward a **fixed oblique top-down battlefield view**. For combat camera, battlefield composition, HUD, visual readability, or combat-loot presentation changes, read `docs/combat-presentation-spec.md` and treat it as the detailed subsystem specification.
+
+The current **stand-to-strike** combat model in `docs/game-system-design.md` remains authoritative for controls and combat logic. Do not add a light-attack button, virtual joystick, large skill cluster, party HUD, combat minimap, or persistent item-label carpet merely because those elements appear in conventional ARPGs or concept art. When a generic presentation description conflicts with `docs/combat-presentation-spec.md`, the combat presentation specification takes precedence for camera, HUD, readability, and combat drop presentation.
+
 ## Development rule
 
 Prefer short playable loops over long speculative design phases:
@@ -39,9 +45,10 @@ When choosing between architectural novelty and something that makes the prototy
 1. Read this file.
 2. Read `docs/game-system-design.md` as the canonical current gameplay design.
 3. If the task touches exploration, maps, location data, GPS, regional flavor, outdoor/stationary play, or AI-generated world content, also read `docs/exploration-location-spec.md`.
-4. Inspect the current implementation and open issues before proposing a replacement architecture.
-5. Treat older versioned design documents as history when they conflict with the canonical design, subsystem specifications, or current implementation.
-6. Preserve existing decisions unless there is a concrete reason to change them.
+4. If the task touches combat camera, HUD, battlefield presentation, readability, or combat loot presentation, also read `docs/combat-presentation-spec.md`.
+5. Inspect the current implementation and open issues before proposing a replacement architecture.
+6. Treat older versioned design documents as history when they conflict with the canonical design, subsystem specifications, or current implementation.
+7. Preserve existing decisions unless there is a concrete reason to change them.
 
 ## Implementation expectations
 

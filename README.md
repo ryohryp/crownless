@@ -32,6 +32,7 @@ The player begins as an unknown, unarmed person. Bare hands are a valid fighting
 
 - [Current Game System Design](docs/game-system-design.md) — canonical living design
 - [Exploration & Location Discovery Specification](docs/exploration-location-spec.md) — current exploration redesign and location/AI generation direction
+- [Combat Presentation Specification](docs/combat-presentation-spec.md) — current oblique top-down camera, battlefield readability, HUD, and combat-loot presentation direction
 - [Game System Design v0.1](docs/game-system-design-v0.1.md) — historical baseline
 - [Deployment strategy](docs/deployment-strategy.md)
 - [Development guide for coding agents](AGENTS.md)
@@ -55,7 +56,7 @@ The current combat model is **stand-to-strike**: move to survive and reposition,
 - Technique: `K` or the **技** button
 - Evade / perfect evade: `Space` or the **回避** button
 - Enemy attacks telegraph and often lock their aim, so moving can create a punish window
-- Defeated enemies can drop temporary battlefield weapons; move onto one and stop briefly to pick it up
+- Defeated enemies can drop temporary battlefield weapons; move onto one to pick it up when not locked in a committed Technique
 - Fighting well builds **闘志**; at 100, the next Technique becomes a high-impact **決着** strike
 
 The player owns positioning, but does not need a separate light-attack button.
