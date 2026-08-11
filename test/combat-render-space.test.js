@@ -16,7 +16,7 @@ test('render-space projection loads before the combat app and its CSS overrides 
   const app = html.indexOf('src/app.js');
 
   assert.ok(phaseOneCss >= 0);
-  assert.ok(phaseTwoCss > phaseOneCss, 'phase two CSS should override the phase one whole-canvas tilt');
+  assert.ok(phaseTwoCss > phaseOneCss, 'render-space CSS should override the phase one whole-canvas tilt');
   assert.ok(renderSpace >= 0 && renderSpace < app, 'render-space must patch the arena context before app.js requests it');
 });
 
@@ -33,6 +33,21 @@ test('fighters stay upright while depth and grounding come from render space', (
   assert.match(js, /raw\.ellipse\(0, 26, 24, 7\.5/);
   assert.match(js, /Math\.cos\(angle\) < 0 \? -1 : 1/);
   assert.match(js, /actorMode && radius >= 24/);
+});
+
+test('indie visual pass uses modular tiles and procedural chunky actor silhouettes', () => {
+  assert.match(js, /function drawTileField\(\)/);
+  assert.match(js, /function drawArenaProps\(\)/);
+  assert.match(js, /function drawActorSpriteBase\(palette\)/);
+  assert.match(js, /actorSpriteDrawn/);
+  assert.match(js, /raw\.imageSmoothingEnabled = false/);
+  assert.match(css, /image-rendering:\s*pixelated/);
+});
+
+test('indie visual pass stays presentation-only and keeps the two-action control contract', () => {
+  assert.doesNotMatch(js, /touch-light|virtual joystick|attack button/i);
+  assert.match(css, /Stand-to-strike remains the actual control/);
+  assert.match(css, /Technique \+ Evade/);
 });
 
 test('render-space shim is valid JavaScript', () => {
