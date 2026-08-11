@@ -17,6 +17,7 @@
         <span><b>CROWNLESS</b><small>NO CROWN. NO CLASS. SURVIVE.</small></span>
       </a>
       <div id="run-status" class="run-status"><span>GREY HEARTH</span><strong>SAFE</strong></div>
+      <button id="sound-toggle" class="sound-toggle" type="button" aria-label="音を切り替える" aria-pressed="true">音 ON</button>
     </header>
 
     <main>
@@ -78,6 +79,8 @@
           <strong>まだ失う物はない。</strong><span>だからこそ、最初の一歩は軽い。</span>
         </div>
 
+        <div id="expedition-route" class="expedition-route" aria-label="今回の遠征路"></div>
+
         <div id="lead-list" class="lead-list" aria-label="expedition leads"></div>
 
         <div class="return-strip">
@@ -100,6 +103,7 @@
           <div class="combat-bars">
             <div class="health-row"><span>YOU</span><div class="bar"><i id="player-health-bar"></i></div><strong id="player-health-text">100</strong></div>
             <div class="health-row"><span>FOES</span><div class="bar enemy"><i id="enemy-health-bar"></i></div><strong id="enemy-count">1</strong></div>
+            <div class="health-row edge-row"><span>闘志</span><div class="bar edge"><i id="edge-bar"></i></div><strong id="edge-text">0</strong></div>
           </div>
         </div>
 
@@ -126,16 +130,39 @@
           <span class="hint">赤い予兆の直前に避けろ。</span>
         </div>
 
-        <div class="touch-controls" aria-label="touch combat controls">
-          <div class="dpad">
-            <button data-move="up">▲</button>
-            <div><button data-move="left">◀</button><button data-move="down">▼</button><button data-move="right">▶</button></div>
+          <div class="touch-controls" aria-label="touch combat controls">
+            <div class="auto-control"><small>MOVE + ATTACK</small><strong>AUTO</strong></div>
+            <div class="action-pad">
+              <button id="touch-evade" class="action evade">回避</button>
+              <button id="touch-heavy" class="action heavy technique">技</button>
+            </div>
           </div>
-          <div class="action-pad">
-            <button id="touch-evade" class="action evade">回避</button>
-            <button id="touch-heavy" class="action heavy">重</button>
-            <button id="touch-light" class="action light">軽</button>
+      </section>
+
+      <section id="return-screen" class="screen return-screen">
+        <div class="return-hero">
+          <p class="eyebrow" id="return-kicker">EXPEDITION COMPLETE</p>
+          <h1 id="return-title">生きて、<em>戻った。</em></h1>
+          <p id="return-copy">持ち帰った物と経験だけが、次の遠征を変える。</p>
+          <div class="return-stats">
+            <div><span>到達深度</span><strong id="return-depth">1</strong></div>
+            <div><span>確保</span><strong id="return-loot-count">0</strong></div>
+            <div><span>名声</span><strong id="return-renown-gain">+0</strong></div>
           </div>
+        </div>
+
+        <section class="panel return-spoils">
+          <div class="panel-heading">
+            <div><p class="eyebrow">WHAT CAME HOME</p><h2>今回の成果</h2></div>
+            <span id="return-result-tag" class="safe-tag">SECURED</span>
+          </div>
+          <div id="return-loot" class="loot-list"></div>
+          <p id="return-next-milestone" class="return-next"></p>
+        </section>
+
+        <div class="return-actions">
+          <button id="return-to-hub" class="ghost">灰炉を整える</button>
+          <button id="return-again" class="primary">もう一度、霧の外へ <span>→</span></button>
         </div>
       </section>
 
@@ -177,7 +204,7 @@
       </section>
     </main>
 
-    <footer>Prototype v0.5 — return alive, and the hearth remembers.</footer>
+    <footer>Playable slice v0.6 — return alive, and the hearth remembers.</footer>
   </div>
 
   <script src="src/game-core.js"></script>

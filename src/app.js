@@ -8,12 +8,16 @@
   let lastFrame = 0;
   let messageTimer = null;
   let lastOutcome = "";
+  let lastReturnReport = null;
+  let soundEnabled = readSoundPreference();
+  let audioContext = null;
 
   const screens = {
     hub: document.getElementById("hub-screen"),
     explore: document.getElementById("explore-screen"),
     combat: document.getElementById("combat-screen"),
-    decision: document.getElementById("decision-screen")
+    decision: document.getElementById("decision-screen"),
+    return: document.getElementById("return-screen")
   };
 
   const canvas = document.getElementById("arena");
@@ -23,6 +27,7 @@
   const combatBars = document.querySelector(".combat-bars");
   const techniqueButton = document.getElementById("touch-heavy");
   const evadeButton = document.getElementById("touch-evade");
+  const soundToggle = document.getElementById("sound-toggle");
   const mobileView = () => window.matchMedia("(max-width: 700px), (pointer: coarse)").matches;
 
   function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
@@ -30,6 +35,55 @@
   function norm(x, y) {
     const len = Math.hypot(x, y) || 1;
     return { x: x / len, y: y / len };
+  }
+
+  function readSoundPreference() {
+    try { return localStorage.getItem("crownless.sound") !== "off"; }
+    catch (_) { return true; }
+  }
+
+  function saveSoundPreference() {
+    try { localStorage.setItem("crownless.sound", soundEnabled ? "on" : "off"); }
+    catch (_) {}
+  }
+
+  function ensureAudio() {
+    if (!soundEnabled) return null;
+    const AudioCtor = window.AudioContext || window.webkitAudioContext;
+    if (!AudioCtor) return null;
+    if (!audioContext) audioContext = new AudioCtor();
+    if (audioContext.state === "suspended") audioContext.resume();
+    return audioContext;
+  }
+
+  function sound(kind) {
+    const audio = ensureAudio();
+    if (!audio) return;
+    const now = audio.currentTime;
+    const profiles = {
+      hit: [150, 82, 0.055, "square", 0.035],
+      heavy: [110, 48, 0.13, "sawtooth", 0.07],
+      perfect: [520, 920, 0.16, "sine", 0.055],
+      hurt: [90, 42, 0.2, "sawtooth", 0.07],
+      loot: [440, 660, 0.22, "triangle", 0.045],
+      return: [330, 550, 0.34, "sine", 0.04],
+      edge: [220, 880, 0.28, "square", 0.055]
+    };
+    const [from, to, duration, type, volume] = profiles[kind] || profiles.hit;
+    const oscillator = audio.createOscillator();
+    const gain = audio.createGain();
+    oscillator.type = type;
+    oscillator.frequency.setValueAtTime(from, now);
+    oscillator.frequency.exponentialRampToValueAtTime(Math.max(20, to), now + duration);
+    gain.gain.setValueAtTime(volume, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + duration);
+    oscillator.connect(gain).connect(audio.destination);
+    oscillator.start(now);
+    oscillator.stop(now + duration);
+  }
+
+  function pulse(pattern = 12) {
+    if (navigator.vibrate) navigator.vibrate(pattern);
   }
 
   function livingEnemies() {
@@ -109,7 +163,10 @@
       button.disabled = equipped;
       button.addEventListener("click", () => {
         state = Core.equipItem(state, item.id);
-        renderHub();
+        if (screens.return.classList.contains("active") && lastReturnReport) {
+          const items = lastReturnReport.items.map((reportItem) => state.securedLoot.find((candidate) => candidate.id === reportItem.id) || reportItem);
+          renderReturn({ ...lastReturnReport, items, silent: true });
+        } else renderHub();
       });
       card.appendChild(button);
     }
@@ -142,6 +199,28 @@
 
   function pips(count, kind) {
     return `<span class="pips ${kind}">${Array.from({ length: 5 }, (_, i) => `<i class="${i < count ? "on" : ""}"></i>`).join("")}</span>`;
+  }
+
+  function renderRoute(exp) {
+    const route = document.getElementById("expedition-route");
+    if (!route) return;
+    const stops = [
+      { name: "灰炉", kind: "hearth", cleared: true },
+      ...exp.discoveries.map((discovery) => ({
+        name: discovery.name,
+        kind: discovery.eventKind || "unknown",
+        cleared: true
+      })),
+      { name: "未知", kind: "unknown", cleared: false }
+    ];
+    route.innerHTML = `
+      <div class="route-heading"><span>YOUR EXPEDITION</span><strong>歩いた場所が、世界になる。</strong></div>
+      <div class="route-track">
+        ${stops.map((stop, index) => `<div class="route-stop ${stop.cleared ? "cleared" : "future"}" title="${stop.name}">
+          <i>${stop.kind === "hearth" ? "⌂" : stop.kind === "hunt" ? "⚔" : stop.kind.includes("dungeon") ? "◆" : index}</i>
+          <span>${stop.name}</span>
+        </div>`).join("")}
+      </div>`;
   }
 
   function renderExplore() {
@@ -183,6 +262,7 @@
     warning.innerHTML = carried
       ? `<strong>${carried}個はまだ未確定。</strong><span>倒れれば失う。今なら帰れる。${scouting}</span>`
       : `<strong>まだ失う物はない。</strong><span>次の気配を追える。${scouting}</span>`;
+    renderRoute(exp);
     showScreen("explore");
   }
 
@@ -233,6 +313,41 @@
     if (exp.lastEventSummary) copy = `${exp.lastEventSummary} ${copy}`;
     document.getElementById("decision-risk-copy").textContent = copy;
     showScreen("decision");
+  }
+
+  function renderReturn(report) {
+    lastReturnReport = report;
+    stopCombat();
+    hideOverlay();
+    const defeated = report.outcome === "defeat";
+    document.getElementById("return-kicker").textContent = defeated ? "EXPEDITION FAILED / YOU SURVIVED" : "EXPEDITION COMPLETE";
+    document.getElementById("return-title").innerHTML = defeated ? "王冠はなくても、<em>命はある。</em>" : "生きて、<em>戻った。</em>";
+    document.getElementById("return-copy").textContent = defeated
+      ? report.lostCount > 0
+        ? `倒れた場所に${report.lostCount}個を残した。敗北は終わりではない。次は取り返せる。`
+        : "装備は失わなかった。敗北の痛みを、次の遠征へ持っていけ。"
+      : report.rankUp
+        ? `灰炉が育った。「${report.rankUp.name}」が使えるようになった。`
+        : "持ち帰った物と経験だけが、次の遠征を変える。";
+    document.getElementById("return-depth").textContent = report.depth;
+    document.getElementById("return-loot-count").textContent = report.items.length;
+    document.getElementById("return-renown-gain").textContent = `+${report.renownGain}`;
+
+    const tag = document.getElementById("return-result-tag");
+    tag.textContent = defeated ? "RECOVERED" : "SECURED";
+    tag.className = defeated ? "unsafe-tag" : "safe-tag";
+    const loot = document.getElementById("return-loot");
+    loot.innerHTML = "";
+    if (report.items.length) report.items.forEach((item) => loot.appendChild(lootCard(item, true, true)));
+    else loot.innerHTML = `<div class="empty-state">持ち帰った装備はない。それでも遠征の記録は残った。</div>`;
+
+    const progress = Core.getHearthProgression ? Core.getHearthProgression(state) : null;
+    document.getElementById("return-next-milestone").textContent = progress && progress.next
+      ? `次の灰炉強化「${progress.next.name}」まで、あと ${progress.next.threshold - progress.renown} 名声。`
+      : "灰炉は現在の最大段階まで育っている。";
+    lastOutcome = defeated ? "RETURNED WOUNDED" : `${report.items.length} LOOT SECURED`;
+    showScreen("return");
+    if (!report.silent) sound(defeated ? "hurt" : "return");
   }
 
   function showEvent(event) {
@@ -289,6 +404,7 @@
     next.innerHTML = `結果を抱えて判断する <span>→</span>`;
     next.onclick = renderDecision;
     showOverlay();
+    if (fresh.length) { sound("loot"); pulse(16); }
   }
 
   function showOverlay() {
@@ -350,7 +466,9 @@
         attack: null,
         comboStep: 0,
         comboTimer: 0,
-        empowered: false
+        empowered: false,
+        edge: 0,
+        edgeReady: false
       },
       enemies,
       particles: [],
@@ -365,7 +483,7 @@
 
     updateCombatHud();
     drawBattle();
-    flashMessage("通常攻撃は自動。予兆へ技で割り込む。寸前回避なら反撃好機。", 2600);
+    flashMessage("通常攻撃は自動。予兆へ技で割り込め。闘志100の技は決着打になる。", 2800);
     lastFrame = performance.now();
     raf = requestAnimationFrame(combatLoop);
   }
@@ -513,11 +631,14 @@
       p.comboTimer = 0;
     }
     const counter = p.counterWindow > 0;
-    p.skillCooldown = counter ? 1.05 : 1.8;
-    startTechnique(counter);
+    const edgeTechnique = Core.edgeTechnique(p.edge);
+    const breakthrough = edgeTechnique.ready;
+    p.skillCooldown = breakthrough ? edgeTechnique.cooldown : counter ? 1.05 : 1.8;
+    if (breakthrough) setEdge(0);
+    startTechnique(counter, breakthrough);
   }
 
-  function startTechnique(counter = false) {
+  function startTechnique(counter = false, breakthrough = false) {
     const p = battle.player;
     const target = techniqueTarget();
     if (target) {
@@ -535,16 +656,18 @@
       didHit: false,
       hitAny: false,
       lunged: false,
-      lunge: profile.lunge,
-      damageMultiplier: profile.damage,
-      staggerMultiplier: profile.stagger,
-      knockMultiplier: profile.knock,
-      label: profile.label
+      lunge: profile.lunge + (breakthrough ? 24 : 0),
+      damageMultiplier: profile.damage * (breakthrough ? Core.edgeTechnique(Core.EDGE_MAX).damageMultiplier : 1),
+      staggerMultiplier: profile.stagger * (breakthrough ? Core.edgeTechnique(Core.EDGE_MAX).staggerMultiplier : 1),
+      knockMultiplier: profile.knock * (breakthrough ? 1.35 : 1),
+      label: breakthrough ? "CROWNLESS" : profile.label,
+      breakthrough
     };
     p.counterWindow = 0;
     p.comboStep = 0;
     p.comboTimer = 0;
-    flashMessage(counter ? `${profile.label} — 反撃` : "TECHNIQUE — 技", 460);
+    flashMessage(breakthrough ? "CROWNLESS — 決着打" : counter ? `${profile.label} — 反撃` : "TECHNIQUE — 技", breakthrough ? 780 : 460);
+    if (breakthrough) { sound("edge"); pulse([18, 25, 36]); }
   }
 
   function applyAttackHits(attack) {
@@ -576,6 +699,8 @@
         battle.hitStop = 0.025;
         hit = true;
         attack.hitAny = true;
+        gainEdge(3);
+        sound("hit");
         return;
       }
 
@@ -586,6 +711,7 @@
         enemy.telegraph = 0;
         enemy.telegraphTotal = 0;
         enemy.recover = Math.max(enemy.recover, counter ? 0.72 : 0.52);
+        gainEdge(counter ? 24 : 18);
       }
       if (enemy.kind === "guard" && enemy.guarding && (technique || finisher)) {
         dealt *= technique ? 1.2 : 0.9;
@@ -602,13 +728,16 @@
       const knock = technique ? 44 * staggerScale * (attack.knockMultiplier || 1) : finisher ? 34 : 10;
       enemy.vx += toEnemy.x * knock * 3.1;
       enemy.vy += toEnemy.y * knock * 3.1;
-      spawnBurst(enemy.x, enemy.y, technique ? 15 : finisher ? 12 : 8, technique ? "#f0c96a" : "#e6d0a7");
+      spawnBurst(enemy.x, enemy.y, attack.breakthrough ? 28 : technique ? 15 : finisher ? 12 : 8, attack.breakthrough ? "#fff0a3" : technique ? "#f0c96a" : "#e6d0a7");
       battle.slashes.push({ x: p.x + p.facingX * 31, y: p.y + p.facingY * 31, angle: Math.atan2(p.facingY, p.facingX), life: 0.13, heavy: technique, finisher });
       battle.hitStop = Math.max(battle.hitStop, technique ? (counter ? 0.1 : 0.075) : finisher ? 0.06 : 0.035);
       battle.shake = Math.max(battle.shake, technique ? (counter ? 10 : 8) : finisher ? 6 : 3);
       addText(enemy.x, enemy.y - 48, `${Math.round(dealt)}`, technique ? "#ffd875" : "#f5e0bd");
       hit = true;
       attack.hitAny = true;
+      gainEdge(technique ? 8 : finisher ? 12 : 6);
+      sound(technique ? "heavy" : "hit");
+      if (technique || finisher) pulse(technique ? 24 : 12);
       if (enemy.hp <= 0) {
         enemy.deadTimer = 0.46;
         enemy.vx += toEnemy.x * 190;
@@ -785,8 +914,11 @@
       p.empowered = battle.tuning.evadeEmpower;
       battle.hitStop = 0.05;
       battle.shake = Math.max(battle.shake, 3);
+      gainEdge(28);
       addText(p.x, p.y - 55, "PERFECT", "#e6d98e");
       flashMessage(p.empowered ? "PERFECT — 反撃好機 / AFTERSTEP" : "PERFECT — 反撃好機", 900);
+      sound("perfect");
+      pulse([12, 18]);
     } else flashMessage("EVADE", 320);
     spawnBurst(x, y, 9, "#b8c8b0");
   }
@@ -800,6 +932,7 @@
     p.flash = 0.18;
     p.counterWindow = 0;
     p.empowered = false;
+    setEdge(p.edge * 0.5);
     if (committedTechnique) {
       p.attack = null;
       p.recovery = Math.max(p.recovery, 0.38);
@@ -814,6 +947,8 @@
     battle.shake = Math.max(battle.shake, 7);
     spawnBurst(p.x, p.y, 11, "#c95d4e");
     addText(p.x, p.y - 52, `-${Math.round(incoming)}`, "#ef7b66");
+    sound("hurt");
+    pulse([32, 18, 32]);
     updateCombatHud();
     if (p.hp <= 0) finishDefeat();
   }
@@ -830,14 +965,23 @@
   function finishDefeat() {
     if (!battle || battle.finished) return;
     battle.finished = true;
-    const carried = state.expedition.unsecuredLoot.length;
-    const lost = carried - Math.floor(carried / 2);
+    const expedition = state.expedition;
+    const carried = expedition.unsecuredLoot.length;
+    const securedBefore = new Set(state.securedLoot.map((item) => item.id));
     stopCombat();
     state = Core.resolveDefeat(state);
-    lastOutcome = lost > 0 ? `DEFEATED / ${lost} LOOT LOST` : "DEFEATED / RETURNED EMPTY";
+    const recovered = state.securedLoot.filter((item) => !securedBefore.has(item.id));
+    const lost = Math.max(0, carried - recovered.length);
+    const report = {
+      outcome: "defeat",
+      depth: expedition.depth + 1,
+      items: recovered,
+      lostCount: lost,
+      renownGain: 0,
+      rankUp: null
+    };
     window.setTimeout(() => {
-      renderHub();
-      window.setTimeout(() => { lastOutcome = ""; runStatus.innerHTML = "<span>GREY HEARTH</span><strong>SAFE</strong>"; }, 2400);
+      renderReturn(report);
     }, 450);
   }
 
@@ -850,18 +994,44 @@
     const max = battle.enemies.reduce((sum, enemy) => sum + enemy.maxHealth, 0) || 1;
     document.getElementById("enemy-health-bar").style.width = `${(total / max) * 100}%`;
     document.getElementById("enemy-count").textContent = livingEnemies().length;
+    const edge = Math.round(p.edge || 0);
+    const edgeBar = document.getElementById("edge-bar");
+    const edgeText = document.getElementById("edge-text");
+    if (edgeBar) edgeBar.style.width = `${edge}%`;
+    if (edgeText) edgeText.textContent = edge >= 100 ? "READY" : edge;
     updateActionButtons();
+  }
+
+  function setEdge(value) {
+    if (!battle) return;
+    const p = battle.player;
+    const wasReady = p.edge >= 100;
+    p.edge = Core.nextEdge(0, value);
+    p.edgeReady = p.edge >= Core.EDGE_MAX;
+    if (!wasReady && p.edgeReady) {
+      flashMessage("闘志 MAX — 次の技が決着打", 1100);
+      sound("edge");
+      pulse([10, 22, 10]);
+    }
+    updateCombatHud();
+  }
+
+  function gainEdge(amount) {
+    if (!battle || battle.finished) return;
+    setEdge((battle.player.edge || 0) + amount);
   }
 
   function updateActionButtons() {
     if (!battle) return;
     const p = battle.player;
     if (techniqueButton) {
-      if (p.recovery > 0) techniqueButton.textContent = `隙 ${p.recovery.toFixed(1)}`;
+      if (p.edge >= 100 && p.recovery <= 0 && p.skillCooldown <= 0) techniqueButton.textContent = "決着";
+      else if (p.recovery > 0) techniqueButton.textContent = `隙 ${p.recovery.toFixed(1)}`;
       else if (p.counterWindow > 0 && p.skillCooldown <= 0) techniqueButton.textContent = `反撃 ${p.counterWindow.toFixed(1)}`;
       else techniqueButton.textContent = p.skillCooldown > 0 ? `技 ${p.skillCooldown.toFixed(1)}` : "技";
       techniqueButton.classList.toggle("cooling", p.skillCooldown > 0 || p.recovery > 0);
       techniqueButton.dataset.counter = p.counterWindow > 0 && p.skillCooldown <= 0 ? "ready" : "";
+      techniqueButton.dataset.edge = p.edge >= 100 ? "ready" : "";
     }
     if (evadeButton) {
       evadeButton.textContent = p.evadeCooldown > 0 ? `回避 ${p.evadeCooldown.toFixed(1)}` : "回避";
@@ -1033,11 +1203,21 @@
   }
 
   function returnHome(label) {
-    const count = state.expedition.unsecuredLoot.length;
+    const expedition = state.expedition;
+    const items = expedition.unsecuredLoot.slice();
+    const before = Core.getHearthProgression ? Core.getHearthProgression(state) : null;
     state = Core.returnHome(state);
-    lastOutcome = count ? `${count} LOOT SECURED` : label;
-    renderHub();
-    setTimeout(() => { lastOutcome = ""; runStatus.innerHTML = "<span>GREY HEARTH</span><strong>SAFE</strong>"; }, 2400);
+    const after = Core.getHearthProgression ? Core.getHearthProgression(state) : null;
+    const rankUp = before && after && after.rank > before.rank ? after.current : null;
+    renderReturn({
+      outcome: "survived",
+      depth: expedition.depth + 1,
+      items,
+      lostCount: 0,
+      renownGain: after ? after.lastGain : 0,
+      rankUp,
+      label
+    });
   }
 
   function installControls() {
@@ -1061,10 +1241,14 @@
     });
   }
 
-  document.getElementById("start-expedition").addEventListener("click", () => {
+  function beginNewExpedition() {
+    ensureAudio();
+    lastReturnReport = null;
     state = Core.beginExpedition(state, Date.now());
     renderExplore();
-  });
+  }
+
+  document.getElementById("start-expedition").addEventListener("click", beginNewExpedition);
   document.getElementById("continue-expedition").addEventListener("click", () => {
     state = Core.continueExpedition(state);
     renderExplore();
@@ -1072,6 +1256,20 @@
   document.getElementById("return-home").addEventListener("click", () => returnHome("RETURNED SAFE"));
   document.getElementById("return-from-explore").addEventListener("click", () => returnHome("TURNED BACK"));
   document.getElementById("loot-reveal-continue").addEventListener("click", renderDecision);
+  document.getElementById("return-to-hub").addEventListener("click", () => {
+    lastOutcome = "";
+    renderHub();
+  });
+  document.getElementById("return-again").addEventListener("click", beginNewExpedition);
+  soundToggle.addEventListener("click", () => {
+    soundEnabled = !soundEnabled;
+    saveSoundPreference();
+    soundToggle.textContent = soundEnabled ? "音 ON" : "音 OFF";
+    soundToggle.setAttribute("aria-pressed", String(soundEnabled));
+    if (soundEnabled) sound("perfect");
+  });
+  soundToggle.textContent = soundEnabled ? "音 ON" : "音 OFF";
+  soundToggle.setAttribute("aria-pressed", String(soundEnabled));
 
   installControls();
   renderHub();

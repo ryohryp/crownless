@@ -22,3 +22,11 @@ Make Crownless comfortable to play one-handed on a phone without turning combat 
 ## Design intent
 
 The interesting mobile decision should be *when to commit a technique and when to evade*, not whether the player can steer a tiny character around a browser canvas.
+
+## v0.6 combat rhythm
+
+- Auto attacks, combo finishers, telegraph interrupts, and perfect evades build **闘志**.
+- Taking damage removes half of the current meter, so clean timing has visible value.
+- At 100, the next Technique becomes **決着**: a faster, stronger, higher-stagger commitment.
+- Spending the full meter on activation preserves the risk of a missed Technique.
+- The meter, button state, generated sound, hit stop, screen shake, and optional vibration all communicate the same combat event.
