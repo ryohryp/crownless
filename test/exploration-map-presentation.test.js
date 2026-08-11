@@ -31,6 +31,26 @@ test("frontier hints hide exact encounter type before reveal", () => {
   assert.equal(MapUI.frontierHint("標的 / 灰牙"), "強い気配");
 });
 
+test("visible signals can be restored to stable event kinds", () => {
+  assert.equal(MapUI.inferEventKind("探索イベント / 隠し荷"), "cache");
+  assert.equal(MapUI.inferEventKind("探索イベント / 祠"), "shrine");
+  assert.equal(MapUI.inferEventKind("探索イベント / 人物"), "traveler");
+  assert.equal(MapUI.inferEventKind("戦闘 / 待ち伏せ"), "ambush");
+  assert.equal(MapUI.inferEventKind("標的 / 灰牙"), "hunt");
+});
+
+test("only safe map knowledge is serialized between expeditions", () => {
+  const persisted = MapUI.persistableCells(new Map([
+    ["0,0", { x: 0, y: 0, state: "hearth", name: "灰炉" }],
+    ["1,0", { x: 1, y: 0, state: "visited", name: "死王の旧街道", glyph: "━" }],
+    ["2,0", { x: 2, y: 0, state: "discovered", name: "崩れた礼拝堂" }],
+    ["3,0", { x: 3, y: 0, state: "frontier", name: "未知" }]
+  ]));
+
+  assert.deepEqual(persisted.map((cell) => cell.state).sort(), ["hearth", "visited"]);
+  assert.equal(persisted.find((cell) => cell.state === "visited").name, "死王の旧街道");
+});
+
 test("browser loads the fog-map presentation after existing presentation layers", () => {
   const noncombat = index.indexOf('src/noncombat-presentation.js');
   const map = index.indexOf('src/exploration-map-presentation.js');
