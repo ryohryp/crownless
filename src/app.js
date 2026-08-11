@@ -194,30 +194,21 @@
     flashMessage(drop.name + " — 拾った。戦い方が変わる。", 950);
   }
 
-  function updateBattlefieldPickup(dt) {
-    const p = battle.player;
-    const available = battle.droppedWeapons
-      .filter((drop) => !drop.picked && dist(drop, p) <= 48)
-      .sort((a, b) => dist(a, p) - dist(b, p));
-    const target = available[0] || null;
-    battle.droppedWeapons.forEach((drop) => {
-      if (drop !== target && !drop.picked) drop.pickup = 0;
-    });
-    if (!target) return false;
-    if (p.attack || p.recovery > 0) {
-      target.pickup = 0;
-      return true;
-    }
-    target.pickup += dt;
-    if (target.pickup >= 0.18) equipBattlefieldWeapon(target);
-    return true;
-  }
-
+  function updateBattlefieldPickup() {
+  const p = battle.player;
+  if (p.attack && p.attack.kind !== "light") return false;
+  const target = battle.droppedWeapons
+    .filter((drop) => !drop.picked && dist(drop, p) <= 64)
+    .sort((a, b) => dist(a, p) - dist(b, p))[0] || null;
+  if (!target) return false;
+  equipBattlefieldWeapon(target);
+  return true;
+}
   function beginVictoryPickupWindow() {
     if (!battle || battle.ending || battle.victoryPickupTimer > 0) return;
     const unpicked = battle.droppedWeapons.filter((drop) => !drop.picked);
-    battle.victoryPickupTimer = unpicked.length ? 1.6 : 0.35;
-    if (unpicked.length) flashMessage("敵の武器が落ちた。近くで止まれば拾える。", 1150);
+    battle.victoryPickupTimer = unpicked.length ? 0.7 : 0.35;
+    if (unpicked.length) flashMessage("敵の武器が落ちた。触れれば拾える。", 800);
   }
 
   function showScreen(name) {
@@ -748,14 +739,14 @@
       p.comboStep = 0;
       p.comboTimer = 0;
       p.autoDelay = Math.max(p.autoDelay, 0.035);
-      battle.droppedWeapons.forEach((drop) => { if (!drop.picked) drop.pickup = 0; });
     } else {
       p.stationary += dt;
-      if (!updateBattlefieldPickup(dt)) updateAutoStrike();
     }
 
     p.x = clamp(p.x, 64, canvas.width - 64);
     p.y = clamp(p.y, 92, canvas.height - 58);
+    const pickedWeapon = updateBattlefieldPickup();
+    if (!p.moving && !pickedWeapon) updateAutoStrike();
   }
 
   function updateAutoStrike() {
@@ -1321,10 +1312,9 @@
     const discovery = state.expedition && state.expedition.lastDiscovery;
     drawGround(discovery ? discovery.palette : "road", battle.elapsed);
 
-    const target = nearestEnemy();
-    const zoom = mobileView() ? 1.38 : 1.08;
-    const focusX = target ? battle.player.x * 0.52 + target.x * 0.48 : battle.player.x;
-    const focusY = target ? battle.player.y * 0.55 + target.y * 0.45 : battle.player.y;
+    const zoom = mobileView() ? 1.14 : 1.08;
+    const focusX = canvas.width / 2;
+    const focusY = canvas.height / 2;
     const shakeX = battle.shake ? (Math.random() - 0.5) * battle.shake : 0;
     const shakeY = battle.shake ? (Math.random() - 0.5) * battle.shake : 0;
 
@@ -1448,7 +1438,7 @@
 
   function drawDroppedWeapon(drop) {
     const p = battle.player;
-    const near = dist(drop, p) <= 62;
+    const near = dist(drop, p) <= 76;
     const pulse = 1 + Math.sin(battle.elapsed * 8 + drop.age) * 0.08;
     ctx.save();
     ctx.translate(drop.x, drop.y);
@@ -1473,14 +1463,13 @@
     ctx.lineWidth = 2;
     ctx.beginPath(); ctx.arc(drop.x, drop.y, 24 * pulse, 0, Math.PI * 2); ctx.stroke();
     if (near) {
-      const progress = clamp(drop.pickup / 0.18, 0, 1);
       ctx.strokeStyle = "#f1d77e";
-      ctx.lineWidth = 4;
-      ctx.beginPath(); ctx.arc(drop.x, drop.y, 30, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress); ctx.stroke();
+      ctx.lineWidth = 3;
+      ctx.beginPath(); ctx.arc(drop.x, drop.y, 30, 0, Math.PI * 2); ctx.stroke();
       ctx.fillStyle = "rgba(246,232,194,.95)";
       ctx.font = "800 11px ui-sans-serif, system-ui";
       ctx.textAlign = "center";
-      ctx.fillText("止まって拾う", drop.x, drop.y - 36);
+      ctx.fillText("触れれば拾う", drop.x, drop.y - 36);
     }
     ctx.restore();
   }
@@ -1604,7 +1593,7 @@
     if (techniqueButton) { techniqueButton.textContent = "技"; techniqueButton.classList.add("technique"); }
     if (evadeButton) evadeButton.textContent = "回避";
     const help = document.querySelector(".combat-help");
-    if (help) help.innerHTML = '<span><kbd>WASD</kbd> / ドラッグ 移動</span><span>停止 <b>AUTO STRIKE</b></span><span>武器の上で停止 <b>PICK UP</b></span><span><kbd>K</kbd> 技</span><span><kbd>SPACE</kbd> 回避</span><span class="hint">敵の狙いを外す → 止まって反撃。倒した敵の武器も使える。</span>';
+    if (help) help.innerHTML = '<span><kbd>WASD</kbd> / ドラッグ 移動</span><span>停止 <b>AUTO STRIKE</b></span><span>武器に触れる <b>PICK UP</b></span><span><kbd>K</kbd> 技</span><span><kbd>SPACE</kbd> 回避</span><span class="hint">敵の狙いを外す → 止まって反撃。倒した敵の武器は触れるだけで拾える。</span>';
 
     const movementCodes = new Set(["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", "KeyW", "KeyA", "KeyS", "KeyD"]);
     const pointerPosition = (event) => {
