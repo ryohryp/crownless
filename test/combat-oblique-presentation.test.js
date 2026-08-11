@@ -28,5 +28,6 @@ test('combat arena uses an oblique perspective without replacing the simulation 
 test('mobile combat keeps only two floating explicit action targets', () => {
   assert.match(css, /\.touch-controls\.simple-actions[\s\S]*position:\s*absolute/);
   assert.match(css, /\.simple-actions \.auto-control[\s\S]*display:\s*none/);
-  assert.match(css, /\.simple-actions \.action-pad \.technique[\s\S]*border-radius:\s*50%/);
+  assert.match(css, /\.simple-actions \.action-pad \.action[\s\S]*border-radius:\s*50%/);
+  assert.match(css, /\.simple-actions \.action-pad \.technique[\s\S]*width:\s*78px/);
 });
