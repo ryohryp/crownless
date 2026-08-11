@@ -6,7 +6,7 @@
 
   const ROLE_PACE = {
     rusher: { speed: 1.06, range: 68 },
-    guard: { speed: 0.94, range: 74 },
+    guard: { speed: 0.88, range: 76 },
     skirmisher: { speed: 0.96, range: 245 }
   };
 
@@ -14,6 +14,12 @@
     healthScale: 0.84,
     damageScale: 1.18,
     role: "fast / dangerous / fragile"
+  });
+
+  const GUARD_IDENTITY = Object.freeze({
+    healthScale: 1.08,
+    damageScale: 0.92,
+    role: "slow / armored / break then punish"
   });
 
   const PLAYER_MOVE_SCALE = {
@@ -33,6 +39,12 @@
       enemy.maxHealth = Math.max(1, Math.round(enemy.maxHealth * RUSHER_IDENTITY.healthScale));
       enemy.damage = Math.max(1, Math.round(enemy.damage * RUSHER_IDENTITY.damageScale));
       enemy.combatRole = "rusher";
+    }
+
+    if (enemy.kind === "guard") {
+      enemy.maxHealth = Math.max(1, Math.round(enemy.maxHealth * GUARD_IDENTITY.healthScale));
+      enemy.damage = Math.max(1, Math.round(enemy.damage * GUARD_IDENTITY.damageScale));
+      enemy.combatRole = "guard";
     }
 
     return enemy;
@@ -77,7 +89,8 @@
   window.CrownlessCombatFeel = Object.freeze({
     rolePace: ROLE_PACE,
     rusherIdentity: RUSHER_IDENTITY,
+    guardIdentity: GUARD_IDENTITY,
     playerMoveScale: PLAYER_MOVE_SCALE,
-    intent: "create clearer stop-to-strike openings and a readable high-risk rusher without adding controls or new systems"
+    intent: "make enemy roles demand different movement choices using existing combat interactions instead of new controls or systems"
   });
 })();
