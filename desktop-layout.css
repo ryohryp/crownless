@@ -227,3 +227,66 @@
     min-height: 34px;
   }
 }
+
+/* The Grey Hearth is a dashboard, not a play surface. It can grow as rumor,
+   dungeon, renown and secured-loot sections are added, so desktop must allow
+   normal document scrolling here while keeping expedition/combat screens locked. */
+@media (min-width: 901px) {
+  html:has(#hub-screen.active),
+  body:has(#hub-screen.active) {
+    height: auto;
+    min-height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+
+  body:has(#hub-screen.active) .app-shell {
+    height: auto;
+    min-height: 100vh;
+    min-height: 100dvh;
+    overflow: visible;
+  }
+
+  body:has(#hub-screen.active) main {
+    flex: 1 0 auto;
+    min-height: 0;
+    padding-top: clamp(20px, 3vh, 40px);
+    padding-bottom: 32px;
+    overflow: visible;
+  }
+
+  body:has(#hub-screen.active) #hub-screen.screen.active {
+    display: block !important;
+    height: auto !important;
+    min-height: 0 !important;
+    overflow: visible !important;
+  }
+
+  body:has(#hub-screen.active) #hub-screen .hub-hero {
+    height: auto;
+    min-height: 520px;
+    grid-template-columns: 1fr minmax(300px, 390px);
+    gap: 30px;
+    padding-bottom: 30px;
+  }
+
+  body:has(#hub-screen.active) #hub-screen .hub-copy {
+    height: auto;
+    min-height: 480px;
+    padding: clamp(30px, 7vw, 74px) 0;
+  }
+
+  body:has(#hub-screen.active) #hub-screen .loadout-card {
+    height: auto;
+    min-height: 430px;
+    padding: 28px;
+  }
+
+  body:has(#hub-screen.active) #hub-screen .hub-grid {
+    height: auto;
+    min-height: 0;
+    grid-template-columns: 1fr 280px;
+    gap: 20px;
+    padding-top: 22px;
+  }
+}
