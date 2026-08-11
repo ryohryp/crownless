@@ -126,13 +126,13 @@
     const weapon = battle ? battle.tuning.weaponType : "fists";
     const reach = battle ? battle.tuning.reach : 53;
     if (weapon === "dagger") {
-      return { settle: 0.07, range: reach + 8, comboLength: 6, duration: 0.18, activeAt: 0.052, cadence: 0.015, lunge: 9, damage: 0.82, finisher: 1.5, arc: 0.28 };
+      return { settle: 0.06, range: reach + 8, comboLength: 6, duration: 0.17, activeAt: 0.046, cadence: 0.015, lunge: 9, damage: 0.82, finisher: 1.5, arc: 0.28 };
     }
     if (weapon === "sword") {
-      return { settle: 0.16, range: reach + 14, comboLength: 3, duration: 0.42, activeAt: 0.17, cadence: 0.055, lunge: 6, damage: 1.18, finisher: 1.3, arc: -0.16 };
+      return { settle: 0.14, range: reach + 14, comboLength: 3, duration: 0.39, activeAt: 0.145, cadence: 0.055, lunge: 6, damage: 1.18, finisher: 1.3, arc: -0.16 };
     }
     const tempo = battle ? battle.tuning.unarmedTempo : 1;
-    return { settle: 0.1, range: reach + 6, comboLength: 4, duration: 0.23 / tempo, activeAt: 0.07 / tempo, cadence: 0.02, lunge: 10, damage: 1, finisher: 1.38, arc: 0.04 };
+    return { settle: 0.085, range: reach + 6, comboLength: 4, duration: 0.215 / tempo, activeAt: 0.06 / tempo, cadence: 0.02, lunge: 10, damage: 1, finisher: 1.38, arc: 0.04 };
   }
 
   function battlefieldWeaponSpec(enemy) {
@@ -909,7 +909,7 @@
         enemy.stagger = 0.1;
         spawnBurst(enemy.x, enemy.y, 8, "#d4c18c");
         addText(enemy.x, enemy.y - 48, "BLOCK", "#dfcf9b");
-        battle.hitStop = 0.03;
+        battle.hitStop = 0.035;
         hit = true;
         attack.hitAny = true;
         gainEdge(3);
@@ -937,14 +937,14 @@
       enemy.hp = Math.max(0, enemy.hp - dealt);
       enemy.hitFlash = 0.14;
       const staggerScale = technique ? battle.tuning.heavyStagger * (attack.staggerMultiplier || 1) : 1;
-      enemy.stagger = Math.max(enemy.stagger, technique ? 0.42 * staggerScale : finisher ? 0.3 : 0.12);
-      const knock = technique ? 50 * staggerScale * (attack.knockMultiplier || 1) : finisher ? 38 : 11;
+      enemy.stagger = Math.max(enemy.stagger, technique ? 0.44 * staggerScale : finisher ? 0.32 : 0.16);
+      const knock = technique ? 54 * staggerScale * (attack.knockMultiplier || 1) : finisher ? 44 : 18;
       enemy.vx += toEnemy.x * knock * 3.2;
       enemy.vy += toEnemy.y * knock * 3.2;
       spawnBurst(enemy.x, enemy.y, technique ? 15 : finisher ? 12 : 8, technique ? "#f0c96a" : "#e6d0a7");
       battle.slashes.push({ x: p.x + p.facingX * 31, y: p.y + p.facingY * 31, angle: Math.atan2(p.facingY, p.facingX), life: 0.13, heavy: technique, finisher });
-      battle.hitStop = Math.max(battle.hitStop, technique ? (counter ? 0.13 : 0.095) : finisher ? 0.075 : 0.045);
-      battle.shake = Math.max(battle.shake, technique ? (counter ? 13 : 10) : finisher ? 7 : 4);
+      battle.hitStop = Math.max(battle.hitStop, technique ? (counter ? 0.14 : 0.105) : finisher ? 0.082 : 0.052);
+      battle.shake = Math.max(battle.shake, technique ? (counter ? 14 : 11) : finisher ? 8 : 4);
       addText(enemy.x, enemy.y - 48, `${Math.round(dealt)}`, technique ? "#ffd875" : "#f5e0bd");
       hit = true;
       attack.hitAny = true;

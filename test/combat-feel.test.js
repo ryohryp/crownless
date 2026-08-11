@@ -5,11 +5,25 @@ const assert = require("node:assert/strict");
 
 const source = fs.readFileSync(path.join(__dirname, "..", "src", "app.js"), "utf8");
 
-test("impact feedback emphasizes finishers and techniques", () => {
-  assert.match(source, /counter \? 0\.13 : 0\.095/);
-  assert.match(source, /finisher \? 0\.075 : 0\.045/);
-  assert.match(source, /counter \? 13 : 10/);
-  assert.match(source, /finisher \? 7 : 4/);
+test("stop-to-strike starts sooner across weapon profiles", () => {
+  assert.match(source, /settle: 0\.06[\s\S]*duration: 0\.17[\s\S]*activeAt: 0\.046/);
+  assert.match(source, /settle: 0\.14[\s\S]*duration: 0\.39[\s\S]*activeAt: 0\.145/);
+  assert.match(source, /settle: 0\.085[\s\S]*duration: 0\.215 \/ tempo[\s\S]*activeAt: 0\.06 \/ tempo/);
+});
+
+test("impact feedback keeps clear normal finisher technique hierarchy", () => {
+  assert.match(source, /counter \? 0\.14 : 0\.105/);
+  assert.match(source, /finisher \? 0\.082 : 0\.052/);
+  assert.match(source, /counter \? 14 : 11/);
+  assert.match(source, /finisher \? 8 : 4/);
+  assert.match(source, /battle\.hitStop = 0\.035/);
+});
+
+test("ordinary hits create more visible space without turning every hit into a launch", () => {
+  assert.match(source, /technique \? 0\.44 \* staggerScale : finisher \? 0\.32 : 0\.16/);
+  assert.match(source, /technique \? 54 \* staggerScale \* \(attack\.knockMultiplier \|\| 1\) : finisher \? 44 : 18/);
+  assert.match(source, /enemy\.vx \+= toEnemy\.x \* knock \* 3\.2/);
+  assert.match(source, /enemy\.vy \+= toEnemy\.y \* knock \* 3\.2/);
 });
 
 test("defeated enemies are visibly knocked down", () => {
