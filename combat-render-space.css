@@ -1,0 +1,94 @@
+/*
+ * Phase 2 combat presentation.
+ *
+ * Phase 1 tilted the entire Canvas. That also tilted the fighters, so the view
+ * still read as a top-down diagram. Phase 2 removes that CSS tilt and lets the
+ * render-space projection position combatants while their bodies remain upright.
+ */
+
+.combat-screen.active .arena-wrap {
+  perspective: none;
+  background:
+    radial-gradient(ellipse at 50% 12%, rgba(98, 83, 57, .13), transparent 31%),
+    linear-gradient(180deg, #09100e 0%, #0b100d 38%, #0b0b09 100%);
+}
+
+.combat-screen.active #arena {
+  transform: none !important;
+  transform-origin: center !important;
+  filter: saturate(.91) contrast(1.11) brightness(.96);
+}
+
+/* A visible horizon plus converging floor rays makes the camera direction read
+   immediately even before environment art is introduced. */
+.combat-screen.active .arena-wrap::before {
+  z-index: 3;
+  background:
+    linear-gradient(180deg,
+      rgba(2, 5, 4, .64) 0%,
+      rgba(2, 5, 4, .24) 13%,
+      rgba(224, 202, 159, .075) 13.2%,
+      transparent 13.6%,
+      transparent 73%,
+      rgba(2, 3, 2, .35) 100%),
+    conic-gradient(from 159deg at 50% 13%,
+      transparent 0deg 7deg,
+      rgba(225, 205, 166, .052) 7.15deg 7.45deg,
+      transparent 7.6deg 18deg,
+      rgba(225, 205, 166, .045) 18.15deg 18.45deg,
+      transparent 18.6deg 32deg,
+      rgba(225, 205, 166, .04) 32.15deg 32.45deg,
+      transparent 32.6deg 46deg,
+      rgba(225, 205, 166, .04) 46.15deg 46.45deg,
+      transparent 46.6deg 60deg,
+      rgba(225, 205, 166, .045) 60.15deg 60.45deg,
+      transparent 60.6deg 71deg,
+      rgba(225, 205, 166, .052) 71.15deg 71.45deg,
+      transparent 71.6deg 360deg);
+  mix-blend-mode: screen;
+  opacity: .92;
+}
+
+.combat-screen.active .arena-wrap::after {
+  z-index: 3;
+  height: 38%;
+  background:
+    radial-gradient(ellipse at 50% 100%, rgba(94, 71, 45, .13), transparent 44%),
+    linear-gradient(24deg, rgba(2, 3, 2, .62), transparent 32%),
+    linear-gradient(-24deg, rgba(2, 3, 2, .62), transparent 32%);
+  opacity: .72;
+}
+
+.combat-screen.active .arena-fade {
+  box-shadow:
+    inset 0 0 92px rgba(0, 0, 0, .42),
+    inset 0 64px 94px rgba(0, 0, 0, .2),
+    inset 0 -76px 104px rgba(0, 0, 0, .27);
+}
+
+@media (max-width: 700px) {
+  .combat-screen.active #arena {
+    transform: none !important;
+  }
+
+  .combat-screen.active .arena-wrap::before {
+    background:
+      linear-gradient(180deg,
+        rgba(2, 5, 4, .66) 0%,
+        rgba(2, 5, 4, .2) 11%,
+        rgba(224, 202, 159, .07) 11.2%,
+        transparent 11.7%,
+        transparent 74%,
+        rgba(2, 3, 2, .38) 100%),
+      conic-gradient(from 157deg at 50% 11%,
+        transparent 0deg 8deg,
+        rgba(225, 205, 166, .048) 8.2deg 8.55deg,
+        transparent 8.7deg 23deg,
+        rgba(225, 205, 166, .04) 23.2deg 23.55deg,
+        transparent 23.7deg 47deg,
+        rgba(225, 205, 166, .04) 47.2deg 47.55deg,
+        transparent 47.7deg 62deg,
+        rgba(225, 205, 166, .048) 62.2deg 62.55deg,
+        transparent 62.7deg 360deg);
+  }
+}
