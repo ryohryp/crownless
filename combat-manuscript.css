@@ -1,0 +1,426 @@
+/*
+ * Crownless manuscript combat layer.
+ *
+ * This file intentionally sits after the existing combat presentation styles.
+ * It changes presentation only: combat logic, hit detection, movement and
+ * stand-to-strike behavior remain authoritative in src/app.js.
+ */
+
+.combat-screen.active {
+  --manuscript-paper: #d8c7a5;
+  --manuscript-paper-deep: #b8a37d;
+  --manuscript-ink: #17130f;
+  --manuscript-ink-soft: #342a20;
+  --manuscript-red: #963a2e;
+  --manuscript-red-hot: #b84b36;
+  --manuscript-ember: #b86a2d;
+  --manuscript-teal: #547a73;
+  --manuscript-ochre: #9b7134;
+  position: relative;
+  font-family: Georgia, "Yu Mincho", "Hiragino Mincho ProN", serif;
+}
+
+.combat-screen.active .combat-head {
+  position: relative;
+  z-index: 32;
+}
+
+.combat-screen.active .combat-head > div:first-child {
+  min-width: 0;
+}
+
+.combat-screen.active .combat-head .eyebrow {
+  color: var(--manuscript-ochre);
+  letter-spacing: .14em;
+}
+
+.combat-screen.active .combat-head h1 {
+  color: #e8dbc0;
+  text-shadow: 0 2px 0 rgba(0, 0, 0, .65);
+}
+
+.combat-screen.active .combat-bars {
+  position: relative;
+  overflow: hidden;
+  color: var(--manuscript-ink);
+  border: 1px solid rgba(23, 19, 15, .75);
+  background:
+    repeating-linear-gradient(0deg, rgba(45, 34, 23, .035) 0 1px, transparent 1px 4px),
+    linear-gradient(103deg, #decca9 0%, #c7b38e 100%);
+  box-shadow:
+    0 3px 0 rgba(0, 0, 0, .42),
+    0 12px 26px rgba(0, 0, 0, .24);
+  clip-path: polygon(1.2% 3%, 99% 0, 98.6% 96%, 1% 100%, 0 54%);
+}
+
+.combat-screen.active .combat-bars::after {
+  content: "";
+  position: absolute;
+  inset: 5px 7px;
+  pointer-events: none;
+  border-top: 1px solid rgba(61, 46, 31, .20);
+  border-bottom: 1px solid rgba(61, 46, 31, .12);
+  opacity: .8;
+}
+
+.combat-screen.active .health-row {
+  position: relative;
+  z-index: 1;
+  color: var(--manuscript-ink);
+  font-weight: 700;
+  letter-spacing: .04em;
+}
+
+.combat-screen.active .health-row > span {
+  color: var(--manuscript-ink-soft);
+}
+
+.combat-screen.active .health-row strong {
+  color: var(--manuscript-ink);
+  font-family: Georgia, "Yu Mincho", serif;
+}
+
+.combat-screen.active .bar {
+  height: 7px;
+  overflow: visible;
+  border: 0;
+  background: rgba(23, 19, 15, .22);
+  box-shadow: none;
+  transform: skewX(-7deg);
+}
+
+.combat-screen.active .bar::before,
+.combat-screen.active .bar::after {
+  content: "";
+  position: absolute;
+  pointer-events: none;
+}
+
+.combat-screen.active .bar::before {
+  inset: -2px 0;
+  border-top: 1px solid rgba(23, 19, 15, .42);
+  border-bottom: 1px solid rgba(23, 19, 15, .24);
+}
+
+.combat-screen.active .bar i {
+  box-shadow: none;
+  filter: saturate(.72) contrast(1.15);
+}
+
+.combat-screen.active #player-health-bar {
+  background: linear-gradient(90deg, #7f2e27, var(--manuscript-red-hot));
+}
+
+.combat-screen.active #enemy-health-bar {
+  background: linear-gradient(90deg, #40221e, #81372d);
+}
+
+.combat-screen.active #edge-bar {
+  background: linear-gradient(90deg, #17130f, #4b3321 68%, var(--manuscript-ember));
+}
+
+.combat-screen.active .arena-wrap {
+  position: relative;
+  overflow: hidden;
+  border: 2px solid #120f0c;
+  border-radius: 0;
+  background: var(--manuscript-paper);
+  box-shadow:
+    0 0 0 1px rgba(216, 199, 165, .18),
+    0 28px 70px rgba(0, 0, 0, .44);
+}
+
+/* Paper grain + woodcut hatching. These are screen-space overlays, so the
+   deterministic combat canvas can stay on its existing logical plane. */
+.combat-screen.active .arena-wrap::before {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  pointer-events: none;
+  background:
+    repeating-linear-gradient(7deg, rgba(23, 19, 15, .055) 0 1px, transparent 1px 9px),
+    repeating-linear-gradient(97deg, rgba(23, 19, 15, .022) 0 1px, transparent 1px 17px),
+    radial-gradient(circle at 18% 22%, rgba(74, 57, 36, .10), transparent 24%),
+    radial-gradient(circle at 78% 63%, rgba(79, 60, 40, .07), transparent 30%);
+  mix-blend-mode: multiply;
+  opacity: .52;
+}
+
+.combat-screen.active .arena-wrap::after {
+  content: "";
+  position: absolute;
+  z-index: 5;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(11, 9, 7, .18), transparent 17%, transparent 73%, rgba(11, 9, 7, .46)),
+    linear-gradient(90deg, rgba(11, 9, 7, .35), transparent 8%, transparent 92%, rgba(11, 9, 7, .35));
+  box-shadow: inset 0 0 88px rgba(12, 9, 7, .28);
+}
+
+.combat-screen.active #arena {
+  z-index: 1;
+  filter: sepia(.18) saturate(.68) contrast(1.18) brightness(1.05);
+}
+
+.combat-screen.active .arena-fade {
+  z-index: 4;
+  background: transparent;
+  box-shadow: inset 0 0 56px rgba(15, 11, 8, .20);
+}
+
+.combat-screen.active .combat-message {
+  z-index: 18;
+  padding: 7px 13px;
+  color: var(--manuscript-ink);
+  border: 1px solid rgba(23, 19, 15, .48);
+  border-radius: 0;
+  background:
+    repeating-linear-gradient(0deg, rgba(34, 25, 17, .03) 0 1px, transparent 1px 4px),
+    rgba(218, 201, 167, .93);
+  backdrop-filter: none;
+  box-shadow: 2px 3px 0 rgba(0, 0, 0, .26);
+  font-family: "Yu Mincho", "Hiragino Mincho ProN", Georgia, serif;
+  clip-path: polygon(2% 4%, 99% 0, 98% 95%, 1% 100%);
+}
+
+.combat-screen.active .combat-help {
+  color: #8f816c;
+}
+
+.combat-screen.active .combat-help kbd {
+  color: #ded0b5;
+  border-color: rgba(222, 208, 181, .18);
+  background: rgba(216, 199, 165, .06);
+}
+
+.combat-screen.active .combat-help .hint {
+  color: #bd705d;
+}
+
+.combat-screen.active .simple-actions .action-pad .action {
+  font-family: "Yu Mincho", "Hiragino Mincho ProN", Georgia, serif;
+  font-weight: 800;
+  color: #e9dcc1;
+  border-radius: 0 !important;
+  clip-path: polygon(29% 0, 71% 0, 100% 29%, 100% 71%, 71% 100%, 29% 100%, 0 71%, 0 29%);
+  text-shadow: 0 2px 0 rgba(0, 0, 0, .48);
+}
+
+.combat-screen.active .simple-actions .action-pad .technique {
+  background:
+    repeating-linear-gradient(12deg, rgba(255,255,255,.025) 0 1px, transparent 1px 6px),
+    #873529 !important;
+  border: 2px solid #d1b993 !important;
+  box-shadow:
+    inset 0 0 0 2px rgba(45, 15, 11, .55),
+    0 5px 0 rgba(0, 0, 0, .5),
+    0 12px 26px rgba(0, 0, 0, .34) !important;
+}
+
+.combat-screen.active .simple-actions .action-pad .evade {
+  background:
+    repeating-linear-gradient(-9deg, rgba(255,255,255,.02) 0 1px, transparent 1px 7px),
+    #171513 !important;
+  border: 2px solid #b7a586 !important;
+  box-shadow:
+    inset 0 0 0 2px rgba(0, 0, 0, .42),
+    0 5px 0 rgba(0, 0, 0, .5),
+    0 12px 26px rgba(0, 0, 0, .32) !important;
+}
+
+.combat-screen.active .simple-actions .action-pad .cooling {
+  opacity: .52;
+  filter: grayscale(.5) contrast(.85) !important;
+}
+
+@media (max-width: 700px), (pointer: coarse) {
+  body:has(#combat-screen.active) {
+    overflow: hidden;
+    background: #0b0907;
+  }
+
+  body:has(#combat-screen.active) .app-shell {
+    width: 100%;
+    min-height: 100dvh;
+    margin: 0;
+  }
+
+  body:has(#combat-screen.active) .topbar,
+  body:has(#combat-screen.active) footer {
+    display: none;
+  }
+
+  body:has(#combat-screen.active) main {
+    padding: 0;
+  }
+
+  .combat-screen.active {
+    min-height: 100dvh;
+    padding: 0 !important;
+    background: #0b0907;
+    overflow: hidden;
+  }
+
+  .combat-screen.active .combat-head {
+    position: absolute;
+    z-index: 46;
+    top: max(10px, env(safe-area-inset-top));
+    left: 10px;
+    right: 10px;
+    display: flex;
+    flex-direction: row-reverse;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 0;
+    pointer-events: none;
+  }
+
+  .combat-screen.active .combat-head > div:first-child {
+    flex: 0 1 47%;
+    padding-top: 4px;
+    text-align: right;
+  }
+
+  .combat-screen.active .combat-head .eyebrow {
+    margin-bottom: 2px;
+    color: #d7c29c;
+    font-size: 8px;
+    text-shadow: 0 2px 2px rgba(0,0,0,.75);
+  }
+
+  .combat-screen.active .combat-head h1 {
+    margin: 0;
+    color: #f0e2c7;
+    font-size: clamp(21px, 6.5vw, 30px);
+    line-height: 1.05;
+    letter-spacing: .04em;
+  }
+
+  .combat-screen.active .combat-head p:last-child {
+    display: none;
+  }
+
+  .combat-screen.active .combat-bars {
+    flex: 0 1 50%;
+    min-width: 174px;
+    padding: 8px 10px 9px;
+    gap: 6px;
+  }
+
+  .combat-screen.active .health-row {
+    grid-template-columns: 34px minmax(70px, 1fr) 28px;
+    gap: 6px;
+    font-size: 9px;
+  }
+
+  .combat-screen.active .health-row > span {
+    font-size: 9px;
+  }
+
+  .combat-screen.active .arena-wrap {
+    width: 100%;
+    height: 100dvh;
+    min-height: 100dvh;
+    max-height: none;
+    border: 0;
+  }
+
+  .combat-screen.active #arena {
+    width: 100%;
+    height: 100%;
+    min-height: 100dvh;
+    transform: none;
+    transform-origin: center;
+    filter: sepia(.22) saturate(.64) contrast(1.22) brightness(1.08);
+  }
+
+  .combat-screen.active .arena-fade {
+    box-shadow:
+      inset 0 0 48px rgba(15, 11, 8, .18),
+      inset 0 -120px 110px rgba(10, 8, 6, .32);
+  }
+
+  .combat-screen.active .combat-message {
+    top: auto;
+    bottom: calc(max(122px, env(safe-area-inset-bottom) + 112px));
+    max-width: 58%;
+    padding: 6px 10px;
+    font-size: 10px;
+  }
+
+  .combat-screen.active .combat-help {
+    display: none;
+  }
+
+  .combat-screen.active .touch-controls.simple-actions {
+    position: absolute;
+    z-index: 50;
+    right: max(12px, env(safe-area-inset-right));
+    bottom: max(14px, env(safe-area-inset-bottom));
+    width: auto;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    pointer-events: none;
+  }
+
+  .combat-screen.active .simple-actions .action-pad {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+    pointer-events: auto;
+  }
+
+  .combat-screen.active .simple-actions .action-pad .action {
+    width: 68px !important;
+    height: 68px !important;
+    font-size: 15px;
+  }
+
+  .combat-screen.active .simple-actions .action-pad .technique {
+    width: 86px !important;
+    height: 86px !important;
+    font-size: 30px;
+  }
+
+  .combat-screen.active .simple-actions .action-pad .evade {
+    width: 72px !important;
+    height: 72px !important;
+    font-size: 17px;
+  }
+}
+
+@media (max-width: 390px), (max-height: 700px) and (max-width: 700px) {
+  .combat-screen.active .combat-head {
+    top: max(7px, env(safe-area-inset-top));
+    left: 7px;
+    right: 7px;
+  }
+
+  .combat-screen.active .combat-bars {
+    min-width: 158px;
+    padding: 6px 8px 7px;
+  }
+
+  .combat-screen.active .simple-actions .action-pad .technique {
+    width: 78px !important;
+    height: 78px !important;
+    font-size: 27px;
+  }
+
+  .combat-screen.active .simple-actions .action-pad .evade {
+    width: 66px !important;
+    height: 66px !important;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .combat-screen.active .arena-wrap::before {
+    opacity: .42;
+  }
+}
