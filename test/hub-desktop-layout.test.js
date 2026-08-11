@@ -5,9 +5,10 @@ const path = require("node:path");
 
 const css = fs.readFileSync(path.join(__dirname, "..", "desktop-layout.css"), "utf8");
 
-test("desktop Grey Hearth returns to normal document scrolling", () => {
-  assert.match(css, /html:has\(#hub-screen\.active\),[\s\S]*?body:has\(#hub-screen\.active\)[\s\S]*?overflow-y: auto;/);
-  assert.match(css, /body:has\(#hub-screen\.active\) \.app-shell[\s\S]*?height: auto;[\s\S]*?overflow: visible;/);
+test("desktop Grey Hearth uses main as the explicit scroll container", () => {
+  assert.match(css, /body:has\(#hub-screen\.active\) main[\s\S]*?overflow-x: hidden;[\s\S]*?overflow-y: auto;/);
+  assert.match(css, /body:has\(#hub-screen\.active\) main[\s\S]*?overscroll-behavior-y: contain;/);
+  assert.doesNotMatch(css, /html:has\(#hub-screen\.active\),[\s\S]*?body:has\(#hub-screen\.active\)[\s\S]*?overflow-y: auto;/);
   assert.match(css, /body:has\(#hub-screen\.active\) #hub-screen\.screen\.active[\s\S]*?display: block !important;[\s\S]*?height: auto !important;[\s\S]*?overflow: visible !important;/);
 });
 
