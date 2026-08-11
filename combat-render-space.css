@@ -1,94 +1,108 @@
 /*
- * Phase 2 combat presentation.
+ * Phase 3 combat presentation: indie-production visual pass.
  *
- * Phase 1 tilted the entire Canvas. That also tilted the fighters, so the view
- * still read as a top-down diagram. Phase 2 removes that CSS tilt and lets the
- * render-space projection position combatants while their bodies remain upright.
+ * Keep the phase-two oblique render space, but bias the result toward the
+ * deliberately small 2D/2.5D production target: chunky silhouettes, modular
+ * battlefield texture, one local warm light cue, and no production-3D look.
  */
 
 .combat-screen.active .arena-wrap {
   perspective: none;
+  isolation: isolate;
   background:
-    radial-gradient(ellipse at 50% 12%, rgba(98, 83, 57, .13), transparent 31%),
-    linear-gradient(180deg, #09100e 0%, #0b100d 38%, #0b0b09 100%);
+    radial-gradient(ellipse at 50% 12%, rgba(98, 83, 57, .11), transparent 31%),
+    linear-gradient(180deg, #080d0c 0%, #0b0f0c 38%, #090907 100%);
 }
 
 .combat-screen.active #arena {
   transform: none !important;
   transform-origin: center !important;
-  filter: saturate(.91) contrast(1.11) brightness(.96);
+  image-rendering: pixelated;
+  filter: saturate(.82) contrast(1.14) brightness(.92);
 }
 
-/* A visible horizon plus converging floor rays makes the camera direction read
-   immediately even before environment art is introduced. */
+/* The horizon remains deliberately quiet. The procedural tile field and edge
+   props now carry most of the depth cue, so presentation does not need a
+   pseudo-3D lighting stack. */
 .combat-screen.active .arena-wrap::before {
   z-index: 3;
   background:
     linear-gradient(180deg,
-      rgba(2, 5, 4, .64) 0%,
-      rgba(2, 5, 4, .24) 13%,
-      rgba(224, 202, 159, .075) 13.2%,
+      rgba(2, 5, 4, .68) 0%,
+      rgba(2, 5, 4, .27) 13%,
+      rgba(224, 202, 159, .055) 13.2%,
       transparent 13.6%,
       transparent 73%,
-      rgba(2, 3, 2, .35) 100%),
+      rgba(2, 3, 2, .4) 100%),
     conic-gradient(from 159deg at 50% 13%,
       transparent 0deg 7deg,
-      rgba(225, 205, 166, .052) 7.15deg 7.45deg,
+      rgba(225, 205, 166, .032) 7.15deg 7.45deg,
       transparent 7.6deg 18deg,
-      rgba(225, 205, 166, .045) 18.15deg 18.45deg,
+      rgba(225, 205, 166, .028) 18.15deg 18.45deg,
       transparent 18.6deg 32deg,
-      rgba(225, 205, 166, .04) 32.15deg 32.45deg,
+      rgba(225, 205, 166, .025) 32.15deg 32.45deg,
       transparent 32.6deg 46deg,
-      rgba(225, 205, 166, .04) 46.15deg 46.45deg,
+      rgba(225, 205, 166, .025) 46.15deg 46.45deg,
       transparent 46.6deg 60deg,
-      rgba(225, 205, 166, .045) 60.15deg 60.45deg,
+      rgba(225, 205, 166, .028) 60.15deg 60.45deg,
       transparent 60.6deg 71deg,
-      rgba(225, 205, 166, .052) 71.15deg 71.45deg,
+      rgba(225, 205, 166, .032) 71.15deg 71.45deg,
       transparent 71.6deg 360deg);
   mix-blend-mode: screen;
-  opacity: .92;
+  opacity: .78;
 }
 
 .combat-screen.active .arena-wrap::after {
   z-index: 3;
   height: 38%;
   background:
-    radial-gradient(ellipse at 50% 100%, rgba(94, 71, 45, .13), transparent 44%),
-    linear-gradient(24deg, rgba(2, 3, 2, .62), transparent 32%),
-    linear-gradient(-24deg, rgba(2, 3, 2, .62), transparent 32%);
-  opacity: .72;
+    radial-gradient(ellipse at 50% 100%, rgba(94, 71, 45, .1), transparent 44%),
+    linear-gradient(24deg, rgba(2, 3, 2, .65), transparent 32%),
+    linear-gradient(-24deg, rgba(2, 3, 2, .65), transparent 32%);
+  opacity: .78;
 }
 
 .combat-screen.active .arena-fade {
   box-shadow:
-    inset 0 0 92px rgba(0, 0, 0, .42),
-    inset 0 64px 94px rgba(0, 0, 0, .2),
-    inset 0 -76px 104px rgba(0, 0, 0, .27);
+    inset 0 0 88px rgba(0, 0, 0, .48),
+    inset 0 58px 86px rgba(0, 0, 0, .22),
+    inset 0 -72px 98px rgba(0, 0, 0, .31);
+}
+
+/* Keep the explicit actions readable, but avoid the glossy/mobile-ARPG button
+   pile suggested by concept art. Stand-to-strike remains the actual control
+   contract: arena drag + Technique + Evade. */
+.combat-screen.active .touch-controls.simple-actions button {
+  backdrop-filter: none;
+  box-shadow:
+    inset 0 0 0 1px rgba(225, 203, 153, .13),
+    0 8px 22px rgba(0, 0, 0, .28);
 }
 
 @media (max-width: 700px) {
   .combat-screen.active #arena {
     transform: none !important;
+    image-rendering: pixelated;
   }
 
   .combat-screen.active .arena-wrap::before {
     background:
       linear-gradient(180deg,
-        rgba(2, 5, 4, .66) 0%,
-        rgba(2, 5, 4, .2) 11%,
-        rgba(224, 202, 159, .07) 11.2%,
+        rgba(2, 5, 4, .7) 0%,
+        rgba(2, 5, 4, .24) 11%,
+        rgba(224, 202, 159, .05) 11.2%,
         transparent 11.7%,
         transparent 74%,
-        rgba(2, 3, 2, .38) 100%),
+        rgba(2, 3, 2, .42) 100%),
       conic-gradient(from 157deg at 50% 11%,
         transparent 0deg 8deg,
-        rgba(225, 205, 166, .048) 8.2deg 8.55deg,
+        rgba(225, 205, 166, .03) 8.2deg 8.55deg,
         transparent 8.7deg 23deg,
-        rgba(225, 205, 166, .04) 23.2deg 23.55deg,
+        rgba(225, 205, 166, .025) 23.2deg 23.55deg,
         transparent 23.7deg 47deg,
-        rgba(225, 205, 166, .04) 47.2deg 47.55deg,
+        rgba(225, 205, 166, .025) 47.2deg 47.55deg,
         transparent 47.7deg 62deg,
-        rgba(225, 205, 166, .048) 62.2deg 62.55deg,
+        rgba(225, 205, 166, .03) 62.2deg 62.55deg,
         transparent 62.7deg 360deg);
   }
 }
