@@ -1,635 +1,593 @@
 # Crownless — Visual Design Guide v0.1
 
 > **Status:** global visual baseline / living document  
-> **Created:** 2026-08-12  
-> **Scope:** Grey Hearth, exploration, combat, inventory, reports, future image-generation references
+> **Updated:** 2026-08-12  
+> **Scope:** Grey Hearth, exploration, combat, inventory, reports, image generation, UI implementation
 
-This document defines the global visual language for Crownless. It does not replace the gameplay or subsystem specifications. It exists to make every screen feel like the same game while keeping the art direction achievable for a small prototype.
+This document is the canonical visual-design reference for Crownless. It does not replace gameplay or subsystem specifications. Gameplay behavior remains authoritative in:
 
-When this guide conflicts with gameplay behavior, the canonical gameplay and subsystem specifications remain authoritative:
+- `game-system-design.md`
+- `exploration-location-spec.md`
+- `combat-presentation-spec.md`
+- `hearth-presentation-spec.md`
 
-- `game-system-design.md` for current gameplay rules
-- `exploration-location-spec.md` for map / location exploration
-- `combat-presentation-spec.md` for combat camera, HUD, and combat readability
-- `hearth-presentation-spec.md` for Grey Hearth presentation
-
-The central visual goal is:
-
-> **A harsh medieval world rendered with restrained stylization, strong readability, and small moments of warmth — not photorealism, not ornate mobile-ARPG spectacle.**
+For execution rules, also use `../skills/crownless-visual-design/SKILL.md`.
 
 ---
 
-## 1. Crownless visual identity
+## 1. The visual thesis — a living medieval manuscript
 
-Crownless should feel like a world where the player begins with almost nothing and slowly earns safety, knowledge, equipment, and status.
+Crownless must not look like a smaller Diablo, a generic dark-fantasy mobile RPG, or a simplified realistic 3D game.
 
-The visual language should reinforce four states across the entire game:
+The world should look as if a **medieval manuscript, woodcut print, field map, and marginal illustration have become playable**.
 
-- **Unknown = fog / cold grey / low information**
-- **Danger = muted blood red / hard contrast / directional warning**
-- **Secured safety = ember / warm amber / physical presence**
-- **Earned significance = restrained gold / clear emphasis**
+The core visual fantasy is:
 
-This creates a consistent emotional grammar:
+> **The player walks through the real world and gradually causes an unfinished fantasy manuscript to reveal itself, gain ink, gain marks, and gain restrained color.**
 
-> **cold world → dangerous decision → survive → bring warmth home**
+Every major surface should feel as if it belongs to the same authored object:
 
-The game should not look luxurious at the beginning. The world and UI may become slightly richer as the player progresses, but visual progression should feel earned rather than given by default.
+- exploration is a map being drawn and discovered
+- combat is an illustration suddenly moving and fighting
+- the Grey Hearth is a page that becomes more inhabited as secured progress accumulates
+- inventory is a field ledger / relic catalogue rather than a glossy card collection
+- reports feel like annotations added after an expedition
 
-### Keywords
+This is the primary Crownless signature.
 
-Use these words when evaluating any new visual:
+### The rejection test
 
+Before accepting a visual, ask:
+
+> **Could this exact image belong to another medieval action RPG with only the logo changed?**
+
+If yes, it is not Crownless enough.
+
+---
+
+## 2. Visual keywords
+
+Use these words when making or reviewing Crownless visuals:
+
+- living manuscript
+- medieval marginalia
+- woodcut
+- hand-inked
+- rough line
+- unfinished map
+- worn parchment
+- physical impact
+- asymmetrical
 - weathered
 - readable
-- grounded
-- restrained
-- physical
-- dangerous
-- lived-in
-- warm only where safety has been earned
+- humble
+- discovered, not decorated
 
-Avoid visuals that are primarily:
+Avoid making these the dominant impression:
 
+- photorealistic
+- AAA 3D
 - glossy
 - ornate
+- royal
 - heroic-by-default
-- photorealistic
-- neon
-- over-particle-heavy
-- menu-dense
+- anime-gacha UI
+- neon magic
+- polished fantasy chrome
+- generic Diablo clone
 
 ---
 
-## 2. Rendering style
+## 3. Rendering language
 
-### Target style
+### 3.1 Base rendering
 
-Use a **stylized 2D / 2.5D medieval-fantasy presentation** with enough depth to make places and combat feel physical.
+The target is **stylized 2D / 2.5D illustration** built from:
 
-The desired result is not a realistic 3D render. It should look like a deliberately designed game scene whose shapes remain readable at phone size.
+- black or near-black ink outlines
+- irregular hand-drawn contour lines
+- flat or lightly textured color planes
+- woodcut / hatching shadows
+- limited gradients
+- visible negative space
+- simplified material detail
+- slightly imperfect geometry
 
-Preferred characteristics:
+The scene may use digital depth, layering, transforms, shadow, scale, and perspective, but it should still feel illustrated rather than rendered by a realistic 3D engine.
 
-- simplified materials rather than physically accurate surfaces
-- strong silhouettes
-- limited texture frequency
-- broad light and shadow shapes
-- slightly exaggerated pose, weapon, and hit readability
-- restrained environmental detail
-- painterly / illustrative atmosphere without requiring hand-painted production assets
-- depth created through projection, scale, overlap, shadows, lighting, and layering
+### 3.2 Character proportion
 
-### Explicitly avoid
+Characters should normally sit around **4–5 heads tall**.
 
-- photorealistic characters or environments
-- cinematic Unreal-style rendering as the visual target
-- detailed skin, pores, cloth simulation, or realistic metal shaders
-- tiny high-frequency environment clutter
-- ultra-detailed armor that disappears at gameplay scale
-- dramatic depth of field that hides gameplay information
-- heavy bloom or lens effects
+They are not chibi, but they are deliberately more compact and graphic than realistic humans. Exaggerate what matters at gameplay size:
 
-### Prototype implementation rule
+- hands
+- weapon silhouette
+- shoulders
+- stance
+- cloak / hood shape
+- enemy posture
 
-The first playable slices must not require a new 3D engine or production art pipeline.
+Small costume details that disappear on a phone are lower priority.
 
-If the same visual idea can be expressed with:
-
-- CSS / DOM layers
-- simple sprites
-- flat shapes
-- pseudo-3D projection
-- shadows
-- transforms
-- limited particles
-
-prefer that approach first.
-
-The question is not “can this look like a AAA game?” but:
-
-> **Can the player read the state, feel the action, and want to play another expedition?**
-
----
-
-## 3. Shape language
-
-Crownless should use a consistent shape vocabulary.
-
-### World shapes
-
-- stone: broad, irregular, low-detail masses
-- wood: simple beams, carts, shelves, doors, crates
-- metal: sparse accents and weapon silhouettes
-- cloth: broad banners, wraps, cloaks; avoid tiny folds
-- fog / mist: soft masses used for unknown space and thresholds
-- fire / ember: localized warm animation, not a full-screen color grade
-
-### UI shapes
+### 3.3 Surface treatment
 
 Prefer:
 
-- thin rectangular frames
-- narrow dividers
-- subtle inset panels
-- slightly worn / imperfect-feeling spacing and texture
-- circles only where circular interaction genuinely helps, especially touch combat actions
+- uneven ink density
+- crosshatching
+- carved / scratched line patterns
+- torn-paper edges where useful
+- imperfect stamp marks
+- rough brush fills
 
-Avoid:
+Avoid relying on:
 
-- thick decorative fantasy frames around every panel
-- giant beveled gold borders
-- jewel-like chrome
-- many different corner-radius styles
-- excessive floating cards
-
-A UI panel should feel closer to a practical field ledger, map board, iron plate, or dark work surface than a royal interface.
+- realistic PBR metal
+- detailed skin rendering
+- fine cloth simulation
+- cinematic depth of field
+- realistic bloom
+- high-frequency texture noise
 
 ---
 
-## 4. Color system
+## 4. The world gains color through discovery
 
-The current prototype palette is the baseline and should be preserved unless playtesting creates a concrete readability problem.
+Most of Crownless should begin visually restrained.
 
-### Core tokens
+### Core palette roles
 
-| Semantic role | Token / value | Use |
+| Role | Direction | Meaning |
 |---|---|---|
-| Deep background | `#080807` | deepest world / UI background |
-| Dark panel | `rgba(20, 18, 15, 0.93)` | primary panels |
-| Secondary panel | `rgba(30, 26, 20, 0.92)` | raised / nested surfaces |
-| Paper text | `#eadcc2` | primary readable text |
-| Muted text | `#9f9584` | secondary explanation |
-| Dim text | `#6f685d` | low-priority metadata |
-| Earned gold | `#c9a35d` | important state / labels |
-| Bright gold | `#f0c772` | strongest positive emphasis / focus |
-| Threat red | `#b34f43` | danger / health / hostile state |
-| Hot red | `#e56a58` | urgent hostile emphasis |
-| Field green | `#839a79` | safe / stable / natural support state |
-| Hearth warm | `#d5a35a` | Grey Hearth warmth |
+| Ink black | near-black / charcoal | structure, UI, line work, unknown world |
+| Bone / parchment | warm off-white | page, readable space, neutral information |
+| Ash grey | stone / fog / unresolved state | distance, ambiguity, dead ground |
+| Vermilion | muted朱赤 | danger, wounds, enemy telegraphs, serious commitment |
+| Ember orange | warm灰炉色 | home, fire, safety, secured progress |
+| Faded blue-green | desaturated teal | discovered land, water, known routes, recovered world knowledge |
+| Ochre / restrained gold | dull ochre | rare earned significance, not generic luxury |
 
-### Semantic rule
+### Color rule
 
-Color must communicate state, not decorate everything.
+Color is **earned information**.
 
-- **Gold** is earned. Do not use it on every border.
-- **Red** means danger, damage, hostility, or serious commitment.
-- **Amber** belongs to hearth, fire, secure progress, and human warmth.
-- **Grey / black** is the default world and UI field.
-- **Green** is supporting information, not the game's dominant color.
+The world should not be fully saturated by default.
 
-Do not introduce multiple saturated rarity colors until the item system actually needs them. If rarity can be read with shape, border treatment, name weight, or one controlled accent, prefer that over a rainbow palette.
+A strong target relationship is:
+
+> **unknown = mostly ink and ash**  
+> **discovered = restrained blue-green and local natural color**  
+> **danger = vermilion**  
+> **home / secured progress = ember orange**  
+> **exceptional significance = small ochre / gold marks**
+
+This lets exploration create a visible feeling of restoring information to the world.
 
 ---
 
-## 5. Light and atmosphere
+## 5. Shape language
 
-Lighting is part of the game's information design.
+Crownless should prefer silhouettes that feel hand-cut, drawn, and worn rather than perfectly engineered.
 
-### Global rule
+### World
 
-The world is generally dim and desaturated, but **not so dark that enemies, routes, or interactable objects disappear**.
+- stone: chunky irregular blocks, broken outlines
+- wood: rough beams, splintered silhouettes
+- vegetation: grouped brush / hatch masses
+- fog: torn or brushed negative space
+- ruins: asymmetric, partially collapsed forms
+- roads: hand-drawn routes, not clean GIS lines
 
-Use local light to tell the player what matters.
+### People
+
+The player begins poor and anonymous.
+
+Prefer:
+
+- patched cloth
+- wrapped hands
+- mismatched protection
+- scavenged belts / pouches
+- asymmetrical equipment
+- visible silhouette change from equipment
+
+Do not begin with a polished heroic costume.
+
+### Monsters
+
+Monsters should take inspiration from the **strangeness of medieval bestiaries and marginal drawings**, not only modern realistic creature design.
+
+A wolf can be too long, too hunched, or have an unnerving illustrated face. A humanoid can feel like a crude manuscript warning brought to life.
+
+The goal is not comedy. The goal is memorable wrongness.
+
+---
+
+## 6. Combat — ink becomes motion
+
+Combat uses the fixed oblique top-down battlefield defined in `combat-presentation-spec.md`.
+
+The battlefield should look like an illustration with enough depth to support spatial play.
+
+### 6.1 Movement and attack expression
+
+Combat effects should extend the manuscript language.
+
+Prefer:
+
+- normal attack trails as short black ink strokes
+- heavy impacts as ink splashes / broken hatch marks
+- dust as dry brush texture
+- knockback emphasized by body displacement and rough motion marks
+- brief white / parchment flashes for impact separation
+- limited screen shake
+
+Do not make ordinary attacks produce large glowing fantasy crescents.
+
+### 6.2 Enemy telegraphs
+
+Enemy warning zones should look **drawn onto the battlefield**, especially in muted vermilion.
 
 Examples:
 
-- Grey Hearth fire = safe center
-- Mist Gate = cold uncertain threshold
-- dangerous POI = darker mass plus readable warning accent
-- loot after victory = small focused reveal
-- forge milestone = new warm light physically appearing in the room
+- hand-drawn arcs
+- brush circles
+- broken directional lines
+- scratch marks
+- stamped danger symbols
 
-### Contrast hierarchy
+A perfect evade may briefly tear, break, or scatter the warning mark.
 
-The player character, immediate threat, telegraph, and actionable object should have stronger contrast than background decoration.
+### 6.3 Technique and 決着
 
-When a scene looks beautiful but the player cannot instantly answer “what should I look at?”, simplify it.
+Technique can make the ink language more forceful:
 
----
+- wider brush movement
+- stronger black / vermilion contrast
+- torn-paper-like impact edge
+- stronger hit stop
 
-## 6. Character and enemy presentation
+決着 may briefly exceed normal restraint because the payoff is earned, but it should still look like Crownless—not generic magic VFX.
 
-Characters are viewed at gameplay scale, so silhouette matters more than costume detail.
+### 6.4 Control fidelity
 
-### Player
+Generated art must never silently change the current combat model.
 
-The player begins as an unknown, poorly equipped person.
+Phone combat remains:
 
-The baseline visual should communicate:
+- drag on arena to move
+- stop to auto-strike
+- **技**
+- **回避**
 
-- no heroic crown or royal armor
-- simple clothing and protection
-- equipment visibly changing the silhouette over time
-- bare-handed combat looking intentional rather than unfinished
+Do not add by default:
 
-Fists, dagger, and sword should be distinguishable by pose and rhythm before the player reads a label.
-
-### Enemy roles
-
-Enemy role must be readable from body shape and motion.
-
-- **Rusher:** forward lean, aggressive approach, compact silhouette
-- **Guard:** wider stance, heavier frontal shape, obvious defensive posture
-- **Skirmisher:** open spacing, ranged silhouette, clearer attack direction
-
-Do not rely on color alone to distinguish roles.
-
-### Proportion
-
-Use slightly stylized proportions rather than realism. Hands, weapons, stance, and motion may be exaggerated enough to remain readable on a phone.
-
-Avoid chibi proportions and avoid realistic tiny anatomy.
+- virtual joystick
+- light-attack button
+- skill cluster
+- combat minimap
+- party portrait stack
+- permanent consumable hotbar
 
 ---
 
-## 7. Environment density
+## 7. Exploration — the map is the world
 
-The environment should make the battlefield or map feel like a place without becoming visual noise.
+Exploration should make the living-manuscript idea strongest.
 
-Good environment elements include:
+The fantasy map should feel incomplete before the player moves.
 
-- broken walls
-- paths
-- rubble groups
-- carts
-- crates
-- shelves
-- fire
-- gates
-- map boards
-- simple landmarks
+### Unknown territory
 
-Use **clusters**, not evenly distributed clutter.
+Use:
 
-Leave quiet visual areas around important gameplay state.
+- dense ink wash
+- incomplete coastline / road lines
+- empty parchment
+- torn fog shapes
+- distant silhouettes
+- tiny uncertain marks
 
-A useful rule for the prototype:
+### Frontier hints
 
-> **One memorable environmental idea is better than ten decorative props.**
+A nearby unknown place may first appear as:
 
----
+- smoke
+- tower silhouette
+- tracks
+- a half-drawn road
+- a symbol without a label
+- a scratched note
 
-## 8. Typography
+### Discovery
 
-The current prototype direction remains valid:
+When the player reveals territory, the game can visibly:
 
-- restrained serif character for the Crownless brand and large display moments
-- practical sans-serif for body text, numbers, status, and interaction labels
+1. draw terrain lines
+2. reveal route strokes
+3. add the POI symbol
+4. write or stamp the place name
+5. introduce restrained local color
 
-Japanese text must prioritize legibility over matching an English serif exactly.
+The visual reward is not simply “fog removed.” It is **the manuscript gaining knowledge**.
 
-### Hierarchy
+### GPS relationship
 
-Use roughly four textual levels:
+The map must feel fantasy-authored rather than like Google Maps with themed icons.
 
-1. screen / place title
-2. important state or object name
-3. explanatory body text
-4. small metadata
-
-Avoid putting large flavor paragraphs over active game space.
-
-During exploration and combat, spatial change should carry more meaning than text.
+Real-world movement is input to discovery; the final map is Crownless's own artifact.
 
 ---
 
-## 9. Icons
+## 8. Grey Hearth — the page becomes inhabited
 
-Icons should be simple silhouettes with consistent stroke / fill behavior.
+The Grey Hearth is not a generic tavern and not a dashboard.
 
-Good icon subjects:
+Its visual story is:
+
+> **an almost empty mark of safety slowly becomes a lived-in place because the player returned alive.**
+
+The Hearth should begin sparse:
+
+- a small fire
+- minimal shelter
+- Mist Gate / dangerous threshold
+- the player
+- very little secured evidence
+
+As Renown and secured progress grow, the page gains objects:
+
+- map marks
+- shelf contents
+- recovery cache
+- forge fire
+- tools
+- signs of repeated use
+
+Progress should feel like **new illustration added to an existing page**, not like unlocking another menu tile.
+
+Ember orange should be strongest here.
+
+---
+
+## 9. UI — annotation, stamp, ledger
+
+UI should feel like information written, stamped, scratched, or attached to the manuscript.
+
+### Prefer
+
+- thin ink rules
+- hand-marked dividers
+- parchment / dark-ink fields
+- stamps
+- seals
+- simple glyphs
+- short labels
+- asymmetrical placement when readable
+- restrained distressed edges
+
+### Avoid
+
+- thick beveled metal frames
+- jewel chrome
+- oversized gold borders
+- floating glossy cards everywhere
+- uniform rounded rectangles as the dominant language
+
+### HUD
+
+HP may read as a **red brush / ink line**, not a jeweled fantasy bar.
+
+闘志 can use a darker ink / ash mark that fills or sharpens.
+
+Action controls should resemble strong readable **stamps / sigils** rather than futuristic mobile buttons.
+
+The center of combat remains visually open.
+
+---
+
+## 10. Typography and written marks
+
+The visual system may use expressive serif / manuscript-like display lettering for titles and place names, but Japanese legibility takes precedence.
+
+Use decorative lettering sparingly.
+
+Suggested hierarchy:
+
+1. title / place name
+2. important object / enemy / item name
+3. short body text
+4. small annotation / metadata
+
+Short handwritten-like notes may appear as flavor, but active screens must remain easy to scan.
+
+---
+
+## 11. Item and rarity language
+
+Crownless is a loot game, but it should not visually become a color-rarity card game.
+
+### Item presentation
+
+Prefer an illustrated catalogue / field-ledger treatment:
+
+- item silhouette or ink drawing
+- name
+- relevant stat comparison
+- modifier / identity
+- small material or origin notes when useful
+
+### Rarity / significance
+
+Do not default to:
+
+- blue = rare
+- purple = epic
+- orange = legendary
+
+Instead, significance can accumulate through marks:
+
+- **ordinary:** no special mark
+- **good / refined:** maker stamp or small seal
+- **rare:** distinctive crest / border ink / provenance mark
+- **signature / legendary:** handwritten epithet, unique emblem, irregular illustration treatment
+
+Color may support rarity, but shape and marks must carry meaning too.
+
+This keeps the loot system visually connected to the manuscript world.
+
+---
+
+## 12. Icons and symbols
+
+Icons should look like simplified manuscript glyphs, stamps, or woodcut signs.
+
+Good subjects:
 
 - weapon family
 - danger
-- route / map
-- secured / unsecured state
+- Hearth
+- discovered / unknown
+- route
+- secured / unsecured
 - Technique
 - Evade
 - return / retreat
 
-Avoid highly detailed heraldry at small sizes.
+Do not over-detail small heraldry.
 
-Where text is clearer than an unfamiliar icon, use text. The current **技** and **回避** labels are acceptable and should not be replaced merely for visual novelty.
-
----
-
-## 10. Motion and effects
-
-Crownless combat should feel physical rather than magical-by-default.
-
-### Normal actions
-
-Prefer:
-
-- hit stop
-- knockback
-- small dust bursts
-- weapon trail only when needed for direction
-- brief sparks
-- short screen shake
-- readable stagger
-
-Avoid turning every normal attack into a large glowing arc.
-
-### Technique / 決着
-
-Technique may be visibly stronger, but its effect must still show:
-
-- who was hit
-- attack direction
-- resulting movement
-- remaining danger
-
-**決着** can temporarily break the restraint more than ordinary attacks, because the player earned that payoff.
-
-### Ambient motion
-
-Use low-cost motion to make spaces feel alive:
-
-- fire flicker
-- drifting fog
-- hanging cloth movement
-- small dust / ash
-- subtle map reveal
-
-Do not animate every element at once.
+A symbol should still be readable at phone size.
 
 ---
 
-## 11. Global UI hierarchy
+## 13. Screen composition signature
 
-The gameplay world is primary. UI exists to expose decisions.
+Across screens, favor:
 
-### Always ask
-
-Before adding a permanent HUD element:
-
-> **What decision becomes impossible or meaningfully harder without this?**
-
-If there is no strong answer, do not keep it permanently visible.
-
-### Preferred hierarchy
-
-1. world / arena / map
-2. immediate actionable state
-3. player survival state
-4. contextual controls
-5. details on demand
-
-This means Crownless should generally avoid “mobile RPG dashboard syndrome.”
-
----
-
-## 12. Grey Hearth visual rules
-
-The Grey Hearth is the warmest space in the game, but it should remain humble.
-
-Core composition:
-
-- dim room
-- warm fire near the emotional center
-- Mist Gate as the clearest exit / action
-- player visibly present
-- secured loot shown physically
-- Renown progression reflected by room changes
-
-The Hearth should feel increasingly inhabited as progress becomes safe.
-
-Do not turn it into:
-
-- a grid of feature buttons
-- a management dashboard
-- a bright fantasy tavern full of decorative NPCs before the systems need them
-
-The visual story is:
-
-> **This place was almost empty. You survived, and now it contains evidence of your life.**
-
----
-
-## 13. Exploration visual rules
-
-The map is the primary exploration surface.
-
-### Map states
-
-The visual treatment should clearly distinguish:
-
-- unknown territory
-- frontier hint
-- discovered place
-- investigated place
-- cleared / changed place
-- known high-risk place
-- safe Hearth
-
-Unknown space should feel inviting, not merely disabled.
-
-Use fog, broken edge information, silhouettes, smoke, tracks, faint paths, or partial landmarks to create curiosity.
-
-### Real-world relationship
-
-The fantasy map should feel regionally influenced without becoming a literal street map.
-
-The player should feel:
-
-> **“I discovered this fantasy place by moving through the real world.”**
-
-not:
-
-> **“This is Google Maps with monster icons.”**
-
----
-
-## 14. Combat visual rules
-
-Combat uses the fixed oblique top-down battlefield direction.
-
-### Camera
-
-- compact fixed arena first
-- three-quarter / diagonal overhead view
-- enough elevation to read spacing
-- enough body visibility to read stance and knockback
-- no free camera rotation or zoom requirement for the first slice
-
-### Mobile controls
-
-The current combat contract remains authoritative:
-
-- drag on the arena to move
-- stop to normal attack automatically
-- large **技** button
-- large **回避** button
-
-Do **not** add by default:
-
-- virtual joystick
-- dedicated light-attack button
-- large skill cluster
-- combat minimap
-- party portrait stack
-- consumable hotbar
-
-A generated concept image that includes those elements is wrong for the current game even if it looks polished.
-
-### HUD
-
-Keep visible only what supports combat decisions:
-
-- HP
-- 闘志 / 決着 state when relevant
-- Technique availability
-- Evade availability
-- essential enemy telegraphs / health cues
-
-The center belongs to the fight.
-
-### Drops
-
-Temporary battlefield weapons must remain physically readable during the fight.
-
-Expedition loot stays quiet until victory, then gets a clear reward moment.
-
----
-
-## 15. Inventory, loot, and report screens
-
-These screens may be denser than combat, but should still feel grounded in the same visual system.
-
-### Item presentation
-
-An item should communicate in this order:
-
-1. weapon / equipment type
-2. stronger, different, or both
-3. playstyle identity
-4. rarity / significance
-5. detailed modifier text
-
-Do not make rarity color the only way to understand value.
-
-### Return / defeat reports
-
-Reports should visually distinguish:
-
-- what became safe
-- what remained unsecured
-- what was lost
-- what changed in the Hearth
-- what new lead opened
-
-A successful return should feel warmer and more settled than an expedition screen.
-
-A defeat should feel cold and regrettable, but not visually catastrophic or punitive enough to make the player afraid to try again.
-
----
-
-## 16. Crownless composition signature
-
-Across screens, favor this composition pattern:
-
-> **large playable / spatial surface + one strong focal action + restrained peripheral information**
+> **one large spatial / illustrated surface + one primary focal action + restrained annotations**
 
 Examples:
 
-- Hearth: room + Mist Gate + small object labels
-- Exploration: map + frontier / POI + contextual action
-- Combat: arena + Technique / Evade + minimal bars
-- Loot: item silhouette + comparison + one decision
+- Hearth: room illustration + Mist Gate + small object notes
+- exploration: map + frontier + contextual action
+- combat: arena + 技 / 回避 + minimal survival state
+- loot: item drawing + comparison + one decision
 
-This is the opposite of building every screen from a stack of equally weighted cards.
+Avoid building every screen as a stack of equal cards.
 
 ---
 
-## 17. Image-generation contract
+## 14. Readability is non-negotiable
 
-Any future concept-art or UI image prompt for Crownless should include the global style constraints below unless the task deliberately explores an alternative.
+The manuscript language must not become an excuse for visual noise.
 
-### Required direction
+At gameplay size, the player must quickly answer:
 
-- stylized 2D / 2.5D medieval fantasy game screen
-- readable at mobile size
-- restrained detail
-- strong silhouettes
-- dark weathered world with localized warm light
-- current Crownless muted black / paper / amber / red palette
-- indie-prototype-realistic scope
-- gameplay readability over cinematic realism
+- where am I?
+- what threatens me?
+- where can I go?
+- what is interactable?
+- what changed?
+- what did I earn or lose?
 
-### Required negative constraints
+If crosshatching, paper texture, decorative marks, or distressed edges reduce that readability, simplify them.
 
-Explicitly state:
+The game should feel hand-made, not muddy.
 
-- **not photorealistic**
-- **not realistic AAA 3D rendering**
-- **not glossy mobile fantasy UI**
-- **no oversized decorative gold frames**
-- **no excessive particle spectacle**
+---
 
-For combat images also state:
+## 15. Implementation budget
+
+The visual identity must remain achievable for an individual / small prototype.
+
+Prefer reusable techniques:
+
+- sprite / illustration layers
+- SVG or Canvas line work
+- shared ink textures
+- simple CSS masks / filters
+- limited color tokens
+- reusable stamp / icon grammar
+- procedural fog / reveal masks
+- simple particles
+- flat projected combat plane
+
+Do not require a realistic 3D asset pipeline merely to match concept art.
+
+A rough but consistent Crownless style is better than a technically polished generic style.
+
+---
+
+## 16. Image-generation contract
+
+When generating Crownless visual references, always establish the style before describing content.
+
+### Required core direction
+
+Use language equivalent to:
+
+> **A playable medieval-fantasy world illustrated like a living medieval manuscript and woodcut print: hand-inked irregular linework, parchment negative space, crosshatched shadows, limited muted color, 4–5-head-tall stylized characters, readable game silhouettes, restrained UI annotations, not realistic 3D.**
+
+### Required global constraints
+
+- living medieval manuscript / woodcut identity
+- stylized 2D / 2.5D
+- hand-inked irregular outlines
+- parchment / ink / ash base
+- restrained vermilion, ember orange, faded blue-green, ochre accents
+- compact readable silhouettes
+- asymmetric weathered equipment
+- indie-realistic production scope
+- gameplay readability first
+
+### Required negatives
+
+- not photorealistic
+- not realistic AAA 3D
+- not generic Diablo visual imitation
+- not glossy mobile RPG UI
+- not anime-gacha card presentation
+- no oversized decorative gold frames
+- no neon magical spectacle by default
+- no excessive particle effects
+
+### Combat additions
 
 - fixed oblique top-down battlefield
-- drag-to-move implied
-- stop-to-auto-strike gameplay
-- only **技** and **回避** as major touch actions
-- **no virtual joystick**
-- **no light-attack button**
-- **no skill cluster**
-- **no combat minimap**
+- combat effects expressed as ink / brush / hatch marks
+- enemy telegraphs as hand-drawn vermilion marks
+- major actions only **技** and **回避**
+- no virtual joystick
+- no dedicated light-attack button
+- no combat minimap
+- no large skill cluster
 
-Generated art is a reference for composition, mood, silhouette, and information hierarchy. It is not allowed to silently redefine game controls or systems.
-
----
-
-## 18. Implementation budget rule
-
-For the current prototype, every visual feature should pass this test:
-
-> **Can we approximate the idea cheaply enough to playtest it before investing in a production asset pipeline?**
-
-Prefer:
-
-- reusable tokens
-- CSS variables
-- shared panel treatments
-- shared icon grammar
-- simple sprite silhouettes
-- procedural / CSS atmosphere
-- one clear effect per important event
-
-Avoid creating a large bespoke asset dependency for a feature whose gameplay value is still unknown.
+Generated images are references for style, composition, hierarchy, silhouette, and atmosphere. They do not redefine gameplay systems.
 
 ---
 
-## 19. Review checklist
+## 17. Review checklist
 
-Before accepting a new Crownless screen, answer:
+Before accepting any Crownless visual, check:
 
-1. Does it look like the same game as the Grey Hearth, exploration map, and combat?
-2. Is the world or playable surface more visually important than the UI chrome?
-3. Can the main action be identified within a second?
-4. Are important states readable without relying on tiny text?
-5. Is gold used sparingly enough to remain meaningful?
-6. Is red reserved for real danger / damage / commitment?
-7. Are environment details grouped so they do not create clutter?
-8. Does the scene avoid photorealistic / AAA expectations the prototype cannot support?
-9. Does the UI reflect actual gameplay instead of generic ARPG conventions?
-10. Could the current prototype approximate this without an engine rewrite?
-11. Does the screen reinforce exploration → combat → loot → return rather than distract from it?
-12. Does it make the player want to touch, move, fight, inspect, or leave again?
+1. Does it immediately feel illustrated rather than realistically rendered?
+2. Does it resemble a living manuscript / woodcut rather than generic dark fantasy?
+3. Are silhouettes readable at phone size?
+4. Is color communicating discovered knowledge, danger, safety, or earned significance?
+5. Is the UI annotation-like rather than glossy / card-heavy?
+6. Does combat use physical ink-like impact rather than default glowing VFX?
+7. Does exploration feel like a map gaining knowledge?
+8. Does the Hearth visibly accumulate evidence of safe progress?
+9. Does equipment look scavenged / earned rather than heroic-by-default?
+10. Could a small prototype approximate this style without a AAA art pipeline?
+11. Does the visual preserve the actual gameplay contract?
+12. Most importantly: **would this still be recognizable as Crownless if the logo were removed?**
 
-If several answers are “no,” simplify before adding detail.
+If several answers are no, simplify and push the visual identity harder before polishing.
 
 ---
 
-## 20. v0.1 design statement
+## 18. One-sentence north star
 
-The working visual statement for Crownless is:
-
-> **汚れた中世世界 × 読みやすい2.5D × 控えめなUI × 物理的で小気味よいアクション。**
->
-> **世界は冷たい。生還して持ち帰ったものだけが、灰炉に少しずつ暖かさを増やしていく。**
-
-This is the baseline for the next visual passes. The guide should evolve through actual prototype play rather than speculative art expansion.
+> **Crownless is a rough medieval manuscript that becomes a living world as the player explores, fights in strokes of ink, survives, and brings color and evidence of life back to the Grey Hearth.**
