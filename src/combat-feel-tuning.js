@@ -7,7 +7,7 @@
   const ROLE_PACE = {
     rusher: { speed: 1.06, range: 68 },
     guard: { speed: 0.88, range: 76 },
-    skirmisher: { speed: 0.96, range: 245 }
+    skirmisher: { speed: 1.10, range: 245 }
   };
 
   const RUSHER_IDENTITY = Object.freeze({
@@ -20,6 +20,12 @@
     healthScale: 1.08,
     damageScale: 0.92,
     role: "slow / armored / break then punish"
+  });
+
+  const SKIRMISHER_IDENTITY = Object.freeze({
+    healthScale: 0.90,
+    damageScale: 1.12,
+    role: "mobile / evasive / punish neglect"
   });
 
   const PLAYER_MOVE_SCALE = {
@@ -45,6 +51,12 @@
       enemy.maxHealth = Math.max(1, Math.round(enemy.maxHealth * GUARD_IDENTITY.healthScale));
       enemy.damage = Math.max(1, Math.round(enemy.damage * GUARD_IDENTITY.damageScale));
       enemy.combatRole = "guard";
+    }
+
+    if (enemy.kind === "skirmisher") {
+      enemy.maxHealth = Math.max(1, Math.round(enemy.maxHealth * SKIRMISHER_IDENTITY.healthScale));
+      enemy.damage = Math.max(1, Math.round(enemy.damage * SKIRMISHER_IDENTITY.damageScale));
+      enemy.combatRole = "skirmisher";
     }
 
     return enemy;
@@ -90,6 +102,7 @@
     rolePace: ROLE_PACE,
     rusherIdentity: RUSHER_IDENTITY,
     guardIdentity: GUARD_IDENTITY,
+    skirmisherIdentity: SKIRMISHER_IDENTITY,
     playerMoveScale: PLAYER_MOVE_SCALE,
     intent: "make enemy roles demand different movement choices using existing combat interactions instead of new controls or systems"
   });

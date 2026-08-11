@@ -52,7 +52,7 @@ test('ordinary enemy roles have distinct pace durability and danger', () => {
     [
       { kind: 'rusher', moveSpeed: 140, attackRange: 68, maxHealth: 37, damage: 13 },
       { kind: 'guard', moveSpeed: 63, attackRange: 76, maxHealth: 67, damage: 12 },
-      { kind: 'skirmisher', moveSpeed: 100, attackRange: 245, maxHealth: 38, damage: 9 }
+      { kind: 'skirmisher', moveSpeed: 114, attackRange: 245, maxHealth: 34, damage: 10 }
     ]
   );
 });
@@ -66,21 +66,30 @@ test('boss tuning stays untouched', () => {
   );
 });
 
-test('rusher and guard identities are explicit tuning intent', () => {
+test('three ordinary enemy identities are explicit tuning intent', () => {
   const { CrownlessCombatFeel } = loadTuning();
   assert.equal(CrownlessCombatFeel.rusherIdentity.role, 'fast / dangerous / fragile');
-  assert.equal(CrownlessCombatFeel.guardIdentity.healthScale, 1.08);
-  assert.equal(CrownlessCombatFeel.guardIdentity.damageScale, 0.92);
   assert.equal(CrownlessCombatFeel.guardIdentity.role, 'slow / armored / break then punish');
+  assert.equal(CrownlessCombatFeel.skirmisherIdentity.healthScale, 0.90);
+  assert.equal(CrownlessCombatFeel.skirmisherIdentity.damageScale, 1.12);
+  assert.equal(CrownlessCombatFeel.skirmisherIdentity.role, 'mobile / evasive / punish neglect');
 });
 
-test('existing combat loop already gives guard a break then punish interaction', () => {
+test('existing combat loop gives guard a break then punish interaction', () => {
   assert.match(appSource, /enemy\.kind === "guard" && enemy\.guarding && !technique && !finisher/);
   assert.match(appSource, /addText\(enemy\.x, enemy\.y - 48, "BLOCK"/);
   assert.match(appSource, /enemy\.kind === "guard" && enemy\.guarding && \(technique \|\| finisher\)/);
   assert.match(appSource, /enemy\.guarding = false;[\s\S]*enemy\.guardCycle = 1\.3;[\s\S]*reaction = "BREAK"/);
   assert.match(appSource, /enemy\.guardCycle = \(enemy\.guardCycle \+ dt\) % 2\.7/);
   assert.match(appSource, /enemy\.guarding = enemy\.guardCycle < 1\.18/);
+});
+
+test('existing skirmisher loop kites pursuit and punishes neglect', () => {
+  assert.match(appSource, /if \(d < 150\)[\s\S]*enemy\.moveSpeed \* 1\.2/);
+  assert.match(appSource, /else if \(d > 250\)[\s\S]*enemy\.moveSpeed \* 0\.85/);
+  assert.match(appSource, /tangent[\s\S]*enemy\.moveSpeed \* 0\.62/);
+  assert.match(appSource, /d <= 315\) startTelegraph\(enemy, 0\.82\)/);
+  assert.match(appSource, /enemy\.attackCooldown = 1\.65/);
 });
 
 test('player repositioning is slightly more responsive while preserving weapon identity', () => {
@@ -93,5 +102,5 @@ test('player repositioning is slightly more responsive while preserving weapon i
 test('tuning layer does not add conventional attack controls or a new combat system', () => {
   assert.doesNotMatch(source, /touch-light|virtual joystick|light-attack button/i);
   assert.match(source, /different movement choices/);
-  assert.doesNotMatch(source, /chargeState|dashState|guardBreakState|new skill/i);
+  assert.doesNotMatch(source, /chargeState|dashState|guardBreakState|kiteState|new skill/i);
 });
