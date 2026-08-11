@@ -5,10 +5,16 @@
   if (!Core || Core.__combatFeelTuned) return;
 
   const ROLE_PACE = {
-    rusher: { speed: 0.94, range: 50 },
+    rusher: { speed: 1.06, range: 68 },
     guard: { speed: 0.94, range: 74 },
     skirmisher: { speed: 0.96, range: 245 }
   };
+
+  const RUSHER_IDENTITY = Object.freeze({
+    healthScale: 0.84,
+    damageScale: 1.18,
+    role: "fast / dangerous / fragile"
+  });
 
   const PLAYER_MOVE_SCALE = {
     fists: 1.05,
@@ -22,6 +28,13 @@
     if (!pace) return enemy;
     enemy.moveSpeed = Math.round(enemy.moveSpeed * pace.speed);
     enemy.attackRange = pace.range;
+
+    if (enemy.kind === "rusher") {
+      enemy.maxHealth = Math.max(1, Math.round(enemy.maxHealth * RUSHER_IDENTITY.healthScale));
+      enemy.damage = Math.max(1, Math.round(enemy.damage * RUSHER_IDENTITY.damageScale));
+      enemy.combatRole = "rusher";
+    }
+
     return enemy;
   }
 
@@ -63,7 +76,8 @@
   Core.__combatFeelTuned = true;
   window.CrownlessCombatFeel = Object.freeze({
     rolePace: ROLE_PACE,
+    rusherIdentity: RUSHER_IDENTITY,
     playerMoveScale: PLAYER_MOVE_SCALE,
-    intent: "create clearer stop-to-strike openings without adding controls or new systems"
+    intent: "create clearer stop-to-strike openings and a readable high-risk rusher without adding controls or new systems"
   });
 })();
