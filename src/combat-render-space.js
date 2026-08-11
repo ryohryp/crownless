@@ -21,6 +21,8 @@
     let entityDepth = 0;
     let entityScale = 1;
     let actorMode = false;
+    let actorFacingAngle = 0;
+    let actorFlip = 1;
     let pendingRotate = null;
     let shakeX = 0;
     let shakeY = 0;
@@ -61,6 +63,8 @@
       entityDepth = saveDepth;
       entityScale = point.scale;
       actorMode = false;
+      actorFacingAngle = 0;
+      actorFlip = 1;
       raw.translate(point.x, point.y);
       raw.scale(entityScale, entityScale);
     }
@@ -73,6 +77,12 @@
       raw.ellipse(0, 26, 24, 7.5, 0, 0, Math.PI * 2);
       raw.fill();
       raw.restore();
+    }
+
+    function projectedActorRayPoint(x) {
+      const dx = Math.cos(actorFacingAngle) * x;
+      const dy = Math.sin(actorFacingAngle) * x * 0.42;
+      return { x: dx / actorFlip, y: dy + 13 };
     }
 
     function isOuterCameraTranslate(x, y) {
@@ -108,6 +118,8 @@
           worldFrameDepth = 0;
           entityDepth = 0;
           actorMode = false;
+          actorFacingAngle = 0;
+          actorFlip = 1;
           shakeX = 0;
           shakeY = 0;
         }
@@ -129,6 +141,8 @@
           entityDepth = 0;
           entityScale = 1;
           actorMode = false;
+          actorFacingAngle = 0;
+          actorFlip = 1;
         }
         if (leavingWorld) {
           worldFrame = false;
@@ -176,11 +190,14 @@
           const actorLike = x >= 0.8 && x <= 1.8 && y >= 0.55 && y <= 1.8;
           if (actorLike) {
             actorMode = true;
+            actorFacingAngle = angle;
+            actorFlip = Math.cos(angle) < 0 ? -1 : 1;
             drawActorShadow();
             if (y / Math.max(0.001, x) < 0.82) {
+              actorFlip = 1;
               raw.rotate(angle);
             } else {
-              raw.scale(Math.cos(angle) < 0 ? -1 : 1, 1);
+              raw.scale(actorFlip, 1);
             }
           } else {
             raw.rotate(angle);
@@ -225,6 +242,11 @@
 
       moveTo(x, y) {
         flushPendingRotate();
+        if (actorMode && Math.abs(y) < 1 && x >= 19) {
+          const p = projectedActorRayPoint(x);
+          raw.moveTo(p.x, p.y);
+          return;
+        }
         if ((worldFrame && entityDepth === 0) || groundPass) {
           const p = projection(x, y);
           raw.moveTo(p.x, p.y);
@@ -235,6 +257,11 @@
 
       lineTo(x, y) {
         flushPendingRotate();
+        if (actorMode && Math.abs(y) < 1 && x >= 19) {
+          const p = projectedActorRayPoint(x);
+          raw.lineTo(p.x, p.y);
+          return;
+        }
         if ((worldFrame && entityDepth === 0) || groundPass) {
           const p = projection(x, y);
           raw.lineTo(p.x, p.y);
