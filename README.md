@@ -31,6 +31,7 @@ The player begins as an unknown, unarmed person. Bare hands are a valid fighting
 ## Documents
 
 - [Current Game System Design](docs/game-system-design.md) — canonical living design
+- [Exploration & Location Discovery Specification](docs/exploration-location-spec.md) — current exploration redesign and location/AI generation direction
 - [Game System Design v0.1](docs/game-system-design-v0.1.md) — historical baseline
 - [Deployment strategy](docs/deployment-strategy.md)
 - [Development guide for coding agents](AGENTS.md)
