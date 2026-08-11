@@ -1,0 +1,264 @@
+/*
+ * Crownless oblique combat presentation pass.
+ *
+ * Keep combat simulation, hit detection, movement and stand-to-strike logic on
+ * the existing plane. This layer only changes how the arena and combat HUD are
+ * presented so the new camera direction can be playtested without an engine
+ * rewrite.
+ */
+
+.combat-screen.active {
+  position: relative;
+}
+
+.combat-screen.active .combat-head {
+  gap: 18px;
+  margin-bottom: 9px;
+  align-items: center;
+}
+
+.combat-screen.active .combat-head h1 {
+  margin-bottom: 2px;
+  font-size: clamp(30px, 4.5vw, 46px);
+  text-shadow: 0 4px 24px rgba(0, 0, 0, .42);
+}
+
+.combat-screen.active .combat-head p:last-child {
+  max-width: 600px;
+  line-height: 1.45;
+}
+
+.combat-screen.active .combat-bars {
+  gap: 6px;
+  padding: 9px 11px;
+  border: 1px solid rgba(232, 214, 181, .11);
+  background: linear-gradient(180deg, rgba(18, 16, 13, .76), rgba(8, 8, 7, .55));
+  box-shadow: 0 12px 30px rgba(0, 0, 0, .18);
+}
+
+.combat-screen.active .health-row {
+  grid-template-columns: 38px 1fr 31px;
+  gap: 7px;
+}
+
+.combat-screen.active .bar {
+  height: 6px;
+}
+
+.combat-screen.active .arena-wrap {
+  isolation: isolate;
+  perspective: 1200px;
+  border-color: rgba(232, 214, 181, .18);
+  background:
+    radial-gradient(circle at 50% 42%, rgba(111, 86, 52, .15), transparent 44%),
+    #0b0b09;
+  box-shadow:
+    0 34px 90px rgba(0, 0, 0, .46),
+    inset 0 1px rgba(255, 255, 255, .025);
+}
+
+/* Faint perspective guides read like roads / floor seams instead of a debug grid. */
+.combat-screen.active .arena-wrap::before {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(3, 3, 3, .34), transparent 20%, transparent 68%, rgba(3, 3, 3, .5)),
+    linear-gradient(73deg, transparent 0 44%, rgba(229, 203, 154, .045) 44.4% 44.7%, transparent 45.1% 100%),
+    linear-gradient(107deg, transparent 0 44%, rgba(229, 203, 154, .045) 44.4% 44.7%, transparent 45.1% 100%);
+  mix-blend-mode: screen;
+}
+
+/* Dark foreground corners sell depth and keep thumb-adjacent areas visually quiet. */
+.combat-screen.active .arena-wrap::after {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  inset: auto 0 0;
+  height: 30%;
+  pointer-events: none;
+  background:
+    linear-gradient(25deg, rgba(3, 3, 3, .52), transparent 34%),
+    linear-gradient(-25deg, rgba(3, 3, 3, .52), transparent 34%);
+  opacity: .55;
+}
+
+.combat-screen.active #arena {
+  position: relative;
+  z-index: 1;
+  transform-origin: 50% 72%;
+  transform: perspective(1180px) rotateX(9deg) scale(1.035, 1.06);
+  filter: saturate(.9) contrast(1.08) brightness(.94);
+  transition: transform .2s ease, filter .2s ease;
+  touch-action: none;
+}
+
+.combat-screen.active .arena-fade {
+  z-index: 4;
+  box-shadow:
+    inset 0 0 110px rgba(0, 0, 0, .46),
+    inset 0 -48px 90px rgba(0, 0, 0, .24);
+}
+
+.combat-screen.active .combat-message {
+  z-index: 6;
+  top: 14px;
+  max-width: min(620px, calc(100% - 28px));
+  text-align: center;
+  background: rgba(8, 7, 6, .72);
+  backdrop-filter: blur(8px);
+}
+
+.combat-screen.active .loot-reveal {
+  z-index: 20;
+}
+
+.combat-screen.active .combat-help {
+  padding-top: 8px;
+  opacity: .78;
+}
+
+.combat-screen.active .combat-help .hint {
+  color: #d4a38d;
+}
+
+/* Mobile: keep movement on the arena, while Technique / Evade become two
+   floating thumb targets instead of a full-width virtual-gamepad bar. */
+@media (max-width: 700px) {
+  .combat-screen.active {
+    padding-bottom: max(78px, calc(68px + env(safe-area-inset-bottom)));
+  }
+
+  .combat-screen.active .combat-head {
+    margin-bottom: 5px;
+  }
+
+  .combat-screen.active .combat-head h1 {
+    font-size: clamp(25px, 7.6vw, 33px);
+  }
+
+  .combat-screen.active .combat-bars {
+    padding: 7px 9px;
+    gap: 5px;
+    border-color: rgba(232, 214, 181, .08);
+  }
+
+  .combat-screen.active .health-row {
+    grid-template-columns: 34px 1fr 28px;
+    font-size: 8px;
+  }
+
+  .combat-screen.active .arena-wrap {
+    min-height: 280px;
+    max-height: 52dvh;
+    border-radius: 3px;
+  }
+
+  .combat-screen.active #arena {
+    min-height: 280px;
+    transform-origin: 50% 76%;
+    transform: perspective(920px) rotateX(8deg) scale(1.05, 1.09);
+    filter: saturate(.92) contrast(1.08) brightness(.96);
+  }
+
+  .combat-screen.active .arena-wrap::before {
+    background:
+      linear-gradient(180deg, rgba(3, 3, 3, .3), transparent 17%, transparent 70%, rgba(3, 3, 3, .5)),
+      linear-gradient(73deg, transparent 0 43%, rgba(229, 203, 154, .04) 43.4% 43.8%, transparent 44.2% 100%),
+      linear-gradient(107deg, transparent 0 43%, rgba(229, 203, 154, .04) 43.4% 43.8%, transparent 44.2% 100%);
+  }
+
+  .combat-screen.active .combat-message {
+    top: 10px;
+    padding: 6px 9px;
+    font-size: 9px;
+  }
+
+  .combat-screen.active .touch-controls.simple-actions {
+    position: absolute;
+    z-index: 40;
+    right: 8px;
+    bottom: max(8px, env(safe-area-inset-bottom));
+    width: auto;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    backdrop-filter: none;
+    pointer-events: none;
+  }
+
+  .combat-screen.active .simple-actions .auto-control {
+    display: none;
+  }
+
+  .combat-screen.active .simple-actions .action-pad {
+    width: auto;
+    display: flex;
+    gap: 9px;
+    align-items: flex-end;
+    pointer-events: auto;
+  }
+
+  .combat-screen.active .simple-actions .action-pad .action {
+    width: 68px !important;
+    height: 68px !important;
+    border: 1px solid rgba(255, 255, 255, .09) !important;
+    border-radius: 50% !important;
+    font-size: 14px;
+    box-shadow:
+      inset 0 1px rgba(255, 255, 255, .09),
+      0 10px 30px rgba(0, 0, 0, .34),
+      0 0 0 4px rgba(8, 8, 7, .38);
+  }
+
+  .combat-screen.active .simple-actions .action-pad .technique {
+    width: 78px !important;
+    height: 78px !important;
+    font-size: 18px;
+    background:
+      radial-gradient(circle at 38% 30%, rgba(255, 213, 132, .24), transparent 27%),
+      linear-gradient(180deg, #a36b3e, #663229);
+  }
+
+  .combat-screen.active .simple-actions .action-pad .evade {
+    background:
+      radial-gradient(circle at 38% 30%, rgba(198, 229, 203, .16), transparent 28%),
+      linear-gradient(180deg, #617866, #394b41);
+  }
+
+  .combat-screen.active .simple-actions .action-pad .cooling {
+    filter: saturate(.45) brightness(.7);
+  }
+}
+
+@media (max-width: 450px), (max-height: 680px) and (max-width: 700px) {
+  .combat-screen.active {
+    padding-bottom: max(70px, calc(62px + env(safe-area-inset-bottom)));
+  }
+
+  .combat-screen.active .arena-wrap,
+  .combat-screen.active #arena {
+    min-height: 250px;
+  }
+
+  .combat-screen.active .simple-actions .action-pad .action {
+    width: 62px !important;
+    height: 62px !important;
+  }
+
+  .combat-screen.active .simple-actions .action-pad .technique {
+    width: 72px !important;
+    height: 72px !important;
+  }
+}
+
+/* Respect reduced-motion preferences: the oblique view remains, but there is
+   no presentation animation layered on top of combat timing. */
+@media (prefers-reduced-motion: reduce) {
+  .combat-screen.active #arena {
+    transition: none;
+  }
+}
