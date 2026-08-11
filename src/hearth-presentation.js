@@ -1,6 +1,13 @@
 (() => {
   "use strict";
 
+  if (!document.querySelector('link[href="hearth-viewport.css"]')) {
+    const layout = document.createElement("link");
+    layout.rel = "stylesheet";
+    layout.href = "hearth-viewport.css";
+    document.head.appendChild(layout);
+  }
+
   const scene = document.getElementById("hearth-scene");
   if (!scene) return;
 
