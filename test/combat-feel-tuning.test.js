@@ -7,6 +7,7 @@ const vm = require('node:vm');
 const root = path.join(__dirname, '..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
 const source = fs.readFileSync(path.join(root, 'src', 'combat-feel-tuning.js'), 'utf8');
+const appSource = fs.readFileSync(path.join(root, 'src', 'app.js'), 'utf8');
 
 function makeState() {
   return {
@@ -42,7 +43,7 @@ test('combat feel tuning loads before app.js', () => {
   assert.ok(tuning >= 0 && tuning < app);
 });
 
-test('ordinary enemy roles stay readable while rusher becomes fast dangerous and fragile', () => {
+test('ordinary enemy roles have distinct pace durability and danger', () => {
   const { CrownlessCore } = loadTuning();
   const enemies = CrownlessCore.discoverLocation().expedition.encounter.enemies;
 
@@ -50,13 +51,13 @@ test('ordinary enemy roles stay readable while rusher becomes fast dangerous and
     enemies.slice(0, 3).map(({ kind, moveSpeed, attackRange, maxHealth, damage }) => ({ kind, moveSpeed, attackRange, maxHealth, damage })),
     [
       { kind: 'rusher', moveSpeed: 140, attackRange: 68, maxHealth: 37, damage: 13 },
-      { kind: 'guard', moveSpeed: 68, attackRange: 74, maxHealth: 62, damage: 13 },
+      { kind: 'guard', moveSpeed: 63, attackRange: 76, maxHealth: 67, damage: 12 },
       { kind: 'skirmisher', moveSpeed: 100, attackRange: 245, maxHealth: 38, damage: 9 }
     ]
   );
 });
 
-test('rusher identity does not modify bosses', () => {
+test('boss tuning stays untouched', () => {
   const { CrownlessCore } = loadTuning();
   const boss = CrownlessCore.discoverLocation().expedition.encounter.enemies[3];
   assert.deepEqual(
@@ -65,11 +66,21 @@ test('rusher identity does not modify bosses', () => {
   );
 });
 
-test('rusher identity is exposed as explicit tuning intent', () => {
+test('rusher and guard identities are explicit tuning intent', () => {
   const { CrownlessCombatFeel } = loadTuning();
-  assert.equal(CrownlessCombatFeel.rusherIdentity.healthScale, 0.84);
-  assert.equal(CrownlessCombatFeel.rusherIdentity.damageScale, 1.18);
   assert.equal(CrownlessCombatFeel.rusherIdentity.role, 'fast / dangerous / fragile');
+  assert.equal(CrownlessCombatFeel.guardIdentity.healthScale, 1.08);
+  assert.equal(CrownlessCombatFeel.guardIdentity.damageScale, 0.92);
+  assert.equal(CrownlessCombatFeel.guardIdentity.role, 'slow / armored / break then punish');
+});
+
+test('existing combat loop already gives guard a break then punish interaction', () => {
+  assert.match(appSource, /enemy\.kind === "guard" && enemy\.guarding && !technique && !finisher/);
+  assert.match(appSource, /addText\(enemy\.x, enemy\.y - 48, "BLOCK"/);
+  assert.match(appSource, /enemy\.kind === "guard" && enemy\.guarding && \(technique \|\| finisher\)/);
+  assert.match(appSource, /enemy\.guarding = false;[\s\S]*enemy\.guardCycle = 1\.3;[\s\S]*reaction = "BREAK"/);
+  assert.match(appSource, /enemy\.guardCycle = \(enemy\.guardCycle \+ dt\) % 2\.7/);
+  assert.match(appSource, /enemy\.guarding = enemy\.guardCycle < 1\.18/);
 });
 
 test('player repositioning is slightly more responsive while preserving weapon identity', () => {
@@ -81,6 +92,6 @@ test('player repositioning is slightly more responsive while preserving weapon i
 
 test('tuning layer does not add conventional attack controls or a new combat system', () => {
   assert.doesNotMatch(source, /touch-light|virtual joystick|light-attack button/i);
-  assert.match(source, /readable high-risk rusher/);
-  assert.doesNotMatch(source, /chargeState|dashState|new skill/i);
+  assert.match(source, /different movement choices/);
+  assert.doesNotMatch(source, /chargeState|dashState|guardBreakState|new skill/i);
 });
