@@ -13,10 +13,10 @@ function makeState() {
     expedition: {
       encounter: {
         enemies: [
-          { kind: 'rusher', moveSpeed: 132, attackRange: 52 },
-          { kind: 'guard', moveSpeed: 72, attackRange: 76 },
-          { kind: 'skirmisher', moveSpeed: 104, attackRange: 250 },
-          { kind: 'rusher', moveSpeed: 140, attackRange: 54, boss: true }
+          { kind: 'rusher', moveSpeed: 132, attackRange: 52, maxHealth: 44, damage: 11 },
+          { kind: 'guard', moveSpeed: 72, attackRange: 76, maxHealth: 62, damage: 13 },
+          { kind: 'skirmisher', moveSpeed: 104, attackRange: 250, maxHealth: 38, damage: 9 },
+          { kind: 'rusher', moveSpeed: 140, attackRange: 54, maxHealth: 80, damage: 18, boss: true }
         ]
       }
     }
@@ -42,20 +42,34 @@ test('combat feel tuning loads before app.js', () => {
   assert.ok(tuning >= 0 && tuning < app);
 });
 
-test('ordinary enemy roles keep space more clearly without touching bosses', () => {
+test('ordinary enemy roles stay readable while rusher becomes fast dangerous and fragile', () => {
   const { CrownlessCore } = loadTuning();
   const enemies = CrownlessCore.discoverLocation().expedition.encounter.enemies;
 
   assert.deepEqual(
-    enemies.slice(0, 3).map(({ kind, moveSpeed, attackRange }) => ({ kind, moveSpeed, attackRange })),
+    enemies.slice(0, 3).map(({ kind, moveSpeed, attackRange, maxHealth, damage }) => ({ kind, moveSpeed, attackRange, maxHealth, damage })),
     [
-      { kind: 'rusher', moveSpeed: 124, attackRange: 50 },
-      { kind: 'guard', moveSpeed: 68, attackRange: 74 },
-      { kind: 'skirmisher', moveSpeed: 100, attackRange: 245 }
+      { kind: 'rusher', moveSpeed: 140, attackRange: 68, maxHealth: 37, damage: 13 },
+      { kind: 'guard', moveSpeed: 68, attackRange: 74, maxHealth: 62, damage: 13 },
+      { kind: 'skirmisher', moveSpeed: 100, attackRange: 245, maxHealth: 38, damage: 9 }
     ]
   );
-  assert.equal(enemies[3].moveSpeed, 140);
-  assert.equal(enemies[3].attackRange, 54);
+});
+
+test('rusher identity does not modify bosses', () => {
+  const { CrownlessCore } = loadTuning();
+  const boss = CrownlessCore.discoverLocation().expedition.encounter.enemies[3];
+  assert.deepEqual(
+    { moveSpeed: boss.moveSpeed, attackRange: boss.attackRange, maxHealth: boss.maxHealth, damage: boss.damage },
+    { moveSpeed: 140, attackRange: 54, maxHealth: 80, damage: 18 }
+  );
+});
+
+test('rusher identity is exposed as explicit tuning intent', () => {
+  const { CrownlessCombatFeel } = loadTuning();
+  assert.equal(CrownlessCombatFeel.rusherIdentity.healthScale, 0.84);
+  assert.equal(CrownlessCombatFeel.rusherIdentity.damageScale, 1.18);
+  assert.equal(CrownlessCombatFeel.rusherIdentity.role, 'fast / dangerous / fragile');
 });
 
 test('player repositioning is slightly more responsive while preserving weapon identity', () => {
@@ -65,7 +79,8 @@ test('player repositioning is slightly more responsive while preserving weapon i
   assert.equal(fists.reach, 56);
 });
 
-test('tuning layer does not add conventional attack controls', () => {
+test('tuning layer does not add conventional attack controls or a new combat system', () => {
   assert.doesNotMatch(source, /touch-light|virtual joystick|light-attack button/i);
-  assert.match(source, /clearer stop-to-strike openings/);
+  assert.match(source, /readable high-risk rusher/);
+  assert.doesNotMatch(source, /chargeState|dashState|new skill/i);
 });
