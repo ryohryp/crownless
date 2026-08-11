@@ -8,6 +8,7 @@
   <link rel="stylesheet" href="styles.css" />
   <link rel="stylesheet" href="viewport-fix.css" />
   <link rel="stylesheet" href="desktop-layout.css" />
+  <link rel="stylesheet" href="hearth.css" />
   <link rel="stylesheet" href="combat-oblique.css" />
   <link rel="stylesheet" href="combat-render-space.css" />
 </head>
@@ -25,22 +26,87 @@
 
     <main>
       <section id="hub-screen" class="screen active">
-        <div class="hub-hero">
-          <div class="hub-copy">
+        <section id="hearth-scene" class="hearth-scene" data-weapon="fists" aria-label="灰炉の拠点">
+          <div class="hearth-scene-copy">
             <p class="eyebrow">THE GREY HEARTH / SAFE HAVEN</p>
-            <h1>名もなき者は、<br><em>外へ出る。</em></h1>
-            <p class="lede">王も、神も、あなたの生還を保証しない。持ち帰った物だけが、次の遠征であなたを変える。</p>
-            <button id="start-expedition" class="primary huge">霧の外へ出る <span>→</span></button>
+            <h1>帰る場所が、<br><em>少しずつ育つ。</em></h1>
+            <p class="lede">外で見つけた物、生還して得た名声、選んだ戦い方。灰炉はあなたが持ち帰ったものだけを覚えている。</p>
           </div>
 
-          <aside class="loadout-card">
-            <p class="eyebrow">CURRENT LOADOUT</p>
-            <div class="fighter-sigil"><span>✦</span></div>
-            <small id="equipped-label">素手</small>
-            <h2 id="loadout-title">拳だけで出る</h2>
-            <p id="loadout-description">武器はない。けれど、拳は最初から最後まで選べる戦い方だ。</p>
-          </aside>
-        </div>
+          <div class="hearth-room">
+            <span class="hearth-beam left" aria-hidden="true"></span>
+            <span class="hearth-beam right" aria-hidden="true"></span>
+
+            <button id="hearth-map-focus" class="hearth-object hearth-map" type="button" aria-label="地図と灰炉の名声を見る">
+              <span class="map-paper" aria-hidden="true"></span>
+              <span class="map-pin" aria-hidden="true"></span>
+              <span class="object-label">
+                <small>WALL MAP</small>
+                <strong>地図掛け</strong>
+                <span id="hearth-map-status">RENOWN 0 / 地図はまだ白い</span>
+              </span>
+            </button>
+
+            <button id="hearth-loot-focus" class="hearth-object hearth-loot-shelf" type="button" aria-label="持ち帰った戦利品を見る">
+              <span class="shelf-frame" aria-hidden="true"></span>
+              <span class="shelf-loot one" aria-hidden="true"></span>
+              <span class="shelf-loot two" aria-hidden="true"></span>
+              <span class="shelf-loot three" aria-hidden="true"></span>
+              <span class="object-label">
+                <small>SECURED LOOT</small>
+                <strong>戦利品棚 <b id="hearth-shelf-count">0</b></strong>
+                <span>持ち帰った物だけがここに残る。</span>
+              </span>
+            </button>
+
+            <button id="hearth-character-interaction" class="hearth-object hearth-character" type="button" aria-label="現在の装備を確かめる">
+              <span class="fighter-body" aria-hidden="true">
+                <i class="head"></i>
+                <i class="torso"></i>
+                <i class="arm left"></i>
+                <i class="arm right"></i>
+                <i class="leg left"></i>
+                <i class="leg right"></i>
+                <i class="weapon-shape"></i>
+              </span>
+              <span class="object-label">
+                <small id="equipped-label">素手</small>
+                <strong id="loadout-title">拳だけで出る</strong>
+                <span id="loadout-description">武器はない。けれど、拳は最初から最後まで選べる戦い方だ。</span>
+              </span>
+            </button>
+
+            <button id="hearth-fire-interaction" class="hearth-object hearth-fire" type="button" aria-label="焚き火をいじる">
+              <span class="hearth-embers" id="hearth-embers" aria-hidden="true"></span>
+              <span class="fire-log" aria-hidden="true"></span>
+              <span class="fire-stones" aria-hidden="true"></span>
+              <span class="fire-flame" aria-hidden="true"></span>
+              <span class="object-label"><small>THE HEARTH</small><strong>火をいじる</strong></span>
+            </button>
+
+            <div id="hearth-recovery-cache" class="hearth-recovery-cache" aria-hidden="true"></div>
+            <div id="hearth-forge" class="hearth-forge" aria-hidden="true">
+              <span class="anvil"></span>
+              <span class="forge-mouth"></span>
+            </div>
+
+            <button id="start-expedition" class="hearth-object hearth-gate" type="button" aria-label="霧の外へ遠征に出る">
+              <span class="gate-stone" aria-hidden="true">
+                <i class="gate-fog"></i>
+                <i class="gate-road"></i>
+                <i class="gate-mark">✦</i>
+              </span>
+              <span class="object-label">
+                <small>LEAVE SAFETY</small>
+                <strong>霧の門をくぐる →</strong>
+                <span>外で得た物は、生還するまであなたの物ではない。</span>
+              </span>
+            </button>
+
+            <span class="hearth-room-note">「戻れた者だけが、次を選べる」</span>
+            <div id="hearth-whisper" class="hearth-whisper" aria-live="polite"></div>
+          </div>
+        </section>
 
         <div class="hub-grid">
           <section class="panel inventory-panel">
@@ -207,7 +273,7 @@
       </section>
     </main>
 
-    <footer>Playable slice v0.6 — return alive, and the hearth remembers.</footer>
+    <footer>Playable slice v0.7 — return alive, and the hearth remembers.</footer>
   </div>
 
   <script src="src/game-core.js"></script>
@@ -221,6 +287,7 @@
   <script src="src/noncombat-presentation.js"></script>
   <script src="src/exploration-map-presentation.js"></script>
   <script src="src/exploration-feel.js"></script>
+  <script src="src/hearth-presentation.js"></script>
   <script src="src/desktop-input.js"></script>
 </body>
 </html>
