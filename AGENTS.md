@@ -32,6 +32,14 @@ Combat is moving toward a **fixed oblique top-down battlefield view**. For comba
 
 The current **stand-to-strike** combat model in `docs/game-system-design.md` remains authoritative for controls and combat logic. Do not add a light-attack button, virtual joystick, large skill cluster, party HUD, combat minimap, or persistent item-label carpet merely because those elements appear in conventional ARPGs or concept art. When a generic presentation description conflicts with `docs/combat-presentation-spec.md`, the combat presentation specification takes precedence for camera, HUD, readability, and combat drop presentation.
 
+## Grey Hearth presentation rule
+
+The Grey Hearth is a **playable-feeling safe place**, not merely a dashboard between expeditions.
+
+For hub layout, Hearth interactions, environmental progression, or how safe-state information is presented, read `docs/hearth-presentation-spec.md` and preserve the principle that existing gameplay state remains authoritative while secured progress becomes visible in the room.
+
+Small Hearth interactions may exist without mechanical rewards when they make the place feel inhabited, but they must not become required chores or a separate management loop.
+
 ## Development rule
 
 Prefer short playable loops over long speculative design phases:
@@ -46,9 +54,10 @@ When choosing between architectural novelty and something that makes the prototy
 2. Read `docs/game-system-design.md` as the canonical current gameplay design.
 3. If the task touches exploration, maps, location data, GPS, regional flavor, outdoor/stationary play, or AI-generated world content, also read `docs/exploration-location-spec.md`.
 4. If the task touches combat camera, HUD, battlefield presentation, readability, or combat loot presentation, also read `docs/combat-presentation-spec.md`.
-5. Inspect the current implementation and open issues before proposing a replacement architecture.
-6. Treat older versioned design documents as history when they conflict with the canonical design, subsystem specifications, or current implementation.
-7. Preserve existing decisions unless there is a concrete reason to change them.
+5. If the task touches the Grey Hearth hub, safe-room presentation, or environmental progression, also read `docs/hearth-presentation-spec.md`.
+6. Inspect the current implementation and open issues before proposing a replacement architecture.
+7. Treat older versioned design documents as history when they conflict with the canonical design, subsystem specifications, or current implementation.
+8. Preserve existing decisions unless there is a concrete reason to change them.
 
 ## Implementation expectations
 

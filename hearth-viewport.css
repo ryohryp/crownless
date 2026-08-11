@@ -1,0 +1,38 @@
+/* Grey Hearth layout bridge: the interactive hub is intentionally scrollable,
+   while expedition/combat screens keep the fixed-viewport rules. */
+
+@media (min-width: 701px) and (max-width: 900px) {
+  body:has(#hub-screen.active) main {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scrollbar-gutter: stable;
+  }
+
+  body:has(#hub-screen.active) #hub-screen.screen.active {
+    display: block;
+    height: auto;
+    min-height: 0;
+    overflow: visible;
+  }
+
+  body:has(#hub-screen.active) #hub-screen .hub-grid {
+    height: auto;
+    min-height: 0;
+    grid-template-columns: minmax(0, 1fr) 230px;
+    gap: 12px;
+    padding-top: 18px;
+  }
+
+  body:has(#hub-screen.active) #hub-screen .panel {
+    min-height: 0;
+  }
+}
+
+@media (max-width: 700px) {
+  #hub-screen .hub-grid {
+    grid-template-columns: 1fr;
+  }
+}
