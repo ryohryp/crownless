@@ -10,6 +10,7 @@ test("battlefield weapons use touch pickup instead of stationary hold", () => {
   assert.doesNotMatch(app, /drop\.pickup \/ 0\.18/);
   assert.doesNotMatch(app, /止まって拾う/);
   assert.match(app, /触れれば拾う/);
+  assert.match(app, /武器に触れる <b>PICK UP<\/b>/);
 });
 
 test("battlefield weapon pickup is checked after player movement", () => {
