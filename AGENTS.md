@@ -35,9 +35,10 @@ When choosing between architectural novelty and something that makes the prototy
 ## Before changing code
 
 1. Read this file.
-2. Read `docs/game-system-design-v0.1.md`.
+2. Read `docs/game-system-design.md` as the canonical current gameplay design.
 3. Inspect the current implementation and open issues before proposing a replacement architecture.
-4. Preserve existing decisions unless there is a concrete reason to change them.
+4. Treat older versioned design documents as history when they conflict with the canonical design or current implementation.
+5. Preserve existing decisions unless there is a concrete reason to change them.
 
 ## Implementation expectations
 

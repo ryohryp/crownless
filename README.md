@@ -30,7 +30,8 @@ The player begins as an unknown, unarmed person. Bare hands are a valid fighting
 
 ## Documents
 
-- [Game System Design v0.1](docs/game-system-design-v0.1.md)
+- [Current Game System Design](docs/game-system-design.md) — canonical living design
+- [Game System Design v0.1](docs/game-system-design-v0.1.md) — historical baseline
 - [Deployment strategy](docs/deployment-strategy.md)
 - [Development guide for coding agents](AGENTS.md)
 
@@ -46,15 +47,17 @@ Open `http://localhost:4173`.
 
 ### Controls
 
-Combat is intentionally simple on phones:
+The current combat model is **stand-to-strike**: move to survive and reposition, then stop to attack.
 
-- Movement: **AUTO**
-- Normal attacks / combo: **AUTO**
+- Movement: `WASD` / arrow keys on desktop, or **drag on the combat arena** on pointer/touch devices
+- Normal attacks / combo: **AUTO while stopped** with an enemy in weapon range
 - Technique: `K` or the **技** button
 - Evade / perfect evade: `Space` or the **回避** button
+- Enemy attacks telegraph and often lock their aim, so moving can create a punish window
+- Defeated enemies can drop temporary battlefield weapons; move onto one and stop briefly to pick it up
 - Fighting well builds **闘志**; at 100, the next Technique becomes a high-impact **決着** strike
 
-The player chooses the important moments rather than steering every step.
+The player owns positioning, but does not need a separate light-attack button.
 
 ### What to test
 
@@ -63,6 +66,7 @@ Try several expeditions in a row. The current slice is specifically testing whet
 - **Rusher** closes distance aggressively.
 - **Guard** blocks ordinary pressure and rewards techniques / guard breaking.
 - **Skirmisher** keeps range and fires telegraphed projectiles.
+- Fists, daggers, and swords use visibly different stop-to-attack rhythms.
 - Exploration can lead to fights, ambushes, hidden caches, shrines, travelers, named hunts, or dungeon entrances.
 - Fresh loot shows its combat style, playstyle modifier, and comparison with the equipped item.
 - Carried loot remains unsecured until the player returns to the Grey Hearth.
