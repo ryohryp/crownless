@@ -150,6 +150,25 @@
     traveler: "人影"
   };
 
+  const EDGE_MAX = 100;
+
+  function nextEdge(current, gain) {
+    const value = Number(current) || 0;
+    const change = Number(gain) || 0;
+    return Math.max(0, Math.min(EDGE_MAX, value + change));
+  }
+
+  function edgeTechnique(edge) {
+    const ready = nextEdge(edge, 0) >= EDGE_MAX;
+    return {
+      ready,
+      remaining: ready ? 0 : EDGE_MAX - nextEdge(edge, 0),
+      damageMultiplier: ready ? 1.65 : 1,
+      staggerMultiplier: ready ? 1.5 : 1,
+      cooldown: ready ? 0.9 : null
+    };
+  }
+
   function createRng(seed) {
     let value = (Number(seed) || 1) >>> 0;
     return function rng() {
@@ -605,6 +624,9 @@
     ITEM_BASES,
     MODIFIERS,
     EVENT_SIGNAL,
+    EDGE_MAX,
+    nextEdge,
+    edgeTechnique,
     createRng,
     createInitialState,
     beginExpedition,

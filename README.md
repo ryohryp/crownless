@@ -52,6 +52,7 @@ Combat is intentionally simple on phones:
 - Normal attacks / combo: **AUTO**
 - Technique: `K` or the **技** button
 - Evade / perfect evade: `Space` or the **回避** button
+- Fighting well builds **闘志**; at 100, the next Technique becomes a high-impact **決着** strike
 
 The player chooses the important moments rather than steering every step.
 
@@ -65,6 +66,9 @@ Try several expeditions in a row. The current slice is specifically testing whet
 - Exploration can lead to fights, ambushes, hidden caches, shrines, travelers, named hunts, or dungeon entrances.
 - Fresh loot shows its combat style, playstyle modifier, and comparison with the equipped item.
 - Carried loot remains unsecured until the player returns to the Grey Hearth.
+- The route strip records the places visited during the current expedition, turning each run into a readable journey rather than a sequence of disconnected cards.
+- Safe return and defeat both have a dedicated expedition report showing secured or recovered loot, renown, and the next Hearth milestone.
+- Generated Web Audio feedback, optional vibration, and a persistent sound toggle make timing readable without external assets.
 - The **灰喰い坑道** adds three retreatable rooms with an elite fight, a boss, and a first-clear relic.
 - Successful returns build **Renown**, which grows the Grey Hearth through small functional milestones.
 - Safe Grey Hearth state is stored locally; unfinished expeditions are never saved as secured progress.
