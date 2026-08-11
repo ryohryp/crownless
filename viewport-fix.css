@@ -31,8 +31,77 @@ footer {
   visibility: visible;
 }
 
+/* Desktop plays as a fixed application viewport. The browser page itself never
+   scrolls; tall non-combat screens can still consume wheel input inside main. */
+@media (min-width: 701px) {
+  html,
+  body {
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+  }
+
+  body {
+    min-height: 0;
+  }
+
+  .app-shell {
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  .topbar {
+    flex: 0 0 72px;
+    height: 72px;
+  }
+
+  main {
+    flex: 1 1 auto;
+    min-height: 0;
+    padding-top: clamp(10px, 2vh, 22px);
+    padding-bottom: clamp(10px, 2vh, 22px);
+    overflow: hidden;
+  }
+
+  footer {
+    display: none;
+  }
+
+  .screen.active {
+    height: 100%;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: none;
+  }
+
+  .screen.active::-webkit-scrollbar {
+    width: 0;
+    height: 0;
+  }
+
+  .combat-screen.active {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .combat-screen.active .combat-head,
+  .combat-screen.active .combat-help {
+    flex: 0 0 auto;
+  }
+
+  .combat-screen.active .arena-wrap {
+    flex: 0 1 auto;
+    width: min(100%, calc((100dvh - 210px) * 16 / 9));
+    margin-inline: auto;
+  }
+}
+
 @media (min-width: 701px) and (max-height: 860px) {
-  .topbar { height: 64px; }
+  .topbar { height: 64px; flex-basis: 64px; }
   main { padding-top: 18px; padding-bottom: 18px; }
   .combat-head { margin-bottom: 10px; }
   .combat-head h1 { margin-bottom: 2px; font-size: clamp(30px, 5.2vh, 44px); }
@@ -42,13 +111,11 @@ footer {
     margin-inline: auto;
   }
   .combat-help { padding-top: 8px; }
-  footer { padding-top: 10px; }
 }
 
 @media (min-width: 701px) and (max-height: 700px) {
   .brand small,
-  .combat-head p:last-child,
-  footer { display: none; }
+  .combat-head p:last-child { display: none; }
   main { padding-top: 10px; padding-bottom: 10px; }
   .combat-head {
     grid-template-columns: 1fr minmax(300px, 390px);
