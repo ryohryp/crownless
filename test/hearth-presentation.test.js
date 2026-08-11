@@ -6,6 +6,7 @@ const path = require("node:path");
 const root = path.join(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const css = fs.readFileSync(path.join(root, "hearth.css"), "utf8");
+const viewportCss = fs.readFileSync(path.join(root, "hearth-viewport.css"), "utf8");
 const js = fs.readFileSync(path.join(root, "src", "hearth-presentation.js"), "utf8");
 
 test("Grey Hearth exposes interactive world objects instead of a single CTA card", () => {
@@ -40,4 +41,11 @@ test("ambient interactions are optional play and preserve the expedition action"
   assert.match(js, /scrollTo\("#hearth-progress"\)/);
   assert.match(html, /src="src\/hearth-presentation\.js"/);
   assert.match(html, /href="hearth\.css"/);
+});
+
+test("interactive Hearth remains scroll-safe at tablet widths", () => {
+  assert.match(js, /hearth-viewport\.css/);
+  assert.match(viewportCss, /@media \(min-width: 701px\) and \(max-width: 900px\)/);
+  assert.match(viewportCss, /body:has\(#hub-screen\.active\) main[\s\S]*?overflow-y: auto/);
+  assert.match(viewportCss, /#hub-screen\.screen\.active[\s\S]*?display: block/);
 });
