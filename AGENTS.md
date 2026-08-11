@@ -18,6 +18,23 @@ The core loop is:
 
 The player starts as an unknown person with no weapon. Unarmed combat must remain a legitimate play style rather than only a temporary tutorial state.
 
+## Global visual design rule
+
+Crownless has a deliberate visual identity built around a **living medieval manuscript / woodcut world**, not generic dark fantasy or realistic 3D.
+
+For any task that creates, edits, implements, or evaluates visuals — including UI, CSS, Canvas, SVG, sprites, concept art, image prompts, combat effects, maps, icons, characters, enemies, inventory presentation, reports, or Grey Hearth presentation — read:
+
+- `docs/visual-design-guide-v0.1.md` as the canonical visual-design reference
+- `skills/crownless-visual-design/SKILL.md` as the execution and review workflow
+
+Preserve the core visual grammar: hand-inked irregular linework, parchment / ash fields, woodcut / crosshatched shadow, restrained semantic color, compact readable character silhouettes, annotation-like UI, and physical ink-like combat effects.
+
+Do not drift back toward photorealistic rendering, glossy mobile-RPG UI, generic Diablo imitation, neon magic spectacle, or blue/purple/orange rarity-card language merely because those conventions are familiar.
+
+A useful rejection test is:
+
+> **If another dark-fantasy RPG could use the same visual by swapping the logo, it is not Crownless enough.**
+
 ## Location design rule
 
 Do not reduce location gameplay to step-count rewards.
@@ -52,12 +69,13 @@ When choosing between architectural novelty and something that makes the prototy
 
 1. Read this file.
 2. Read `docs/game-system-design.md` as the canonical current gameplay design.
-3. If the task touches exploration, maps, location data, GPS, regional flavor, outdoor/stationary play, or AI-generated world content, also read `docs/exploration-location-spec.md`.
-4. If the task touches combat camera, HUD, battlefield presentation, readability, or combat loot presentation, also read `docs/combat-presentation-spec.md`.
-5. If the task touches the Grey Hearth hub, safe-room presentation, or environmental progression, also read `docs/hearth-presentation-spec.md`.
-6. Inspect the current implementation and open issues before proposing a replacement architecture.
-7. Treat older versioned design documents as history when they conflict with the canonical design, subsystem specifications, or current implementation.
-8. Preserve existing decisions unless there is a concrete reason to change them.
+3. If the task touches visuals in any form, also read `docs/visual-design-guide-v0.1.md` and `skills/crownless-visual-design/SKILL.md`.
+4. If the task touches exploration, maps, location data, GPS, regional flavor, outdoor/stationary play, or AI-generated world content, also read `docs/exploration-location-spec.md`.
+5. If the task touches combat camera, HUD, battlefield presentation, readability, or combat loot presentation, also read `docs/combat-presentation-spec.md`.
+6. If the task touches the Grey Hearth hub, safe-room presentation, or environmental progression, also read `docs/hearth-presentation-spec.md`.
+7. Inspect the current implementation and open issues before proposing a replacement architecture.
+8. Treat older versioned design documents as history when they conflict with the canonical design, subsystem specifications, or current implementation.
+9. Preserve existing decisions unless there is a concrete reason to change them.
 
 ## Implementation expectations
 
@@ -68,6 +86,7 @@ When choosing between architectural novelty and something that makes the prototy
 - Keep balance values and content data configurable rather than scattering magic numbers through code.
 - Add tests around progression, rewards, encounter resolution, inventory loss, and other high-impact game rules.
 - Never put paid AI provider API keys in the game client. Regional AI generation must be host-side or batch-generated, persisted, and reusable.
+- For visual implementation, prefer reusable low-cost techniques that can be playtested before committing to a production asset pipeline.
 
 ## Product priority
 
