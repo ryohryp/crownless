@@ -228,31 +228,19 @@
   }
 }
 
-/* The Grey Hearth is a dashboard, not a play surface. It can grow as rumor,
-   dungeon, renown and secured-loot sections are added, so desktop must allow
-   normal document scrolling here while keeping expedition/combat screens locked. */
+/* The Grey Hearth is a dashboard, not a play surface. Keep the application
+   viewport fixed, but make main the explicit scroll container. This avoids
+   competing html/body scroll roots and makes mouse-wheel scrolling reliable. */
 @media (min-width: 901px) {
-  html:has(#hub-screen.active),
-  body:has(#hub-screen.active) {
-    height: auto;
-    min-height: 100%;
-    overflow-x: hidden;
-    overflow-y: auto;
-  }
-
-  body:has(#hub-screen.active) .app-shell {
-    height: auto;
-    min-height: 100vh;
-    min-height: 100dvh;
-    overflow: visible;
-  }
-
   body:has(#hub-screen.active) main {
-    flex: 1 0 auto;
+    flex: 1 1 auto;
     min-height: 0;
     padding-top: clamp(20px, 3vh, 40px);
     padding-bottom: 32px;
-    overflow: visible;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior-y: contain;
+    scrollbar-gutter: stable;
   }
 
   body:has(#hub-screen.active) #hub-screen.screen.active {
