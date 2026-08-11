@@ -11,6 +11,7 @@
   <link rel="stylesheet" href="hearth.css" />
   <link rel="stylesheet" href="combat-oblique.css" />
   <link rel="stylesheet" href="combat-render-space.css" />
+  <link rel="stylesheet" href="combat-manuscript.css" />
 </head>
 <body>
   <div class="grain"></div>
@@ -193,10 +194,11 @@
         </div>
 
         <div class="combat-help">
-          <span><kbd>J</kbd> 軽攻撃 ×3</span>
-          <span><kbd>K</kbd> 重攻撃</span>
+          <span><kbd>WASD</kbd> / ドラッグ 移動</span>
+          <span>停止 <b>AUTO STRIKE</b></span>
+          <span><kbd>K</kbd> 技</span>
           <span><kbd>SPACE</kbd> 回避</span>
-          <span class="hint">赤い予兆の直前に避けろ。</span>
+          <span class="hint">動いて狙いを外す → 止まって反撃。</span>
         </div>
 
           <div class="touch-controls" aria-label="touch combat controls">
@@ -284,6 +286,7 @@
   <script src="src/combat-feel-tuning.js"></script>
   <script src="src/app-runtime-state.js"></script>
   <script src="src/combat-render-space.js"></script>
+  <script src="src/combat-manuscript-render.js"></script>
   <script src="src/app.js"></script>
   <script src="src/noncombat-presentation.js"></script>
   <script src="src/exploration-map-presentation.js"></script>
