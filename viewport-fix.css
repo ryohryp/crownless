@@ -31,8 +31,9 @@ footer {
   visibility: visible;
 }
 
-/* Desktop plays as a fixed application viewport. The browser page itself never
-   scrolls; tall non-combat screens can still consume wheel input inside main. */
+/* Desktop is a true one-screen application layout. The page and the active
+   screen never scroll. Only content collections that can grow without bound
+   (loot lists) are allowed to scroll inside their own panel. */
 @media (min-width: 701px) {
   html,
   body {
@@ -60,8 +61,8 @@ footer {
   main {
     flex: 1 1 auto;
     min-height: 0;
-    padding-top: clamp(10px, 2vh, 22px);
-    padding-bottom: clamp(10px, 2vh, 22px);
+    padding-top: clamp(8px, 1.8vh, 18px);
+    padding-bottom: clamp(8px, 1.8vh, 18px);
     overflow: hidden;
   }
 
@@ -72,16 +73,395 @@ footer {
   .screen.active {
     height: 100%;
     min-height: 0;
+    overflow: hidden;
+  }
+
+  /* Hub: hero + inventory share the available height instead of stacking into
+     a long document. */
+  #hub-screen.active {
+    display: grid;
+    grid-template-rows: minmax(0, 1.45fr) minmax(170px, .85fr);
+    gap: 12px;
+  }
+
+  #hub-screen .hub-hero {
+    min-height: 0;
+    height: 100%;
+    grid-template-columns: minmax(0, 1fr) minmax(250px, 330px);
+    gap: 18px;
+    padding-bottom: 12px;
+  }
+
+  #hub-screen .hub-copy {
+    min-height: 0;
+    height: 100%;
+    padding: clamp(8px, 3.2vh, 30px) 0;
+  }
+
+  #hub-screen .hub-copy h1 {
+    margin-bottom: 10px;
+    font-size: clamp(38px, 6.5vh, 64px);
+  }
+
+  #hub-screen .hub-copy .lede {
+    max-width: 600px;
+    margin-bottom: 0;
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  #hub-screen .primary.huge {
+    min-height: 46px;
+    margin-top: 10px;
+    padding-block: 12px;
+  }
+
+  #hub-screen .loadout-card {
+    align-self: stretch;
+    min-height: 0;
+    height: 100%;
+    padding: 18px;
+  }
+
+  #hub-screen .fighter-sigil {
+    top: 22px;
+    width: 112px;
+    height: 112px;
+  }
+
+  #hub-screen .fighter-sigil::before,
+  #hub-screen .fighter-sigil::after {
+    width: 30px;
+    height: 76px;
+    border-width: 6px;
+    border-top: 0;
+  }
+
+  #hub-screen .loadout-card h2 {
+    margin-bottom: 6px;
+    font-size: 26px;
+  }
+
+  #hub-screen .loadout-card p {
+    font-size: 11px;
+    line-height: 1.45;
+  }
+
+  #hub-screen .hub-grid {
+    min-height: 0;
+    height: 100%;
+    grid-template-columns: minmax(0, 1fr) 240px;
+    gap: 12px;
+    padding-top: 0;
+  }
+
+  #hub-screen .panel {
+    min-height: 0;
+    padding: 13px 15px;
+    overflow: hidden;
+  }
+
+  #hub-screen .panel-heading {
+    margin-bottom: 8px;
+  }
+
+  #hub-screen .panel-heading h2 {
+    font-size: 24px;
+  }
+
+  #hub-screen .inventory-panel {
+    display: flex;
+    flex-direction: column;
+  }
+
+  #hub-screen .inventory-panel .loot-list {
+    min-height: 0;
     overflow-y: auto;
     overscroll-behavior: contain;
-    scrollbar-width: none;
   }
 
-  .screen.active::-webkit-scrollbar {
-    width: 0;
-    height: 0;
+  #hub-screen .chronicle .eyebrow {
+    margin-bottom: 2px;
   }
 
+  #hub-screen .stat-row {
+    min-height: 38px;
+  }
+
+  #hub-screen .stat-row strong {
+    font-size: 22px;
+  }
+
+  /* Exploration: title, map and return action all coexist in the same viewport. */
+  #explore-screen.active {
+    display: flex;
+    flex-direction: column;
+  }
+
+  #explore-screen .expedition-title {
+    flex: 0 0 auto;
+    align-items: center;
+    margin-bottom: 7px;
+  }
+
+  #explore-screen .expedition-title h1 {
+    margin-bottom: 0;
+    font-size: clamp(30px, 4.8vh, 44px);
+  }
+
+  #explore-screen .expedition-title > div:first-child > p:last-child {
+    display: none;
+  }
+
+  #explore-screen .expedition-vitals {
+    grid-template-columns: repeat(3, 78px);
+  }
+
+  #explore-screen .expedition-vitals div {
+    padding: 8px 10px;
+  }
+
+  #explore-screen .expedition-vitals strong {
+    font-size: 19px;
+  }
+
+  #explore-screen .carried-warning {
+    flex: 0 0 auto;
+    margin-bottom: 7px;
+    padding: 7px 10px;
+    font-size: 10px;
+  }
+
+  html.exploration-map-enabled #explore-screen.active .exploration-map-panel {
+    flex: 1 1 auto;
+    min-height: 0;
+    margin-top: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  html.exploration-map-enabled #explore-screen.active .exploration-map-heading {
+    flex: 0 0 auto;
+    padding: 8px 12px;
+  }
+
+  html.exploration-map-enabled #explore-screen.active .exploration-map-heading .eyebrow {
+    margin-bottom: 2px;
+  }
+
+  html.exploration-map-enabled #explore-screen.active .exploration-map-heading h2 {
+    font-size: 21px;
+  }
+
+  html.exploration-map-enabled #explore-screen.active .exploration-map-layout {
+    flex: 1 1 auto;
+    min-height: 0 !important;
+    height: auto;
+    grid-template-columns: minmax(0, 1.5fr) minmax(245px, .5fr);
+  }
+
+  html.exploration-map-enabled #explore-screen.active .exploration-map-board-wrap {
+    min-height: 0 !important;
+    height: 100%;
+    padding: 8px 12px 24px;
+  }
+
+  html.exploration-map-enabled #explore-screen.active .exploration-map-board {
+    width: auto !important;
+    height: 100%;
+    max-width: 100%;
+    max-height: 100%;
+    aspect-ratio: 1;
+    margin: auto;
+  }
+
+  html.exploration-map-enabled #explore-screen.active .exploration-map-details {
+    min-height: 0;
+    padding: 12px 14px;
+    justify-content: center;
+    overflow: hidden;
+  }
+
+  html.exploration-map-enabled #explore-screen.active .exploration-map-details .eyebrow {
+    margin-bottom: 4px;
+  }
+
+  html.exploration-map-enabled #explore-screen.active .exploration-map-details h3 {
+    margin-bottom: 6px;
+    font-size: 25px;
+  }
+
+  html.exploration-map-enabled #explore-screen.active .exploration-map-details p {
+    margin-bottom: 8px;
+    font-size: 11px;
+    line-height: 1.4;
+  }
+
+  html.exploration-map-enabled #explore-screen.active .map-discovery-omen {
+    padding: 7px 9px;
+  }
+
+  html.exploration-map-enabled #explore-screen.active .map-discovery-signals {
+    gap: 5px 10px;
+    margin-bottom: 8px;
+  }
+
+  html.exploration-map-enabled #explore-screen.active .map-investigate,
+  html.exploration-map-enabled #explore-screen.active .map-travel {
+    padding: 10px 12px;
+  }
+
+  #explore-screen .return-strip {
+    flex: 0 0 auto;
+    min-height: 0;
+    margin-top: 7px;
+    padding: 7px 10px;
+  }
+
+  #explore-screen .return-strip .eyebrow {
+    display: none;
+  }
+
+  #explore-screen .return-strip strong {
+    font-size: 15px;
+  }
+
+  #explore-screen .return-strip span {
+    font-size: 9px;
+  }
+
+  #explore-screen .return-strip .ghost {
+    min-height: 40px;
+    padding: 8px 13px;
+  }
+
+  /* Decision: no hero-sized spacer. The carried loot panel owns the flexible
+     middle row and only its list may scroll when many items are carried. */
+  #decision-screen.active {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+
+  #decision-screen .decision-hero {
+    min-height: 0;
+    align-items: center;
+    padding-bottom: 10px;
+  }
+
+  #decision-screen .decision-hero h1 {
+    margin-bottom: 7px;
+    font-size: clamp(36px, 6vh, 56px);
+  }
+
+  #decision-screen .decision-hero p:last-child {
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  #decision-screen .decision-meters div {
+    padding: 9px 11px;
+  }
+
+  #decision-screen .decision-meters strong {
+    font-size: 22px;
+  }
+
+  #decision-screen .carried-panel {
+    min-height: 0;
+    margin-top: 0;
+    padding: 13px 15px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  #decision-screen .carried-panel .panel-heading {
+    margin-bottom: 8px;
+  }
+
+  #decision-screen .carried-panel .loot-list {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  #decision-screen .decision-actions {
+    margin-top: 0;
+  }
+
+  #decision-screen .decision-actions button {
+    min-height: 58px;
+    padding: 9px;
+    font-size: 17px;
+  }
+
+  /* Return screen uses three fixed rows: summary, spoils, actions. */
+  #return-screen.active {
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+    gap: 10px;
+  }
+
+  #return-screen .return-hero {
+    min-height: 0;
+    padding: 8px 0 12px;
+  }
+
+  #return-screen .return-hero h1 {
+    margin-bottom: 7px;
+    font-size: clamp(38px, 6vh, 58px);
+  }
+
+  #return-screen .return-hero > p:not(.eyebrow) {
+    margin-bottom: 10px;
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  #return-screen .return-stats div {
+    padding: 9px 12px;
+  }
+
+  #return-screen .return-stats strong {
+    font-size: 25px;
+  }
+
+  #return-screen .return-spoils {
+    min-height: 0;
+    margin-top: 0;
+    padding: 13px 15px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  #return-screen .return-spoils .panel-heading {
+    margin-bottom: 8px;
+  }
+
+  #return-screen .return-spoils .loot-list {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  #return-screen .return-next {
+    flex: 0 0 auto;
+    margin-top: 8px;
+    padding-top: 7px;
+  }
+
+  #return-screen .return-actions {
+    margin-top: 0;
+  }
+
+  #return-screen .return-actions button {
+    min-height: 52px;
+  }
+
+  /* Combat already has a one-screen flow; reserve its remaining height for the
+     16:9 arena rather than making the screen scroll. */
   .combat-screen.active {
     display: flex;
     flex-direction: column;
@@ -95,39 +475,103 @@ footer {
 
   .combat-screen.active .arena-wrap {
     flex: 0 1 auto;
-    width: min(100%, calc((100dvh - 210px) * 16 / 9));
+    width: min(100%, calc((100dvh - 190px) * 16 / 9));
     margin-inline: auto;
   }
 }
 
 @media (min-width: 701px) and (max-height: 860px) {
-  .topbar { height: 64px; flex-basis: 64px; }
-  main { padding-top: 18px; padding-bottom: 18px; }
-  .combat-head { margin-bottom: 10px; }
-  .combat-head h1 { margin-bottom: 2px; font-size: clamp(30px, 5.2vh, 44px); }
-  .combat-head p:last-child { line-height: 1.45; }
-  .combat-screen.active .arena-wrap {
-    width: min(100%, calc((100dvh - 215px) * 16 / 9));
-    margin-inline: auto;
+  .topbar { height: 62px; flex-basis: 62px; }
+  main { padding-top: 10px; padding-bottom: 10px; }
+
+  #hub-screen.active {
+    grid-template-rows: minmax(0, 1.35fr) minmax(150px, .78fr);
+    gap: 9px;
   }
-  .combat-help { padding-top: 8px; }
+  #hub-screen .hub-hero { padding-bottom: 9px; }
+  #hub-screen .hub-copy { padding-block: 6px; }
+  #hub-screen .hub-copy h1 { font-size: clamp(36px, 6vh, 52px); }
+  #hub-screen .hub-copy .lede { font-size: 12px; }
+  #hub-screen .fighter-sigil { width: 92px; height: 92px; }
+  #hub-screen .fighter-sigil::before,
+  #hub-screen .fighter-sigil::after { width: 25px; height: 62px; border-width: 5px; border-top: 0; }
+  #hub-screen .loadout-card h2 { font-size: 22px; }
+  #hub-screen .panel { padding: 10px 12px; }
+  #hub-screen .loot-card { padding: 8px; }
+  #hub-screen .loot-glyph { width: 38px; height: 38px; }
+  #hub-screen .stat-row { min-height: 32px; }
+
+  #explore-screen .expedition-title { margin-bottom: 5px; }
+  #explore-screen .expedition-title .eyebrow { margin-bottom: 2px; }
+  #explore-screen .expedition-title h1 { font-size: 32px; }
+  #explore-screen .carried-warning { margin-bottom: 5px; padding-block: 5px; }
+  html.exploration-map-enabled #explore-screen.active .exploration-map-heading { padding: 6px 10px; }
+  html.exploration-map-enabled #explore-screen.active .exploration-map-heading h2 { font-size: 19px; }
+  html.exploration-map-enabled #explore-screen.active .exploration-map-details { padding: 9px 11px; }
+  html.exploration-map-enabled #explore-screen.active .exploration-map-details h3 { font-size: 22px; }
+  #explore-screen .return-strip { margin-top: 5px; padding-block: 5px; }
+
+  #decision-screen .decision-hero { padding-bottom: 8px; }
+  #decision-screen .decision-hero h1 { font-size: 42px; }
+  #decision-screen .carried-panel,
+  #return-screen .return-spoils { padding: 10px 12px; }
+
+  #return-screen .return-hero { padding-top: 4px; padding-bottom: 8px; }
+  #return-screen .return-hero h1 { font-size: 44px; }
+
+  .combat-head { margin-bottom: 8px; }
+  .combat-head h1 { margin-bottom: 2px; font-size: clamp(30px, 5.2vh, 42px); }
+  .combat-head p:last-child { line-height: 1.35; }
+  .combat-screen.active .arena-wrap {
+    width: min(100%, calc((100dvh - 178px) * 16 / 9));
+  }
+  .combat-help { padding-top: 6px; }
 }
 
 @media (min-width: 701px) and (max-height: 700px) {
+  .topbar { height: 54px; flex-basis: 54px; }
   .brand small,
   .combat-head p:last-child { display: none; }
-  main { padding-top: 10px; padding-bottom: 10px; }
+  main { padding-top: 7px; padding-bottom: 7px; }
+
+  #hub-screen .hub-copy .eyebrow,
+  #hub-screen .loadout-card p,
+  #explore-screen .expedition-title .eyebrow,
+  #explore-screen .carried-warning span,
+  #explore-screen .return-strip span,
+  #decision-screen .decision-hero p:last-child,
+  #return-screen .return-hero > p:not(.eyebrow) {
+    display: none;
+  }
+
+  #hub-screen .hub-copy h1 { font-size: 36px; }
+  #hub-screen .fighter-sigil { display: none; }
+  #hub-screen .loadout-card { justify-content: center; }
+  #hub-screen .hub-grid { grid-template-columns: minmax(0, 1fr) 210px; }
+  #hub-screen .panel-heading .eyebrow { display: none; }
+  #hub-screen .panel-heading h2 { font-size: 20px; }
+
+  #explore-screen .expedition-vitals div { padding-block: 5px; }
+  html.exploration-map-enabled #explore-screen.active .exploration-map-heading span { display: none; }
+  html.exploration-map-enabled #explore-screen.active .exploration-map-details p { line-height: 1.28; }
+  html.exploration-map-enabled #explore-screen.active .map-discovery-omen { padding: 5px 7px; }
+
+  #decision-screen .decision-hero h1,
+  #return-screen .return-hero h1 { font-size: 34px; }
+  #decision-screen .decision-actions button { min-height: 48px; }
+  #return-screen .return-actions button { min-height: 46px; }
+
   .combat-head {
     grid-template-columns: 1fr minmax(300px, 390px);
     align-items: center;
-    margin-bottom: 7px;
+    margin-bottom: 6px;
   }
   .combat-screen.active .arena-wrap {
-    width: min(100%, calc((100dvh - 155px) * 16 / 9));
+    width: min(100%, calc((100dvh - 140px) * 16 / 9));
   }
 }
 
-/* Mobile is the primary combat target. The canvas must stay large enough to
+/* Mobile remains a document-style layout. The canvas must stay large enough to
    read silhouettes even while browser chrome changes the visual viewport. */
 @media (max-width: 700px) {
   .app-shell {
