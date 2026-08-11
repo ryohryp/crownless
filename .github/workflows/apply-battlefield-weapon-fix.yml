@@ -1,0 +1,161 @@
+name: apply battlefield weapon fix
+
+on:
+  push:
+    branches: ["agent/fix-battlefield-weapon-pickup"]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: agent/fix-battlefield-weapon-pickup
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Patch battlefield weapon behavior
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("src/app.js")
+          text = path.read_text()
+
+          old = '''  function updateBattlefieldPickup(dt) {
+            const p = battle.player;
+            const available = battle.droppedWeapons
+              .filter((drop) => !drop.picked && dist(drop, p) <= 48)
+              .sort((a, b) => dist(a, p) - dist(b, p));
+            const target = available[0] || null;
+            battle.droppedWeapons.forEach((drop) => {
+              if (drop !== target && !drop.picked) drop.pickup = 0;
+            });
+            if (!target) return false;
+            if (p.attack || p.recovery > 0) {
+              target.pickup = 0;
+              return true;
+            }
+            target.pickup += dt;
+            if (target.pickup >= 0.18) equipBattlefieldWeapon(target);
+            return true;
+          }
+          '''
+          new = '''  function updateBattlefieldPickup() {
+            const p = battle.player;
+            if (p.attack && p.attack.kind !== "light") return false;
+            const target = battle.droppedWeapons
+              .filter((drop) => !drop.picked && dist(drop, p) <= 64)
+              .sort((a, b) => dist(a, p) - dist(b, p))[0] || null;
+            if (!target) return false;
+            equipBattlefieldWeapon(target);
+            return true;
+          }
+          '''
+          assert text.count(old) == 1, "pickup block changed unexpectedly"
+          text = text.replace(old, new)
+
+          old = '''    if (p.moving) {
+              const direction = norm(v.x, v.y);
+              p.facingX = direction.x;
+              p.facingY = direction.y;
+              p.x += v.x * battle.tuning.moveSpeed * dt;
+              p.y += v.y * battle.tuning.moveSpeed * dt;
+              p.stationary = 0;
+              if (p.attack && p.attack.kind === "light") p.attack = null;
+              p.comboStep = 0;
+              p.comboTimer = 0;
+              p.autoDelay = Math.max(p.autoDelay, 0.035);
+              battle.droppedWeapons.forEach((drop) => { if (!drop.picked) drop.pickup = 0; });
+            } else {
+              p.stationary += dt;
+              if (!updateBattlefieldPickup(dt)) updateAutoStrike();
+            }
+
+            p.x = clamp(p.x, 64, canvas.width - 64);
+            p.y = clamp(p.y, 92, canvas.height - 58);
+          }
+          '''
+          new = '''    if (p.moving) {
+              const direction = norm(v.x, v.y);
+              p.facingX = direction.x;
+              p.facingY = direction.y;
+              p.x += v.x * battle.tuning.moveSpeed * dt;
+              p.y += v.y * battle.tuning.moveSpeed * dt;
+              p.stationary = 0;
+              if (p.attack && p.attack.kind === "light") p.attack = null;
+              p.comboStep = 0;
+              p.comboTimer = 0;
+              p.autoDelay = Math.max(p.autoDelay, 0.035);
+            } else {
+              p.stationary += dt;
+            }
+
+            p.x = clamp(p.x, 64, canvas.width - 64);
+            p.y = clamp(p.y, 92, canvas.height - 58);
+            const pickedWeapon = updateBattlefieldPickup();
+            if (!p.moving && !pickedWeapon) updateAutoStrike();
+          }
+          '''
+          assert text.count(old) == 1, "player intent block changed unexpectedly"
+          text = text.replace(old, new)
+
+          old = '''    const target = nearestEnemy();
+            const zoom = mobileView() ? 1.38 : 1.08;
+            const focusX = target ? battle.player.x * 0.52 + target.x * 0.48 : battle.player.x;
+            const focusY = target ? battle.player.y * 0.55 + target.y * 0.45 : battle.player.y;
+          '''
+          new = '''    const zoom = mobileView() ? 1.14 : 1.08;
+            const focusX = canvas.width / 2;
+            const focusY = canvas.height / 2;
+          '''
+          assert text.count(old) == 1, "camera block changed unexpectedly"
+          text = text.replace(old, new)
+
+          text = text.replace('''    const near = dist(drop, p) <= 62;''', '''    const near = dist(drop, p) <= 76;''')
+          old = '''    if (near) {
+              const progress = clamp(drop.pickup / 0.18, 0, 1);
+              ctx.strokeStyle = "#f1d77e";
+              ctx.lineWidth = 4;
+              ctx.beginPath(); ctx.arc(drop.x, drop.y, 30, -Math.PI / 2, -Math.PI / 2 + Math.PI * 2 * progress); ctx.stroke();
+              ctx.fillStyle = "rgba(246,232,194,.95)";
+              ctx.font = "800 11px ui-sans-serif, system-ui";
+              ctx.textAlign = "center";
+              ctx.fillText("止まって拾う", drop.x, drop.y - 36);
+            }
+          '''
+          new = '''    if (near) {
+              ctx.strokeStyle = "#f1d77e";
+              ctx.lineWidth = 3;
+              ctx.beginPath(); ctx.arc(drop.x, drop.y, 30, 0, Math.PI * 2); ctx.stroke();
+              ctx.fillStyle = "rgba(246,232,194,.95)";
+              ctx.font = "800 11px ui-sans-serif, system-ui";
+              ctx.textAlign = "center";
+              ctx.fillText("触れれば拾う", drop.x, drop.y - 36);
+            }
+          '''
+          assert text.count(old) == 1, "drop prompt block changed unexpectedly"
+          text = text.replace(old, new)
+          text = text.replace('''      battle.victoryPickupTimer = unpicked.length ? 1.6 : 0.35;
+              if (unpicked.length) flashMessage("敵の武器が落ちた。近くで止まれば拾える。", 1150);''', '''      battle.victoryPickupTimer = unpicked.length ? 0.7 : 0.35;
+              if (unpicked.length) flashMessage("敵の武器が落ちた。触れれば拾える。", 800);''')
+
+          path.write_text(text)
+          PY
+      - name: Validate
+        run: |
+          node --check src/app.js
+          npm test
+      - name: Commit patched app
+        run: |
+          if git diff --quiet -- src/app.js; then
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/app.js
+          git commit -m "fix battlefield weapon pickup"
+          git push origin HEAD:agent/fix-battlefield-weapon-pickup
