@@ -22,18 +22,23 @@ The player starts as an unknown person with no weapon. Unarmed combat must remai
 
 Crownless has a deliberate visual identity built around a **living medieval manuscript / woodcut world**, not generic dark fantasy or realistic 3D.
 
-For any task that creates, edits, implements, or evaluates visuals — including UI, CSS, Canvas, SVG, sprites, concept art, image prompts, combat effects, maps, icons, characters, enemies, inventory presentation, reports, or Grey Hearth presentation — read:
+For any task that creates, edits, implements, or evaluates visuals — including UI, CSS, Canvas, SVG, sprites, concept art, image prompts, combat effects, maps, icons, characters, enemies, inventory presentation, reports, or Grey Hearth presentation — read and inspect:
 
-- `docs/visual-design-guide-v0.1.md` as the canonical visual-design reference
+- `docs/visual-design-guide-v0.2.md` as the canonical visual-design rules
+- `docs/assets/crownless-visual-design-reference-v0.1.jpg` as the canonical visual calibration image
 - `skills/crownless-visual-design/SKILL.md` as the execution and review workflow
 
-Preserve the core visual grammar: hand-inked irregular linework, parchment / ash fields, woodcut / crosshatched shadow, restrained semantic color, compact readable character silhouettes, annotation-like UI, and physical ink-like combat effects.
+The reference image is mandatory for character, enemy, effect, map, Grey Hearth and UI style decisions. When prose allows more than one interpretation, choose the one that belongs to the **same illustration family as the reference image**.
+
+Preserve the core visual grammar: hand-inked irregular linework, parchment / ash fields, woodcut / crosshatched shadow, restrained semantic color, compact **4–5-head-tall non-chibi manuscript characters**, annotation-like UI, and physical ink-like combat effects.
+
+Character drift is a hard failure. Do not reinterpret “stylized” as modern chibi, cute mascot, anime-gacha, realistic fantasy concept art, painterly illustration, or clean vector cartoon. **More stylized does not mean cuter.**
 
 Do not drift back toward photorealistic rendering, glossy mobile-RPG UI, generic Diablo imitation, neon magic spectacle, or blue/purple/orange rarity-card language merely because those conventions are familiar.
 
 A useful rejection test is:
 
-> **If another dark-fantasy RPG could use the same visual by swapping the logo, it is not Crownless enough.**
+> **If another dark-fantasy RPG could use the same visual by swapping the logo, or if the characters belong to a different illustration family than the canonical reference image, reject it.**
 
 ## Location design rule
 
@@ -48,6 +53,8 @@ Exploration is moving toward a progressively revealed map rather than a text-bra
 Combat is moving toward a **fixed oblique top-down battlefield view**. For combat camera, battlefield composition, HUD, visual readability, or combat-loot presentation changes, read `docs/combat-presentation-spec.md` and treat it as the detailed subsystem specification.
 
 The current **stand-to-strike** combat model in `docs/game-system-design.md` remains authoritative for controls and combat logic. Do not add a light-attack button, virtual joystick, large skill cluster, party HUD, combat minimap, or persistent item-label carpet merely because those elements appear in conventional ARPGs or concept art. When a generic presentation description conflicts with `docs/combat-presentation-spec.md`, the combat presentation specification takes precedence for camera, HUD, readability, and combat drop presentation.
+
+For combat visuals, parchment tint or paper texture alone is not sufficient. **Actor silhouette and drawing grammar must match the canonical reference image before the visual pass is considered successful.**
 
 ## Grey Hearth presentation rule
 
@@ -69,12 +76,12 @@ When choosing between architectural novelty and something that makes the prototy
 
 1. Read this file.
 2. Read `docs/game-system-design.md` as the canonical current gameplay design.
-3. If the task touches visuals in any form, also read `docs/visual-design-guide-v0.1.md` and `skills/crownless-visual-design/SKILL.md`.
+3. If the task touches visuals in any form, read `docs/visual-design-guide-v0.2.md`, **inspect `docs/assets/crownless-visual-design-reference-v0.1.jpg`**, and read `skills/crownless-visual-design/SKILL.md`.
 4. If the task touches exploration, maps, location data, GPS, regional flavor, outdoor/stationary play, or AI-generated world content, also read `docs/exploration-location-spec.md`.
 5. If the task touches combat camera, HUD, battlefield presentation, readability, or combat loot presentation, also read `docs/combat-presentation-spec.md`.
 6. If the task touches the Grey Hearth hub, safe-room presentation, or environmental progression, also read `docs/hearth-presentation-spec.md`.
 7. Inspect the current implementation and open issues before proposing a replacement architecture.
-8. Treat older versioned design documents as history when they conflict with the canonical design, subsystem specifications, or current implementation.
+8. Treat older versioned design documents as history when they conflict with the canonical design, subsystem specifications, current implementation, or current canonical visual reference.
 9. Preserve existing decisions unless there is a concrete reason to change them.
 
 ## Implementation expectations
@@ -87,6 +94,7 @@ When choosing between architectural novelty and something that makes the prototy
 - Add tests around progression, rewards, encounter resolution, inventory loss, and other high-impact game rules.
 - Never put paid AI provider API keys in the game client. Regional AI generation must be host-side or batch-generated, persisted, and reusable.
 - For visual implementation, prefer reusable low-cost techniques that can be playtested before committing to a production asset pipeline.
+- For visual fidelity, fix actor silhouette / drawing grammar before trying to solve mismatch with filters, tinting, texture overlays, or extra decoration.
 
 ## Product priority
 

@@ -1,132 +1,101 @@
 ---
 name: crownless-visual-design
-description: Apply Crownless's canonical living-medieval-manuscript visual language to concept art, image generation, UI, HUD, maps, combat presentation, Grey Hearth presentation, items, icons, effects, and visual reviews. Use whenever a task creates, edits, implements, or evaluates Crownless visuals.
+description: Apply Crownless's canonical living-medieval-manuscript visual language to concept art, image generation, UI, HUD, maps, combat presentation, Grey Hearth presentation, items, icons, effects, characters, enemies, and visual reviews. Use whenever a task creates, edits, implements, or evaluates Crownless visuals.
 ---
 
 # Crownless Visual Design
 
-## Purpose
+## Mandatory sources
 
-Use this skill whenever work touches the visual identity of Crownless.
+Before any Crownless visual task, read in this order:
 
-Typical triggers:
-
-- create or revise a Crownless image / concept art / style board
-- implement or restyle UI, HUD, CSS, Canvas, SVG, sprites, or visual effects
-- design combat, exploration, Grey Hearth, inventory, loot, reports, icons, characters, enemies, or maps
-- review whether an existing screen or generated image feels like Crownless
-- translate visual concepts into a prototype-friendly implementation
-
-## Source of truth
-
-Before making visual decisions, read:
-
-1. `../../docs/visual-design-guide-v0.1.md` — canonical visual language
-2. `../../docs/game-system-design.md` — gameplay contract
-3. the relevant subsystem spec when the task touches it:
+1. `../../docs/visual-design-guide-v0.2.md` — canonical visual rules
+2. **inspect** `../../docs/assets/crownless-visual-design-reference-v0.1.jpg` — canonical visual reference image
+3. `../../docs/game-system-design.md` — gameplay contract
+4. relevant subsystem spec:
    - exploration / maps: `../../docs/exploration-location-spec.md`
    - combat: `../../docs/combat-presentation-spec.md`
    - Grey Hearth: `../../docs/hearth-presentation-spec.md`
 
-If visual styling conflicts with gameplay behavior, gameplay and subsystem specifications win.
+The image is not optional context. It is the visual calibration target.
+
+If prose permits multiple interpretations, choose the interpretation that stays in the **same illustration family as the canonical reference image**.
+
+Gameplay specs remain authoritative for controls and behavior.
 
 ## North star
 
-> **Crownless is a rough medieval manuscript that becomes a living world as the player explores, fights in strokes of ink, survives, and brings color and evidence of life back to the Grey Hearth.**
+> **Crownless is a playable medieval manuscript: rough hand-inked figures and places, woodcut texture, a world that gains knowledge and restrained color, and action expressed through physical ink.**
 
-The desired identity is not merely “dark fantasy.” It is:
+## Character lock
 
-> **living medieval manuscript × woodcut × evolving fantasy map × physical action RPG**
+This is the highest-risk drift area.
 
-## Non-negotiable visual grammar
+Match the canonical reference image's **CHARACTERS** row and battle figures.
 
-### Rendering
+Characters are:
 
-- stylized 2D / 2.5D, never photorealistic as the target
-- irregular hand-inked outlines
+- approximately **4–5 heads tall**
+- compact but **not chibi**
+- stylized but **not cute mascot characters**
+- simple-faced and restrained in expression
+- rough / folk-art / medieval-manuscript in anatomy and contour
+- readable primarily through silhouette, stance and equipment
+- drawn with irregular black ink and restrained interior detail
+
+Prefer weathered asymmetry, patched cloth, crude shields, wrapped hands, scavenged equipment and silhouette-changing gear.
+
+### Reject character drift immediately
+
+Reject and redo if characters become:
+
+- realistic 7–8-head-tall fantasy concept art
+- painterly fantasy illustration
+- modern chibi / super-deformed
+- cute indie-RPG mascots
+- anime-gacha
+- clean vector cartoons
+- generic pixel-block prototype figures when a manuscript actor is intended
+
+**More stylized does not mean cuter.**
+
+Do not rationalize a generated character that belongs to a different illustration family than the reference image.
+
+## Rendering grammar
+
+- stylized 2D / 2.5D
+- irregular hand-inked contours
 - parchment negative space
 - woodcut / crosshatched shadows
-- flat or lightly textured color planes
-- 4–5-head-tall characters with readable silhouettes
-- simplified materials and intentionally imperfect geometry
-- enough depth for gameplay, but the result must still feel illustrated
+- flat or lightly textured muted color planes
+- imperfect geometry
+- physical marks rather than glossy effects
 
-### Palette
+Avoid photorealism, realistic AAA 3D, PBR materials, painterly concept art, smooth vector-cartoon treatment and excessive bloom.
 
-Use color semantically:
+## Semantic palette
 
-- ink black / charcoal — structure, unknown, linework
-- bone / parchment — readable neutral field
-- ash grey — uncertainty, stone, fog
-- vermilion / muted朱赤 — danger, wounds, enemy telegraphs
+- ink black / charcoal — line, structure, unknown
+- bone / parchment — neutral readable field
+- ash grey — fog, stone, uncertainty
+- muted vermilion — danger, wounds, enemy telegraphs
 - ember orange — Grey Hearth, safety, secured progress
-- faded blue-green — discovered land, routes, recovered world knowledge
-- dull ochre / restrained gold — rare earned significance
+- faded blue-green — discovered land / knowledge
+- dull ochre — earned significance
 
-Color is earned information. Avoid saturating everything.
+Color is information, not decoration.
 
-### Characters and enemies
+## Combat rules
 
-- player begins anonymous, poor, patched, asymmetrical, and visibly under-equipped
-- gear should change silhouette over time
-- fists must look intentional, not like missing equipment
-- enemy roles must read from silhouette and posture
-- monsters may borrow the strange proportions and unsettling logic of medieval bestiaries
-- prefer memorable wrongness over realistic creature anatomy
+Use the canonical reference image as the target relationship between parchment battlefield, compact manuscript figures, black-ink attacks, vermilion warning marks and sparse UI.
 
-### UI
+Combat expression:
 
-UI should feel annotated, stamped, scratched, or attached to a manuscript.
-
-Prefer:
-
-- ink rules
-- stamps / seals
-- parchment or dark ink fields
-- short labels
-- distressed but restrained edges
-- simple manuscript glyphs
-
-Avoid:
-
-- thick beveled metal frames
-- glossy cards
-- jewel chrome
-- giant gold borders
-- generic mobile-RPG dashboard layouts
-
-### Loot and rarity
-
-Do not default to blue / purple / orange rarity-card language.
-
-Prefer significance through accumulated marks:
-
-- ordinary — no special mark
-- refined — maker stamp / seal
-- rare — crest / provenance mark / distinctive ink treatment
-- signature — handwritten epithet / unique emblem / bespoke illustration treatment
-
-Color may support rarity but must not be the only signal.
-
-## Screen-specific rules
-
-### Exploration
-
-The map is the game surface, not a decorated menu.
-
-Unknown territory should look unfinished. Discovery should feel like the manuscript gaining knowledge:
-
-1. terrain lines appear
-2. routes are drawn
-3. symbols emerge
-4. names / notes are written or stamped
-5. restrained local color returns
-
-Do not make the result look like Google Maps with fantasy icons.
-
-### Combat
-
-Preserve the fixed oblique top-down battlefield and current stand-to-strike model.
+- normal trails = short strong black ink strokes
+- heavy / Technique = wider brush stroke, ink splash, broken hatch marks
+- impact = ink scatter + body displacement + hit stop
+- danger = hand-drawn vermilion arcs / circles / scratches
+- perfect evade may break or scatter the warning mark
 
 Phone controls remain:
 
@@ -135,124 +104,104 @@ Phone controls remain:
 - **技**
 - **回避**
 
-Never add merely for convention or concept-art polish:
+Never add for convention:
 
 - virtual joystick
 - light-attack button
 - large skill cluster
 - combat minimap
-- party portrait stack
 - permanent hotbar
 
-Combat expression:
+## Exploration rules
 
-- normal trails = short black ink strokes
-- impacts = ink splashes / broken hatch marks / dry brush
-- enemy telegraphs = hand-drawn vermilion arcs, circles, or scratches
-- perfect evade may tear / break the warning mark
-- Technique / 決着 can use wider, stronger ink language but must not become generic neon magic
+The map is the game surface and should look like a manuscript gaining knowledge.
 
-### Grey Hearth
+Unknown = ink / ash / blank parchment / unfinished routes.
+
+Discovery should visibly add:
+
+1. terrain lines
+2. route strokes
+3. POI symbols
+4. names / notes
+5. restrained faded blue-green color
+
+Do not make themed Google Maps.
+
+## Grey Hearth rules
 
 The Hearth is a sparse safe page that becomes inhabited because the player survived.
 
-Progress should appear as new physical illustration:
+Secured progress should add physical illustration: fire, map marks, shelf contents, recovery cache, tools, forge and signs of repeated use.
 
-- map marks
-- shelf contents
-- recovery cache
-- forge fire
-- tools and signs of repeated use
+Do not turn it into a generic management dashboard or luxury tavern.
 
-Do not turn progression into a grid of feature buttons.
+## UI rules
 
-### Inventory and reports
+UI should feel written, stamped, scratched or attached to the manuscript.
 
-Treat items as a field ledger / relic catalogue rather than collectible cards.
+Prefer parchment / dark ink fields, thin irregular rules, stamps, seals, manuscript glyphs and restrained distressed edges.
 
-Return / defeat screens should clearly annotate:
-
-- secured
-- unsecured
-- lost
-- newly discovered
-- changed in the Hearth
+Avoid glossy rounded cards, beveled metal, jewel chrome, giant gold borders and generic mobile-RPG dashboards.
 
 ## Image-generation workflow
 
-When producing a Crownless image reference:
+1. Read the v0.2 guide.
+2. Inspect the canonical reference image.
+3. Identify the exact reference region governing the requested asset or screen.
+4. Preserve the reference's character and line grammar before adding scene details.
+5. Preserve actual gameplay composition and controls.
+6. Add semantic palette rules.
+7. Add explicit negative constraints.
+8. Generate.
+9. Compare the result back to the canonical image.
+10. Reject and regenerate if the illustration family drifted.
 
-1. Read the canonical guide and relevant subsystem spec.
-2. State the visual identity before scene details.
-3. Describe the gameplay composition and information hierarchy.
-4. Add the manuscript / woodcut rendering rules.
-5. Add the semantic palette.
-6. Add explicit negative constraints.
-7. For combat, explicitly preserve the real control contract.
-8. After generation, review the output against the rejection test before treating it as a reference.
-
-### Core prompt anchor
+### Prompt anchor
 
 Use wording equivalent to:
 
-> A playable medieval-fantasy world illustrated like a living medieval manuscript and woodcut print, with irregular hand-inked linework, parchment negative space, crosshatched shadows, limited muted color, compact 4–5-head-tall characters, readable game silhouettes, physical ink-like action effects, and restrained annotation-like UI; stylized 2D/2.5D, not realistic 3D.
+> **A playable medieval-fantasy game in Crownless's canonical visual grammar: rough medieval manuscript and woodcut linework, parchment negative space, restrained muted color, compact 4–5-head-tall non-chibi figures, small simple restrained faces, weathered asymmetric equipment, readable silhouettes, physical black-ink action marks, and sparse annotation-like UI.**
 
 ### Negative anchor
 
-Always guard against:
+Always include the substance of:
 
-- photorealism
-- realistic AAA 3D
-- generic Diablo imitation
-- glossy mobile RPG UI
-- anime-gacha card language
-- oversized ornate gold framing
-- neon magical VFX by default
-- excessive particles
-- overly detailed environment clutter
+- not photorealistic
+- not realistic fantasy concept art
+- not painterly
+- not modern chibi
+- not cute mascot style
+- not anime-gacha
+- not clean vector cartoon
+- not generic Diablo imitation
+- not glossy mobile RPG UI
+- no neon magic by default
 
 ## Implementation workflow
 
-When implementing the visual language in code:
-
-1. Preserve current gameplay logic first.
-2. Reuse shared tokens and treatments instead of one-off screen styling.
-3. Prefer cheap reusable techniques:
-   - SVG / Canvas linework
-   - sprite layers
-   - CSS masks / textures
-   - shared ink / paper assets
-   - limited palette tokens
-   - procedural reveal masks
-   - small particles
-   - projection / transforms rather than engine rewrites
-4. Prototype the visual effect at playable scale.
-5. Check readability on phone-sized layouts.
+1. Preserve gameplay logic.
+2. Compare the existing implementation against the canonical reference image.
+3. Fix **silhouette / actor drawing grammar before surface filters**.
+4. Prefer reusable low-cost techniques: sprites / illustrated layers, Canvas / SVG, paper and ink textures, limited color tokens, masks, small particles and the existing projected combat plane.
+5. Check at phone size.
 6. Remove decoration that competes with gameplay.
 
-Do not build a production art pipeline before the visual idea proves fun and readable.
+Do not claim a screen matches the visual guide merely because it has parchment colors or a paper filter while the character silhouettes remain generic.
 
-## Review workflow
+## Acceptance gate
 
-Evaluate every candidate visual with these questions:
+A visual is accepted only when all critical checks pass:
 
-1. Does it feel illustrated rather than realistically rendered?
-2. Does it clearly express the living-manuscript / woodcut identity?
-3. Are silhouettes readable at phone size?
-4. Does color carry meaning rather than decoration?
-5. Is UI annotation-like instead of glossy and card-heavy?
-6. Does combat use ink / physical impact rather than default glowing VFX?
-7. Does exploration look like knowledge being added to a map?
-8. Does Grey Hearth progression appear physically in the space?
-9. Does equipment feel scavenged and earned rather than heroic-by-default?
-10. Can an individual developer approximate the idea without a AAA pipeline?
-11. Does the visual preserve actual controls and game-state behavior?
-12. **Would it still be recognizably Crownless without the logo?**
+- playable game screen, not merely concept art
+- characters match the canonical 4–5-head manuscript proportion
+- faces are restrained, not cute / anime-like
+- silhouettes read at phone size
+- linework belongs to the same hand-inked / woodcut family
+- color has semantic purpose
+- physical ink effects replace generic glow where appropriate
+- actual gameplay contract is preserved
+- the result visibly belongs beside the canonical reference image
+- it remains recognizable as Crownless without the logo
 
-If several answers are no, do not polish the generic result. Push the identity harder first.
-
-## Rejection test
-
-The strongest final check is simple:
-
-> **If another dark-fantasy RPG could use the same image by swapping the logo, reject it as insufficiently Crownless.**
+If the character style or overall illustration family does not match the reference image, **reject it before polishing**.
