@@ -106,3 +106,71 @@
         transparent 62.7deg 360deg);
   }
 }
+
+/*
+ * Battlefield readability pass — 2026-08-13
+ *
+ * The portrait phone layout intentionally gives combat a large sheet of
+ * parchment. Without stronger field marks that can read as empty rather than
+ * spatial. These marks stay low-contrast and screen-space only: actors,
+ * telegraphs and dropped weapons must remain the strongest information.
+ *
+ * !important is intentional here because combat-manuscript.css is loaded
+ * after this phase stylesheet and otherwise replaces the same pseudo-element.
+ */
+.combat-screen.active .arena-wrap::before {
+  background:
+    radial-gradient(ellipse at 8% 76%, rgba(35, 26, 18, .12) 0 7%, transparent 19%),
+    radial-gradient(ellipse at 92% 34%, rgba(35, 26, 18, .10) 0 6%, transparent 18%),
+    linear-gradient(90deg,
+      transparent 0 24%,
+      rgba(104, 83, 55, .035) 31%,
+      rgba(104, 83, 55, .065) 47% 53%,
+      rgba(104, 83, 55, .035) 69%,
+      transparent 76% 100%),
+    repeating-linear-gradient(7deg,
+      rgba(35, 26, 18, .038) 0 1px,
+      transparent 1px 12px),
+    repeating-linear-gradient(97deg,
+      rgba(35, 26, 18, .018) 0 1px,
+      transparent 1px 27px) !important;
+  mix-blend-mode: multiply !important;
+  opacity: .64 !important;
+}
+
+.combat-screen.active .arena-wrap::after {
+  background:
+    linear-gradient(25deg, rgba(22, 16, 11, .18), transparent 24%),
+    linear-gradient(-25deg, rgba(22, 16, 11, .18), transparent 24%),
+    radial-gradient(ellipse at 50% 105%, rgba(82, 57, 34, .10), transparent 42%) !important;
+  opacity: .72 !important;
+}
+
+@media (max-width: 700px), (pointer: coarse) {
+  .combat-screen.active .arena-wrap::before {
+    background:
+      radial-gradient(ellipse at 4% 70%, rgba(35, 26, 18, .15) 0 8%, transparent 20%),
+      radial-gradient(ellipse at 96% 31%, rgba(35, 26, 18, .12) 0 7%, transparent 19%),
+      linear-gradient(90deg,
+        transparent 0 20%,
+        rgba(104, 83, 55, .045) 29%,
+        rgba(104, 83, 55, .075) 46% 54%,
+        rgba(104, 83, 55, .045) 71%,
+        transparent 80% 100%),
+      repeating-linear-gradient(7deg,
+        rgba(35, 26, 18, .046) 0 1px,
+        transparent 1px 13px),
+      repeating-linear-gradient(97deg,
+        rgba(35, 26, 18, .021) 0 1px,
+        transparent 1px 29px) !important;
+    opacity: .68 !important;
+  }
+
+  .combat-screen.active .arena-wrap::after {
+    background:
+      linear-gradient(24deg, rgba(22, 16, 11, .22), transparent 27%),
+      linear-gradient(-24deg, rgba(22, 16, 11, .22), transparent 27%),
+      radial-gradient(ellipse at 50% 105%, rgba(82, 57, 34, .12), transparent 44%) !important;
+    opacity: .76 !important;
+  }
+}
