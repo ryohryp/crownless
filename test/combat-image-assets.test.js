@@ -32,6 +32,17 @@ test('image integration stays presentation-only and falls back to legacy primiti
   assert.match(js, /CrownlessCombatAssets/);
 });
 
+test('actor sprites preserve their source proportions in final screen space', () => {
+  assert.match(js, /function actorScreenAxes\(target\)/);
+  assert.match(js, /canvas\.getBoundingClientRect\(\)/);
+  assert.match(js, /target\.getTransform\(\)/);
+  assert.match(js, /Math\.hypot\(matrix\.a \* cssX, matrix\.b \* cssY\)/);
+  assert.match(js, /Math\.hypot\(matrix\.c \* cssX, matrix\.d \* cssY\)/);
+  assert.match(js, /function drawActorBillboard\(target, record, logicalHeight/);
+  assert.match(js, /axes\.x \/ axes\.y/);
+  assert.match(js, /drawActorBillboard\(ctx, record, logicalHeight, 37\)/);
+});
+
 test('all three ink and telegraph sheet regions are mapped to combat states', () => {
   assert.match(js, /slice: 0/);
   assert.match(js, /slice: 1/);
