@@ -28,7 +28,7 @@ The accepted combat actor set at:
 
 `assets/combat/minimal-v0.1/actors/`
 
-is now authoritative for **character proportion, facial simplification, and body deformation**. It supersedes the older 4–5-head-tall character proportion visible in the v0.1 style board.
+is now authoritative for **character proportion, facial simplification, body deformation, and visible silhouette width**. It supersedes the older 4–5-head-tall character proportion visible in the v0.1 style board.
 
 Gameplay behavior remains authoritative in the relevant game/system specifications.
 
@@ -209,6 +209,27 @@ The combat scene should combine:
 - muted vermilion telegraphs
 - sparse annotation UI
 
+### Actor sprite presentation contract
+
+Accepted actor artwork must preserve its authored deformation **after it enters the game**. A correct source image rendered with incorrect geometry is a visual failure.
+
+For illustrated combat actors:
+
+- project the actor's **ground / foot position** into the oblique battlefield
+- draw the actor body as a screen-facing illustrated sprite / billboard above that projected foot position
+- use **one uniform scale** for both axes; never independently stretch width and height
+- preserve the source artwork's visible aspect ratio and silhouette width
+- never apply the battlefield floor's oblique squash / skew / perspective transform to the actor body itself
+- source PNG canvas bounds are not semantic size; transparent padding must not make an actor appear narrower or smaller
+- determine visible size from authored content bounds / alpha bounds, or preprocess to a tightly trimmed sprite
+- anchor humanoid sprites from an authored pivot or the bottom-center of their visible content bounds so feet stay attached to the logical ground position
+- size actors by **visible content**, not by the raw square image dimensions
+- broad role silhouettes such as Guard shields must remain broad; narrow roles such as Skirmisher must not be widened merely to fit a common box
+
+Do **not** solve a sizing mismatch by arbitrary X-only or Y-only scale correction. Fix source bounds, pivot, visible-size targets, or screen-space uniform scale instead.
+
+At phone size, compare the rendered actor directly with the accepted source actor. If a 3–3.5-head figure appears tall/thin, squat/wide, compressed, skewed, or otherwise differently proportioned in-game, reject the implementation before tuning effects.
+
 ### Effects
 
 - normal attacks: short, forceful black ink arcs
@@ -374,9 +395,18 @@ Prefer:
 - simple particles
 - flat projected combat plane
 
+For actor sprites specifically:
+
+- project **position**, not sprite anatomy
+- render actor art in screen space with uniform scale
+- alpha-trim or use visible-content bounds before sizing
+- use a stable foot pivot / ground anchor
+- preserve role-specific silhouette width
+- verify the final rendered proportion from a phone screenshot, not only from source PNG inspection
+
 Do not attempt to reproduce the reference by merely tinting generic prototype graphics if the resulting silhouette language is still wrong.
 
-**Character silhouette, deformation and drawing grammar are higher priority than surface filters.**
+**Character silhouette, deformation, aspect ratio, ground anchoring and drawing grammar are higher priority than surface filters.**
 
 ---
 
@@ -388,21 +418,23 @@ Before accepting a visual, answer all of these:
 2. Do humanoid characters match the accepted **3–3.5-head folk-doll proportions**?
 3. Are faces tiny and symbolic rather than realistic, creepy, cute-mascot or anime-like?
 4. Are silhouettes readable at phone size?
-5. Does the linework feel hand-inked / woodcut rather than smooth or painterly?
-6. Does color carry meaning rather than decoration?
-7. Does combat use physical ink impact rather than default glowing VFX?
-8. Does exploration look like knowledge being written onto a map?
-9. Does Grey Hearth progression physically inhabit the space?
-10. Does equipment feel scavenged and earned?
-11. Does the visual preserve the actual gameplay contract?
-12. Could a small prototype plausibly approximate it?
-13. **Does it visibly belong to the same game as the accepted combat actors?**
-14. **Would it still be recognizable as Crownless without the logo?**
+5. Are actor sprites rendered with the **same visible proportions as their accepted source art**, without X/Y stretching, floor-projection distortion, or transparent-padding shrinkage?
+6. Do feet / ground anchors visually agree with logical combat positions?
+7. Does the linework feel hand-inked / woodcut rather than smooth or painterly?
+8. Does color carry meaning rather than decoration?
+9. Does combat use physical ink impact rather than default glowing VFX?
+10. Does exploration look like knowledge being written onto a map?
+11. Does Grey Hearth progression physically inhabit the space?
+12. Does equipment feel scavenged and earned?
+13. Does the visual preserve the actual gameplay contract?
+14. Could a small prototype plausibly approximate it?
+15. **Does it visibly belong to the same game as the accepted combat actors?**
+16. **Would it still be recognizable as Crownless without the logo?**
 
-If #2, #3, #13 or #14 is no, the visual is not accepted.
+If #2, #3, #5, #15 or #16 is no, the visual is not accepted.
 
 ---
 
 ## 14. Rejection test
 
-> **If the visual could belong to another dark-fantasy RPG by swapping the logo, if the actor drifts back toward realistic anatomy, or if its characters belong to a different illustration family than the accepted actor set, reject it.**
+> **If the visual could belong to another dark-fantasy RPG by swapping the logo, if the actor drifts back toward realistic anatomy, if its source deformation is distorted by implementation, or if its characters belong to a different illustration family than the accepted actor set, reject it.**
