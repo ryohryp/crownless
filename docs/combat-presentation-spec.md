@@ -1,8 +1,8 @@
 # Crownless — Combat Presentation Specification
 
 > **Status:** current combat presentation specification  
-> **Updated:** 2026-08-11  
-> This document defines the current camera, battlefield presentation, HUD, and loot-readability direction for combat. It complements [`game-system-design.md`](game-system-design.md). The stand-to-strike combat model in the game-system design remains authoritative for controls and combat logic; when a generic presentation description conflicts with this document, this subsystem specification takes precedence for camera, HUD, visual readability, and combat loot presentation.
+> **Updated:** 2026-08-13  
+> This document defines the current camera, battlefield presentation, HUD, actor rendering, and loot-readability direction for combat. It complements [`game-system-design.md`](game-system-design.md). The stand-to-strike combat model in the game-system design remains authoritative for controls and combat logic; when a generic presentation description conflicts with this document, this subsystem specification takes precedence for camera, HUD, visual readability, actor presentation, and combat loot presentation.
 
 ## 1. Goal
 
@@ -171,6 +171,48 @@ The oblique angle must not introduce ambiguous hit positions. The rendered body,
 
 If visual depth makes the true hit area confusing, simplify the projection before adding more effects.
 
+### Actor rendering contract
+
+The accepted combat actors are illustrated **3–3.5-head folk-doll figures**. Their authored proportions must survive runtime rendering unchanged.
+
+The battlefield and the actor body use different transform rules:
+
+1. logical world position is projected onto the oblique battlefield
+2. the projected point represents the actor's **feet / ground contact**
+3. the illustrated actor body is then drawn above that point in screen space with **uniform X/Y scale**
+
+Therefore:
+
+- project actor **position**, not actor anatomy
+- do not apply floor-plane squash, skew, or non-uniform perspective scaling to the sprite body
+- do not independently stretch width and height to fit a destination rectangle
+- preserve the visible aspect ratio of the accepted source artwork
+- use alpha / visible-content bounds or tightly trimmed source sprites when calculating size
+- do not use raw square PNG canvas dimensions as the apparent character size
+- transparent padding must not make an actor smaller or thinner
+- use an authored pivot where available; otherwise use bottom-center of the visible content bounds as the foot anchor
+- keep that foot anchor aligned with the logical combat position and grounding shadow
+- use role-specific visible widths: Guard may be broad because of shield, Rusher compact and forward-driven, Skirmisher narrower with bow
+
+A single uniform scale may change with depth if needed for the oblique presentation, but **the same scalar must apply to both axes**.
+
+If a correct source actor appears tall/thin, squat/wide, compressed, skewed, or otherwise differently proportioned on device, treat that as a renderer bug rather than an art problem.
+
+### Phone-size actor check
+
+Every actor integration pass must include an actual phone-size screenshot or equivalent viewport review.
+
+Check:
+
+- player and enemy visible proportions against source art
+- role silhouette width
+- foot / shadow grounding
+- name / HP label clearance above the silhouette
+- effect overlap around hands, weapons, and feet
+- enough apparent size to read the 3–3.5-head deformation without filling the arena
+
+Do not approve actor integration from source PNG inspection or desktop-only review.
+
 ## 7. Combat feel in the oblique view
 
 The view should make physical reactions more satisfying, not merely prettier.
@@ -237,11 +279,12 @@ Minimum scope:
 2. preserve current movement and stand-to-strike behavior
 3. preserve existing enemy roles and telegraphs
 4. make player / enemy positioning and overlap readable
-5. preserve Technique, Evade, hit stop, knockback, and 闘志 / 決着
-6. show battlefield weapon drops correctly in the projected space
-7. reduce combat HUD to the elements required for decisions
-8. keep persistent loot presentation quiet until victory
-9. playtest before adding additional camera systems or controls
+5. preserve accepted actor proportions using screen-space uniform sprite rendering and stable foot anchors
+6. preserve Technique, Evade, hit stop, knockback, and 闘志 / 決着
+7. show battlefield weapon drops correctly in the projected space
+8. reduce combat HUD to the elements required for decisions
+9. keep persistent loot presentation quiet until victory
+10. playtest on a phone-size viewport before adding additional camera systems or controls
 
 Do not require new weapon families, a new skill tree, a party system, or a production art pipeline for this pass.
 
@@ -259,6 +302,7 @@ The prototype is moving in the right direction when a player can answer these wi
 - Are Technique and Evade available?
 - Is that dropped object something I can use during the fight?
 - After victory, what did I actually gain?
+- Do the player and enemy actors still look like the accepted 3–3.5-head source art rather than stretched sprites?
 
 More importantly:
 
@@ -281,4 +325,4 @@ Do not prioritize:
 - production-quality 3D assets
 - large quantities of new enemies or gear
 
-The goal is to prove that the **oblique battlefield itself makes the existing combat more readable and more satisfying**.
+The goal is to prove that the **oblique battlefield itself makes the existing combat more readable and more satisfying without distorting the accepted actor art**.
