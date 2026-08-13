@@ -131,6 +131,47 @@
     return true;
   }
 
+  function actorScreenAxes(target) {
+    try {
+      const canvas = target.canvas;
+      const matrix = target.getTransform();
+      if (!canvas || !matrix || typeof canvas.getBoundingClientRect !== "function") return { x: 1, y: 1 };
+      const rect = canvas.getBoundingClientRect();
+      const cssX = rect.width / Math.max(1, canvas.width);
+      const cssY = rect.height / Math.max(1, canvas.height);
+      const x = Math.hypot(matrix.a * cssX, matrix.b * cssY);
+      const y = Math.hypot(matrix.c * cssX, matrix.d * cssY);
+      if (!Number.isFinite(x) || !Number.isFinite(y) || x <= 0.0001 || y <= 0.0001) return { x: 1, y: 1 };
+      return { x, y };
+    } catch (_) {
+      return { x: 1, y: 1 };
+    }
+  }
+
+  function drawActorBillboard(target, record, logicalHeight, logicalFootOffset = 37) {
+    if (!record || !record.ready || !record.image) return false;
+    const image = record.image;
+    const source = record.bounds || { sx: 0, sy: 0, sw: image.naturalWidth, sh: image.naturalHeight };
+    const sourceRatio = source.sw / Math.max(1, source.sh);
+    const axes = actorScreenAxes(target);
+    const yCompensation = Math.max(0.16, Math.min(6, axes.x / axes.y));
+    const width = logicalHeight * sourceRatio;
+    const height = logicalHeight * yCompensation;
+    const footY = logicalFootOffset * yCompensation;
+    target.drawImage(
+      image,
+      source.sx,
+      source.sy,
+      source.sw,
+      source.sh,
+      -width / 2,
+      footY - height,
+      width,
+      height
+    );
+    return true;
+  }
+
   function drawSheetSlice(target, key, index, dx, dy, dw, dh) {
     const record = assets[key];
     if (!record || !record.ready || !record.image || !record.regions) return false;
@@ -337,11 +378,10 @@
     function drawActor(role) {
       if (!recordReady(role)) return false;
       const record = assets[role];
-      const height = role === "guard" ? 96 : role === "skirmisher" ? 91 : role === "rusher" ? 94 : 92;
-      const width = role === "guard" ? 88 : role === "skirmisher" ? 78 : role === "rusher" ? 82 : 76;
+      const logicalHeight = role === "guard" ? 138 : role === "rusher" ? 132 : role === "skirmisher" ? 132 : 132;
       ctx.save();
       ctx.imageSmoothingEnabled = true;
-      const drawn = drawTrimmed(ctx, record, -width / 2, 37 - height, width, height);
+      const drawn = drawActorBillboard(ctx, record, logicalHeight, 37);
       ctx.restore();
       if (drawn) rememberRole(role);
       return drawn;
