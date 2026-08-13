@@ -134,6 +134,26 @@ Never add for convention:
 - combat minimap
 - permanent hotbar
 
+## Actor integration lock
+
+When implementing or reviewing illustrated actor sprites, preserve the accepted source deformation after rendering.
+
+Required rules:
+
+- project the actor's **foot / ground position** into the oblique arena
+- render the actor body above that point in screen space / billboard space
+- use **one uniform scale** for X and Y
+- never stretch width and height independently
+- never apply the arena floor's skew, squash, or non-uniform projection to the actor body
+- calculate apparent size from visible / alpha content bounds, not raw square PNG dimensions
+- transparent padding must not make a sprite smaller, thinner, or offset
+- use an authored pivot when available; otherwise anchor at bottom-center of visible content bounds
+- keep the foot pivot aligned with the logical combat position and shadow
+- preserve role-specific visible width; Guard should remain broad, Skirmisher narrow, Rusher compact
+- if source bounds are poor, trim/preprocess or alpha-crop; **do not compensate by X-only or Y-only stretching**
+
+If the accepted 3–3.5-head source art looks tall/thin, squat/wide, skewed, compressed, or otherwise differently proportioned in the actual game, classify it as a rendering defect.
+
 ## Exploration rules
 
 The map is the game surface and should look like a manuscript gaining knowledge.
@@ -206,11 +226,30 @@ Always include the substance of:
 1. Preserve gameplay logic.
 2. Compare the existing implementation against the canonical references.
 3. Fix **silhouette / deformation / actor drawing grammar before surface filters**.
-4. Prefer reusable low-cost techniques: sprites / illustrated layers, Canvas / SVG, paper and ink textures, limited color tokens, masks, small particles and the existing projected combat plane.
-5. Check at phone size.
-6. Remove decoration that competes with gameplay.
+4. For actor sprites, inspect the actual runtime transform chain before changing asset art.
+5. Project actor position into the arena, but keep the illustrated actor body in screen space with uniform X/Y scale.
+6. Use visible / alpha bounds and a stable foot pivot; do not size from raw square PNG bounds.
+7. Prefer reusable low-cost techniques: sprites / illustrated layers, Canvas / SVG, paper and ink textures, limited color tokens, masks, small particles and the existing projected combat plane.
+8. Check the result at an actual phone-size viewport.
+9. Compare the rendered body proportion directly with the accepted source actor.
+10. Remove decoration that competes with gameplay.
 
-Do not claim a screen matches the visual guide merely because it has parchment colors or a paper filter while the character silhouettes remain generic.
+Do not claim a screen matches the visual guide merely because it has parchment colors or a paper filter while the character silhouettes remain generic or distorted.
+
+## Phone-size actor review
+
+For every actor integration or renderer change, verify from a phone screenshot or equivalent mobile viewport:
+
+- source and rendered head/body proportion match
+- no vertical stretching or horizontal squeezing
+- no non-uniform X/Y scaling
+- role silhouette width remains intact
+- feet and shadow meet the logical ground point
+- HP/name labels clear the actor silhouette
+- effects do not obscure the actor's role-defining shape
+- apparent size is large enough to read but does not consume the arena
+
+A source PNG looking correct is **not sufficient**. Runtime composition is the acceptance target.
 
 ## Acceptance gate
 
@@ -220,6 +259,8 @@ A visual is accepted only when all critical checks pass:
 - humanoid characters match the accepted **3–3.5-head folk-doll proportions**
 - faces are tiny and symbolic, not realistic, creepy, cute-mascot or anime-like
 - silhouettes read at phone size
+- runtime actor proportions match the accepted source art without X/Y stretching, floor-projection distortion, or transparent-padding shrinkage
+- feet / shadows align with logical ground position
 - linework belongs to the same hand-inked / woodcut family
 - color has semantic purpose
 - physical ink effects replace generic glow where appropriate
@@ -227,4 +268,4 @@ A visual is accepted only when all critical checks pass:
 - the result visibly belongs beside the accepted actor set
 - it remains recognizable as Crownless without the logo
 
-If the character style or overall illustration family does not match the accepted actors, **reject it before polishing**.
+If the character style, runtime proportion, grounding, or overall illustration family does not match the accepted actors, **reject it before polishing**.
