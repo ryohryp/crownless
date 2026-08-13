@@ -10,16 +10,15 @@ description: Apply Crownless's canonical living-medieval-manuscript visual langu
 Before any Crownless visual task, read in this order:
 
 1. `../../docs/visual-design-guide-v0.2.md` — canonical visual rules
-2. **inspect** `../../docs/assets/crownless-visual-design-reference-v0.1.jpg` — canonical visual reference image
-3. `../../docs/game-system-design.md` — gameplay contract
-4. relevant subsystem spec:
+2. inspect `../../docs/assets/crownless-visual-design-reference-v0.1.jpg` — canonical environment / line / palette reference
+3. inspect `../../assets/combat/minimal-v0.1/actors/` when characters appear — canonical character deformation reference
+4. `../../docs/game-system-design.md` — gameplay contract
+5. relevant subsystem spec:
    - exploration / maps: `../../docs/exploration-location-spec.md`
    - combat: `../../docs/combat-presentation-spec.md`
    - Grey Hearth: `../../docs/hearth-presentation-spec.md`
 
-The image is not optional context. It is the visual calibration target.
-
-If prose permits multiple interpretations, choose the interpretation that stays in the **same illustration family as the canonical reference image**.
+The v0.1 style board remains authoritative for linework, palette, materials, map/UI grammar and physical ink effects. The accepted combat actor set supersedes its older 4–5-head character proportion.
 
 Gameplay specs remain authoritative for controls and behavior.
 
@@ -31,35 +30,58 @@ Gameplay specs remain authoritative for controls and behavior.
 
 This is the highest-risk drift area.
 
-Match the canonical reference image's **CHARACTERS** row and battle figures.
+Match the accepted actor set at `../../assets/combat/minimal-v0.1/actors/`.
 
 Characters are:
 
-- approximately **4–5 heads tall**
-- compact but **not chibi**
-- stylized but **not cute mascot characters**
-- simple-faced and restrained in expression
+- approximately **3–3.5 heads tall**
+- strongly deformed, compact **folk-doll figures**
+- large-headed with short limbs and simplified torso, hands and feet
+- tiny, symbolic-faced and restrained in expression
 - rough / folk-art / medieval-manuscript in anatomy and contour
 - readable primarily through silhouette, stance and equipment
 - drawn with irregular black ink and restrained interior detail
 
+This deformation is intentional. **Do not correct actors toward realistic anatomy.**
+
 Prefer weathered asymmetry, patched cloth, crude shields, wrapped hands, scavenged equipment and silhouette-changing gear.
+
+### Face lock
+
+Faces should use very little information:
+
+- tiny simple eyes / brows
+- little or no mouth detail
+- no realistic skin texture
+- no anatomical facial modeling
+- no horror-like eyes or uncanny expression
+
+The target is rough, primitive and readable rather than realistic or glossy-cute.
 
 ### Reject character drift immediately
 
 Reject and redo if characters become:
 
 - realistic 7–8-head-tall fantasy concept art
+- semi-realistic / anatomically corrected humans
 - painterly fantasy illustration
-- modern chibi / super-deformed
-- cute indie-RPG mascots
+- uncanny realistic faces
+- glossy modern chibi / cute SD mascots
 - anime-gacha
 - clean vector cartoons
 - generic pixel-block prototype figures when a manuscript actor is intended
 
-**More stylized does not mean cuter.**
+**Strong deformation is correct. Glossy cuteness and human realism are not.**
 
-Do not rationalize a generated character that belongs to a different illustration family than the reference image.
+## Enemy role silhouettes
+
+Humanoid enemies normally share the same 3–3.5-head deformation as the player.
+
+- **Rusher:** forward lean, aggressive compact mass, fast melee weapon
+- **Guard:** wide planted block, shield-dominant silhouette
+- **Skirmisher:** narrower mobile shape, bow / ranged-read silhouette
+
+Role identity must be readable without labels at phone size.
 
 ## Rendering grammar
 
@@ -87,7 +109,7 @@ Color is information, not decoration.
 
 ## Combat rules
 
-Use the canonical reference image as the target relationship between parchment battlefield, compact manuscript figures, black-ink attacks, vermilion warning marks and sparse UI.
+Combat uses the fixed oblique top-down battlefield and the accepted compact actor set.
 
 Combat expression:
 
@@ -147,31 +169,32 @@ Avoid glossy rounded cards, beveled metal, jewel chrome, giant gold borders and 
 ## Image-generation workflow
 
 1. Read the v0.2 guide.
-2. Inspect the canonical reference image.
-3. Identify the exact reference region governing the requested asset or screen.
-4. Preserve the reference's character and line grammar before adding scene details.
-5. Preserve actual gameplay composition and controls.
-6. Add semantic palette rules.
-7. Add explicit negative constraints.
-8. Generate.
-9. Compare the result back to the canonical image.
-10. Reject and regenerate if the illustration family drifted.
+2. Inspect the v0.1 style board.
+3. If characters appear, inspect the accepted actor set.
+4. Identify the exact reference governing each part of the requested asset or screen.
+5. Preserve the 3–3.5-head folk-doll deformation before adding scene details.
+6. Preserve actual gameplay composition and controls.
+7. Add semantic palette rules.
+8. Add explicit negative constraints.
+9. Generate.
+10. Compare the result back to the accepted actors and reject drift.
 
 ### Prompt anchor
 
 Use wording equivalent to:
 
-> **A playable medieval-fantasy game in Crownless's canonical visual grammar: rough medieval manuscript and woodcut linework, parchment negative space, restrained muted color, compact 4–5-head-tall non-chibi figures, small simple restrained faces, weathered asymmetric equipment, readable silhouettes, physical black-ink action marks, and sparse annotation-like UI.**
+> **A playable medieval-fantasy game in Crownless's canonical visual grammar: rough medieval manuscript and woodcut linework, parchment negative space, restrained muted color, strongly deformed 3–3.5-head-tall folk-doll figures with large heads and short limbs, tiny symbolic faces, weathered asymmetric equipment, readable silhouettes, physical black-ink action marks, and sparse annotation-like UI.**
 
 ### Negative anchor
 
 Always include the substance of:
 
 - not photorealistic
-- not realistic fantasy concept art
+- not realistic or semi-realistic fantasy concept art
+- not anatomically corrected human proportions
 - not painterly
-- not modern chibi
-- not cute mascot style
+- no uncanny realistic faces or skin detail
+- not glossy modern chibi / cute mascot style
 - not anime-gacha
 - not clean vector cartoon
 - not generic Diablo imitation
@@ -181,8 +204,8 @@ Always include the substance of:
 ## Implementation workflow
 
 1. Preserve gameplay logic.
-2. Compare the existing implementation against the canonical reference image.
-3. Fix **silhouette / actor drawing grammar before surface filters**.
+2. Compare the existing implementation against the canonical references.
+3. Fix **silhouette / deformation / actor drawing grammar before surface filters**.
 4. Prefer reusable low-cost techniques: sprites / illustrated layers, Canvas / SVG, paper and ink textures, limited color tokens, masks, small particles and the existing projected combat plane.
 5. Check at phone size.
 6. Remove decoration that competes with gameplay.
@@ -194,14 +217,14 @@ Do not claim a screen matches the visual guide merely because it has parchment c
 A visual is accepted only when all critical checks pass:
 
 - playable game screen, not merely concept art
-- characters match the canonical 4–5-head manuscript proportion
-- faces are restrained, not cute / anime-like
+- humanoid characters match the accepted **3–3.5-head folk-doll proportions**
+- faces are tiny and symbolic, not realistic, creepy, cute-mascot or anime-like
 - silhouettes read at phone size
 - linework belongs to the same hand-inked / woodcut family
 - color has semantic purpose
 - physical ink effects replace generic glow where appropriate
 - actual gameplay contract is preserved
-- the result visibly belongs beside the canonical reference image
+- the result visibly belongs beside the accepted actor set
 - it remains recognizable as Crownless without the logo
 
-If the character style or overall illustration family does not match the reference image, **reject it before polishing**.
+If the character style or overall illustration family does not match the accepted actors, **reject it before polishing**.
