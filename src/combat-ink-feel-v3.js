@@ -2,21 +2,23 @@
   "use strict";
 
   /*
-   * Compatibility presentation layer loaded after combat-manuscript-render.
+   * Post-manuscript enemy HUD layer.
    *
-   * The manuscript renderer owns actor art and combat ink. This layer keeps
-   * enemy name / HP annotations clear of the accepted actor silhouettes and
-   * separates those annotations when several enemies collapse into the same
-   * visual cluster.
+   * Enemy bodies are depth-sorted by combat-depth-order-v1. This layer queues
+   * the matching name / HP annotations, places them as collision-aware label
+   * rectangles above actor silhouettes, and reduces non-priority enemies to a
+   * compact HP bar so clustered fights stay readable.
    *
    * No combat simulation values or actor geometry are changed here.
    */
 
   const ENEMY_HUD_LIFT = 60;
   const ENEMY_HUD_LANE_GAP = 18;
-  const ENEMY_HUD_COLLISION_X = 72;
-  const ENEMY_HUD_COLLISION_Y = 16;
-  const ENEMY_HUD_MAX_LANES = 4;
+  const ENEMY_HUD_MAX_LANES = 5;
+  const ENEMY_HUD_SIDE_NUDGES = [0, -12, 12, -24, 24];
+  const ENEMY_HUD_ACTOR_PAD = 4;
+  const NON_PRIORITY_ALPHA = 0.58;
+  const ROLE_LABELS = new Set(["RUSHER", "GUARD", "SKIRMISHER"]);
 
   function isEnemyHealthBar(args) {
     if (!Array.isArray(args) || args.length < 4) return false;
@@ -29,48 +31,217 @@
       && Math.abs(height - 5) < 0.01;
   }
 
-  function healthBarAnchor(args) {
+  function cloneMatrix(matrix) {
     return {
-      x: Number(args[0]) + 30,
-      y: Number(args[1])
+      a: Number(matrix.a) || 1,
+      b: Number(matrix.b) || 0,
+      c: Number(matrix.c) || 0,
+      d: Number(matrix.d) || 1,
+      e: Number(matrix.e) || 0,
+      f: Number(matrix.f) || 0
     };
   }
 
-  function sameHealthBar(anchor, pending) {
-    if (!anchor || !pending) return false;
-    return Math.abs(anchor.x - pending.x) < 1.5
-      && Math.abs(anchor.y - pending.y) < 1.5;
+  function transformPoint(matrix, x, y) {
+    return {
+      x: matrix.a * x + matrix.c * y + matrix.e,
+      y: matrix.b * x + matrix.d * y + matrix.f
+    };
   }
 
-  function chooseHudLift(anchor, occupied) {
-    for (let lane = 0; lane < ENEMY_HUD_MAX_LANES; lane += 1) {
-      const lift = ENEMY_HUD_LIFT + lane * ENEMY_HUD_LANE_GAP;
-      const shiftedY = anchor.y - lift;
-      const collision = occupied.some((slot) => (
-        Math.abs(slot.x - anchor.x) < ENEMY_HUD_COLLISION_X
-        && Math.abs(slot.y - shiftedY) < ENEMY_HUD_COLLISION_Y
-      ));
-      if (collision) continue;
-      occupied.push({ x: anchor.x, y: shiftedY });
-      return lift;
-    }
+  function axisScale(matrix) {
+    return {
+      x: Math.max(0.001, Math.hypot(matrix.a, matrix.b)),
+      y: Math.max(0.001, Math.hypot(matrix.c, matrix.d))
+    };
+  }
 
-    const lift = ENEMY_HUD_LIFT + ENEMY_HUD_MAX_LANES * ENEMY_HUD_LANE_GAP;
-    occupied.push({ x: anchor.x, y: anchor.y - lift });
-    return lift;
+  function rectsOverlap(a, b) {
+    return !(
+      a.x + a.w <= b.x
+      || b.x + b.w <= a.x
+      || a.y + a.h <= b.y
+      || b.y + b.h <= a.y
+    );
+  }
+
+  function paddedRect(rect, pad) {
+    return {
+      x: rect.x - pad,
+      y: rect.y - pad,
+      w: rect.w + pad * 2,
+      h: rect.h + pad * 2
+    };
   }
 
   function wrap(ctx) {
     if (!ctx || ctx.__crownlessEnemyHudClearance) return ctx;
 
     let pendingEnemyHud = null;
-    const occupiedHudSlots = [];
+    const queuedEnemyHud = [];
     const methods = new Map();
 
     function resetHudLayout() {
       pendingEnemyHud = null;
-      occupiedHudSlots.length = 0;
+      queuedEnemyHud.length = 0;
     }
+
+    function captureBar(args) {
+      return {
+        args: args.slice(),
+        style: ctx.fillStyle,
+        alpha: ctx.globalAlpha,
+        matrix: cloneMatrix(ctx.getTransform())
+      };
+    }
+
+    function captureLabel(args) {
+      return {
+        text: String(args[0]),
+        x: Number(args[1]) || 0,
+        y: Number(args[2]) || 0,
+        maxWidth: args.length > 3 ? args[3] : undefined,
+        style: ctx.fillStyle,
+        alpha: ctx.globalAlpha,
+        font: ctx.font,
+        align: ctx.textAlign,
+        baseline: ctx.textBaseline,
+        matrix: cloneMatrix(ctx.getTransform())
+      };
+    }
+
+    function actorOccupiedRects() {
+      const depth = window.CrownlessCombatDepth;
+      if (!depth || !Array.isArray(depth.enemyBounds)) return [];
+      return depth.enemyBounds
+        .filter((bounds) => bounds && Number.isFinite(bounds.x) && Number.isFinite(bounds.y))
+        .map((bounds) => paddedRect(bounds, ENEMY_HUD_ACTOR_PAD));
+    }
+
+    function groupScreenPoint(group) {
+      if (!group || !group.background) return { x: 0, y: 0 };
+      const args = group.background.args;
+      const x = Number(args[0]) + 30;
+      const y = Number(args[1]) + 65;
+      return transformPoint(group.background.matrix, x, y);
+    }
+
+    function priorityIndex(groups) {
+      const depth = window.CrownlessCombatDepth;
+      const player = depth && depth.playerFoot;
+      let bestIndex = -1;
+      let bestDistance = Infinity;
+
+      groups.forEach((group, index) => {
+        if (group.label && !ROLE_LABELS.has(group.label.text.toUpperCase())) {
+          group.priority = true;
+          return;
+        }
+        if (!player) return;
+        const point = groupScreenPoint(group);
+        const distance = Math.hypot(point.x - player.x, point.y - player.y);
+        if (distance < bestDistance) {
+          bestDistance = distance;
+          bestIndex = index;
+        }
+      });
+
+      return bestIndex;
+    }
+
+    function measureLocalWidth(group, priority) {
+      const barWidth = 60;
+      if (!priority || !group.label) return barWidth;
+      ctx.save();
+      ctx.font = group.label.font;
+      const labelWidth = ctx.measureText(group.label.text).width + 8;
+      ctx.restore();
+      return Math.max(barWidth, labelWidth);
+    }
+
+    function choosePlacement(group, priority, occupied) {
+      const label = group.label;
+      const background = group.background;
+      const matrix = label ? label.matrix : background.matrix;
+      const scale = axisScale(matrix);
+      const localWidth = measureLocalWidth(group, priority);
+      const localHeight = priority ? 18 : 8;
+      const anchorX = label ? label.x : Number(background.args[0]) + 30;
+      const anchorY = label ? label.y : Number(background.args[1]) - 8;
+
+      for (let lane = 0; lane < ENEMY_HUD_MAX_LANES; lane += 1) {
+        const lift = ENEMY_HUD_LIFT + lane * ENEMY_HUD_LANE_GAP;
+        for (const nudge of ENEMY_HUD_SIDE_NUDGES) {
+          const center = transformPoint(matrix, anchorX + nudge, anchorY - lift);
+          const rect = {
+            x: center.x - localWidth * scale.x / 2,
+            y: center.y - localHeight * scale.y,
+            w: localWidth * scale.x,
+            h: localHeight * scale.y
+          };
+          if (occupied.some((other) => rectsOverlap(rect, other))) continue;
+          occupied.push(rect);
+          return { lift, nudge };
+        }
+      }
+
+      return {
+        lift: ENEMY_HUD_LIFT + ENEMY_HUD_MAX_LANES * ENEMY_HUD_LANE_GAP,
+        nudge: 0
+      };
+    }
+
+    function drawBar(bar, lift, nudge, alphaScale) {
+      if (!bar) return;
+      const args = bar.args.slice();
+      args[0] = Number(args[0]) + nudge;
+      args[1] = Number(args[1]) - lift;
+      ctx.save();
+      ctx.setTransform(bar.matrix.a, bar.matrix.b, bar.matrix.c, bar.matrix.d, bar.matrix.e, bar.matrix.f);
+      ctx.globalAlpha = bar.alpha * alphaScale;
+      ctx.fillStyle = bar.style;
+      ctx.fillRect(...args);
+      ctx.restore();
+    }
+
+    function drawLabel(label, lift, nudge) {
+      if (!label) return;
+      ctx.save();
+      ctx.setTransform(label.matrix.a, label.matrix.b, label.matrix.c, label.matrix.d, label.matrix.e, label.matrix.f);
+      ctx.globalAlpha = label.alpha;
+      ctx.fillStyle = label.style;
+      ctx.font = label.font;
+      ctx.textAlign = label.align;
+      ctx.textBaseline = label.baseline;
+      if (label.maxWidth === undefined) ctx.fillText(label.text, label.x + nudge, label.y - lift);
+      else ctx.fillText(label.text, label.x + nudge, label.y - lift, label.maxWidth);
+      ctx.restore();
+    }
+
+    function flushHudLayout() {
+      if (pendingEnemyHud) {
+        queuedEnemyHud.push(pendingEnemyHud);
+        pendingEnemyHud = null;
+      }
+      if (!queuedEnemyHud.length) return;
+
+      const groups = queuedEnemyHud.splice(0);
+      const nearest = priorityIndex(groups);
+      if (nearest >= 0) groups[nearest].priority = true;
+      const occupied = actorOccupiedRects();
+
+      groups.forEach((group) => {
+        const priority = Boolean(group.priority);
+        const placement = choosePlacement(group, priority, occupied);
+        const alphaScale = priority ? 1 : NON_PRIORITY_ALPHA;
+        drawBar(group.background, placement.lift, placement.nudge, alphaScale);
+        drawBar(group.foreground, placement.lift, placement.nudge, alphaScale);
+        if (priority) drawLabel(group.label, placement.lift, placement.nudge);
+      });
+    }
+
+    const api = { flush: flushHudLayout, reset: resetHudLayout };
+    window.CrownlessEnemyHud = api;
 
     return new Proxy(ctx, {
       get(target, property) {
@@ -80,27 +251,26 @@
           return (...args) => {
             if (!isEnemyHealthBar(args)) return target.fillRect(...args);
 
-            const anchor = healthBarAnchor(args);
-            if (!sameHealthBar(anchor, pendingEnemyHud)) {
-              pendingEnemyHud = {
-                ...anchor,
-                lift: chooseHudLift(anchor, occupiedHudSlots)
-              };
+            const bar = captureBar(args);
+            if (!pendingEnemyHud) {
+              pendingEnemyHud = { background: bar, foreground: null, label: null, priority: false };
+            } else if (!pendingEnemyHud.foreground) {
+              pendingEnemyHud.foreground = bar;
+            } else {
+              queuedEnemyHud.push(pendingEnemyHud);
+              pendingEnemyHud = { background: bar, foreground: null, label: null, priority: false };
             }
-
-            const shifted = args.slice();
-            shifted[1] = Number(shifted[1]) - pendingEnemyHud.lift;
-            return target.fillRect(...shifted);
+            return undefined;
           };
         }
 
         if (property === "fillText") {
           return (...args) => {
             if (!pendingEnemyHud || args.length < 3) return target.fillText(...args);
-            const shifted = args.slice();
-            shifted[2] = Number(shifted[2]) - pendingEnemyHud.lift;
+            pendingEnemyHud.label = captureLabel(args);
+            queuedEnemyHud.push(pendingEnemyHud);
             pendingEnemyHud = null;
-            return target.fillText(...shifted);
+            return undefined;
           };
         }
 

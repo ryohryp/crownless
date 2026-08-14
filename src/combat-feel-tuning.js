@@ -5,6 +5,7 @@
       && document.readyState === "loading"
       && !window.__crownlessInkFeelLoader) {
     window.__crownlessInkFeelLoader = true;
+    document.write('<script src="src/combat-depth-order-v1.js"><\/script>');
     document.write('<script src="src/combat-ink-feel-v3.js"><\/script>');
   }
 
