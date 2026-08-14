@@ -30,6 +30,12 @@ This anchor is the approved identity, clothing/material, palette, silhouette, an
 
 Use this sheet as the approved reference for the protagonist's directional pose family, compact proportions, and unarmed action language. It is a presentation/reference sheet, not the runtime atlas: labels, background treatment, and sheet layout must not appear in gameplay sprites. The Approved Visual Anchor above remains the generation parent for subject identity, clothing/material language, palette, silhouette, and unarmed combat identity.
 
+### Accepted Combat Sprite Source
+
+- `assets/combat/minimal-v0.1/actors/player-unarmed-combat-sprite-sheet-v0.1.png`
+
+This transparent 768×512 optimized derivative is accepted as the source-art sheet for runtime combat animation. It must be sliced, normalized, and validated before runtime replacement. The Approved Visual Anchor remains the identity parent.
+
 ### Accepted visual conditions
 
 - anonymous unknown survivor with no crown, class costume, or permanent allegiance
