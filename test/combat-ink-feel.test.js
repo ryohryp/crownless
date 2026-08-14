@@ -18,11 +18,29 @@ test('combat presentation layer still arms after manuscript install', () => {
 });
 
 test('enemy HUD clears the accepted actor silhouette', () => {
-  assert.match(feel, /const ENEMY_HUD_LIFT = 52/);
+  assert.match(feel, /const ENEMY_HUD_LIFT = 60/);
   assert.match(feel, /function isEnemyHealthBar/);
   assert.match(feel, /Math\.abs\(height - 5\)/);
-  assert.match(feel, /shifted\[1\].*ENEMY_HUD_LIFT/);
-  assert.match(feel, /shifted\[2\].*ENEMY_HUD_LIFT/);
+  assert.match(feel, /pendingEnemyHud\.lift/);
+  assert.match(feel, /shifted\[1\].*pendingEnemyHud\.lift/);
+  assert.match(feel, /shifted\[2\].*pendingEnemyHud\.lift/);
+});
+
+test('crowded enemy HUD labels use collision-aware vertical lanes', () => {
+  assert.match(feel, /const ENEMY_HUD_LANE_GAP = 18/);
+  assert.match(feel, /const ENEMY_HUD_COLLISION_X = 72/);
+  assert.match(feel, /const ENEMY_HUD_MAX_LANES = 4/);
+  assert.match(feel, /function chooseHudLift/);
+  assert.match(feel, /occupiedHudSlots/);
+  assert.match(feel, /Math\.abs\(slot\.x - anchor\.x\)/);
+  assert.match(feel, /Math\.abs\(slot\.y - shiftedY\)/);
+  assert.match(feel, /occupiedHudSlots\.length = 0/);
+});
+
+test('health bar background and foreground reuse one HUD lane', () => {
+  assert.match(feel, /function sameHealthBar/);
+  assert.match(feel, /Math\.abs\(anchor\.x - pending\.x\) < 1\.5/);
+  assert.match(feel, /if \(!sameHealthBar\(anchor, pendingEnemyHud\)\)/);
 });
 
 test('presentation layer no longer infers hit VFX from prototype colors', () => {
