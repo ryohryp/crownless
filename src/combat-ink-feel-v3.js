@@ -1,131 +1,93 @@
 (() => {
   "use strict";
 
-  // Presentation-only feel layer. The ink sheet is authored as
-  // slash / impact / broken-hatch recoil; simulation timings stay untouched.
-  const ink = new Image();
-  ink.decoding = "async";
-  ink.src = "assets/combat/minimal-v0.1/effects/ink-effects-sheet.png";
+  /*
+   * Compatibility presentation layer loaded after combat-manuscript-render.
+   *
+   * The previous version inferred hit events from Canvas fill colors and drew
+   * extra slices from the generated ink sheet. That made visual state depend
+   * on prototype drawing colors and could leave noisy image fragments over an
+   * enemy. The manuscript renderer already owns combat ink effects, so this
+   * layer now has one narrow responsibility: keep enemy name / HP annotations
+   * above the accepted actor silhouettes.
+   *
+   * No combat simulation values or actor geometry are changed here.
+   */
 
-  const roles = new Map([
-    ["#81765e", "guard"],
-    ["#78805b", "skirmisher"],
-    ["#a65347", "rusher"]
-  ]);
-  const slashes = new Map([
-    ["#e8d8b7", { box: [-48, -38, 96, 76], alpha: .78 }],
-    ["#ffd875", { box: [-72, -55, 144, 110], alpha: 1 }],
-    ["#f2c96f", { box: [-64, -48, 128, 96], alpha: .92 }]
-  ]);
-  const norm = (v) => typeof v === "string" ? v.trim().toLowerCase() : v;
+  const ENEMY_HUD_LIFT = 52;
 
-  function warningAlpha(v) {
-    const s = norm(v);
-    if (typeof s !== "string") return null;
-    const m = s.match(/^rgba\((?:235\s*,\s*72\s*,\s*58|240\s*,\s*210\s*,\s*110)\s*,\s*([0-9.]+)\)$/);
-    return m ? Math.max(.18, Math.min(1, Number(m[1]) || 1)) : null;
-  }
-
-  function drawSlice(ctx, index, box, alpha) {
-    if (!ink.complete || !ink.naturalWidth) return false;
-    const horizontal = ink.naturalWidth >= ink.naturalHeight * .9;
-    const sx = horizontal ? ink.naturalWidth * index / 3 : 0;
-    const sy = horizontal ? 0 : ink.naturalHeight * index / 3;
-    const sw = horizontal ? ink.naturalWidth / 3 : ink.naturalWidth;
-    const sh = horizontal ? ink.naturalHeight : ink.naturalHeight / 3;
-    const [x, y, w, h] = box;
-    const ratio = sw / Math.max(1, sh);
-    let dw = w, dh = h;
-    if (ratio > w / Math.max(1, h)) dh = dw / ratio;
-    else dw = dh * ratio;
-    const old = ctx.globalAlpha;
-    ctx.globalAlpha = old * alpha;
-    ctx.drawImage(ink, sx, sy, sw, sh, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
-    ctx.globalAlpha = old;
-    return true;
-  }
-
-  function reaction(role) {
-    if (role === "guard") return { back: [-64, -34, 76, 60], hit: [6, -48, 86, 72] };
-    if (role === "skirmisher") return { back: [-56, -32, 66, 54], hit: [8, -44, 74, 62] };
-    return { back: [-60, -33, 70, 56], hit: [10, -46, 80, 66] };
+  function isEnemyHealthBar(args) {
+    if (!Array.isArray(args) || args.length < 4) return false;
+    const width = Number(args[2]);
+    const height = Number(args[3]);
+    return Number.isFinite(width)
+      && Number.isFinite(height)
+      && width > 0
+      && width <= 60.5
+      && Math.abs(height - 5) < 0.01;
   }
 
   function wrap(ctx) {
-    let shape = "", slash = null, warning = null;
-    const cache = [], methods = new Map();
-    const point = () => {
-      try { const m = ctx.getTransform(); return { x: +m.e || 0, y: +m.f || 0 }; }
-      catch (_) { return null; }
-    };
-    const remember = (role) => {
-      const p = point(); if (!p) return;
-      let near = null, d0 = 54;
-      cache.forEach((e) => { const d = Math.hypot(e.x - p.x, e.y - p.y); if (d < d0) { near = e; d0 = d; } });
-      const now = performance.now();
-      if (near) Object.assign(near, p, { role, seen: now }); else cache.push({ ...p, role, seen: now });
-      for (let i = cache.length - 1; i >= 0; i--) if (cache[i].seen < now - 2500) cache.splice(i, 1);
-    };
-    const nearest = () => {
-      const p = point(); if (!p) return null;
-      let role = null, d0 = 74;
-      cache.forEach((e) => { const d = Math.hypot(e.x - p.x, e.y - p.y); if (d < d0) { role = e.role; d0 = d; } });
-      return role;
-    };
+    if (!ctx || ctx.__crownlessEnemyHudClearance) return ctx;
+
+    let pendingEnemyLabel = false;
+    const methods = new Map();
 
     return new Proxy(ctx, {
-      get(t, p) {
-        if (p === "beginPath") return () => { shape = ""; t.beginPath(); };
-        if (p === "arc") return (...a) => { shape = "arc"; t.arc(...a); };
-        if (p === "moveTo") return (...a) => { shape ||= "line"; t.moveTo(...a); };
-        if (p === "lineTo") return (...a) => { shape = "line"; t.lineTo(...a); };
-        if (p === "restore") return () => { t.restore(); shape = ""; slash = null; warning = null; };
-        if (p === "stroke") return (...a) => {
-          if (warning !== null) {
-            const old = t.globalAlpha; t.globalAlpha = old * warning; t.stroke(...a); t.globalAlpha = old; return;
-          }
-          if (slash && shape === "arc" && drawSlice(t, 0, slash.box, slash.alpha)) { shape = ""; return; }
-          t.stroke(...a);
-        };
-        const v = t[p];
-        if (typeof v !== "function") return v;
-        if (!methods.has(p)) methods.set(p, (...a) => v.apply(t, a));
-        return methods.get(p);
+      get(target, property) {
+        if (property === "__crownlessEnemyHudClearance") return true;
+
+        if (property === "fillRect") {
+          return (...args) => {
+            if (!isEnemyHealthBar(args)) return target.fillRect(...args);
+            pendingEnemyLabel = true;
+            const shifted = args.slice();
+            shifted[1] = Number(shifted[1]) - ENEMY_HUD_LIFT;
+            return target.fillRect(...shifted);
+          };
+        }
+
+        if (property === "fillText") {
+          return (...args) => {
+            if (!pendingEnemyLabel || args.length < 3) return target.fillText(...args);
+            pendingEnemyLabel = false;
+            const shifted = args.slice();
+            shifted[2] = Number(shifted[2]) - ENEMY_HUD_LIFT;
+            return target.fillText(...shifted);
+          };
+        }
+
+        if (property === "clearRect") {
+          return (...args) => {
+            pendingEnemyLabel = false;
+            return target.clearRect(...args);
+          };
+        }
+
+        const value = target[property];
+        if (typeof value !== "function") return value;
+        if (!methods.has(property)) methods.set(property, (...args) => value.apply(target, args));
+        return methods.get(property);
       },
-      set(t, p, v) {
-        const original = norm(v);
-        if (p === "strokeStyle") {
-          slash = slashes.get(original) || null;
-          warning = warningAlpha(v);
-        }
-        if (p === "fillStyle") {
-          const role = roles.get(original); if (role) remember(role);
-          if (original === "#f0b28c") {
-            const hitRole = nearest();
-            if (hitRole) {
-              const b = reaction(hitRole);
-              drawSlice(t, 2, b.back, .42);
-              t[p] = v;
-              drawSlice(t, 1, b.hit, hitRole === "guard" ? .62 : .72);
-              return true;
-            }
-          }
-        }
-        t[p] = v; return true;
+
+      set(target, property, value) {
+        target[property] = value;
+        return true;
       }
     });
   }
 
   let installed = false;
+
   function install() {
     if (installed) return;
     installed = true;
-    const previous = HTMLCanvasElement.prototype.getContext;
-    HTMLCanvasElement.prototype.getContext = function(type, options) {
-      const ctx = previous.call(this, type, options);
+    const previousGetContext = HTMLCanvasElement.prototype.getContext;
+    HTMLCanvasElement.prototype.getContext = function crownlessEnemyHudGetContext(type, options) {
+      const ctx = previousGetContext.call(this, type, options);
       if (type !== "2d" || !ctx || this.id !== "arena") return ctx;
-      if (!this.__crownlessInkFeel) this.__crownlessInkFeel = wrap(ctx);
-      return this.__crownlessInkFeel;
+      if (!this.__crownlessEnemyHudClearance) this.__crownlessEnemyHudClearance = wrap(ctx);
+      return this.__crownlessEnemyHudClearance;
     };
   }
 
@@ -134,13 +96,17 @@
     script.addEventListener("load", install, { once: true });
   }
 
-  const found = Array.from(document.scripts).find((s) => /combat-manuscript-render\.js(?:$|\?)/.test(s.src));
+  const found = Array.from(document.scripts).find((script) => /combat-manuscript-render\.js(?:$|\?)/.test(script.src));
   if (found) arm(found);
   else {
     const observer = new MutationObserver((records) => {
-      for (const record of records) for (const node of record.addedNodes) {
-        if (node instanceof HTMLScriptElement && /combat-manuscript-render\.js(?:$|\?)/.test(node.src)) {
-          observer.disconnect(); arm(node); return;
+      for (const record of records) {
+        for (const node of record.addedNodes) {
+          if (node instanceof HTMLScriptElement && /combat-manuscript-render\.js(?:$|\?)/.test(node.src)) {
+            observer.disconnect();
+            arm(node);
+            return;
+          }
         }
       }
     });
