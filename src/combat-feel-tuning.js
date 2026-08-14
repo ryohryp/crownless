@@ -1,7 +1,9 @@
 (() => {
   "use strict";
 
-  if (document.readyState === "loading" && !window.__crownlessInkFeelLoader) {
+  if (typeof document !== "undefined"
+      && document.readyState === "loading"
+      && !window.__crownlessInkFeelLoader) {
     window.__crownlessInkFeelLoader = true;
     document.write('<script src="src/combat-ink-feel-v3.js"><\/script>');
   }
