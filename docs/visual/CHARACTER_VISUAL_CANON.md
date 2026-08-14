@@ -1,86 +1,95 @@
 # Crownless Character Visual Canon
 
-This file maps Crownless combat subjects to the canonical calibration images
-already approved in [`../assets/README.md`](../assets/README.md). These shared
-reference sheets are the generation parents until a reviewed subject-specific
-anchor is deliberately approved.
+This file maps Crownless combat subjects to the current character rules used by visual generation and review.
 
-## Common Rules
+## Common rules
 
-- Always generate from the listed Approved Visual Anchor and the global canonical reference.
-- Shared calibration sheets lock the illustration family; subject facts below lock the gameplay role.
-- Keep figures compact, approximately 4–5 heads tall, non-chibi, weathered, asymmetrical, and readable at phone scale.
-- Keep faces small, restrained, crude, and folk-art-like rather than cute, anime-like, painterly, or realistic.
-- Generated images remain review candidates and must not be chained into later generations or treated as approved automatically.
+- Use `docs/assets/crownless-visual-design-reference-v0.1.jpg` for global linework, palette, material, and manuscript-family calibration.
+- Use `assets/combat/minimal-v0.1/actors/` as the current authority for combat-character proportion, deformation, silhouette width, facial simplification, and battlefield viewpoint.
+- Older character / battle reference sheets are supporting style references only where they do not conflict with the accepted actor set.
+- Keep humanoid figures approximately **3–3.5 heads tall**, strongly deformed, compact, weathered, asymmetrical, and readable at phone scale.
+- Keep faces tiny, restrained, crude, and folk-art-like rather than cute, anime-like, painterly, or realistic.
+- Combat figures must be authored for an **oblique top-down / three-quarter battlefield view** rather than as front-facing standing portraits.
+- Generated images are review candidates and must not replace accepted anchors automatically.
 
 ## 素手の主人公
 
-### Approved Visual Anchor
-- `docs/assets/crownless-character-reference-v0.1.png`
+### Current visual authority
 
-### Accepted Visual Conditions
+- `assets/combat/minimal-v0.1/actors/player-unarmed.png`
+- global style calibration: `docs/assets/crownless-visual-design-reference-v0.1.jpg`
 
-- Anonymous unknown survivor with no crown, class costume, or permanent allegiance
-- Intentionally unarmed with wrapped, visually emphasized hands in a credible fighting stance
-- Patched cloth, scavenged belt or pouch, mismatched protection, and visibly poor equipment
-- Compact grounded silhouette that makes bare-handed combat look deliberate rather than incomplete
-- No weapon or shield in the base state
+### Accepted visual conditions
 
-### Canonical state model
+- anonymous unknown survivor with no crown, class costume, or permanent allegiance
+- intentionally unarmed with wrapped, visually emphasized hands in a credible fighting stance
+- patched cloth, scavenged belt / pouch, mismatched protection, visibly poor equipment
+- compact grounded silhouette that makes bare-handed combat look deliberate rather than incomplete
+- no weapon or shield in the base state
+- oblique three-quarter top-down pose with readable foot contact, not a portrait pose
 
-The approved base state is the unarmed expedition survivor. Equipment may change
-the silhouette only in separately requested and reviewed equipment states.
+The approved base state is the unarmed expedition survivor. Equipment changes silhouette only in separately requested and reviewed states.
 
 ## 敵：Rusher
 
-### Approved Visual Anchor
-- `docs/assets/crownless-battle-reference-v0.1.png`
+### Current visual authority
 
-### Accepted Visual Conditions
+- `assets/combat/minimal-v0.1/actors/enemy-rusher.png`
 
-- Aggressive forward-driving silhouette that reads as immediate closing pressure
-- Hunched or uneven medieval-bestiary posture with memorable wrongness rather than realistic anatomy
-- Limbs and attacking mass angled toward the target, with no defensive shield wall
-- Crude, weathered, asymmetric protection and a clear close-range threat shape
-- Distinct from the braced Guard and distance-keeping Skirmisher before labels
+### Accepted visual conditions
 
-### Canonical state model
+- aggressive forward-driving silhouette that reads as immediate closing pressure
+- compact low mass with lunging / rushing intent
+- limbs and attacking mass directed toward the target, no shield-wall posture
+- crude weathered asymmetric protection and clear close-range threat shape
+- oblique top-down view that still preserves the forward lean
+- distinct from braced Guard and distance-keeping Skirmisher without labels
 
-The approved role state is an ordinary Rusher archetype, not the named hunt target
-灰牙 unless that named subject is requested separately.
+This is the ordinary Rusher archetype, not 灰牙 unless requested separately.
 
 ## 敵：Guard
 
-### Approved Visual Anchor
-- `docs/assets/crownless-battle-reference-v0.1.png`
+### Current visual authority
 
-### Accepted Visual Conditions
+- `assets/combat/minimal-v0.1/actors/enemy-guard.png`
 
-- Braced, slow, defensive silhouette with a crude shield clearly readable at phone scale
-- Weight held behind the shield, with a compact blocking stance rather than forward rush posture
-- Rough armor and weathered side weapon without polished knightly grandeur
-- Shield, shoulders, and planted legs form the primary silhouette language
-- Distinct from the lunging Rusher and narrow ranged Skirmisher before labels
+### Accepted visual conditions
 
-### Canonical state model
+- braced, slow, defensive silhouette with a broad shield readable at phone scale
+- weight held behind the shield, compact blocking stance rather than forward rush
+- rough armor and weathered side weapon without polished knightly grandeur
+- shield, shoulders, and planted legs form the primary silhouette language
+- oblique top-down view exposes enough shield / helmet top plane to belong to the battlefield camera
+- distinct from lunging Rusher and narrow ranged Skirmisher without labels
 
-The approved role state is an ordinary Guard archetype, not the named hunt target
-鐘なき騎士 unless that named subject is requested separately.
+This is the ordinary Guard archetype, not 鐘なき騎士 unless requested separately.
 
 ## 敵：Skirmisher
 
-### Approved Visual Anchor
-- `docs/assets/crownless-battle-reference-v0.1.png`
+### Current visual authority
 
-### Accepted Visual Conditions
+- `assets/combat/minimal-v0.1/actors/enemy-skirmisher.png`
 
-- Lean, distance-keeping silhouette with a crude short bow or equally clear ranged posture
-- Narrow profile, retreat-ready legs, and readable early aim direction
-- Weathered hunting gear and asymmetric small protection rather than polished archer armor
-- Ranged tool remains legible without a large floating label or glowing projectile language
-- Distinct from the lunging Rusher and broad shielded Guard before labels
+### Accepted visual conditions
 
-### Canonical state model
+- leaner distance-keeping silhouette with a clearly readable bow / ranged posture
+- narrower profile, retreat-ready legs, readable aim direction
+- weathered hunting gear and asymmetric small protection rather than polished archer armor
+- ranged tool remains legible without a large floating label or glowing projectile language
+- oblique top-down view keeps bow, shoulders, quiver, and feet coherent with the battlefield camera
+- distinct from lunging Rusher and broad shielded Guard without labels
 
-The approved role state is an ordinary Skirmisher archetype, not the named hunt
-target 沼鴉 unless that named subject is requested separately.
+This is the ordinary Skirmisher archetype, not 沼鴉 unless requested separately.
+
+## Runtime acceptance
+
+Source-art approval is not enough. In the actual combat viewport:
+
+- X/Y scale must remain uniform
+- feet / shadow / logical ground point must agree
+- overlap must depth-sort by projected foot Y
+- priority labels must clear the silhouette
+- non-priority labels should simplify when enemies crowd
+- PNGs must decode and contain meaningful visible alpha coverage
+
+If the runtime actor is stretched, unexpectedly invisible, visibly corrupt, or presents the wrong camera angle, reject the integration even if the source concept looked correct.
