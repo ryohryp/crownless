@@ -12,6 +12,12 @@ These images calibrate `docs/visual-design-guide-v0.2.md` and `skills/crownless-
 
 This sheet is a **visual / animation reference**, not a runtime sprite atlas. It contains presentation labels and sheet-level composition, so gameplay frames must be produced separately as transparent, text-free, consistently grounded assets before integration.
 
+## Accepted protagonist combat sprite source
+
+- `assets/combat/minimal-v0.1/actors/player-unarmed-combat-sprite-sheet-v0.1.png` — accepted transparent combat sprite source sheet for the unarmed protagonist (optimized runtime-source derivative, 768×512).
+
+The sheet is approved as source art for runtime slicing. It does not replace the Approved Visual Anchor or current `player-unarmed.png` automatically; frame coordinates, ground points, animation timing, and the first in-game slice (`idle` / `walk` / `jab` / `hurt`) remain implementation and validation work.
+
 ## Legacy detail references
 
 - `crownless-character-reference-v0.1.jpg`
