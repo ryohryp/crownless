@@ -6,6 +6,12 @@ These images calibrate `docs/visual-design-guide-v0.2.md` and `skills/crownless-
 
 - `crownless-visual-design-reference-v0.1.jpg` — global illustration-family overview. Use it for linework, palette, materials, map/UI grammar, Grey Hearth treatment, and physical ink-effect language.
 
+## Approved protagonist sprite reference
+
+- `player-unarmed-sprite-sheet-reference-v0.1.webp` — approved appearance and motion-sheet reference for the unarmed protagonist. It establishes the compact 3–3.5-head silhouette, subdued scavenged clothing, unarmed pose language, directional readability, and core action family.
+
+This sheet is a **visual / animation reference**, not a runtime sprite atlas. It contains presentation labels and sheet-level composition, so gameplay frames must be produced separately as transparent, text-free, consistently grounded assets before integration.
+
 ## Legacy detail references
 
 - `crownless-character-reference-v0.1.jpg`

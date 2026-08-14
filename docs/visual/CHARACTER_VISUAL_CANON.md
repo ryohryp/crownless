@@ -22,6 +22,12 @@ This file maps Crownless combat subjects to the current character rules used by 
 
 - `docs/assets/crownless-visual-design-reference-v0.1.jpg`
 
+### Approved Sprite Sheet Reference
+
+- `docs/assets/player-unarmed-sprite-sheet-reference-v0.1.webp`
+
+Use this sheet as the approved reference for the protagonist's overall appearance, directional pose family, compact proportions, scavenged-clothing treatment, and unarmed action language. It is a presentation/reference sheet, not the runtime atlas: labels, background treatment, and sheet layout must not appear in gameplay sprites. The single-sprite Approved Visual Anchor above remains the generation parent for subject identity and silhouette.
+
 ### Accepted visual conditions
 
 - anonymous unknown survivor with no crown, class costume, or permanent allegiance
