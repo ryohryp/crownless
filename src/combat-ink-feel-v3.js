@@ -4,17 +4,19 @@
   /*
    * Compatibility presentation layer loaded after combat-manuscript-render.
    *
-   * The previous version inferred hit events from Canvas fill colors and drew
-   * extra slices from the generated ink sheet. That made visual state depend
-   * on prototype drawing colors and could leave noisy image fragments over an
-   * enemy. The manuscript renderer already owns combat ink effects, so this
-   * layer now has one narrow responsibility: keep enemy name / HP annotations
-   * above the accepted actor silhouettes.
+   * The manuscript renderer owns actor art and combat ink. This layer keeps
+   * enemy name / HP annotations clear of the accepted actor silhouettes and
+   * separates those annotations when several enemies collapse into the same
+   * visual cluster.
    *
    * No combat simulation values or actor geometry are changed here.
    */
 
-  const ENEMY_HUD_LIFT = 52;
+  const ENEMY_HUD_LIFT = 60;
+  const ENEMY_HUD_LANE_GAP = 18;
+  const ENEMY_HUD_COLLISION_X = 72;
+  const ENEMY_HUD_COLLISION_Y = 16;
+  const ENEMY_HUD_MAX_LANES = 4;
 
   function isEnemyHealthBar(args) {
     if (!Array.isArray(args) || args.length < 4) return false;
@@ -27,11 +29,48 @@
       && Math.abs(height - 5) < 0.01;
   }
 
+  function healthBarAnchor(args) {
+    return {
+      x: Number(args[0]) + 30,
+      y: Number(args[1])
+    };
+  }
+
+  function sameHealthBar(anchor, pending) {
+    if (!anchor || !pending) return false;
+    return Math.abs(anchor.x - pending.x) < 1.5
+      && Math.abs(anchor.y - pending.y) < 1.5;
+  }
+
+  function chooseHudLift(anchor, occupied) {
+    for (let lane = 0; lane < ENEMY_HUD_MAX_LANES; lane += 1) {
+      const lift = ENEMY_HUD_LIFT + lane * ENEMY_HUD_LANE_GAP;
+      const shiftedY = anchor.y - lift;
+      const collision = occupied.some((slot) => (
+        Math.abs(slot.x - anchor.x) < ENEMY_HUD_COLLISION_X
+        && Math.abs(slot.y - shiftedY) < ENEMY_HUD_COLLISION_Y
+      ));
+      if (collision) continue;
+      occupied.push({ x: anchor.x, y: shiftedY });
+      return lift;
+    }
+
+    const lift = ENEMY_HUD_LIFT + ENEMY_HUD_MAX_LANES * ENEMY_HUD_LANE_GAP;
+    occupied.push({ x: anchor.x, y: anchor.y - lift });
+    return lift;
+  }
+
   function wrap(ctx) {
     if (!ctx || ctx.__crownlessEnemyHudClearance) return ctx;
 
-    let pendingEnemyLabel = false;
+    let pendingEnemyHud = null;
+    const occupiedHudSlots = [];
     const methods = new Map();
+
+    function resetHudLayout() {
+      pendingEnemyHud = null;
+      occupiedHudSlots.length = 0;
+    }
 
     return new Proxy(ctx, {
       get(target, property) {
@@ -40,26 +79,34 @@
         if (property === "fillRect") {
           return (...args) => {
             if (!isEnemyHealthBar(args)) return target.fillRect(...args);
-            pendingEnemyLabel = true;
+
+            const anchor = healthBarAnchor(args);
+            if (!sameHealthBar(anchor, pendingEnemyHud)) {
+              pendingEnemyHud = {
+                ...anchor,
+                lift: chooseHudLift(anchor, occupiedHudSlots)
+              };
+            }
+
             const shifted = args.slice();
-            shifted[1] = Number(shifted[1]) - ENEMY_HUD_LIFT;
+            shifted[1] = Number(shifted[1]) - pendingEnemyHud.lift;
             return target.fillRect(...shifted);
           };
         }
 
         if (property === "fillText") {
           return (...args) => {
-            if (!pendingEnemyLabel || args.length < 3) return target.fillText(...args);
-            pendingEnemyLabel = false;
+            if (!pendingEnemyHud || args.length < 3) return target.fillText(...args);
             const shifted = args.slice();
-            shifted[2] = Number(shifted[2]) - ENEMY_HUD_LIFT;
+            shifted[2] = Number(shifted[2]) - pendingEnemyHud.lift;
+            pendingEnemyHud = null;
             return target.fillText(...shifted);
           };
         }
 
         if (property === "clearRect") {
           return (...args) => {
-            pendingEnemyLabel = false;
+            resetHudLayout();
             return target.clearRect(...args);
           };
         }
