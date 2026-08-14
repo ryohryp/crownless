@@ -1,36 +1,28 @@
 # Crownless — Visual Design Guide v0.2
 
 > **Status:** canonical global visual baseline  
-> **Updated:** 2026-08-13  
+> **Updated:** 2026-08-14  
 > **Scope:** characters, enemies, combat, exploration, Grey Hearth, UI, loot, image generation, implementation
 
-## 0. Canonical visual reference
+## 0. Canonical visual references
 
-The primary visual reference for Crownless is:
+The primary global visual reference is:
 
 `docs/assets/crownless-visual-design-reference-v0.1.jpg`
 
-When prose can be interpreted in more than one way, **match the visual grammar of this image rather than inventing a new adjacent style**.
+Use it for line weight, manuscript / woodcut treatment, palette, map language, Grey Hearth material language, UI grammar, and physical ink effects.
 
-The reference image remains authoritative for:
-
-- line weight and woodcut / manuscript treatment
-- enemy strangeness and silhouette
-- combat ink effects
-- map rendering language
-- Grey Hearth progression language
-- UI material and icon grammar
-- palette balance
-
-### Character proportion override — 2026-08-13
+### Current character override
 
 The accepted combat actor set at:
 
 `assets/combat/minimal-v0.1/actors/`
 
-is now authoritative for **character proportion, facial simplification, body deformation, and visible silhouette width**. It supersedes the older 4–5-head-tall character proportion visible in the v0.1 style board.
+is authoritative for **character proportion, facial simplification, body deformation, visible silhouette width, and the current combat-character viewpoint**.
 
-Gameplay behavior remains authoritative in the relevant game/system specifications.
+It supersedes older 4–5-head-tall proportion guidance visible in earlier calibration boards. Those older images remain useful for illustration-family calibration but must not pull current characters back toward longer anatomy or front-facing portrait presentation.
+
+Gameplay behavior remains authoritative in the relevant system specifications.
 
 ---
 
@@ -38,7 +30,7 @@ Gameplay behavior remains authoritative in the relevant game/system specificatio
 
 > **Crownless is a playable medieval manuscript: a rough, hand-inked world that gains knowledge and restrained color as the player explores, fights, survives, and returns to the Grey Hearth.**
 
-The visual identity is:
+Visual identity:
 
 > **medieval manuscript × woodcut × stylized action RPG × living map**
 
@@ -56,72 +48,75 @@ Do not sacrifice gameplay readability for illustration detail.
 
 ## 2. Character lock — do not drift
 
-This section exists because “stylized manuscript character” easily drifts toward either uncanny semi-realism or glossy mascot chibi.
+Characters must match the accepted combat actor set.
 
 ### Target
 
-Characters must match the accepted combat actor set.
-
-They are:
-
 - approximately **3–3.5 heads tall**
 - strongly deformed, compact **folk-doll proportions**
-- large-headed with short limbs and simplified torso, hands and feet
+- large-headed with short limbs and simplified torso, hands, and feet
 - rough medieval manuscript / woodcut figures adapted for readable action gameplay
-- charming through shape and craft, **not through glossy cuteness**
-- defined first by silhouette, stance, equipment and outer contour
-- rendered with irregular black ink and restrained interior detail
+- charming through shape and craft, not glossy cuteness
+- defined first by silhouette, stance, equipment, and outer contour
+- irregular black ink with restrained interior detail
 
 This deformation is intentional. Do not “correct” it toward realistic anatomy.
 
 ### Face
 
-Faces should be:
+Faces should be tiny and symbolic:
 
-- tiny and symbolic
-- minimally described with simple eyes / brows and little or no mouth detail
-- free of realistic skin texture and anatomical detail
-- restrained in expression
-- crude / folk-art-like rather than anime-like
+- simple eyes / brows
+- little or no mouth detail
+- no realistic skin texture
+- no anatomical facial modeling
+- restrained expression
+- crude folk-art quality rather than anime-like polish
 
-The desired feeling is **anonymous, rough, primitive, readable and slightly strange** — not creepy, not uncanny, not glossy-cute.
+The desired feeling is **anonymous, rough, primitive, readable, and slightly strange** — not creepy, not uncanny, not glossy-cute.
 
 ### Body and pose
 
-- head is clearly enlarged for phone readability
-- limbs are short and simplified
-- torso is compact and blocky
-- hands / weapons / shields may be exaggerated for silhouette readability
-- poses should still communicate action clearly despite deformation
-- asymmetry is welcome
-- role identity must survive at small phone size
+- enlarged head for phone readability
+- short simplified limbs
+- compact blocky torso
+- exaggerated hands / weapons / shields when needed for silhouette
+- clear action despite deformation
+- useful asymmetry
+- role identity that survives at small phone size
+
+### Combat viewpoint lock
+
+Combat characters are not standing portraits pasted onto a battlefield.
+
+For combat actor art:
+
+- author the figure in an **oblique top-down / three-quarter battlefield view**
+- let head top, shoulders, back planes, shield top, bow orientation, and foot placement support the elevated camera
+- reduce straight-on facial presentation
+- make the feet / ground contact read clearly
+- keep the role pose functional in the projected battlefield
+
+Do not generate a front-facing or side-on standing illustration and plan to “fix” the camera with renderer skew or squash later.
 
 ### Equipment
 
-Prefer:
-
-- patched cloth
-- wrapped hands
-- scavenged belts and pouches
-- mismatched armor pieces
-- crude shields
-- weathered weapons
-- silhouette-changing gear
+Prefer patched cloth, wrapped hands, scavenged belts and pouches, mismatched armor pieces, crude shields, weathered weapons, and silhouette-changing gear.
 
 The player begins as an unknown survivor, not a polished hero.
 
 ### Explicit character negatives
 
-Reject characters that read as:
+Reject:
 
-- realistic 7–8-head-tall fantasy concept art
+- realistic 7–8-head fantasy concept art
 - semi-realistic or anatomically corrected fantasy characters
 - painterly character illustration
 - uncanny human faces
 - glossy modern chibi / cute SD mascots
 - anime-gacha characters
 - clean vector cartoons
-- pixel-art block figures when the target is manuscript illustration
+- front-facing portrait poses used as combat sprites when the scene requires oblique top-down figures
 
 **Strong deformation is correct; glossy cuteness and human realism are not.**
 
@@ -131,24 +126,15 @@ Reject characters that read as:
 
 Enemy roles must be readable through silhouette and posture before labels.
 
-For humanoid enemies, use the same 3–3.5-head folk-doll deformation as the player unless a monster concept intentionally breaks human anatomy.
+Humanoid enemies normally use the same 3–3.5-head folk-doll deformation as the player.
 
-Prefer:
+Role silhouette anchors:
 
-- medieval bestiary wrongness
-- hunched, uneven or intentionally simplified anatomy
-- strange heads and masks
-- crude armor silhouettes
-- asymmetric weapons
-- distinct posture per role
-
-Role silhouette examples:
-
-- **Rusher** — forward lean, compact aggressive mass, fast melee weapon
+- **Rusher** — forward lean, compact aggressive mass, fast melee threat
 - **Guard** — broad planted shape, shield-dominant block
 - **Skirmisher** — narrower mobile shape, bow / ranged-read silhouette
 
-The goal is memorable unease and readability, not body horror.
+Prefer medieval-bestiary wrongness, asymmetry, crude armor, and distinct posture. The goal is memorable unease and readability, not body horror.
 
 ---
 
@@ -157,7 +143,7 @@ The goal is memorable unease and readability, not body horror.
 Base rendering:
 
 - stylized 2D / 2.5D
-- irregular hand-inked contour lines
+- irregular hand-inked contours
 - parchment negative space
 - woodcut / crosshatched shadows
 - flat or lightly textured muted color planes
@@ -165,17 +151,9 @@ Base rendering:
 - imperfect geometry
 - limited gradients
 
-Avoid:
+Avoid photorealism, realistic AAA 3D, PBR materials, cinematic depth of field, glossy bloom, overly smooth vector illustration, and painterly fantasy concept-art rendering.
 
-- photorealism
-- realistic AAA 3D
-- PBR material rendering
-- cinematic depth of field
-- glossy bloom
-- overly smooth vector illustration
-- painterly fantasy concept-art rendering
-
-The image should feel **drawn / printed**, not rendered by a realistic engine.
+The image should feel **drawn / printed**, not realistically rendered.
 
 ---
 
@@ -193,46 +171,61 @@ Color is information, not decoration.
 
 Do not default to saturated blue / purple / orange rarity colors.
 
-Unknown territory should remain mostly ink and ash. Discovery may return restrained blue-green and local color.
-
 ---
 
 ## 6. Combat — ink becomes motion
 
-Combat uses the fixed oblique top-down battlefield from the combat specification.
+Combat uses the fixed oblique top-down battlefield from the combat presentation specification.
 
-The combat scene should combine:
+The scene combines:
 
 - parchment battlefield
-- compact 3–3.5-head manuscript / folk-doll figures
+- compact 3–3.5-head manuscript / folk-doll figures authored for the oblique view
 - strong black attack strokes
 - muted vermilion telegraphs
 - sparse annotation UI
 
 ### Actor sprite presentation contract
 
-Accepted actor artwork must preserve its authored deformation **after it enters the game**. A correct source image rendered with incorrect geometry is a visual failure.
+Accepted actor artwork must preserve authored deformation **after it enters the game**.
 
 For illustrated combat actors:
 
 - project the actor's **ground / foot position** into the oblique battlefield
-- draw the actor body as a screen-facing illustrated sprite / billboard above that projected foot position
-- use **one uniform scale** for both axes; never independently stretch width and height
-- preserve the source artwork's visible aspect ratio and silhouette width
-- never apply the battlefield floor's oblique squash / skew / perspective transform to the actor body itself
-- source PNG canvas bounds are not semantic size; transparent padding must not make an actor appear narrower or smaller
-- determine visible size from authored content bounds / alpha bounds, or preprocess to a tightly trimmed sprite
-- anchor humanoid sprites from an authored pivot or the bottom-center of their visible content bounds so feet stay attached to the logical ground position
-- size actors by **visible content**, not by the raw square image dimensions
-- broad role silhouettes such as Guard shields must remain broad; narrow roles such as Skirmisher must not be widened merely to fit a common box
+- draw the actor body as a screen-space billboard above that projected point
+- use one uniform scale for both axes
+- preserve source visible aspect ratio and silhouette width
+- never apply floor oblique squash / skew / non-uniform perspective to the body
+- determine apparent size from visible / alpha content bounds, not raw square canvas size
+- use an authored pivot or bottom-center of visible bounds
+- keep feet, logical ground position, and shadow aligned
+- preserve role-specific width: Guard broad, Rusher compact, Skirmisher narrower
 
-Do **not** solve a sizing mismatch by arbitrary X-only or Y-only scale correction. Fix source bounds, pivot, visible-size targets, or screen-space uniform scale instead.
+Do not solve a sizing mismatch with arbitrary X-only or Y-only correction.
 
-At phone size, compare the rendered actor directly with the accepted source actor. If a 3–3.5-head figure appears tall/thin, squat/wide, compressed, skewed, or otherwise differently proportioned in-game, reject the implementation before tuning effects.
+### Overlap and depth
+
+When actors overlap in the oblique view:
+
+- depth order follows projected **foot / ground Y**
+- farther / smaller ground Y draws first; nearer / larger ground Y draws later
+- use stable tie-breaking to avoid flicker
+- do not use enemy-array order as a substitute for visual depth
+
+### Crowded combat HUD
+
+Floating UI is subordinate to actor silhouettes.
+
+- priority threat / nearest enemy and bosses may show name + HP
+- ordinary non-priority enemies should prefer compact HP only
+- HUD placement uses rectangle collision, not point-only spacing
+- resolve collisions with restrained vertical lanes first, then small horizontal nudges
+- avoid covering role-defining heads, shields, bows, and telegraphs
+- do not move combatants in simulation merely to make labels fit
 
 ### Effects
 
-- normal attacks: short, forceful black ink arcs
+- normal attacks: short forceful black ink arcs
 - stronger attacks: wider brush strokes, ink splash, broken hatch marks
 - hit impact: ink scatter + body displacement + hit stop
 - dust: dry brush texture
@@ -241,22 +234,11 @@ At phone size, compare the rendered actor directly with the accepted source acto
 
 Do not use large glowing fantasy crescents for ordinary attacks.
 
-### Controls are not negotiable visual decoration
+Presentation effects must follow actual gameplay state. Avoid brittle logic that infers hit events solely from prototype drawing colors.
 
-Phone combat remains:
+### Controls are not decorative
 
-- drag on arena to move
-- stop to auto-strike
-- **技**
-- **回避**
-
-Do not add by convention:
-
-- virtual joystick
-- light-attack button
-- large skill cluster
-- combat minimap
-- permanent consumable hotbar
+Phone combat remains drag movement, stop-to-auto-strike, **技**, and **回避**. Do not add joystick, light-attack button, skill cluster, minimap, or permanent consumable hotbar by convention.
 
 ---
 
@@ -264,42 +246,23 @@ Do not add by convention:
 
 The fantasy map is an authored manuscript artifact, not themed Google Maps.
 
-Unknown territory:
+Unknown territory uses ink wash, blank parchment, unfinished routes, uncertain symbols, fog, and torn negative space.
 
-- ink wash
-- blank parchment
-- unfinished routes
-- uncertain symbols
-- fog / torn negative space
+Discovery should visibly add:
 
-Discovery should feel like knowledge being added:
-
-1. terrain lines appear
-2. route strokes appear
-3. POI symbol appears
-4. name / annotation is written or stamped
-5. restrained color returns
-
-Use faded blue-green for discovered knowledge rather than flooding the entire map with color.
+1. terrain lines
+2. route strokes
+3. POI symbol
+4. name / annotation
+5. restrained faded blue-green color
 
 ---
 
 ## 8. Grey Hearth — a page becoming inhabited
 
-The Grey Hearth begins sparse and poor.
+The Grey Hearth begins sparse and poor. Secured progress should physically add illustration: fire, shelter, map marks, loot shelf contents, tools, recovery cache, forge, and signs of repeated use.
 
-Secured progress should physically add illustration to the place:
-
-- fire
-- shelter
-- map marks
-- loot shelf contents
-- tools
-- recovery cache
-- forge
-- signs of repeated use
-
-It must not turn into a generic tile dashboard or luxurious tavern UI.
+It must not turn into a generic tile dashboard or luxury tavern UI.
 
 Ember orange is strongest here because it means safety and survival.
 
@@ -307,25 +270,11 @@ Ember orange is strongest here because it means safety and survival.
 
 ## 9. UI — annotation, stamp, ledger
 
-UI should appear written, stamped, scratched or attached to the manuscript.
+UI should appear written, stamped, scratched, or attached to the manuscript.
 
-Prefer:
+Prefer parchment fields, dark ink fields, thin irregular rules, stamps / seals, manuscript glyphs, short labels, and restrained distressed edges.
 
-- parchment fields
-- dark ink fields
-- thin irregular rules
-- stamps / seals
-- manuscript glyphs
-- short labels
-- restrained distressed edges
-
-Avoid:
-
-- glossy rounded cards
-- thick beveled metal frames
-- jewel chrome
-- oversized decorative gold borders
-- generic mobile RPG dashboards
+Avoid glossy rounded cards, thick beveled metal frames, jewel chrome, oversized gold borders, and generic mobile-RPG dashboards.
 
 ---
 
@@ -348,19 +297,20 @@ Do not let rarity color become the primary identity.
 
 Before generating any Crownless image:
 
-1. inspect `docs/assets/crownless-visual-design-reference-v0.1.jpg`
-2. inspect the accepted actor set when characters appear
-3. identify which reference controls the requested task
-4. preserve character deformation and rendering grammar
-5. describe the actual gameplay composition
-6. add explicit negative constraints
-7. review the output against the accepted actors before accepting it
+1. inspect the global visual reference
+2. inspect the accepted combat actor set when characters appear
+3. for combat characters, lock the oblique top-down / 3/4 source-art viewpoint
+4. identify which reference controls each requested element
+5. preserve 3–3.5-head deformation and rendering grammar
+6. describe actual gameplay composition
+7. add explicit negative constraints
+8. compare output to accepted actors before accepting it
 
 ### Prompt anchor
 
 Use wording equivalent to:
 
-> **A playable medieval-fantasy game in Crownless's canonical visual grammar: rough medieval manuscript and woodcut linework, parchment negative space, restrained muted color, strongly deformed 3–3.5-head-tall folk-doll figures with large heads and short limbs, tiny symbolic faces, weathered asymmetric equipment, readable silhouettes, physical black-ink action marks, and sparse annotation-like UI.**
+> **A playable medieval-fantasy game in Crownless's canonical visual grammar: rough medieval manuscript and woodcut linework, parchment negative space, restrained muted color, strongly deformed 3–3.5-head-tall folk-doll figures with large heads and short limbs, tiny symbolic faces, weathered asymmetric equipment, readable silhouettes, physical black-ink action marks, and sparse annotation-like UI. Combat figures are authored for a diagonal oblique top-down three-quarter battlefield view rather than as front-facing portraits.**
 
 ### Required negative anchor
 
@@ -375,66 +325,64 @@ Use wording equivalent to:
 - not generic Diablo imitation
 - not glossy mobile RPG UI
 - no neon magic by default
+- no front-facing portrait pose for an oblique combat sprite unless explicitly requested for a non-combat purpose
 
-When a generated character looks more realistic, longer-limbed, more anatomically human, glossier, cuter, or more anime-like than the accepted actor set, **reject and regenerate rather than rationalizing the difference**.
+Reject drift rather than rationalizing it.
 
 ---
 
-## 12. Implementation contract
+## 12. Implementation and asset contract
 
-Implementation should approximate the visual reference with reusable low-cost techniques.
+Prefer illustrated / sprite actor layers, Canvas / SVG linework, shared paper and ink textures, limited palette tokens, CSS masks, procedural reveal masks, small particles, and the existing projected combat plane.
 
-Prefer:
+For actor sprites:
 
-- illustrated / sprite actor layers
-- Canvas / SVG linework
-- shared paper and ink textures
-- limited palette tokens
-- CSS masks and simple filters
-- procedural reveal masks
-- simple particles
-- flat projected combat plane
-
-For actor sprites specifically:
-
-- project **position**, not sprite anatomy
-- render actor art in screen space with uniform scale
-- alpha-trim or use visible-content bounds before sizing
-- use a stable foot pivot / ground anchor
+- project position, not anatomy
+- render art in screen space with uniform scale
+- alpha-trim or use visible-content bounds
+- use a stable foot pivot
 - preserve role-specific silhouette width
-- verify the final rendered proportion from a phone screenshot, not only from source PNG inspection
+- verify final rendered proportion from a phone screenshot
 
-Do not attempt to reproduce the reference by merely tinting generic prototype graphics if the resulting silhouette language is still wrong.
+For combat actor PNG assets:
 
-**Character silhouette, deformation, aspect ratio, ground anchoring and drawing grammar are higher priority than surface filters.**
+- verify they actually decode
+- verify meaningful non-transparent silhouette coverage and plausible alpha bounds
+- do not rely on file byte size as a quality / integrity proxy
+- when a runtime screenshot shows colored garbage, missing body, or only shadow / labels, inspect the source PNG before changing renderer math
+
+**Character silhouette, deformation, viewpoint, aspect ratio, ground anchoring, depth ordering, and drawing grammar are higher priority than surface filters.**
 
 ---
 
 ## 13. Mandatory visual review
 
-Before accepting a visual, answer all of these:
+Before accepting a visual, confirm:
 
-1. Is it clearly a playable game screen rather than concept art?
-2. Do humanoid characters match the accepted **3–3.5-head folk-doll proportions**?
-3. Are faces tiny and symbolic rather than realistic, creepy, cute-mascot or anime-like?
-4. Are silhouettes readable at phone size?
-5. Are actor sprites rendered with the **same visible proportions as their accepted source art**, without X/Y stretching, floor-projection distortion, or transparent-padding shrinkage?
-6. Do feet / ground anchors visually agree with logical combat positions?
-7. Does the linework feel hand-inked / woodcut rather than smooth or painterly?
-8. Does color carry meaning rather than decoration?
-9. Does combat use physical ink impact rather than default glowing VFX?
-10. Does exploration look like knowledge being written onto a map?
-11. Does Grey Hearth progression physically inhabit the space?
-12. Does equipment feel scavenged and earned?
-13. Does the visual preserve the actual gameplay contract?
-14. Could a small prototype plausibly approximate it?
-15. **Does it visibly belong to the same game as the accepted combat actors?**
-16. **Would it still be recognizable as Crownless without the logo?**
+1. it is a playable game screen when gameplay is requested
+2. humanoid characters match 3–3.5-head folk-doll proportions
+3. faces are tiny and symbolic
+4. silhouettes read at phone size
+5. combat source art uses the intended oblique viewpoint
+6. runtime actor proportions match source art without X/Y stretching or floor distortion
+7. feet / shadows align with logical ground position
+8. overlapping actors depth-sort by ground / foot Y
+9. crowded enemy HUD does not create a label carpet or cover role-defining silhouettes unnecessarily
+10. linework belongs to the hand-inked / woodcut family
+11. color has semantic purpose
+12. combat uses physical ink impact rather than default glow
+13. combat PNG assets are intact and visibly non-empty
+14. exploration looks like knowledge being written onto a map
+15. Grey Hearth progression physically inhabits the space
+16. equipment feels scavenged and earned
+17. the result preserves actual gameplay contract
+18. the result belongs beside the accepted combat actors
+19. it remains recognizable as Crownless without the logo
 
-If #2, #3, #5, #15 or #16 is no, the visual is not accepted.
+If character proportion, viewpoint, runtime geometry, or illustration family is wrong, reject before polishing.
 
 ---
 
 ## 14. Rejection test
 
-> **If the visual could belong to another dark-fantasy RPG by swapping the logo, if the actor drifts back toward realistic anatomy, if its source deformation is distorted by implementation, or if its characters belong to a different illustration family than the accepted actor set, reject it.**
+> **If the visual could belong to another dark-fantasy RPG by swapping the logo, if the actor drifts toward realistic anatomy, if a combat actor is a pasted front-facing portrait, if source deformation is distorted by runtime transforms, or if crowded UI hides the fight, reject it.**
