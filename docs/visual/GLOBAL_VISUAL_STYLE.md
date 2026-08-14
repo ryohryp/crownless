@@ -7,7 +7,7 @@ the canonical reference images remain authoritative.
 ## Global Visual Style Lock
 
 ```text
-A playable medieval-fantasy game illustrated in Crownless's canonical visual grammar: a living medieval manuscript and rough woodcut print, irregular hand-inked contours, parchment negative space, crosshatched shadow, flat or lightly textured muted color, compact 4–5-head-tall non-chibi figures, small restrained folk-art faces, weathered asymmetric equipment, readable phone-scale silhouettes, physical black-ink action marks, muted vermilion danger marks, and sparse annotation-like UI. The result must feel drawn and printed rather than realistically rendered, painterly, glossy, or vector-clean, and must belong to the same illustration family as docs/assets/crownless-visual-design-reference-v0.1.jpg.
+A playable medieval-fantasy game illustrated in Crownless's canonical visual grammar: a living medieval manuscript and rough woodcut print, irregular hand-inked contours, parchment negative space, crosshatched shadow, flat or lightly textured muted color, compact 3–3.5-head-tall non-chibi figures, small restrained folk-art faces, weathered asymmetric equipment, readable phone-scale silhouettes, physical black-ink action marks, muted vermilion danger marks, and sparse annotation-like UI. The result must feel drawn and printed rather than realistically rendered, painterly, glossy, or vector-clean, and must belong to the same illustration family as docs/assets/crownless-visual-design-reference-v0.1.jpg.
 ```
 
 ## Fixed Avoid Block
@@ -26,7 +26,7 @@ AVOID: photorealism, realistic fantasy concept art, painterly rendering, realist
 
 ### Forbidden Changes
 
-- Do not change the compact 4–5-head-tall non-chibi manuscript proportion or small restrained face grammar
+- Do not change the compact 3–3.5-head-tall non-chibi manuscript proportion or small restrained face grammar
 - Do not turn anonymous, weathered figures into polished heroic, royal, cute, anime, or realistic fantasy characters
 - Do not give the unarmed player a weapon, shield, crown, class costume, or polished armor
 - Do not exchange the Rusher, Guard, and Skirmisher role silhouettes or combat-reading props
