@@ -25,6 +25,7 @@ from one of these candidates.
 | Asset ID | File | Gameplay reading |
 | --- | --- | --- |
 | `player_unarmed` | `actors/player-unarmed.png` | Intentionally unarmed player with wrapped hands |
+| `player_unarmed_combat_sheet` | `actors/player-unarmed-combat-sprite-sheet-v0.1.png` | Accepted transparent protagonist combat sprite source sheet; optimized 768×512 runtime-source derivative; frame slicing/timing pending |
 | `enemy_rusher` | `actors/enemy-rusher.png` | Forward-driving close-pressure enemy |
 | `enemy_guard` | `actors/enemy-guard.png` | Broad, planted shield enemy |
 | `enemy_skirmisher` | `actors/enemy-skirmisher.png` | Narrow, retreat-ready ranged enemy |
