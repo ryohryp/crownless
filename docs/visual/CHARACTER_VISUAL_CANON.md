@@ -16,7 +16,9 @@ This file maps Crownless combat subjects to the current character rules used by 
 
 ### Approved Visual Anchor
 
-- `assets/combat/minimal-v0.1/actors/player-unarmed.png`
+- `docs/assets/player-unarmed-approved-anchor-v0.2.webp`
+
+This anchor is the approved identity, clothing/material, palette, silhouette, and unarmed-fighting reference. Runtime sprites must adapt it to the oblique top-down battlefield camera and phone-scale readability rather than copy its portrait framing verbatim.
 
 ### Reference calibration
 
@@ -26,7 +28,7 @@ This file maps Crownless combat subjects to the current character rules used by 
 
 - `docs/assets/player-unarmed-sprite-sheet-reference-v0.1.webp`
 
-Use this sheet as the approved reference for the protagonist's overall appearance, directional pose family, compact proportions, scavenged-clothing treatment, and unarmed action language. It is a presentation/reference sheet, not the runtime atlas: labels, background treatment, and sheet layout must not appear in gameplay sprites. The single-sprite Approved Visual Anchor above remains the generation parent for subject identity and silhouette.
+Use this sheet as the approved reference for the protagonist's directional pose family, compact proportions, and unarmed action language. It is a presentation/reference sheet, not the runtime atlas: labels, background treatment, and sheet layout must not appear in gameplay sprites. The Approved Visual Anchor above remains the generation parent for subject identity, clothing/material language, palette, silhouette, and unarmed combat identity.
 
 ### Accepted visual conditions
 
