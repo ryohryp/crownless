@@ -10,15 +10,16 @@ description: Apply Crownless's canonical living-medieval-manuscript visual langu
 Before any Crownless visual task, read in this order:
 
 1. `../../docs/visual-design-guide-v0.2.md` — canonical visual rules
-2. inspect `../../docs/assets/crownless-visual-design-reference-v0.1.jpg` — canonical environment / line / palette reference
-3. inspect `../../assets/combat/minimal-v0.1/actors/` when characters appear — canonical character deformation reference
+2. inspect `../../docs/assets/crownless-visual-design-reference-v0.1.jpg` — global line / palette / material calibration
+3. inspect `../../assets/combat/minimal-v0.1/actors/` when combat characters appear — current character proportion / silhouette / combat-view authority
 4. `../../docs/game-system-design.md` — gameplay contract
 5. relevant subsystem spec:
    - exploration / maps: `../../docs/exploration-location-spec.md`
    - combat: `../../docs/combat-presentation-spec.md`
    - Grey Hearth: `../../docs/hearth-presentation-spec.md`
+6. for named combat subject generation, also read `../../docs/visual/CHARACTER_VISUAL_CANON.md`
 
-The v0.1 style board remains authoritative for linework, palette, materials, map/UI grammar and physical ink effects. The accepted combat actor set supersedes its older 4–5-head character proportion.
+Older v0.1 boards remain authoritative for linework, palette, materials, map/UI grammar, and physical ink effects. The accepted combat actor set supersedes older 4–5-head proportion guidance and controls the current combat-character viewpoint.
 
 Gameplay specs remain authoritative for controls and behavior.
 
@@ -28,27 +29,33 @@ Gameplay specs remain authoritative for controls and behavior.
 
 ## Character lock
 
-This is the highest-risk drift area.
-
 Match the accepted actor set at `../../assets/combat/minimal-v0.1/actors/`.
 
 Characters are:
 
 - approximately **3–3.5 heads tall**
 - strongly deformed, compact **folk-doll figures**
-- large-headed with short limbs and simplified torso, hands and feet
-- tiny, symbolic-faced and restrained in expression
-- rough / folk-art / medieval-manuscript in anatomy and contour
-- readable primarily through silhouette, stance and equipment
-- drawn with irregular black ink and restrained interior detail
+- large-headed with short limbs and simplified torso, hands, and feet
+- tiny symbolic faces and restrained expression
+- rough folk-art / medieval-manuscript anatomy and contour
+- readable primarily through silhouette, stance, and equipment
+- irregular black ink with restrained interior detail
 
 This deformation is intentional. **Do not correct actors toward realistic anatomy.**
 
-Prefer weathered asymmetry, patched cloth, crude shields, wrapped hands, scavenged equipment and silhouette-changing gear.
+### Combat viewpoint lock
+
+When the asset is a combat actor, also match the gameplay camera in the source art:
+
+- oblique top-down / three-quarter view
+- slightly visible upper planes of head / shoulders / equipment where appropriate
+- grounded foot placement
+- reduced straight-on portrait information
+- role action readable on the diagonal battlefield
+
+Do not generate a front-facing standing portrait and expect implementation to skew it into the combat view later.
 
 ### Face lock
-
-Faces should use very little information:
 
 - tiny simple eyes / brows
 - little or no mouth detail
@@ -56,32 +63,30 @@ Faces should use very little information:
 - no anatomical facial modeling
 - no horror-like eyes or uncanny expression
 
-The target is rough, primitive and readable rather than realistic or glossy-cute.
+Target rough, primitive, and readable rather than realistic or glossy-cute.
 
 ### Reject character drift immediately
 
 Reject and redo if characters become:
 
-- realistic 7–8-head-tall fantasy concept art
+- realistic 7–8-head fantasy concept art
 - semi-realistic / anatomically corrected humans
 - painterly fantasy illustration
 - uncanny realistic faces
 - glossy modern chibi / cute SD mascots
 - anime-gacha
 - clean vector cartoons
-- generic pixel-block prototype figures when a manuscript actor is intended
+- front-facing portrait sprites for oblique combat
 
 **Strong deformation is correct. Glossy cuteness and human realism are not.**
 
 ## Enemy role silhouettes
 
-Humanoid enemies normally share the same 3–3.5-head deformation as the player.
-
 - **Rusher:** forward lean, aggressive compact mass, fast melee weapon
 - **Guard:** wide planted block, shield-dominant silhouette
 - **Skirmisher:** narrower mobile shape, bow / ranged-read silhouette
 
-Role identity must be readable without labels at phone size.
+Role identity must read without labels at phone size.
 
 ## Rendering grammar
 
@@ -93,7 +98,7 @@ Role identity must be readable without labels at phone size.
 - imperfect geometry
 - physical marks rather than glossy effects
 
-Avoid photorealism, realistic AAA 3D, PBR materials, painterly concept art, smooth vector-cartoon treatment and excessive bloom.
+Avoid photorealism, realistic AAA 3D, PBR materials, painterly concept art, smooth vector-cartoon treatment, and excessive bloom.
 
 ## Semantic palette
 
@@ -109,50 +114,76 @@ Color is information, not decoration.
 
 ## Combat rules
 
-Combat uses the fixed oblique top-down battlefield and the accepted compact actor set.
+Combat uses the fixed oblique top-down battlefield and accepted compact actor set.
 
 Combat expression:
 
 - normal trails = short strong black ink strokes
-- heavy / Technique = wider brush stroke, ink splash, broken hatch marks
+- heavy / Technique = wider brush stroke, ink splash, broken hatch
 - impact = ink scatter + body displacement + hit stop
 - danger = hand-drawn vermilion arcs / circles / scratches
 - perfect evade may break or scatter the warning mark
 
-Phone controls remain:
-
-- drag on arena to move
-- stop to auto-strike
-- **技**
-- **回避**
-
-Never add for convention:
-
-- virtual joystick
-- light-attack button
-- large skill cluster
-- combat minimap
-- permanent hotbar
+Phone controls remain drag movement, stop to auto-strike, **技**, and **回避**. Never add joystick, light-attack button, large skill cluster, combat minimap, or permanent hotbar by convention.
 
 ## Actor integration lock
 
-When implementing or reviewing illustrated actor sprites, preserve the accepted source deformation after rendering.
+When implementing or reviewing illustrated actor sprites:
 
-Required rules:
-
-- project the actor's **foot / ground position** into the oblique arena
-- render the actor body above that point in screen space / billboard space
-- use **one uniform scale** for X and Y
-- never stretch width and height independently
-- never apply the arena floor's skew, squash, or non-uniform projection to the actor body
-- calculate apparent size from visible / alpha content bounds, not raw square PNG dimensions
+- project the actor's **foot / ground position** into the arena
+- render the body above that point in screen / billboard space
+- use one uniform scale for X and Y
+- never apply arena floor skew / squash / non-uniform projection to the body
+- calculate size from visible / alpha content bounds, not raw square PNG dimensions
 - transparent padding must not make a sprite smaller, thinner, or offset
-- use an authored pivot when available; otherwise anchor at bottom-center of visible content bounds
-- keep the foot pivot aligned with the logical combat position and shadow
-- preserve role-specific visible width; Guard should remain broad, Skirmisher narrow, Rusher compact
-- if source bounds are poor, trim/preprocess or alpha-crop; **do not compensate by X-only or Y-only stretching**
+- use an authored pivot when available; otherwise bottom-center of visible content bounds
+- keep foot pivot, logical combat position, and shadow aligned
+- preserve role-specific visible width: Guard broad, Skirmisher narrow, Rusher compact
+- if bounds are poor, trim / alpha-crop; never compensate with X-only or Y-only stretch
 
-If the accepted 3–3.5-head source art looks tall/thin, squat/wide, skewed, compressed, or otherwise differently proportioned in the actual game, classify it as a rendering defect.
+If accepted source art looks tall/thin, squat/wide, skewed, compressed, or otherwise differently proportioned in-game, classify it as a rendering defect.
+
+## Oblique overlap lock
+
+For ground-bound combatants in the oblique view:
+
+- depth-sort by projected **foot / ground Y**
+- draw farther / smaller Y first and nearer / larger Y later
+- use a stable tie-breaker to prevent flicker
+- do not mutate simulation update order merely to change visual overlap
+- include still-visible dead / falling actors in the same presentation ordering
+
+## Crowded enemy HUD lock
+
+When enemies cluster:
+
+- preserve silhouettes before labels
+- priority threat / nearest enemy and bosses may show name + HP
+- ordinary non-priority enemies should prefer compact HP only
+- treat HUDs as rectangles with width / height
+- avoid other HUD rectangles and nearby actor silhouette regions
+- resolve with small vertical lanes first, then restrained horizontal nudges
+- keep HP background and fill on one resolved placement
+- reset HUD occupancy each frame
+- do not push combatants apart in simulation just to make labels fit
+
+Review at least one three-enemy cluster before approving a HUD or overlap change.
+
+## Combat asset integrity lock
+
+A runtime visual glitch may come from the PNG, not renderer math.
+
+For every new or replaced combat actor PNG:
+
+1. confirm the file is a decodable PNG
+2. confirm supported bit depth / color format for the current pipeline when applicable
+3. inspect non-transparent pixel coverage
+4. inspect visible alpha bounds for unexpectedly empty / narrow / short silhouettes
+5. do **not** use compressed file byte size as the validity criterion
+6. if runtime shows colored garbage, missing body, or only shadow / label, inspect the asset before changing transforms
+7. add or extend automated integrity coverage for the changed actor where practical
+
+Do not hide a corrupt sprite with renderer hacks.
 
 ## Exploration rules
 
@@ -160,13 +191,7 @@ The map is the game surface and should look like a manuscript gaining knowledge.
 
 Unknown = ink / ash / blank parchment / unfinished routes.
 
-Discovery should visibly add:
-
-1. terrain lines
-2. route strokes
-3. POI symbols
-4. names / notes
-5. restrained faded blue-green color
+Discovery visibly adds terrain lines, routes, POI symbols, names / notes, and restrained faded blue-green color.
 
 Do not make themed Google Maps.
 
@@ -174,36 +199,36 @@ Do not make themed Google Maps.
 
 The Hearth is a sparse safe page that becomes inhabited because the player survived.
 
-Secured progress should add physical illustration: fire, map marks, shelf contents, recovery cache, tools, forge and signs of repeated use.
+Secured progress should add physical illustration: fire, map marks, shelf contents, recovery cache, tools, forge, and signs of repeated use.
 
 Do not turn it into a generic management dashboard or luxury tavern.
 
 ## UI rules
 
-UI should feel written, stamped, scratched or attached to the manuscript.
+UI should feel written, stamped, scratched, or attached to the manuscript.
 
-Prefer parchment / dark ink fields, thin irregular rules, stamps, seals, manuscript glyphs and restrained distressed edges.
+Prefer parchment / dark ink fields, thin irregular rules, stamps, seals, manuscript glyphs, and restrained distressed edges.
 
-Avoid glossy rounded cards, beveled metal, jewel chrome, giant gold borders and generic mobile-RPG dashboards.
+Avoid glossy rounded cards, beveled metal, jewel chrome, giant gold borders, and generic mobile-RPG dashboards.
 
 ## Image-generation workflow
 
 1. Read the v0.2 guide.
-2. Inspect the v0.1 style board.
-3. If characters appear, inspect the accepted actor set.
-4. Identify the exact reference governing each part of the requested asset or screen.
-5. Preserve the 3–3.5-head folk-doll deformation before adding scene details.
-6. Preserve actual gameplay composition and controls.
-7. Add semantic palette rules.
-8. Add explicit negative constraints.
+2. Inspect the global visual reference.
+3. If characters appear, inspect accepted actors.
+4. If combat characters appear, explicitly lock the oblique top-down / 3/4 source-art viewpoint.
+5. Identify the exact reference governing each requested element.
+6. Preserve 3–3.5-head folk-doll deformation before scene detail.
+7. Preserve actual gameplay composition and controls.
+8. Add semantic palette rules and explicit negatives.
 9. Generate.
-10. Compare the result back to the accepted actors and reject drift.
+10. Compare back to accepted actors and reject drift.
 
 ### Prompt anchor
 
 Use wording equivalent to:
 
-> **A playable medieval-fantasy game in Crownless's canonical visual grammar: rough medieval manuscript and woodcut linework, parchment negative space, restrained muted color, strongly deformed 3–3.5-head-tall folk-doll figures with large heads and short limbs, tiny symbolic faces, weathered asymmetric equipment, readable silhouettes, physical black-ink action marks, and sparse annotation-like UI.**
+> **A playable medieval-fantasy game in Crownless's canonical visual grammar: rough medieval manuscript and woodcut linework, parchment negative space, restrained muted color, strongly deformed 3–3.5-head-tall folk-doll figures with large heads and short limbs, tiny symbolic faces, weathered asymmetric equipment, readable silhouettes, physical black-ink action marks, and sparse annotation-like UI. Combat figures are drawn for a diagonal oblique top-down three-quarter battlefield view, not as front-facing portraits.**
 
 ### Negative anchor
 
@@ -220,52 +245,63 @@ Always include the substance of:
 - not generic Diablo imitation
 - not glossy mobile RPG UI
 - no neon magic by default
+- no front-facing portrait pose for oblique combat actors
 
 ## Implementation workflow
 
 1. Preserve gameplay logic.
-2. Compare the existing implementation against the canonical references.
-3. Fix **silhouette / deformation / actor drawing grammar before surface filters**.
-4. For actor sprites, inspect the actual runtime transform chain before changing asset art.
-5. Project actor position into the arena, but keep the illustrated actor body in screen space with uniform X/Y scale.
-6. Use visible / alpha bounds and a stable foot pivot; do not size from raw square PNG bounds.
-7. Prefer reusable low-cost techniques: sprites / illustrated layers, Canvas / SVG, paper and ink textures, limited color tokens, masks, small particles and the existing projected combat plane.
-8. Check the result at an actual phone-size viewport.
-9. Compare the rendered body proportion directly with the accepted source actor.
-10. Remove decoration that competes with gameplay.
+2. Compare implementation against canonical references.
+3. Fix silhouette / deformation / viewpoint / drawing grammar before surface filters.
+4. For sprites, inspect actual runtime transform chain before changing art.
+5. Project actor position into arena; keep body in screen space with uniform scale.
+6. Use visible / alpha bounds and stable foot pivot.
+7. Depth-sort overlapping actors by projected foot Y.
+8. Keep crowded HUD collision-aware and simplify non-priority labels.
+9. Validate changed actor PNG integrity before blaming renderer transforms.
+10. Check an actual phone-size viewport.
+11. Include a crowded multi-enemy case when combat overlap or HUD changed.
+12. Remove decoration that competes with gameplay.
 
-Do not claim a screen matches the visual guide merely because it has parchment colors or a paper filter while the character silhouettes remain generic or distorted.
+Do not claim a screen matches the guide merely because it has parchment colors or a paper filter while silhouettes, viewpoint, overlap, or runtime geometry remain wrong.
 
 ## Phone-size actor review
 
-For every actor integration or renderer change, verify from a phone screenshot or equivalent mobile viewport:
+Verify:
 
 - source and rendered head/body proportion match
+- combat source art matches oblique viewpoint
 - no vertical stretching or horizontal squeezing
 - no non-uniform X/Y scaling
 - role silhouette width remains intact
-- feet and shadow meet the logical ground point
-- HP/name labels clear the actor silhouette
-- effects do not obscure the actor's role-defining shape
-- apparent size is large enough to read but does not consume the arena
+- feet and shadow meet logical ground point
+- near/far overlap follows foot-Y depth
+- priority HP/name labels clear the actor silhouette
+- non-priority labels stay quiet in clusters
+- effects do not obscure role-defining shape
+- actor PNG is intact and visibly non-empty
+- apparent size is readable without consuming the arena
 
-A source PNG looking correct is **not sufficient**. Runtime composition is the acceptance target.
+A source PNG looking correct is not sufficient. Runtime composition is the acceptance target.
 
 ## Acceptance gate
 
 A visual is accepted only when all critical checks pass:
 
-- playable game screen, not merely concept art
-- humanoid characters match the accepted **3–3.5-head folk-doll proportions**
-- faces are tiny and symbolic, not realistic, creepy, cute-mascot or anime-like
+- playable game screen when gameplay is requested
+- humanoids match 3–3.5-head folk-doll proportions
+- combat figures use the correct oblique source-art viewpoint
+- faces are tiny and symbolic
 - silhouettes read at phone size
-- runtime actor proportions match the accepted source art without X/Y stretching, floor-projection distortion, or transparent-padding shrinkage
+- runtime proportions match source without X/Y stretching or floor distortion
 - feet / shadows align with logical ground position
-- linework belongs to the same hand-inked / woodcut family
+- overlapping actors depth-sort naturally
+- crowded HUD does not hide the fight
+- linework belongs to the hand-inked / woodcut family
 - color has semantic purpose
 - physical ink effects replace generic glow where appropriate
+- actor assets are decodable and visibly intact
 - actual gameplay contract is preserved
-- the result visibly belongs beside the accepted actor set
+- result visibly belongs beside accepted actors
 - it remains recognizable as Crownless without the logo
 
-If the character style, runtime proportion, grounding, or overall illustration family does not match the accepted actors, **reject it before polishing**.
+If character style, viewpoint, runtime proportion, grounding, overlap, asset integrity, or illustration family fails, **reject before polishing**.
