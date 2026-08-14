@@ -1,6 +1,11 @@
 (() => {
   "use strict";
 
+  if (document.readyState === "loading" && !window.__crownlessInkFeelLoader) {
+    window.__crownlessInkFeelLoader = true;
+    document.write('<script src="src/combat-ink-feel-v3.js"><\/script>');
+  }
+
   const Core = window.CrownlessCore;
   if (!Core || Core.__combatFeelTuned) return;
 
