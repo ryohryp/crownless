@@ -14,10 +14,13 @@ This file maps Crownless combat subjects to the current character rules used by 
 
 ## 素手の主人公
 
-### Current visual authority
+### Approved Visual Anchor
 
 - `assets/combat/minimal-v0.1/actors/player-unarmed.png`
-- global style calibration: `docs/assets/crownless-visual-design-reference-v0.1.jpg`
+
+### Reference calibration
+
+- `docs/assets/crownless-visual-design-reference-v0.1.jpg`
 
 ### Accepted visual conditions
 
@@ -32,7 +35,7 @@ The approved base state is the unarmed expedition survivor. Equipment changes si
 
 ## 敵：Rusher
 
-### Current visual authority
+### Approved Visual Anchor
 
 - `assets/combat/minimal-v0.1/actors/enemy-rusher.png`
 
@@ -49,7 +52,7 @@ This is the ordinary Rusher archetype, not 灰牙 unless requested separately.
 
 ## 敵：Guard
 
-### Current visual authority
+### Approved Visual Anchor
 
 - `assets/combat/minimal-v0.1/actors/enemy-guard.png`
 
@@ -66,7 +69,7 @@ This is the ordinary Guard archetype, not 鐘なき騎士 unless requested separ
 
 ## 敵：Skirmisher
 
-### Current visual authority
+### Approved Visual Anchor
 
 - `assets/combat/minimal-v0.1/actors/enemy-skirmisher.png`
 
