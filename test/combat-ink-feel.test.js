@@ -10,31 +10,31 @@ const tuningPath = path.join(root, 'src', 'combat-feel-tuning.js');
 const feel = fs.readFileSync(feelPath, 'utf8');
 const tuning = fs.readFileSync(tuningPath, 'utf8');
 
-test('combat feel layer is loaded before render wrappers and arms after manuscript install', () => {
+test('combat presentation layer still arms after manuscript install', () => {
   assert.match(tuning, /combat-ink-feel-v3\.js/);
   assert.match(feel, /combat-manuscript-render\\\.js/);
   assert.match(feel, /MutationObserver/);
   assert.match(feel, /addEventListener\("load", install/);
 });
 
-test('ink sheet keeps authored slash impact recoil meanings', () => {
-  assert.match(feel, /drawSlice\(t, 0, slash\.box, slash\.alpha\)/);
-  assert.match(feel, /drawSlice\(t, 2, b\.back, \.42\)/);
-  assert.match(feel, /drawSlice\(t, 1, b\.hit,/);
-  assert.match(feel, /#e8d8b7/);
-  assert.match(feel, /#ffd875/);
-  assert.match(feel, /#f2c96f/);
+test('enemy HUD clears the accepted actor silhouette', () => {
+  assert.match(feel, /const ENEMY_HUD_LIFT = 52/);
+  assert.match(feel, /function isEnemyHealthBar/);
+  assert.match(feel, /Math\.abs\(height - 5\)/);
+  assert.match(feel, /shifted\[1\].*ENEMY_HUD_LIFT/);
+  assert.match(feel, /shifted\[2\].*ENEMY_HUD_LIFT/);
 });
 
-test('enemy hit flash adds physical impact while telegraph alpha retains urgency', () => {
-  assert.match(feel, /#f0b28c/);
-  assert.match(feel, /function warningAlpha/);
-  assert.match(feel, /t\.globalAlpha = old \* warning/);
+test('presentation layer no longer infers hit VFX from prototype colors', () => {
+  assert.doesNotMatch(feel, /ink-effects-sheet/);
+  assert.doesNotMatch(feel, /#f0b28c/);
+  assert.doesNotMatch(feel, /drawSlice/);
+  assert.doesNotMatch(feel, /warningAlpha/);
   assert.doesNotMatch(feel, /enemy\.hp\s*=/);
   assert.doesNotMatch(feel, /hitStop\s*=/);
 });
 
-test('combat feel scripts remain valid JavaScript', () => {
+test('combat presentation scripts remain valid JavaScript', () => {
   execFileSync(process.execPath, ['--check', feelPath]);
   execFileSync(process.execPath, ['--check', tuningPath]);
 });
