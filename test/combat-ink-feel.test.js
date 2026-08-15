@@ -22,13 +22,18 @@ test('depth ordering installs before the manuscript renderer while HUD installs 
   assert.match(feel, /addEventListener\("load", install/);
 });
 
-test('enemy actor sprites are buffered and replayed by projected foot Y', () => {
+test('player and enemy actor sprites share one projected-foot depth queue', () => {
+  assert.match(depth, /const actorQueue = \[\]/);
   assert.match(depth, /ENEMY_ACTOR/);
-  assert.match(depth, /enemyQueue\.push\(captureDraw/);
-  assert.match(depth, /enemyQueue\.sort/);
-  assert.match(depth, /a\.foot\.y - b\.foot\.y/);
-  assert.match(depth, /publicState\.enemyBounds/);
   assert.match(depth, /PLAYER_ACTOR/);
+  assert.match(depth, /actorQueue\.push\(captureDraw\(ctx, args, enemyMatch\[1\]\.toLowerCase\(\), actorSequence\)\)/);
+  assert.match(depth, /actorQueue\.push\(captureDraw\(ctx, args, "player", actorSequence\)\)/);
+  assert.match(depth, /actorQueue\.sort\(compareActors\)/);
+  assert.match(depth, /a\.foot\.y - b\.foot\.y/);
+  assert.match(depth, /a\.foot\.x - b\.foot\.x/);
+  assert.match(depth, /a\.order - b\.order/);
+  assert.match(depth, /publicState\.playerFoot/);
+  assert.match(depth, /publicState\.enemyBounds/);
   assert.match(depth, /publicState\.flushHud\(\)/);
 });
 
