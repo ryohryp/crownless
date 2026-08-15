@@ -28,9 +28,8 @@ test('phase two removes whole-canvas tilt and projects world positions instead',
   assert.match(js, /beginProjectedEntity/);
 });
 
-test('fighters stay upright while depth and grounding come from render space', () => {
-  assert.match(js, /drawActorShadow/);
-  assert.match(js, /raw\.ellipse\(0, 26, 24, 7\.5/);
+test('fighters stay upright while render space does not draw a fixed actor shadow', () => {
+  assert.doesNotMatch(js, /drawActorShadow\(\);/);
   assert.match(js, /Math\.cos\(angle\) < 0 \? -1 : 1/);
   assert.match(js, /actorMode && radius >= 24/);
 });
