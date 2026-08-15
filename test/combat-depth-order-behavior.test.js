@@ -115,7 +115,7 @@ test('player is depth-sorted between enemies by projected foot Y while ground we
     { x: 200, y: 220 }
   );
   assert.deepEqual(
-    window.CrownlessCombatDepth.enemyBounds.map((entry) => entry.role),
+    Array.from(window.CrownlessCombatDepth.enemyBounds, (entry) => entry.role),
     ['rusher', 'guard']
   );
   assert.equal(hudFlushes, 1);
@@ -123,5 +123,5 @@ test('player is depth-sorted between enemies by projected foot Y while ground we
   ctx.clearRect(0, 0, 960, 540);
   assert.equal(hudResets, 1);
   assert.equal(window.CrownlessCombatDepth.playerFoot, null);
-  assert.deepEqual(window.CrownlessCombatDepth.enemyBounds, []);
+  assert.equal(window.CrownlessCombatDepth.enemyBounds.length, 0);
 });
