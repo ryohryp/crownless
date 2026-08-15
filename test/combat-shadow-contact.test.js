@@ -17,7 +17,7 @@ test('shadow contact correction loads after manuscript renderer and before app',
 });
 
 test('contact correction only lifts the known actor ground-shadow ellipse', () => {
-  assert.match(js, /const CONTACT_LIFT = 7/);
+  assert.match(js, /const CONTACT_LIFT = 17/);
   assert.match(js, /radiusX\) - 16/);
   assert.match(js, /radiusY\) - 5\.5/);
   assert.match(js, /rgba\(70,64,56,0\.42\)/);
