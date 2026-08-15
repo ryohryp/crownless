@@ -4,10 +4,11 @@
   /*
    * Pre-manuscript Canvas layer.
    *
-   * The combat simulation stays untouched. Enemy actor images emitted by the
-   * manuscript renderer are buffered for the current frame and replayed from
-   * back to front using their projected foot Y. Ground effects / telegraphs
-   * remain in their original pass; only illustrated enemy bodies are sorted.
+   * The combat simulation stays untouched. Illustrated ground-bound actor
+   * images emitted by the manuscript renderer are buffered for the current
+   * frame and replayed from back to front using their projected foot Y.
+   * Ground effects / telegraphs / dropped weapons remain in their own pass;
+   * only illustrated actor bodies are sorted.
    */
 
   if (typeof HTMLCanvasElement === "undefined") return;
@@ -15,7 +16,6 @@
   const previousGetContext = HTMLCanvasElement.prototype.getContext;
   const ENEMY_ACTOR = /\/actors\/enemy-(rusher|guard|skirmisher)\.png(?:$|\?)/i;
   const PLAYER_ACTOR = /\/actors\/player-unarmed\.png(?:$|\?)/i;
-  const WEAPON_ASSET = /\/weapons\/dropped-(?:sword|dagger)\.png(?:$|\?)/i;
 
   const publicState = {
     enabled: true,
@@ -35,6 +35,17 @@
   function imageSource(image) {
     if (!image) return "";
     return String(image.currentSrc || image.src || "");
+  }
+
+  function playerActorImageUnavailable() {
+    const combatAssets = window.CrownlessCombatAssets;
+    if (!combatAssets || typeof combatAssets.status !== "function") return false;
+    try {
+      const status = combatAssets.status();
+      return Boolean(status && status.player && status.player !== "ready");
+    } catch (_) {
+      return false;
+    }
   }
 
   function cloneMatrix(matrix) {
@@ -93,7 +104,7 @@
     };
   }
 
-  function captureDraw(target, args, role = null) {
+  function captureDraw(target, args, role = null, order = 0) {
     const matrix = cloneMatrix(target.getTransform());
     const rect = destinationRect(args);
     const footLocal = rect
@@ -103,6 +114,7 @@
     return {
       args: args.slice(),
       role,
+      order,
       matrix,
       foot,
       bounds: screenBounds(matrix, rect),
@@ -131,30 +143,40 @@
     target.restore();
   }
 
+  function compareActors(a, b) {
+    if (Math.abs(a.foot.y - b.foot.y) > 0.01) return a.foot.y - b.foot.y;
+    if (Math.abs(a.foot.x - b.foot.x) > 0.01) return a.foot.x - b.foot.x;
+    return a.order - b.order;
+  }
+
   function wrap(target) {
     if (!target || target.__crownlessDepthOrder) return target;
 
-    const enemyQueue = [];
+    const actorQueue = [];
+    let actorSequence = 0;
     const methods = new Map();
 
     function resetFrame() {
-      enemyQueue.length = 0;
+      actorQueue.length = 0;
+      actorSequence = 0;
       publicState.playerFoot = null;
       publicState.enemyBounds = [];
       publicState.resetHud();
     }
 
-    function flushEnemyActors() {
-      if (!enemyQueue.length) return;
-      enemyQueue.sort((a, b) => {
-        if (Math.abs(a.foot.y - b.foot.y) > 0.01) return a.foot.y - b.foot.y;
-        return a.foot.x - b.foot.x;
-      });
-      publicState.enemyBounds = enemyQueue
-        .filter((item) => item.bounds)
+    function flushActors() {
+      if (!actorQueue.length) return;
+      actorQueue.sort(compareActors);
+
+      const player = actorQueue.find((item) => item.role === "player");
+      publicState.playerFoot = player ? { ...player.foot } : null;
+      publicState.enemyBounds = actorQueue
+        .filter((item) => item.role !== "player" && item.bounds)
         .map((item) => ({ ...item.bounds, role: item.role, foot: { ...item.foot } }));
-      enemyQueue.forEach((item) => replay(target, item));
-      enemyQueue.length = 0;
+
+      actorQueue.forEach((item) => replay(target, item));
+      actorQueue.length = 0;
+      publicState.flushHud();
     }
 
     return new Proxy(target, {
@@ -166,20 +188,17 @@
             const source = imageSource(args[0]);
             const enemyMatch = source.match(ENEMY_ACTOR);
             if (enemyMatch) {
-              enemyQueue.push(captureDraw(ctx, args, enemyMatch[1].toLowerCase()));
+              if (playerActorImageUnavailable()) return ctx.drawImage(...args);
+              actorQueue.push(captureDraw(ctx, args, enemyMatch[1].toLowerCase(), actorSequence));
+              actorSequence += 1;
               return undefined;
             }
 
-            const isPlayer = PLAYER_ACTOR.test(source);
-            const isWeapon = WEAPON_ASSET.test(source);
-            if (isPlayer || isWeapon) flushEnemyActors();
-
-            if (isPlayer) {
-              const playerDraw = captureDraw(ctx, args, "player");
-              const result = ctx.drawImage(...args);
-              publicState.playerFoot = { ...playerDraw.foot };
-              publicState.flushHud();
-              return result;
+            if (PLAYER_ACTOR.test(source)) {
+              actorQueue.push(captureDraw(ctx, args, "player", actorSequence));
+              actorSequence += 1;
+              flushActors();
+              return undefined;
             }
 
             return ctx.drawImage(...args);
