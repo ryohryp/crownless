@@ -13,7 +13,7 @@
    */
 
   const originalEllipse = CanvasRenderingContext2D.prototype.ellipse;
-  const CONTACT_LIFT = 7;
+  const CONTACT_LIFT = 17;
 
   CanvasRenderingContext2D.prototype.ellipse = function crownlessContactEllipse(
     x,
