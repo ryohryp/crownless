@@ -148,16 +148,34 @@
     }
   }
 
+  function actorFootMetrics(target, logicalFootOffset = 37) {
+    const axes = actorScreenAxes(target);
+    const yCompensation = Math.max(0.16, Math.min(6, axes.x / axes.y));
+    return {
+      yCompensation,
+      footY: logicalFootOffset * yCompensation
+    };
+  }
+
+  function drawGroundShadow(target, footY) {
+    target.save();
+    target.globalAlpha *= 0.24;
+    target.fillStyle = "rgba(70, 64, 56, 0.42)";
+    target.beginPath();
+    target.ellipse(0, footY + 2, 16, 5.5, 0, 0, Math.PI * 2);
+    target.fill();
+    target.restore();
+  }
+
   function drawActorBillboard(target, record, logicalHeight, logicalFootOffset = 37) {
     if (!record || !record.ready || !record.image) return false;
     const image = record.image;
     const source = record.bounds || { sx: 0, sy: 0, sw: image.naturalWidth, sh: image.naturalHeight };
     const sourceRatio = source.sw / Math.max(1, source.sh);
-    const axes = actorScreenAxes(target);
-    const yCompensation = Math.max(0.16, Math.min(6, axes.x / axes.y));
+    const { yCompensation, footY } = actorFootMetrics(target, logicalFootOffset);
     const width = logicalHeight * sourceRatio;
     const height = logicalHeight * yCompensation;
-    const footY = logicalFootOffset * yCompensation;
+    drawGroundShadow(target, footY);
     target.drawImage(
       image,
       source.sx,
@@ -314,6 +332,7 @@
     let currentLineWidth = 1;
     let saveDepth = 0;
     let actorSuppressDepth = 0;
+    let fallbackShadowDepth = -1;
     let dropSuppressDepth = 0;
     let pathShape = "";
     let telegraphActive = false;
@@ -373,6 +392,13 @@
       if (direct) return direct;
       if (key === "#f0b28c") return nearestCachedRole(currentPoint());
       return null;
+    }
+
+    function drawFallbackActorShadow() {
+      if (fallbackShadowDepth === saveDepth) return;
+      const { footY } = actorFootMetrics(ctx, 37);
+      drawGroundShadow(ctx, footY);
+      fallbackShadowDepth = saveDepth;
     }
 
     function drawActor(role) {
@@ -440,6 +466,7 @@
           return () => {
             target.restore();
             if (actorSuppressDepth === saveDepth) actorSuppressDepth = 0;
+            if (fallbackShadowDepth === saveDepth) fallbackShadowDepth = -1;
             if (dropSuppressDepth === saveDepth) dropSuppressDepth = 0;
             saveDepth = Math.max(0, saveDepth - 1);
             pathShape = "";
@@ -536,10 +563,13 @@
 
         if (property === "fillStyle") {
           const role = resolveActorRole(value);
-          if (role && drawActor(role)) {
-            actorSuppressDepth = saveDepth;
-            target[property] = "rgba(0,0,0,0)";
-            return true;
+          if (role) {
+            if (drawActor(role)) {
+              actorSuppressDepth = saveDepth;
+              target[property] = "rgba(0,0,0,0)";
+              return true;
+            }
+            drawFallbackActorShadow();
           }
           target[property] = remapColor(value);
           return true;
