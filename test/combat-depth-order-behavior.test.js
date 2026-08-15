@@ -124,4 +124,12 @@ test('player is depth-sorted between enemies by projected foot Y while ground we
   assert.equal(hudResets, 1);
   assert.equal(window.CrownlessCombatDepth.playerFoot, null);
   assert.equal(window.CrownlessCombatDepth.enemyBounds.length, 0);
+
+  window.CrownlessCombatAssets = {
+    status() { return { player: 'loading' }; }
+  };
+  const drawCountBeforeFallback = canvas.rawContext.draws.length;
+  drawAt(ctx, farEnemy, 180, 140);
+  assert.equal(canvas.rawContext.draws.length, drawCountBeforeFallback + 1);
+  assert.equal(canvas.rawContext.draws.at(-1).source, farEnemy.src);
 });
