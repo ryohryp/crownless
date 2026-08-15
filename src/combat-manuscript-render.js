@@ -148,6 +148,16 @@
     }
   }
 
+  function drawGroundShadow(target, footY) {
+    target.save();
+    target.globalAlpha *= 0.24;
+    target.fillStyle = "rgba(70, 64, 56, 0.42)";
+    target.beginPath();
+    target.ellipse(0, footY + 2, 16, 5.5, 0, 0, Math.PI * 2);
+    target.fill();
+    target.restore();
+  }
+
   function drawActorBillboard(target, record, logicalHeight, logicalFootOffset = 37) {
     if (!record || !record.ready || !record.image) return false;
     const image = record.image;
@@ -158,6 +168,7 @@
     const width = logicalHeight * sourceRatio;
     const height = logicalHeight * yCompensation;
     const footY = logicalFootOffset * yCompensation;
+    drawGroundShadow(target, footY);
     target.drawImage(
       image,
       source.sx,
