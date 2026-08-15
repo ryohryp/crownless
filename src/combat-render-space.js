@@ -454,7 +454,6 @@
             actorFacingAngle = angle;
             actorFlip = Math.cos(angle) < 0 ? -1 : 1;
             actorSpriteDrawn = false;
-            drawActorShadow();
             if (y / Math.max(0.001, x) < 0.82) {
               actorFlip = 1;
               raw.rotate(angle);
