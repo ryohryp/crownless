@@ -43,6 +43,16 @@ test('actor sprites preserve their source proportions in final screen space', ()
   assert.match(js, /drawActorBillboard\(ctx, record, logicalHeight, 37\)/);
 });
 
+test('actor shadow shares the billboard foot anchor and survives image fallback', () => {
+  assert.match(js, /function actorFootMetrics\(target, logicalFootOffset = 37\)/);
+  assert.match(js, /footY:\s*logicalFootOffset \* yCompensation/);
+  assert.match(js, /const \{ yCompensation, footY \} = actorFootMetrics\(target, logicalFootOffset\)/);
+  assert.match(js, /drawGroundShadow\(target, footY\)/);
+  assert.match(js, /function drawFallbackActorShadow\(\)/);
+  assert.match(js, /const \{ footY \} = actorFootMetrics\(ctx, 37\)/);
+  assert.match(js, /if \(drawActor\(role\)\)[\s\S]*drawFallbackActorShadow\(\)/);
+});
+
 test('all three ink and telegraph sheet regions are mapped to combat states', () => {
   assert.match(js, /slice: 0/);
   assert.match(js, /slice: 1/);
