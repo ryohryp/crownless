@@ -162,7 +162,7 @@
     target.globalAlpha *= 0.24;
     target.fillStyle = "rgba(70, 64, 56, 0.42)";
     target.beginPath();
-    target.ellipse(0, footY + 2, 16, 5.5, 0, 0, Math.PI * 2);
+    target.ellipse(0, footY - 30, 16, 5.5, 0, 0, Math.PI * 2);
     target.fill();
     target.restore();
   }
