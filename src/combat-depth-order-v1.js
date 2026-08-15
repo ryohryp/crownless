@@ -37,6 +37,17 @@
     return String(image.currentSrc || image.src || "");
   }
 
+  function playerActorImageUnavailable() {
+    const combatAssets = window.CrownlessCombatAssets;
+    if (!combatAssets || typeof combatAssets.status !== "function") return false;
+    try {
+      const status = combatAssets.status();
+      return Boolean(status && status.player && status.player !== "ready");
+    } catch (_) {
+      return false;
+    }
+  }
+
   function cloneMatrix(matrix) {
     return {
       a: Number(matrix.a) || 1,
@@ -177,6 +188,7 @@
             const source = imageSource(args[0]);
             const enemyMatch = source.match(ENEMY_ACTOR);
             if (enemyMatch) {
+              if (playerActorImageUnavailable()) return ctx.drawImage(...args);
               actorQueue.push(captureDraw(ctx, args, enemyMatch[1].toLowerCase(), actorSequence));
               actorSequence += 1;
               return undefined;
