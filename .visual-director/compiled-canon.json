@@ -1,0 +1,172 @@
+{
+  "asset_type_rules": {
+    "character_visual_anchor": {
+      "must_not_chain_from_candidate": true,
+      "must_review_after_generation": true,
+      "must_use_approved_anchor": true
+    }
+  },
+  "avoid_block": [
+    "photorealism",
+    "realistic fantasy concept art",
+    "painterly rendering",
+    "realistic AAA 3D",
+    "modern chibi",
+    "cute mascot style",
+    "anime-gacha characters",
+    "clean vector cartoons",
+    "generic Diablo imitation",
+    "glossy mobile RPG UI",
+    "neon magic",
+    "oversized decorative gold frames",
+    "blue-purple-orange rarity-card language",
+    "excessive particles",
+    "high-frequency texture clutter"
+  ],
+  "global_reference_path": "docs/assets/crownless-visual-design-reference-v0.1.jpg",
+  "global_style_lock": "A playable medieval-fantasy game illustrated in Crownless's canonical visual grammar: a living medieval manuscript and rough woodcut print, irregular hand-inked contours, parchment negative space, crosshatched shadow, flat or lightly textured muted color, compact 3–3.5-head-tall non-chibi figures, small restrained folk-art faces, weathered asymmetric equipment, readable phone-scale silhouettes, physical black-ink action marks, muted vermilion danger marks, and sparse annotation-like UI. The result must feel drawn and printed rather than realistically rendered, painterly, glossy, or vector-clean, and must belong to the same illustration family as docs/assets/crownless-visual-design-reference-v0.1.jpg.",
+  "policy": {
+    "must_not_chain_from_candidate": true,
+    "must_review_after_generation": true,
+    "must_use_approved_anchor": true
+  },
+  "project_id": "crownless",
+  "schema_version": 1,
+  "source_revision": "245d3eaf3b6ff253588842d136969f055938ad699f0f3e1c1f8c664729542d83",
+  "subjects": [
+    {
+      "allowed_changes": [
+        "Pose, facing, and action phase within the fixed oblique top-down battlefield",
+        "Readable hand, weapon, shield, and attack-gesture exaggeration at phone scale",
+        "Minor wear, patch placement, and asymmetric garment details that preserve the subject silhouette",
+        "Controlled black-ink, ash, parchment, and semantic accent variation within the canonical palette",
+        "Generous transparent padding and sprite framing required for implementation"
+      ],
+      "approved_anchor_path": "assets/combat/minimal-v0.1/actors/enemy-guard.png",
+      "display_name": "敵：Guard",
+      "forbidden_changes": [
+        "Do not use legacy, transitional, archived late-state, or exploration-only assets as the generation parent.",
+        "Do not chain a new variation from a candidate or derived variation; return to the Approved Visual Anchor.",
+        "Do not silently fall back to an older generation when an approved asset cannot be read.",
+        "Do not change the compact 3–3.5-head-tall non-chibi manuscript proportion or small restrained face grammar",
+        "Do not turn anonymous, weathered figures into polished heroic, royal, cute, anime, or realistic fantasy characters",
+        "Do not give the unarmed player a weapon, shield, crown, class costume, or polished armor",
+        "Do not exchange the Rusher, Guard, and Skirmisher role silhouettes or combat-reading props",
+        "Do not replace physical ink strokes and vermilion danger marks with glowing fantasy VFX",
+        "Do not add UI, text, logos, virtual joysticks, attack buttons, minimaps, or skill clusters to sprite assets",
+        "Use `docs/assets/crownless-visual-design-reference-v0.1.jpg` for global linework, palette, material, and manuscript-family calibration.",
+        "Use `assets/combat/minimal-v0.1/actors/` as the current authority for combat-character proportion, deformation, silhouette width, facial simplification, and battlefield viewpoint.",
+        "Older character / battle reference sheets are supporting style references only where they do not conflict with the accepted actor set.",
+        "Keep humanoid figures approximately **3–3.5 heads tall**, strongly deformed, compact, weathered, asymmetrical, and readable at phone scale.",
+        "Keep faces tiny, restrained, crude, and folk-art-like rather than cute, anime-like, painterly, or realistic.",
+        "Combat figures must be authored for an **oblique top-down / three-quarter battlefield view** rather than as front-facing standing portraits.",
+        "Generated images are review candidates and must not replace accepted anchors automatically."
+      ],
+      "subject_id": "enemy-guard",
+      "subject_lock": "敵：Guard (enemy-guard) - Approved Visual Anchor: assets/combat/minimal-v0.1/actors/enemy-guard.png. braced, slow, defensive silhouette with a broad shield readable at phone scale weight held behind the shield, compact blocking stance rather than forward rush rough armor and weathered side weapon without polished knightly grandeur shield, shoulders, and planted legs form the primary silhouette language oblique top-down view exposes enough shield / helmet top plane to belong to the battlefield camera distinct from lunging Rusher and narrow ranged Skirmisher without labels Use `docs/assets/crownless-visual-design-reference-v0.1.jpg` for global linework, palette, material, and manuscript-family calibration. Use `assets/combat/minimal-v0.1/actors/` as the current authority for combat-character proportion, deformation, silhouette width, facial simplification, and battlefield viewpoint. Older character / battle reference sheets are supporting style references only where they do not conflict with the accepted actor set. Keep humanoid figures approximately **3–3.5 heads tall**, strongly deformed, compact, weathered, asymmetrical, and readable at phone scale. Keep faces tiny, restrained, crude, and folk-art-like rather than cute, anime-like, painterly, or realistic. Combat figures must be authored for an **oblique top-down / three-quarter battlefield view** rather than as front-facing standing portraits. Generated images are review candidates and must not replace accepted anchors automatically. `docs/assets/player-unarmed-approved-anchor-v0.2.webp`"
+    },
+    {
+      "allowed_changes": [
+        "Pose, facing, and action phase within the fixed oblique top-down battlefield",
+        "Readable hand, weapon, shield, and attack-gesture exaggeration at phone scale",
+        "Minor wear, patch placement, and asymmetric garment details that preserve the subject silhouette",
+        "Controlled black-ink, ash, parchment, and semantic accent variation within the canonical palette",
+        "Generous transparent padding and sprite framing required for implementation"
+      ],
+      "approved_anchor_path": "assets/combat/minimal-v0.1/actors/enemy-rusher.png",
+      "display_name": "敵：Rusher",
+      "forbidden_changes": [
+        "Do not use legacy, transitional, archived late-state, or exploration-only assets as the generation parent.",
+        "Do not chain a new variation from a candidate or derived variation; return to the Approved Visual Anchor.",
+        "Do not silently fall back to an older generation when an approved asset cannot be read.",
+        "Do not change the compact 3–3.5-head-tall non-chibi manuscript proportion or small restrained face grammar",
+        "Do not turn anonymous, weathered figures into polished heroic, royal, cute, anime, or realistic fantasy characters",
+        "Do not give the unarmed player a weapon, shield, crown, class costume, or polished armor",
+        "Do not exchange the Rusher, Guard, and Skirmisher role silhouettes or combat-reading props",
+        "Do not replace physical ink strokes and vermilion danger marks with glowing fantasy VFX",
+        "Do not add UI, text, logos, virtual joysticks, attack buttons, minimaps, or skill clusters to sprite assets",
+        "Use `docs/assets/crownless-visual-design-reference-v0.1.jpg` for global linework, palette, material, and manuscript-family calibration.",
+        "Use `assets/combat/minimal-v0.1/actors/` as the current authority for combat-character proportion, deformation, silhouette width, facial simplification, and battlefield viewpoint.",
+        "Older character / battle reference sheets are supporting style references only where they do not conflict with the accepted actor set.",
+        "Keep humanoid figures approximately **3–3.5 heads tall**, strongly deformed, compact, weathered, asymmetrical, and readable at phone scale.",
+        "Keep faces tiny, restrained, crude, and folk-art-like rather than cute, anime-like, painterly, or realistic.",
+        "Combat figures must be authored for an **oblique top-down / three-quarter battlefield view** rather than as front-facing standing portraits.",
+        "Generated images are review candidates and must not replace accepted anchors automatically."
+      ],
+      "subject_id": "enemy-rusher",
+      "subject_lock": "敵：Rusher (enemy-rusher) - Approved Visual Anchor: assets/combat/minimal-v0.1/actors/enemy-rusher.png. aggressive forward-driving silhouette that reads as immediate closing pressure compact low mass with lunging / rushing intent limbs and attacking mass directed toward the target, no shield-wall posture crude weathered asymmetric protection and clear close-range threat shape oblique top-down view that still preserves the forward lean distinct from braced Guard and distance-keeping Skirmisher without labels Use `docs/assets/crownless-visual-design-reference-v0.1.jpg` for global linework, palette, material, and manuscript-family calibration. Use `assets/combat/minimal-v0.1/actors/` as the current authority for combat-character proportion, deformation, silhouette width, facial simplification, and battlefield viewpoint. Older character / battle reference sheets are supporting style references only where they do not conflict with the accepted actor set. Keep humanoid figures approximately **3–3.5 heads tall**, strongly deformed, compact, weathered, asymmetrical, and readable at phone scale. Keep faces tiny, restrained, crude, and folk-art-like rather than cute, anime-like, painterly, or realistic. Combat figures must be authored for an **oblique top-down / three-quarter battlefield view** rather than as front-facing standing portraits. Generated images are review candidates and must not replace accepted anchors automatically. `docs/assets/player-unarmed-approved-anchor-v0.2.webp`"
+    },
+    {
+      "allowed_changes": [
+        "Pose, facing, and action phase within the fixed oblique top-down battlefield",
+        "Readable hand, weapon, shield, and attack-gesture exaggeration at phone scale",
+        "Minor wear, patch placement, and asymmetric garment details that preserve the subject silhouette",
+        "Controlled black-ink, ash, parchment, and semantic accent variation within the canonical palette",
+        "Generous transparent padding and sprite framing required for implementation"
+      ],
+      "approved_anchor_path": "assets/combat/minimal-v0.1/actors/enemy-skirmisher.png",
+      "display_name": "敵：Skirmisher",
+      "forbidden_changes": [
+        "Do not use legacy, transitional, archived late-state, or exploration-only assets as the generation parent.",
+        "Do not chain a new variation from a candidate or derived variation; return to the Approved Visual Anchor.",
+        "Do not silently fall back to an older generation when an approved asset cannot be read.",
+        "Do not change the compact 3–3.5-head-tall non-chibi manuscript proportion or small restrained face grammar",
+        "Do not turn anonymous, weathered figures into polished heroic, royal, cute, anime, or realistic fantasy characters",
+        "Do not give the unarmed player a weapon, shield, crown, class costume, or polished armor",
+        "Do not exchange the Rusher, Guard, and Skirmisher role silhouettes or combat-reading props",
+        "Do not replace physical ink strokes and vermilion danger marks with glowing fantasy VFX",
+        "Do not add UI, text, logos, virtual joysticks, attack buttons, minimaps, or skill clusters to sprite assets",
+        "Use `docs/assets/crownless-visual-design-reference-v0.1.jpg` for global linework, palette, material, and manuscript-family calibration.",
+        "Use `assets/combat/minimal-v0.1/actors/` as the current authority for combat-character proportion, deformation, silhouette width, facial simplification, and battlefield viewpoint.",
+        "Older character / battle reference sheets are supporting style references only where they do not conflict with the accepted actor set.",
+        "Keep humanoid figures approximately **3–3.5 heads tall**, strongly deformed, compact, weathered, asymmetrical, and readable at phone scale.",
+        "Keep faces tiny, restrained, crude, and folk-art-like rather than cute, anime-like, painterly, or realistic.",
+        "Combat figures must be authored for an **oblique top-down / three-quarter battlefield view** rather than as front-facing standing portraits.",
+        "Generated images are review candidates and must not replace accepted anchors automatically."
+      ],
+      "subject_id": "enemy-skirmisher",
+      "subject_lock": "敵：Skirmisher (enemy-skirmisher) - Approved Visual Anchor: assets/combat/minimal-v0.1/actors/enemy-skirmisher.png. leaner distance-keeping silhouette with a clearly readable bow / ranged posture narrower profile, retreat-ready legs, readable aim direction weathered hunting gear and asymmetric small protection rather than polished archer armor ranged tool remains legible without a large floating label or glowing projectile language oblique top-down view keeps bow, shoulders, quiver, and feet coherent with the battlefield camera distinct from lunging Rusher and broad shielded Guard without labels Use `docs/assets/crownless-visual-design-reference-v0.1.jpg` for global linework, palette, material, and manuscript-family calibration. Use `assets/combat/minimal-v0.1/actors/` as the current authority for combat-character proportion, deformation, silhouette width, facial simplification, and battlefield viewpoint. Older character / battle reference sheets are supporting style references only where they do not conflict with the accepted actor set. Keep humanoid figures approximately **3–3.5 heads tall**, strongly deformed, compact, weathered, asymmetrical, and readable at phone scale. Keep faces tiny, restrained, crude, and folk-art-like rather than cute, anime-like, painterly, or realistic. Combat figures must be authored for an **oblique top-down / three-quarter battlefield view** rather than as front-facing standing portraits. Generated images are review candidates and must not replace accepted anchors automatically. `docs/assets/player-unarmed-approved-anchor-v0.2.webp`"
+    },
+    {
+      "allowed_changes": [
+        "Pose, facing, and action phase within the fixed oblique top-down battlefield",
+        "Readable hand, weapon, shield, and attack-gesture exaggeration at phone scale",
+        "Minor wear, patch placement, and asymmetric garment details that preserve the subject silhouette",
+        "Controlled black-ink, ash, parchment, and semantic accent variation within the canonical palette",
+        "Generous transparent padding and sprite framing required for implementation"
+      ],
+      "approved_anchor_path": "docs/assets/player-unarmed-approved-anchor-v0.2.webp",
+      "display_name": "素手の主人公",
+      "forbidden_changes": [
+        "Do not use legacy, transitional, archived late-state, or exploration-only assets as the generation parent.",
+        "Do not chain a new variation from a candidate or derived variation; return to the Approved Visual Anchor.",
+        "Do not silently fall back to an older generation when an approved asset cannot be read.",
+        "Do not change the compact 3–3.5-head-tall non-chibi manuscript proportion or small restrained face grammar",
+        "Do not turn anonymous, weathered figures into polished heroic, royal, cute, anime, or realistic fantasy characters",
+        "Do not give the unarmed player a weapon, shield, crown, class costume, or polished armor",
+        "Do not exchange the Rusher, Guard, and Skirmisher role silhouettes or combat-reading props",
+        "Do not replace physical ink strokes and vermilion danger marks with glowing fantasy VFX",
+        "Do not add UI, text, logos, virtual joysticks, attack buttons, minimaps, or skill clusters to sprite assets",
+        "Use `docs/assets/crownless-visual-design-reference-v0.1.jpg` for global linework, palette, material, and manuscript-family calibration.",
+        "Use `assets/combat/minimal-v0.1/actors/` as the current authority for combat-character proportion, deformation, silhouette width, facial simplification, and battlefield viewpoint.",
+        "Older character / battle reference sheets are supporting style references only where they do not conflict with the accepted actor set.",
+        "Keep humanoid figures approximately **3–3.5 heads tall**, strongly deformed, compact, weathered, asymmetrical, and readable at phone scale.",
+        "Keep faces tiny, restrained, crude, and folk-art-like rather than cute, anime-like, painterly, or realistic.",
+        "Combat figures must be authored for an **oblique top-down / three-quarter battlefield view** rather than as front-facing standing portraits.",
+        "Generated images are review candidates and must not replace accepted anchors automatically."
+      ],
+      "subject_id": "player-unarmed",
+      "subject_lock": "素手の主人公 (player-unarmed) - Approved Visual Anchor: docs/assets/player-unarmed-approved-anchor-v0.2.webp. anonymous unknown survivor with no crown, class costume, or permanent allegiance intentionally unarmed with wrapped, visually emphasized hands in a credible fighting stance patched cloth, scavenged belt / pouch, mismatched protection, visibly poor equipment compact grounded silhouette that makes bare-handed combat look deliberate rather than incomplete no weapon or shield in the base state oblique three-quarter top-down pose with readable foot contact, not a portrait pose Use `docs/assets/crownless-visual-design-reference-v0.1.jpg` for global linework, palette, material, and manuscript-family calibration. Use `assets/combat/minimal-v0.1/actors/` as the current authority for combat-character proportion, deformation, silhouette width, facial simplification, and battlefield viewpoint. Older character / battle reference sheets are supporting style references only where they do not conflict with the accepted actor set. Keep humanoid figures approximately **3–3.5 heads tall**, strongly deformed, compact, weathered, asymmetrical, and readable at phone scale. Keep faces tiny, restrained, crude, and folk-art-like rather than cute, anime-like, painterly, or realistic. Combat figures must be authored for an **oblique top-down / three-quarter battlefield view** rather than as front-facing standing portraits. Generated images are review candidates and must not replace accepted anchors automatically. `docs/assets/player-unarmed-approved-anchor-v0.2.webp`"
+    }
+  ],
+  "world_direction": [
+    "The approved World Direction reference is `docs/assets/crownless-visual-design-reference-v0.1.jpg`; generated visual work must remain in the same manuscript/woodcut world across map, battle, base, characters, enemies, effects, UI, items, palette, and texture.",
+    "Crownless is a playable medieval manuscript whose world gains knowledge and restrained color through exploration and survival.",
+    "Combat uses a fixed oblique top-down battlefield and must remain readable at phone scale.",
+    "The player moves manually, stops to auto-strike, and explicitly uses only Technique and Evade; visuals must not imply different controls.",
+    "The unarmed player is an unknown survivor, and bare-handed combat is a legitimate build rather than missing equipment.",
+    "Rusher, Guard, and Skirmisher must read from silhouette and posture before labels.",
+    "Temporary dropped weapons are immediate battlefield state and must remain visually distinct from scenery and expedition loot.",
+    "Normal attacks use short black ink marks; impact uses ink scatter and broken hatching; danger telegraphs use muted vermilion marks."
+  ]
+}
