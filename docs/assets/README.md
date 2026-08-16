@@ -4,7 +4,7 @@ These images calibrate `docs/visual-design-guide-v0.2.md` and `skills/crownless-
 
 ## Canonical overview
 
-- `crownless-visual-design-reference-v0.1.jpg` — global illustration-family overview. Use it for linework, palette, materials, map/UI grammar, Grey Hearth treatment, and physical ink-effect language.
+- `crownless-visual-design-reference-v0.1.jpg` — **approved World Direction / global visual-family board**. Use it as the first visual reference for linework, palette, materials, world-map grammar, battle presentation, Grey Hearth/base growth, character/enemy drawing grammar, physical ink effects, sparse UI, item-rarity framing, parchment/woodcut texture, and the principle that every screen belongs to the same manuscript. If a detail conflicts with current textual Canon or accepted combat actors, the more specific current rule wins.
 
 ## Approved protagonist sprite reference
 
@@ -37,7 +37,7 @@ If an older reference conflicts with the accepted combat actors on anatomy or co
 
 ## Visual Director compatibility anchors
 
-- `crownless-visual-design-reference-v0.1.jpg` — global visual-family anchor
+- `crownless-visual-design-reference-v0.1.jpg` — approved World Direction / global visual-family anchor
 - `crownless-character-reference-v0.1.png` — compatibility transcode of the legacy character sheet
 - `crownless-battle-reference-v0.1.png` — compatibility transcode of the legacy battle sheet
 
