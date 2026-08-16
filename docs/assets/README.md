@@ -2,9 +2,19 @@
 
 These images calibrate `docs/visual-design-guide-v0.2.md` and `skills/crownless-visual-design/SKILL.md`.
 
-## Canonical overview
+## Global Visual Canon
 
-- `crownless-visual-design-reference-v0.1.jpg` — **approved World Direction / global visual-family board**. Use it as the first visual reference for linework, palette, materials, world-map grammar, battle presentation, Grey Hearth/base growth, character/enemy drawing grammar, physical ink effects, sparse UI, item-rarity framing, parchment/woodcut texture, and the principle that every screen belongs to the same manuscript. If a detail conflicts with current textual Canon or accepted combat actors, the more specific current rule wins.
+- `crownless-visual-design-reference-v0.1.jpg` — **the approved Global Visual Canon for Crownless**. This is the first image to inspect for every visual task and the reference behind Visual Director's `global_reference_path`.
+
+This board establishes that every screen belongs to the same **living medieval manuscript / rough woodcut world**. It is authoritative for the shared illustration family: irregular hand ink, parchment negative space, woodcut / crosshatched shadow, restrained semantic color, world-map grammar, battle presentation, Grey Hearth/base growth, sparse annotation-like UI, physical ink effects, item/rarity framing, and paper/print material treatment.
+
+Its core rule is:
+
+> **Every screen is another page of the same manuscript. Exploration writes the world into existence: unknown land is unfinished, and walking / discovery restores terrain lines, routes, symbols, names and restrained faded blue-green color.**
+
+Treat this as a calibration anchor, not optional inspiration. A generated image that merely has parchment colors but belongs to another fantasy game's illustration family must be rejected.
+
+When a detail conflicts with current textual Canon or accepted combat actors, the more specific current rule wins. In particular, the accepted actor set overrides any older character proportions visible on supporting boards.
 
 ## Approved protagonist sprite reference
 
@@ -37,7 +47,7 @@ If an older reference conflicts with the accepted combat actors on anatomy or co
 
 ## Visual Director compatibility anchors
 
-- `crownless-visual-design-reference-v0.1.jpg` — approved World Direction / global visual-family anchor
+- `crownless-visual-design-reference-v0.1.jpg` — **Global Visual Canon / `global_reference_path`**; applies to every generation package before subject-specific rules
 - `crownless-character-reference-v0.1.png` — compatibility transcode of the legacy character sheet
 - `crownless-battle-reference-v0.1.png` — compatibility transcode of the legacy battle sheet
 
@@ -50,6 +60,8 @@ A generated output remains a review candidate until explicitly accepted. Do not 
 Key guardrails:
 
 - **more stylized does not mean cuter**
+- every visual must look like another page of the Global Visual Canon
+- exploration reveals an unfinished manuscript; it is not a cinematic black map, satellite map, Google Maps skin, or glowing strategy map
 - character silhouette and drawing grammar come before filters / tinting / paper texture
 - combat character source art must match the oblique battlefield viewpoint
 - a visually broken runtime actor may be a corrupt PNG rather than a renderer problem; inspect the asset before compensating in code
