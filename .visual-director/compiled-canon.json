@@ -18,13 +18,16 @@
     "generic Diablo imitation",
     "glossy mobile RPG UI",
     "neon magic",
+    "cinematic black-map presentation",
+    "satellite-map rendering",
+    "glowing territory borders",
     "oversized decorative gold frames",
     "blue-purple-orange rarity-card language",
     "excessive particles",
     "high-frequency texture clutter"
   ],
   "global_reference_path": "docs/assets/crownless-visual-design-reference-v0.1.jpg",
-  "global_style_lock": "A playable medieval-fantasy game illustrated in Crownless's canonical visual grammar: a living medieval manuscript and rough woodcut print, irregular hand-inked contours, parchment negative space, crosshatched shadow, flat or lightly textured muted color, compact 3–3.5-head-tall non-chibi figures, small restrained folk-art faces, weathered asymmetric equipment, readable phone-scale silhouettes, physical black-ink action marks, muted vermilion danger marks, and sparse annotation-like UI. The result must feel drawn and printed rather than realistically rendered, painterly, glossy, or vector-clean, and must belong to the same illustration family as docs/assets/crownless-visual-design-reference-v0.1.jpg.",
+  "global_style_lock": "A playable medieval-fantasy game illustrated in Crownless's canonical visual grammar: every screen is a page of one living medieval manuscript, drawn with rough woodcut and irregular hand-inked contours on parchment negative space, crosshatched shadow, flat or lightly textured muted color, compact 3–3.5-head-tall non-chibi figures where characters appear, small restrained folk-art faces, weathered asymmetric equipment, readable phone-scale silhouettes, physical black-ink action marks, muted vermilion danger marks, faded blue-green discovered knowledge, and sparse annotation-like UI. The result must feel drawn, written and printed rather than realistically rendered, painterly, glossy, cinematic or vector-clean, and must visibly belong to the same illustration family as docs/assets/crownless-visual-design-reference-v0.1.jpg.",
   "policy": {
     "must_not_chain_from_candidate": true,
     "must_review_after_generation": true,
@@ -32,15 +35,16 @@
   },
   "project_id": "crownless",
   "schema_version": 1,
-  "source_revision": "245d3eaf3b6ff253588842d136969f055938ad699f0f3e1c1f8c664729542d83",
+  "source_revision": "f7ca6f92353589bedd8ed6ae2397de764cae4220bca30a0c010cadf70cc8892d",
   "subjects": [
     {
       "allowed_changes": [
         "Pose, facing, and action phase within the fixed oblique top-down battlefield",
         "Readable hand, weapon, shield, and attack-gesture exaggeration at phone scale",
         "Minor wear, patch placement, and asymmetric garment details that preserve the subject silhouette",
-        "Controlled black-ink, ash, parchment, and semantic accent variation within the canonical palette",
-        "Generous transparent padding and sprite framing required for implementation"
+        "Controlled black-ink, ash, parchment, faded blue-green and semantic accent variation within the canonical palette",
+        "Generous transparent padding and sprite framing required for implementation",
+        "Map detail and annotation density appropriate to the player's discovered knowledge"
       ],
       "approved_anchor_path": "assets/combat/minimal-v0.1/actors/enemy-guard.png",
       "display_name": "敵：Guard",
@@ -54,6 +58,7 @@
         "Do not exchange the Rusher, Guard, and Skirmisher role silhouettes or combat-reading props",
         "Do not replace physical ink strokes and vermilion danger marks with glowing fantasy VFX",
         "Do not add UI, text, logos, virtual joysticks, attack buttons, minimaps, or skill clusters to sprite assets",
+        "Do not turn the world map into a generic dark-fantasy, satellite, Google Maps, or strategy-game map with luminous borders",
         "Use `docs/assets/crownless-visual-design-reference-v0.1.jpg` for global linework, palette, material, and manuscript-family calibration.",
         "Use `assets/combat/minimal-v0.1/actors/` as the current authority for combat-character proportion, deformation, silhouette width, facial simplification, and battlefield viewpoint.",
         "Older character / battle reference sheets are supporting style references only where they do not conflict with the accepted actor set.",
@@ -70,8 +75,9 @@
         "Pose, facing, and action phase within the fixed oblique top-down battlefield",
         "Readable hand, weapon, shield, and attack-gesture exaggeration at phone scale",
         "Minor wear, patch placement, and asymmetric garment details that preserve the subject silhouette",
-        "Controlled black-ink, ash, parchment, and semantic accent variation within the canonical palette",
-        "Generous transparent padding and sprite framing required for implementation"
+        "Controlled black-ink, ash, parchment, faded blue-green and semantic accent variation within the canonical palette",
+        "Generous transparent padding and sprite framing required for implementation",
+        "Map detail and annotation density appropriate to the player's discovered knowledge"
       ],
       "approved_anchor_path": "assets/combat/minimal-v0.1/actors/enemy-rusher.png",
       "display_name": "敵：Rusher",
@@ -85,6 +91,7 @@
         "Do not exchange the Rusher, Guard, and Skirmisher role silhouettes or combat-reading props",
         "Do not replace physical ink strokes and vermilion danger marks with glowing fantasy VFX",
         "Do not add UI, text, logos, virtual joysticks, attack buttons, minimaps, or skill clusters to sprite assets",
+        "Do not turn the world map into a generic dark-fantasy, satellite, Google Maps, or strategy-game map with luminous borders",
         "Use `docs/assets/crownless-visual-design-reference-v0.1.jpg` for global linework, palette, material, and manuscript-family calibration.",
         "Use `assets/combat/minimal-v0.1/actors/` as the current authority for combat-character proportion, deformation, silhouette width, facial simplification, and battlefield viewpoint.",
         "Older character / battle reference sheets are supporting style references only where they do not conflict with the accepted actor set.",
@@ -101,8 +108,9 @@
         "Pose, facing, and action phase within the fixed oblique top-down battlefield",
         "Readable hand, weapon, shield, and attack-gesture exaggeration at phone scale",
         "Minor wear, patch placement, and asymmetric garment details that preserve the subject silhouette",
-        "Controlled black-ink, ash, parchment, and semantic accent variation within the canonical palette",
-        "Generous transparent padding and sprite framing required for implementation"
+        "Controlled black-ink, ash, parchment, faded blue-green and semantic accent variation within the canonical palette",
+        "Generous transparent padding and sprite framing required for implementation",
+        "Map detail and annotation density appropriate to the player's discovered knowledge"
       ],
       "approved_anchor_path": "assets/combat/minimal-v0.1/actors/enemy-skirmisher.png",
       "display_name": "敵：Skirmisher",
@@ -116,6 +124,7 @@
         "Do not exchange the Rusher, Guard, and Skirmisher role silhouettes or combat-reading props",
         "Do not replace physical ink strokes and vermilion danger marks with glowing fantasy VFX",
         "Do not add UI, text, logos, virtual joysticks, attack buttons, minimaps, or skill clusters to sprite assets",
+        "Do not turn the world map into a generic dark-fantasy, satellite, Google Maps, or strategy-game map with luminous borders",
         "Use `docs/assets/crownless-visual-design-reference-v0.1.jpg` for global linework, palette, material, and manuscript-family calibration.",
         "Use `assets/combat/minimal-v0.1/actors/` as the current authority for combat-character proportion, deformation, silhouette width, facial simplification, and battlefield viewpoint.",
         "Older character / battle reference sheets are supporting style references only where they do not conflict with the accepted actor set.",
@@ -132,8 +141,9 @@
         "Pose, facing, and action phase within the fixed oblique top-down battlefield",
         "Readable hand, weapon, shield, and attack-gesture exaggeration at phone scale",
         "Minor wear, patch placement, and asymmetric garment details that preserve the subject silhouette",
-        "Controlled black-ink, ash, parchment, and semantic accent variation within the canonical palette",
-        "Generous transparent padding and sprite framing required for implementation"
+        "Controlled black-ink, ash, parchment, faded blue-green and semantic accent variation within the canonical palette",
+        "Generous transparent padding and sprite framing required for implementation",
+        "Map detail and annotation density appropriate to the player's discovered knowledge"
       ],
       "approved_anchor_path": "docs/assets/player-unarmed-approved-anchor-v0.2.webp",
       "display_name": "素手の主人公",
@@ -147,6 +157,7 @@
         "Do not exchange the Rusher, Guard, and Skirmisher role silhouettes or combat-reading props",
         "Do not replace physical ink strokes and vermilion danger marks with glowing fantasy VFX",
         "Do not add UI, text, logos, virtual joysticks, attack buttons, minimaps, or skill clusters to sprite assets",
+        "Do not turn the world map into a generic dark-fantasy, satellite, Google Maps, or strategy-game map with luminous borders",
         "Use `docs/assets/crownless-visual-design-reference-v0.1.jpg` for global linework, palette, material, and manuscript-family calibration.",
         "Use `assets/combat/minimal-v0.1/actors/` as the current authority for combat-character proportion, deformation, silhouette width, facial simplification, and battlefield viewpoint.",
         "Older character / battle reference sheets are supporting style references only where they do not conflict with the accepted actor set.",
