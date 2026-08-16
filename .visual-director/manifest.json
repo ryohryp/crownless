@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "project_id": "crownless",
+  "documents": {
+    "globalStyle": "docs/visual/GLOBAL_VISUAL_STYLE.md",
+    "characterCanon": "docs/visual/CHARACTER_VISUAL_CANON.md",
+    "worldDirection": "docs/visual/WORLD_DIRECTION.md",
+    "assetManifest": "docs/assets/README.md",
+    "globalReference": "docs/assets/crownless-visual-design-reference-v0.1.jpg"
+  },
+  "labels": {
+    "avoidBlockHeading": "Fixed Avoid Block",
+    "allowedChangesHeading": "Allowed Changes",
+    "forbiddenChangesHeading": "Forbidden Changes",
+    "commonRulesHeading": "Common rules",
+    "acceptedConditionsHeading": "Accepted visual conditions"
+  },
+  "subjects": {
+    "player-unarmed": {
+      "display_name": "素手の主人公",
+      "character_file": "docs/visual/CHARACTER_VISUAL_CANON.md",
+      "canon_heading": "素手の主人公"
+    },
+    "enemy-rusher": {
+      "display_name": "敵：Rusher",
+      "character_file": "docs/visual/CHARACTER_VISUAL_CANON.md",
+      "canon_heading": "敵：Rusher"
+    },
+    "enemy-guard": {
+      "display_name": "敵：Guard",
+      "character_file": "docs/visual/CHARACTER_VISUAL_CANON.md",
+      "canon_heading": "敵：Guard"
+    },
+    "enemy-skirmisher": {
+      "display_name": "敵：Skirmisher",
+      "character_file": "docs/visual/CHARACTER_VISUAL_CANON.md",
+      "canon_heading": "敵：Skirmisher"
+    }
+  }
+}
