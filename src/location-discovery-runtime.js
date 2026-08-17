@@ -7,7 +7,7 @@
   let geographicDiscoveries = [];
   let locationState = "idle";
   let locationPromise = null;
-  let diagnostics = { gps: "idle", endpoint: "-", discoveries: 0, features: [], names: [], error: "" };
+  let diagnostics = { gps: "idle", osm: "idle", endpoint: "-", attempt: 0, total: 0, httpStatus: null, discoveries: 0, features: [], names: [], error: "" };
 
   function statusText() {
     if (locationState === "loading") return "現在地から周囲の気配を探している…";
@@ -17,8 +17,16 @@
     return "";
   }
 
+  function endpointLabel(endpoint) {
+    if (!endpoint || endpoint === "-") return "-";
+    try { return new URL(endpoint).host; } catch (_) { return endpoint; }
+  }
+
   function diagnosticText() {
-    const parts = [`GPS:${diagnostics.gps}`, `OSM:${diagnostics.endpoint || "-"}`, `発見:${diagnostics.discoveries}`];
+    const osmDetail = diagnostics.endpoint && diagnostics.endpoint !== "-" ? `${diagnostics.osm}@${endpointLabel(diagnostics.endpoint)}` : diagnostics.osm || "-";
+    const parts = [`GPS:${diagnostics.gps}`, `OSM:${osmDetail}`, `発見:${diagnostics.discoveries}`];
+    if (diagnostics.attempt && diagnostics.total) parts.push(`試行:${diagnostics.attempt}/${diagnostics.total}`);
+    if (diagnostics.httpStatus) parts.push(`HTTP:${diagnostics.httpStatus}`);
     if (diagnostics.features.length) parts.push(`地形:${diagnostics.features.join("/")}`);
     if (diagnostics.names.length) parts.push(`地名:${diagnostics.names.join("/")}`);
     if (diagnostics.error) parts.push(`ERROR:${diagnostics.error}`);
@@ -60,20 +68,36 @@
   function getCurrentLocation() {
     if (!navigator.geolocation) return Promise.reject(new Error("geolocation unavailable"));
     diagnostics.gps = "requesting";
+    showLocationStatus();
     return new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition((position) => { diagnostics.gps = "ok"; showLocationStatus(); resolve({ latitude: position.coords.latitude, longitude: position.coords.longitude }); }, (error) => { diagnostics.gps = error && error.code === 1 ? "denied" : "error"; showLocationStatus(); reject(error); }, { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }));
+  }
+
+  function applyProviderStatus(status) {
+    diagnostics.osm = status && status.state ? status.state : diagnostics.osm;
+    diagnostics.endpoint = status && status.endpoint ? status.endpoint : diagnostics.endpoint;
+    diagnostics.attempt = Number(status && status.attempt) || 0;
+    diagnostics.total = Number(status && status.total) || diagnostics.total || 0;
+    diagnostics.httpStatus = status && status.httpStatus ? status.httpStatus : null;
+    diagnostics.error = status && status.state === "failed" ? (status.error || (status.timedOut ? "timeout" : "failed")) : "";
+    if (status && status.state === "success") {
+      diagnostics.discoveries = Number(status.discoveries) || 0;
+      diagnostics.features = Array.isArray(status.features) ? status.features.slice() : [];
+      diagnostics.names = Array.isArray(status.names) ? status.names.slice() : [];
+    }
+    showLocationStatus();
   }
 
   async function loadGeographicDiscoveries() {
     if (locationPromise) return locationPromise;
     locationState = "loading";
-    diagnostics = { gps: "requesting", endpoint: "-", discoveries: 0, features: [], names: [], error: "" };
+    diagnostics = { gps: "requesting", osm: "idle", endpoint: "-", attempt: 0, total: 0, httpStatus: null, discoveries: 0, features: [], names: [], error: "" };
     locationPromise = (async () => {
       let provider = null;
       try {
         const location = await getCurrentLocation();
-        provider = Discovery.createLocationDiscoveryProvider({ limit: 3, radius: 650 });
+        provider = Discovery.createLocationDiscoveryProvider({ limit: 3, radius: 650, timeoutMs: 8000, onStatus: applyProviderStatus });
         geographicDiscoveries = await provider.discover({ location });
-        diagnostics.endpoint = provider.endpoint || "unknown";
+        diagnostics.endpoint = provider.endpoint || diagnostics.endpoint || "unknown";
         diagnostics.discoveries = geographicDiscoveries.length;
         diagnostics.features = [...new Set(geographicDiscoveries.flatMap((item) => item.features || []))];
         diagnostics.names = [...new Set(geographicDiscoveries.map((item) => item.realPlaceName).filter(Boolean))];
@@ -82,8 +106,9 @@
       } catch (error) {
         geographicDiscoveries = [];
         locationState = error && error.code === 1 ? "denied" : "failed";
-        diagnostics.endpoint = provider && provider.endpoint ? provider.endpoint : "-";
+        diagnostics.endpoint = provider && provider.endpoint ? provider.endpoint : diagnostics.endpoint || "-";
         diagnostics.error = provider && provider.error ? provider.error : (error && error.message ? error.message : "unknown error");
+        if (diagnostics.gps === "ok" && diagnostics.osm === "idle") diagnostics.osm = "failed";
       }
       showLocationStatus();
       return geographicDiscoveries;
@@ -118,5 +143,5 @@
     });
   });
 
-  window.CrownlessLocationDiscoveryRuntime = { get state() { return locationState; }, get discoveries() { return geographicDiscoveries.slice(); }, get diagnostics() { return Object.assign({}, diagnostics); }, reload() { locationPromise = null; return loadGeographicDiscoveries(); } };
+  window.CrownlessLocationDiscoveryRuntime = { get state() { return locationState; }, get discoveries() { return geographicDiscoveries.slice(); }, get diagnostics() { return Object.assign({}, diagnostics, { features: diagnostics.features.slice(), names: diagnostics.names.slice() }); }, reload() { locationPromise = null; return loadGeographicDiscoveries(); } };
 })();
