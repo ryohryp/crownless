@@ -3,19 +3,13 @@ const assert = require("node:assert/strict");
 const Discovery = require("../src/discovery-provider.js");
 
 test("normalizes OSM-like tags behind Crownless feature types", () => {
-  const features = Discovery.normalizeGeographicFeatures([
-    { id: 1, tags: { natural: "water" } }, { id: 2, tags: { bridge: "yes" } }, { id: 3, tags: { amenity: "place_of_worship" } }, { id: 4, tags: { leisure: "park" } }, { id: 5, tags: { railway: "station" } }, { id: 6, tags: { natural: "peak" } }, { id: 7, tags: { natural: "coastline" } }, { id: 8, tags: { place: "neighbourhood" } }
-  ]);
+  const features = Discovery.normalizeGeographicFeatures([{ id: 1, tags: { natural: "water" } }, { id: 2, tags: { bridge: "yes" } }, { id: 3, tags: { amenity: "place_of_worship" } }, { id: 4, tags: { leisure: "park" } }, { id: 5, tags: { railway: "station" } }, { id: 6, tags: { natural: "peak" } }, { id: 7, tags: { natural: "coastline" } }, { id: 8, tags: { place: "neighbourhood" } }]);
   assert.deepEqual(features, ["water", "crossing", "sacred", "woods", "road_hub", "height", "coast", "settlement"]);
 });
 
 test("keeps Japanese OSM names alongside normalized feature types", () => {
-  const context = Discovery.normalizeGeographicContext([
-    { id: 1, tags: { waterway: "river", name: "Nakagawa", "name:ja": "中川" } },
-    { id: 2, tags: { place: "neighbourhood", name: "Okudo", "name:ja": "奥戸" } }
-  ]);
-  assert.equal(context.namesByType.water, "中川");
-  assert.equal(context.namesByType.settlement, "奥戸");
+  const context = Discovery.normalizeGeographicContext([{ id: 1, tags: { waterway: "river", name: "Nakagawa", "name:ja": "中川" } }, { id: 2, tags: { place: "neighbourhood", name: "Okudo", "name:ja": "奥戸" } }]);
+  assert.equal(context.namesByType.water, "中川"); assert.equal(context.namesByType.settlement, "奥戸");
 });
 
 test("feature combinations create mysterious signals before names are revealed", () => {
@@ -25,8 +19,7 @@ test("feature combinations create mysterious signals before names are revealed",
 
 test("real place names become fantasy discovery names", () => {
   const discoveries = Discovery.discoveriesFromFeatures(["water", "crossing"], { limit: 1, namesByType: { water: "中川" } });
-  assert.equal(discoveries[0].title, "中川の血濡れの渡し場");
-  assert.equal(discoveries[0].realPlaceName, "中川");
+  assert.equal(discoveries[0].title, "中川の血濡れの渡し場"); assert.equal(discoveries[0].realPlaceName, "中川");
 });
 
 test("investigation progressively reveals identity and preserves entry metadata", () => {
@@ -35,9 +28,15 @@ test("investigation progressively reveals identity and preserves entry metadata"
 });
 
 test("location provider uses injected network boundary and carries OSM names", async () => {
-  let request; const provider = Discovery.createLocationDiscoveryProvider({ limit: 2, fetch: async (url, options) => { request = { url, options }; return { ok: true, async json() { return { elements: [{ id: 10, tags: { waterway: "river", "name:ja": "中川" } }, { id: 11, tags: { bridge: "yes" } }] }; } }; } });
+  let request; const provider = Discovery.createLocationDiscoveryProvider({ limit: 2, endpoint: "https://example.test/api", fetch: async (url, options) => { request = { url, options }; return { ok: true, async json() { return { elements: [{ id: 10, tags: { waterway: "river", "name:ja": "中川" } }, { id: 11, tags: { bridge: "yes" } }] }; } }; } });
   const discoveries = await provider.discover({ location: { latitude: 35.69, longitude: 139.78 } });
-  assert.equal(provider.kind, "location"); assert.equal(discoveries[0].title, "中川の血濡れの渡し場"); assert.match(request.options.body, /around%3A500%2C35.69%2C139.78/);
+  assert.equal(provider.kind, "location"); assert.equal(discoveries[0].title, "中川の血濡れの渡し場"); assert.equal(provider.endpoint, "https://example.test/api"); assert.match(request.options.body, /around%3A500%2C35.69%2C139.78/);
+});
+
+test("location provider retries the next Overpass endpoint after a failure", async () => {
+  const calls = []; const provider = Discovery.createLocationDiscoveryProvider({ endpoints: ["https://first.test/api", "https://second.test/api"], fetch: async (url) => { calls.push(url); if (url.includes("first")) return { ok: false, status: 503 }; return { ok: true, async json() { return { elements: [{ id: 1, tags: { waterway: "river", "name:ja": "中川" } }] }; } }; } });
+  const discoveries = await provider.discover({ location: { latitude: 35.69, longitude: 139.78 } });
+  assert.deepEqual(calls, ["https://first.test/api", "https://second.test/api"]); assert.equal(provider.endpoint, "https://second.test/api"); assert.equal(discoveries[0].title, "中川の葦辺の巣穴");
 });
 
 test("simulated discovery remains available as deterministic fallback", () => {
