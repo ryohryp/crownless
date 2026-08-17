@@ -20,6 +20,13 @@ function normalizeRadius(value) {
   return Math.max(100, Math.min(1500, number));
 }
 
+function classifyUpstreamFailure(error) {
+  if (error && error.code === "OVERPASS_TIMEOUT") return "timeout";
+  if (error && error.httpStatus) return "http";
+  if (error && (error.name === "AbortError" || error.code === "ABORT_ERR")) return "aborted";
+  return "network";
+}
+
 async function fetchWithTimeout(fetchFn, endpoint, options, timeoutMs) {
   const controller = typeof AbortController === "function" ? new AbortController() : null;
   let timer = null;
@@ -55,6 +62,7 @@ async function requestGeography(options) {
   const attempts = [];
 
   for (const endpoint of endpoints) {
+    const startedAt = Date.now();
     try {
       const response = await fetchWithTimeout(fetchFn, endpoint, {
         method: "POST",
@@ -72,12 +80,21 @@ async function requestGeography(options) {
         throw error;
       }
       const payload = await response.json();
-      attempts.push({ endpoint, state: "success", httpStatus, error: "", timedOut: false });
+      attempts.push({
+        endpoint,
+        state: "success",
+        httpStatus,
+        error: "",
+        timedOut: false,
+        failureKind: "",
+        durationMs: Math.max(0, Date.now() - startedAt)
+      });
       return {
         elements: Array.isArray(payload && payload.elements) ? payload.elements : [],
         endpoint,
         attempts,
-        total: endpoints.length
+        total: endpoints.length,
+        timeoutMs
       };
     } catch (error) {
       attempts.push({
@@ -85,7 +102,9 @@ async function requestGeography(options) {
         state: "failed",
         httpStatus: error && error.httpStatus ? error.httpStatus : null,
         error: error && error.message ? error.message : "failed",
-        timedOut: !!(error && error.code === "OVERPASS_TIMEOUT")
+        timedOut: !!(error && error.code === "OVERPASS_TIMEOUT"),
+        failureKind: classifyUpstreamFailure(error),
+        durationMs: Math.max(0, Date.now() - startedAt)
       });
     }
   }
@@ -94,6 +113,7 @@ async function requestGeography(options) {
   error.code = "GEOGRAPHY_UPSTREAM_FAILED";
   error.attempts = attempts;
   error.total = endpoints.length;
+  error.timeoutMs = timeoutMs;
   throw error;
 }
 
@@ -111,8 +131,14 @@ function sendJson(res, statusCode, payload) {
   return undefined;
 }
 
+function logUpstreamState(logger, level, payload) {
+  if (!logger || typeof logger[level] !== "function") return;
+  logger[level](JSON.stringify(Object.assign({ event: "geography_upstream_state" }, payload)));
+}
+
 function createGeographyHandler(options) {
   const settings = options || {};
+  const logger = settings.logger || console;
   return async function geographyHandler(req, res) {
     setHeader(res, "Access-Control-Allow-Origin", "*");
     setHeader(res, "Access-Control-Allow-Methods", "GET, OPTIONS");
@@ -136,13 +162,31 @@ function createGeographyHandler(options) {
         endpoints: settings.endpoints,
         timeoutMs: settings.timeoutMs
       });
+      if (result.attempts.length > 1) {
+        logUpstreamState(logger, "warn", {
+          state: "fallback_success",
+          endpoint: result.endpoint,
+          attempts: result.attempts,
+          total: result.total,
+          timeoutMs: result.timeoutMs
+        });
+      }
       return sendJson(res, 200, result);
     } catch (error) {
       const invalid = error && error.code === "INVALID_LOCATION";
+      if (!invalid) {
+        logUpstreamState(logger, "error", {
+          state: "all_failed",
+          attempts: Array.isArray(error && error.attempts) ? error.attempts : [],
+          total: Number(error && error.total) || 0,
+          timeoutMs: Number(error && error.timeoutMs) || 0
+        });
+      }
       return sendJson(res, invalid ? 400 : 502, {
         error: error && error.message ? error.message : "Geographic data could not be loaded",
         attempts: Array.isArray(error && error.attempts) ? error.attempts : [],
-        total: Number(error && error.total) || 0
+        total: Number(error && error.total) || 0,
+        timeoutMs: Number(error && error.timeoutMs) || 0
       });
     }
   };
@@ -151,6 +195,7 @@ function createGeographyHandler(options) {
 module.exports = {
   DEFAULT_TIMEOUT_MS,
   normalizeRadius,
+  classifyUpstreamFailure,
   requestGeography,
   createGeographyHandler
 };
