@@ -1,14 +1,13 @@
 (() => {
   "use strict";
-
   const Core = window.CrownlessCore;
   const Discovery = window.CrownlessDiscovery;
   if (!Core || !Discovery) return;
-
   const originalGenerate = Core.generateExplorationChoices.bind(Core);
   let geographicDiscoveries = [];
   let locationState = "idle";
   let locationPromise = null;
+  let diagnostics = { gps: "idle", endpoint: "-", discoveries: 0, features: [], names: [], error: "" };
 
   function statusText() {
     if (locationState === "loading") return "現在地から周囲の気配を探している…";
@@ -18,100 +17,71 @@
     return "";
   }
 
+  function diagnosticText() {
+    const parts = [`GPS:${diagnostics.gps}`, `OSM:${diagnostics.endpoint || "-"}`, `発見:${diagnostics.discoveries}`];
+    if (diagnostics.features.length) parts.push(`地形:${diagnostics.features.join("/")}`);
+    if (diagnostics.names.length) parts.push(`地名:${diagnostics.names.join("/")}`);
+    if (diagnostics.error) parts.push(`ERROR:${diagnostics.error}`);
+    return parts.join(" ｜ ");
+  }
+
   function showLocationStatus() {
     const warning = document.getElementById("carried-warning");
-    if (!warning || !statusText()) return;
-    const existing = warning.querySelector(".location-discovery-status");
-    if (existing) existing.remove();
-    const marker = document.createElement("span");
-    marker.className = "location-discovery-status";
-    marker.textContent = statusText();
-    warning.appendChild(marker);
+    if (!warning) return;
+    let marker = warning.querySelector(".location-discovery-status");
+    if (!marker) { marker = document.createElement("span"); marker.className = "location-discovery-status"; warning.appendChild(marker); }
+    marker.textContent = `${statusText()} ${diagnosticText()}`.trim();
+    marker.style.display = "block";
+    marker.style.marginTop = "8px";
+    marker.style.fontSize = "12px";
+    marker.style.lineHeight = "1.5";
+    marker.style.opacity = "0.9";
+    marker.style.overflowWrap = "anywhere";
   }
 
   function mergeGeography(choice, discovery) {
     if (!discovery) return choice;
     const identified = Discovery.investigateDiscovery(discovery);
-    return Object.assign({}, choice, {
-      name: identified.title,
-      description: discovery.signal,
-      omen: `現実の地形：${discovery.features.join(" + ")}`,
-      signal: discovery.contentKind === "dungeon" ? "遺構" : discovery.contentKind === "encounter" ? "遭遇" : "異変",
-      risk: Math.max(choice.risk || 1, discovery.risk || 1),
-      palette: discovery.palette === "water" ? "marsh" : discovery.palette,
-      geographicDiscovery: discovery
-    });
+    return Object.assign({}, choice, { name: identified.title, description: discovery.signal, omen: `現実の地形：${discovery.features.join(" + ")}`, signal: discovery.contentKind === "dungeon" ? "遺構" : discovery.contentKind === "encounter" ? "遭遇" : "異変", risk: Math.max(choice.risk || 1, discovery.risk || 1), palette: discovery.palette === "water" ? "marsh" : discovery.palette, geographicDiscovery: discovery });
   }
 
-  Core.generateExplorationChoices = function generateLocationAwareChoices(state) {
-    const choices = originalGenerate(state);
-    if (!geographicDiscoveries.length) return choices;
-    return choices.map((choice, index) => mergeGeography(choice, geographicDiscoveries[index % geographicDiscoveries.length]));
-  };
+  Core.generateExplorationChoices = function generateLocationAwareChoices(state) { const choices = originalGenerate(state); if (!geographicDiscoveries.length) return choices; return choices.map((choice, index) => mergeGeography(choice, geographicDiscoveries[index % geographicDiscoveries.length])); };
 
   function getCurrentLocation() {
     if (!navigator.geolocation) return Promise.reject(new Error("geolocation unavailable"));
-    return new Promise((resolve, reject) => {
-      navigator.geolocation.getCurrentPosition(
-        (position) => resolve({ latitude: position.coords.latitude, longitude: position.coords.longitude }),
-        reject,
-        { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
-      );
-    });
+    diagnostics.gps = "requesting"; showLocationStatus();
+    return new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition((position) => { diagnostics.gps = "ok"; resolve({ latitude: position.coords.latitude, longitude: position.coords.longitude }); }, (error) => { diagnostics.gps = error && error.code === 1 ? "denied" : "error"; reject(error); }, { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }));
   }
 
   async function loadGeographicDiscoveries() {
     if (locationPromise) return locationPromise;
-    locationState = "loading";
+    locationState = "loading"; diagnostics = { gps: "requesting", endpoint: "-", discoveries: 0, features: [], names: [], error: "" }; showLocationStatus();
     locationPromise = (async () => {
+      let provider = null;
       try {
         const location = await getCurrentLocation();
-        const provider = Discovery.createLocationDiscoveryProvider({ limit: 3, radius: 650 });
+        provider = Discovery.createLocationDiscoveryProvider({ limit: 3, radius: 650 });
         geographicDiscoveries = await provider.discover({ location });
+        diagnostics.endpoint = provider.endpoint || "unknown";
+        diagnostics.discoveries = geographicDiscoveries.length;
+        diagnostics.features = [...new Set(geographicDiscoveries.flatMap((item) => item.features || []))];
+        diagnostics.names = [...new Set(geographicDiscoveries.map((item) => item.realPlaceName).filter(Boolean))];
         locationState = geographicDiscoveries.length ? "ready" : "failed";
+        if (!geographicDiscoveries.length) diagnostics.error = "no matching discoveries";
       } catch (error) {
         geographicDiscoveries = [];
         locationState = error && error.code === 1 ? "denied" : "failed";
+        diagnostics.endpoint = provider && provider.endpoint ? provider.endpoint : "-";
+        diagnostics.error = provider && provider.error ? provider.error : (error && error.message ? error.message : "unknown error");
       }
+      showLocationStatus();
       return geographicDiscoveries;
     })();
     return locationPromise;
   }
 
-  // Do not intercept the app's expedition click handler. The previous capture-phase
-  // interception could consume the click before app.js saw it, leaving the player
-  // at the hearth after granting permission. Instead, begin location lookup in the
-  // bubble phase after app.js has synchronously started the expedition. Once the
-  // geographic snapshot arrives, refresh the already-visible exploration choices.
   const startButton = document.getElementById("start-expedition");
-  if (startButton) {
-    startButton.addEventListener("click", () => {
-      loadGeographicDiscoveries().then(() => {
-        showLocationStatus();
-        const exploreScreen = document.getElementById("explore-screen");
-        if (!exploreScreen || !exploreScreen.classList.contains("active")) return;
-        const choices = Core.generateExplorationChoices(window.CrownlessAppState || null);
-        const leadList = document.getElementById("lead-list");
-        if (!leadList || !choices.length) return;
-        const cards = Array.from(leadList.querySelectorAll(".lead-card"));
-        choices.forEach((choice, index) => {
-          const card = cards[index];
-          if (!card) return;
-          const title = card.querySelector("h3");
-          const description = card.querySelector("p");
-          const omen = card.querySelector(".lead-omen");
-          if (title) title.textContent = choice.name;
-          if (description) description.textContent = choice.description;
-          if (omen) omen.textContent = `噂：${choice.omen}`;
-          card.className = `lead-card palette-${choice.palette}${choice.eventKind === "hunt" ? " hunt-target" : ""}`;
-        });
-      });
-    });
-  }
+  if (startButton) startButton.addEventListener("click", () => { loadGeographicDiscoveries().then(() => { showLocationStatus(); const exploreScreen = document.getElementById("explore-screen"); if (!exploreScreen || !exploreScreen.classList.contains("active")) return; const choices = Core.generateExplorationChoices(window.CrownlessAppState || null); const leadList = document.getElementById("lead-list"); if (!leadList || !choices.length) return; const cards = Array.from(leadList.querySelectorAll(".lead-card")); choices.forEach((choice, index) => { const card = cards[index]; if (!card) return; const title = card.querySelector("h3"); const description = card.querySelector("p"); const omen = card.querySelector(".lead-omen"); if (title) title.textContent = choice.name; if (description) description.textContent = choice.description; if (omen) omen.textContent = `噂：${choice.omen}`; card.className = `lead-card palette-${choice.palette}${choice.eventKind === "hunt" ? " hunt-target" : ""}`; }); }); });
 
-  window.CrownlessLocationDiscoveryRuntime = {
-    get state() { return locationState; },
-    get discoveries() { return geographicDiscoveries.slice(); },
-    reload() { locationPromise = null; return loadGeographicDiscoveries(); }
-  };
+  window.CrownlessLocationDiscoveryRuntime = { get state() { return locationState; }, get discoveries() { return geographicDiscoveries.slice(); }, get diagnostics() { return Object.assign({}, diagnostics); }, reload() { locationPromise = null; return loadGeographicDiscoveries(); } };
 })();
