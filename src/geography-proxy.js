@@ -2,7 +2,7 @@
 
 const Discovery = require("./discovery-provider.js");
 
-const DEFAULT_TIMEOUT_MS = 6000;
+const DEFAULT_TIMEOUT_MS = 15000;
 
 function parseCoordinate(value, min, max, label) {
   const number = Number(value);

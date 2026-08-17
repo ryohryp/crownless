@@ -28,6 +28,10 @@ test("server geography proxy retries Overpass endpoints and returns the successf
   assert.equal(calls[0].options.headers["User-Agent"], "Crownless/0.1 (+https://crownless-iota.vercel.app/)");
 });
 
+test("server geography proxy allows the Overpass query to complete", () => {
+  assert.ok(ProxyCore.DEFAULT_TIMEOUT_MS >= 12000);
+});
+
 test("server geography proxy validates coordinates and clamps radius", async () => {
   await assert.rejects(
     ProxyCore.requestGeography({ latitude: 999, longitude: 139, fetch: async () => ({ ok: true }) }),
