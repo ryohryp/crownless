@@ -72,7 +72,8 @@ async function requestGeography(options) {
       return {
         elements: Array.isArray(payload && payload.elements) ? payload.elements : [],
         endpoint,
-        attempts
+        attempts,
+        total: endpoints.length
       };
     } catch (error) {
       attempts.push({
@@ -88,6 +89,7 @@ async function requestGeography(options) {
   const error = new Error("Geographic upstreams could not be loaded");
   error.code = "GEOGRAPHY_UPSTREAM_FAILED";
   error.attempts = attempts;
+  error.total = endpoints.length;
   throw error;
 }
 
@@ -135,7 +137,8 @@ function createGeographyHandler(options) {
       const invalid = error && error.code === "INVALID_LOCATION";
       return sendJson(res, invalid ? 400 : 502, {
         error: error && error.message ? error.message : "Geographic data could not be loaded",
-        attempts: Array.isArray(error && error.attempts) ? error.attempts : []
+        attempts: Array.isArray(error && error.attempts) ? error.attempts : [],
+        total: Number(error && error.total) || 0
       });
     }
   };
