@@ -8,6 +8,7 @@
   let geographicDiscoveries = [];
   let locationState = "idle";
   let locationPromise = null;
+  let replayingStart = false;
   let diagnostics = { gps: "idle", osm: "idle", endpoint: "-", attempt: 0, total: 0, httpStatus: null, discoveries: 0, features: [], names: [], error: "" };
 
   function statusText() {
@@ -64,36 +65,6 @@
     presentation.setDiscoverySource(document, locationState === "ready" && geographicDiscoveries.length ? "geographic" : "simulated");
   }
 
-  function setLeadLoading(loading) {
-    const leadList = document.getElementById("lead-list");
-    if (!leadList) return;
-    leadList.dataset.locationLoading = loading ? "true" : "false";
-    leadList.style.display = loading ? "none" : "";
-    leadList.setAttribute("aria-busy", String(Boolean(loading)));
-    Array.from(leadList.querySelectorAll(".lead-card")).forEach((card) => {
-      card.disabled = Boolean(loading);
-      card.setAttribute("aria-disabled", String(Boolean(loading)));
-    });
-  }
-
-  function refreshLeadCards() {
-    const choices = Core.generateExplorationChoices(window.CrownlessAppState || null);
-    const leadList = document.getElementById("lead-list");
-    if (!leadList || !choices.length) return;
-    const cards = Array.from(leadList.querySelectorAll(".lead-card"));
-    choices.forEach((choice, index) => {
-      const card = cards[index];
-      if (!card) return;
-      const title = card.querySelector("h3");
-      const description = card.querySelector("p");
-      const omen = card.querySelector(".lead-omen");
-      if (title) title.textContent = choice.name;
-      if (description) description.textContent = choice.description;
-      if (omen) omen.textContent = `噂：${choice.omen}`;
-      card.className = `lead-card palette-${choice.palette}${choice.eventKind === "hunt" ? " hunt-target" : ""}`;
-    });
-  }
-
   function mergeGeography(choice, discovery) {
     if (!discovery) return choice;
     const identified = Discovery.investigateDiscovery(discovery);
@@ -132,13 +103,7 @@
       let provider = null;
       try {
         const location = await getCurrentLocation();
-        provider = GeographyApi.createProxyLocationDiscoveryProvider({
-          limit: 3,
-          radius: 650,
-          timeoutMs: 22000,
-          endpoint: window.CROWNLESS_GEOGRAPHY_API || GeographyApi.DEFAULT_PROXY_ENDPOINT,
-          onStatus: applyProviderStatus
-        });
+        provider = GeographyApi.createProxyLocationDiscoveryProvider({ limit: 3, radius: 650, timeoutMs: 22000, endpoint: window.CROWNLESS_GEOGRAPHY_API || GeographyApi.DEFAULT_PROXY_ENDPOINT, onStatus: applyProviderStatus });
         geographicDiscoveries = await provider.discover({ location });
         diagnostics.endpoint = provider.endpoint || diagnostics.endpoint || "unknown";
         diagnostics.discoveries = geographicDiscoveries.length;
@@ -153,29 +118,33 @@
         diagnostics.error = provider && provider.error ? provider.error : (error && error.message ? error.message : "unknown error");
         if (diagnostics.gps === "ok" && diagnostics.osm === "idle") diagnostics.osm = "failed";
       }
-      syncExplorationSource();
-      showLocationStatus();
       return geographicDiscoveries;
     })();
     return locationPromise;
   }
 
   const startButton = document.getElementById("start-expedition");
-  if (startButton) startButton.addEventListener("click", () => {
+  if (startButton) startButton.addEventListener("click", (event) => {
+    if (replayingStart) {
+      replayingStart = false;
+      queueMicrotask(() => { syncExplorationSource(); showLocationStatus(); });
+      return;
+    }
+
+    // This listener is registered before app.js. Stop the original expedition
+    // handler from rendering simulated choices until location discovery settles.
+    event.stopImmediatePropagation();
     locationPromise = null;
     geographicDiscoveries = [];
     locationState = "loading";
-    // app.js renders the exploration screen in the same click. Hide the newly
-    // rendered simulated leads on the next task and keep them non-interactive
-    // until real-world discovery either succeeds or explicitly falls back.
-    setTimeout(() => { setLeadLoading(true); syncExplorationSource(); showLocationStatus(); }, 0);
-    loadGeographicDiscoveries().then(() => {
-      syncExplorationSource();
-      showLocationStatus();
-      const exploreScreen = document.getElementById("explore-screen");
-      if (!exploreScreen || !exploreScreen.classList.contains("active")) return;
-      refreshLeadCards();
-      setLeadLoading(false);
+    startButton.disabled = true;
+    startButton.setAttribute("aria-busy", "true");
+
+    loadGeographicDiscoveries().finally(() => {
+      startButton.disabled = false;
+      startButton.removeAttribute("aria-busy");
+      replayingStart = true;
+      startButton.click();
     });
   });
 
