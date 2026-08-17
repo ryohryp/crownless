@@ -26,16 +26,26 @@
   }
 
   function showLocationStatus() {
-    const warning = document.getElementById("carried-warning");
-    if (!warning) return;
-    let marker = warning.querySelector(".location-discovery-status");
-    if (!marker) { marker = document.createElement("span"); marker.className = "location-discovery-status"; warning.appendChild(marker); }
+    const exploreScreen = document.getElementById("explore-screen");
+    if (!exploreScreen) return;
+    let marker = document.getElementById("location-discovery-status");
+    if (!marker) {
+      marker = document.createElement("div");
+      marker.id = "location-discovery-status";
+      marker.className = "location-discovery-status";
+      const warning = document.getElementById("carried-warning");
+      if (warning && warning.parentNode) warning.parentNode.insertBefore(marker, warning.nextSibling);
+      else exploreScreen.prepend(marker);
+    }
     marker.textContent = `${statusText()} ${diagnosticText()}`.trim();
     marker.style.display = "block";
-    marker.style.marginTop = "8px";
+    marker.style.margin = "8px 0 14px";
+    marker.style.padding = "8px 10px";
+    marker.style.borderLeft = "3px solid #b99a55";
+    marker.style.background = "rgba(185,154,85,0.08)";
     marker.style.fontSize = "12px";
     marker.style.lineHeight = "1.5";
-    marker.style.opacity = "0.9";
+    marker.style.opacity = "0.95";
     marker.style.overflowWrap = "anywhere";
   }
 
@@ -49,13 +59,14 @@
 
   function getCurrentLocation() {
     if (!navigator.geolocation) return Promise.reject(new Error("geolocation unavailable"));
-    diagnostics.gps = "requesting"; showLocationStatus();
-    return new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition((position) => { diagnostics.gps = "ok"; resolve({ latitude: position.coords.latitude, longitude: position.coords.longitude }); }, (error) => { diagnostics.gps = error && error.code === 1 ? "denied" : "error"; reject(error); }, { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }));
+    diagnostics.gps = "requesting";
+    return new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition((position) => { diagnostics.gps = "ok"; showLocationStatus(); resolve({ latitude: position.coords.latitude, longitude: position.coords.longitude }); }, (error) => { diagnostics.gps = error && error.code === 1 ? "denied" : "error"; showLocationStatus(); reject(error); }, { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }));
   }
 
   async function loadGeographicDiscoveries() {
     if (locationPromise) return locationPromise;
-    locationState = "loading"; diagnostics = { gps: "requesting", endpoint: "-", discoveries: 0, features: [], names: [], error: "" }; showLocationStatus();
+    locationState = "loading";
+    diagnostics = { gps: "requesting", endpoint: "-", discoveries: 0, features: [], names: [], error: "" };
     locationPromise = (async () => {
       let provider = null;
       try {
@@ -81,7 +92,31 @@
   }
 
   const startButton = document.getElementById("start-expedition");
-  if (startButton) startButton.addEventListener("click", () => { loadGeographicDiscoveries().then(() => { showLocationStatus(); const exploreScreen = document.getElementById("explore-screen"); if (!exploreScreen || !exploreScreen.classList.contains("active")) return; const choices = Core.generateExplorationChoices(window.CrownlessAppState || null); const leadList = document.getElementById("lead-list"); if (!leadList || !choices.length) return; const cards = Array.from(leadList.querySelectorAll(".lead-card")); choices.forEach((choice, index) => { const card = cards[index]; if (!card) return; const title = card.querySelector("h3"); const description = card.querySelector("p"); const omen = card.querySelector(".lead-omen"); if (title) title.textContent = choice.name; if (description) description.textContent = choice.description; if (omen) omen.textContent = `噂：${choice.omen}`; card.className = `lead-card palette-${choice.palette}${choice.eventKind === "hunt" ? " hunt-target" : ""}`; }); }); });
+  if (startButton) startButton.addEventListener("click", () => {
+    // app.js renders the exploration screen in the same click. Delay the first
+    // diagnostic paint until after that render so renderExplore() cannot erase it.
+    setTimeout(showLocationStatus, 0);
+    loadGeographicDiscoveries().then(() => {
+      showLocationStatus();
+      const exploreScreen = document.getElementById("explore-screen");
+      if (!exploreScreen || !exploreScreen.classList.contains("active")) return;
+      const choices = Core.generateExplorationChoices(window.CrownlessAppState || null);
+      const leadList = document.getElementById("lead-list");
+      if (!leadList || !choices.length) return;
+      const cards = Array.from(leadList.querySelectorAll(".lead-card"));
+      choices.forEach((choice, index) => {
+        const card = cards[index];
+        if (!card) return;
+        const title = card.querySelector("h3");
+        const description = card.querySelector("p");
+        const omen = card.querySelector(".lead-omen");
+        if (title) title.textContent = choice.name;
+        if (description) description.textContent = choice.description;
+        if (omen) omen.textContent = `噂：${choice.omen}`;
+        card.className = `lead-card palette-${choice.palette}${choice.eventKind === "hunt" ? " hunt-target" : ""}`;
+      });
+    });
+  });
 
   window.CrownlessLocationDiscoveryRuntime = { get state() { return locationState; }, get discoveries() { return geographicDiscoveries.slice(); }, get diagnostics() { return Object.assign({}, diagnostics); }, reload() { locationPromise = null; return loadGeographicDiscoveries(); } };
 })();
