@@ -64,6 +64,36 @@
     presentation.setDiscoverySource(document, locationState === "ready" && geographicDiscoveries.length ? "geographic" : "simulated");
   }
 
+  function setLeadLoading(loading) {
+    const leadList = document.getElementById("lead-list");
+    if (!leadList) return;
+    leadList.dataset.locationLoading = loading ? "true" : "false";
+    leadList.style.display = loading ? "none" : "";
+    leadList.setAttribute("aria-busy", String(Boolean(loading)));
+    Array.from(leadList.querySelectorAll(".lead-card")).forEach((card) => {
+      card.disabled = Boolean(loading);
+      card.setAttribute("aria-disabled", String(Boolean(loading)));
+    });
+  }
+
+  function refreshLeadCards() {
+    const choices = Core.generateExplorationChoices(window.CrownlessAppState || null);
+    const leadList = document.getElementById("lead-list");
+    if (!leadList || !choices.length) return;
+    const cards = Array.from(leadList.querySelectorAll(".lead-card"));
+    choices.forEach((choice, index) => {
+      const card = cards[index];
+      if (!card) return;
+      const title = card.querySelector("h3");
+      const description = card.querySelector("p");
+      const omen = card.querySelector(".lead-omen");
+      if (title) title.textContent = choice.name;
+      if (description) description.textContent = choice.description;
+      if (omen) omen.textContent = `噂：${choice.omen}`;
+      card.className = `lead-card palette-${choice.palette}${choice.eventKind === "hunt" ? " hunt-target" : ""}`;
+    });
+  }
+
   function mergeGeography(choice, discovery) {
     if (!discovery) return choice;
     const identified = Discovery.investigateDiscovery(discovery);
@@ -132,29 +162,20 @@
 
   const startButton = document.getElementById("start-expedition");
   if (startButton) startButton.addEventListener("click", () => {
-    // app.js renders the exploration screen in the same click. Delay the first
-    // diagnostic paint until after that render so renderExplore() cannot erase it.
-    setTimeout(() => { syncExplorationSource(); showLocationStatus(); }, 0);
+    locationPromise = null;
+    geographicDiscoveries = [];
+    locationState = "loading";
+    // app.js renders the exploration screen in the same click. Hide the newly
+    // rendered simulated leads on the next task and keep them non-interactive
+    // until real-world discovery either succeeds or explicitly falls back.
+    setTimeout(() => { setLeadLoading(true); syncExplorationSource(); showLocationStatus(); }, 0);
     loadGeographicDiscoveries().then(() => {
       syncExplorationSource();
       showLocationStatus();
       const exploreScreen = document.getElementById("explore-screen");
       if (!exploreScreen || !exploreScreen.classList.contains("active")) return;
-      const choices = Core.generateExplorationChoices(window.CrownlessAppState || null);
-      const leadList = document.getElementById("lead-list");
-      if (!leadList || !choices.length) return;
-      const cards = Array.from(leadList.querySelectorAll(".lead-card"));
-      choices.forEach((choice, index) => {
-        const card = cards[index];
-        if (!card) return;
-        const title = card.querySelector("h3");
-        const description = card.querySelector("p");
-        const omen = card.querySelector(".lead-omen");
-        if (title) title.textContent = choice.name;
-        if (description) description.textContent = choice.description;
-        if (omen) omen.textContent = `噂：${choice.omen}`;
-        card.className = `lead-card palette-${choice.palette}${choice.eventKind === "hunt" ? " hunt-target" : ""}`;
-      });
+      refreshLeadCards();
+      setLeadLoading(false);
     });
   });
 
