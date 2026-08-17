@@ -9,6 +9,10 @@
   "use strict";
 
   const DESTINATION_LIMIT = 3;
+  const DISCOVERY_SOURCE_LABELS = {
+    simulated: "DISCOVERED NEARBY / SIMULATED LOCATION",
+    geographic: "DISCOVERED NEARBY / REAL-WORLD DISCOVERY"
+  };
 
   function riskFromCard(card) {
     return card ? card.querySelectorAll(".pips.risk i.on").length : 1;
@@ -33,6 +37,16 @@
       return provider.discover({ leads }).map((place) => place.source);
     }
     return leads.slice(0, DESTINATION_LIMIT);
+  }
+
+  function setDiscoverySource(document, source) {
+    const heading = document && document.getElementById("discovered-destinations-heading");
+    const eyebrow = heading && heading.querySelector(".eyebrow");
+    if (!heading || !eyebrow) return false;
+    const normalized = source === "geographic" ? "geographic" : "simulated";
+    heading.dataset.discoverySource = normalized;
+    eyebrow.textContent = DISCOVERY_SOURCE_LABELS[normalized];
+    return true;
   }
 
   function install(document, Discovery) {
@@ -62,10 +76,11 @@
     heading.id = "discovered-destinations-heading";
     heading.className = "discovered-destinations-heading";
     heading.innerHTML = `
-      <p class="eyebrow">DISCOVERED NEARBY / SIMULATED LOCATION</p>
+      <p class="eyebrow"></p>
       <strong>歩くのは現実。ここでは、どこへ挑むかを選ぶ。</strong>
       <span>見つかった場所から一つ選べ。地図を一歩ずつ進める必要はない。</span>`;
     leadList.parentNode.insertBefore(heading, leadList);
+    setDiscoverySource(document, "simulated");
 
     let scheduled = false;
     function refresh() {
@@ -98,8 +113,10 @@
 
   return {
     DESTINATION_LIMIT,
+    DISCOVERY_SOURCE_LABELS,
     extractDestination,
     selectDestinations,
+    setDiscoverySource,
     install
   };
 });
