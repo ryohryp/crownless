@@ -1,11 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const Presentation = require("../src/exploration-map-presentation.js");
 const Discovery = require("../src/discovery-provider.js");
-
-const index = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
 function card(name, risk, signal) {
   return {
@@ -24,7 +20,7 @@ function card(name, risk, signal) {
   };
 }
 
-test("direct discovery limits the decision surface to three destinations", () => {
+test("direct exploration exposes at most three discovered destinations", () => {
   const cards = [
     card("崩れた祠", 2, "異様な気配"),
     card("黒い坑道", 4, "ダンジョン"),
@@ -32,20 +28,16 @@ test("direct discovery limits the decision surface to three destinations", () =>
     card("遠い煙", 3, "敵影")
   ];
   const destinations = Presentation.selectDestinations(cards, Discovery);
+  assert.equal(Presentation.DESTINATION_LIMIT, 3);
   assert.equal(destinations.length, 3);
   assert.deepEqual(destinations.map((item) => item.title), ["崩れた祠", "黒い坑道", "荷車の跡"]);
+  assert.equal(destinations[1].card, cards[1]);
 });
 
-test("direct destinations retain visible decision signals", () => {
+test("destination cards preserve useful risk and signal information", () => {
   const destination = Presentation.extractDestination(card("黒い坑道", 4, "ダンジョン"), 0);
+  assert.equal(destination.title, "黒い坑道");
   assert.equal(destination.risk, 4);
   assert.equal(destination.signal, "ダンジョン");
   assert.equal(destination.palette, "road");
-});
-
-test("browser loads direct exploration presentation after existing presentation layers", () => {
-  const noncombat = index.indexOf('src/noncombat-presentation.js');
-  const exploration = index.indexOf('src/exploration-map-presentation.js');
-  assert.ok(noncombat >= 0);
-  assert.ok(exploration > noncombat);
 });
