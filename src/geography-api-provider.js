@@ -38,10 +38,13 @@
       let timer = null;
       const timeout = new Promise((resolve, reject) => {
         timer = setTimeout(() => {
-          if (controller) controller.abort();
           const error = new Error(`geography API timeout after ${timeoutMs}ms`);
           error.code = "GEOGRAPHY_API_TIMEOUT";
+          // Settle our timeout promise before aborting fetch. Some browsers reject
+          // fetch synchronously on abort and otherwise surface the unhelpful
+          // "signal is aborted without reason" error instead of our timeout.
           reject(error);
+          if (controller) controller.abort(error);
         }, timeoutMs);
       });
       try {

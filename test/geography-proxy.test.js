@@ -1,5 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const ProxyCore = require("../src/geography-proxy.js");
 const GeographyApi = require("../src/geography-api-provider.js");
 
@@ -40,8 +42,16 @@ test("server geography proxy classifies timeout and network failures", () => {
   assert.equal(ProxyCore.classifyUpstreamFailure(new Error("fetch failed")), "network");
 });
 
-test("server geography proxy allows the Overpass query to complete", () => {
-  assert.ok(ProxyCore.DEFAULT_TIMEOUT_MS >= 12000);
+test("server geography proxy keeps all sequential fallbacks inside the browser timeout budget", () => {
+  assert.ok(ProxyCore.DEFAULT_TIMEOUT_MS <= 6000);
+  assert.ok(ProxyCore.DEFAULT_TIMEOUT_MS * 3 < 22000);
+});
+
+test("timeout paths preserve an explicit reason before aborting fetch", () => {
+  const serverSource = fs.readFileSync(path.join(__dirname, "../src/geography-proxy.js"), "utf8");
+  const browserSource = fs.readFileSync(path.join(__dirname, "../src/geography-api-provider.js"), "utf8");
+  assert.ok(serverSource.indexOf("reject(error);") < serverSource.indexOf("controller.abort(error);"));
+  assert.ok(browserSource.indexOf("reject(error);") < browserSource.indexOf("controller.abort(error);"));
 });
 
 test("server geography proxy validates coordinates and clamps radius", async () => {
@@ -98,7 +108,7 @@ test("browser geography provider calls Crownless API instead of Overpass directl
           return {
             endpoint: "https://overpass-api.de/api/interpreter",
             total: 3,
-            timeoutMs: 15000,
+            timeoutMs: 6000,
             attempts: [
               { endpoint: "https://first.test/api", state: "failed", httpStatus: 503, error: "HTTP 503", timedOut: false, failureKind: "http", durationMs: 123 },
               { endpoint: "https://overpass-api.de/api/interpreter", state: "success", httpStatus: 200, error: "", timedOut: false, failureKind: "", durationMs: 456 }

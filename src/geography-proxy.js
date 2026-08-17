@@ -2,7 +2,10 @@
 
 const Discovery = require("./discovery-provider.js");
 
-const DEFAULT_TIMEOUT_MS = 15000;
+// Three sequential upstreams must fit inside the browser provider's 22s budget.
+// 6s per endpoint leaves room for proxy/network overhead while still allowing
+// a slow first upstream to fall through to the healthy mirrors.
+const DEFAULT_TIMEOUT_MS = 6000;
 
 function parseCoordinate(value, min, max, label) {
   const number = Number(value);
@@ -33,10 +36,10 @@ async function fetchWithTimeout(fetchFn, endpoint, options, timeoutMs) {
   const requestOptions = controller ? Object.assign({}, options, { signal: controller.signal }) : options;
   const timeout = new Promise((resolve, reject) => {
     timer = setTimeout(() => {
-      if (controller) controller.abort();
       const error = new Error(`timeout after ${timeoutMs}ms`);
       error.code = "OVERPASS_TIMEOUT";
       reject(error);
+      if (controller) controller.abort(error);
     }, timeoutMs);
   });
   try {
