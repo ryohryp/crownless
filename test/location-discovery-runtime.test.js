@@ -15,5 +15,5 @@ test("location runtime preserves core choice ids while replacing presentation", 
   assert.match(source, /originalGenerate\(state\)/);
   assert.match(source, /getCurrentPosition/);
   assert.match(source, /createLocationDiscoveryProvider/);
-  assert.match(source, /stopImmediatePropagation/);
+  assert.doesNotMatch(source, /stopImmediatePropagation/);
 });
