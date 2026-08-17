@@ -23,3 +23,17 @@ test('GitHub Pages publishes only after successful main CI', () => {
   assert.match(workflow, /workflow_run\.conclusion == 'success'/);
   assert.doesNotMatch(workflow, /enablement:\s*true/);
 });
+
+test('Vercel Production deploy remains manual, main-only, and prebuilt', () => {
+  const workflow = read('.github/workflows/vercel-production.yml');
+
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.doesNotMatch(workflow, /\n\s*push:/);
+  assert.match(workflow, /github\.ref == 'refs\/heads\/main'/);
+  assert.match(workflow, /environment:\s*production/);
+  assert.match(workflow, /VERCEL_TOKEN:\s*\$\{\{ secrets\.VERCEL_TOKEN \}\}/);
+  assert.match(workflow, /vercel@latest build --prod/);
+  assert.match(workflow, /deploy --prebuilt --prod/);
+  assert.match(workflow, /PRODUCTION_URL:\s*https:\/\/crownless-iota\.vercel\.app/);
+  assert.match(workflow, /\$PRODUCTION_URL\/api\/geography/);
+});
