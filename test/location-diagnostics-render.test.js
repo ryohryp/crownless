@@ -7,6 +7,6 @@ test("location diagnostics live outside carried-warning and repaint after app re
   const source = fs.readFileSync(path.join(__dirname, "../src/location-discovery-runtime.js"), "utf8");
   assert.match(source, /id = "location-discovery-status"/);
   assert.match(source, /warning\.parentNode\.insertBefore\(marker, warning\.nextSibling\)/);
-  assert.match(source, /setTimeout\(showLocationStatus, 0\)/);
+  assert.match(source, /setTimeout\(\(\) => \{[\s\S]*?showLocationStatus\(\)[\s\S]*?\}, 0\)/);
   assert.doesNotMatch(source, /warning\.appendChild\(marker\)/);
 });
