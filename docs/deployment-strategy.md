@@ -25,13 +25,36 @@ Until Pages is enabled, the deployment workflow exits successfully with a notice
 
 ### 2. Vercel — release / stable production
 
-Vercel is reserved for deliberate stable releases.
+Vercel is reserved for deliberate stable releases and server-side APIs that GitHub Pages cannot host.
 
-- Automatic Git deployments are disabled in `vercel.json` with `git.deploymentEnabled = false`.
+- Automatic Git deployments remain disabled in `vercel.json` with `git.deploymentEnabled = false`.
 - Do not spend Vercel deployment quota on every branch or incremental commit.
-- Deploy manually only when a milestone is ready for a stable public build.
-- Verify CI and the GitHub Pages build before promoting the same commit to Vercel.
-- A manual Production release may be performed through the connected Vercel tooling or the Vercel CLI; it must not require re-enabling automatic Git deployments.
+- Production deploys are started manually from GitHub Actions using `.github/workflows/vercel-production.yml`.
+- The workflow only deploys when invoked from `main`, reruns the test suite, pulls the Vercel Production project settings, builds locally in CI, and deploys the exact prebuilt output with `vercel deploy --prebuilt --prod`.
+- The workflow serializes Production releases so two manual deploys cannot race each other.
+- After deployment it smoke-tests the Production homepage and the `/api/geography` route without depending on a live Overpass success response.
+
+#### One-time repository setup
+
+Add one GitHub Actions secret before the first workflow run:
+
+1. Create a Vercel access token with permission to deploy the Crownless project.
+2. Open **GitHub → crownless → Settings → Secrets and variables → Actions**.
+3. Add repository secret `VERCEL_TOKEN` with that token value.
+4. Optional but recommended: create a GitHub Environment named `production` and add required reviewers if Production deploys should need an approval gate.
+
+The Vercel team ID and Crownless project ID are intentionally fixed in the workflow because they identify this repository's deployment target and are not credentials.
+
+#### Production deployment procedure
+
+1. Merge the intended release commit to `main`.
+2. Confirm `main` CI and GitHub Pages are healthy.
+3. Open **Actions → deploy-vercel-production → Run workflow**.
+4. Select the `main` branch and run the workflow.
+5. The workflow deploys the exact selected `main` commit and writes the deployment URL and smoke-test result to the job summary.
+6. Use the stable Production domain `https://crownless-iota.vercel.app` for final verification.
+
+This flow does not require re-enabling Vercel Git auto-deployment.
 
 ### 3. ChatGPT Sites — disposable experiments
 
@@ -65,7 +88,7 @@ For a new static-compatible app, start with the same minimum controls:
 3. Add `vercel.json` with automatic Git deployments disabled.
 4. Enable GitHub Pages with **GitHub Actions** as the source once per repository.
 5. Use the Pages URL during rapid iteration.
-6. Promote a chosen tested commit to Vercel only at a release milestone.
+6. Add a manual Vercel Production workflow only when server-side features or a stable release environment become necessary.
 
 The exact build command can vary by framework. The environment separation should stay the same.
 
@@ -75,14 +98,16 @@ Before a Vercel production release:
 
 1. The chosen commit is on `main`.
 2. `main` CI is green.
-3. The GitHub Pages version has been playtested on the target device.
+3. The GitHub Pages version has been playtested on the target device where applicable.
 4. Known progression/save compatibility issues are understood.
-5. Deploy that exact commit manually to Vercel Production.
-6. Smoke-test the Production URL after deployment.
+5. Run `deploy-vercel-production` manually from `main`.
+6. Confirm the workflow's Production smoke tests passed.
+7. Perform the feature-specific Production check, such as Android location discovery through `/api/geography`.
 
 ## Guardrail
 
-`test/deployment-policy.test.js` protects the two rules most likely to regress accidentally:
+`test/deployment-policy.test.js` protects the deployment rules most likely to regress accidentally:
 
 - Vercel Git auto-deployment remains disabled.
 - GitHub Pages remains gated by successful `main` CI rather than publishing every feature commit.
+- Vercel Production deployment remains manual-only, restricted to `main`, and deploys a prebuilt Production artifact.
