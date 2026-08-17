@@ -8,6 +8,7 @@
   const originalGenerate = Core.generateExplorationChoices.bind(Core);
   let geographicDiscoveries = [];
   let locationState = "idle";
+  let locationPromise = null;
 
   function statusText() {
     if (locationState === "loading") return "現在地から周囲の気配を探している…";
@@ -20,6 +21,8 @@
   function showLocationStatus() {
     const warning = document.getElementById("carried-warning");
     if (!warning || !statusText()) return;
+    const existing = warning.querySelector(".location-discovery-status");
+    if (existing) existing.remove();
     const marker = document.createElement("span");
     marker.className = "location-discovery-status";
     marker.textContent = statusText();
@@ -46,8 +49,8 @@
     return choices.map((choice, index) => mergeGeography(choice, geographicDiscoveries[index % geographicDiscoveries.length]));
   };
 
-  async function getCurrentLocation() {
-    if (!navigator.geolocation) throw new Error("geolocation unavailable");
+  function getCurrentLocation() {
+    if (!navigator.geolocation) return Promise.reject(new Error("geolocation unavailable"));
     return new Promise((resolve, reject) => {
       navigator.geolocation.getCurrentPosition(
         (position) => resolve({ latitude: position.coords.latitude, longitude: position.coords.longitude }),
@@ -58,45 +61,57 @@
   }
 
   async function loadGeographicDiscoveries() {
+    if (locationPromise) return locationPromise;
     locationState = "loading";
-    try {
-      const location = await getCurrentLocation();
-      const provider = Discovery.createLocationDiscoveryProvider({ limit: 3, radius: 650 });
-      geographicDiscoveries = await provider.discover({ location });
-      locationState = geographicDiscoveries.length ? "ready" : "failed";
-    } catch (error) {
-      geographicDiscoveries = [];
-      locationState = error && error.code === 1 ? "denied" : "failed";
-    }
+    locationPromise = (async () => {
+      try {
+        const location = await getCurrentLocation();
+        const provider = Discovery.createLocationDiscoveryProvider({ limit: 3, radius: 650 });
+        geographicDiscoveries = await provider.discover({ location });
+        locationState = geographicDiscoveries.length ? "ready" : "failed";
+      } catch (error) {
+        geographicDiscoveries = [];
+        locationState = error && error.code === 1 ? "denied" : "failed";
+      }
+      return geographicDiscoveries;
+    })();
+    return locationPromise;
   }
 
+  // Do not intercept the app's expedition click handler. The previous capture-phase
+  // interception could consume the click before app.js saw it, leaving the player
+  // at the hearth after granting permission. Instead, begin location lookup in the
+  // bubble phase after app.js has synchronously started the expedition. Once the
+  // geographic snapshot arrives, refresh the already-visible exploration choices.
   const startButton = document.getElementById("start-expedition");
   if (startButton) {
-    const interceptFirstExpedition = async (event) => {
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      startButton.disabled = true;
-      const originalLabel = startButton.querySelector("strong");
-      const previousText = originalLabel ? originalLabel.textContent : "";
-      if (originalLabel) originalLabel.textContent = "周囲の気配を探している…";
-      await loadGeographicDiscoveries();
-      startButton.disabled = false;
-      if (originalLabel) originalLabel.textContent = previousText;
-      startButton.removeEventListener("click", interceptFirstExpedition, true);
-      startButton.click();
-    };
-    startButton.addEventListener("click", interceptFirstExpedition, true);
+    startButton.addEventListener("click", () => {
+      loadGeographicDiscoveries().then(() => {
+        showLocationStatus();
+        const exploreScreen = document.getElementById("explore-screen");
+        if (!exploreScreen || !exploreScreen.classList.contains("active")) return;
+        const choices = Core.generateExplorationChoices(window.CrownlessAppState || null);
+        const leadList = document.getElementById("lead-list");
+        if (!leadList || !choices.length) return;
+        const cards = Array.from(leadList.querySelectorAll(".lead-card"));
+        choices.forEach((choice, index) => {
+          const card = cards[index];
+          if (!card) return;
+          const title = card.querySelector("h3");
+          const description = card.querySelector("p");
+          const omen = card.querySelector(".lead-omen");
+          if (title) title.textContent = choice.name;
+          if (description) description.textContent = choice.description;
+          if (omen) omen.textContent = `噂：${choice.omen}`;
+          card.className = `lead-card palette-${choice.palette}${choice.eventKind === "hunt" ? " hunt-target" : ""}`;
+        });
+      });
+    });
   }
-
-  document.addEventListener("click", (event) => {
-    if (event.target && (event.target.id === "start-expedition" || event.target.closest?.("#start-expedition"))) {
-      window.setTimeout(showLocationStatus, 0);
-    }
-  });
 
   window.CrownlessLocationDiscoveryRuntime = {
     get state() { return locationState; },
     get discoveries() { return geographicDiscoveries.slice(); },
-    reload: loadGeographicDiscoveries
+    reload() { locationPromise = null; return loadGeographicDiscoveries(); }
   };
 })();
