@@ -58,6 +58,12 @@
     marker.style.overflowWrap = "anywhere";
   }
 
+  function syncExplorationSource() {
+    const presentation = window.CrownlessExplorationMap;
+    if (!presentation || typeof presentation.setDiscoverySource !== "function") return;
+    presentation.setDiscoverySource(document, locationState === "ready" && geographicDiscoveries.length ? "geographic" : "simulated");
+  }
+
   function mergeGeography(choice, discovery) {
     if (!discovery) return choice;
     const identified = Discovery.investigateDiscovery(discovery);
@@ -117,6 +123,7 @@
         diagnostics.error = provider && provider.error ? provider.error : (error && error.message ? error.message : "unknown error");
         if (diagnostics.gps === "ok" && diagnostics.osm === "idle") diagnostics.osm = "failed";
       }
+      syncExplorationSource();
       showLocationStatus();
       return geographicDiscoveries;
     })();
@@ -127,8 +134,9 @@
   if (startButton) startButton.addEventListener("click", () => {
     // app.js renders the exploration screen in the same click. Delay the first
     // diagnostic paint until after that render so renderExplore() cannot erase it.
-    setTimeout(showLocationStatus, 0);
+    setTimeout(() => { syncExplorationSource(); showLocationStatus(); }, 0);
     loadGeographicDiscoveries().then(() => {
+      syncExplorationSource();
       showLocationStatus();
       const exploreScreen = document.getElementById("explore-screen");
       if (!exploreScreen || !exploreScreen.classList.contains("active")) return;
