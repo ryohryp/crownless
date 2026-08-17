@@ -19,5 +19,6 @@ var audioContext = null;
 // normal simulated exploration path if location or network access is denied.
 if (typeof document !== "undefined" && document.readyState === "loading") {
   document.write('<script src="src/discovery-provider.js"></script>');
+  document.write('<script src="src/geography-api-provider.js"></script>');
   document.write('<script src="src/location-discovery-runtime.js"></script>');
 }

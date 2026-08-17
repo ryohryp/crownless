@@ -2,7 +2,8 @@
   "use strict";
   const Core = window.CrownlessCore;
   const Discovery = window.CrownlessDiscovery;
-  if (!Core || !Discovery) return;
+  const GeographyApi = window.CrownlessGeographyApi;
+  if (!Core || !Discovery || !GeographyApi) return;
   const originalGenerate = Core.generateExplorationChoices.bind(Core);
   let geographicDiscoveries = [];
   let locationState = "idle";
@@ -95,7 +96,13 @@
       let provider = null;
       try {
         const location = await getCurrentLocation();
-        provider = Discovery.createLocationDiscoveryProvider({ limit: 3, radius: 650, timeoutMs: 8000, onStatus: applyProviderStatus });
+        provider = GeographyApi.createProxyLocationDiscoveryProvider({
+          limit: 3,
+          radius: 650,
+          timeoutMs: 22000,
+          endpoint: window.CROWNLESS_GEOGRAPHY_API || GeographyApi.DEFAULT_PROXY_ENDPOINT,
+          onStatus: applyProviderStatus
+        });
         geographicDiscoveries = await provider.discover({ location });
         diagnostics.endpoint = provider.endpoint || diagnostics.endpoint || "unknown";
         diagnostics.discoveries = geographicDiscoveries.length;
