@@ -19,13 +19,25 @@ test("server geography proxy retries Overpass endpoints and returns the successf
 
   assert.deepEqual(calls.map((call) => call.url), ["https://first.test/api", "https://second.test/api"]);
   assert.equal(result.endpoint, "https://second.test/api");
+  assert.equal(result.timeoutMs, ProxyCore.DEFAULT_TIMEOUT_MS);
   assert.equal(result.attempts[0].state, "failed");
   assert.equal(result.attempts[0].httpStatus, 503);
+  assert.equal(result.attempts[0].failureKind, "http");
+  assert.ok(result.attempts[0].durationMs >= 0);
   assert.equal(result.attempts[1].state, "success");
+  assert.equal(result.attempts[1].failureKind, "");
+  assert.ok(result.attempts[1].durationMs >= 0);
   assert.equal(result.elements[0].tags["name:ja"], "中川");
   assert.match(calls[0].options.body, /around%3A650%2C35.69%2C139.78/);
   assert.equal(calls[0].options.headers.Accept, "application/json");
   assert.equal(calls[0].options.headers["User-Agent"], "Crownless/0.1 (+https://crownless-iota.vercel.app/)");
+});
+
+test("server geography proxy classifies timeout and network failures", () => {
+  assert.equal(ProxyCore.classifyUpstreamFailure({ code: "OVERPASS_TIMEOUT" }), "timeout");
+  assert.equal(ProxyCore.classifyUpstreamFailure({ httpStatus: 429 }), "http");
+  assert.equal(ProxyCore.classifyUpstreamFailure({ name: "AbortError" }), "aborted");
+  assert.equal(ProxyCore.classifyUpstreamFailure(new Error("fetch failed")), "network");
 });
 
 test("server geography proxy allows the Overpass query to complete", () => {
@@ -39,6 +51,34 @@ test("server geography proxy validates coordinates and clamps radius", async () 
   );
   assert.equal(ProxyCore.normalizeRadius(5000), 1500);
   assert.equal(ProxyCore.normalizeRadius(10), 100);
+});
+
+test("server geography handler logs structured fallback state", async () => {
+  const warnings = [];
+  const handler = ProxyCore.createGeographyHandler({
+    endpoints: ["https://first.test/api", "https://second.test/api"],
+    logger: { warn: (message) => warnings.push(JSON.parse(message)), error() {} },
+    fetch: async (url) => {
+      if (url.includes("first")) return { ok: false, status: 503, async json() { return {}; } };
+      return { ok: true, status: 200, async json() { return { elements: [] }; } };
+    }
+  });
+  let body = null;
+  const response = {
+    statusCode: 0,
+    headers: {},
+    setHeader(name, value) { this.headers[name] = value; },
+    end(value) { body = JSON.parse(value); }
+  };
+
+  await handler({ method: "GET", query: { lat: "35.69", lng: "139.78", radius: "650" } }, response);
+
+  assert.equal(response.statusCode, 200);
+  assert.equal(body.endpoint, "https://second.test/api");
+  assert.equal(warnings.length, 1);
+  assert.equal(warnings[0].event, "geography_upstream_state");
+  assert.equal(warnings[0].state, "fallback_success");
+  assert.equal(warnings[0].attempts[0].failureKind, "http");
 });
 
 test("browser geography provider calls Crownless API instead of Overpass directly", async () => {
@@ -58,9 +98,10 @@ test("browser geography provider calls Crownless API instead of Overpass directl
           return {
             endpoint: "https://overpass-api.de/api/interpreter",
             total: 3,
+            timeoutMs: 15000,
             attempts: [
-              { endpoint: "https://first.test/api", state: "failed", httpStatus: 503, error: "HTTP 503", timedOut: false },
-              { endpoint: "https://overpass-api.de/api/interpreter", state: "success", httpStatus: 200, error: "", timedOut: false }
+              { endpoint: "https://first.test/api", state: "failed", httpStatus: 503, error: "HTTP 503", timedOut: false, failureKind: "http", durationMs: 123 },
+              { endpoint: "https://overpass-api.de/api/interpreter", state: "success", httpStatus: 200, error: "", timedOut: false, failureKind: "", durationMs: 456 }
             ],
             elements: [
               { id: 1, tags: { waterway: "river", "name:ja": "中川" } },
