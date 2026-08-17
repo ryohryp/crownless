@@ -23,15 +23,27 @@ test("location runtime preserves core choice ids while replacing presentation", 
   assert.doesNotMatch(runtimeSource, /stopImmediatePropagation/);
 });
 
-test("successful async geography discovery switches the exploration heading away from simulated", () => {
+test("location discovery hides and disables simulated leads while geography is pending", () => {
+  assert.match(runtimeSource, /function setLeadLoading\(loading\)/);
+  assert.match(runtimeSource, /leadList\.style\.display = loading \? "none" : ""/);
+  assert.match(runtimeSource, /card\.disabled = Boolean\(loading\)/);
+  assert.match(runtimeSource, /locationState = "loading";/);
+  assert.match(runtimeSource, /setTimeout\(\(\) => \{ setLeadLoading\(true\); syncExplorationSource\(\); showLocationStatus\(\); \}, 0\)/);
+  assert.ok(runtimeSource.indexOf("setLeadLoading(true)") < runtimeSource.indexOf("loadGeographicDiscoveries().then"));
+});
+
+test("successful async geography discovery switches the exploration heading away from simulated before revealing leads", () => {
   assert.match(presentationSource, /REAL-WORLD DISCOVERY/);
   assert.match(presentationSource, /function setDiscoverySource/);
   assert.match(runtimeSource, /presentation\.setDiscoverySource\(document, locationState === "ready" && geographicDiscoveries\.length \? "geographic" : "simulated"\)/);
   assert.ok(runtimeSource.indexOf("locationState = geographicDiscoveries.length ? \"ready\" : \"failed\";") < runtimeSource.indexOf("syncExplorationSource();"));
+  assert.ok(runtimeSource.lastIndexOf("syncExplorationSource();") < runtimeSource.lastIndexOf("setLeadLoading(false);"));
 });
 
-test("failed or denied geography discovery keeps the simulated fallback heading", () => {
+test("failed denied or empty geography discovery reveals simulated fallback leads", () => {
   assert.match(presentationSource, /simulated: "DISCOVERED NEARBY \/ SIMULATED LOCATION"/);
   assert.match(runtimeSource, /geographicDiscoveries = \[\];/);
   assert.match(runtimeSource, /locationState = error && error\.code === 1 \? "denied" : "failed";/);
+  assert.match(runtimeSource, /locationState = geographicDiscoveries\.length \? "ready" : "failed";/);
+  assert.match(runtimeSource, /refreshLeadCards\(\);\s*setLeadLoading\(false\);/);
 });
