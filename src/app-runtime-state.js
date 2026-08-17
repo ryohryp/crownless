@@ -12,3 +12,12 @@ var soundEnabled = (function readInitialSoundPreference() {
   }
 })();
 var audioContext = null;
+
+// This file is parsed before app.js. Load the optional location-discovery
+// boundary synchronously so it can wrap exploration generation before the app
+// installs its expedition click handlers. The feature still degrades to the
+// normal simulated exploration path if location or network access is denied.
+if (typeof document !== "undefined" && document.readyState === "loading") {
+  document.write('<script src="src/discovery-provider.js"><\\/script>');
+  document.write('<script src="src/location-discovery-runtime.js"><\\/script>');
+}
