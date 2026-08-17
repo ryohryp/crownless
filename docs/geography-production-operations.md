@@ -53,17 +53,19 @@ Fallback is reported in the workflow summary but does not fail the check. Total 
 
 ## DEP0169 disposition
 
-Vercel runtime logs have emitted Node `DEP0169` warnings for legacy `url.parse()` use while serving `/api/geography`.
+Issue #73 originally associated Node `DEP0169` (`url.parse()`) warnings with `/api/geography`, but repository inspection found no `url.parse` call in Crownless source and `package.json` contains no runtime dependencies. `/api/geography` itself uses the platform-provided native `fetch`.
 
-Repository inspection for issue #73 found:
+A later GitHub Pages deployment provided concrete evidence of the same `DEP0169` warning outside the geography runtime path. In Pages workflow run #143 (commit `5c715de4ab3f7b08f3bf1f2bec904dacc7819633`), the warning appeared while `actions/upload-artifact@v4` was uploading the Pages artifact. The artifact upload itself succeeded; the first deployment attempt then failed separately because the GitHub Pages deployment API returned HTTP 503, and a re-run succeeded.
 
-- no `url.parse` call in Crownless source
-- no runtime dependencies in `package.json`
-- `/api/geography` uses the platform-provided `fetch`
+This proves that at least one observed `DEP0169` instance originates in GitHub Actions tooling rather than Crownless application code. It does **not** by itself prove that every earlier Vercel-side warning has the same origin, so those warnings should not be attributed to Vercel, GitHub Actions, or Crownless without a stack trace from the specific occurrence.
 
-Therefore the warning is not currently attributable to Crownless application code. Until a trace identifies a repository-owned caller, it is classified as a runtime/platform-origin warning and does not justify replacing the native fetch path or adding a dependency solely to suppress it.
+Current disposition:
 
-If the warning changes into an application stack trace pointing at Crownless code, fix that call site and update this note. If it remains platform-only, track Vercel/Node runtime updates rather than masking deprecation warnings globally.
+- do not change Crownless geography code merely to suppress `DEP0169`
+- do not add a dependency solely to replace the native `fetch` path
+- when `DEP0169` is observed, record the workflow/runtime and surrounding step before assigning ownership
+- if a stack trace points to Crownless-owned code, fix that call site and update this note
+- if it points to third-party platform/action code, track the corresponding upstream update rather than masking deprecation warnings globally
 
 ## Deployment rule
 
