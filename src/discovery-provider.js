@@ -9,47 +9,14 @@
 
   const FEATURE_ORDER = ["water", "crossing", "sacred", "woods", "road_hub", "height", "coast", "settlement"];
 
-  function clampRisk(value) {
-    return Math.max(1, Math.min(5, Number(value) || 1));
-  }
-
-  function normalizePlace(lead, index) {
-    const source = lead || {};
-    const id = String(source.id || `discovery-${index + 1}`);
-    const title = String(source.title || source.name || "名もない気配");
-    const signal = String(source.signal || source.type || "unknown");
-    return {
-      id,
-      title,
-      signal,
-      risk: clampRisk(source.risk),
-      palette: source.palette || "road",
-      source
-    };
-  }
-
-  function createSimulatedDiscoveryProvider(options) {
-    const settings = options || {};
-    const limit = Math.max(1, Number(settings.limit) || 3);
-
-    return {
-      kind: "simulated",
-      discover(context) {
-        const leads = Array.isArray(context && context.leads) ? context.leads : [];
-        return leads.slice(0, limit).map(normalizePlace);
-      }
-    };
-  }
-
-  function tagsOf(feature) {
-    return feature && feature.tags && typeof feature.tags === "object" ? feature.tags : {};
-  }
+  function clampRisk(value) { return Math.max(1, Math.min(5, Number(value) || 1)); }
+  function normalizePlace(lead, index) { const source = lead || {}; return { id: String(source.id || `discovery-${index + 1}`), title: String(source.title || source.name || "名もない気配"), signal: String(source.signal || source.type || "unknown"), risk: clampRisk(source.risk), palette: source.palette || "road", source }; }
+  function createSimulatedDiscoveryProvider(options) { const limit = Math.max(1, Number((options || {}).limit) || 3); return { kind: "simulated", discover(context) { const leads = Array.isArray(context && context.leads) ? context.leads : []; return leads.slice(0, limit).map(normalizePlace); } }; }
+  function tagsOf(feature) { return feature && feature.tags && typeof feature.tags === "object" ? feature.tags : {}; }
+  function featureName(tags) { return String(tags["name:ja"] || tags.name || "").trim(); }
 
   function normalizeGeographicFeature(feature) {
-    const tags = tagsOf(feature);
-    const types = [];
-    const add = (type) => { if (!types.includes(type)) types.push(type); };
-
+    const tags = tagsOf(feature); const types = []; const add = (type) => { if (!types.includes(type)) types.push(type); };
     if (tags.natural === "water" || tags.waterway || tags.water || tags.landuse === "reservoir") add("water");
     if (tags.bridge === "yes" || tags.bridge || tags.ford === "yes" || tags.highway === "ford") add("crossing");
     if (tags.amenity === "place_of_worship" || tags.historic === "wayside_shrine" || tags.cemetery || tags.landuse === "cemetery") add("sacred");
@@ -57,28 +24,16 @@
     if (tags.railway === "station" || tags.public_transport === "station" || tags.highway === "traffic_signals" || tags.junction) add("road_hub");
     if (tags.natural === "peak" || tags.natural === "ridge" || tags.natural === "hill" || tags.ele) add("height");
     if (tags.natural === "coastline" || tags.place === "island") add("coast");
-    if (["city", "town", "village", "hamlet", "suburb", "neighbourhood"].includes(tags.place)) add("settlement");
-
-    return {
-      id: String((feature && feature.id) || "feature"),
-      types: FEATURE_ORDER.filter((type) => types.includes(type))
-    };
+    if (["city", "town", "village", "hamlet", "suburb", "neighbourhood", "quarter"].includes(tags.place)) add("settlement");
+    return { id: String((feature && feature.id) || "feature"), name: featureName(tags), types: FEATURE_ORDER.filter((type) => types.includes(type)) };
   }
 
-  function normalizeGeographicFeatures(features) {
-    const seen = new Set();
-    const normalized = [];
-    (Array.isArray(features) ? features : []).forEach((feature) => {
-      const item = normalizeGeographicFeature(feature);
-      item.types.forEach((type) => {
-        if (!seen.has(type)) {
-          seen.add(type);
-          normalized.push(type);
-        }
-      });
-    });
-    return FEATURE_ORDER.filter((type) => normalized.includes(type));
+  function normalizeGeographicContext(features) {
+    const seen = new Set(); const types = []; const namesByType = {};
+    (Array.isArray(features) ? features : []).forEach((feature) => { const item = normalizeGeographicFeature(feature); item.types.forEach((type) => { if (!seen.has(type)) { seen.add(type); types.push(type); } if (item.name && !namesByType[type]) namesByType[type] = item.name; }); });
+    return { types: FEATURE_ORDER.filter((type) => types.includes(type)), namesByType };
   }
+  function normalizeGeographicFeatures(features) { return normalizeGeographicContext(features).types; }
 
   const DISCOVERY_RULES = [
     { requires: ["water", "sacred"], signal: "水辺に、祈りの跡らしい石影が沈んでいる。", title: "沈んだ祠", risk: 3, palette: "water", kind: "event" },
@@ -94,91 +49,17 @@
     { requires: ["road_hub"], signal: "道が交わる先だけ、土が黒く踏み固められている。", title: "黒土の辻", risk: 2, palette: "road", kind: "encounter" },
     { requires: ["settlement"], signal: "人の気配はあるのに、煙の上がらない一角がある。", title: "閉ざされた路地", risk: 2, palette: "road", kind: "event" }
   ];
-
-  function ruleMatches(rule, features) {
-    return rule.requires.every((type) => features.includes(type));
-  }
-
+  function ruleMatches(rule, features) { return rule.requires.every((type) => features.includes(type)); }
   function discoveriesFromFeatures(features, options) {
-    const settings = options || {};
-    const limit = Math.max(1, Number(settings.limit) || 3);
-    const normalized = Array.isArray(features) ? FEATURE_ORDER.filter((type) => features.includes(type)) : [];
-    const usedPrimary = new Set();
-    const matches = [];
-
-    DISCOVERY_RULES.forEach((rule) => {
-      if (!ruleMatches(rule, normalized)) return;
-      const primary = rule.requires[0];
-      if (rule.requires.length === 1 && usedPrimary.has(primary)) return;
-      rule.requires.forEach((type) => usedPrimary.add(type));
-      matches.push(rule);
-    });
-
-    return matches.slice(0, limit).map((rule, index) => ({
-      id: `geo-${rule.requires.join("-")}-${index + 1}`,
-      title: rule.title,
-      signal: rule.signal,
-      risk: rule.risk,
-      palette: rule.palette,
-      contentKind: rule.kind,
-      revealState: "signal",
-      features: rule.requires.slice()
-    }));
+    const settings = options || {}; const limit = Math.max(1, Number(settings.limit) || 3); const normalized = Array.isArray(features) ? FEATURE_ORDER.filter((type) => features.includes(type)) : []; const usedPrimary = new Set(); const matches = [];
+    DISCOVERY_RULES.forEach((rule) => { if (!ruleMatches(rule, normalized)) return; const primary = rule.requires[0]; if (rule.requires.length === 1 && usedPrimary.has(primary)) return; rule.requires.forEach((type) => usedPrimary.add(type)); matches.push(rule); });
+    return matches.slice(0, limit).map((rule, index) => { const names = settings.namesByType || {}; const realPlaceName = rule.requires.map((type) => names[type]).find(Boolean) || settings.areaName || ""; return { id: `geo-${rule.requires.join("-")}-${index + 1}`, title: realPlaceName ? `${realPlaceName}の${rule.title}` : rule.title, baseTitle: rule.title, realPlaceName, signal: rule.signal, risk: rule.risk, palette: rule.palette, contentKind: rule.kind, revealState: "signal", features: rule.requires.slice() }; });
   }
-
-  function investigateDiscovery(discovery) {
-    if (!discovery) return null;
-    return Object.assign({}, discovery, {
-      revealState: "identified",
-      description: `${discovery.title}。危険度 ${clampRisk(discovery.risk)}。踏み込むか、ここで引き返せる。`
-    });
-  }
-
-  function buildOverpassQuery(latitude, longitude, radius) {
-    const lat = Number(latitude);
-    const lng = Number(longitude);
-    const metres = Math.max(100, Math.min(1500, Number(radius) || 500));
-    if (!Number.isFinite(lat) || !Number.isFinite(lng)) throw new Error("Valid latitude and longitude are required");
-    return `[out:json][timeout:12];(nwr(around:${metres},${lat},${lng})[natural];nwr(around:${metres},${lat},${lng})[waterway];nwr(around:${metres},${lat},${lng})[bridge];nwr(around:${metres},${lat},${lng})[amenity=place_of_worship];nwr(around:${metres},${lat},${lng})[landuse=cemetery];nwr(around:${metres},${lat},${lng})[landuse=forest];nwr(around:${metres},${lat},${lng})[leisure=park];nwr(around:${metres},${lat},${lng})[railway=station];nwr(around:${metres},${lat},${lng})[public_transport=station];nwr(around:${metres},${lat},${lng})[place];);out tags center;`;
-  }
-
+  function investigateDiscovery(discovery) { if (!discovery) return null; return Object.assign({}, discovery, { revealState: "identified", description: `${discovery.title}。危険度 ${clampRisk(discovery.risk)}。踏み込むか、ここで引き返せる。` }); }
+  function buildOverpassQuery(latitude, longitude, radius) { const lat = Number(latitude); const lng = Number(longitude); const metres = Math.max(100, Math.min(1500, Number(radius) || 500)); if (!Number.isFinite(lat) || !Number.isFinite(lng)) throw new Error("Valid latitude and longitude are required"); return `[out:json][timeout:12];(nwr(around:${metres},${lat},${lng})[natural];nwr(around:${metres},${lat},${lng})[waterway];nwr(around:${metres},${lat},${lng})[bridge];nwr(around:${metres},${lat},${lng})[amenity=place_of_worship];nwr(around:${metres},${lat},${lng})[landuse=cemetery];nwr(around:${metres},${lat},${lng})[landuse=forest];nwr(around:${metres},${lat},${lng})[leisure=park];nwr(around:${metres},${lat},${lng})[railway=station];nwr(around:${metres},${lat},${lng})[public_transport=station];nwr(around:${metres},${lat},${lng})[place];);out tags center;`; }
   function createLocationDiscoveryProvider(options) {
-    const settings = options || {};
-    const limit = Math.max(1, Number(settings.limit) || 3);
-    const radius = Math.max(100, Math.min(1500, Number(settings.radius) || 500));
-    const endpoint = settings.endpoint || "https://overpass-api.de/api/interpreter";
-    const fetchFn = settings.fetch || (typeof fetch === "function" ? fetch.bind(globalThis) : null);
-
-    return {
-      kind: "location",
-      async discover(context) {
-        if (!fetchFn) throw new Error("Geographic discovery is unavailable");
-        const location = context && context.location;
-        if (!location) throw new Error("Location is required for geographic discovery");
-        const query = buildOverpassQuery(location.latitude, location.longitude, radius);
-        const response = await fetchFn(endpoint, {
-          method: "POST",
-          headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-          body: `data=${encodeURIComponent(query)}`
-        });
-        if (!response || !response.ok) throw new Error("Geographic data could not be loaded");
-        const payload = await response.json();
-        const features = normalizeGeographicFeatures(payload && payload.elements);
-        return discoveriesFromFeatures(features, { limit });
-      }
-    };
+    const settings = options || {}; const limit = Math.max(1, Number(settings.limit) || 3); const radius = Math.max(100, Math.min(1500, Number(settings.radius) || 500)); const endpoint = settings.endpoint || "https://overpass-api.de/api/interpreter"; const fetchFn = settings.fetch || (typeof fetch === "function" ? fetch.bind(globalThis) : null);
+    return { kind: "location", async discover(context) { if (!fetchFn) throw new Error("Geographic discovery is unavailable"); const location = context && context.location; if (!location) throw new Error("Location is required for geographic discovery"); const query = buildOverpassQuery(location.latitude, location.longitude, radius); const response = await fetchFn(endpoint, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" }, body: `data=${encodeURIComponent(query)}` }); if (!response || !response.ok) throw new Error("Geographic data could not be loaded"); const payload = await response.json(); const geographic = normalizeGeographicContext(payload && payload.elements); return discoveriesFromFeatures(geographic.types, { limit, namesByType: geographic.namesByType }); } };
   }
-
-  return {
-    FEATURE_ORDER,
-    DISCOVERY_RULES,
-    normalizePlace,
-    normalizeGeographicFeature,
-    normalizeGeographicFeatures,
-    discoveriesFromFeatures,
-    investigateDiscovery,
-    buildOverpassQuery,
-    createSimulatedDiscoveryProvider,
-    createLocationDiscoveryProvider
-  };
+  return { FEATURE_ORDER, DISCOVERY_RULES, normalizePlace, normalizeGeographicFeature, normalizeGeographicContext, normalizeGeographicFeatures, discoveriesFromFeatures, investigateDiscovery, buildOverpassQuery, createSimulatedDiscoveryProvider, createLocationDiscoveryProvider };
 });
