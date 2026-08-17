@@ -28,15 +28,51 @@ test("investigation progressively reveals identity and preserves entry metadata"
 });
 
 test("location provider uses injected network boundary and carries OSM names", async () => {
-  let request; const provider = Discovery.createLocationDiscoveryProvider({ limit: 2, endpoint: "https://example.test/api", fetch: async (url, options) => { request = { url, options }; return { ok: true, async json() { return { elements: [{ id: 10, tags: { waterway: "river", "name:ja": "中川" } }, { id: 11, tags: { bridge: "yes" } }] }; } }; } });
+  let request; const provider = Discovery.createLocationDiscoveryProvider({ limit: 2, endpoint: "https://example.test/api", fetch: async (url, options) => { request = { url, options }; return { ok: true, status: 200, async json() { return { elements: [{ id: 10, tags: { waterway: "river", "name:ja": "中川" } }, { id: 11, tags: { bridge: "yes" } }] }; } }; } });
   const discoveries = await provider.discover({ location: { latitude: 35.69, longitude: 139.78 } });
   assert.equal(provider.kind, "location"); assert.equal(discoveries[0].title, "中川の血濡れの渡し場"); assert.equal(provider.endpoint, "https://example.test/api"); assert.match(request.options.body, /around%3A500%2C35.69%2C139.78/);
 });
 
 test("location provider retries the next Overpass endpoint after a failure", async () => {
-  const calls = []; const provider = Discovery.createLocationDiscoveryProvider({ endpoints: ["https://first.test/api", "https://second.test/api"], fetch: async (url) => { calls.push(url); if (url.includes("first")) return { ok: false, status: 503 }; return { ok: true, async json() { return { elements: [{ id: 1, tags: { waterway: "river", "name:ja": "中川" } }] }; } }; } });
+  const calls = []; const provider = Discovery.createLocationDiscoveryProvider({ endpoints: ["https://first.test/api", "https://second.test/api"], fetch: async (url) => { calls.push(url); if (url.includes("first")) return { ok: false, status: 503 }; return { ok: true, status: 200, async json() { return { elements: [{ id: 1, tags: { waterway: "river", "name:ja": "中川" } }] }; } }; } });
   const discoveries = await provider.discover({ location: { latitude: 35.69, longitude: 139.78 } });
   assert.deepEqual(calls, ["https://first.test/api", "https://second.test/api"]); assert.equal(provider.endpoint, "https://second.test/api"); assert.equal(discoveries[0].title, "中川の葦辺の巣穴");
+});
+
+test("location provider reports requesting, failed, and success states per endpoint", async () => {
+  const statuses = [];
+  const provider = Discovery.createLocationDiscoveryProvider({
+    endpoints: ["https://first.test/api", "https://second.test/api"],
+    onStatus: (status) => statuses.push(status),
+    fetch: async (url) => {
+      if (url.includes("first")) return { ok: false, status: 429 };
+      return { ok: true, status: 200, async json() { return { elements: [{ id: 1, tags: { place: "neighbourhood", "name:ja": "奥戸" } }] }; } };
+    }
+  });
+  await provider.discover({ location: { latitude: 35.69, longitude: 139.78 } });
+  assert.deepEqual(statuses.map((status) => [status.state, status.attempt]), [["requesting", 1], ["failed", 1], ["requesting", 2], ["success", 2]]);
+  assert.equal(statuses[1].httpStatus, 429);
+  assert.equal(statuses[3].endpoint, "https://second.test/api");
+  assert.deepEqual(statuses[3].names, ["奥戸"]);
+});
+
+test("location provider times out a stuck endpoint and falls back", async () => {
+  const statuses = [];
+  const provider = Discovery.createLocationDiscoveryProvider({
+    endpoints: ["https://stuck.test/api", "https://second.test/api"],
+    timeoutMs: 10,
+    onStatus: (status) => statuses.push(status),
+    fetch: async (url) => {
+      if (url.includes("stuck")) return new Promise(() => {});
+      return { ok: true, status: 200, async json() { return { elements: [{ id: 1, tags: { waterway: "river" } }] }; } };
+    }
+  });
+  const discoveries = await provider.discover({ location: { latitude: 35.69, longitude: 139.78 } });
+  assert.equal(discoveries[0].title, "葦辺の巣穴");
+  const timeoutStatus = statuses.find((status) => status.endpoint.includes("stuck") && status.state === "failed");
+  assert.equal(timeoutStatus.timedOut, true);
+  assert.match(timeoutStatus.error, /timeout/);
+  assert.equal(provider.endpoint, "https://second.test/api");
 });
 
 test("simulated discovery remains available as deterministic fallback", () => {
