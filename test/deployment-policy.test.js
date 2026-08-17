@@ -34,5 +34,6 @@ test('Vercel Production deploy remains manual, main-only, and prebuilt', () => {
   assert.match(workflow, /VERCEL_TOKEN:\s*\$\{\{ secrets\.VERCEL_TOKEN \}\}/);
   assert.match(workflow, /vercel@latest build --prod/);
   assert.match(workflow, /deploy --prebuilt --prod/);
-  assert.match(workflow, /crownless-iota\.vercel\.app\/api\/geography/);
+  assert.match(workflow, /PRODUCTION_URL:\s*https:\/\/crownless-iota\.vercel\.app/);
+  assert.match(workflow, /\$PRODUCTION_URL\/api\/geography/);
 });
