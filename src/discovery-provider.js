@@ -22,6 +22,65 @@
   function discoveriesFromFeatures(features, options) { const settings = options || {}; const limit = Math.max(1, Number(settings.limit) || 3); const normalized = Array.isArray(features) ? FEATURE_ORDER.filter((type) => features.includes(type)) : []; const usedPrimary = new Set(); const matches = []; DISCOVERY_RULES.forEach((rule) => { if (!ruleMatches(rule, normalized)) return; const primary = rule.requires[0]; if (rule.requires.length === 1 && usedPrimary.has(primary)) return; rule.requires.forEach((type) => usedPrimary.add(type)); matches.push(rule); }); return matches.slice(0, limit).map((rule, index) => { const names = settings.namesByType || {}; const realPlaceName = rule.requires.map((type) => names[type]).find(Boolean) || settings.areaName || ""; return { id: `geo-${rule.requires.join("-")}-${index + 1}`, title: realPlaceName ? `${realPlaceName}の${rule.title}` : rule.title, baseTitle: rule.title, realPlaceName, signal: rule.signal, risk: rule.risk, palette: rule.palette, contentKind: rule.kind, revealState: "signal", features: rule.requires.slice() }; }); }
   function investigateDiscovery(discovery) { if (!discovery) return null; return Object.assign({}, discovery, { revealState: "identified", description: `${discovery.title}。危険度 ${clampRisk(discovery.risk)}。踏み込むか、ここで引き返せる。` }); }
   function buildOverpassQuery(latitude, longitude, radius) { const lat = Number(latitude); const lng = Number(longitude); const metres = Math.max(100, Math.min(1500, Number(radius) || 500)); if (!Number.isFinite(lat) || !Number.isFinite(lng)) throw new Error("Valid latitude and longitude are required"); return `[out:json][timeout:12];(nwr(around:${metres},${lat},${lng})[natural];nwr(around:${metres},${lat},${lng})[waterway];nwr(around:${metres},${lat},${lng})[bridge];nwr(around:${metres},${lat},${lng})[amenity=place_of_worship];nwr(around:${metres},${lat},${lng})[landuse=cemetery];nwr(around:${metres},${lat},${lng})[landuse=forest];nwr(around:${metres},${lat},${lng})[leisure=park];nwr(around:${metres},${lat},${lng})[railway=station];nwr(around:${metres},${lat},${lng})[public_transport=station];nwr(around:${metres},${lat},${lng})[place];);out tags center;`; }
-  function createLocationDiscoveryProvider(options) { const settings = options || {}; const limit = Math.max(1, Number(settings.limit) || 3); const radius = Math.max(100, Math.min(1500, Number(settings.radius) || 500)); const endpoints = Array.isArray(settings.endpoints) && settings.endpoints.length ? settings.endpoints.slice() : settings.endpoint ? [settings.endpoint] : DEFAULT_OVERPASS_ENDPOINTS.slice(); const fetchFn = settings.fetch || (typeof fetch === "function" ? fetch.bind(globalThis) : null); let lastEndpoint = ""; let lastError = ""; return { kind: "location", get endpoint() { return lastEndpoint; }, get error() { return lastError; }, async discover(context) { if (!fetchFn) throw new Error("Geographic discovery is unavailable"); const location = context && context.location; if (!location) throw new Error("Location is required for geographic discovery"); const query = buildOverpassQuery(location.latitude, location.longitude, radius); const failures = []; for (const endpoint of endpoints) { try { const response = await fetchFn(endpoint, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" }, body: `data=${encodeURIComponent(query)}` }); if (!response || !response.ok) throw new Error(`HTTP ${response && response.status ? response.status : "error"}`); const payload = await response.json(); const geographic = normalizeGeographicContext(payload && payload.elements); lastEndpoint = endpoint; lastError = ""; return discoveriesFromFeatures(geographic.types, { limit, namesByType: geographic.namesByType }); } catch (error) { failures.push(`${endpoint}: ${error && error.message ? error.message : "failed"}`); } } lastEndpoint = ""; lastError = failures.join(" | "); throw new Error(`Geographic data could not be loaded (${lastError})`); } }; }
+  function createLocationDiscoveryProvider(options) {
+    const settings = options || {};
+    const limit = Math.max(1, Number(settings.limit) || 3);
+    const radius = Math.max(100, Math.min(1500, Number(settings.radius) || 500));
+    const timeoutMs = Math.max(1000, Number(settings.timeoutMs) || 8000);
+    const endpoints = Array.isArray(settings.endpoints) && settings.endpoints.length ? settings.endpoints.slice() : settings.endpoint ? [settings.endpoint] : DEFAULT_OVERPASS_ENDPOINTS.slice();
+    const fetchFn = settings.fetch || (typeof fetch === "function" ? fetch.bind(globalThis) : null);
+    const onStatus = typeof settings.onStatus === "function" ? settings.onStatus : null;
+    let lastEndpoint = "";
+    let lastError = "";
+    let lastStatus = { state: "idle", endpoint: "", attempt: 0, total: endpoints.length };
+    function emit(status) { lastStatus = Object.assign({}, lastStatus, status); if (onStatus) onStatus(Object.assign({}, lastStatus)); }
+    async function fetchWithTimeout(endpoint, requestOptions) {
+      let timer = null;
+      const controller = typeof AbortController === "function" ? new AbortController() : null;
+      const optionsWithSignal = controller ? Object.assign({}, requestOptions, { signal: controller.signal }) : requestOptions;
+      const timeoutPromise = new Promise((resolve, reject) => { timer = setTimeout(() => { if (controller) controller.abort(); const error = new Error(`timeout after ${timeoutMs}ms`); error.code = "OVERPASS_TIMEOUT"; reject(error); }, timeoutMs); });
+      try { return await Promise.race([Promise.resolve(fetchFn(endpoint, optionsWithSignal)), timeoutPromise]); }
+      finally { if (timer) clearTimeout(timer); }
+    }
+    return {
+      kind: "location",
+      get endpoint() { return lastEndpoint; },
+      get error() { return lastError; },
+      get status() { return Object.assign({}, lastStatus); },
+      async discover(context) {
+        if (!fetchFn) throw new Error("Geographic discovery is unavailable");
+        const location = context && context.location;
+        if (!location) throw new Error("Location is required for geographic discovery");
+        const query = buildOverpassQuery(location.latitude, location.longitude, radius);
+        const failures = [];
+        for (let index = 0; index < endpoints.length; index += 1) {
+          const endpoint = endpoints[index];
+          lastEndpoint = endpoint;
+          lastError = "";
+          emit({ state: "requesting", endpoint, attempt: index + 1, total: endpoints.length, httpStatus: null, error: "", timedOut: false });
+          try {
+            const response = await fetchWithTimeout(endpoint, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" }, body: `data=${encodeURIComponent(query)}` });
+            const httpStatus = response && response.status ? response.status : null;
+            if (!response || !response.ok) { const error = new Error(`HTTP ${httpStatus || "error"}`); error.httpStatus = httpStatus; throw error; }
+            const payload = await response.json();
+            const geographic = normalizeGeographicContext(payload && payload.elements);
+            const discoveries = discoveriesFromFeatures(geographic.types, { limit, namesByType: geographic.namesByType });
+            lastError = "";
+            emit({ state: "success", endpoint, attempt: index + 1, total: endpoints.length, httpStatus, error: "", timedOut: false, features: geographic.types.slice(), names: Object.values(geographic.namesByType).filter(Boolean), discoveries: discoveries.length });
+            return discoveries;
+          } catch (error) {
+            const message = error && error.message ? error.message : "failed";
+            const timedOut = !!(error && error.code === "OVERPASS_TIMEOUT");
+            const httpStatus = error && error.httpStatus ? error.httpStatus : null;
+            lastError = message;
+            failures.push(`${endpoint}: ${message}`);
+            emit({ state: "failed", endpoint, attempt: index + 1, total: endpoints.length, httpStatus, error: message, timedOut });
+          }
+        }
+        lastError = failures.join(" | ");
+        throw new Error(`Geographic data could not be loaded (${lastError})`);
+      }
+    };
+  }
   return { FEATURE_ORDER, DEFAULT_OVERPASS_ENDPOINTS, DISCOVERY_RULES, normalizePlace, normalizeGeographicFeature, normalizeGeographicContext, normalizeGeographicFeatures, discoveriesFromFeatures, investigateDiscovery, buildOverpassQuery, createSimulatedDiscoveryProvider, createLocationDiscoveryProvider };
 });
