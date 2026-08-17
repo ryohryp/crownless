@@ -58,7 +58,11 @@ async function requestGeography(options) {
     try {
       const response = await fetchWithTimeout(fetchFn, endpoint, {
         method: "POST",
-        headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+          Accept: "application/json",
+          "User-Agent": "Crownless/0.1 (+https://crownless-iota.vercel.app/)"
+        },
         body: `data=${encodeURIComponent(query)}`
       }, timeoutMs);
       const httpStatus = response && response.status ? response.status : null;

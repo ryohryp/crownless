@@ -24,6 +24,8 @@ test("server geography proxy retries Overpass endpoints and returns the successf
   assert.equal(result.attempts[1].state, "success");
   assert.equal(result.elements[0].tags["name:ja"], "中川");
   assert.match(calls[0].options.body, /around%3A650%2C35.69%2C139.78/);
+  assert.equal(calls[0].options.headers.Accept, "application/json");
+  assert.equal(calls[0].options.headers["User-Agent"], "Crownless/0.1 (+https://crownless-iota.vercel.app/)");
 });
 
 test("server geography proxy validates coordinates and clamps radius", async () => {
