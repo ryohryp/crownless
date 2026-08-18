@@ -20,30 +20,28 @@ test("location runtime preserves core choice ids while replacing presentation", 
   assert.match(runtimeSource, /getCurrentPosition/);
   assert.match(runtimeSource, /createProxyLocationDiscoveryProvider/);
   assert.doesNotMatch(runtimeSource, /createLocationDiscoveryProvider/);
-  assert.doesNotMatch(runtimeSource, /stopImmediatePropagation/);
 });
 
-test("location discovery hides and disables simulated leads while geography is pending", () => {
-  assert.match(runtimeSource, /function setLeadLoading\(loading\)/);
-  assert.match(runtimeSource, /leadList\.style\.display = loading \? "none" : ""/);
-  assert.match(runtimeSource, /card\.disabled = Boolean\(loading\)/);
-  assert.match(runtimeSource, /locationState = "loading";/);
-  assert.match(runtimeSource, /setTimeout\(\(\) => \{ setLeadLoading\(true\); syncExplorationSource\(\); showLocationStatus\(\); \}, 0\)/);
-  assert.ok(runtimeSource.indexOf("setLeadLoading(true)") < runtimeSource.indexOf("loadGeographicDiscoveries().then"));
+test("expedition start is intercepted before app renders simulated choices", () => {
+  assert.match(runtimeSource, /event\.stopImmediatePropagation\(\)/);
+  assert.match(runtimeSource, /locationState = "loading"/);
+  assert.match(runtimeSource, /startButton\.disabled = true/);
+  assert.match(runtimeSource, /loadGeographicDiscoveries\(\)\.finally/);
+  assert.match(runtimeSource, /replayingStart = true;\s*startButton\.click\(\)/);
+  assert.doesNotMatch(runtimeSource, /setTimeout\(\(\) => \{ setLeadLoading\(true\)/);
 });
 
-test("successful async geography discovery switches the exploration heading away from simulated before revealing leads", () => {
+test("successful geography is available before the replayed app render", () => {
   assert.match(presentationSource, /REAL-WORLD DISCOVERY/);
-  assert.match(presentationSource, /function setDiscoverySource/);
-  assert.match(runtimeSource, /presentation\.setDiscoverySource\(document, locationState === "ready" && geographicDiscoveries\.length \? "geographic" : "simulated"\)/);
-  assert.ok(runtimeSource.indexOf("locationState = geographicDiscoveries.length ? \"ready\" : \"failed\";") < runtimeSource.indexOf("syncExplorationSource();"));
-  assert.ok(runtimeSource.lastIndexOf("syncExplorationSource();") < runtimeSource.lastIndexOf("setLeadLoading(false);"));
+  assert.match(runtimeSource, /locationState = geographicDiscoveries\.length \? "ready" : "failed"/);
+  assert.ok(runtimeSource.indexOf("geographicDiscoveries = await provider.discover") < runtimeSource.indexOf("replayingStart = true"));
+  assert.ok(runtimeSource.indexOf("replayingStart = true") < runtimeSource.indexOf("startButton.click()"));
 });
 
-test("failed denied or empty geography discovery reveals simulated fallback leads", () => {
+test("failed denied or empty geography replays the normal simulated fallback", () => {
   assert.match(presentationSource, /simulated: "DISCOVERED NEARBY \/ SIMULATED LOCATION"/);
-  assert.match(runtimeSource, /geographicDiscoveries = \[\];/);
-  assert.match(runtimeSource, /locationState = error && error\.code === 1 \? "denied" : "failed";/);
-  assert.match(runtimeSource, /locationState = geographicDiscoveries\.length \? "ready" : "failed";/);
-  assert.match(runtimeSource, /refreshLeadCards\(\);\s*setLeadLoading\(false\);/);
+  assert.match(runtimeSource, /geographicDiscoveries = \[\]/);
+  assert.match(runtimeSource, /locationState = error && error\.code === 1 \? "denied" : "failed"/);
+  assert.match(runtimeSource, /locationState = geographicDiscoveries\.length \? "ready" : "failed"/);
+  assert.match(runtimeSource, /startButton\.click\(\)/);
 });
