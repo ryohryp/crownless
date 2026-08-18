@@ -1,10 +1,17 @@
 "use strict";
 
-const Discovery = require("./discovery-provider.js");
-
-// Geography is on the critical path after GPS acquisition. Race mirrors so one
-// degraded public Overpass instance does not consume the whole browser budget.
-const DEFAULT_TIMEOUT_MS = 6000;
+// Geography is on the critical path after GPS acquisition. Race independent
+// public Overpass mirrors so one degraded instance does not consume the whole
+// mobile exploration budget. Keep this list aligned with currently documented
+// global instances rather than a regional mirror that is unreachable from the
+// production Vercel runtime.
+const DEFAULT_OVERPASS_ENDPOINTS = [
+  "https://overpass-api.de/api/interpreter",
+  "https://overpass.private.coffee/api/interpreter",
+  "https://maps.mail.ru/osm/tools/overpass/api/interpreter"
+];
+const DEFAULT_TIMEOUT_MS = 7000;
+const OVERPASS_QUERY_TIMEOUT_SECONDS = 6;
 
 function parseCoordinate(value, min, max, label) {
   const number = Number(value);
@@ -20,6 +27,30 @@ function normalizeRadius(value) {
   const number = Number(value);
   if (!Number.isFinite(number)) return 650;
   return Math.max(100, Math.min(1500, number));
+}
+
+function buildOverpassQuery(latitude, longitude, radius) {
+  const lat = parseCoordinate(latitude, -90, 90, "latitude");
+  const lng = parseCoordinate(longitude, -180, 180, "longitude");
+  const metres = normalizeRadius(radius);
+  const around = `around:${metres},${lat},${lng}`;
+
+  // Only request tags that Crownless actually consumes. The previous broad
+  // [natural] and [place] selectors could pull thousands of irrelevant objects
+  // (for example natural=tree) in dense areas, while the game immediately
+  // discarded them. `out tags` is sufficient because discovery uses tags only.
+  return `[out:json][timeout:${OVERPASS_QUERY_TIMEOUT_SECONDS}];(`
+    + `nwr(${around})[natural~"^(water|wood|peak|ridge|hill|coastline)$"];`
+    + `nwr(${around})[waterway];`
+    + `nwr(${around})[bridge];`
+    + `nwr(${around})[amenity=place_of_worship];`
+    + `nwr(${around})[landuse=cemetery];`
+    + `nwr(${around})[landuse=forest];`
+    + `nwr(${around})[leisure=park];`
+    + `nwr(${around})[railway=station];`
+    + `nwr(${around})[public_transport=station];`
+    + `nwr(${around})[place~"^(city|town|village|hamlet|suburb|neighbourhood|quarter|island)$"];`
+    + `);out tags;`;
 }
 
 function classifyUpstreamFailure(error) {
@@ -66,9 +97,10 @@ async function requestGeography(options) {
   const timeoutMs = Math.max(1000, Number(settings.timeoutMs) || DEFAULT_TIMEOUT_MS);
   const endpoints = Array.isArray(settings.endpoints) && settings.endpoints.length
     ? settings.endpoints.slice()
-    : Discovery.DEFAULT_OVERPASS_ENDPOINTS.slice();
-  const query = Discovery.buildOverpassQuery(latitude, longitude, radius);
+    : DEFAULT_OVERPASS_ENDPOINTS.slice();
+  const query = buildOverpassQuery(latitude, longitude, radius);
   const attemptsByIndex = new Array(endpoints.length);
+  const raceStartedAt = Date.now();
   const raceController = typeof AbortController === "function" ? new AbortController() : null;
 
   const requests = endpoints.map(async (endpoint, index) => {
@@ -119,14 +151,27 @@ async function requestGeography(options) {
   try {
     const winner = await Promise.any(requests);
     if (raceController) raceController.abort(new Error("geography upstream winner selected"));
-    // Give aborted losers a microtask turn to record diagnostics without waiting
-    // for slow upstreams that ignore AbortSignal.
-    await Promise.resolve();
-    const attempts = attemptsByIndex.filter(Boolean);
+
+    // Do not wait for losing fetches: some runtimes ignore AbortSignal until the
+    // socket settles. Record pending losers as cancelled so diagnostics still
+    // describe every configured endpoint without extending the user wait.
+    endpoints.forEach((endpoint, index) => {
+      if (attemptsByIndex[index]) return;
+      attemptsByIndex[index] = {
+        endpoint,
+        state: "cancelled",
+        httpStatus: null,
+        error: "cancelled after winner",
+        timedOut: false,
+        failureKind: "aborted",
+        durationMs: Math.max(0, Date.now() - raceStartedAt)
+      };
+    });
+
     return {
       elements: Array.isArray(winner.payload && winner.payload.elements) ? winner.payload.elements : [],
       endpoint: winner.endpoint,
-      attempts,
+      attempts: attemptsByIndex.slice(),
       total: endpoints.length,
       timeoutMs
     };
@@ -188,7 +233,7 @@ function createGeographyHandler(options) {
         endpoints: settings.endpoints,
         timeoutMs: settings.timeoutMs
       });
-      const degraded = result.attempts.some((attempt) => attempt.state !== "success");
+      const degraded = result.attempts.some((attempt) => attempt.state === "failed");
       if (degraded) {
         logUpstreamState(logger, "warn", {
           state: "fallback_success",
@@ -220,8 +265,11 @@ function createGeographyHandler(options) {
 }
 
 module.exports = {
+  DEFAULT_OVERPASS_ENDPOINTS,
   DEFAULT_TIMEOUT_MS,
+  OVERPASS_QUERY_TIMEOUT_SECONDS,
   normalizeRadius,
+  buildOverpassQuery,
   classifyUpstreamFailure,
   requestGeography,
   createGeographyHandler
