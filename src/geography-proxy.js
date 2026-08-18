@@ -11,6 +11,7 @@ const DEFAULT_OVERPASS_ENDPOINTS = [
 ];
 const DEFAULT_TIMEOUT_MS = 7000;
 const OVERPASS_QUERY_TIMEOUT_SECONDS = 6;
+const METRES_PER_LATITUDE_DEGREE = 111320;
 
 function parseCoordinate(value, min, max, label) {
   const number = Number(value);
@@ -28,16 +29,49 @@ function normalizeRadius(value) {
   return Math.max(100, Math.min(1500, number));
 }
 
-function buildOverpassQuery(latitude, longitude, radius) {
+function roundCoordinate(value) {
+  return Number(value.toFixed(6));
+}
+
+function buildBoundingBox(latitude, longitude, radius) {
+  const lat = parseCoordinate(latitude, -90, 90, "latitude");
+  const lng = parseCoordinate(longitude, -180, 180, "longitude");
+  const metres = normalizeRadius(radius);
+  const latitudeDelta = metres / METRES_PER_LATITUDE_DEGREE;
+  const longitudeScale = Math.abs(Math.cos(lat * Math.PI / 180));
+
+  // Near the poles or the antimeridian, keep the exact-radius query instead of
+  // manufacturing an invalid or heavily distorted bounding box.
+  if (longitudeScale < 0.1) return null;
+  const longitudeDelta = metres / (METRES_PER_LATITUDE_DEGREE * longitudeScale);
+  if (lng - longitudeDelta < -180 || lng + longitudeDelta > 180) return null;
+
+  return [
+    roundCoordinate(Math.max(-90, lat - latitudeDelta)),
+    roundCoordinate(lng - longitudeDelta),
+    roundCoordinate(Math.min(90, lat + latitudeDelta)),
+    roundCoordinate(lng + longitudeDelta)
+  ];
+}
+
+function buildFeatureFilterQuery(source) {
+  return `nwr.${source}[natural~"^(water|wood|peak|ridge|hill|coastline)$"];`
+    + `nwr.${source}[waterway];`
+    + `nwr.${source}[bridge];`
+    + `nwr.${source}[amenity=place_of_worship];`
+    + `nwr.${source}[landuse=cemetery];`
+    + `nwr.${source}[landuse=forest];`
+    + `nwr.${source}[leisure=park];`
+    + `nwr.${source}[railway=station];`
+    + `nwr.${source}[public_transport=station];`
+    + `nwr.${source}[place~"^(city|town|village|hamlet|suburb|neighbourhood|quarter|island)$"];`;
+}
+
+function buildAroundQuery(latitude, longitude, radius) {
   const lat = parseCoordinate(latitude, -90, 90, "latitude");
   const lng = parseCoordinate(longitude, -180, 180, "longitude");
   const metres = normalizeRadius(radius);
   const around = `around:${metres},${lat},${lng}`;
-
-  // Only request tags that Crownless actually consumes. The previous broad
-  // [natural] and [place] selectors could pull thousands of irrelevant objects
-  // (for example natural=tree) in dense areas, while the game immediately
-  // discarded them. `out tags` is sufficient because discovery uses tags only.
   return `[out:json][timeout:${OVERPASS_QUERY_TIMEOUT_SECONDS}];(`
     + `nwr(${around})[natural~"^(water|wood|peak|ridge|hill|coastline)$"];`
     + `nwr(${around})[waterway];`
@@ -49,6 +83,21 @@ function buildOverpassQuery(latitude, longitude, radius) {
     + `nwr(${around})[railway=station];`
     + `nwr(${around})[public_transport=station];`
     + `nwr(${around})[place~"^(city|town|village|hamlet|suburb|neighbourhood|quarter|island)$"];`
+    + `);out tags;`;
+}
+
+function buildOverpassQuery(latitude, longitude, radius) {
+  const bounds = buildBoundingBox(latitude, longitude, radius);
+  if (!bounds) return buildAroundQuery(latitude, longitude, radius);
+  const bbox = bounds.join(",");
+
+  // Overpass can reuse a named set much more cheaply than performing the same
+  // spatial filter for every tag. Crownless needs discovery signals, not a
+  // complete GIS extract, so nodes and ways are enough for the fast path and
+  // avoid expensive relation scans in dense areas.
+  return `[out:json][timeout:${OVERPASS_QUERY_TIMEOUT_SECONDS}];`
+    + `(node(${bbox});way(${bbox});)->.nearby;(`
+    + buildFeatureFilterQuery("nearby")
     + `);out tags;`;
 }
 
@@ -110,6 +159,7 @@ async function requestGeography(options) {
         headers: {
           "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
           Accept: "application/json",
+          "Accept-Encoding": "gzip, deflate",
           "User-Agent": "Crownless/0.1 (+https://crownless-iota.vercel.app/)"
         },
         body: `data=${encodeURIComponent(query)}`
@@ -268,6 +318,7 @@ module.exports = {
   DEFAULT_TIMEOUT_MS,
   OVERPASS_QUERY_TIMEOUT_SECONDS,
   normalizeRadius,
+  buildBoundingBox,
   buildOverpassQuery,
   classifyUpstreamFailure,
   requestGeography,
