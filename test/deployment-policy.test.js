@@ -41,4 +41,6 @@ test('Vercel Production deploys geography changes from main and remains manually
   assert.match(workflow, /PRODUCTION_URL:\s*https:\/\/crownless-iota\.vercel\.app/);
   assert.match(workflow, /\$PRODUCTION_URL\/api\/geography/);
   assert.match(workflow, /--max-time 8/);
+  assert.match(workflow, /DEFAULT_TIMEOUT_MS.*require\("\.\/src\/geography-proxy\.js"\)/);
+  assert.match(workflow, /payload\.timeoutMs\) > DEFAULT_TIMEOUT_MS/);
 });
