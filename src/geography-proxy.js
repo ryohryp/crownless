@@ -1,13 +1,13 @@
 "use strict";
 
-// Geography is on the critical path after GPS acquisition. The production
-// function runs in Tokyo, so prefer the Japan community Overpass instance and
-// race global mirrors as fallbacks. A degraded instance must not consume the
-// whole mobile exploration budget.
+// Geography is on the critical path after GPS acquisition. Race independent
+// public Overpass instances so one degraded service does not consume the whole
+// mobile exploration budget. The production function runs in Tokyo, but only
+// keep endpoints that are reachable from the Vercel runtime.
 const DEFAULT_OVERPASS_ENDPOINTS = [
-  "https://overpass.openstreetmap.jp/api/interpreter",
   "https://overpass-api.de/api/interpreter",
-  "https://overpass.private.coffee/api/interpreter"
+  "https://overpass.private.coffee/api/interpreter",
+  "https://maps.mail.ru/osm/tools/overpass/api/interpreter"
 ];
 const DEFAULT_TIMEOUT_MS = 7000;
 const OVERPASS_QUERY_TIMEOUT_SECONDS = 6;
@@ -54,51 +54,41 @@ function buildBoundingBox(latitude, longitude, radius) {
   ];
 }
 
-function buildFeatureFilterQuery(source) {
-  return `nwr.${source}[natural~"^(water|wood|peak|ridge|hill|coastline)$"];`
-    + `nwr.${source}[waterway];`
-    + `nwr.${source}[bridge];`
-    + `nwr.${source}[amenity=place_of_worship];`
-    + `nwr.${source}[landuse=cemetery];`
-    + `nwr.${source}[landuse=forest];`
-    + `nwr.${source}[leisure=park];`
-    + `nwr.${source}[railway=station];`
-    + `nwr.${source}[public_transport=station];`
-    + `nwr.${source}[place~"^(city|town|village|hamlet|suburb|neighbourhood|quarter|island)$"];`;
+function buildSignalQuery(spatialFilter) {
+  // Discovery only needs enough real-world signals to create up to three
+  // choices. Query relevant tagged objects directly instead of materializing
+  // every node/way in a dense area first. `nw` intentionally excludes relations
+  // because Crownless consumes tags, not complete GIS geometry.
+  return `nw(${spatialFilter})[natural~"^(water|wood|peak|ridge|hill|coastline)$"];`
+    + `nw(${spatialFilter})[waterway];`
+    + `nw(${spatialFilter})[bridge];`
+    + `nw(${spatialFilter})[amenity=place_of_worship];`
+    + `nw(${spatialFilter})[landuse~"^(cemetery|forest)$"];`
+    + `nw(${spatialFilter})[leisure=park];`
+    + `nw(${spatialFilter})[railway=station];`
+    + `nw(${spatialFilter})[public_transport=station];`
+    + `nw(${spatialFilter})[place~"^(city|town|village|hamlet|suburb|neighbourhood|quarter|island)$"];`;
 }
 
 function buildAroundQuery(latitude, longitude, radius) {
   const lat = parseCoordinate(latitude, -90, 90, "latitude");
   const lng = parseCoordinate(longitude, -180, 180, "longitude");
   const metres = normalizeRadius(radius);
-  const around = `around:${metres},${lat},${lng}`;
   return `[out:json][timeout:${OVERPASS_QUERY_TIMEOUT_SECONDS}];(`
-    + `nwr(${around})[natural~"^(water|wood|peak|ridge|hill|coastline)$"];`
-    + `nwr(${around})[waterway];`
-    + `nwr(${around})[bridge];`
-    + `nwr(${around})[amenity=place_of_worship];`
-    + `nwr(${around})[landuse=cemetery];`
-    + `nwr(${around})[landuse=forest];`
-    + `nwr(${around})[leisure=park];`
-    + `nwr(${around})[railway=station];`
-    + `nwr(${around})[public_transport=station];`
-    + `nwr(${around})[place~"^(city|town|village|hamlet|suburb|neighbourhood|quarter|island)$"];`
-    + `);out tags;`;
+    + buildSignalQuery(`around:${metres},${lat},${lng}`)
+    + `);out tags qt;`;
 }
 
 function buildOverpassQuery(latitude, longitude, radius) {
   const bounds = buildBoundingBox(latitude, longitude, radius);
   if (!bounds) return buildAroundQuery(latitude, longitude, radius);
-  const bbox = bounds.join(",");
 
-  // Overpass can reuse a named set much more cheaply than performing the same
-  // spatial filter for every tag. Crownless needs discovery signals, not a
-  // complete GIS extract, so nodes and ways are enough for the fast path and
-  // avoid expensive relation scans in dense areas.
-  return `[out:json][timeout:${OVERPASS_QUERY_TIMEOUT_SECONDS}];`
-    + `(node(${bbox});way(${bbox});)->.nearby;(`
-    + buildFeatureFilterQuery("nearby")
-    + `);out tags;`;
+  // A bbox is cheaper than repeatedly evaluating an around-distance filter, and
+  // applying the selective tag filters directly avoids the dense-area failure
+  // mode where PR #99 first loaded every node and way into a named set.
+  return `[out:json][timeout:${OVERPASS_QUERY_TIMEOUT_SECONDS}];(`
+    + buildSignalQuery(bounds.join(","))
+    + `);out tags qt;`;
 }
 
 function classifyUpstreamFailure(error) {
