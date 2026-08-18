@@ -1,7 +1,7 @@
 # Crownless — Exploration & Location Discovery Specification
 
 > **Status:** current subsystem direction / implementation target  
-> **Updated:** 2026-08-11  
+> **Updated:** 2026-08-18  
 > **Parent design:** [`game-system-design.md`](game-system-design.md)
 
 This document defines the next direction for Crownless exploration, location gameplay, and the relationship between outdoor discovery and full combat.
@@ -198,6 +198,22 @@ The map should use coarse, safe world cells / regions rather than requiring mete
 
 The game must not encourage trespassing, entering unsafe areas, or staring at the phone while navigating traffic or other hazards.
 
+### Location enrichment must not gate play
+
+External geographic services are world-enrichment inputs, not a prerequisite for starting or continuing an expedition.
+
+The browser prototype follows this rule:
+
+1. deterministic / simulated exploration choices are usable immediately
+2. GPS and geographic metadata are requested asynchronously in the background
+3. when matching real-world signals arrive, up to three current exploration choices can be replaced or enriched with geographic discoveries
+4. if the player has already moved on, the late result must not interrupt or rewind play
+5. permission denial, upstream errors, timeouts, or no matching features leave the deterministic choices usable
+
+A geographic provider may therefore have a longer network budget than the visible interaction budget. The important latency requirement is that **waiting for external geography never blocks the exploration loop**.
+
+The current prototype queries a coarse area around the player (currently 650 m) for useful public terrain / place signals. That radius is a tuning value, not a gameplay contract; it may change after field testing without changing the non-blocking rule above.
+
 ## 9. Real place → fantasy translation
 
 A core Crownless identity is that a region can subtly influence the fantasy content found there.
@@ -386,6 +402,8 @@ These are current design decisions, not open brainstorm items:
 - outdoor play is exploration-oriented; longer stationary play can be combat-oriented
 - real regional identity should influence fantasy naming and themes
 - real data is translated into fantasy rather than copied directly
+- external geography enriches exploration asynchronously and never gates the core loop
+- simulated / deterministic exploration remains available when GPS or geographic upstreams are late or unavailable
 - paid AI calls will not run directly from player clients
 - AI regional generation will be host-side / batch-capable, persisted, and reused
 - gameplay rules remain mostly deterministic; AI is mainly a flavor-generation layer
