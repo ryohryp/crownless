@@ -13,12 +13,10 @@ var soundEnabled = (function readInitialSoundPreference() {
 })();
 var audioContext = null;
 
-// These files are parsed before app.js. Location discovery owns data loading,
-// while the start gate owns the short loading transition before app.js renders
-// the first exploration choices.
+// Location discovery augments exploration data but never owns navigation.
+// app.js remains the single authority for entering the expedition screen.
 if (typeof document !== "undefined" && document.readyState === "loading") {
   document.write('<script src="src/discovery-provider.js"></script>');
   document.write('<script src="src/geography-api-provider.js"></script>');
   document.write('<script src="src/location-discovery-runtime.js"></script>');
-  document.write('<script src="src/expedition-start-gate.js"></script>');
 }

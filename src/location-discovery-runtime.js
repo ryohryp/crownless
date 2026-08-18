@@ -74,13 +74,35 @@
     showLocationStatus();
   }
 
+  function refreshLeadCards() {
+    const leadList = document.getElementById("lead-list");
+    if (!leadList) return;
+    const choices = Core.generateExplorationChoices(window.CrownlessAppState || null);
+    const cards = Array.from(leadList.querySelectorAll(".lead-card"));
+    choices.forEach((choice, index) => {
+      const card = cards[index];
+      if (!card) return;
+      const title = card.querySelector("h3");
+      const description = card.querySelector("p");
+      const omen = card.querySelector(".lead-omen");
+      if (title) title.textContent = choice.name;
+      if (description) description.textContent = choice.description;
+      if (omen) omen.textContent = `噂：${choice.omen}`;
+      card.className = `lead-card palette-${choice.palette}${choice.eventKind === "hunt" ? " hunt-target" : ""}`;
+    });
+  }
+
   function mergeGeography(choice, discovery) {
     if (!discovery) return choice;
     const identified = Discovery.investigateDiscovery(discovery);
     return Object.assign({}, choice, { name: identified.title, description: discovery.signal, omen: `現実の地形：${discovery.features.join(" + ")}`, signal: discovery.contentKind === "dungeon" ? "遺構" : discovery.contentKind === "encounter" ? "遭遇" : "異変", risk: Math.max(choice.risk || 1, discovery.risk || 1), palette: discovery.palette === "water" ? "marsh" : discovery.palette, geographicDiscovery: discovery });
   }
 
-  Core.generateExplorationChoices = function generateLocationAwareChoices(state) { const choices = originalGenerate(state); if (!geographicDiscoveries.length) return choices; return choices.map((choice, index) => mergeGeography(choice, geographicDiscoveries[index % geographicDiscoveries.length])); };
+  Core.generateExplorationChoices = function generateLocationAwareChoices(state) {
+    const choices = originalGenerate(state);
+    if (!geographicDiscoveries.length) return choices;
+    return choices.map((choice, index) => mergeGeography(choice, geographicDiscoveries[index % geographicDiscoveries.length]));
+  };
 
   function getCurrentLocation() {
     if (!navigator.geolocation) return Promise.reject(new Error("geolocation unavailable"));
@@ -132,13 +154,26 @@
     return locationPromise;
   }
 
+  // This listener is installed before app.js, but deliberately does not stop the
+  // event. app.js enters the expedition screen synchronously. On the next
+  // microtask we hide its temporary simulated leads while geography resolves.
+  const startButton = document.getElementById("start-expedition");
+  if (startButton) startButton.addEventListener("click", () => {
+    locationPromise = null;
+    geographicDiscoveries = [];
+    const discovery = loadGeographicDiscoveries();
+    queueMicrotask(setPendingUi);
+    discovery.finally(() => {
+      if (!document.getElementById("explore-screen")?.classList.contains("active")) return;
+      refreshLeadCards();
+      setPendingUi();
+    });
+  });
+
   window.CrownlessLocationDiscoveryRuntime = {
     get state() { return locationState; },
     get discoveries() { return geographicDiscoveries.slice(); },
     get diagnostics() { return Object.assign({}, diagnostics, { features: diagnostics.features.slice(), names: diagnostics.names.slice() }); },
-    begin() { locationPromise = null; geographicDiscoveries = []; return loadGeographicDiscoveries(); },
-    showPending: setPendingUi,
-    finish() { setPendingUi(); },
     reload() { locationPromise = null; return loadGeographicDiscoveries(); }
   };
 })();
