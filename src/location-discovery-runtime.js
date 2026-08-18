@@ -5,10 +5,24 @@
   const GeographyApi = window.CrownlessGeographyApi;
   if (!Core || !Discovery || !GeographyApi) return;
   const originalGenerate = Core.generateExplorationChoices.bind(Core);
+  const GEOLOCATION_OPTIONS = Object.freeze({ enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 });
   let geographicDiscoveries = [];
   let locationState = "idle";
   let locationPromise = null;
-  let diagnostics = { gps: "idle", osm: "idle", endpoint: "-", attempt: 0, total: 0, httpStatus: null, discoveries: 0, features: [], names: [], error: "" };
+
+  function emptyDiagnostics(gps = "idle") {
+    return { gps, gpsCode: null, gpsName: "", gpsMessage: "", gpsElapsedMs: null, gpsOptions: Object.assign({}, GEOLOCATION_OPTIONS), osm: "idle", endpoint: "-", attempt: 0, total: 0, httpStatus: null, discoveries: 0, features: [], names: [], error: "" };
+  }
+
+  let diagnostics = emptyDiagnostics();
+
+  function classifyGeolocationError(error) {
+    const code = Number(error && error.code) || 0;
+    if (code === 1) return { code, name: "PERMISSION_DENIED", state: "denied" };
+    if (code === 2) return { code, name: "POSITION_UNAVAILABLE", state: "unavailable" };
+    if (code === 3) return { code, name: "TIMEOUT", state: "timeout" };
+    return { code, name: "UNKNOWN", state: "error" };
+  }
 
   function statusText() {
     if (locationState === "loading") return "現在地から周囲の気配を探している…";
@@ -25,7 +39,11 @@
 
   function diagnosticText() {
     const osmDetail = diagnostics.endpoint && diagnostics.endpoint !== "-" ? `${diagnostics.osm}@${endpointLabel(diagnostics.endpoint)}` : diagnostics.osm || "-";
-    const parts = [`GPS:${diagnostics.gps}`, `OSM:${osmDetail}`, `発見:${diagnostics.discoveries}`];
+    const gpsDetail = diagnostics.gpsCode ? `${diagnostics.gps}(${diagnostics.gpsCode}:${diagnostics.gpsName})` : diagnostics.gps;
+    const parts = [`GPS:${gpsDetail}`, `OSM:${osmDetail}`, `発見:${diagnostics.discoveries}`];
+    if (diagnostics.gpsElapsedMs !== null) parts.push(`GPS時間:${diagnostics.gpsElapsedMs}ms`);
+    if (diagnostics.gpsOptions) parts.push(`GPS設定:high=${diagnostics.gpsOptions.enableHighAccuracy},timeout=${diagnostics.gpsOptions.timeout},age=${diagnostics.gpsOptions.maximumAge}`);
+    if (diagnostics.gpsMessage) parts.push(`GPS詳細:${diagnostics.gpsMessage}`);
     if (diagnostics.attempt && diagnostics.total) parts.push(`試行:${diagnostics.attempt}/${diagnostics.total}`);
     if (diagnostics.httpStatus) parts.push(`HTTP:${diagnostics.httpStatus}`);
     if (diagnostics.features.length) parts.push(`地形:${diagnostics.features.join("/")}`);
@@ -107,8 +125,24 @@
   function getCurrentLocation() {
     if (!navigator.geolocation) return Promise.reject(new Error("geolocation unavailable"));
     diagnostics.gps = "requesting";
+    diagnostics.gpsOptions = Object.assign({}, GEOLOCATION_OPTIONS);
+    const startedAt = performance.now();
     showLocationStatus();
-    return new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition((position) => { diagnostics.gps = "ok"; showLocationStatus(); resolve({ latitude: position.coords.latitude, longitude: position.coords.longitude }); }, (error) => { diagnostics.gps = error && error.code === 1 ? "denied" : "error"; showLocationStatus(); reject(error); }, { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }));
+    return new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition((position) => {
+      diagnostics.gps = "ok";
+      diagnostics.gpsElapsedMs = Math.round(performance.now() - startedAt);
+      showLocationStatus();
+      resolve({ latitude: position.coords.latitude, longitude: position.coords.longitude });
+    }, (error) => {
+      const classified = classifyGeolocationError(error);
+      diagnostics.gps = classified.state;
+      diagnostics.gpsCode = classified.code;
+      diagnostics.gpsName = classified.name;
+      diagnostics.gpsMessage = error && error.message ? error.message : "";
+      diagnostics.gpsElapsedMs = Math.round(performance.now() - startedAt);
+      showLocationStatus();
+      reject(error);
+    }, GEOLOCATION_OPTIONS));
   }
 
   function applyProviderStatus(status) {
@@ -129,7 +163,7 @@
   async function loadGeographicDiscoveries() {
     if (locationPromise) return locationPromise;
     locationState = "loading";
-    diagnostics = { gps: "requesting", osm: "idle", endpoint: "-", attempt: 0, total: 0, httpStatus: null, discoveries: 0, features: [], names: [], error: "" };
+    diagnostics = emptyDiagnostics("requesting");
     locationPromise = (async () => {
       let provider = null;
       try {
@@ -154,9 +188,6 @@
     return locationPromise;
   }
 
-  // This listener is installed before app.js, but deliberately does not stop the
-  // event. app.js enters the expedition screen synchronously. On the next
-  // microtask we hide its temporary simulated leads while geography resolves.
   const startButton = document.getElementById("start-expedition");
   if (startButton) startButton.addEventListener("click", () => {
     locationPromise = null;
@@ -173,7 +204,8 @@
   window.CrownlessLocationDiscoveryRuntime = {
     get state() { return locationState; },
     get discoveries() { return geographicDiscoveries.slice(); },
-    get diagnostics() { return Object.assign({}, diagnostics, { features: diagnostics.features.slice(), names: diagnostics.names.slice() }); },
+    get diagnostics() { return Object.assign({}, diagnostics, { gpsOptions: Object.assign({}, diagnostics.gpsOptions), features: diagnostics.features.slice(), names: diagnostics.names.slice() }); },
+    classifyGeolocationError,
     reload() { locationPromise = null; return loadGeographicDiscoveries(); }
   };
 })();
