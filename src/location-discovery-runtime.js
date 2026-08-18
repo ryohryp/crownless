@@ -19,6 +19,7 @@
   });
   let geographicDiscoveries = [];
   let geographicChoicesById = new Map();
+  let lastExplorationState = null;
   let locationState = "idle";
   let locationPromise = null;
 
@@ -111,8 +112,8 @@
 
   function refreshLeadCards() {
     const leadList = document.getElementById("lead-list");
-    if (!leadList) return;
-    const choices = Core.generateExplorationChoices(window.CrownlessAppState || null);
+    if (!leadList || !lastExplorationState) return;
+    const choices = Core.generateExplorationChoices(lastExplorationState);
     const cards = Array.from(leadList.querySelectorAll(".lead-card"));
     choices.forEach((choice, index) => {
       const card = cards[index];
@@ -192,6 +193,7 @@
   }
 
   Core.generateExplorationChoices = function generateLocationAwareChoices(state) {
+    lastExplorationState = state;
     const choices = originalGenerate(state);
     geographicChoicesById = new Map();
     if (!geographicDiscoveries.length) return choices;
@@ -280,6 +282,7 @@
     locationPromise = null;
     geographicDiscoveries = [];
     geographicChoicesById = new Map();
+    lastExplorationState = null;
     const discovery = loadGeographicDiscoveries();
     queueMicrotask(setPendingUi);
     discovery.finally(() => {
