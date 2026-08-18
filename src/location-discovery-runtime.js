@@ -28,7 +28,7 @@
   }
 
   function statusText() {
-    if (locationState === "loading") return "現在地を照合中。通常の探索はそのまま始められる。";
+    if (locationState === "loading") return "現在地の周囲に、道と水辺の痕跡を探している。通常の探索はそのまま始められる。";
     if (locationState === "ready") return "現実で見つけた場所から、次の探索先を選べる。";
     if (locationState === "denied") return "位置情報を使えないため、通常の探索候補を表示する。";
     if (locationState === "failed") return "地理情報を読めなかったため、通常の探索候補を表示する。";
@@ -68,6 +68,19 @@
     return "異変";
   }
 
+  function ensureSearchPresentation(marker) {
+    let search = document.getElementById("location-discovery-search");
+    if (search) return search;
+    search = document.createElement("div");
+    search.id = "location-discovery-search";
+    search.className = "location-discovery-search";
+    search.setAttribute("role", "status");
+    search.setAttribute("aria-live", "polite");
+    search.innerHTML = `<div class="location-discovery-ink" aria-hidden="true"><i></i><i></i><i></i><b></b></div><div class="location-discovery-search-copy"><small>READING THE NEARBY WORLD</small><strong>現実の痕跡を照合中</strong><span>水辺、古い道、集落の気配を羊皮紙へ写している。</span></div>`;
+    marker.insertAdjacentElement("beforebegin", search);
+    return search;
+  }
+
   function showLocationStatus() {
     const exploreScreen = document.getElementById("explore-screen");
     if (!exploreScreen) return;
@@ -80,6 +93,10 @@
       if (warning && warning.parentNode) warning.parentNode.insertBefore(marker, warning.nextSibling);
       else exploreScreen.prepend(marker);
     }
+    const search = ensureSearchPresentation(marker);
+    const searching = locationState === "loading";
+    search.hidden = !searching;
+    search.setAttribute("aria-hidden", String(!searching));
     marker.textContent = statusText();
     marker.style.display = marker.textContent ? "block" : "none";
     marker.style.margin = "6px 0 10px";
