@@ -21,7 +21,8 @@ test("detailed location diagnostics are available in a collapsed details element
 
 test("location diagnostics preserve non-blocking discovery updates", () => {
   assert.match(source, /warning\.parentNode\.insertBefore\(marker, warning\.nextSibling\)/);
-  assert.match(source, /queueMicrotask\(setPendingUi\)/);
+  assert.match(source, /setPendingUi\(\); locationPromise = beginGeographicDiscoveryAfterPaint\(\)/);
+  assert.match(source, /requestAnimationFrame\(\(\) => requestAnimationFrame\(resolve\)\)/);
   assert.match(source, /discovery\.finally/);
   assert.doesNotMatch(source, /warning\.appendChild\(marker\)/);
 });
