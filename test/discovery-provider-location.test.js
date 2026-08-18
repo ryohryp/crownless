@@ -22,6 +22,41 @@ test("real place names become fantasy discovery names", () => {
   assert.equal(discoveries[0].title, "中川の血濡れの渡し場"); assert.equal(discoveries[0].realPlaceName, "中川");
 });
 
+test("geographic discoveries prefer distinct real places before duplicate names", () => {
+  const discoveries = Discovery.discoveriesFromFeatures(["water", "crossing", "sacred", "woods", "settlement"], {
+    limit: 3,
+    namesByType: {
+      water: "中川",
+      crossing: "中川",
+      sacred: "東立石諏訪神社",
+      woods: "立石児童遊園",
+      settlement: "立石"
+    }
+  });
+
+  assert.equal(discoveries.length, 3);
+  assert.deepEqual(discoveries.map((item) => item.realPlaceName), ["中川", "立石児童遊園", "立石"]);
+  assert.equal(discoveries[0].baseTitle, "血濡れの渡し場");
+  assert.equal(discoveries.filter((item) => item.realPlaceName === "中川").length, 1);
+});
+
+test("geographic discoveries reuse duplicate places only when unique places cannot fill the limit", () => {
+  const discoveries = Discovery.discoveriesFromFeatures(["water", "crossing", "sacred", "woods"], {
+    limit: 3,
+    namesByType: { water: "中川", crossing: "中川", sacred: "中川", woods: "中川" }
+  });
+
+  assert.equal(discoveries.length, 3);
+  assert.ok(discoveries.every((item) => item.realPlaceName === "中川"));
+  assert.equal(discoveries[0].baseTitle, "血濡れの渡し場");
+});
+
+test("unnamed geographic discoveries remain independent diversity candidates", () => {
+  const discoveries = Discovery.discoveriesFromFeatures(["water", "crossing", "sacred", "woods"], { limit: 3 });
+  assert.equal(discoveries.length, 3);
+  assert.ok(discoveries.every((item) => item.realPlaceName === ""));
+});
+
 test("investigation progressively reveals identity and preserves entry metadata", () => {
   const hidden = Discovery.discoveriesFromFeatures(["height"], { limit: 1 })[0]; const revealed = Discovery.investigateDiscovery(hidden);
   assert.equal(hidden.revealState, "signal"); assert.equal(revealed.revealState, "identified"); assert.equal(revealed.title, "崩れた物見台"); assert.equal(revealed.contentKind, "dungeon");
