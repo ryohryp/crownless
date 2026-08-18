@@ -4,7 +4,7 @@
   const api = factory();
   if (typeof module === "object" && module.exports) module.exports = api;
   if (root) root.CrownlessExplorationMap = api;
-  if (root && root.document) api.install(root.document, root.CrownlessDiscovery);
+  if (root && root.document) api.install(root.document, root.CrownlessDiscovery, root.CrownlessLocationDiscoveryRuntime);
 })(typeof globalThis !== "undefined" ? globalThis : this, function createExplorationPresentation() {
   "use strict";
 
@@ -49,7 +49,13 @@
     return true;
   }
 
-  function install(document, Discovery) {
+  function discoverySourceFromRuntime(runtime) {
+    return runtime && runtime.state === "ready" && Array.isArray(runtime.discoveries) && runtime.discoveries.length
+      ? "geographic"
+      : "simulated";
+  }
+
+  function install(document, Discovery, locationRuntime) {
     if (!document || document.getElementById("discovered-destinations-heading")) return;
     const leadList = document.getElementById("lead-list");
     const exploreScreen = document.getElementById("explore-screen");
@@ -80,12 +86,13 @@
       <strong>歩くのは現実。ここでは、どこへ挑むかを選ぶ。</strong>
       <span>見つかった場所から一つ選べ。地図を一歩ずつ進める必要はない。</span>`;
     leadList.parentNode.insertBefore(heading, leadList);
-    setDiscoverySource(document, "simulated");
+    setDiscoverySource(document, discoverySourceFromRuntime(locationRuntime));
 
     let scheduled = false;
     function refresh() {
       scheduled = false;
       if (!exploreScreen.classList.contains("active")) return;
+      setDiscoverySource(document, discoverySourceFromRuntime(locationRuntime));
       const cards = Array.from(leadList.querySelectorAll(".lead-card"));
       if (!cards.length) return;
       const destinations = selectDestinations(cards, Discovery);
@@ -117,6 +124,7 @@
     extractDestination,
     selectDestinations,
     setDiscoverySource,
+    discoverySourceFromRuntime,
     install
   };
 });
