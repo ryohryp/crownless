@@ -45,3 +45,26 @@ test("failed denied or empty geography reveals the simulated fallback", () => {
   assert.match(runtimeSource, /locationState = geographicDiscoveries\.length \? "ready" : "failed"/);
   assert.match(runtimeSource, /setPendingUi\(\);/);
 });
+
+test("GPS diagnostics classify browser geolocation errors", () => {
+  assert.match(runtimeSource, /code === 1.*PERMISSION_DENIED.*denied/);
+  assert.match(runtimeSource, /code === 2.*POSITION_UNAVAILABLE.*unavailable/);
+  assert.match(runtimeSource, /code === 3.*TIMEOUT.*timeout/);
+  assert.match(runtimeSource, /gpsCode/);
+  assert.match(runtimeSource, /gpsName/);
+  assert.match(runtimeSource, /gpsMessage/);
+});
+
+test("GPS diagnostics retain elapsed time and request options", () => {
+  assert.match(runtimeSource, /GEOLOCATION_OPTIONS = Object\.freeze\(\{ enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 \}\)/);
+  assert.match(runtimeSource, /performance\.now\(\) - startedAt/);
+  assert.match(runtimeSource, /GPS時間:/);
+  assert.match(runtimeSource, /GPS設定:high=/);
+});
+
+test("GPS failure does not start the geography provider", () => {
+  const locationCall = runtimeSource.indexOf("await getCurrentLocation()");
+  const providerCall = runtimeSource.indexOf("GeographyApi.createProxyLocationDiscoveryProvider", locationCall);
+  assert.ok(locationCall >= 0);
+  assert.ok(providerCall > locationCall);
+});
