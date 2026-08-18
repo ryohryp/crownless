@@ -2,9 +2,8 @@
 
 const Discovery = require("./discovery-provider.js");
 
-// Three sequential upstreams must fit inside the browser provider's 22s budget.
-// 6s per endpoint leaves room for proxy/network overhead while still allowing
-// a slow first upstream to fall through to the healthy mirrors.
+// Geography is on the critical path after GPS acquisition. Race mirrors so one
+// degraded public Overpass instance does not consume the whole browser budget.
 const DEFAULT_TIMEOUT_MS = 6000;
 
 function parseCoordinate(value, min, max, label) {
@@ -30,10 +29,16 @@ function classifyUpstreamFailure(error) {
   return "network";
 }
 
-async function fetchWithTimeout(fetchFn, endpoint, options, timeoutMs) {
+async function fetchWithTimeout(fetchFn, endpoint, options, timeoutMs, parentSignal) {
   const controller = typeof AbortController === "function" ? new AbortController() : null;
   let timer = null;
+  let onParentAbort = null;
   const requestOptions = controller ? Object.assign({}, options, { signal: controller.signal }) : options;
+  if (controller && parentSignal) {
+    onParentAbort = () => controller.abort(parentSignal.reason);
+    if (parentSignal.aborted) onParentAbort();
+    else parentSignal.addEventListener("abort", onParentAbort, { once: true });
+  }
   const timeout = new Promise((resolve, reject) => {
     timer = setTimeout(() => {
       const error = new Error(`timeout after ${timeoutMs}ms`);
@@ -46,6 +51,7 @@ async function fetchWithTimeout(fetchFn, endpoint, options, timeoutMs) {
     return await Promise.race([Promise.resolve(fetchFn(endpoint, requestOptions)), timeout]);
   } finally {
     if (timer) clearTimeout(timer);
+    if (parentSignal && onParentAbort) parentSignal.removeEventListener("abort", onParentAbort);
   }
 }
 
@@ -62,9 +68,10 @@ async function requestGeography(options) {
     ? settings.endpoints.slice()
     : Discovery.DEFAULT_OVERPASS_ENDPOINTS.slice();
   const query = Discovery.buildOverpassQuery(latitude, longitude, radius);
-  const attempts = [];
+  const attemptsByIndex = new Array(endpoints.length);
+  const raceController = typeof AbortController === "function" ? new AbortController() : null;
 
-  for (const endpoint of endpoints) {
+  const requests = endpoints.map(async (endpoint, index) => {
     const startedAt = Date.now();
     try {
       const response = await fetchWithTimeout(fetchFn, endpoint, {
@@ -75,7 +82,7 @@ async function requestGeography(options) {
           "User-Agent": "Crownless/0.1 (+https://crownless-iota.vercel.app/)"
         },
         body: `data=${encodeURIComponent(query)}`
-      }, timeoutMs);
+      }, timeoutMs, raceController && raceController.signal);
       const httpStatus = response && response.status ? response.status : null;
       if (!response || !response.ok) {
         const error = new Error(`HTTP ${httpStatus || "error"}`);
@@ -83,7 +90,7 @@ async function requestGeography(options) {
         throw error;
       }
       const payload = await response.json();
-      attempts.push({
+      const attempt = {
         endpoint,
         state: "success",
         httpStatus,
@@ -91,16 +98,11 @@ async function requestGeography(options) {
         timedOut: false,
         failureKind: "",
         durationMs: Math.max(0, Date.now() - startedAt)
-      });
-      return {
-        elements: Array.isArray(payload && payload.elements) ? payload.elements : [],
-        endpoint,
-        attempts,
-        total: endpoints.length,
-        timeoutMs
       };
+      attemptsByIndex[index] = attempt;
+      return { endpoint, payload, attempt };
     } catch (error) {
-      attempts.push({
+      const attempt = {
         endpoint,
         state: "failed",
         httpStatus: error && error.httpStatus ? error.httpStatus : null,
@@ -108,16 +110,37 @@ async function requestGeography(options) {
         timedOut: !!(error && error.code === "OVERPASS_TIMEOUT"),
         failureKind: classifyUpstreamFailure(error),
         durationMs: Math.max(0, Date.now() - startedAt)
-      });
+      };
+      attemptsByIndex[index] = attempt;
+      throw Object.assign(new Error(attempt.error), { attempt, cause: error });
     }
-  }
+  });
 
-  const error = new Error("Geographic upstreams could not be loaded");
-  error.code = "GEOGRAPHY_UPSTREAM_FAILED";
-  error.attempts = attempts;
-  error.total = endpoints.length;
-  error.timeoutMs = timeoutMs;
-  throw error;
+  try {
+    const winner = await Promise.any(requests);
+    if (raceController) raceController.abort(new Error("geography upstream winner selected"));
+    // Give aborted losers a microtask turn to record diagnostics without waiting
+    // for slow upstreams that ignore AbortSignal.
+    await Promise.resolve();
+    const attempts = attemptsByIndex.filter(Boolean);
+    return {
+      elements: Array.isArray(winner.payload && winner.payload.elements) ? winner.payload.elements : [],
+      endpoint: winner.endpoint,
+      attempts,
+      total: endpoints.length,
+      timeoutMs
+    };
+  } catch (aggregateError) {
+    if (raceController) raceController.abort(aggregateError);
+    await Promise.allSettled(requests);
+    const attempts = attemptsByIndex.filter(Boolean);
+    const error = new Error("Geographic upstreams could not be loaded");
+    error.code = "GEOGRAPHY_UPSTREAM_FAILED";
+    error.attempts = attempts;
+    error.total = endpoints.length;
+    error.timeoutMs = timeoutMs;
+    throw error;
+  }
 }
 
 function setHeader(res, name, value) {
@@ -165,7 +188,8 @@ function createGeographyHandler(options) {
         endpoints: settings.endpoints,
         timeoutMs: settings.timeoutMs
       });
-      if (result.attempts.length > 1) {
+      const degraded = result.attempts.some((attempt) => attempt.state !== "success");
+      if (degraded) {
         logUpstreamState(logger, "warn", {
           state: "fallback_success",
           endpoint: result.endpoint,
