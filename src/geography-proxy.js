@@ -1,14 +1,13 @@
 "use strict";
 
-// Geography is on the critical path after GPS acquisition. Race independent
-// public Overpass mirrors so one degraded instance does not consume the whole
-// mobile exploration budget. Keep this list aligned with currently documented
-// global instances rather than a regional mirror that is unreachable from the
-// production Vercel runtime.
+// Geography is on the critical path after GPS acquisition. The production
+// function runs in Tokyo, so prefer the Japan community Overpass instance and
+// race global mirrors as fallbacks. A degraded instance must not consume the
+// whole mobile exploration budget.
 const DEFAULT_OVERPASS_ENDPOINTS = [
+  "https://overpass.openstreetmap.jp/api/interpreter",
   "https://overpass-api.de/api/interpreter",
-  "https://overpass.private.coffee/api/interpreter",
-  "https://maps.mail.ru/osm/tools/overpass/api/interpreter"
+  "https://overpass.private.coffee/api/interpreter"
 ];
 const DEFAULT_TIMEOUT_MS = 7000;
 const OVERPASS_QUERY_TIMEOUT_SECONDS = 6;
