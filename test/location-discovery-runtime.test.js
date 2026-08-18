@@ -5,6 +5,7 @@ const path = require("node:path");
 
 const runtimeSource = fs.readFileSync(path.join(__dirname, "../src/location-discovery-runtime.js"), "utf8");
 const presentationSource = fs.readFileSync(path.join(__dirname, "../src/exploration-map-presentation.js"), "utf8");
+const searchStyleSource = fs.readFileSync(path.join(__dirname, "../location-discovery.css"), "utf8");
 
 test("browser bootstrap loads location runtime without a navigation gate", () => {
   const runtime = fs.readFileSync(path.join(__dirname, "../src/app-runtime-state.js"), "utf8");
@@ -23,7 +24,19 @@ test("location runtime keeps app navigation and simulated choices usable while g
   assert.match(runtimeSource, /leadList\.style\.display = ""/);
   assert.doesNotMatch(runtimeSource, /leadList\.style\.display = locationState === "loading" \? "none" : ""/);
   assert.match(runtimeSource, /leadList\.setAttribute\("aria-busy", String\(locationState === "loading"\)\)/);
-  assert.match(runtimeSource, /現在地を照合中。通常の探索はそのまま始められる。/);
+  assert.match(runtimeSource, /通常の探索はそのまま始められる/);
+});
+
+test("pending GPS discovery presents a manuscript ink search instead of fake progress", () => {
+  assert.match(runtimeSource, /location-discovery-search/);
+  assert.match(runtimeSource, /READING THE NEARBY WORLD/);
+  assert.match(runtimeSource, /現実の痕跡を照合中/);
+  assert.match(runtimeSource, /const searching = locationState === "loading"/);
+  assert.match(runtimeSource, /search\.hidden = !searching/);
+  assert.doesNotMatch(runtimeSource, /\d+%|progress-bar|spinner/i);
+  assert.match(searchStyleSource, /crownless-search-ink/);
+  assert.match(searchStyleSource, /prefers-reduced-motion: reduce/);
+  assert.match(searchStyleSource, /@media \(max-width: 620px\)/);
 });
 
 test("geography runs as background enrichment with client headroom", () => {
