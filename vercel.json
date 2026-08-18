@@ -2,5 +2,10 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "git": {
     "deploymentEnabled": false
+  },
+  "functions": {
+    "api/geography.js": {
+      "regions": ["hnd1"]
+    }
   }
 }
