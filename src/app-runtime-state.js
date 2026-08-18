@@ -12,12 +12,3 @@ var soundEnabled = (function readInitialSoundPreference() {
   }
 })();
 var audioContext = null;
-
-// Location discovery augments exploration data but never owns navigation.
-// app.js remains the single authority for entering the expedition screen.
-if (typeof document !== "undefined" && document.readyState === "loading") {
-  document.write('<link rel="stylesheet" href="location-discovery.css">');
-  document.write('<script src="src/discovery-provider.js"></script>');
-  document.write('<script src="src/geography-api-provider.js"></script>');
-  document.write('<script src="src/location-discovery-runtime.js"></script>');
-}
