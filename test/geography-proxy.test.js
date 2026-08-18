@@ -82,7 +82,7 @@ test("production endpoint pool excludes the unreachable Japan mirror and keeps t
 test("server geography query applies selective tags directly to one bbox", () => {
   assert.deepEqual(ProxyCore.buildBoundingBox(35.69, 139.78, 650), [35.684161, 139.772811, 35.695839, 139.787189]);
   const query = ProxyCore.buildOverpassQuery(35.69, 139.78, 650);
-  assert.match(query, /^\[out:json\]\[timeout:6\];\(nw\(35\.684161,139\.772811,35\.695839,139\.787189\)\[natural~/);
+  assert.match(query, /^\[out:json\]\[timeout:12\];\(nw\(35\.684161,139\.772811,35\.695839,139\.787189\)\[natural~/);
   assert.match(query, /nw\(35\.684161,139\.772811,35\.695839,139\.787189\)\[waterway\]/);
   assert.match(query, /nw\(35\.684161,139\.772811,35\.695839,139\.787189\)\[place~"\^\(city\|town\|village\|hamlet\|suburb\|neighbourhood\|quarter\|island\)\$"\]/);
   assert.doesNotMatch(query, /\.nearby/);
@@ -107,9 +107,9 @@ test("server geography proxy classifies timeout and network failures", () => {
   assert.equal(ProxyCore.classifyUpstreamFailure(new Error("fetch failed")), "network");
 });
 
-test("parallel upstream timeout fits the game response budget", () => {
-  assert.ok(ProxyCore.DEFAULT_TIMEOUT_MS <= 7000);
-  assert.ok(ProxyCore.DEFAULT_TIMEOUT_MS < 8000);
+test("background geography gets a longer enrichment window than its Overpass query", () => {
+  assert.equal(ProxyCore.DEFAULT_TIMEOUT_MS, 15000);
+  assert.equal(ProxyCore.OVERPASS_QUERY_TIMEOUT_SECONDS, 12);
   assert.ok(ProxyCore.OVERPASS_QUERY_TIMEOUT_SECONDS * 1000 < ProxyCore.DEFAULT_TIMEOUT_MS);
 });
 
@@ -180,7 +180,7 @@ test("browser geography provider calls Crownless API instead of Overpass directl
       requestedUrl = url;
       assert.equal(options.method, "GET");
       return { ok: true, status: 200, async json() { return {
-        endpoint: "https://overpass-api.de/api/interpreter", total: 3, timeoutMs: 7000,
+        endpoint: "https://overpass-api.de/api/interpreter", total: 3, timeoutMs: 15000,
         attempts: [{ endpoint: "https://overpass-api.de/api/interpreter", state: "success", httpStatus: 200, error: "", timedOut: false, failureKind: "", durationMs: 456 }],
         elements: [{ id: 1, tags: { waterway: "river", "name:ja": "中川" } }, { id: 2, tags: { bridge: "yes" } }]
       }; } };

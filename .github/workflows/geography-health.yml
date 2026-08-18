@@ -19,14 +19,14 @@ jobs:
       GEOGRAPHY_URL: https://crownless-iota.vercel.app/api/geography?lat=35.69&lng=139.78&radius=650
 
     steps:
-      - name: Check Production geography API within game latency budget
+      - name: Check Production geography enrichment API
         shell: bash
         run: |
-          status="$(curl --show-error --silent --output /tmp/geography-response.json --write-out '%{http_code}' --max-time 8 "$GEOGRAPHY_URL")"
+          status="$(curl --show-error --silent --output /tmp/geography-response.json --write-out '%{http_code}' --max-time 18 "$GEOGRAPHY_URL")"
           cat /tmp/geography-response.json
           echo
           if [ "$status" != "200" ]; then
-            echo "Expected HTTP 200 from Production geography API within 8 seconds, got $status" >&2
+            echo "Expected HTTP 200 from Production geography enrichment API within 18 seconds, got $status" >&2
             exit 1
           fi
 
@@ -46,7 +46,8 @@ jobs:
             `- Selected endpoint: \`${payload.endpoint}\``,
             `- Recorded attempts: ${payload.attempts.length}/${payload.total || payload.attempts.length}`,
             `- Timeout per upstream: ${payload.timeoutMs || "unknown"} ms`,
-            `- Degraded mirrors recorded: ${failed.length}`
+            `- Degraded mirrors recorded: ${failed.length}`,
+            "- Gameplay impact: non-blocking enrichment"
           ];
           for (const attempt of payload.attempts) {
             const status = attempt.httpStatus == null ? "-" : attempt.httpStatus;

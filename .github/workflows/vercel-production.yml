@@ -9,6 +9,7 @@ on:
       - "api/**"
       - "src/geography-proxy.js"
       - "src/discovery-provider.js"
+      - "src/location-discovery-runtime.js"
       - "vercel.json"
       - ".github/workflows/vercel-production.yml"
 
@@ -84,11 +85,11 @@ jobs:
       - name: Smoke test real Production geography route
         shell: bash
         run: |
-          status="$(curl --show-error --silent --output /tmp/geography-response.json --write-out '%{http_code}' --max-time 8 "$PRODUCTION_URL/api/geography?lat=35.69&lng=139.78&radius=650")"
+          status="$(curl --show-error --silent --output /tmp/geography-response.json --write-out '%{http_code}' --max-time 18 "$PRODUCTION_URL/api/geography?lat=35.69&lng=139.78&radius=650")"
           cat /tmp/geography-response.json
           echo
           if [ "$status" != "200" ] && [ "$status" != "502" ]; then
-            echo "Expected geography endpoint to complete within 8 seconds with HTTP 200 or diagnostic 502, got $status" >&2
+            echo "Expected geography enrichment endpoint to complete within 18 seconds with HTTP 200 or diagnostic 502, got $status" >&2
             exit 1
           fi
           node <<'NODE'
@@ -112,6 +113,7 @@ jobs:
             echo "- Commit: \`${GITHUB_SHA}\`"
             echo "- Deployment: ${{ steps.deploy.outputs.url }}"
             echo "- Production: $PRODUCTION_URL"
-            echo "- Geography real-route budget: <= 8s"
+            echo "- Geography enrichment API smoke budget: <= 18s"
+            echo "- Gameplay geography wait: non-blocking"
             echo "- Smoke tests: passed"
           } >> "$GITHUB_STEP_SUMMARY"

@@ -1,16 +1,15 @@
 "use strict";
 
-// Geography is on the critical path after GPS acquisition. Race independent
-// public Overpass instances so one degraded service does not consume the whole
-// mobile exploration budget. The production function runs in Tokyo, but only
-// keep endpoints that are reachable from the Vercel runtime.
+// Geography enriches exploration asynchronously after GPS acquisition. Race
+// independent public Overpass instances so one degraded service does not consume
+// the whole enrichment window. The UI remains playable while this completes.
 const DEFAULT_OVERPASS_ENDPOINTS = [
   "https://overpass-api.de/api/interpreter",
   "https://overpass.private.coffee/api/interpreter",
   "https://maps.mail.ru/osm/tools/overpass/api/interpreter"
 ];
-const DEFAULT_TIMEOUT_MS = 7000;
-const OVERPASS_QUERY_TIMEOUT_SECONDS = 6;
+const DEFAULT_TIMEOUT_MS = 15000;
+const OVERPASS_QUERY_TIMEOUT_SECONDS = 12;
 const METRES_PER_LATITUDE_DEGREE = 111320;
 
 function parseCoordinate(value, min, max, label) {
@@ -193,7 +192,7 @@ async function requestGeography(options) {
 
     // Do not wait for losing fetches: some runtimes ignore AbortSignal until the
     // socket settles. Record pending losers as cancelled so diagnostics still
-    // describe every configured endpoint without extending the user wait.
+    // describe every configured endpoint without extending the enrichment wait.
     endpoints.forEach((endpoint, index) => {
       if (attemptsByIndex[index]) return;
       attemptsByIndex[index] = {

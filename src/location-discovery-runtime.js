@@ -37,7 +37,7 @@
   }
 
   function statusText() {
-    if (locationState === "loading") return "現在地から周囲の気配を探している…";
+    if (locationState === "loading") return "現在地を照合中。通常の探索はそのまま始められる。";
     if (locationState === "ready") return "現実で見つけた場所から、次の探索先を選べる。";
     if (locationState === "denied") return "位置情報を使えないため、通常の探索候補を表示する。";
     if (locationState === "failed") return "地理情報を読めなかったため、通常の探索候補を表示する。";
@@ -110,7 +110,9 @@
   function setPendingUi() {
     const leadList = document.getElementById("lead-list");
     if (leadList) {
-      leadList.style.display = locationState === "loading" ? "none" : "";
+      // Geography is enrichment, never an expedition gate. Keep the deterministic
+      // simulated choices usable while GPS/OSM completes in the background.
+      leadList.style.display = "";
       leadList.setAttribute("aria-busy", String(locationState === "loading"));
     }
     syncExplorationSource();
