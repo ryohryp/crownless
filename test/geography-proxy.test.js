@@ -29,8 +29,11 @@ test("server geography proxy races Overpass endpoints and returns the first succ
   assert.equal(failed.failureKind, "http");
   assert.equal(success.state, "success");
   assert.equal(result.elements[0].tags["name:ja"], "中川");
-  assert.match(calls[0].options.body, /around%3A650%2C35.69%2C139.78/);
+  const sentQuery = decodeURIComponent(calls[0].options.body.slice("data=".length));
+  assert.match(sentQuery, /node\(35\.684161,139\.772811,35\.695839,139\.787189\)/);
+  assert.doesNotMatch(sentQuery, /around:650/);
   assert.equal(calls[0].options.headers.Accept, "application/json");
+  assert.equal(calls[0].options.headers["Accept-Encoding"], "gzip, deflate");
 });
 
 test("slow endpoint does not delay a faster healthy endpoint and is aborted", async () => {
@@ -74,15 +77,24 @@ test("production endpoint pool prefers Japan from the Tokyo function with global
   ]);
 });
 
-test("server geography query only requests feature tags Crownless consumes", () => {
+test("server geography query reuses one bbox set and only requests feature tags Crownless consumes", () => {
+  assert.deepEqual(ProxyCore.buildBoundingBox(35.69, 139.78, 650), [35.684161, 139.772811, 35.695839, 139.787189]);
   const query = ProxyCore.buildOverpassQuery(35.69, 139.78, 650);
-  assert.match(query, /^\[out:json\]\[timeout:6\];/);
-  assert.match(query, /\[natural~"\^\(water\|wood\|peak\|ridge\|hill\|coastline\)\$"\]/);
-  assert.match(query, /\[place~"\^\(city\|town\|village\|hamlet\|suburb\|neighbourhood\|quarter\|island\)\$"\]/);
+  assert.match(query, /^\[out:json\]\[timeout:6\];\(node\(35\.684161,139\.772811,35\.695839,139\.787189\);way\(35\.684161,139\.772811,35\.695839,139\.787189\);\)->\.nearby;/);
+  assert.match(query, /nwr\.nearby\[natural~"\^\(water\|wood\|peak\|ridge\|hill\|coastline\)\$"\]/);
+  assert.match(query, /nwr\.nearby\[place~"\^\(city\|town\|village\|hamlet\|suburb\|neighbourhood\|quarter\|island\)\$"\]/);
+  assert.doesNotMatch(query, /around:/);
   assert.doesNotMatch(query, /\[natural\];/);
   assert.doesNotMatch(query, /\[place\];/);
   assert.match(query, /\);out tags;$/);
   assert.doesNotMatch(query, /out tags center/);
+});
+
+test("server geography query falls back to exact-radius around search near coordinate edges", () => {
+  assert.equal(ProxyCore.buildBoundingBox(89.9, 139.78, 650), null);
+  assert.match(ProxyCore.buildOverpassQuery(89.9, 139.78, 650), /around:650,89\.9,139\.78/);
+  assert.equal(ProxyCore.buildBoundingBox(35.69, 179.999, 650), null);
+  assert.match(ProxyCore.buildOverpassQuery(35.69, 179.999, 650), /around:650,35\.69,179\.999/);
 });
 
 test("server geography proxy classifies timeout and network failures", () => {
