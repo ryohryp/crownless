@@ -8,7 +8,6 @@
   let geographicDiscoveries = [];
   let locationState = "idle";
   let locationPromise = null;
-  let replayingStart = false;
   let diagnostics = { gps: "idle", osm: "idle", endpoint: "-", attempt: 0, total: 0, httpStatus: null, discoveries: 0, features: [], names: [], error: "" };
 
   function statusText() {
@@ -63,6 +62,16 @@
     const presentation = window.CrownlessExplorationMap;
     if (!presentation || typeof presentation.setDiscoverySource !== "function") return;
     presentation.setDiscoverySource(document, locationState === "ready" && geographicDiscoveries.length ? "geographic" : "simulated");
+  }
+
+  function setPendingUi() {
+    const leadList = document.getElementById("lead-list");
+    if (leadList) {
+      leadList.style.display = locationState === "loading" ? "none" : "";
+      leadList.setAttribute("aria-busy", String(locationState === "loading"));
+    }
+    syncExplorationSource();
+    showLocationStatus();
   }
 
   function mergeGeography(choice, discovery) {
@@ -123,30 +132,13 @@
     return locationPromise;
   }
 
-  const startButton = document.getElementById("start-expedition");
-  if (startButton) startButton.addEventListener("click", (event) => {
-    if (replayingStart) {
-      replayingStart = false;
-      queueMicrotask(() => { syncExplorationSource(); showLocationStatus(); });
-      return;
-    }
-
-    // This listener is registered before app.js. Stop the original expedition
-    // handler from rendering simulated choices until location discovery settles.
-    event.stopImmediatePropagation();
-    locationPromise = null;
-    geographicDiscoveries = [];
-    locationState = "loading";
-    startButton.disabled = true;
-    startButton.setAttribute("aria-busy", "true");
-
-    loadGeographicDiscoveries().finally(() => {
-      startButton.disabled = false;
-      startButton.removeAttribute("aria-busy");
-      replayingStart = true;
-      startButton.click();
-    });
-  });
-
-  window.CrownlessLocationDiscoveryRuntime = { get state() { return locationState; }, get discoveries() { return geographicDiscoveries.slice(); }, get diagnostics() { return Object.assign({}, diagnostics, { features: diagnostics.features.slice(), names: diagnostics.names.slice() }); }, reload() { locationPromise = null; return loadGeographicDiscoveries(); } };
+  window.CrownlessLocationDiscoveryRuntime = {
+    get state() { return locationState; },
+    get discoveries() { return geographicDiscoveries.slice(); },
+    get diagnostics() { return Object.assign({}, diagnostics, { features: diagnostics.features.slice(), names: diagnostics.names.slice() }); },
+    begin() { locationPromise = null; geographicDiscoveries = []; return loadGeographicDiscoveries(); },
+    showPending: setPendingUi,
+    finish() { setPendingUi(); },
+    reload() { locationPromise = null; return loadGeographicDiscoveries(); }
+  };
 })();

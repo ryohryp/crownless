@@ -13,12 +13,12 @@ var soundEnabled = (function readInitialSoundPreference() {
 })();
 var audioContext = null;
 
-// This file is parsed before app.js. Load the optional location-discovery
-// boundary synchronously so it can wrap exploration generation before the app
-// installs its expedition click handlers. The feature still degrades to the
-// normal simulated exploration path if location or network access is denied.
+// These files are parsed before app.js. Location discovery owns data loading,
+// while the start gate owns the short loading transition before app.js renders
+// the first exploration choices.
 if (typeof document !== "undefined" && document.readyState === "loading") {
   document.write('<script src="src/discovery-provider.js"></script>');
   document.write('<script src="src/geography-api-provider.js"></script>');
   document.write('<script src="src/location-discovery-runtime.js"></script>');
+  document.write('<script src="src/expedition-start-gate.js"></script>');
 }
