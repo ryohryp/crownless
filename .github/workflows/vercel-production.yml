@@ -93,12 +93,13 @@ jobs:
           fi
           node <<'NODE'
           const fs = require("node:fs");
+          const { DEFAULT_TIMEOUT_MS } = require("./src/geography-proxy.js");
           const payload = JSON.parse(fs.readFileSync("/tmp/geography-response.json", "utf8"));
           if (!Array.isArray(payload.attempts) || payload.attempts.length === 0) {
             throw new Error("Production geography response is missing upstream attempts diagnostics");
           }
-          if (!Number.isFinite(Number(payload.timeoutMs)) || Number(payload.timeoutMs) > 6000) {
-            throw new Error(`Unexpected Production upstream timeout: ${payload.timeoutMs}`);
+          if (!Number.isFinite(Number(payload.timeoutMs)) || Number(payload.timeoutMs) > DEFAULT_TIMEOUT_MS) {
+            throw new Error(`Unexpected Production upstream timeout: ${payload.timeoutMs} (configured ${DEFAULT_TIMEOUT_MS})`);
           }
           NODE
 
