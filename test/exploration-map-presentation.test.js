@@ -10,12 +10,8 @@ const index = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 function card(name, risk, signal) {
   return {
     dataset: {},
-    classList: {
-      [Symbol.iterator]: function* () { yield "lead-card"; yield "palette-road"; }
-    },
-    querySelectorAll(selector) {
-      return selector === ".pips.risk i.on" ? Array.from({ length: risk }) : [];
-    },
+    classList: { [Symbol.iterator]: function* () { yield "lead-card"; yield "palette-road"; } },
+    querySelectorAll(selector) { return selector === ".pips.risk i.on" ? Array.from({ length: risk }) : []; },
     querySelector(selector) {
       if (selector === "h3") return { textContent: name };
       if (selector === ".lead-signals label strong") return { textContent: signal };
@@ -25,12 +21,7 @@ function card(name, risk, signal) {
 }
 
 test("direct discovery limits the decision surface to three destinations", () => {
-  const cards = [
-    card("崩れた祠", 2, "異様な気配"),
-    card("黒い坑道", 4, "ダンジョン"),
-    card("荷車の跡", 1, "物資の気配"),
-    card("遠い煙", 3, "敵影")
-  ];
+  const cards = [card("崩れた祠", 2, "異様な気配"), card("黒い坑道", 4, "ダンジョン"), card("荷車の跡", 1, "物資の気配"), card("遠い煙", 3, "敵影")];
   const destinations = Presentation.selectDestinations(cards, Discovery);
   assert.equal(destinations.length, 3);
   assert.deepEqual(destinations.map((item) => item.title), ["崩れた祠", "黒い坑道", "荷車の跡"]);
@@ -41,6 +32,12 @@ test("direct destinations retain visible decision signals", () => {
   assert.equal(destination.risk, 4);
   assert.equal(destination.signal, "ダンジョン");
   assert.equal(destination.palette, "road");
+});
+
+test("discovery heading reflects a ready geographic runtime", () => {
+  assert.equal(Presentation.discoverySourceFromRuntime({ state: "ready", discoveries: [{ id: "geo-1" }] }), "geographic");
+  assert.equal(Presentation.discoverySourceFromRuntime({ state: "ready", discoveries: [] }), "simulated");
+  assert.equal(Presentation.discoverySourceFromRuntime({ state: "failed", discoveries: [{ id: "geo-1" }] }), "simulated");
 });
 
 test("browser loads direct exploration presentation after existing presentation layers", () => {
