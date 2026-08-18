@@ -59,8 +59,31 @@ test("slow endpoint does not delay a faster healthy endpoint and is aborted", as
   assert.equal(result.endpoint, "https://fast.test/api");
   assert.equal(result.elements[0].id, 7);
   assert.ok(Date.now() - startedAt < 500);
-  await new Promise((resolve) => setTimeout(resolve, 0));
+  assert.equal(result.attempts.length, 2);
+  const slowAttempt = result.attempts.find((attempt) => attempt.endpoint.includes("slow"));
+  assert.equal(slowAttempt.state, "cancelled");
+  assert.equal(slowAttempt.failureKind, "aborted");
   assert.equal(slowAborted, true);
+});
+
+test("production endpoint pool uses current global mirrors", () => {
+  assert.deepEqual(ProxyCore.DEFAULT_OVERPASS_ENDPOINTS, [
+    "https://overpass-api.de/api/interpreter",
+    "https://overpass.private.coffee/api/interpreter",
+    "https://maps.mail.ru/osm/tools/overpass/api/interpreter"
+  ]);
+  assert.equal(ProxyCore.DEFAULT_OVERPASS_ENDPOINTS.some((endpoint) => endpoint.includes("openstreetmap.jp")), false);
+});
+
+test("server geography query only requests feature tags Crownless consumes", () => {
+  const query = ProxyCore.buildOverpassQuery(35.69, 139.78, 650);
+  assert.match(query, /^\[out:json\]\[timeout:6\];/);
+  assert.match(query, /\[natural~"\^\(water\|wood\|peak\|ridge\|hill\|coastline\)\$"\]/);
+  assert.match(query, /\[place~"\^\(city\|town\|village\|hamlet\|suburb\|neighbourhood\|quarter\|island\)\$"\]/);
+  assert.doesNotMatch(query, /\[natural\];/);
+  assert.doesNotMatch(query, /\[place\];/);
+  assert.match(query, /\);out tags;$/);
+  assert.doesNotMatch(query, /out tags center/);
 });
 
 test("server geography proxy classifies timeout and network failures", () => {
@@ -71,8 +94,9 @@ test("server geography proxy classifies timeout and network failures", () => {
 });
 
 test("parallel upstream timeout fits the game response budget", () => {
-  assert.ok(ProxyCore.DEFAULT_TIMEOUT_MS <= 6000);
+  assert.ok(ProxyCore.DEFAULT_TIMEOUT_MS <= 7000);
   assert.ok(ProxyCore.DEFAULT_TIMEOUT_MS < 8000);
+  assert.ok(ProxyCore.OVERPASS_QUERY_TIMEOUT_SECONDS * 1000 < ProxyCore.DEFAULT_TIMEOUT_MS);
 });
 
 test("timeout paths preserve an explicit reason before aborting fetch", () => {
@@ -108,6 +132,29 @@ test("server geography handler logs structured degraded state", async () => {
   assert.equal(warnings[0].event, "geography_upstream_state");
 });
 
+test("all failed upstream diagnostics retain endpoint-specific reasons", async () => {
+  await assert.rejects(
+    ProxyCore.requestGeography({
+      latitude: 35.69,
+      longitude: 139.78,
+      endpoints: ["https://network.test/api", "https://http.test/api"],
+      fetch: async (url) => {
+        if (url.includes("network")) throw new Error("fetch failed");
+        return { ok: false, status: 503, async json() { return {}; } };
+      }
+    }),
+    (error) => {
+      assert.equal(error.code, "GEOGRAPHY_UPSTREAM_FAILED");
+      assert.equal(error.attempts.length, 2);
+      assert.equal(error.attempts[0].failureKind, "network");
+      assert.equal(error.attempts[0].error, "fetch failed");
+      assert.equal(error.attempts[1].failureKind, "http");
+      assert.equal(error.attempts[1].httpStatus, 503);
+      return true;
+    }
+  );
+});
+
 test("browser geography provider calls Crownless API instead of Overpass directly", async () => {
   const statuses = [];
   let requestedUrl = "";
@@ -119,7 +166,7 @@ test("browser geography provider calls Crownless API instead of Overpass directl
       requestedUrl = url;
       assert.equal(options.method, "GET");
       return { ok: true, status: 200, async json() { return {
-        endpoint: "https://overpass-api.de/api/interpreter", total: 3, timeoutMs: 6000,
+        endpoint: "https://overpass-api.de/api/interpreter", total: 3, timeoutMs: 7000,
         attempts: [{ endpoint: "https://overpass-api.de/api/interpreter", state: "success", httpStatus: 200, error: "", timedOut: false, failureKind: "", durationMs: 456 }],
         elements: [{ id: 1, tags: { waterway: "river", "name:ja": "中川" } }, { id: 2, tags: { bridge: "yes" } }]
       }; } };
