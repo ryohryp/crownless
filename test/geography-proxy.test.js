@@ -66,13 +66,12 @@ test("slow endpoint does not delay a faster healthy endpoint and is aborted", as
   assert.equal(slowAborted, true);
 });
 
-test("production endpoint pool uses current global mirrors", () => {
+test("production endpoint pool prefers Japan from the Tokyo function with global fallbacks", () => {
   assert.deepEqual(ProxyCore.DEFAULT_OVERPASS_ENDPOINTS, [
+    "https://overpass.openstreetmap.jp/api/interpreter",
     "https://overpass-api.de/api/interpreter",
-    "https://overpass.private.coffee/api/interpreter",
-    "https://maps.mail.ru/osm/tools/overpass/api/interpreter"
+    "https://overpass.private.coffee/api/interpreter"
   ]);
-  assert.equal(ProxyCore.DEFAULT_OVERPASS_ENDPOINTS.some((endpoint) => endpoint.includes("openstreetmap.jp")), false);
 });
 
 test("server geography query only requests feature tags Crownless consumes", () => {
@@ -166,8 +165,8 @@ test("browser geography provider calls Crownless API instead of Overpass directl
       requestedUrl = url;
       assert.equal(options.method, "GET");
       return { ok: true, status: 200, async json() { return {
-        endpoint: "https://overpass-api.de/api/interpreter", total: 3, timeoutMs: 7000,
-        attempts: [{ endpoint: "https://overpass-api.de/api/interpreter", state: "success", httpStatus: 200, error: "", timedOut: false, failureKind: "", durationMs: 456 }],
+        endpoint: "https://overpass.openstreetmap.jp/api/interpreter", total: 3, timeoutMs: 7000,
+        attempts: [{ endpoint: "https://overpass.openstreetmap.jp/api/interpreter", state: "success", httpStatus: 200, error: "", timedOut: false, failureKind: "", durationMs: 456 }],
         elements: [{ id: 1, tags: { waterway: "river", "name:ja": "中川" } }, { id: 2, tags: { bridge: "yes" } }]
       }; } };
     }
@@ -175,7 +174,7 @@ test("browser geography provider calls Crownless API instead of Overpass directl
   const discoveries = await provider.discover({ location: { latitude: 35.69, longitude: 139.78 } });
   assert.match(requestedUrl, /lat=35\.69/);
   assert.equal(discoveries[0].title, "中川の血濡れの渡し場");
-  assert.equal(provider.endpoint, "https://overpass-api.de/api/interpreter");
+  assert.equal(provider.endpoint, "https://overpass.openstreetmap.jp/api/interpreter");
   assert.equal(statuses[0].state, "requesting");
   assert.equal(statuses.at(-1).state, "success");
 });
