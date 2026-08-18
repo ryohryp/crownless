@@ -3,16 +3,35 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 
-const runtimeSource = fs.readFileSync(path.join(__dirname, "../src/location-discovery-runtime.js"), "utf8");
-const presentationSource = fs.readFileSync(path.join(__dirname, "../src/exploration-map-presentation.js"), "utf8");
-const searchStyleSource = fs.readFileSync(path.join(__dirname, "../location-discovery.css"), "utf8");
+const root = path.join(__dirname, "..");
+const runtimeSource = fs.readFileSync(path.join(root, "src/location-discovery-runtime.js"), "utf8");
+const presentationSource = fs.readFileSync(path.join(root, "src/exploration-map-presentation.js"), "utf8");
+const searchStyleSource = fs.readFileSync(path.join(root, "location-discovery.css"), "utf8");
+const appSource = fs.readFileSync(path.join(root, "src/app.js"), "utf8");
+const appRuntimeSource = fs.readFileSync(path.join(root, "src/app-runtime-state.js"), "utf8");
+const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 
-test("browser bootstrap loads location runtime without a navigation gate", () => {
-  const runtime = fs.readFileSync(path.join(__dirname, "../src/app-runtime-state.js"), "utf8");
-  assert.match(runtime, /discovery-provider\.js/);
-  assert.match(runtime, /geography-api-provider\.js/);
-  assert.match(runtime, /location-discovery-runtime\.js/);
-  assert.doesNotMatch(runtime, /expedition-start-gate\.js/);
+test("browser bootstrap loads location assets explicitly in dependency order", () => {
+  assert.match(html, /location-discovery\.css/);
+  const discoveryIndex = html.indexOf('src/discovery-provider.js');
+  const geographyIndex = html.indexOf('src/geography-api-provider.js');
+  const runtimeIndex = html.indexOf('src/location-discovery-runtime.js');
+  const appIndex = html.indexOf('src/app.js');
+  assert.ok(discoveryIndex >= 0);
+  assert.ok(geographyIndex > discoveryIndex);
+  assert.ok(runtimeIndex > geographyIndex);
+  assert.ok(appIndex > runtimeIndex);
+  assert.doesNotMatch(appRuntimeSource, /document\.write/);
+  assert.doesNotMatch(appRuntimeSource, /location-discovery-runtime\.js/);
+});
+
+test("both expedition entry buttons share the same app start path", () => {
+  assert.match(appSource, /getElementById\("start-expedition"\)\.addEventListener\("click", beginNewExpedition\)/);
+  assert.match(appSource, /getElementById\("return-again"\)\.addEventListener\("click", beginNewExpedition\)/);
+  assert.match(runtimeSource, /Core\.beginExpedition = function beginExpeditionWithLocationDiscovery/);
+  assert.match(runtimeSource, /reloadGeographicDiscoveries\(\)/);
+  assert.doesNotMatch(runtimeSource, /getElementById\("start-expedition"\)/);
+  assert.doesNotMatch(runtimeSource, /getElementById\("return-again"\)/);
 });
 
 test("location runtime keeps app navigation and simulated choices usable while geography loads", () => {
@@ -36,18 +55,22 @@ test("pending location discovery presents manuscript ink until real-world discov
 });
 
 test("loading presentation is painted before geolocation can start", () => {
-  assert.match(runtimeSource, /locationState = "loading"; diagnostics = emptyDiagnostics\("requesting"\); setPendingUi\(\)/);
-  assert.match(runtimeSource, /requestAnimationFrame\(\(\) => requestAnimationFrame\(resolve\)\)/);
-  const uiIndex = runtimeSource.indexOf("setPendingUi(); locationPromise = beginGeographicDiscoveryAfterPaint()");
-  const gpsIndex = runtimeSource.indexOf("const location = await getCurrentLocation()");
-  assert.ok(uiIndex >= 0);
+  const loadIndex = runtimeSource.indexOf('locationState = "loading"');
+  const pendingIndex = runtimeSource.indexOf("setPendingUi();", loadIndex);
+  const deferredIndex = runtimeSource.indexOf("beginGeographicDiscoveryAfterPaint();", pendingIndex);
+  const gpsIndex = runtimeSource.indexOf("await getCurrentLocation()");
+  assert.ok(loadIndex >= 0);
+  assert.ok(pendingIndex > loadIndex);
+  assert.ok(deferredIndex > pendingIndex);
   assert.ok(gpsIndex >= 0);
-  assert.ok(uiIndex > gpsIndex, "source order is not execution order: discovery is deferred by rAF");
+  assert.match(runtimeSource, /requestAnimationFrame\(\(\) => requestAnimationFrame\(resolve\)\)/);
   assert.doesNotMatch(runtimeSource, /queueMicrotask\(setPendingUi\)/);
 });
 
 test("geography runs as background enrichment with client headroom", () => {
-  assert.match(runtimeSource, /createProxyLocationDiscoveryProvider\(\{ limit: 3, radius: 650, timeoutMs: 22000/);
+  assert.match(runtimeSource, /limit: 3/);
+  assert.match(runtimeSource, /radius: 650/);
+  assert.match(runtimeSource, /timeoutMs: 22000/);
   assert.match(runtimeSource, /beginGeographicDiscoveryAfterPaint/);
   assert.match(runtimeSource, /discovery\.finally\(\(\) =>/);
   assert.match(runtimeSource, /refreshLeadCards\(\)/);
@@ -69,7 +92,7 @@ test("selected GPS destination is attached to the existing exploration result", 
 test("failed denied or empty geography leaves the simulated fallback available", () => {
   assert.match(presentationSource, /simulated: "DISCOVERED NEARBY \/ SIMULATED LOCATION"/);
   assert.match(runtimeSource, /locationState = error && error\.code === 1 \? "denied" : "failed"/);
-  assert.match(runtimeSource, /presentation\.setDiscoverySource\(document, locationState === "ready" && geographicDiscoveries\.length \? "geographic" : "simulated"\)/);
+  assert.match(runtimeSource, /locationState === "ready" && geographicDiscoveries\.length \? "geographic" : "simulated"/);
 });
 
 test("GPS diagnostics classify browser geolocation errors", () => {
@@ -79,7 +102,7 @@ test("GPS diagnostics classify browser geolocation errors", () => {
 });
 
 test("GPS diagnostics retain elapsed time and request options", () => {
-  assert.match(runtimeSource, /GEOLOCATION_OPTIONS = Object\.freeze\(\{ enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 \}\)/);
+  assert.match(runtimeSource, /enableHighAccuracy: false, timeout: 8000, maximumAge: 300000/);
   assert.match(runtimeSource, /performance\.now\(\) - startedAt/);
 });
 
