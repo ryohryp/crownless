@@ -4,8 +4,20 @@
   const Discovery = window.CrownlessDiscovery;
   const GeographyApi = window.CrownlessGeographyApi;
   if (!Core || !Discovery || !GeographyApi) return;
-  const originalGenerate = Core.generateExplorationChoices.bind(Core);
+
+  const originalDiscoverLocation = Core.discoverLocation.bind(Core);
   const GEOLOCATION_OPTIONS = Object.freeze({ enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 });
+  const TERRAIN_LABELS = Object.freeze({
+    water: "水辺",
+    crossing: "渡り場",
+    sacred: "聖域",
+    woods: "森",
+    road_hub: "街道の結節",
+    height: "高地",
+    coast: "海辺",
+    settlement: "集落"
+  });
+
   let geographicDiscoveries = [];
   let locationState = "idle";
   let locationPromise = null;
@@ -26,9 +38,9 @@
 
   function statusText() {
     if (locationState === "loading") return "現在地から周囲の気配を探している…";
-    if (locationState === "ready") return "現実の地形が、この遠征の気配に混ざっている。";
-    if (locationState === "denied") return "位置情報を使えないため、霧の中を手探りで進む。";
-    if (locationState === "failed") return "地理情報を読めなかったため、通常の探索を続ける。";
+    if (locationState === "ready") return "現実で見つけた場所から、次の探索先を選べる。";
+    if (locationState === "denied") return "位置情報を使えないため、通常の探索候補を表示する。";
+    if (locationState === "failed") return "地理情報を読めなかったため、通常の探索候補を表示する。";
     return "";
   }
 
@@ -52,6 +64,19 @@
     return parts.join(" ｜ ");
   }
 
+  function terrainLabel(discovery) {
+    const features = Array.isArray(discovery && discovery.features) ? discovery.features : [];
+    const labels = features.map((feature) => TERRAIN_LABELS[feature] || feature);
+    return labels.length ? labels.join(" / ") : "街道周辺";
+  }
+
+  function contentKindLabel(discovery) {
+    if (!discovery) return "気配";
+    if (discovery.contentKind === "dungeon") return "遺構";
+    if (discovery.contentKind === "encounter") return "遭遇";
+    return "異変";
+  }
+
   function showLocationStatus() {
     const exploreScreen = document.getElementById("explore-screen");
     if (!exploreScreen) return;
@@ -66,13 +91,13 @@
     }
     marker.textContent = `${statusText()} ${diagnosticText()}`.trim();
     marker.style.display = "block";
-    marker.style.margin = "8px 0 14px";
-    marker.style.padding = "8px 10px";
-    marker.style.borderLeft = "3px solid #b99a55";
-    marker.style.background = "rgba(185,154,85,0.08)";
-    marker.style.fontSize = "12px";
-    marker.style.lineHeight = "1.5";
-    marker.style.opacity = "0.95";
+    marker.style.margin = "6px 0 10px";
+    marker.style.padding = "5px 8px";
+    marker.style.borderLeft = "1px solid rgba(185,154,85,.55)";
+    marker.style.background = "rgba(185,154,85,0.035)";
+    marker.style.fontSize = "10px";
+    marker.style.lineHeight = "1.45";
+    marker.style.opacity = "0.68";
     marker.style.overflowWrap = "anywhere";
   }
 
@@ -92,34 +117,75 @@
     showLocationStatus();
   }
 
+  function setRiskPips(card, risk) {
+    const pips = card ? Array.from(card.querySelectorAll(".pips.risk i")) : [];
+    pips.forEach((pip, index) => pip.classList.toggle("on", index < Math.max(1, Math.min(5, Number(risk) || 1))));
+  }
+
   function refreshLeadCards() {
     const leadList = document.getElementById("lead-list");
     if (!leadList) return;
-    const choices = Core.generateExplorationChoices(window.CrownlessAppState || null);
     const cards = Array.from(leadList.querySelectorAll(".lead-card"));
-    choices.forEach((choice, index) => {
-      const card = cards[index];
-      if (!card) return;
+    const hasGeographicChoices = locationState === "ready" && geographicDiscoveries.length > 0;
+
+    cards.forEach((card, index) => {
+      const discovery = geographicDiscoveries[index] || null;
+      card.style.display = hasGeographicChoices && !discovery ? "none" : "";
+      card.dataset.discoverySource = discovery ? "geographic" : "simulated";
+      if (!discovery) return;
+
       const title = card.querySelector("h3");
       const description = card.querySelector("p");
       const omen = card.querySelector(".lead-omen");
-      if (title) title.textContent = choice.name;
-      if (description) description.textContent = choice.description;
-      if (omen) omen.textContent = `噂：${choice.omen}`;
-      card.className = `lead-card palette-${choice.palette}${choice.eventKind === "hunt" ? " hunt-target" : ""}`;
+      const signal = card.querySelector(".lead-signals label strong");
+      if (title) title.textContent = discovery.title;
+      if (description) description.textContent = discovery.signal;
+      if (omen) omen.textContent = `地形：${terrainLabel(discovery)}`;
+      if (signal) signal.textContent = contentKindLabel(discovery);
+      setRiskPips(card, discovery.risk);
+      card.className = `lead-card palette-${discovery.palette === "water" ? "marsh" : discovery.palette} discovery-ready`;
     });
   }
 
-  function mergeGeography(choice, discovery) {
-    if (!discovery) return choice;
-    const identified = Discovery.investigateDiscovery(discovery);
-    return Object.assign({}, choice, { name: identified.title, description: discovery.signal, omen: `現実の地形：${discovery.features.join(" + ")}`, signal: discovery.contentKind === "dungeon" ? "遺構" : discovery.contentKind === "encounter" ? "遭遇" : "異変", risk: Math.max(choice.risk || 1, discovery.risk || 1), palette: discovery.palette === "water" ? "marsh" : discovery.palette, geographicDiscovery: discovery });
+  function choiceSlot(choiceId) {
+    const parts = String(choiceId || "").split(":");
+    const slot = Number(parts[parts.length - 1]);
+    return Number.isInteger(slot) && slot >= 0 ? slot : 0;
   }
 
-  Core.generateExplorationChoices = function generateLocationAwareChoices(state) {
-    const choices = originalGenerate(state);
-    if (!geographicDiscoveries.length) return choices;
-    return choices.map((choice, index) => mergeGeography(choice, geographicDiscoveries[index % geographicDiscoveries.length]));
+  function enrichDiscovery(target, geographic) {
+    if (!target || !geographic) return target;
+    target.name = geographic.title;
+    target.flavor = geographic.signal;
+    target.omen = `地形：${terrainLabel(geographic)}`;
+    target.risk = Math.max(Number(target.risk) || 1, Number(geographic.risk) || 1);
+    target.palette = geographic.palette === "water" ? "marsh" : geographic.palette;
+    target.signal = contentKindLabel(geographic);
+    target.geographicDiscovery = JSON.parse(JSON.stringify(geographic));
+    target.geographicTerrain = terrainLabel(geographic);
+    target.realPlaceName = geographic.realPlaceName || "";
+    return target;
+  }
+
+  function applySelectedGeographicDiscovery(next, choiceId) {
+    if (!next || !next.expedition || !geographicDiscoveries.length) return next;
+    const geographic = geographicDiscoveries[choiceSlot(choiceId)];
+    if (!geographic) return next;
+
+    const exp = next.expedition;
+    const last = exp.lastDiscovery;
+    enrichDiscovery(last, geographic);
+    if (last && Array.isArray(exp.discoveries)) {
+      const history = exp.discoveries.find((item) => item && item.id === last.id);
+      if (history && history !== last) enrichDiscovery(history, geographic);
+    }
+    if (exp.encounter && exp.encounter.discovery) enrichDiscovery(exp.encounter.discovery, geographic);
+    if (exp.pendingEvent && exp.pendingEvent.discovery) enrichDiscovery(exp.pendingEvent.discovery, geographic);
+    return next;
+  }
+
+  Core.discoverLocation = function discoverLocationWithGeography(state, choiceId) {
+    return applySelectedGeographicDiscovery(originalDiscoverLocation(state, choiceId), choiceId);
   };
 
   function getCurrentLocation() {
@@ -206,6 +272,9 @@
     get discoveries() { return geographicDiscoveries.slice(); },
     get diagnostics() { return Object.assign({}, diagnostics, { gpsOptions: Object.assign({}, diagnostics.gpsOptions), features: diagnostics.features.slice(), names: diagnostics.names.slice() }); },
     classifyGeolocationError,
+    terrainLabel,
+    choiceSlot,
+    applySelectedGeographicDiscovery,
     reload() { locationPromise = null; return loadGeographicDiscoveries(); }
   };
 })();
