@@ -33,6 +33,7 @@ test('Vercel Production deploys geography changes from main and remains manually
   assert.match(workflow, /api\/\*\*/);
   assert.match(workflow, /src\/geography-proxy\.js/);
   assert.match(workflow, /src\/discovery-provider\.js/);
+  assert.match(workflow, /src\/location-discovery-runtime\.js/);
   assert.match(workflow, /github\.ref == 'refs\/heads\/main'/);
   assert.match(workflow, /environment:\s*production/);
   assert.match(workflow, /VERCEL_TOKEN:\s*\$\{\{ secrets\.VERCEL_TOKEN \}\}/);
@@ -40,7 +41,16 @@ test('Vercel Production deploys geography changes from main and remains manually
   assert.match(workflow, /deploy --prebuilt --prod/);
   assert.match(workflow, /PRODUCTION_URL:\s*https:\/\/crownless-iota\.vercel\.app/);
   assert.match(workflow, /\$PRODUCTION_URL\/api\/geography/);
-  assert.match(workflow, /--max-time 8/);
+  assert.match(workflow, /--max-time 18/);
+  assert.match(workflow, /Geography enrichment API smoke budget: <= 18s/);
+  assert.match(workflow, /Gameplay geography wait: non-blocking/);
   assert.match(workflow, /DEFAULT_TIMEOUT_MS.*require\("\.\/src\/geography-proxy\.js"\)/);
   assert.match(workflow, /payload\.timeoutMs\) > DEFAULT_TIMEOUT_MS/);
+});
+
+test('scheduled geography health uses the background enrichment budget', () => {
+  const workflow = read('.github/workflows/geography-health.yml');
+  assert.match(workflow, /--max-time 18/);
+  assert.match(workflow, /geography enrichment API within 18 seconds/);
+  assert.match(workflow, /Gameplay impact: non-blocking enrichment/);
 });
