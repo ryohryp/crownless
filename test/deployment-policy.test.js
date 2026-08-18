@@ -24,11 +24,15 @@ test('GitHub Pages publishes only after successful main CI', () => {
   assert.doesNotMatch(workflow, /enablement:\s*true/);
 });
 
-test('Vercel Production deploy remains manual, main-only, and prebuilt', () => {
+test('Vercel Production deploys geography changes from main and remains manually runnable', () => {
   const workflow = read('.github/workflows/vercel-production.yml');
 
   assert.match(workflow, /workflow_dispatch:/);
-  assert.doesNotMatch(workflow, /\n\s*push:/);
+  assert.match(workflow, /\n\s*push:/);
+  assert.match(workflow, /branches:\s*\n\s*- main/);
+  assert.match(workflow, /api\/\*\*/);
+  assert.match(workflow, /src\/geography-proxy\.js/);
+  assert.match(workflow, /src\/discovery-provider\.js/);
   assert.match(workflow, /github\.ref == 'refs\/heads\/main'/);
   assert.match(workflow, /environment:\s*production/);
   assert.match(workflow, /VERCEL_TOKEN:\s*\$\{\{ secrets\.VERCEL_TOKEN \}\}/);
@@ -36,4 +40,5 @@ test('Vercel Production deploy remains manual, main-only, and prebuilt', () => {
   assert.match(workflow, /deploy --prebuilt --prod/);
   assert.match(workflow, /PRODUCTION_URL:\s*https:\/\/crownless-iota\.vercel\.app/);
   assert.match(workflow, /\$PRODUCTION_URL\/api\/geography/);
+  assert.match(workflow, /--max-time 8/);
 });
