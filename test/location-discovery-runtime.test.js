@@ -14,13 +14,23 @@ test("browser bootstrap loads location runtime without a navigation gate", () =>
   assert.doesNotMatch(runtime, /expedition-start-gate\.js/);
 });
 
-test("location runtime keeps app navigation authoritative while geography loads", () => {
+test("location runtime keeps app navigation and simulated choices usable while geography loads", () => {
   assert.match(runtimeSource, /getCurrentPosition/);
   assert.match(runtimeSource, /createProxyLocationDiscoveryProvider/);
   assert.doesNotMatch(runtimeSource, /createLocationDiscoveryProvider/);
   assert.doesNotMatch(runtimeSource, /stopImmediatePropagation/);
   assert.doesNotMatch(runtimeSource, /startButton\.click\(\)/);
-  assert.match(runtimeSource, /leadList\.style\.display = locationState === "loading" \? "none" : ""/);
+  assert.match(runtimeSource, /leadList\.style\.display = ""/);
+  assert.doesNotMatch(runtimeSource, /leadList\.style\.display = locationState === "loading" \? "none" : ""/);
+  assert.match(runtimeSource, /leadList\.setAttribute\("aria-busy", String\(locationState === "loading"\)\)/);
+  assert.match(runtimeSource, /現在地を照合中。通常の探索はそのまま始められる。/);
+});
+
+test("geography runs as background enrichment with client headroom", () => {
+  assert.match(runtimeSource, /createProxyLocationDiscoveryProvider\(\{ limit: 3, radius: 650, timeoutMs: 22000/);
+  assert.match(runtimeSource, /queueMicrotask\(setPendingUi\)/);
+  assert.match(runtimeSource, /discovery\.finally\(\(\) =>/);
+  assert.match(runtimeSource, /refreshLeadCards\(\)/);
 });
 
 test("successful geography replaces visible cards with real discovered destinations", () => {
@@ -49,12 +59,13 @@ test("GPS card refresh does not depend on inaccessible app-local state", () => {
   assert.doesNotMatch(runtimeSource, /generateExplorationChoices\(window\./);
 });
 
-test("failed denied or empty geography reveals the simulated fallback", () => {
+test("failed denied or empty geography leaves the simulated fallback available", () => {
   assert.match(presentationSource, /simulated: "DISCOVERED NEARBY \/ SIMULATED LOCATION"/);
   assert.match(runtimeSource, /geographicDiscoveries = \[\]/);
   assert.match(runtimeSource, /locationState = error && error\.code === 1 \? "denied" : "failed"/);
   assert.match(runtimeSource, /locationState = geographicDiscoveries\.length \? "ready" : "failed"/);
   assert.match(runtimeSource, /const hasGeographicChoices = locationState === "ready" && geographicDiscoveries\.length > 0/);
+  assert.match(runtimeSource, /presentation\.setDiscoverySource\(document, locationState === "ready" && geographicDiscoveries\.length \? "geographic" : "simulated"\)/);
 });
 
 test("GPS diagnostics classify browser geolocation errors", () => {
