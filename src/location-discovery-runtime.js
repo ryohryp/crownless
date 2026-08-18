@@ -5,8 +5,20 @@
   const GeographyApi = window.CrownlessGeographyApi;
   if (!Core || !Discovery || !GeographyApi) return;
   const originalGenerate = Core.generateExplorationChoices.bind(Core);
+  const originalDiscoverLocation = Core.discoverLocation.bind(Core);
   const GEOLOCATION_OPTIONS = Object.freeze({ enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 });
+  const TERRAIN_LABELS = Object.freeze({
+    water: "水辺",
+    crossing: "渡り場",
+    sacred: "聖域",
+    woods: "林地",
+    road_hub: "街道の結節点",
+    height: "高地",
+    coast: "沿岸",
+    settlement: "集落"
+  });
   let geographicDiscoveries = [];
+  let geographicChoicesById = new Map();
   let locationState = "idle";
   let locationPromise = null;
 
@@ -92,6 +104,11 @@
     showLocationStatus();
   }
 
+  function setRiskPips(card, risk) {
+    const pips = Array.from(card.querySelectorAll(".pips.risk i"));
+    pips.forEach((pip, index) => pip.classList.toggle("on", index < risk));
+  }
+
   function refreshLeadCards() {
     const leadList = document.getElementById("lead-list");
     if (!leadList) return;
@@ -100,26 +117,95 @@
     choices.forEach((choice, index) => {
       const card = cards[index];
       if (!card) return;
+      const kicker = card.querySelector(".lead-topline span");
       const title = card.querySelector("h3");
       const description = card.querySelector("p");
       const omen = card.querySelector(".lead-omen");
+      const signal = card.querySelector(".lead-signals label strong");
+      if (kicker) kicker.textContent = choice.kicker;
       if (title) title.textContent = choice.name;
       if (description) description.textContent = choice.description;
       if (omen) omen.textContent = `噂：${choice.omen}`;
+      if (signal) signal.textContent = choice.signal;
+      setRiskPips(card, choice.risk);
+      card.dataset.choiceId = choice.choiceId;
+      card.dataset.discoverySource = choice.geographicDiscovery ? "geographic" : "simulated";
       card.className = `lead-card palette-${choice.palette}${choice.eventKind === "hunt" ? " hunt-target" : ""}`;
     });
+  }
+
+  function terrainLabel(discovery) {
+    const features = Array.isArray(discovery && discovery.features) ? discovery.features : [];
+    const labels = features.map((feature) => TERRAIN_LABELS[feature]).filter(Boolean);
+    return labels.length ? labels.join("・") : "周辺地形";
   }
 
   function mergeGeography(choice, discovery) {
     if (!discovery) return choice;
     const identified = Discovery.investigateDiscovery(discovery);
-    return Object.assign({}, choice, { name: identified.title, description: discovery.signal, omen: `現実の地形：${discovery.features.join(" + ")}`, signal: discovery.contentKind === "dungeon" ? "遺構" : discovery.contentKind === "encounter" ? "遭遇" : "異変", risk: Math.max(choice.risk || 1, discovery.risk || 1), palette: discovery.palette === "water" ? "marsh" : discovery.palette, geographicDiscovery: discovery });
+    return Object.assign({}, choice, {
+      name: identified.title,
+      description: discovery.signal,
+      omen: `現実の地形：${discovery.features.join(" + ")}`,
+      signal: `地形：${terrainLabel(discovery)}`,
+      risk: Math.max(choice.risk || 1, discovery.risk || 1),
+      palette: discovery.palette === "water" ? "marsh" : discovery.palette,
+      geographicDiscovery: discovery
+    });
+  }
+
+  function snapshotGeographicDiscovery(discovery) {
+    if (!discovery) return null;
+    return {
+      id: discovery.id,
+      title: discovery.title,
+      baseTitle: discovery.baseTitle,
+      realPlaceName: discovery.realPlaceName || "",
+      features: Array.isArray(discovery.features) ? discovery.features.slice() : [],
+      contentKind: discovery.contentKind,
+      risk: discovery.risk,
+      palette: discovery.palette,
+      revealState: discovery.revealState
+    };
+  }
+
+  function applySelectedGeography(result, choice) {
+    if (!result || !result.expedition || !choice || !choice.geographicDiscovery) return result;
+    const metadata = snapshotGeographicDiscovery(choice.geographicDiscovery);
+    const patch = {
+      name: choice.name,
+      kicker: choice.kicker,
+      flavor: choice.description,
+      omen: choice.omen,
+      risk: choice.risk,
+      palette: choice.palette,
+      signal: choice.signal,
+      geographicDiscovery: metadata
+    };
+    const expedition = result.expedition;
+    if (expedition.lastDiscovery) Object.assign(expedition.lastDiscovery, patch);
+    const latest = expedition.discoveries && expedition.discoveries[expedition.discoveries.length - 1];
+    if (latest) Object.assign(latest, patch);
+    if (expedition.encounter && expedition.encounter.discovery) Object.assign(expedition.encounter.discovery, patch);
+    if (expedition.pendingEvent && expedition.pendingEvent.discovery) Object.assign(expedition.pendingEvent.discovery, patch);
+    return result;
   }
 
   Core.generateExplorationChoices = function generateLocationAwareChoices(state) {
     const choices = originalGenerate(state);
+    geographicChoicesById = new Map();
     if (!geographicDiscoveries.length) return choices;
-    return choices.map((choice, index) => mergeGeography(choice, geographicDiscoveries[index % geographicDiscoveries.length]));
+    return choices.map((choice, index) => {
+      const merged = mergeGeography(choice, geographicDiscoveries[index % geographicDiscoveries.length]);
+      geographicChoicesById.set(merged.choiceId, merged);
+      return merged;
+    });
+  };
+
+  Core.discoverLocation = function discoverLocationAware(state, choiceId) {
+    const selected = geographicChoicesById.get(choiceId) || null;
+    const result = originalDiscoverLocation(state, choiceId);
+    return applySelectedGeography(result, selected);
   };
 
   function getCurrentLocation() {
@@ -178,6 +264,7 @@
         if (!geographicDiscoveries.length) diagnostics.error = "no matching discoveries";
       } catch (error) {
         geographicDiscoveries = [];
+        geographicChoicesById = new Map();
         locationState = error && error.code === 1 ? "denied" : "failed";
         diagnostics.endpoint = provider && provider.endpoint ? provider.endpoint : diagnostics.endpoint || "-";
         diagnostics.error = provider && provider.error ? provider.error : (error && error.message ? error.message : "unknown error");
@@ -192,6 +279,7 @@
   if (startButton) startButton.addEventListener("click", () => {
     locationPromise = null;
     geographicDiscoveries = [];
+    geographicChoicesById = new Map();
     const discovery = loadGeographicDiscoveries();
     queueMicrotask(setPendingUi);
     discovery.finally(() => {
