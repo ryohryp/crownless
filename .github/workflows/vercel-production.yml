@@ -2,6 +2,15 @@ name: deploy-vercel-production
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - "api/**"
+      - "src/geography-proxy.js"
+      - "src/discovery-provider.js"
+      - "vercel.json"
+      - ".github/workflows/vercel-production.yml"
 
 permissions:
   contents: read
@@ -62,15 +71,36 @@ jobs:
         run: |
           curl --fail --show-error --silent --retry 4 --retry-delay 3 "$PRODUCTION_URL/" > /dev/null
 
-      - name: Smoke test geography API route
+      - name: Smoke test geography validation route
         shell: bash
         run: |
-          status="$(curl --show-error --silent --output /tmp/geography-response.json --write-out '%{http_code}' --retry 4 --retry-delay 3 "$PRODUCTION_URL/api/geography?lat=999&lng=139&radius=650")"
-          cat /tmp/geography-response.json
+          status="$(curl --show-error --silent --output /tmp/geography-validation.json --write-out '%{http_code}' --max-time 8 "$PRODUCTION_URL/api/geography?lat=999&lng=139&radius=650")"
+          cat /tmp/geography-validation.json
           if [ "$status" != "400" ]; then
             echo "Expected geography validation endpoint to return HTTP 400, got $status" >&2
             exit 1
           fi
+
+      - name: Smoke test real Production geography route
+        shell: bash
+        run: |
+          status="$(curl --show-error --silent --output /tmp/geography-response.json --write-out '%{http_code}' --max-time 8 "$PRODUCTION_URL/api/geography?lat=35.69&lng=139.78&radius=650")"
+          cat /tmp/geography-response.json
+          echo
+          if [ "$status" != "200" ] && [ "$status" != "502" ]; then
+            echo "Expected geography endpoint to complete within 8 seconds with HTTP 200 or diagnostic 502, got $status" >&2
+            exit 1
+          fi
+          node <<'NODE'
+          const fs = require("node:fs");
+          const payload = JSON.parse(fs.readFileSync("/tmp/geography-response.json", "utf8"));
+          if (!Array.isArray(payload.attempts) || payload.attempts.length === 0) {
+            throw new Error("Production geography response is missing upstream attempts diagnostics");
+          }
+          if (!Number.isFinite(Number(payload.timeoutMs)) || Number(payload.timeoutMs) > 6000) {
+            throw new Error(`Unexpected Production upstream timeout: ${payload.timeoutMs}`);
+          }
+          NODE
 
       - name: Publish deployment summary
         shell: bash
@@ -81,5 +111,6 @@ jobs:
             echo "- Commit: \`${GITHUB_SHA}\`"
             echo "- Deployment: ${{ steps.deploy.outputs.url }}"
             echo "- Production: $PRODUCTION_URL"
+            echo "- Geography real-route budget: <= 8s"
             echo "- Smoke tests: passed"
           } >> "$GITHUB_STEP_SUMMARY"
