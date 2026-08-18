@@ -29,9 +29,10 @@ test('Vercel Production deploys geography changes from main and remains manually
 
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /\n\s*push:/);
-  assert.match(workflow, /branches:\s*\[main\]/);
-  assert.match(workflow, /api\/geography\.js/);
+  assert.match(workflow, /branches:\s*\n\s*- main/);
+  assert.match(workflow, /api\/\*\*/);
   assert.match(workflow, /src\/geography-proxy\.js/);
+  assert.match(workflow, /src\/discovery-provider\.js/);
   assert.match(workflow, /github\.ref == 'refs\/heads\/main'/);
   assert.match(workflow, /environment:\s*production/);
   assert.match(workflow, /VERCEL_TOKEN:\s*\$\{\{ secrets\.VERCEL_TOKEN \}\}/);
