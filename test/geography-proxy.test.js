@@ -79,7 +79,7 @@ test("production endpoint pool excludes the unreachable Japan mirror and keeps t
   assert.equal(ProxyCore.DEFAULT_OVERPASS_ENDPOINTS.some((endpoint) => endpoint.includes("openstreetmap.jp")), false);
 });
 
-test("server geography query applies selective tags directly to one bbox", () => {
+test("server geography query applies selective tags directly to one bbox and retains way centers", () => {
   assert.deepEqual(ProxyCore.buildBoundingBox(35.69, 139.78, 650), [35.684161, 139.772811, 35.695839, 139.787189]);
   const query = ProxyCore.buildOverpassQuery(35.69, 139.78, 650);
   assert.match(query, /^\[out:json\]\[timeout:12\];\(nw\(35\.684161,139\.772811,35\.695839,139\.787189\)\[natural~/);
@@ -89,13 +89,14 @@ test("server geography query applies selective tags directly to one bbox", () =>
   assert.doesNotMatch(query, /around:/);
   assert.doesNotMatch(query, /\[natural\];/);
   assert.doesNotMatch(query, /\[place\];/);
-  assert.match(query, /\);out tags qt;$/);
+  assert.match(query, /\);out tags center qt;$/);
   assert.doesNotMatch(query, /relation/);
 });
 
 test("server geography query falls back to exact-radius around search near coordinate edges", () => {
   assert.equal(ProxyCore.buildBoundingBox(89.9, 139.78, 650), null);
   assert.match(ProxyCore.buildOverpassQuery(89.9, 139.78, 650), /nw\(around:650,89\.9,139\.78\)\[waterway\]/);
+  assert.match(ProxyCore.buildOverpassQuery(89.9, 139.78, 650), /out tags center qt;/);
   assert.equal(ProxyCore.buildBoundingBox(35.69, 179.999, 650), null);
   assert.match(ProxyCore.buildOverpassQuery(35.69, 179.999, 650), /nw\(around:650,35\.69,179\.999\)\[waterway\]/);
 });
