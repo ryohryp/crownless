@@ -204,6 +204,32 @@
     }).filter(Boolean);
   }
 
+  function sketchMapLabelLayout(model) {
+    const entries = Array.from(model || []);
+    return entries.map((entry, index) => {
+      const x = Number(entry && entry.x);
+      const y = Number(entry && entry.y);
+      const horizontal = Number.isFinite(x) && x <= 28
+        ? "inset-left"
+        : Number.isFinite(x) && x >= 72
+          ? "inset-right"
+          : "center";
+      const baseVertical = Number.isFinite(y) && y >= 68 ? "above" : "below";
+      const nearbyBefore = entries.slice(0, index).filter((other) => {
+        const otherX = Number(other && other.x);
+        const otherY = Number(other && other.y);
+        return Number.isFinite(x) && Number.isFinite(y) && Number.isFinite(otherX) && Number.isFinite(otherY)
+          && Math.abs(otherX - x) < 24
+          && Math.abs(otherY - y) < 22;
+      }).length;
+      const vertical = nearbyBefore % 2 === 1
+        ? (baseVertical === "above" ? "below" : "above")
+        : baseVertical;
+      const labelShiftY = nearbyBefore >= 2 ? (vertical === "above" ? -12 : 12) : 0;
+      return { ...entry, labelHorizontal: horizontal, labelVertical: vertical, labelShiftY };
+    });
+  }
+
   function ensureSketchMap(document, heading) {
     let map = document.getElementById("exploration-sketch-map");
     if (map) return map;
@@ -249,7 +275,7 @@
 
   function renderSketchMap(document, runtime, cards, heading) {
     const map = ensureSketchMap(document, heading);
-    const model = sketchMapModelFromRuntime(runtime);
+    const model = sketchMapLabelLayout(sketchMapModelFromRuntime(runtime));
     map.hidden = model.length === 0;
     const points = map.querySelector(".sketch-map-points");
     if (!points) return model;
@@ -261,8 +287,11 @@
       marker.type = "button";
       marker.className = "sketch-map-point";
       marker.dataset.cardIndex = String(entry.index);
+      marker.dataset.labelHorizontal = entry.labelHorizontal;
+      marker.dataset.labelVertical = entry.labelVertical;
       marker.style.left = `${entry.x}%`;
       marker.style.top = `${entry.y}%`;
+      marker.style.setProperty("--sketch-label-shift-y", `${entry.labelShiftY}px`);
       marker.setAttribute("aria-label", `${entry.title}。${entry.terrain}。${entry.direction}、${entry.distanceBand}`);
 
       const glyph = document.createElement("i");
@@ -274,7 +303,7 @@
       const title = document.createElement("strong");
       title.textContent = entry.title;
       const detail = document.createElement("em");
-      detail.textContent = `${entry.terrain} · ${entry.direction} · ${entry.distanceBand}`;
+      detail.textContent = entry.direction;
       label.append(title, detail);
       marker.append(glyph, number, label);
       marker.addEventListener("pointerenter", () => setActiveSketchPoint(map, entry.index));
@@ -343,8 +372,12 @@
         .sketch-map-heading strong { font-size:15px; }
         .sketch-map-heading > span { max-width:105px; text-align:right; font-size:8px; }
         .sketch-map-field { height:190px; }
-        .sketch-map-point span { max-width:105px; }
-        .sketch-map-point strong,.sketch-map-point em { max-width:96px; }
+        .sketch-map-point span { max-width:98px; transform:translate(-50%,var(--sketch-label-shift-y,0)); }
+        .sketch-map-point[data-label-horizontal="inset-left"] span { left:0; transform:translate(0,var(--sketch-label-shift-y,0)); text-align:left; }
+        .sketch-map-point[data-label-horizontal="inset-right"] span { left:auto; right:0; transform:translate(0,var(--sketch-label-shift-y,0)); text-align:right; }
+        .sketch-map-point[data-label-vertical="above"] span { top:auto; bottom:37px; }
+        .sketch-map-point strong,.sketch-map-point em { max-width:90px; }
+        .lead-card.discovery-ready h3 { max-width:100%; font-size:15px; line-height:1.35; text-wrap:balance; }
       }
       @media (prefers-reduced-motion:reduce) {
         .sketch-map-point .sketch-map-glyph { transition:none; }
@@ -415,6 +448,7 @@
     distanceBand,
     terrainGlyph,
     sketchMapModelFromRuntime,
+    sketchMapLabelLayout,
     renderSketchMap,
     install
   };

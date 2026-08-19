@@ -90,6 +90,36 @@ test("sketch map model is capped at three and survives unnamed real places", () 
   assert.deepEqual(Presentation.sketchMapModelFromRuntime({ state: "failed", discoveries: runtime.discoveries }), []);
 });
 
+test("mobile sketch labels move inward at edges and stagger nearby points", () => {
+  const layout = Presentation.sketchMapLabelLayout([
+    { x: 16, y: 76, title: "左端A" },
+    { x: 20, y: 74, title: "左端B" },
+    { x: 23, y: 72, title: "左端C" },
+    { x: 84, y: 40, title: "右端" }
+  ]);
+
+  assert.equal(layout[0].labelHorizontal, "inset-left");
+  assert.equal(layout[3].labelHorizontal, "inset-right");
+  assert.equal(layout[0].labelVertical, "above");
+  assert.equal(layout[1].labelVertical, "below");
+  assert.equal(layout[2].labelVertical, "above");
+  assert.equal(layout[2].labelShiftY, -12);
+  assert.deepEqual(layout.map(({ x, y }) => ({ x, y })), [
+    { x: 16, y: 76 },
+    { x: 20, y: 74 },
+    { x: 23, y: 72 },
+    { x: 84, y: 40 }
+  ]);
+});
+
+test("mobile map annotations stay concise and discovery card titles balance", () => {
+  assert.match(presentationSource, /detail\.textContent = entry\.direction/);
+  assert.match(presentationSource, /data-label-horizontal/);
+  assert.match(presentationSource, /data-label-vertical/);
+  assert.match(presentationSource, /text-wrap:balance/);
+  assert.doesNotMatch(presentationSource, /detail\.textContent = `\$\{entry\.terrain\} · \$\{entry\.direction\} · \$\{entry\.distanceBand\}`/);
+});
+
 test("exploration sketch remains a manuscript-relative view rather than a navigation map", () => {
   assert.match(presentationSource, /NEARBY MANUSCRIPT \/ RELATIVE DISCOVERY/);
   assert.match(presentationSource, /現在地中心 \/ 相対配置 \/ 縮尺なし/);
