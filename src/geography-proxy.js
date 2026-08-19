@@ -56,8 +56,9 @@ function buildBoundingBox(latitude, longitude, radius) {
 function buildSignalQuery(spatialFilter) {
   // Discovery only needs enough real-world signals to create up to three
   // choices. Query relevant tagged objects directly instead of materializing
-  // every node/way in a dense area first. `nw` intentionally excludes relations
-  // because Crownless consumes tags, not complete GIS geometry.
+  // every object in a dense area. Nodes already carry coordinates and Overpass
+  // supplies a lightweight center for ways; relations stay excluded to keep the
+  // enrichment query small and avoid pulling complete GIS geometry.
   return `nw(${spatialFilter})[natural~"^(water|wood|peak|ridge|hill|coastline)$"];`
     + `nw(${spatialFilter})[waterway];`
     + `nw(${spatialFilter})[bridge];`
@@ -75,7 +76,7 @@ function buildAroundQuery(latitude, longitude, radius) {
   const metres = normalizeRadius(radius);
   return `[out:json][timeout:${OVERPASS_QUERY_TIMEOUT_SECONDS}];(`
     + buildSignalQuery(`around:${metres},${lat},${lng}`)
-    + `);out tags qt;`;
+    + `);out tags center qt;`;
 }
 
 function buildOverpassQuery(latitude, longitude, radius) {
@@ -87,7 +88,7 @@ function buildOverpassQuery(latitude, longitude, radius) {
   // mode where PR #99 first loaded every node and way into a named set.
   return `[out:json][timeout:${OVERPASS_QUERY_TIMEOUT_SECONDS}];(`
     + buildSignalQuery(bounds.join(","))
-    + `);out tags qt;`;
+    + `);out tags center qt;`;
 }
 
 function classifyUpstreamFailure(error) {
