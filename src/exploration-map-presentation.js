@@ -358,10 +358,7 @@
       .sketch-map-point { position:absolute; z-index:3; min-width:34px; min-height:34px; padding:0; border:0; background:transparent; color:inherit; transform:translate(-50%,-50%); cursor:pointer; text-align:center; }
       .sketch-map-point .sketch-map-glyph { display:grid; place-items:center; width:31px; height:31px; margin:auto; border:1px solid rgba(201,163,93,.52); border-radius:45% 55% 49% 51%; background:#12110e; color:#d7bd7d; font:normal 18px/1 Georgia,serif; box-shadow:0 0 0 3px rgba(8,8,7,.7); transform:rotate(-3deg); transition:transform .14s ease,border-color .14s ease,background .14s ease; }
       .sketch-map-point small { position:absolute; left:calc(50% + 13px); top:-7px; color:#a98d54; font-size:7px; font-weight:800; letter-spacing:.08em; }
-      .sketch-map-point span { position:absolute; left:50%; top:37px; width:max-content; max-width:128px; transform:translate(-50%,var(--sketch-label-shift-y,0)); padding:3px 5px; background:rgba(11,10,8,.78); pointer-events:none; }
-      .sketch-map-point[data-label-horizontal="inset-left"] span { left:0; transform:translate(0,var(--sketch-label-shift-y,0)); text-align:left; }
-      .sketch-map-point[data-label-horizontal="inset-right"] span { left:auto; right:0; transform:translate(0,var(--sketch-label-shift-y,0)); text-align:right; }
-      .sketch-map-point[data-label-vertical="above"] span { top:auto; bottom:37px; }
+      .sketch-map-point span { position:absolute; left:50%; top:37px; width:max-content; max-width:128px; transform:translateX(-50%); padding:3px 5px; background:rgba(11,10,8,.78); pointer-events:none; }
       .sketch-map-point strong,.sketch-map-point em { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
       .sketch-map-point strong { max-width:118px; color:#e4d6b5; font:600 9px/1.25 Georgia,serif; }
       .sketch-map-point em { margin-top:1px; max-width:118px; color:var(--muted); font:normal 7px/1.3 sans-serif; }
@@ -375,7 +372,10 @@
         .sketch-map-heading strong { font-size:15px; }
         .sketch-map-heading > span { max-width:105px; text-align:right; font-size:8px; }
         .sketch-map-field { height:190px; }
-        .sketch-map-point span { max-width:98px; }
+        .sketch-map-point span { max-width:98px; transform:translate(-50%,var(--sketch-label-shift-y,0)); }
+        .sketch-map-point[data-label-horizontal="inset-left"] span { left:0; transform:translate(0,var(--sketch-label-shift-y,0)); text-align:left; }
+        .sketch-map-point[data-label-horizontal="inset-right"] span { left:auto; right:0; transform:translate(0,var(--sketch-label-shift-y,0)); text-align:right; }
+        .sketch-map-point[data-label-vertical="above"] span { top:auto; bottom:37px; }
         .sketch-map-point strong,.sketch-map-point em { max-width:90px; }
         .lead-card.discovery-ready h3 { max-width:100%; font-size:15px; line-height:1.35; text-wrap:balance; }
       }
