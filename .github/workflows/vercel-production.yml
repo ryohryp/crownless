@@ -10,6 +10,7 @@ on:
       - "src/geography-proxy.js"
       - "src/discovery-provider.js"
       - "src/location-discovery-runtime.js"
+      - "src/exploration-map-presentation.js"
       - "vercel.json"
       - ".github/workflows/vercel-production.yml"
 
