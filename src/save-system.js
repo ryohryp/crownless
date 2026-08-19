@@ -16,6 +16,7 @@
 
   const SAVE_KEY = "crownless.safe.v1";
   const SAVE_VERSION = 1;
+  const KNOWLEDGE_STATES = new Set(["discovered", "investigated", "cleared"]);
 
   const base = {
     createInitialState: Core.createInitialState,
@@ -38,6 +39,41 @@
     return JSON.parse(JSON.stringify(value));
   }
 
+  function cleanText(value, fallback = "") {
+    const result = String(value == null ? "" : value).trim();
+    return result || fallback;
+  }
+
+  function sanitizeWorldKnowledge(value) {
+    const source = value && typeof value === "object" ? value : {};
+    const discoveries = source.discoveries && typeof source.discoveries === "object" && !Array.isArray(source.discoveries)
+      ? source.discoveries
+      : {};
+    const safe = {};
+
+    Object.entries(discoveries).forEach(([fallbackKey, raw]) => {
+      if (!raw || typeof raw !== "object") return;
+      const key = cleanText(raw.key || fallbackKey);
+      if (!key) return;
+      const firstDiscoveredAt = Number(raw.firstDiscoveredAt);
+      const terrain = Array.isArray(raw.terrain)
+        ? [...new Set(raw.terrain.map((item) => cleanText(item)).filter(Boolean))].slice(0, 8)
+        : [];
+      safe[key] = {
+        key,
+        name: cleanText(raw.name, "名もない発見"),
+        baseTitle: cleanText(raw.baseTitle),
+        terrain,
+        contentKind: cleanText(raw.contentKind, "unknown"),
+        state: KNOWLEDGE_STATES.has(raw.state) ? raw.state : "discovered",
+        firstDiscoveredAt: Number.isFinite(firstDiscoveredAt) && firstDiscoveredAt > 0 ? firstDiscoveredAt : 0,
+        visits: Math.max(1, Math.floor(Number(raw.visits) || 1))
+      };
+    });
+
+    return { discoveries: safe };
+  }
+
   function isSafeHubState(state) {
     return Boolean(
       state &&
@@ -55,6 +91,7 @@
     state.expedition = null;
     if (!Array.isArray(state.securedLoot)) state.securedLoot = [];
     if (!state.stats || typeof state.stats !== "object") state.stats = {};
+    state.worldKnowledge = sanitizeWorldKnowledge(state.worldKnowledge);
 
     if (state.equippedItemId && !state.securedLoot.some((item) => item.id === state.equippedItemId)) {
       state.equippedItemId = null;
@@ -66,15 +103,39 @@
     return state;
   }
 
+  function writeSnapshot(store, state) {
+    store.setItem(SAVE_KEY, JSON.stringify({
+      version: SAVE_VERSION,
+      savedAt: Date.now(),
+      state
+    }));
+  }
+
   function saveSafeState(state) {
     const store = storage();
     if (!store || !isSafeHubState(state)) return false;
     try {
-      store.setItem(SAVE_KEY, JSON.stringify({
-        version: SAVE_VERSION,
-        savedAt: Date.now(),
-        state: clone(state)
-      }));
+      const safeState = clone(state);
+      safeState.worldKnowledge = sanitizeWorldKnowledge(safeState.worldKnowledge);
+      writeSnapshot(store, safeState);
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function saveWorldKnowledge(state) {
+    const store = storage();
+    if (!store || !state || typeof state !== "object") return false;
+    try {
+      const raw = store.getItem(SAVE_KEY);
+      if (!raw) return isSafeHubState(state) ? saveSafeState(state) : false;
+      const payload = JSON.parse(raw);
+      if (!payload || payload.version !== SAVE_VERSION || !isSafeHubState(payload.state)) return false;
+
+      const safeState = normalizeLoadedState(clone(payload.state));
+      safeState.worldKnowledge = sanitizeWorldKnowledge(state.worldKnowledge);
+      writeSnapshot(store, safeState);
       return true;
     } catch (_) {
       return false;
@@ -107,7 +168,7 @@
   }
 
   Core.createInitialState = function createInitialStateFromLastSafeHub() {
-    const fresh = base.createInitialState();
+    const fresh = normalizeLoadedState(base.createInitialState());
     const loaded = loadSafeState();
     if (!loaded) {
       saveSafeState(fresh);
@@ -149,8 +210,10 @@
   Core.SAVE_KEY = SAVE_KEY;
   Core.SAVE_VERSION = SAVE_VERSION;
   Core.saveSafeState = saveSafeState;
+  Core.saveWorldKnowledge = saveWorldKnowledge;
   Core.loadSafeState = loadSafeState;
   Core.clearLocalSave = clearLocalSave;
+  Core.sanitizeWorldKnowledge = sanitizeWorldKnowledge;
   Core.__saveSystemInstalled = true;
 
   return Core;
