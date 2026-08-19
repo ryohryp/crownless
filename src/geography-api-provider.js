@@ -16,6 +16,67 @@
       .join(" | ");
   }
 
+  function validCoordinate(latitude, longitude) {
+    const lat = Number(latitude);
+    const lon = Number(longitude);
+    return Number.isFinite(lat) && Number.isFinite(lon) && lat >= -90 && lat <= 90 && lon >= -180 && lon <= 180
+      ? { latitude: lat, longitude: lon }
+      : null;
+  }
+
+  function representativeCoordinate(feature) {
+    if (!feature) return null;
+    const direct = validCoordinate(feature.lat, feature.lon);
+    if (direct) return direct;
+    return validCoordinate(feature.center && feature.center.lat, feature.center && feature.center.lon);
+  }
+
+  function featureCandidates(elements) {
+    return (Array.isArray(elements) ? elements : []).map((element, index) => {
+      const normalized = Discovery && typeof Discovery.normalizeGeographicFeature === "function"
+        ? Discovery.normalizeGeographicFeature(element)
+        : { id: String((element && element.id) || index), name: "", types: [] };
+      return {
+        index,
+        id: normalized.id,
+        name: normalized.name,
+        types: normalized.types,
+        coordinate: representativeCoordinate(element)
+      };
+    }).filter((candidate) => candidate.coordinate);
+  }
+
+  function sharesFeature(discovery, candidate) {
+    const discoveryFeatures = Array.isArray(discovery && discovery.features) ? discovery.features : [];
+    const candidateTypes = Array.isArray(candidate && candidate.types) ? candidate.types : [];
+    return discoveryFeatures.some((feature) => candidateTypes.includes(feature));
+  }
+
+  function pickCandidate(discovery, candidates, used) {
+    const placeName = String(discovery && discovery.realPlaceName || "").trim();
+    const unused = (predicate) => candidates.find((candidate) => !used.has(candidate.index) && predicate(candidate));
+    return (placeName && unused((candidate) => candidate.name === placeName && sharesFeature(discovery, candidate)))
+      || unused((candidate) => sharesFeature(discovery, candidate))
+      || (placeName && unused((candidate) => candidate.name === placeName))
+      || candidates.find((candidate) => placeName && candidate.name === placeName && sharesFeature(discovery, candidate))
+      || candidates.find((candidate) => sharesFeature(discovery, candidate))
+      || null;
+  }
+
+  function decorateDiscoveriesWithMapData(discoveries, elements, location) {
+    const origin = validCoordinate(location && location.latitude, location && location.longitude);
+    const candidates = featureCandidates(elements);
+    const used = new Set();
+    return (Array.isArray(discoveries) ? discoveries : []).map((discovery) => {
+      const candidate = pickCandidate(discovery, candidates, used);
+      if (candidate) used.add(candidate.index);
+      return Object.assign({}, discovery, {
+        representativeCoordinate: candidate ? Object.assign({}, candidate.coordinate) : null,
+        mapOrigin: origin ? Object.assign({}, origin) : null
+      });
+    });
+  }
+
   function createProxyLocationDiscoveryProvider(options) {
     const settings = options || {};
     const limit = Math.max(1, Number(settings.limit) || 3);
@@ -93,8 +154,10 @@
             throw error;
           }
 
-          const geographic = Discovery.normalizeGeographicContext(payload.elements);
-          const discoveries = Discovery.discoveriesFromFeatures(geographic.types, { limit, namesByType: geographic.namesByType });
+          const elements = Array.isArray(payload.elements) ? payload.elements : [];
+          const geographic = Discovery.normalizeGeographicContext(elements);
+          const ruleDiscoveries = Discovery.discoveriesFromFeatures(geographic.types, { limit, namesByType: geographic.namesByType });
+          const discoveries = decorateDiscoveriesWithMapData(ruleDiscoveries, elements, location);
           const successfulAttempt = attempts.find((attempt) => attempt && attempt.state === "success");
           lastEndpoint = payload.endpoint || (successfulAttempt && successfulAttempt.endpoint) || proxyEndpoint;
           lastError = "";
@@ -131,5 +194,11 @@
     };
   }
 
-  return { DEFAULT_PROXY_ENDPOINT, createProxyLocationDiscoveryProvider };
+  return {
+    DEFAULT_PROXY_ENDPOINT,
+    validCoordinate,
+    representativeCoordinate,
+    decorateDiscoveriesWithMapData,
+    createProxyLocationDiscoveryProvider
+  };
 });
