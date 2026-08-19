@@ -7,6 +7,7 @@
 
   const originalDiscoverLocation = Core.discoverLocation.bind(Core);
   const originalBeginExpedition = typeof Core.beginExpedition === "function" ? Core.beginExpedition.bind(Core) : null;
+  const originalContinueExpedition = typeof Core.continueExpedition === "function" ? Core.continueExpedition.bind(Core) : null;
   const GEOLOCATION_OPTIONS = Object.freeze({ enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 });
   const TERRAIN_LABELS = Object.freeze({ water: "水辺", crossing: "渡り場", sacred: "聖域", woods: "森", road_hub: "街道の結節", height: "高地", coast: "海辺", settlement: "集落" });
   let geographicDiscoveries = [], locationState = "idle", locationPromise = null;
@@ -34,6 +35,8 @@
   function beginGeographicDiscoveryAfterPaint() { return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))).then(performGeographicDiscovery); }
   function loadGeographicDiscoveries() { if (locationPromise) return locationPromise; locationState = "loading"; diagnostics = emptyDiagnostics("requesting"); setPendingUi(); locationPromise = beginGeographicDiscoveryAfterPaint(); return locationPromise; }
   function reloadGeographicDiscoveries() { locationPromise = null; geographicDiscoveries = []; const discovery = loadGeographicDiscoveries(); discovery.finally(() => { if (!document.getElementById("explore-screen")?.classList.contains("active")) return; refreshLeadCards(); setPendingUi(); }); return discovery; }
+  function restoreGeographicPresentationAfterRender() { if (locationState !== "ready" || !geographicDiscoveries.length) return; Promise.resolve().then(() => { if (!document.getElementById("explore-screen")?.classList.contains("active")) return; refreshLeadCards(); setPendingUi(); }); }
   if (originalBeginExpedition) { Core.beginExpedition = function beginExpeditionWithLocationDiscovery(...args) { const next = originalBeginExpedition(...args); reloadGeographicDiscoveries(); return next; }; }
+  if (originalContinueExpedition) { Core.continueExpedition = function continueExpeditionWithLocationDiscovery(...args) { const next = originalContinueExpedition(...args); restoreGeographicPresentationAfterRender(); return next; }; }
   window.CrownlessLocationDiscoveryRuntime = { get state() { return locationState; }, get discoveries() { return geographicDiscoveries.slice(); }, get diagnostics() { return Object.assign({}, diagnostics, { gpsOptions: Object.assign({}, diagnostics.gpsOptions), features: diagnostics.features.slice(), names: diagnostics.names.slice() }); }, classifyGeolocationError, terrainLabel, choiceSlot, applySelectedGeographicDiscovery, reload: reloadGeographicDiscoveries };
 })();
