@@ -13,6 +13,16 @@
     simulated: "DISCOVERED NEARBY / SIMULATED LOCATION",
     geographic: "DISCOVERED NEARBY / REAL-WORLD DISCOVERY"
   };
+  const TERRAIN_LABELS = {
+    water: "水辺",
+    crossing: "渡り場",
+    sacred: "聖域",
+    woods: "森",
+    road_hub: "街道の結節",
+    height: "高地",
+    coast: "海辺",
+    settlement: "集落"
+  };
 
   function riskFromCard(card) {
     return card ? card.querySelectorAll(".pips.risk i.on").length : 1;
@@ -55,6 +65,51 @@
       : "simulated";
   }
 
+  function terrainLabel(discovery) {
+    const features = Array.isArray(discovery && discovery.features) ? discovery.features : [];
+    const labels = features.map((feature) => TERRAIN_LABELS[feature] || feature);
+    return labels.length ? labels.join(" / ") : "街道周辺";
+  }
+
+  function contentKindLabel(discovery) {
+    if (!discovery) return "気配";
+    if (discovery.contentKind === "dungeon") return "遺構";
+    if (discovery.contentKind === "encounter") return "遭遇";
+    return "異変";
+  }
+
+  function setRiskPips(card, risk) {
+    const pips = card ? Array.from(card.querySelectorAll(".pips.risk i")) : [];
+    const level = Math.max(1, Math.min(5, Number(risk) || 1));
+    pips.forEach((pip, index) => pip.classList.toggle("on", index < level));
+  }
+
+  function applyGeographicDiscoveries(cards, runtime) {
+    const discoveries = runtime && runtime.state === "ready" && Array.isArray(runtime.discoveries)
+      ? runtime.discoveries
+      : [];
+    if (!discoveries.length) return false;
+
+    Array.from(cards || []).forEach((card, index) => {
+      const discovery = discoveries[index] || null;
+      card.style.display = discovery ? "" : "none";
+      card.dataset.discoverySource = discovery ? "geographic" : "simulated";
+      if (!discovery) return;
+
+      const title = card.querySelector("h3");
+      const description = card.querySelector("p");
+      const omen = card.querySelector(".lead-omen");
+      const signal = card.querySelector(".lead-signals label strong");
+      if (title) title.textContent = discovery.title;
+      if (description) description.textContent = discovery.signal;
+      if (omen) omen.textContent = `地形：${terrainLabel(discovery)}`;
+      if (signal) signal.textContent = contentKindLabel(discovery);
+      setRiskPips(card, discovery.risk);
+      card.className = `lead-card palette-${discovery.palette === "water" ? "marsh" : discovery.palette} discovery-ready`;
+    });
+    return true;
+  }
+
   function install(document, Discovery, locationRuntime) {
     if (!document || document.getElementById("discovered-destinations-heading")) return;
     const leadList = document.getElementById("lead-list");
@@ -95,6 +150,7 @@
       setDiscoverySource(document, discoverySourceFromRuntime(locationRuntime));
       const cards = Array.from(leadList.querySelectorAll(".lead-card"));
       if (!cards.length) return;
+      applyGeographicDiscoveries(cards, locationRuntime);
       const destinations = selectDestinations(cards, Discovery);
       const visibleCards = new Set(destinations.map((destination) => destination.card).filter(Boolean));
       cards.forEach((card) => {
@@ -125,6 +181,9 @@
     selectDestinations,
     setDiscoverySource,
     discoverySourceFromRuntime,
+    terrainLabel,
+    contentKindLabel,
+    applyGeographicDiscoveries,
     install
   };
 });
