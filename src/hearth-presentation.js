@@ -19,6 +19,12 @@
   const emberLayer = document.getElementById("hearth-embers");
   const shelfCount = document.getElementById("hearth-shelf-count");
   const mapStatus = document.getElementById("hearth-map-status");
+  const knowledgePanel = document.getElementById("world-knowledge-panel");
+
+  if (knowledgePanel) {
+    knowledgePanel.hidden = true;
+    knowledgePanel.setAttribute("aria-hidden", "true");
+  }
 
   let whisperTimer = null;
   let mutationFrame = null;
@@ -74,9 +80,18 @@
     return "fists";
   }
 
+  function mapProgressLabel(renown, discovered) {
+    let milestone = "地図はまだ白い";
+    if (renown >= 30) milestone = "鍛冶火";
+    else if (renown >= 15) milestone = "回収係";
+    else if (renown >= 5) milestone = "地図掛け";
+    return `RENOWN ${renown} / 探索録 ${discovered} / ${milestone}`;
+  }
+
   function refreshSceneState() {
     const secured = numberFrom("#secured-count");
     const renown = numberFrom("#hearth-progress .renown-total strong");
+    const discovered = numberFrom("#world-knowledge-count");
 
     scene.dataset.weapon = weaponKind();
     scene.classList.toggle("rank-1", renown >= 5);
@@ -84,12 +99,7 @@
     scene.classList.toggle("rank-3", renown >= 30);
 
     if (shelfCount) shelfCount.textContent = String(secured);
-    if (mapStatus) {
-      if (renown >= 30) mapStatus.textContent = `RENOWN ${renown} / 鍛冶火`;
-      else if (renown >= 15) mapStatus.textContent = `RENOWN ${renown} / 回収係`;
-      else if (renown >= 5) mapStatus.textContent = `RENOWN ${renown} / 地図掛け`;
-      else mapStatus.textContent = `RENOWN ${renown} / 地図はまだ白い`;
-    }
+    if (mapStatus) mapStatus.textContent = mapProgressLabel(renown, discovered);
   }
 
   function scheduleRefresh() {
@@ -120,7 +130,13 @@
 
   map?.addEventListener("click", () => {
     const renown = numberFrom("#hearth-progress .renown-total strong");
-    speak(renown >= 5 ? "生還者の線が少しずつ世界を地図に変えている。" : "まだ白い。最初の生還者の線を引け。", 1500);
+    const discovered = numberFrom("#world-knowledge-count");
+    const latest = document.querySelector("#world-knowledge-panel .world-knowledge-entry strong")?.textContent || "";
+    if (discovered > 0) {
+      speak(latest ? `探索録は ${discovered}。最近の墨印は「${latest}」。` : `探索録は ${discovered}。地図に発見の墨印が残っている。`, 1800);
+    } else {
+      speak(renown >= 5 ? "生還者の線はある。だが、探索録にはまだ名のある場所がない。" : "まだ白い。最初の発見を地図に残せ。", 1500);
+    }
     if (!scrollTo("#hearth-progress")) setTimeout(() => scrollTo("#hearth-progress"), 0);
   });
 
