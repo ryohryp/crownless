@@ -18,6 +18,7 @@ Before any Crownless visual task, read in this order:
    - combat: `../../docs/combat-presentation-spec.md`
    - Grey Hearth: `../../docs/hearth-presentation-spec.md`
 6. for named combat subject generation, also read `../../docs/visual/CHARACTER_VISUAL_CANON.md`
+7. before invoking an image generator for a production asset, read `../../docs/visual/IMAGE_GENERATION_HANDOFF.md`
 
 Older v0.1 boards remain authoritative for linework, palette, materials, map/UI grammar, and physical ink effects. The accepted combat actor set supersedes older 4–5-head proportion guidance and controls the current combat-character viewpoint.
 
@@ -221,8 +222,19 @@ Avoid glossy rounded cards, beveled metal, jewel chrome, giant gold borders, and
 6. Preserve 3–3.5-head folk-doll deformation before scene detail.
 7. Preserve actual gameplay composition and controls.
 8. Add semantic palette rules and explicit negatives.
-9. Generate.
-10. Compare back to accepted actors and reject drift.
+9. Build the **asset-only handoff** required by `../../docs/visual/IMAGE_GENERATION_HANDOFF.md`.
+10. Generate.
+11. Compare back to Canon / accepted actors and reject drift or meta-output.
+
+### Asset-only handoff and meta-output guard
+
+Immediately before production image generation, strip development metadata from the generation request. Keep only the requested asset identity, composition, Canon/style lock, required scene facts, allowed/forbidden changes, and reference assets that the current Canon package actually permits.
+
+Do not feed Issue numbers, PR metadata, progress summaries, PASS/FAIL reports, dashboard descriptions, acceptance-checklist UI, tool output, or commit information into the image request unless the production asset itself explicitly requires those elements.
+
+If the result is a GitHub/project-management screen, progress dashboard, validation card, review report, or other **meta-output** instead of the requested game asset, reject immediately. It is not a Candidate and must not become a source reference, parent, crop source, or runtime asset.
+
+After meta-output, do not blindly retry the same request. Rebuild the handoff from repository Canon and the asset contract in a clean valid reference context. If the same wrong-reference or meta-output class repeats twice, stop generation and treat the handoff/host binding as defective.
 
 ### Prompt anchor
 
@@ -304,4 +316,4 @@ A visual is accepted only when all critical checks pass:
 - result visibly belongs beside accepted actors
 - it remains recognizable as Crownless without the logo
 
-If character style, viewpoint, runtime proportion, grounding, overlap, asset integrity, or illustration family fails, **reject before polishing**.
+If character style, viewpoint, runtime proportion, grounding, overlap, asset integrity, illustration family, or meta-output contamination fails, **reject before polishing**.
