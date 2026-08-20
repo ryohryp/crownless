@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const GeographyApi = require("../src/geography-api-provider.js");
+const LocationVisuals = require("../src/location-visuals.js");
 const runtimeSource = fs.readFileSync(path.join(__dirname, "../src/location-discovery-runtime.js"), "utf8");
 
 function memoryStorage() {
@@ -113,6 +114,35 @@ test("knowledge secured before defeat survives the defeat snapshot", () => {
   const loaded = Core.createInitialState();
   assert.ok(loaded.worldKnowledge.discoveries["sim:ruined-chapel"]);
   assert.equal(loaded.worldKnowledge.discoveries["sim:ruined-chapel"].visits, 1);
+  delete global.localStorage;
+});
+
+test("Ruined Watchtower visual remains available after return and defeat snapshots", () => {
+  const storage = memoryStorage();
+  const Core = freshCore(storage);
+  let active = Core.beginExpedition(Core.createInitialState(), 2123);
+  active.worldKnowledge.discoveries["geo:node:123:height"] = {
+    key: "geo:node:123:height",
+    name: "丘の崩れた物見台",
+    baseTitle: "崩れた物見台",
+    terrain: ["height"],
+    contentKind: "dungeon",
+    state: "discovered",
+    firstDiscoveredAt: 223,
+    visits: 1
+  };
+
+  assert.equal(Core.saveWorldKnowledge(active), true);
+  let loaded = Core.createInitialState();
+  assert.equal(LocationVisuals.resolveLatestDiscoveredVisual(loaded.worldKnowledge).visual.id, "ruined-watchtower");
+
+  active = Core.beginExpedition(loaded, 2124);
+  active.expedition.unsecuredLoot.push({ id: "lost-after-discovery", name: "Lost after discovery" });
+  active = Core.resolveDefeat(active);
+  loaded = Core.createInitialState();
+  const resolved = LocationVisuals.resolveLatestDiscoveredVisual(loaded.worldKnowledge);
+  assert.equal(resolved.visual.assetPath, "assets/locations/ruined-watchtower.png");
+  assert.equal(loaded.worldKnowledge.discoveries["geo:node:123:height"].visits, 1);
   delete global.localStorage;
 });
 

@@ -63,3 +63,27 @@ test("location visual runtime and future location assets trigger Production depl
   assert.match(workflow, /"src\/hearth-presentation\.js"/);
   assert.match(workflow, /"assets\/locations\/\*\*"/);
 });
+
+test("Ruined Watchtower Candidate is a decoded 16:9 PNG at the canonical runtime path", () => {
+  const assetPath = path.join(__dirname, "..", "assets", "locations", "ruined-watchtower.png");
+  const bytes = fs.readFileSync(assetPath);
+  const pngSignature = Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]);
+
+  assert.ok(bytes.length > pngSignature.length, "location asset should not be empty");
+  assert.deepEqual(bytes.subarray(0, pngSignature.length), pngSignature);
+  assert.equal(bytes.toString("ascii", 12, 16), "IHDR");
+  assert.equal(bytes.readUInt32BE(16), 1280);
+  assert.equal(bytes.readUInt32BE(20), 720);
+});
+
+test("Ruined Watchtower registry preserves Candidate status and fail-closed generation policy", () => {
+  const registry = fs.readFileSync(path.join(__dirname, "..", "assets", "locations", "README.md"), "utf8");
+  assert.match(registry, /project_id: `crownless`/);
+  assert.match(registry, /asset_type: `background`/);
+  assert.match(registry, /location_id: `ruined_watchtower`/);
+  assert.match(registry, /status: `candidate`/);
+  assert.match(registry, /Approved Visual Anchor: `false`/);
+  assert.match(registry, /must_use_approved_anchor=false/);
+  assert.match(registry, /must_not_chain_from_candidate=true/);
+  assert.match(registry, /must_review_after_generation=true/);
+});
