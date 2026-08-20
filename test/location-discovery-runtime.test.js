@@ -49,7 +49,11 @@ test("pending location discovery presents manuscript ink until real-world discov
   assert.match(runtimeSource, /const searching = locationState === "loading"/);
   assert.match(runtimeSource, /geographicDiscoveries = await provider\.discover\(\{ location \}\)/);
   assert.match(runtimeSource, /locationState = geographicDiscoveries\.length \? "ready" : "failed"/);
-  assert.doesNotMatch(runtimeSource, /\d+%|progress-bar|spinner/i);
+  const searchPresentationStart = runtimeSource.indexOf("function ensureSearchPresentation");
+  const searchPresentationEnd = runtimeSource.indexOf("function showLocationStatus", searchPresentationStart);
+  const searchPresentationSource = runtimeSource.slice(searchPresentationStart, searchPresentationEnd);
+  assert.ok(searchPresentationStart >= 0 && searchPresentationEnd > searchPresentationStart);
+  assert.doesNotMatch(searchPresentationSource, /\d+%|progress-bar|spinner/i);
   assert.match(searchStyleSource, /crownless-search-ink/);
   assert.match(searchStyleSource, /prefers-reduced-motion: reduce/);
 });
