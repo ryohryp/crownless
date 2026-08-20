@@ -1,5 +1,10 @@
 {
   "asset_type_rules": {
+    "background": {
+      "must_not_chain_from_candidate": true,
+      "must_review_after_generation": true,
+      "must_use_approved_anchor": false
+    },
     "character_visual_anchor": {
       "must_not_chain_from_candidate": true,
       "must_review_after_generation": true,
@@ -28,6 +33,97 @@
   ],
   "global_reference_path": "docs/assets/crownless-visual-design-reference-v0.1.jpg",
   "global_style_lock": "A playable medieval-fantasy game illustrated in Crownless's canonical visual grammar: every screen is a page of one living medieval manuscript, drawn with rough woodcut and irregular hand-inked contours on parchment negative space, crosshatched shadow, flat or lightly textured muted color, compact 3–3.5-head-tall non-chibi figures where characters appear, small restrained folk-art faces, weathered asymmetric equipment, readable phone-scale silhouettes, physical black-ink action marks, muted vermilion danger marks, faded blue-green discovered knowledge, and sparse annotation-like UI. The result must feel drawn, written and printed rather than realistically rendered, painterly, glossy, cinematic or vector-clean, and must visibly belong to the same illustration family as docs/assets/crownless-visual-design-reference-v0.1.jpg.",
+  "grand_design": {
+    "asset_types": {
+      "background": {
+        "composition": {
+          "baked_ui_or_text": false,
+          "characters_by_default": false,
+          "framing": "wide environmental location art with one clear landmark and a readable approach path or spatial cue",
+          "phone_readability": true,
+          "primary_aspect_ratio": "16:9"
+        },
+        "discovery_language": [
+          "the place should feel newly found rather than fully catalogued",
+          "visual detail may suggest age, danger, history and traversal",
+          "the landmark must remain readable at mobile size",
+          "the image should feel like another page from the same Crownless manuscript"
+        ],
+        "forbidden": [
+          "characters or creatures unless explicitly requested",
+          "text, labels, logos or game UI baked into the image",
+          "photoreal or painterly fantasy scenery",
+          "blackened grimdark treatment that destroys parchment readability",
+          "glowing magical spectacle used only for decoration",
+          "borrowing composition or location identity from a rejected or unrelated generated candidate",
+          "using real-world POI photographs as the location visual"
+        ],
+        "palette": [
+          "parchment bone",
+          "charcoal ink",
+          "ash grey",
+          "weathered stone and earth",
+          "restrained faded blue-green for discovered knowledge",
+          "muted vermilion only when semantically justified"
+        ],
+        "purpose": "Represent a discovered Crownless location as a visual memory that can be unlocked and revisited from the exploration journal without becoming a generic cinematic background.",
+        "source_reference_required": false
+      }
+    },
+    "fixed_avoid": [
+      "photorealism",
+      "realistic fantasy concept art",
+      "painterly rendering",
+      "realistic AAA 3D",
+      "cinematic movie-poster composition",
+      "glossy mobile RPG presentation",
+      "clean vector cartoon",
+      "anime-gacha rendering",
+      "generic Diablo imitation",
+      "neon magic",
+      "cinematic black-map presentation",
+      "satellite-map rendering",
+      "glowing territory borders",
+      "high-frequency texture clutter"
+    ],
+    "project_id": "crownless",
+    "review_contract": {
+      "compare": [
+        "manuscript and woodcut drawing grammar",
+        "parchment material language",
+        "semantic palette",
+        "phone-scale landmark readability",
+        "exploration discovery feeling"
+      ],
+      "cross_asset_visual_audit_required": true,
+      "reject_even_if_beautiful_when": [
+        "the result could belong to another dark-fantasy RPG by swapping the logo",
+        "the result becomes photorealistic or painterly",
+        "the visual no longer reads as a Crownless manuscript page",
+        "the location identity is borrowed from an unrelated candidate instead of the current request and Canon"
+      ]
+    },
+    "schema_version": 1,
+    "shared_rules": {
+      "faded_blue_green_means_discovered_knowledge": true,
+      "living_medieval_manuscript": true,
+      "must_not_chain_from_candidate": true,
+      "no_generic_dark_fantasy_drift": true,
+      "parchment_negative_space": true,
+      "phone_scale_readability": true,
+      "restrained_semantic_color": true,
+      "rough_hand_inked_contours": true,
+      "woodcut_crosshatched_shadow": true
+    },
+    "source_documents": [
+      "docs/visual-design-guide-v0.2.md",
+      "docs/visual/GLOBAL_VISUAL_STYLE.md",
+      "docs/visual/WORLD_DIRECTION.md",
+      "docs/exploration-location-spec.md",
+      "docs/assets/README.md"
+    ],
+    "visual_dna": "Crownless is a playable living medieval manuscript: rough hand-inked and woodcut visuals on parchment, with restrained semantic color. Exploration writes discovered places into the world as visual knowledge rather than presenting generic realistic dark-fantasy concept art."
+  },
   "policy": {
     "must_not_chain_from_candidate": true,
     "must_review_after_generation": true,
@@ -35,7 +131,7 @@
   },
   "project_id": "crownless",
   "schema_version": 1,
-  "source_revision": "f7ca6f92353589bedd8ed6ae2397de764cae4220bca30a0c010cadf70cc8892d",
+  "source_revision": "91394c80ea3d0aeead08e4c32064c0113c42cd64c4da69241f35e7e337704728",
   "subjects": [
     {
       "allowed_changes": [
