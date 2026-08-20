@@ -1,0 +1,58 @@
+name: Refresh Visual Canon for Issue 123
+
+on:
+  push:
+    branches:
+      - feat/123-location-visual-grand-design
+    paths:
+      - .visual-director/manifest.json
+      - .visual-director/grand-design.json
+      - .github/workflows/refresh-visual-canon-123.yml
+
+permissions:
+  contents: write
+
+jobs:
+  compile:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Crownless branch
+        uses: actions/checkout@v4
+        with:
+          ref: feat/123-location-visual-grand-design
+          fetch-depth: 0
+
+      - name: Checkout Visual Director main
+        uses: actions/checkout@v4
+        with:
+          repository: ryohryp/visual-director
+          ref: main
+          path: .visual-director-tool
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: .visual-director-tool/package-lock.json
+
+      - name: Build Visual Director
+        working-directory: .visual-director-tool
+        run: |
+          npm ci
+          npm run build
+
+      - name: Compile Crownless Canon
+        run: node .visual-director-tool/dist/index.js compile --project-id crownless --repo-path .
+
+      - name: Commit regenerated Canon
+        run: |
+          if git diff --quiet -- .visual-director/compiled-canon.json; then
+            echo "Compiled Canon already current."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add .visual-director/compiled-canon.json
+          git commit -m "chore: refresh compiled visual canon"
+          git push origin HEAD:feat/123-location-visual-grand-design
