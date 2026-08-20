@@ -1,5 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 const LocationVisuals = require("../src/location-visuals.js");
 
 test("崩れた物見台 resolves to the Ruined Watchtower static asset", () => {
@@ -52,4 +54,12 @@ test("latest mapped discovery visual is resolved from world knowledge without pe
   assert.equal(resolved.entry.name, "新しい物見台");
   assert.equal(resolved.visual.id, "ruined-watchtower");
   assert.equal(worldKnowledge.discoveries.newestTower.assetPath, undefined);
+});
+
+test("location visual runtime and future location assets trigger Production deployment", () => {
+  const workflow = fs.readFileSync(path.join(__dirname, "..", ".github", "workflows", "vercel-production.yml"), "utf8");
+  assert.match(workflow, /"index\.html"/);
+  assert.match(workflow, /"src\/location-visuals\.js"/);
+  assert.match(workflow, /"src\/hearth-presentation\.js"/);
+  assert.match(workflow, /"assets\/locations\/\*\*"/);
 });
