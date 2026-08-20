@@ -1,7 +1,7 @@
 # Crownless — Exploration & Location Discovery Specification
 
 > **Status:** current subsystem direction / implementation target  
-> **Updated:** 2026-08-18  
+> **Updated:** 2026-08-20  
 > **Parent design:** [`game-system-design.md`](game-system-design.md)
 
 This document defines the next direction for Crownless exploration, location gameplay, and the relationship between outdoor discovery and full combat.
@@ -73,6 +73,22 @@ The player should be able to understand at a glance:
 - important persistent targets such as named hunts or dungeons
 
 An incomplete map should visibly invite completion.
+
+### Persistent world knowledge / discovery journal
+
+Once a place reaches **Discovered**, the fact that the player knows that place becomes permanent world knowledge immediately. This is deliberately different from unsecured loot.
+
+- defeat does not make the player forget a discovered place
+- revisiting the same place updates the existing discovery entry rather than creating a duplicate
+- later states such as **Investigated** or **Cleared / changed** may advance that same entry
+- the Grey Hearth wall map and exploration presentation should distinguish known places from first-time discoveries
+- growing the journal should feel like the player's manuscript world becoming filled in, not like a checklist of real-world businesses
+
+Geographic discovery needs a stable identity that is separate from the transient map projection. For the current OpenStreetMap-backed prototype, use the selected source element identity including its namespace (`node:id`, `way:id`, or `relation:id`) together with the Crownless translation/rule signature. Simulated discovery uses a deterministic game-world location identifier.
+
+The persistent journal stores **game-facing knowledge only**. Do not persist raw latitude/longitude, exact travel history, `mapOrigin`, or `representativeCoordinate` as part of the discovery collection. Those values may be used transiently to place the current nearby sketch map, but they are not the collection record.
+
+Do not add completion percentages, location leaderboards, or collection rewards merely to make the count larger. The first purpose of the journal is memory: **I found this place, and my world remembers it.**
 
 ## 5. Discovery and encounter are separate systems
 
@@ -390,6 +406,8 @@ The exploration redesign is successful when playtesting shows that:
 - players deliberately choose which dangerous places to challenge
 - outdoor-style exploration and stationary combat feel complementary rather than competing
 - the system still works with simulated location input
+- a newly discovered place remains part of the player's world even if the expedition later ends in defeat
+- revisiting a known place feels like returning to part of an accumulated world rather than collecting a duplicate stamp
 
 ## 15. Decisions already made
 
@@ -404,6 +422,9 @@ These are current design decisions, not open brainstorm items:
 - real data is translated into fantasy rather than copied directly
 - external geography enriches exploration asynchronously and never gates the core loop
 - simulated / deterministic exploration remains available when GPS or geographic upstreams are late or unavailable
+- once a place is discovered, that world knowledge persists immediately and is not lost on defeat
+- repeated discovery of the same stable place updates one journal entry rather than creating duplicates
+- persistent discovery records contain game-facing knowledge, not raw GPS coordinates or exact route history
 - paid AI calls will not run directly from player clients
 - AI regional generation will be host-side / batch-capable, persisted, and reused
 - gameplay rules remain mostly deterministic; AI is mainly a flavor-generation layer

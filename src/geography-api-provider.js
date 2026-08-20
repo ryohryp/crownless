@@ -31,6 +31,14 @@
     return validCoordinate(feature.center && feature.center.lat, feature.center && feature.center.lon);
   }
 
+  function sourceFeatureRef(feature, fallbackId) {
+    const type = String(feature && feature.type || "").trim().toLowerCase();
+    const id = String(feature && feature.id != null ? feature.id : fallbackId != null ? fallbackId : "").trim();
+    if (!id) return "";
+    if (["node", "way", "relation"].includes(type)) return `${type}:${id}`;
+    return `feature:${id}`;
+  }
+
   function featureCandidates(elements) {
     return (Array.isArray(elements) ? elements : []).map((element, index) => {
       const normalized = Discovery && typeof Discovery.normalizeGeographicFeature === "function"
@@ -39,6 +47,7 @@
       return {
         index,
         id: normalized.id,
+        sourceRef: sourceFeatureRef(element, normalized.id),
         name: normalized.name,
         types: normalized.types,
         coordinate: representativeCoordinate(element)
@@ -71,6 +80,7 @@
       const candidate = pickCandidate(discovery, candidates, used);
       if (candidate) used.add(candidate.index);
       return Object.assign({}, discovery, {
+        sourceRef: candidate ? candidate.sourceRef : "",
         representativeCoordinate: candidate ? Object.assign({}, candidate.coordinate) : null,
         mapOrigin: origin ? Object.assign({}, origin) : null
       });
@@ -198,6 +208,7 @@
     DEFAULT_PROXY_ENDPOINT,
     validCoordinate,
     representativeCoordinate,
+    sourceFeatureRef,
     decorateDiscoveriesWithMapData,
     createProxyLocationDiscoveryProvider
   };

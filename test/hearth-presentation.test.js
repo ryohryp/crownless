@@ -34,6 +34,15 @@ test("hearth presentation responds to progression and equipment state", () => {
   assert.match(css, /\.hearth-scene\.rank-3/);
 });
 
+test("discovery journal is surfaced through the physical wall map instead of another dashboard panel", () => {
+  assert.match(js, /document\.getElementById\("world-knowledge-panel"\)/);
+  assert.match(js, /knowledgePanel\.hidden = true/);
+  assert.match(js, /numberFrom\("#world-knowledge-count"\)/);
+  assert.match(js, /RENOWN \$\{renown\} \/ 探索録 \$\{discovered\}/);
+  assert.match(js, /最近の墨印/);
+  assert.match(js, /map\?\.addEventListener\("click"/);
+});
+
 test("ambient interactions are optional play and preserve the expedition action", () => {
   assert.match(js, /spawnEmbers\(12\)/);
   assert.match(js, /temporaryClass\("character-ready"/);

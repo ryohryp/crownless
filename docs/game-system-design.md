@@ -1,7 +1,7 @@
 # Crownless — Game System Design
 
 > **Status:** current design baseline / living document  
-> **Updated:** 2026-08-11  
+> **Updated:** 2026-08-20  
 > This document is the canonical gameplay design reference for the current prototype. Older versioned documents remain as design history, but implementation and new decisions should follow this file.
 
 ## 1. Vision
@@ -110,6 +110,17 @@ During an expedition, the player can accumulate:
 - dungeon progress during the current delve
 - health loss and other temporary pressure
 
+### Discovery knowledge is different from carried loot
+
+Once the player actually discovers a place, **knowing that place is permanent world knowledge immediately**. The player may lose the treasure carried out of that place, but defeat does not make the player forget that the place exists.
+
+This creates two deliberately different kinds of expedition value:
+
+- **carried value** — loot and other rewards that may still be lost until safe return
+- **learned value** — discovered world knowledge that remains part of the player's map once learned
+
+Revisiting the same stable place updates the existing discovery record rather than creating another copy. This distinction lets exploration itself remain rewarding even when an expedition ends badly, without weakening the survival risk around equipment and loot.
+
 ### Safe return
 
 Returning to the Grey Hearth converts eligible unsecured rewards into permanent progress.
@@ -129,6 +140,7 @@ Failure must matter without making the player afraid to play.
 Current principles:
 
 - permanently secured progress remains
+- discovered world knowledge remains
 - equipped core gear is not deleted
 - unsecured loot is at risk
 - Hearth progression can improve recovery from defeat
@@ -360,11 +372,13 @@ Current Hearth milestones are intentionally small and functional:
 - **15 Renown — 回収係:** defeat recovers one additional unsecured item
 - **30 Renown — 鍛冶火:** modest combat refinement
 
+The existing wall map also acts as the physical home for accumulated discovery knowledge. It should show that the world has been learned without becoming a separate management dashboard.
+
 This is not intended to become a giant passive skill tree. Hearth growth should change the texture of future expeditions without replacing equipment and player skill.
 
 ## 13. Persistence
 
-The prototype stores only **safe Grey Hearth state** as permanent browser progress.
+The prototype stores **safe Grey Hearth state** as permanent browser progress, with one narrow exception: newly learned world knowledge may be merged into that safe snapshot while an expedition is active.
 
 Rules:
 
@@ -372,20 +386,24 @@ Rules:
 - return, defeat resolution, and equipment changes can update the safe snapshot
 - beginning a new expedition checkpoints the current safe state
 - active unfinished expedition state is never written as secured progress
-- refreshing during an expedition restores the last safe Hearth snapshot
-- corrupt save data must fail safely
+- when a place is discovered, only the sanitized discovery journal may be merged into the existing safe snapshot immediately
+- that world-knowledge merge must never secure active HP, expedition depth, unsecured loot, temporary progression changes, encounter state, or other expedition data
+- refreshing during an expedition restores the last safe Hearth snapshot plus any discovery knowledge already learned
+- corrupt or older save data must fail safely and missing discovery-journal fields must normalize safely
 
-This keeps the survival contract understandable: what returned home is real; what was still outside was not secure.
+Persistent discovery entries contain game-facing identity and state only. Do not persist raw GPS coordinates, exact movement history, `mapOrigin`, or `representativeCoordinate` as part of the journal.
+
+This keeps the survival contract understandable: **what returned home is owned; what the player truly learned remains known; what was still being carried outside was not secure.**
 
 Cloud accounts and backend persistence are deferred.
 
 ## 14. Location system — target direction
 
-Real-world location remains a core pillar even though the current prototype uses simulated exploration.
+Real-world location is a core pillar. The current browser prototype now uses GPS/geographic enrichment when available while retaining simulated exploration as a deterministic fallback.
 
 Location is a **world discovery input**, not a pedometer score.
 
-Real movement should eventually reveal or influence:
+Real movement can reveal or influence:
 
 - routes
 - wilderness
@@ -398,11 +416,11 @@ Real movement should eventually reveal or influence:
 - faction influence
 - regional events
 
+Once a stable Crownless place is discovered, it joins the player's persistent discovery journal. Geographic identity must not depend on an ephemeral candidate slot; source namespaces such as `node`, `way`, and `relation` must remain distinguishable. The collection represents **Crownless discoveries**, not a checklist of literal real-world POIs.
+
 The fantasy map should not require one-to-one mapping to private businesses or exact properties. Use coarse, safe regions/cells and avoid gameplay that encourages trespassing or dangerous travel.
 
-The gameplay layer must continue to support simulated movement so combat, loot, dungeons, and progression can be developed from a desk.
-
-GPS integration should begin only when the simulated expedition loop is strong enough that location data has something fun to feed.
+The gameplay layer must continue to support simulated movement so combat, loot, dungeons, and progression can be developed from a desk and can fall back safely when location/geography is unavailable.
 
 ## 15. Party system — future pillar
 
@@ -444,6 +462,9 @@ The current slice is broader than the original v0.1 prototype but still intentio
 It now tests whether several expeditions in a row remain interesting through:
 
 - curiosity-driven exploration leads
+- GPS/geographic discovery enrichment with simulated fallback
+- a lightweight nearby sketch map rather than navigation UI
+- persistent discovery journal / world knowledge with known-place recognition
 - combat / non-combat event variety
 - stand-to-strike combat
 - weapon-specific movement rhythms
@@ -456,9 +477,9 @@ It now tests whether several expeditions in a row remain interesting through:
 - named hunts and signature relics
 - a retreatable three-room dungeon
 - persistent Renown / Grey Hearth milestones
-- safe local persistence
+- safe local persistence with discovery-knowledge-only merge during active expeditions
 
-Real GPS, party play, faction warfare, accounts, and production backend infrastructure remain deferred.
+Party play, faction warfare, accounts, and production backend infrastructure remain deferred.
 
 ## 18. Current success criteria
 
@@ -470,6 +491,9 @@ The prototype is moving in the right direction when playtesting shows that:
 - telegraphs, Evade, Technique, and counter windows create readable risk/reward
 - battlefield weapon pickups create interesting improvisation without extra control clutter
 - exploration leads create curiosity about the next place
+- discovering a new place feels valuable even before loot is considered
+- the player can tell when a nearby place is already part of their world knowledge
+- the accumulated wall map / exploration journal makes the world feel personally explored rather than reset each run
 - loot frequently creates a build decision rather than only a larger number
 - carrying unsecured rewards makes returning home emotionally meaningful
 - named hunts and dungeon depth create a reason to begin another expedition
@@ -483,7 +507,6 @@ If these are weak, improve the loop rather than adding a larger world.
 
 Do not prioritize:
 
-- production GPS infrastructure
 - massive seamless world generation
 - real-time multiplayer
 - large-scale faction warfare simulation
@@ -492,6 +515,8 @@ Do not prioritize:
 - elaborate crafting
 - monetization systems
 - account/backend architecture that the playable loop does not need
+- collection leaderboards or real-POI completion percentages
+- raw GPS movement-history storage
 - sophisticated procedural generation for its own sake
 - production art pipeline or photorealism
 
