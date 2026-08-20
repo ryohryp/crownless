@@ -43,6 +43,18 @@ test("discovery journal is surfaced through the physical wall map instead of ano
   assert.match(js, /map\?\.addEventListener\("click"/);
 });
 
+test("discovered location art unlocks on the wall map only after the static asset loads", () => {
+  assert.match(html, /src="src\/location-visuals\.js"[\s\S]*src="src\/location-discovery-runtime\.js"/);
+  assert.match(js, /window\.CrownlessLocationVisuals/);
+  assert.match(js, /resolveLatestDiscoveredVisual/);
+  assert.match(js, /new Image\(\)/);
+  assert.match(js, /image\.onload/);
+  assert.match(js, /image\.onerror/);
+  assert.match(js, /classList\.add\("has-location-visual"\)/);
+  assert.match(js, /mapPaper\.style\.backgroundImage/);
+  assert.match(js, /clearMapVisual\(\)/);
+});
+
 test("ambient interactions are optional play and preserve the expedition action", () => {
   assert.match(js, /spawnEmbers\(12\)/);
   assert.match(js, /temporaryClass\("character-ready"/);
