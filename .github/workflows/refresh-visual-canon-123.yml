@@ -1,12 +1,13 @@
 name: Refresh Visual Canon for Issue 123
 
 on:
-  push:
+  pull_request:
     branches:
-      - feat/123-location-visual-grand-design
+      - main
     paths:
       - .visual-director/manifest.json
       - .visual-director/grand-design.json
+      - .visual-director/compiled-canon.json
       - .github/workflows/refresh-visual-canon-123.yml
 
 permissions:
@@ -14,12 +15,13 @@ permissions:
 
 jobs:
   compile:
+    if: github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout Crownless branch
+      - name: Checkout Crownless PR branch
         uses: actions/checkout@v4
         with:
-          ref: feat/123-location-visual-grand-design
+          ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
 
       - name: Checkout Visual Director main
@@ -55,4 +57,4 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add .visual-director/compiled-canon.json
           git commit -m "chore: refresh compiled visual canon"
-          git push origin HEAD:feat/123-location-visual-grand-design
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
