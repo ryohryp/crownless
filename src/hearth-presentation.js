@@ -98,9 +98,13 @@
     if (!map) return;
     mapVisualAsset = "";
     map.classList.remove("has-location-visual");
-    map.style.removeProperty("--location-visual");
     delete map.dataset.locationVisual;
     map.setAttribute("aria-label", "地図と灰炉の名声を見る");
+    if (mapPaper) {
+      for (const property of ["background-image", "background-position", "background-size", "background-repeat", "opacity", "filter"]) {
+        mapPaper.style.removeProperty(property);
+      }
+    }
   }
 
   function refreshMapVisual() {
@@ -126,7 +130,13 @@
       if (requestId !== mapVisualRequest) return;
       mapVisualAsset = assetPath;
       unavailableMapVisualAsset = "";
-      map.style.setProperty("--location-visual", `url("${assetPath.replace(/"/g, "%22")}")`);
+      const escapedAssetPath = assetPath.replace(/"/g, "%22");
+      mapPaper.style.backgroundImage = `linear-gradient(rgba(111,91,64,.20),rgba(65,50,34,.34)),url("${escapedAssetPath}")`;
+      mapPaper.style.backgroundPosition = "center";
+      mapPaper.style.backgroundSize = "cover";
+      mapPaper.style.backgroundRepeat = "no-repeat";
+      mapPaper.style.opacity = ".92";
+      mapPaper.style.filter = "sepia(.22) saturate(.72) contrast(.94) brightness(.88)";
       map.classList.add("has-location-visual");
       map.dataset.locationVisual = resolved.visual.id;
       const placeName = String(resolved.entry && resolved.entry.name || "発見済み地点");
