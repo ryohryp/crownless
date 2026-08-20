@@ -29,6 +29,8 @@ For any task that creates, edits, implements, or evaluates visuals — including
 - `assets/combat/minimal-v0.1/actors/` as the authoritative current combat-character proportion and silhouette set
 - `skills/crownless-visual-design/SKILL.md` as the execution and review workflow
 
+Before invoking any image generator for a production asset, also read `docs/visual/IMAGE_GENERATION_HANDOFF.md` and perform its asset-only preflight. Issue/PR/progress/dashboard/report metadata must stay outside the generation request. If the generator returns meta-output instead of the requested game asset, reject it immediately; do not register it as a Candidate, reuse it as a parent, or blindly retry the same contaminated handoff.
+
 The older visual boards remain useful for linework, palette, materials, map/UI grammar, and physical ink effects. They are **not** authoritative for the old 4–5-head character proportion.
 
 Preserve the current visual grammar: hand-inked irregular linework, parchment / ash fields, woodcut / crosshatched shadow, restrained semantic color, compact **3–3.5-head-tall folk-doll manuscript characters**, annotation-like UI, and physical ink-like combat effects.
@@ -90,12 +92,13 @@ When choosing between architectural novelty and something that makes the prototy
 1. Read this file.
 2. Read `docs/game-system-design.md` as the canonical current gameplay design.
 3. If the task touches visuals in any form, read `docs/visual-design-guide-v0.2.md`, inspect `docs/assets/crownless-visual-design-reference-v0.1.jpg`, inspect the accepted actor set when characters are involved, and read `skills/crownless-visual-design/SKILL.md`.
-4. If the task touches exploration, maps, location data, GPS, regional flavor, outdoor/stationary play, or AI-generated world content, also read `docs/exploration-location-spec.md`.
-5. If the task touches combat camera, HUD, battlefield presentation, readability, actors, combat assets, or combat loot presentation, also read `docs/combat-presentation-spec.md`.
-6. If the task touches the Grey Hearth hub, safe-room presentation, or environmental progression, also read `docs/hearth-presentation-spec.md`.
-7. Inspect the current implementation and open issues before proposing a replacement architecture.
-8. Treat older versioned design documents and old visual-proportion references as history when they conflict with canonical design, subsystem specifications, current implementation, or accepted combat actors.
-9. Preserve existing decisions unless there is a concrete reason to change them.
+4. If the task will invoke an image generator for a production asset, also read `docs/visual/IMAGE_GENERATION_HANDOFF.md` and complete the asset-only preflight before generation.
+5. If the task touches exploration, maps, location data, GPS, regional flavor, outdoor/stationary play, or AI-generated world content, also read `docs/exploration-location-spec.md`.
+6. If the task touches combat camera, HUD, battlefield presentation, readability, actors, combat assets, or combat loot presentation, also read `docs/combat-presentation-spec.md`.
+7. If the task touches the Grey Hearth hub, safe-room presentation, or environmental progression, also read `docs/hearth-presentation-spec.md`.
+8. Inspect the current implementation and open issues before proposing a replacement architecture.
+9. Treat older versioned design documents and old visual-proportion references as history when they conflict with canonical design, subsystem specifications, current implementation, or accepted combat actors.
+10. Preserve existing decisions unless there is a concrete reason to change them.
 
 ## Implementation expectations
 
