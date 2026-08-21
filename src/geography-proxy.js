@@ -11,6 +11,7 @@ const DEFAULT_OVERPASS_ENDPOINTS = [
 const DEFAULT_TIMEOUT_MS = 15000;
 const OVERPASS_QUERY_TIMEOUT_SECONDS = 12;
 const METRES_PER_LATITUDE_DEGREE = 111320;
+const HEIGHT_SIGNAL_RADIUS_BONUS_METRES = 300;
 
 function parseCoordinate(value, min, max, label) {
   const number = Number(value);
@@ -26,6 +27,10 @@ function normalizeRadius(value) {
   const number = Number(value);
   if (!Number.isFinite(number)) return 650;
   return Math.max(100, Math.min(1500, number));
+}
+
+function heightSignalRadius(value) {
+  return Math.min(1500, normalizeRadius(value) + HEIGHT_SIGNAL_RADIUS_BONUS_METRES);
 }
 
 function roundCoordinate(value) {
@@ -53,13 +58,21 @@ function buildBoundingBox(latitude, longitude, radius) {
   ];
 }
 
-function buildSignalQuery(spatialFilter) {
+function buildSignalQuery(spatialFilter, heightSpatialFilter) {
+  const heightFilter = heightSpatialFilter || spatialFilter;
   // Discovery only needs enough real-world signals to create up to three
   // choices. Query relevant tagged objects directly instead of materializing
   // every object in a dense area. Nodes already carry coordinates and Overpass
   // supplies a lightweight center for ways; relations stay excluded to keep the
   // enrichment query small and avoid pulling complete GIS geometry.
-  return `nw(${spatialFilter})[natural~"^(water|wood|peak|ridge|hill|coastline)$"];`
+  //
+  // Height landmarks are intentionally searched a little farther away than
+  // ordinary ground signals: a tower, ridge, peak, or viewpoint is visually
+  // legible from farther away, while rivers, shrines, parks, and road hubs still
+  // stay inside the normal exploration radius. Keep this restricted to sparse,
+  // indexed OSM tags; scanning dense urban building names is prohibitively slow.
+  return `nw(${spatialFilter})[natural~"^(water|wood|coastline)$"];`
+    + `nw(${heightFilter})[natural~"^(peak|ridge|hill)$"];`
     + `nw(${spatialFilter})[waterway];`
     + `nw(${spatialFilter})[bridge];`
     + `nw(${spatialFilter})[amenity=place_of_worship];`
@@ -67,11 +80,9 @@ function buildSignalQuery(spatialFilter) {
     + `nw(${spatialFilter})[leisure=park];`
     + `nw(${spatialFilter})[railway=station];`
     + `nw(${spatialFilter})[public_transport=station];`
-    + `nw(${spatialFilter})[man_made~"^(tower|communications_tower)$"];`
-    + `nw(${spatialFilter})[tourism=viewpoint];`
-    + `nw(${spatialFilter})[historic=tower];`
-    + `nw(${spatialFilter})[building][name~"(タワー|塔|tower)",i];`
-    + `nw(${spatialFilter})[building]["name:ja"~"(タワー|塔)"];`
+    + `nw(${heightFilter})[man_made~"^(tower|communications_tower)$"];`
+    + `nw(${heightFilter})[tourism=viewpoint];`
+    + `nw(${heightFilter})[historic=tower];`
     + `nw(${spatialFilter})[place~"^(city|town|village|hamlet|suburb|neighbourhood|quarter|island)$"];`;
 }
 
@@ -79,8 +90,9 @@ function buildAroundQuery(latitude, longitude, radius) {
   const lat = parseCoordinate(latitude, -90, 90, "latitude");
   const lng = parseCoordinate(longitude, -180, 180, "longitude");
   const metres = normalizeRadius(radius);
+  const heightMetres = heightSignalRadius(radius);
   return `[out:json][timeout:${OVERPASS_QUERY_TIMEOUT_SECONDS}];(`
-    + buildSignalQuery(`around:${metres},${lat},${lng}`)
+    + buildSignalQuery(`around:${metres},${lat},${lng}`, `around:${heightMetres},${lat},${lng}`)
     + `);out tags center qt;`;
 }
 
@@ -88,11 +100,17 @@ function buildOverpassQuery(latitude, longitude, radius) {
   const bounds = buildBoundingBox(latitude, longitude, radius);
   if (!bounds) return buildAroundQuery(latitude, longitude, radius);
 
+  const lat = parseCoordinate(latitude, -90, 90, "latitude");
+  const lng = parseCoordinate(longitude, -180, 180, "longitude");
+  const heightRadius = heightSignalRadius(radius);
+  const heightBounds = buildBoundingBox(lat, lng, heightRadius);
+  const heightFilter = heightBounds ? heightBounds.join(",") : `around:${heightRadius},${lat},${lng}`;
+
   // A bbox is cheaper than repeatedly evaluating an around-distance filter, and
   // applying the selective tag filters directly avoids the dense-area failure
   // mode where PR #99 first loaded every node and way into a named set.
   return `[out:json][timeout:${OVERPASS_QUERY_TIMEOUT_SECONDS}];(`
-    + buildSignalQuery(bounds.join(","))
+    + buildSignalQuery(bounds.join(","), heightFilter)
     + `);out tags center qt;`;
 }
 
@@ -312,7 +330,9 @@ module.exports = {
   DEFAULT_OVERPASS_ENDPOINTS,
   DEFAULT_TIMEOUT_MS,
   OVERPASS_QUERY_TIMEOUT_SECONDS,
+  HEIGHT_SIGNAL_RADIUS_BONUS_METRES,
   normalizeRadius,
+  heightSignalRadius,
   buildBoundingBox,
   buildOverpassQuery,
   classifyUpstreamFailure,

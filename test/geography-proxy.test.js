@@ -31,6 +31,8 @@ test("server geography proxy races Overpass endpoints and returns the first succ
   assert.equal(result.elements[0].tags["name:ja"], "中川");
   const sentQuery = decodeURIComponent(calls[0].options.body.slice("data=".length));
   assert.match(sentQuery, /nw\(35\.684161,139\.772811,35\.695839,139\.787189\)\[waterway\]/);
+  assert.match(sentQuery, /nw\(35\.681466,139\.769493,35\.698534,139\.790507\)\[tourism=viewpoint\]/);
+  assert.doesNotMatch(sentQuery, /\[building\]\[name~/);
   assert.doesNotMatch(sentQuery, /\.nearby/);
   assert.doesNotMatch(sentQuery, /around:650/);
   assert.equal(calls[0].options.headers.Accept, "application/json");
@@ -79,16 +81,20 @@ test("production endpoint pool excludes the unreachable Japan mirror and keeps t
   assert.equal(ProxyCore.DEFAULT_OVERPASS_ENDPOINTS.some((endpoint) => endpoint.includes("openstreetmap.jp")), false);
 });
 
-test("server geography query applies selective tags directly to one bbox and retains way centers", () => {
+test("server geography query keeps ground signals local and extends sparse height signals", () => {
   assert.deepEqual(ProxyCore.buildBoundingBox(35.69, 139.78, 650), [35.684161, 139.772811, 35.695839, 139.787189]);
+  assert.equal(ProxyCore.heightSignalRadius(650), 950);
+  assert.deepEqual(ProxyCore.buildBoundingBox(35.69, 139.78, ProxyCore.heightSignalRadius(650)), [35.681466, 139.769493, 35.698534, 139.790507]);
   const query = ProxyCore.buildOverpassQuery(35.69, 139.78, 650);
-  assert.match(query, /^\[out:json\]\[timeout:12\];\(nw\(35\.684161,139\.772811,35\.695839,139\.787189\)\[natural~/);
+  assert.match(query, /^\[out:json\]\[timeout:12\];\(nw\(35\.684161,139\.772811,35\.695839,139\.787189\)\[natural~"\^\(water\|wood\|coastline\)\$"\]/);
   assert.match(query, /nw\(35\.684161,139\.772811,35\.695839,139\.787189\)\[waterway\]/);
+  assert.match(query, /nw\(35\.681466,139\.769493,35\.698534,139\.790507\)\[natural~"\^\(peak\|ridge\|hill\)\$"\]/);
+  assert.match(query, /nw\(35\.681466,139\.769493,35\.698534,139\.790507\)\[man_made~"\^\(tower\|communications_tower\)\$"\]/);
+  assert.match(query, /nw\(35\.681466,139\.769493,35\.698534,139\.790507\)\[tourism=viewpoint\]/);
   assert.match(query, /nw\(35\.684161,139\.772811,35\.695839,139\.787189\)\[place~"\^\(city\|town\|village\|hamlet\|suburb\|neighbourhood\|quarter\|island\)\$"\]/);
+  assert.doesNotMatch(query, /\[building\]\[name~/);
   assert.doesNotMatch(query, /\.nearby/);
   assert.doesNotMatch(query, /around:/);
-  assert.doesNotMatch(query, /\[natural\];/);
-  assert.doesNotMatch(query, /\[place\];/);
   assert.match(query, /\);out tags center qt;$/);
   assert.doesNotMatch(query, /relation/);
 });
@@ -96,9 +102,11 @@ test("server geography query applies selective tags directly to one bbox and ret
 test("server geography query falls back to exact-radius around search near coordinate edges", () => {
   assert.equal(ProxyCore.buildBoundingBox(89.9, 139.78, 650), null);
   assert.match(ProxyCore.buildOverpassQuery(89.9, 139.78, 650), /nw\(around:650,89\.9,139\.78\)\[waterway\]/);
+  assert.match(ProxyCore.buildOverpassQuery(89.9, 139.78, 650), /nw\(around:950,89\.9,139\.78\)\[tourism=viewpoint\]/);
   assert.match(ProxyCore.buildOverpassQuery(89.9, 139.78, 650), /out tags center qt;/);
   assert.equal(ProxyCore.buildBoundingBox(35.69, 179.999, 650), null);
   assert.match(ProxyCore.buildOverpassQuery(35.69, 179.999, 650), /nw\(around:650,35\.69,179\.999\)\[waterway\]/);
+  assert.match(ProxyCore.buildOverpassQuery(35.69, 179.999, 650), /nw\(around:950,35\.69,179\.999\)\[tourism=viewpoint\]/);
 });
 
 test("server geography proxy classifies timeout and network failures", () => {
@@ -125,6 +133,8 @@ test("server geography proxy validates coordinates and clamps radius", async () 
   await assert.rejects(ProxyCore.requestGeography({ latitude: 999, longitude: 139, fetch: async () => ({ ok: true }) }), /Invalid latitude/);
   assert.equal(ProxyCore.normalizeRadius(5000), 1500);
   assert.equal(ProxyCore.normalizeRadius(10), 100);
+  assert.equal(ProxyCore.heightSignalRadius(5000), 1500);
+  assert.equal(ProxyCore.heightSignalRadius(100), 400);
 });
 
 test("server geography handler logs structured degraded state", async () => {
