@@ -70,6 +70,8 @@ function buildSignalQuery(spatialFilter) {
     + `nw(${spatialFilter})[man_made~"^(tower|communications_tower)$"];`
     + `nw(${spatialFilter})[tourism=viewpoint];`
     + `nw(${spatialFilter})[historic=tower];`
+    + `nw(${spatialFilter})[building][name~"(タワー|塔|tower)",i];`
+    + `nw(${spatialFilter})[building]["name:ja"~"(タワー|塔)"];`
     + `nw(${spatialFilter})[place~"^(city|town|village|hamlet|suburb|neighbourhood|quarter|island)$"];`;
 }
 
