@@ -2,12 +2,13 @@
 
 const { createGeographyHandler } = require("../src/geography-proxy.js");
 
-// Keep the production pool on currently listed global public Overpass instances.
-// The generic proxy module remains configurable for tests and local experiments.
+// Production geography must only race Overpass instances with global data
+// coverage. Regional instances can return HTTP 200 with an empty result for
+// Tokyo and would otherwise win the race before a valid global response.
 const PRODUCTION_OVERPASS_ENDPOINTS = Object.freeze([
   "https://overpass-api.de/api/interpreter",
-  "https://overpass.maprva.org/api/interpreter",
-  "https://ethiopia.overpass.openplaceguide.org/api/interpreter"
+  "https://overpass.private.coffee/api/interpreter",
+  "https://maps.mail.ru/osm/tools/overpass/api/interpreter"
 ]);
 
 const PRODUCTION_MAX_RADIUS_METRES = 500;
