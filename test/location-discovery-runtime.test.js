@@ -47,7 +47,8 @@ test("pending location discovery presents manuscript ink until real-world discov
   assert.match(runtimeSource, /location-discovery-search/);
   assert.match(runtimeSource, /現実の痕跡を照合中/);
   assert.match(runtimeSource, /const searching = locationState === "loading"/);
-  assert.match(runtimeSource, /geographicDiscoveries = await provider\.discover\(\{ location \}\)/);
+  assert.match(runtimeSource, /const discovered = await provider\.discover\(\{ location \}\)/);
+  assert.match(runtimeSource, /geographicDiscoveries = ensureQaWatchtowerDiscoveries\(discovered\)/);
   assert.match(runtimeSource, /locationState = geographicDiscoveries\.length \? "ready" : "failed"/);
   const searchPresentationStart = runtimeSource.indexOf("function ensureSearchPresentation");
   const searchPresentationEnd = runtimeSource.indexOf("function showLocationStatus", searchPresentationStart);
@@ -83,7 +84,8 @@ test("geography runs as background enrichment with client headroom", () => {
 test("successful geography replaces visible cards with real discovered destinations", () => {
   assert.match(presentationSource, /REAL-WORLD DISCOVERY/);
   assert.match(runtimeSource, /title\.textContent = discovery\.title/);
-  assert.match(runtimeSource, /card\.dataset\.discoverySource = discovery \? "geographic" : "simulated"/);
+  assert.match(runtimeSource, /card\.dataset\.discoverySource = discovery \? \(discovery\.qaInjected \? "qa" : "geographic"\) : "simulated"/);
+  assert.match(runtimeSource, /if \(!QA_WATCHTOWER_MODE\) return source/);
 });
 
 test("selected GPS destination is attached to the existing exploration result", () => {
