@@ -114,7 +114,7 @@
     }
 
     const safe = Core.loadSafeState();
-    const resolved = LocationVisuals.resolveLatestDiscoveredVisual(safe && safe.worldKnowledge);
+    const resolved = LocationVisuals.resolveLatestDiscoveredVisual(safe && safe.worldKnowledge && safe.worldKnowledge.discoveries);
     const assetPath = resolved && resolved.visual ? String(resolved.visual.assetPath || "") : "";
     if (!assetPath) {
       unavailableMapVisualAsset = "";
