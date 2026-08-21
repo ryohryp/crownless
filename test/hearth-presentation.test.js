@@ -7,6 +7,7 @@ const root = path.join(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const css = fs.readFileSync(path.join(root, "hearth.css"), "utf8");
 const viewportCss = fs.readFileSync(path.join(root, "hearth-viewport.css"), "utf8");
+const locationVisualCss = fs.readFileSync(path.join(root, "hearth-location-visual.css"), "utf8");
 const js = fs.readFileSync(path.join(root, "src", "hearth-presentation.js"), "utf8");
 
 test("Grey Hearth exposes interactive world objects instead of a single CTA card", () => {
@@ -53,6 +54,20 @@ test("discovered location art unlocks on the wall map only after the static asse
   assert.match(js, /classList\.add\("has-location-visual"\)/);
   assert.match(js, /mapPaper\.style\.backgroundImage/);
   assert.match(js, /clearMapVisual\(\)/);
+});
+
+test("unlocked wall-map art can be opened as a phone-readable discovery folio", () => {
+  assert.match(js, /ensureStylesheet\("hearth-location-visual\.css"\)/);
+  assert.match(js, /function openLocationVisualViewer\(\)/);
+  assert.match(js, /viewer\.id = "hearth-location-visual-viewer"/);
+  assert.match(js, /assetPath !== mapVisualAsset/);
+  assert.match(js, /map\?\.classList\.contains\("has-location-visual"\)/);
+  assert.match(js, /image\.src = assetPath/);
+  assert.match(js, /event\.key === "Escape"/);
+  assert.match(js, /map\.classList\.contains\("has-location-visual"\) && openLocationVisualViewer\(\)/);
+  assert.match(locationVisualCss, /\.hearth-location-visual-viewer\s*\{[\s\S]*position:\s*fixed/);
+  assert.match(locationVisualCss, /aspect-ratio:\s*16\s*\/\s*9/);
+  assert.match(locationVisualCss, /@media \(max-width:\s*560px\)/);
 });
 
 test("ambient interactions are optional play and preserve the expedition action", () => {
