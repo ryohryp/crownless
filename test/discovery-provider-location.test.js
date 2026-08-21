@@ -7,6 +7,19 @@ test("normalizes OSM-like tags behind Crownless feature types", () => {
   assert.deepEqual(features, ["water", "crossing", "sacred", "woods", "road_hub", "height", "coast", "settlement"]);
 });
 
+test("tower and viewpoint landmarks become height signals for Ruined Watchtower discovery", () => {
+  const context = Discovery.normalizeGeographicContext([
+    { id: 1, tags: { man_made: "tower", "name:ja": "見晴らし塔" } },
+    { id: 2, tags: { tourism: "viewpoint", name: "Riverside Viewpoint" } }
+  ]);
+  assert.ok(context.types.includes("height"));
+  assert.equal(context.namesByType.height, "見晴らし塔");
+  const discovery = Discovery.discoveriesFromFeatures(context.types, { limit: 1, namesByType: context.namesByType })[0];
+  assert.equal(discovery.baseTitle, "崩れた物見台");
+  assert.equal(discovery.title, "見晴らし塔の崩れた物見台");
+  assert.equal(discovery.contentKind, "dungeon");
+});
+
 test("keeps Japanese OSM names alongside normalized feature types", () => {
   const context = Discovery.normalizeGeographicContext([{ id: 1, tags: { waterway: "river", name: "Nakagawa", "name:ja": "中川" } }, { id: 2, tags: { place: "neighbourhood", name: "Okudo", "name:ja": "奥戸" } }]);
   assert.equal(context.namesByType.water, "中川"); assert.equal(context.namesByType.settlement, "奥戸");
@@ -66,6 +79,9 @@ test("location provider uses injected network boundary and carries OSM names", a
   let request; const provider = Discovery.createLocationDiscoveryProvider({ limit: 2, endpoint: "https://example.test/api", fetch: async (url, options) => { request = { url, options }; return { ok: true, status: 200, async json() { return { elements: [{ id: 10, tags: { waterway: "river", "name:ja": "中川" } }, { id: 11, tags: { bridge: "yes" } }] }; } }; } });
   const discoveries = await provider.discover({ location: { latitude: 35.69, longitude: 139.78 } });
   assert.equal(provider.kind, "location"); assert.equal(discoveries[0].title, "中川の血濡れの渡し場"); assert.equal(provider.endpoint, "https://example.test/api"); assert.match(request.options.body, /around%3A500%2C35.69%2C139.78/);
+  const sentQuery = decodeURIComponent(request.options.body.slice("data=".length));
+  assert.match(sentQuery, /\[man_made=tower\]/);
+  assert.match(sentQuery, /\[tourism=viewpoint\]/);
 });
 
 test("location provider retries the next Overpass endpoint after a failure", async () => {
