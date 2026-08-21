@@ -40,7 +40,7 @@ test("discovery journal is surfaced through the physical wall map instead of ano
   assert.match(js, /knowledgePanel\.hidden = true/);
   assert.match(js, /numberFrom\("#world-knowledge-count"\)/);
   assert.match(js, /RENOWN \$\{renown\} \/ 探索録 \$\{discovered\}/);
-  assert.match(js, /最近の墨印/);
+  assert.match(js, /画像付きの発見はまだない/);
   assert.match(js, /map\?\.addEventListener\("click"/);
 });
 
