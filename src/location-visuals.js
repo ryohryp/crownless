@@ -20,7 +20,7 @@
 
   function resolveLocationVisual(entry) {
     if (!entry || typeof entry !== "object") return null;
-    const baseTitle = cleanText(entry.baseTitle);
+    const baseTitle = cleanText(entry.baseTitle) || cleanText(entry.name);
     const visual = VISUALS_BY_BASE_TITLE[baseTitle];
     return visual ? Object.assign({}, visual) : null;
   }
