@@ -6,23 +6,41 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function createLocationVisuals() {
   "use strict";
 
+  const RUINED_WATCHTOWER_VISUAL = Object.freeze({
+    id: "ruined-watchtower",
+    assetPath: "assets/locations/ruined-watchtower.png",
+    alt: "崩れた石造りの物見台"
+  });
+
   const VISUALS_BY_BASE_TITLE = Object.freeze({
-    "崩れた物見台": Object.freeze({
-      id: "ruined-watchtower",
-      assetPath: "assets/locations/ruined-watchtower.png",
-      alt: "崩れた石造りの物見台"
-    })
+    "崩れた物見台": RUINED_WATCHTOWER_VISUAL,
+    // Legacy simulated location from the prototype. It represents the same
+    // watchtower / signal-tower archetype and can safely reuse this visual.
+    "消えかけた烽火台": RUINED_WATCHTOWER_VISUAL
   });
 
   function cleanText(value) {
     return String(value == null ? "" : value).trim();
   }
 
+  function cleanTerrain(value) {
+    if (!Array.isArray(value)) return [];
+    return value.map((item) => cleanText(item)).filter(Boolean);
+  }
+
+  function isRuinedWatchtowerArchetype(entry) {
+    const contentKind = cleanText(entry && entry.contentKind);
+    const terrain = cleanTerrain(entry && entry.terrain);
+    return contentKind === "dungeon" && terrain.includes("height");
+  }
+
   function resolveLocationVisual(entry) {
     if (!entry || typeof entry !== "object") return null;
     const baseTitle = cleanText(entry.baseTitle) || cleanText(entry.name);
-    const visual = VISUALS_BY_BASE_TITLE[baseTitle];
-    return visual ? Object.assign({}, visual) : null;
+    const byTitle = VISUALS_BY_BASE_TITLE[baseTitle];
+    if (byTitle) return Object.assign({}, byTitle);
+    if (isRuinedWatchtowerArchetype(entry)) return Object.assign({}, RUINED_WATCHTOWER_VISUAL);
+    return null;
   }
 
   function resolveLatestDiscoveredVisual(worldKnowledge) {
