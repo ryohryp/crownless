@@ -1,12 +1,16 @@
 (() => {
   "use strict";
 
-  if (!document.querySelector('link[href="hearth-viewport.css"]')) {
-    const layout = document.createElement("link");
-    layout.rel = "stylesheet";
-    layout.href = "hearth-viewport.css";
-    document.head.appendChild(layout);
+  function ensureStylesheet(href) {
+    if (document.querySelector(`link[href="${href}"]`)) return;
+    const stylesheet = document.createElement("link");
+    stylesheet.rel = "stylesheet";
+    stylesheet.href = href;
+    document.head.appendChild(stylesheet);
   }
+
+  ensureStylesheet("hearth-viewport.css");
+  ensureStylesheet("hearth-location-visual.css");
 
   const Core = window.CrownlessCore;
   const LocationVisuals = window.CrownlessLocationVisuals;
@@ -33,6 +37,7 @@
   let mutationFrame = null;
   let mapVisualRequest = 0;
   let mapVisualAsset = "";
+  let mapVisualResolved = null;
   let unavailableMapVisualAsset = "";
 
   function speak(message, duration = 1500) {
@@ -94,12 +99,74 @@
     return `RENOWN ${renown} / 探索録 ${discovered} / ${milestone}`;
   }
 
+  function closeLocationVisualViewer() {
+    const viewer = document.getElementById("hearth-location-visual-viewer");
+    if (viewer) viewer.remove();
+    document.body.classList.remove("hearth-location-visual-open");
+  }
+
+  function openLocationVisualViewer() {
+    const resolved = mapVisualResolved;
+    const assetPath = resolved && resolved.visual ? String(resolved.visual.assetPath || "") : "";
+    if (!assetPath || assetPath !== mapVisualAsset || !map?.classList.contains("has-location-visual")) return false;
+
+    closeLocationVisualViewer();
+
+    const viewer = document.createElement("div");
+    viewer.id = "hearth-location-visual-viewer";
+    viewer.className = "hearth-location-visual-viewer";
+    viewer.setAttribute("role", "dialog");
+    viewer.setAttribute("aria-modal", "true");
+    viewer.setAttribute("aria-label", "探索録のロケーションビジュアル");
+
+    const folio = document.createElement("figure");
+    folio.className = "hearth-location-visual-folio";
+
+    const image = document.createElement("img");
+    image.src = assetPath;
+    image.alt = String(resolved.visual.alt || "発見済み地点");
+    image.decoding = "async";
+
+    const caption = document.createElement("figcaption");
+    const kicker = document.createElement("small");
+    kicker.textContent = "DISCOVERED PLACE / 探索録";
+    const title = document.createElement("strong");
+    title.textContent = String(resolved.entry && resolved.entry.name || "発見済み地点");
+    const note = document.createElement("span");
+    note.textContent = "見つけた景色は、敗れても地図から消えない。";
+    caption.append(kicker, title, note);
+
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "hearth-location-visual-close";
+    close.setAttribute("aria-label", "探索録を閉じる");
+    close.textContent = "閉じる ×";
+    close.addEventListener("click", closeLocationVisualViewer);
+
+    folio.append(image, caption, close);
+    viewer.appendChild(folio);
+    viewer.addEventListener("click", (event) => {
+      if (event.target === viewer) closeLocationVisualViewer();
+    });
+    viewer.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closeLocationVisualViewer();
+    });
+
+    document.body.appendChild(viewer);
+    document.body.classList.add("hearth-location-visual-open");
+    requestAnimationFrame(() => viewer.classList.add("show"));
+    close.focus();
+    return true;
+  }
+
   function clearMapVisual() {
     if (!map) return;
     mapVisualAsset = "";
+    mapVisualResolved = null;
     map.classList.remove("has-location-visual");
     delete map.dataset.locationVisual;
     map.setAttribute("aria-label", "地図と灰炉の名声を見る");
+    closeLocationVisualViewer();
     if (mapPaper) {
       for (const property of ["background-image", "background-position", "background-size", "background-repeat", "opacity", "filter"]) {
         mapPaper.style.removeProperty(property);
@@ -121,7 +188,13 @@
       clearMapVisual();
       return;
     }
-    if (mapVisualAsset === assetPath || unavailableMapVisualAsset === assetPath) return;
+    if (mapVisualAsset === assetPath) {
+      mapVisualResolved = resolved;
+      const placeName = String(resolved.entry && resolved.entry.name || "発見済み地点");
+      map.setAttribute("aria-label", `探索録の地図。${placeName}の墨絵を見る`);
+      return;
+    }
+    if (unavailableMapVisualAsset === assetPath) return;
 
     const requestId = ++mapVisualRequest;
     const image = new Image();
@@ -129,6 +202,7 @@
     image.onload = () => {
       if (requestId !== mapVisualRequest) return;
       mapVisualAsset = assetPath;
+      mapVisualResolved = resolved;
       unavailableMapVisualAsset = "";
       const escapedAssetPath = assetPath.replace(/"/g, "%22");
       mapPaper.style.backgroundImage = `linear-gradient(rgba(111,91,64,.20),rgba(65,50,34,.34)),url("${escapedAssetPath}")`;
@@ -195,9 +269,13 @@
     const renown = numberFrom("#hearth-progress .renown-total strong");
     const discovered = numberFrom("#world-knowledge-count");
     const latest = document.querySelector("#world-knowledge-panel .world-knowledge-entry strong")?.textContent || "";
+    if (discovered > 0 && map.classList.contains("has-location-visual") && openLocationVisualViewer()) {
+      const visualName = String(mapVisualResolved && mapVisualResolved.entry && mapVisualResolved.entry.name || latest || "発見済み地点");
+      speak(`探索録は ${discovered}。墨印「${visualName}」の景色を開いた。`, 1600);
+      return;
+    }
     if (discovered > 0) {
-      if (map.classList.contains("has-location-visual") && latest) speak(`探索録は ${discovered}。最近の墨印「${latest}」には、見つけた景色も残っている。`, 1900);
-      else speak(latest ? `探索録は ${discovered}。最近の墨印は「${latest}」。` : `探索録は ${discovered}。地図に発見の墨印が残っている。`, 1800);
+      speak(latest ? `探索録は ${discovered}。最近の墨印は「${latest}」。` : `探索録は ${discovered}。地図に発見の墨印が残っている。`, 1800);
     } else {
       speak(renown >= 5 ? "生還者の線はある。だが、探索録にはまだ名のある場所がない。" : "まだ白い。最初の発見を地図に残せ。", 1500);
     }
