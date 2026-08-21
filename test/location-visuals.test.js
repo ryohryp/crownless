@@ -21,6 +21,22 @@ test("崩れた物見台 resolves to the Ruined Watchtower static asset", () => 
   assert.equal(entry.assetPath, undefined);
 });
 
+test("legacy discovery name resolves the location visual when baseTitle is absent", () => {
+  const entry = {
+    name: "崩れた物見台",
+    baseTitle: "",
+    contentKind: "dungeon",
+    firstDiscoveredAt: 100,
+    visits: 1
+  };
+
+  assert.deepEqual(LocationVisuals.resolveLocationVisual(entry), {
+    id: "ruined-watchtower",
+    assetPath: "assets/locations/ruined-watchtower.png",
+    alt: "崩れた石造りの物見台"
+  });
+});
+
 test("unmapped discoveries do not unlock a location visual", () => {
   assert.equal(LocationVisuals.resolveLocationVisual({ baseTitle: "森の野営地" }), null);
   assert.equal(LocationVisuals.resolveLocationVisual(null), null);
