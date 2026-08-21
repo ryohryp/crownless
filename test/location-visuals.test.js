@@ -4,6 +4,12 @@ const fs = require("node:fs");
 const path = require("node:path");
 const LocationVisuals = require("../src/location-visuals.js");
 
+const RUINED_WATCHTOWER_VISUAL = {
+  id: "ruined-watchtower",
+  assetPath: "assets/locations/ruined-watchtower.png",
+  alt: "崩れた石造りの物見台"
+};
+
 test("崩れた物見台 resolves to the Ruined Watchtower static asset", () => {
   const entry = {
     name: "近所の丘の崩れた物見台",
@@ -13,11 +19,7 @@ test("崩れた物見台 resolves to the Ruined Watchtower static asset", () => 
     visits: 1
   };
 
-  assert.deepEqual(LocationVisuals.resolveLocationVisual(entry), {
-    id: "ruined-watchtower",
-    assetPath: "assets/locations/ruined-watchtower.png",
-    alt: "崩れた石造りの物見台"
-  });
+  assert.deepEqual(LocationVisuals.resolveLocationVisual(entry), RUINED_WATCHTOWER_VISUAL);
   assert.equal(entry.assetPath, undefined);
 });
 
@@ -30,11 +32,36 @@ test("legacy discovery name resolves the location visual when baseTitle is absen
     visits: 1
   };
 
-  assert.deepEqual(LocationVisuals.resolveLocationVisual(entry), {
-    id: "ruined-watchtower",
-    assetPath: "assets/locations/ruined-watchtower.png",
-    alt: "崩れた石造りの物見台"
-  });
+  assert.deepEqual(LocationVisuals.resolveLocationVisual(entry), RUINED_WATCHTOWER_VISUAL);
+});
+
+test("legacy simulated watchfire hill resolves to the same watchtower archetype", () => {
+  const entry = {
+    name: "消えかけた烽火台",
+    baseTitle: "",
+    contentKind: "combat",
+    firstDiscoveredAt: 100,
+    visits: 1
+  };
+
+  assert.deepEqual(LocationVisuals.resolveLocationVisual(entry), RUINED_WATCHTOWER_VISUAL);
+});
+
+test("height dungeon discovery resolves by archetype even when its title drifted", () => {
+  const entry = {
+    name: "北丘の古い塔跡",
+    baseTitle: "古い塔跡",
+    terrain: ["height"],
+    contentKind: "dungeon",
+    firstDiscoveredAt: 100,
+    visits: 1
+  };
+
+  assert.deepEqual(LocationVisuals.resolveLocationVisual(entry), RUINED_WATCHTOWER_VISUAL);
+});
+
+test("height alone does not leak the watchtower visual to unrelated discoveries", () => {
+  assert.equal(LocationVisuals.resolveLocationVisual({ baseTitle: "高台の野営地", terrain: ["height"], contentKind: "encounter" }), null);
 });
 
 test("unmapped discoveries do not unlock a location visual", () => {
