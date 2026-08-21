@@ -2,12 +2,14 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const geography = require("../api/geography.js");
 
-test("production geography uses current global Overpass fallbacks", () => {
+test("production geography uses global-coverage Overpass fallbacks", () => {
   assert.deepEqual(geography.PRODUCTION_OVERPASS_ENDPOINTS, [
     "https://overpass-api.de/api/interpreter",
-    "https://overpass.maprva.org/api/interpreter",
-    "https://ethiopia.overpass.openplaceguide.org/api/interpreter"
+    "https://overpass.private.coffee/api/interpreter",
+    "https://maps.mail.ru/osm/tools/overpass/api/interpreter"
   ]);
+  assert.equal(geography.PRODUCTION_OVERPASS_ENDPOINTS.some((endpoint) => endpoint.includes("maprva.org")), false);
+  assert.equal(geography.PRODUCTION_OVERPASS_ENDPOINTS.some((endpoint) => endpoint.includes("ethiopia.overpass")), false);
 });
 
 test("production geography caps dense-area discovery radius at 500m", () => {
