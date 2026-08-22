@@ -9,6 +9,8 @@
   const FEATURE_ORDER = ["water", "crossing", "sacred", "woods", "road_hub", "height", "coast", "settlement"];
   const DISCOVERY_SIGNAL_PRIORITY = ["crossing", "sacred", "water", "settlement", "road_hub", "woods", "height", "coast"];
   const DEFAULT_OVERPASS_ENDPOINTS = ["https://overpass.openstreetmap.jp/api/interpreter", "https://overpass.private.coffee/api/interpreter", "https://overpass-api.de/api/interpreter"];
+  const LANDMARK_BUILDING_HEIGHT_METRES = 30;
+  const LANDMARK_BUILDING_LEVELS = 10;
 
   function clampRisk(value) {
     return Math.max(1, Math.min(5, Number(value) || 1));
@@ -45,6 +47,13 @@
     return String(tags["name:ja"] || tags.name || "").trim();
   }
 
+  function numericTag(tags, key) {
+    const raw = String(tags && tags[key] != null ? tags[key] : "").trim().replace(",", ".");
+    if (!raw) return null;
+    const value = Number.parseFloat(raw);
+    return Number.isFinite(value) ? value : null;
+  }
+
   function normalizeGeographicFeature(feature) {
     const tags = tagsOf(feature);
     const name = featureName(tags);
@@ -59,10 +68,17 @@
     if (tags.railway === "station" || tags.public_transport === "station" || tags.highway === "traffic_signals" || tags.junction) add("road_hub");
     const namedTowerBuilding = !!tags.building && /(?:タワー|塔|tower)/i.test(name);
     const sparseManMadeHeight = ["tower", "communications_tower", "mast", "water_tower", "lighthouse"].includes(tags.man_made);
+    const buildingHeight = numericTag(tags, "height");
+    const buildingLevels = numericTag(tags, "building:levels");
+    const tallBuilding = !!tags.building && (
+      (buildingHeight != null && buildingHeight >= LANDMARK_BUILDING_HEIGHT_METRES)
+      || (buildingLevels != null && buildingLevels >= LANDMARK_BUILDING_LEVELS)
+    );
     const towerLike = sparseManMadeHeight
       || tags.tourism === "viewpoint"
       || tags.historic === "tower"
-      || namedTowerBuilding;
+      || namedTowerBuilding
+      || tallBuilding;
     if (tags.natural === "peak" || tags.natural === "ridge" || tags.natural === "hill" || tags.ele || towerLike) add("height");
     if (tags.natural === "coastline" || tags.place === "island") add("coast");
     if (["city", "town", "village", "hamlet", "suburb", "neighbourhood", "quarter"].includes(tags.place)) add("settlement");
@@ -230,7 +246,7 @@
     const lng = Number(longitude);
     const metres = Math.max(100, Math.min(1500, Number(radius) || 500));
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) throw new Error("Valid latitude and longitude are required");
-    return `[out:json][timeout:12];(nwr(around:${metres},${lat},${lng})[natural];nwr(around:${metres},${lat},${lng})[waterway];nwr(around:${metres},${lat},${lng})[bridge];nwr(around:${metres},${lat},${lng})[amenity=place_of_worship];nwr(around:${metres},${lat},${lng})[landuse=cemetery];nwr(around:${metres},${lat},${lng})[landuse=forest];nwr(around:${metres},${lat},${lng})[leisure=park];nwr(around:${metres},${lat},${lng})[railway=station];nwr(around:${metres},${lat},${lng})[public_transport=station];nwr(around:${metres},${lat},${lng})[man_made=tower];nwr(around:${metres},${lat},${lng})[man_made=communications_tower];nwr(around:${metres},${lat},${lng})[man_made=mast][height];nwr(around:${metres},${lat},${lng})[man_made~"^(water_tower|lighthouse)$"];nwr(around:${metres},${lat},${lng})[tourism=viewpoint];nwr(around:${metres},${lat},${lng})[historic=tower];nwr(around:${metres},${lat},${lng})[place];);out tags center;`;
+    return `[out:json][timeout:12];(nwr(around:${metres},${lat},${lng})[natural];nwr(around:${metres},${lat},${lng})[waterway];nwr(around:${metres},${lat},${lng})[bridge];nwr(around:${metres},${lat},${lng})[amenity=place_of_worship];nwr(around:${metres},${lat},${lng})[landuse=cemetery];nwr(around:${metres},${lat},${lng})[landuse=forest];nwr(around:${metres},${lat},${lng})[leisure=park];nwr(around:${metres},${lat},${lng})[railway=station];nwr(around:${metres},${lat},${lng})[public_transport=station];nwr(around:${metres},${lat},${lng})[man_made=tower];nwr(around:${metres},${lat},${lng})[man_made=communications_tower];nwr(around:${metres},${lat},${lng})[man_made=mast][height];nwr(around:${metres},${lat},${lng})[man_made~"^(water_tower|lighthouse)$"];nwr(around:${metres},${lat},${lng})[tourism=viewpoint];nwr(around:${metres},${lat},${lng})[historic=tower];nwr(around:${metres},${lat},${lng})[building][height];nwr(around:${metres},${lat},${lng})[building]["building:levels"~"^([1-9][0-9]+)$"];nwr(around:${metres},${lat},${lng})[place];);out tags center;`;
   }
 
   function createLocationDiscoveryProvider(options) {
