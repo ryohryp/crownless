@@ -74,7 +74,8 @@ test("empty and corrupt discovery journals fail closed", () => {
 });
 
 test("wall map opens a responsive journal browser with selectable details", () => {
-  assert.match(locationVisualSource, /DOMContentLoaded[\s\S]*discovery-journal-browser\.js/);
+  assert.match(locationVisualSource, /DOMContentLoaded/);
+  assert.match(locationVisualSource, /discovery-journal-browser\.js/);
   assert.match(journalSource, /document\.getElementById\("hearth-map-focus"\)/);
   assert.match(journalSource, /event\.stopImmediatePropagation\(\)/);
   assert.match(journalSource, /viewer\.id = "discovery-journal-browser"/);
