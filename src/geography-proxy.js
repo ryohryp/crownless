@@ -67,10 +67,9 @@ function buildSignalQuery(spatialFilter, heightSpatialFilter) {
   // enrichment query small and avoid pulling complete GIS geometry.
   //
   // Height landmarks are intentionally searched a little farther away than
-  // ordinary ground signals: a tower, ridge, peak, or viewpoint is visually
-  // legible from farther away, while rivers, shrines, parks, and road hubs still
-  // stay inside the normal exploration radius. Keep this restricted to sparse,
-  // indexed OSM tags; scanning dense urban building names is prohibitively slow.
+  // ordinary ground signals: a tower, ridge, peak, viewpoint, or genuinely tall
+  // building is visually legible from farther away. Tall buildings are selected
+  // by structural metadata only; avoid dense urban building-name scans.
   return `nw(${spatialFilter})[natural~"^(water|wood|coastline)$"];`
     + `nw(${heightFilter})[natural~"^(peak|ridge|hill)$"];`
     + `nw(${spatialFilter})[waterway];`
@@ -85,6 +84,8 @@ function buildSignalQuery(spatialFilter, heightSpatialFilter) {
     + `nw(${heightFilter})[man_made~"^(water_tower|lighthouse)$"];`
     + `nw(${heightFilter})[tourism=viewpoint];`
     + `nw(${heightFilter})[historic=tower];`
+    + `nw(${heightFilter})[building][height];`
+    + `nw(${heightFilter})[building]["building:levels"~"^([1-9][0-9]+)$"];`
     + `nw(${spatialFilter})[place~"^(city|town|village|hamlet|suburb|neighbourhood|quarter|island)$"];`;
 }
 
