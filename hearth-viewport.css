@@ -35,4 +35,114 @@
   #hub-screen .hub-grid {
     grid-template-columns: 1fr;
   }
+
+  /* Keep the mobile Hearth as a room, but give its copy, wall objects and
+     floor objects distinct vertical bands instead of shrinking them into the
+     same 690px canvas. */
+  #hub-screen .hearth-scene {
+    min-height: 820px;
+  }
+
+  #hub-screen .hearth-scene-copy {
+    top: 18px;
+    left: 16px;
+    width: calc(100% - 32px);
+    max-width: none;
+  }
+
+  #hub-screen .hearth-scene-copy h1 {
+    margin-bottom: 8px;
+    font-size: clamp(34px, 10vw, 48px);
+    line-height: .98;
+  }
+
+  #hub-screen .hearth-scene-copy .lede {
+    display: none;
+  }
+
+  /* Wall band: the map stays below the hero copy and the gate gets its own
+     right-hand area. Location art only changes the map paper background, so
+     unlocking a visual cannot alter these dimensions. */
+  #hub-screen .hearth-map {
+    left: 4%;
+    top: 190px;
+    transform: scale(.68) rotate(-1.5deg);
+    transform-origin: left top;
+  }
+
+  #hub-screen .hearth-gate {
+    top: 220px;
+    right: 2%;
+    width: 46%;
+    height: 270px;
+  }
+
+  #hub-screen .hearth-gate .object-label {
+    right: 0;
+    bottom: -38px;
+    min-width: 142px;
+  }
+
+  /* Floor band: move the character away from the reward shelf and keep the
+     fire label on the far right. Secondary prose is already available through
+     interaction feedback and is intentionally hidden at this width. */
+  #hub-screen .hearth-character {
+    left: 43%;
+    bottom: 155px;
+    transform: translateX(-50%) scale(.78);
+    transform-origin: center bottom;
+  }
+
+  #hub-screen .hearth-character:active {
+    transform: translateX(-50%) scale(.77);
+  }
+
+  #hub-screen .hearth-character .object-label {
+    width: 185px;
+  }
+
+  #hub-screen .hearth-fire {
+    left: 78%;
+    bottom: 96px;
+    transform: translateX(-50%) scale(.76);
+    transform-origin: center bottom;
+  }
+
+  #hub-screen .hearth-fire:active {
+    transform: translateX(-50%) scale(.75);
+  }
+
+  #hub-screen .hearth-loot-shelf {
+    left: 2%;
+    bottom: 42px;
+    transform: scale(.60);
+    transform-origin: left bottom;
+  }
+
+  #hub-screen .hearth-loot-shelf .object-label {
+    top: -56px;
+    bottom: auto;
+  }
+
+  #hub-screen .hearth-forge {
+    right: 0;
+    bottom: 42px;
+    transform: scale(.56);
+    transform-origin: right bottom;
+  }
+
+  #hub-screen .hearth-recovery-cache {
+    right: 25%;
+    bottom: 54px;
+    transform: scale(.60);
+  }
+
+  #hub-screen .hearth-object .object-label span {
+    display: none;
+  }
+
+  #hub-screen .hearth-whisper {
+    bottom: 8px;
+    max-width: 90%;
+  }
 }
