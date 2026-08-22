@@ -3,7 +3,9 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 
-const runtimeSource = fs.readFileSync(path.join(__dirname, "../src/location-discovery-runtime.js"), "utf8");
+const runtimeSource = fs
+  .readFileSync(path.join(__dirname, "../src/location-discovery-runtime.js"), "utf8")
+  .replace(/\r\n/g, "\n");
 
 function freshCore() {
   for (const modulePath of [
