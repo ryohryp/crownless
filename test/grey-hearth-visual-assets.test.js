@@ -23,6 +23,7 @@ test('Grey Hearth visual handoff keeps three concepts and a selected direction',
   assert.equal(manifest.approval.approved_visual_anchor, false);
   assert.equal(manifest.selected_concept, 'concepts/grey-hearth-b-gate-centered.png');
   assert.equal(manifest.concepts.length, 3);
+  assert.equal(manifest.approval.approved_for_grey_hearth_runtime, true);
   assert.equal(manifest.policy.must_not_chain_from_candidate, true);
   assert.equal(manifest.policy.must_review_after_generation, true);
 

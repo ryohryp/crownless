@@ -12,6 +12,9 @@ const js = fs.readFileSync(path.join(root, "src", "hearth-presentation.js"), "ut
 
 test("Grey Hearth exposes interactive world objects instead of a single CTA card", () => {
   assert.match(html, /id="hearth-scene"/);
+  assert.match(html, /class="hearth-scene hearth-scene--visual-candidate"/);
+  assert.match(html, /class="hearth-scene-art"/);
+  assert.match(html, /assets\/combat\/minimal-v0\.1\/actors\/player-unarmed\.png/);
   assert.match(html, /id="start-expedition"[^>]*class="hearth-object hearth-gate"/);
   assert.match(html, /id="hearth-fire-interaction"/);
   assert.match(html, /id="hearth-character-interaction"/);
@@ -33,6 +36,9 @@ test("hearth presentation responds to progression and equipment state", () => {
   assert.match(css, /\.hearth-scene\.rank-1/);
   assert.match(css, /\.hearth-scene\.rank-2/);
   assert.match(css, /\.hearth-scene\.rank-3/);
+  assert.match(css, /\.hearth-scene-art/);
+  assert.match(css, /grey-hearth-b-gate-centered\.png/);
+  assert.match(css, /background-position:\s*44% center/);
 });
 
 test("discovery journal is surfaced through the physical wall map instead of another dashboard panel", () => {

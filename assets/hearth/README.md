@@ -1,7 +1,9 @@
 # Grey Hearth visual candidates
 
-These files are Issue #163 design candidates for the Grey Hearth first view. They
-are not Approved Visual Anchors and must not be chained as generation parents.
+These files are Issue #163 design candidates for the Grey Hearth first view. The
+selected B composition is approved for the Grey Hearth runtime integration, but
+these files are not Approved Visual Anchors and must not be chained as generation
+parents.
 
 ## Concept comparison
 

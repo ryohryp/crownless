@@ -22,6 +22,8 @@
   },
   "approval": {
     "approved_visual_anchor": false,
-    "note": "Composition selected for handoff; explicit visual approval remains required before Canon promotion."
+    "approved_for_grey_hearth_runtime": true,
+    "approval_scope": "Issue #163 selected composition B as the Grey Hearth homepage runtime candidate",
+    "note": "Composition is approved for the Grey Hearth runtime; separate Canon promotion remains out of scope."
   }
 }

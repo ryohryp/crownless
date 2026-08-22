@@ -1,6 +1,7 @@
 # Grey Hearth visual asset plan v0.1
 
-Status: Issue #163 direction selected; image files remain review Candidates.
+Status: Issue #163 direction approved for Grey Hearth runtime integration; image
+files remain review Candidates for Canon purposes.
 
 ## Selected composition
 

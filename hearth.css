@@ -19,6 +19,64 @@
   box-shadow: inset 0 -80px 120px rgba(0, 0, 0, .42);
 }
 
+/* User-approved Issue #163 composition. The art remains a runtime candidate,
+   while gameplay state and interactive hit regions stay in the existing DOM. */
+.hearth-scene-art {
+  position: absolute;
+  inset: 0;
+  z-index: -4;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(12, 10, 8, .18), rgba(7, 6, 5, .38)),
+    url("assets/hearth/concepts/grey-hearth-b-gate-centered.png") 50% 50% / cover no-repeat;
+  filter: saturate(.82) contrast(.94);
+  opacity: .82;
+}
+
+.hearth-scene--visual-candidate::after { opacity: .58; }
+
+.hearth-scene--visual-candidate .hearth-gate {
+  top: 56px;
+  right: auto;
+  left: 35%;
+  width: 30%;
+}
+
+.hearth-scene--visual-candidate .hearth-gate .gate-stone { opacity: 0; }
+
+.hearth-scene--visual-candidate .hearth-fire {
+  left: 16%;
+}
+
+.hearth-scene--visual-candidate .hearth-fire > :not(.object-label) { opacity: 0; }
+
+.hearth-scene--visual-candidate .hearth-character {
+  left: 28%;
+}
+
+.hearth-avatar-sprite { display: none; }
+
+.hearth-scene--visual-candidate .hearth-avatar-sprite {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  display: block;
+  width: 136px;
+  height: 190px;
+  object-fit: contain;
+  transform: translateX(-50%);
+}
+
+.hearth-scene--visual-candidate .fighter-body > .head,
+.hearth-scene--visual-candidate .fighter-body > .torso,
+.hearth-scene--visual-candidate .fighter-body > .arm,
+.hearth-scene--visual-candidate .fighter-body > .leg { opacity: 0; }
+
+.hearth-scene--visual-candidate .fighter-body > .weapon-shape {
+  right: 6px;
+  top: 72px;
+}
+
 .hearth-scene::before {
   content: "";
   position: absolute;
@@ -619,6 +677,18 @@
   .hearth-scene-copy h1 { font-size: clamp(38px, 12vw, 58px); }
   .hearth-scene-copy .lede { max-width: 520px; }
 
+  .hearth-scene--visual-candidate .hearth-scene-art { background-position: 44% center; }
+
+  .hearth-scene--visual-candidate .hearth-gate {
+    top: 205px;
+    right: auto;
+    left: 22%;
+    width: 56%;
+  }
+
+  .hearth-scene--visual-candidate .hearth-fire { left: 13%; }
+  .hearth-scene--visual-candidate .hearth-character { left: 29%; }
+
   .hearth-gate {
     top: 205px;
     right: 3%;
@@ -663,6 +733,18 @@
   }
 
   .hearth-scene-copy .lede { display: none; }
+
+  .hearth-scene--visual-candidate .hearth-scene-art { background-position: 43% center; }
+
+  .hearth-scene--visual-candidate .hearth-gate {
+    top: 176px;
+    right: auto;
+    left: 16%;
+    width: 68%;
+  }
+
+  .hearth-scene--visual-candidate .hearth-fire { left: 11%; }
+  .hearth-scene--visual-candidate .hearth-character { left: 28%; }
 
   .hearth-gate {
     top: 176px;
