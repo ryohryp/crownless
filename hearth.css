@@ -81,9 +81,9 @@
   left: 50%;
   bottom: 0;
   display: block;
-  width: 230px;
-  height: 330px;
-  bottom: -40px;
+  width: 252px;
+  height: 362px;
+  bottom: -28px;
   object-fit: contain;
   filter: saturate(.86) brightness(.9);
   transform: translateX(-50%);
@@ -97,6 +97,23 @@
 .hearth-scene--visual-candidate .fighter-body > .weapon-shape {
   right: 6px;
   top: 72px;
+}
+
+.hearth-scene--visual-candidate .hearth-character::before {
+  content: "";
+  position: absolute;
+  z-index: 0;
+  left: -12%;
+  right: -12%;
+  bottom: -3%;
+  height: 78%;
+  background: radial-gradient(ellipse at 50% 72%, rgba(8, 7, 6, .66), rgba(8, 7, 6, .28) 48%, transparent 74%);
+  pointer-events: none;
+}
+
+.hearth-scene--visual-candidate .hearth-character .fighter-body,
+.hearth-scene--visual-candidate .hearth-character .hearth-avatar-sprite {
+  z-index: 1;
 }
 
 .hearth-scene::before {
@@ -305,11 +322,17 @@
 .hearth-gate .object-label {
   right: 0;
   bottom: -28px;
-  min-width: 190px;
+  min-width: 210px;
+  padding: 10px 12px;
   border-color: rgba(240,199,114,.27);
   opacity: 1;
   visibility: visible;
   transform: translateY(0);
+}
+
+.hearth-gate .object-label strong {
+  font-size: 16px;
+  letter-spacing: .02em;
 }
 
 .hearth-gate:hover .gate-stone {
