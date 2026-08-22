@@ -18,6 +18,7 @@
   const SAVE_VERSION = 1;
   const KNOWLEDGE_STATES = new Set(["discovered", "investigated", "cleared"]);
   const EXPLORATION_CELL_ZOOM = 16;
+  const EXPLORATION_AREA_ZOOM = 14;
   const MAX_MERCATOR_LATITUDE = 85.05112878;
 
   const base = {
@@ -58,6 +59,18 @@
     return { id: `cell:${zoom}:${x}:${y}`, zoom, x, y };
   }
 
+  function parseExplorationAreaId(value) {
+    const match = /^area:(\d{1,2}):(\d+):(\d+)$/.exec(cleanText(value));
+    if (!match) return null;
+    const zoom = Number(match[1]);
+    const x = Number(match[2]);
+    const y = Number(match[3]);
+    if (!Number.isInteger(zoom) || zoom < 1 || zoom > 22) return null;
+    const size = 2 ** zoom;
+    if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x >= size || y >= size) return null;
+    return { id: `area:${zoom}:${x}:${y}`, zoom, x, y };
+  }
+
   function explorationCellFromLocation(location, zoom = EXPLORATION_CELL_ZOOM) {
     const latitude = Number(location && location.latitude);
     const longitude = Number(location && location.longitude);
@@ -71,6 +84,38 @@
     const x = Math.max(0, Math.min(size - 1, Math.floor(((longitude + 180) / 360) * size)));
     const y = Math.max(0, Math.min(size - 1, Math.floor((1 - Math.asinh(Math.tan(latitudeRadians)) / Math.PI) / 2 * size)));
     return { id: `cell:${normalizedZoom}:${x}:${y}`, zoom: normalizedZoom, x, y };
+  }
+
+  function explorationAreaFromLocation(location, zoom = EXPLORATION_AREA_ZOOM) {
+    const latitude = Number(location && location.latitude);
+    const longitude = Number(location && location.longitude);
+    const normalizedZoom = Number(zoom);
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude) || latitude < -90 || latitude > 90 || longitude < -180 || longitude > 180) return null;
+    if (!Number.isInteger(normalizedZoom) || normalizedZoom < 1 || normalizedZoom > 22) return null;
+
+    const size = 2 ** normalizedZoom;
+    const mercatorLatitude = Math.max(-MAX_MERCATOR_LATITUDE, Math.min(MAX_MERCATOR_LATITUDE, latitude));
+    const latitudeRadians = mercatorLatitude * Math.PI / 180;
+    const x = Math.max(0, Math.min(size - 1, Math.floor(((longitude + 180) / 360) * size)));
+    const y = Math.max(0, Math.min(size - 1, Math.floor((1 - Math.asinh(Math.tan(latitudeRadians)) / Math.PI) / 2 * size)));
+    return { id: `area:${normalizedZoom}:${x}:${y}`, zoom: normalizedZoom, x, y };
+  }
+
+  function explorationAreaFromCell(value, zoom = EXPLORATION_AREA_ZOOM) {
+    const cell = parseExplorationCellId(value && typeof value === "object" ? value.id : value);
+    const normalizedZoom = Number(zoom);
+    if (!cell || !Number.isInteger(normalizedZoom) || normalizedZoom < 1 || normalizedZoom > cell.zoom) return null;
+    const factor = 2 ** (cell.zoom - normalizedZoom);
+    const x = Math.floor(cell.x / factor);
+    const y = Math.floor(cell.y / factor);
+    return { id: `area:${normalizedZoom}:${x}:${y}`, zoom: normalizedZoom, x, y };
+  }
+
+  function explorationAreaGoal(value) {
+    const area = parseExplorationAreaId(value && typeof value === "object" ? value.id : value);
+    if (!area) return 0;
+    const hash = ((area.x * 31) + (area.y * 17) + (area.zoom * 13)) >>> 0;
+    return 5 + (hash % 3);
   }
 
   function sanitizeExploredCells(value) {
@@ -121,7 +166,7 @@
       const terrain = Array.isArray(raw.terrain)
         ? [...new Set(raw.terrain.map((item) => cleanText(item)).filter(Boolean))].slice(0, 8)
         : [];
-      safe[key] = {
+      const entry = {
         key,
         name: cleanText(raw.name, "名もない発見"),
         baseTitle: cleanText(raw.baseTitle),
@@ -131,6 +176,9 @@
         firstDiscoveredAt: Number.isFinite(firstDiscoveredAt) && firstDiscoveredAt > 0 ? firstDiscoveredAt : 0,
         visits: Math.max(1, Math.floor(Number(raw.visits) || 1))
       };
+      const area = parseExplorationAreaId(raw.areaId);
+      if (area) entry.areaId = area.id;
+      safe[key] = entry;
     });
 
     const result = { discoveries: safe };
@@ -321,11 +369,16 @@
   Core.SAVE_KEY = SAVE_KEY;
   Core.SAVE_VERSION = SAVE_VERSION;
   Core.EXPLORATION_CELL_ZOOM = EXPLORATION_CELL_ZOOM;
+  Core.EXPLORATION_AREA_ZOOM = EXPLORATION_AREA_ZOOM;
   Core.saveSafeState = saveSafeState;
   Core.saveWorldKnowledge = saveWorldKnowledge;
   Core.recordExploredCell = recordExploredCell;
   Core.explorationCellFromLocation = explorationCellFromLocation;
+  Core.explorationAreaFromLocation = explorationAreaFromLocation;
+  Core.explorationAreaFromCell = explorationAreaFromCell;
+  Core.explorationAreaGoal = explorationAreaGoal;
   Core.parseExplorationCellId = parseExplorationCellId;
+  Core.parseExplorationAreaId = parseExplorationAreaId;
   Core.loadSafeState = loadSafeState;
   Core.clearLocalSave = clearLocalSave;
   Core.sanitizeWorldKnowledge = sanitizeWorldKnowledge;
