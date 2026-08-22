@@ -8,6 +8,7 @@ on:
     paths:
       - "api/**"
       - "index.html"
+      - "*.css"
       - "src/geography-proxy.js"
       - "src/discovery-provider.js"
       - "src/location-discovery-runtime.js"
