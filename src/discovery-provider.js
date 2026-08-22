@@ -58,8 +58,8 @@
     if (tags.natural === "wood" || tags.landuse === "forest" || tags.leisure === "park") add("woods");
     if (tags.railway === "station" || tags.public_transport === "station" || tags.highway === "traffic_signals" || tags.junction) add("road_hub");
     const namedTowerBuilding = !!tags.building && /(?:タワー|塔|tower)/i.test(name);
-    const towerLike = tags.man_made === "tower"
-      || tags.man_made === "communications_tower"
+    const sparseManMadeHeight = ["tower", "communications_tower", "mast", "water_tower", "lighthouse"].includes(tags.man_made);
+    const towerLike = sparseManMadeHeight
       || tags.tourism === "viewpoint"
       || tags.historic === "tower"
       || namedTowerBuilding;
@@ -230,7 +230,7 @@
     const lng = Number(longitude);
     const metres = Math.max(100, Math.min(1500, Number(radius) || 500));
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) throw new Error("Valid latitude and longitude are required");
-    return `[out:json][timeout:12];(nwr(around:${metres},${lat},${lng})[natural];nwr(around:${metres},${lat},${lng})[waterway];nwr(around:${metres},${lat},${lng})[bridge];nwr(around:${metres},${lat},${lng})[amenity=place_of_worship];nwr(around:${metres},${lat},${lng})[landuse=cemetery];nwr(around:${metres},${lat},${lng})[landuse=forest];nwr(around:${metres},${lat},${lng})[leisure=park];nwr(around:${metres},${lat},${lng})[railway=station];nwr(around:${metres},${lat},${lng})[public_transport=station];nwr(around:${metres},${lat},${lng})[man_made=tower];nwr(around:${metres},${lat},${lng})[man_made=communications_tower];nwr(around:${metres},${lat},${lng})[tourism=viewpoint];nwr(around:${metres},${lat},${lng})[historic=tower];nwr(around:${metres},${lat},${lng})[building][name~"(タワー|塔|tower)",i];nwr(around:${metres},${lat},${lng})[building]["name:ja"~"(タワー|塔)"];nwr(around:${metres},${lat},${lng})[place];);out tags center;`;
+    return `[out:json][timeout:12];(nwr(around:${metres},${lat},${lng})[natural];nwr(around:${metres},${lat},${lng})[waterway];nwr(around:${metres},${lat},${lng})[bridge];nwr(around:${metres},${lat},${lng})[amenity=place_of_worship];nwr(around:${metres},${lat},${lng})[landuse=cemetery];nwr(around:${metres},${lat},${lng})[landuse=forest];nwr(around:${metres},${lat},${lng})[leisure=park];nwr(around:${metres},${lat},${lng})[railway=station];nwr(around:${metres},${lat},${lng})[public_transport=station];nwr(around:${metres},${lat},${lng})[man_made~"^(tower|communications_tower|mast|water_tower|lighthouse)$"];nwr(around:${metres},${lat},${lng})[tourism=viewpoint];nwr(around:${metres},${lat},${lng})[historic=tower];nwr(around:${metres},${lat},${lng})[place];);out tags center;`;
   }
 
   function createLocationDiscoveryProvider(options) {
