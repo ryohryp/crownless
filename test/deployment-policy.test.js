@@ -24,13 +24,14 @@ test('GitHub Pages publishes only after successful main CI', () => {
   assert.doesNotMatch(workflow, /enablement:\s*true/);
 });
 
-test('Vercel Production deploys geography changes from main and remains manually runnable', () => {
+test('Vercel Production deploys frontend and geography changes from main and remains manually runnable', () => {
   const workflow = read('.github/workflows/vercel-production.yml');
 
   assert.match(workflow, /workflow_dispatch:/);
   assert.match(workflow, /\n\s*push:/);
   assert.match(workflow, /branches:\s*\n\s*- main/);
   assert.match(workflow, /api\/\*\*/);
+  assert.match(workflow, /- "\*\.css"/);
   assert.match(workflow, /src\/geography-proxy\.js/);
   assert.match(workflow, /src\/discovery-provider\.js/);
   assert.match(workflow, /src\/location-discovery-runtime\.js/);
