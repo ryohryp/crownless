@@ -4,11 +4,14 @@
   "asset_type": "hearth_visual_candidates",
   "status": "candidate",
   "global_reference": "docs/assets/crownless-visual-design-reference-v0.1.jpg",
-  "selected_concept": "concepts/grey-hearth-b-gate-centered.png",
+  "selected_concept": "concepts/grey-hearth-empty-room-v0.2.png",
+  "previous_selected_concept": "concepts/grey-hearth-b-gate-centered.png",
+  "runtime_candidate": "concepts/grey-hearth-empty-room-v0.2.png",
   "concepts": [
     "concepts/grey-hearth-a-hearth-centered.png",
     "concepts/grey-hearth-b-gate-centered.png",
-    "concepts/grey-hearth-c-avatar-centered.png"
+    "concepts/grey-hearth-c-avatar-centered.png",
+    "concepts/grey-hearth-empty-room-v0.2.png"
   ],
   "supporting_candidates": [
     "concepts/mist-gate-reference.png",
@@ -23,7 +26,7 @@
   "approval": {
     "approved_visual_anchor": false,
     "approved_for_grey_hearth_runtime": true,
-    "approval_scope": "Issue #163 selected composition B as the Grey Hearth homepage runtime candidate",
-    "note": "Composition is approved for the Grey Hearth runtime; separate Canon promotion remains out of scope."
+    "approval_scope": "Issue #166 selected the empty-room background for Grey Hearth runtime integration",
+    "note": "Runtime integration approval is separate from Canon promotion. This file remains a Candidate and is not an Approved Visual Anchor."
   }
 }

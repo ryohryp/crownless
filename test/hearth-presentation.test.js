@@ -12,7 +12,7 @@ const js = fs.readFileSync(path.join(root, "src", "hearth-presentation.js"), "ut
 
 test("Grey Hearth exposes interactive world objects instead of a single CTA card", () => {
   assert.match(html, /id="hearth-scene"/);
-  assert.match(html, /class="hearth-scene hearth-scene--visual-candidate"/);
+  assert.match(html, /class="hearth-scene hearth-scene--empty-room"/);
   assert.match(html, /class="hearth-scene-art"/);
   assert.match(html, /assets\/combat\/minimal-v0\.1\/actors\/player-unarmed\.png/);
   assert.match(html, /id="start-expedition"[^>]*class="hearth-object hearth-gate"/);
@@ -22,8 +22,8 @@ test("Grey Hearth exposes interactive world objects instead of a single CTA card
   assert.match(html, /id="hearth-map-focus"/);
 });
 
-test("Issue 162 keeps the scene visual primary and reveals secondary labels on interaction", () => {
-  assert.match(html, /data-visual="grey-hearth-b-gate-centered"/);
+test("Issue 166 keeps the room visual primary and reveals secondary labels on interaction", () => {
+  assert.match(html, /data-visual="grey-hearth-empty-room-v0\.2"/);
   assert.match(html, /<h1>灰炉<em>帰る場所が、<br>少しずつ育つ。<\/em><\/h1>/);
   assert.match(css, /\.hearth-scene-copy\s*\{[\s\S]*?width:\s*min\(290px,\s*32%\)/);
   assert.match(css, /\.hearth-object \.object-label\s*\{[\s\S]*?opacity:\s*0[\s\S]*?visibility:\s*hidden/);
@@ -49,8 +49,8 @@ test("hearth presentation responds to progression and equipment state", () => {
   assert.match(css, /\.hearth-scene\.rank-2/);
   assert.match(css, /\.hearth-scene\.rank-3/);
   assert.match(css, /\.hearth-scene-art/);
-  assert.match(css, /grey-hearth-b-gate-centered\.png/);
-  assert.match(css, /background-position:\s*44% center/);
+  assert.match(css, /grey-hearth-empty-room-v0\.2\.png/);
+  assert.match(css, /background-position:\s*56% center/);
 });
 
 test("discovery journal is surfaced through the physical wall map instead of another dashboard panel", () => {
@@ -62,7 +62,7 @@ test("discovery journal is surfaced through the physical wall map instead of ano
   assert.match(js, /map\?\.addEventListener\("click"/);
 });
 
-test("discovered location art unlocks on the wall map only after the static asset loads", () => {
+test("discovered location art opens from the physical wall map without a second permanent map layer", () => {
   assert.match(html, /src="src\/location-visuals\.js"[\s\S]*src="src\/location-discovery-runtime\.js"/);
   assert.match(js, /window\.CrownlessLocationVisuals/);
   assert.match(js, /resolveLatestDiscoveredVisual/);
@@ -70,7 +70,7 @@ test("discovered location art unlocks on the wall map only after the static asse
   assert.match(js, /image\.onload/);
   assert.match(js, /image\.onerror/);
   assert.match(js, /classList\.add\("has-location-visual"\)/);
-  assert.match(js, /mapPaper\.style\.backgroundImage/);
+  assert.doesNotMatch(js, /mapPaper\.style\.backgroundImage/);
   assert.match(js, /clearMapVisual\(\)/);
 });
 
