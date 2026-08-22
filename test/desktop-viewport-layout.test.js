@@ -4,25 +4,26 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const css = fs.readFileSync(path.join(__dirname, "..", "viewport-fix.css"), "utf8");
+const desktopCss = fs.readFileSync(path.join(__dirname, "..", "desktop-layout.css"), "utf8");
 
-test("desktop locks both browser page and active screen to one viewport", () => {
+test("desktop base stylesheet locks browser page and active screen to one viewport", () => {
   assert.match(css, /@media \(min-width: 701px\)[\s\S]*?html,[\s\S]*?body \{[\s\S]*?overflow: hidden;/);
   assert.match(css, /\.app-shell \{[\s\S]*?height: 100dvh;[\s\S]*?overflow: hidden;/);
   assert.match(css, /\.screen\.active \{[\s\S]*?height: 100%;[\s\S]*?overflow: hidden;/);
   assert.doesNotMatch(css, /\.screen\.active \{[\s\S]{0,160}?overflow-y: auto;/);
 });
 
-test("desktop hub is split into viewport-sized rows", () => {
+test("desktop hub is split into viewport-sized rows in the base stylesheet", () => {
   assert.match(css, /#hub-screen\.active \{[\s\S]*?display: grid;[\s\S]*?grid-template-rows:/);
   assert.match(css, /#hub-screen \.hub-hero \{[\s\S]*?min-height: 0;[\s\S]*?height: 100%;/);
   assert.match(css, /#hub-screen \.hub-grid \{[\s\S]*?min-height: 0;[\s\S]*?height: 100%;/);
 });
 
-test("desktop exploration map consumes remaining height instead of forcing screen scroll", () => {
+test("desktop exploration overrides the viewport base with document flow", () => {
   assert.match(css, /#explore-screen\.active \{[\s\S]*?display: flex;[\s\S]*?flex-direction: column;/);
-  assert.match(css, /exploration-map-panel \{[\s\S]*?flex: 1 1 auto;[\s\S]*?min-height: 0;/);
-  assert.match(css, /exploration-map-layout \{[\s\S]*?min-height: 0 !important;/);
-  assert.match(css, /exploration-map-board \{[\s\S]*?height: 100%;[\s\S]*?max-height: 100%;/);
+  assert.match(desktopCss, /body:has\(#explore-screen\.active\) main[\s\S]*?overflow-y: auto;/);
+  assert.match(desktopCss, /body:has\(#explore-screen\.active\) #explore-screen\.screen\.active[\s\S]*?display: block !important;[\s\S]*?height: auto !important;[\s\S]*?overflow: visible !important;/);
+  assert.match(desktopCss, /#exploration-map-panel[\s\S]*?height: auto !important;[\s\S]*?overflow: visible !important;/);
 });
 
 test("decision and return screens use fixed viewport rows", () => {
@@ -30,7 +31,7 @@ test("decision and return screens use fixed viewport rows", () => {
   assert.match(css, /#return-screen\.active \{[\s\S]*?grid-template-rows: auto minmax\(0, 1fr\) auto;/);
 });
 
-test("only unbounded loot collections retain local scrolling on desktop", () => {
+test("only unbounded loot collections retain local scrolling in the viewport base", () => {
   assert.match(css, /inventory-panel \.loot-list \{[\s\S]*?overflow-y: auto;/);
   assert.match(css, /carried-panel \.loot-list \{[\s\S]*?overflow-y: auto;/);
   assert.match(css, /return-spoils \.loot-list \{[\s\S]*?overflow-y: auto;/);
