@@ -1,0 +1,27 @@
+{
+  "schema_version": 1,
+  "project_id": "crownless",
+  "asset_type": "hearth_visual_candidates",
+  "status": "candidate",
+  "global_reference": "docs/assets/crownless-visual-design-reference-v0.1.jpg",
+  "selected_concept": "concepts/grey-hearth-b-gate-centered.png",
+  "concepts": [
+    "concepts/grey-hearth-a-hearth-centered.png",
+    "concepts/grey-hearth-b-gate-centered.png",
+    "concepts/grey-hearth-c-avatar-centered.png"
+  ],
+  "supporting_candidates": [
+    "concepts/mist-gate-reference.png",
+    "concepts/hearth-prop-reference-set.png"
+  ],
+  "avatar_baseline": "../combat/minimal-v0.1/actors/player-unarmed.png",
+  "policy": {
+    "must_not_chain_from_candidate": true,
+    "must_review_after_generation": true,
+    "must_use_approved_anchor": false
+  },
+  "approval": {
+    "approved_visual_anchor": false,
+    "note": "Composition selected for handoff; explicit visual approval remains required before Canon promotion."
+  }
+}
