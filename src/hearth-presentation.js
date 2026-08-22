@@ -204,13 +204,6 @@
       mapVisualAsset = assetPath;
       mapVisualResolved = resolved;
       unavailableMapVisualAsset = "";
-      const escapedAssetPath = assetPath.replace(/"/g, "%22");
-      mapPaper.style.backgroundImage = `linear-gradient(rgba(111,91,64,.20),rgba(65,50,34,.34)),url("${escapedAssetPath}")`;
-      mapPaper.style.backgroundPosition = "center";
-      mapPaper.style.backgroundSize = "cover";
-      mapPaper.style.backgroundRepeat = "no-repeat";
-      mapPaper.style.opacity = ".92";
-      mapPaper.style.filter = "sepia(.22) saturate(.72) contrast(.94) brightness(.88)";
       map.classList.add("has-location-visual");
       map.dataset.locationVisual = resolved.visual.id;
       const placeName = String(resolved.entry && resolved.entry.name || "発見済み地点");

@@ -59,27 +59,27 @@
     display: none;
   }
 
-  #hub-screen .hearth-scene--visual-candidate .hearth-scene-art {
-    background-position: 44% center;
+  #hub-screen .hearth-scene--empty-room .hearth-scene-art {
+    background-position: 56% center;
   }
 
-  #hub-screen .hearth-scene--visual-candidate .hearth-map {
+  #hub-screen .hearth-scene--empty-room .hearth-map {
     left: 10%;
-    top: 142px;
-    width: 25%;
-    height: 16%;
+    top: 184px;
+    width: 46%;
+    height: 22%;
     transform: none;
   }
 
-  #hub-screen .hearth-scene--visual-candidate .hearth-gate {
-    top: 124px;
+  #hub-screen .hearth-scene--empty-room .hearth-gate {
+    top: 166px;
     right: auto;
-    left: 29%;
-    width: 43%;
-    height: 47%;
+    left: 51%;
+    width: 46%;
+    height: 49%;
   }
 
-  #hub-screen .hearth-scene--visual-candidate .hearth-gate .object-label {
+  #hub-screen .hearth-scene--empty-room .hearth-gate .object-label {
     right: -42px;
   }
 
@@ -89,51 +89,51 @@
     min-width: 142px;
   }
 
-  #hub-screen .hearth-scene--visual-candidate .hearth-character {
-    left: 31%;
+  #hub-screen .hearth-scene--empty-room .hearth-character {
+    left: 46%;
     bottom: 17%;
-    width: 22%;
+    width: 25%;
     height: 42%;
     transform: translateX(-50%);
   }
 
-  #hub-screen .hearth-scene--visual-candidate .hearth-avatar-sprite {
+  #hub-screen .hearth-scene--empty-room .hearth-avatar-sprite {
     width: 190px;
     height: 270px;
     bottom: -14px;
   }
 
-  #hub-screen .hearth-scene--visual-candidate .hearth-fire {
-    left: 11%;
-    bottom: 13%;
-    width: 22%;
-    height: 24%;
+  #hub-screen .hearth-scene--empty-room .hearth-fire {
+    left: 2%;
+    bottom: 16%;
+    width: 24%;
+    height: 28%;
     transform: translateX(-50%);
   }
 
-  #hub-screen .hearth-scene--visual-candidate .hearth-loot-shelf {
-    left: 78%;
+  #hub-screen .hearth-scene--empty-room .hearth-loot-shelf {
+    left: 75%;
     bottom: 16%;
     width: 20%;
     height: 37%;
     transform: none;
   }
 
-  #hub-screen .hearth-scene--visual-candidate .hearth-loot-shelf .object-label {
+  #hub-screen .hearth-scene--empty-room .hearth-loot-shelf .object-label {
     right: 0;
     left: auto;
     top: -10px;
     bottom: auto;
   }
 
-  #hub-screen .hearth-scene--visual-candidate .hearth-forge {
+  #hub-screen .hearth-scene--empty-room .hearth-forge {
     right: 0;
     bottom: 8%;
     transform: scale(.65);
     transform-origin: right bottom;
   }
 
-  #hub-screen .hearth-scene--visual-candidate .hearth-recovery-cache {
+  #hub-screen .hearth-scene--empty-room .hearth-recovery-cache {
     right: 25%;
     bottom: 12%;
     transform: scale(.7);
@@ -150,8 +150,8 @@
 }
 
 @media (max-width: 560px) {
-  #hub-screen .hearth-scene--visual-candidate .hearth-scene-art {
-    background-position: 43% center;
+  #hub-screen .hearth-scene--empty-room .hearth-scene-art {
+    background-position: 56% center;
   }
 }
 
@@ -175,47 +175,47 @@
     line-height: 1.45;
   }
 
-  #hub-screen .hearth-scene--visual-candidate .hearth-map {
-    left: 13%;
-    top: 16%;
-    width: 16%;
-    height: 19%;
+  #hub-screen .hearth-scene--empty-room .hearth-map {
+    left: 29%;
+    top: 14%;
+    width: 25%;
+    height: 34%;
     transform: none;
   }
 
-  #hub-screen .hearth-scene--visual-candidate .hearth-gate {
+  #hub-screen .hearth-scene--empty-room .hearth-gate {
     top: 5%;
     right: auto;
-    left: 34%;
-    width: 33%;
-    height: 70%;
+    left: 51%;
+    width: 24%;
+    height: 68%;
   }
 
-  #hub-screen .hearth-scene--visual-candidate .hearth-character {
-    left: 32%;
+  #hub-screen .hearth-scene--empty-room .hearth-character {
+    left: 47%;
     bottom: 10%;
     width: 20%;
     height: 52%;
     transform: translateX(-50%);
   }
 
-  #hub-screen .hearth-scene--visual-candidate .hearth-fire {
+  #hub-screen .hearth-scene--empty-room .hearth-fire {
     left: 12%;
-    bottom: 10%;
-    width: 18%;
-    height: 25%;
+    bottom: 16%;
+    width: 20%;
+    height: 28%;
     transform: translateX(-50%);
   }
 
-  #hub-screen .hearth-scene--visual-candidate .hearth-loot-shelf {
-    left: 81%;
+  #hub-screen .hearth-scene--empty-room .hearth-loot-shelf {
+    left: 78%;
     bottom: 15%;
     width: 17%;
     height: 45%;
     transform: none;
   }
 
-  #hub-screen .hearth-scene--visual-candidate .hearth-loot-shelf .object-label {
+  #hub-screen .hearth-scene--empty-room .hearth-loot-shelf .object-label {
     right: 0;
     left: auto;
     width: 140px;
