@@ -18,28 +18,27 @@ function rule(selector) {
   return match[1];
 }
 
-test("desktop Hearth keeps hero copy above the map band", () => {
+test("desktop Hearth keeps the scene copy secondary to the room", () => {
   const copy = rule("#hub-screen .hearth-scene-copy");
-  assert.match(copy, /width:\s*min\(500px,\s*44%\)/);
+  assert.match(copy, /width:\s*min\(310px,\s*30%\)/);
 
   const heading = rule("#hub-screen .hearth-scene-copy h1");
-  assert.match(heading, /font-size:\s*clamp\(44px,\s*4\.2vw,\s*58px\)/);
+  assert.match(heading, /font-size:\s*clamp\(38px,\s*3\.8vw,\s*50px\)/);
   assert.match(heading, /line-height:\s*\.98/);
 
-  const map = rule("#hub-screen .hearth-map");
-  assert.match(map, /left:\s*3%/);
-  assert.match(map, /top:\s*225px/);
+  const map = rule("#hub-screen .hearth-scene--visual-candidate .hearth-map");
+  assert.match(map, /left:\s*13%/);
+  assert.match(map, /top:\s*16%/);
 });
 
-test("desktop Hearth separates shelf, character and fire labels horizontally", () => {
-  const shelfLabel = rule("#hub-screen .hearth-loot-shelf .object-label");
-  assert.match(shelfLabel, /left:\s*-72px/);
-  assert.match(shelfLabel, /width:\s*125px/);
-  assert.match(shelfLabel, /min-width:\s*0/);
+test("desktop Hearth aligns transparent hit regions with the room art", () => {
+  const shelf = rule("#hub-screen .hearth-scene--visual-candidate .hearth-loot-shelf");
+  assert.match(shelf, /left:\s*81%/);
+  assert.match(shelf, /width:\s*17%/);
 
-  const character = rule("#hub-screen .hearth-character");
-  assert.match(character, /left:\s*28%/);
+  const character = rule("#hub-screen .hearth-scene--visual-candidate .hearth-character");
+  assert.match(character, /left:\s*31%/);
 
-  const fire = rule("#hub-screen .hearth-fire");
-  assert.match(fire, /left:\s*46%/);
+  const fire = rule("#hub-screen .hearth-scene--visual-candidate .hearth-fire");
+  assert.match(fire, /left:\s*12%/);
 });
