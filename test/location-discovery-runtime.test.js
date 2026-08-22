@@ -90,7 +90,9 @@ test("successful geography replaces visible cards with real discovered destinati
 
 test("selected GPS destination is attached to the existing exploration result", () => {
   assert.match(runtimeSource, /Core\.discoverLocation = function discoverLocationWithGeography/);
-  assert.match(runtimeSource, /geographicDiscoveries\[choiceSlot\(choiceId\)\]/);
+  assert.match(runtimeSource, /const slot = choiceSlot\(state, choiceId\)/);
+  assert.match(runtimeSource, /const geographic = geographicDiscoveries\[slot\]/);
+  assert.match(runtimeSource, /applySelectedGeographicDiscovery\(originalDiscoverLocation\(state, choiceId\), slot\)/);
   assert.match(runtimeSource, /target\.geographicDiscovery = JSON\.parse\(JSON\.stringify\(geographic\)\)/);
   assert.match(runtimeSource, /target\.realPlaceName = geographic\.realPlaceName \|\| ""/);
 });
