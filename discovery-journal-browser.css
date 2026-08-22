@@ -26,6 +26,8 @@ body.discovery-journal-open {
 
 .discovery-journal-folio {
   position: relative;
+  display: flex;
+  flex-direction: column;
   width: min(94vw, 980px);
   max-height: calc(100dvh - 32px);
   overflow: hidden;
@@ -75,11 +77,180 @@ body.discovery-journal-open {
   letter-spacing: .12em;
 }
 
+.discovery-area-overview {
+  display: grid;
+  grid-template-columns: minmax(170px, .55fr) minmax(280px, 1.45fr);
+  gap: 18px;
+  padding: 12px 18px 13px;
+  border-bottom: 1px solid rgba(58, 41, 25, .24);
+  background:
+    linear-gradient(90deg, rgba(55, 75, 61, .075), transparent 46%),
+    rgba(78, 57, 36, .035);
+}
+
+.discovery-area-copy {
+  display: grid;
+  align-content: center;
+  gap: 5px;
+  min-width: 0;
+}
+
+.discovery-area-copy > small {
+  color: #60482f;
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: .14em;
+}
+
+.discovery-area-copy > strong {
+  font: 500 20px/1.1 Georgia, "Times New Roman", serif;
+}
+
+.discovery-area-copy > span {
+  color: #5d4933;
+  font-size: 9px;
+  line-height: 1.45;
+}
+
+.discovery-area-all {
+  justify-self: start;
+  min-height: 34px;
+  margin-top: 4px;
+  padding: 6px 9px;
+  border: 1px solid rgba(62, 47, 31, .27);
+  border-radius: 0;
+  color: #3a2b1c;
+  background: rgba(229, 204, 160, .30);
+  font-size: 9px;
+  font-weight: 800;
+  letter-spacing: .05em;
+  cursor: pointer;
+}
+
+.discovery-area-all.selected {
+  border-color: rgba(55, 85, 67, .62);
+  background: rgba(59, 91, 72, .12);
+}
+
+.discovery-area-all:focus-visible,
+.discovery-area-cell:focus-visible {
+  outline: 2px solid rgba(67, 55, 35, .68);
+  outline-offset: 2px;
+}
+
+.discovery-area-map-wrap {
+  display: grid;
+  grid-template-columns: minmax(240px, 390px) minmax(120px, 1fr);
+  align-items: center;
+  justify-content: end;
+  gap: 12px;
+  min-width: 0;
+}
+
+.discovery-area-map {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 3px;
+  width: min(100%, 390px);
+  min-width: 0;
+}
+
+.discovery-area-cell {
+  position: relative;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  aspect-ratio: 1;
+  min-width: 0;
+  min-height: 44px;
+  padding: 3px;
+  overflow: hidden;
+  border: 1px solid rgba(55, 43, 29, .22);
+  border-radius: 0;
+  color: #3c2d1e;
+  background:
+    repeating-linear-gradient(145deg, rgba(55, 43, 29, .045) 0 1px, transparent 1px 8px),
+    rgba(82, 61, 39, .045);
+  cursor: pointer;
+}
+
+.discovery-area-cell.unknown {
+  border-style: dashed;
+  color: rgba(58, 45, 30, .26);
+  background: rgba(82, 61, 39, .018);
+  cursor: default;
+}
+
+.discovery-area-cell.known {
+  border-color: rgba(55, 84, 67, .38);
+  background:
+    radial-gradient(circle at 50% 44%, rgba(66, 99, 79, .13), transparent 62%),
+    repeating-linear-gradient(145deg, rgba(55, 43, 29, .04) 0 1px, transparent 1px 8px),
+    rgba(72, 95, 77, .08);
+}
+
+.discovery-area-cell.complete {
+  border-color: rgba(105, 79, 35, .72);
+  background:
+    radial-gradient(circle at 50% 44%, rgba(143, 112, 52, .18), transparent 64%),
+    rgba(92, 76, 42, .10);
+}
+
+.discovery-area-cell.selected {
+  box-shadow: inset 0 0 0 2px rgba(45, 70, 56, .74);
+}
+
+.discovery-area-cell span {
+  position: absolute;
+  top: 3px;
+  right: 4px;
+  color: rgba(56, 79, 64, .72);
+  font: 700 11px/1 Georgia, serif;
+}
+
+.discovery-area-cell.complete span {
+  color: #735824;
+}
+
+.discovery-area-cell strong {
+  font: 600 clamp(11px, 1.8vw, 16px)/1 Georgia, "Times New Roman", serif;
+}
+
+.discovery-area-cell small {
+  margin-top: 2px;
+  color: #66513a;
+  font-size: 6px;
+  font-weight: 800;
+  letter-spacing: .06em;
+}
+
+.discovery-area-cell.complete small {
+  color: #6c5225;
+}
+
+.discovery-area-map-empty {
+  grid-column: 1 / -1;
+  display: grid;
+  place-items: center;
+  min-height: 88px;
+  border: 1px dashed rgba(55, 43, 29, .22);
+  color: #68523a;
+  font-size: 9px;
+}
+
+.discovery-area-legend {
+  margin: 0;
+  color: #665139;
+  font-size: 8px;
+  line-height: 1.5;
+}
+
 .discovery-journal-body {
   display: grid;
+  flex: 1;
   grid-template-columns: minmax(210px, .72fr) minmax(0, 1.55fr);
-  min-height: 420px;
-  max-height: min(70dvh, 650px);
+  min-height: 320px;
+  max-height: min(52dvh, 520px);
 }
 
 .discovery-journal-body.empty {
@@ -90,6 +261,13 @@ body.discovery-journal-open {
   overflow-y: auto;
   border-right: 1px solid rgba(58, 41, 25, .24);
   background: rgba(76, 55, 34, .06);
+}
+
+.discovery-journal-list-empty {
+  padding: 16px 14px;
+  color: #654e37;
+  font-size: 9px;
+  line-height: 1.5;
 }
 
 .discovery-journal-entry {
@@ -239,7 +417,7 @@ body.discovery-journal-open {
   display: grid;
   place-items: center;
   align-content: center;
-  min-height: 420px;
+  min-height: 260px;
   padding: 28px;
   text-align: center;
 }
@@ -292,10 +470,48 @@ body.discovery-journal-open {
     padding: 14px 52px 11px 12px;
   }
 
+  .discovery-area-overview {
+    grid-template-columns: 1fr;
+    gap: 9px;
+    padding: 9px 10px 10px;
+  }
+
+  .discovery-area-copy {
+    grid-template-columns: 1fr auto;
+    align-items: center;
+    gap: 3px 8px;
+  }
+
+  .discovery-area-copy > small,
+  .discovery-area-copy > span {
+    grid-column: 1 / -1;
+  }
+
+  .discovery-area-all {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: center;
+    margin: 0;
+  }
+
+  .discovery-area-map-wrap {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 5px;
+  }
+
+  .discovery-area-map {
+    width: 100%;
+  }
+
+  .discovery-area-legend {
+    font-size: 7px;
+  }
+
   .discovery-journal-body {
     grid-template-columns: 1fr;
-    grid-template-rows: minmax(120px, 34%) minmax(0, 1fr);
-    height: calc(100% - 72px);
+    grid-template-rows: minmax(105px, 30%) minmax(0, 1fr);
+    flex: 1;
+    height: auto;
     max-height: none;
     min-height: 0;
   }
@@ -315,7 +531,7 @@ body.discovery-journal-open {
 
   .discovery-journal-media,
   .discovery-journal-media img {
-    min-height: 160px;
+    min-height: 150px;
   }
 
   .discovery-journal-meta {
@@ -324,6 +540,20 @@ body.discovery-journal-open {
 
   .discovery-journal-empty {
     min-height: 0;
+  }
+}
+
+@media (max-width: 420px) {
+  .discovery-area-cell {
+    min-height: 40px;
+  }
+
+  .discovery-area-cell strong {
+    font-size: 11px;
+  }
+
+  .discovery-area-cell small {
+    font-size: 5px;
   }
 }
 
