@@ -15,7 +15,7 @@
     try { return new URLSearchParams(window.location.search).get("qa") === "watchtower"; }
     catch (_) { return false; }
   })();
-  let geographicDiscoveries = [], locationState = "idle", locationPromise = null, knowledgeToastTimer = null;
+  let geographicDiscoveries = [], locationState = "idle", locationPromise = null, knowledgeToastTimer = null, currentAreaId = "";
 
   function emptyDiagnostics(gps = "idle") { return { gps, gpsCode: null, gpsName: "", gpsMessage: "", gpsElapsedMs: null, gpsOptions: Object.assign({}, GEOLOCATION_OPTIONS), osm: "idle", endpoint: "-", attempt: 0, total: 0, httpStatus: null, discoveries: 0, features: [], names: [], error: "" }; }
   let diagnostics = emptyDiagnostics();
@@ -40,6 +40,16 @@
     return null;
   }
 
+  function discoveryAreaId(discovery) {
+    const geographic = geographicIdentity(discovery);
+    if (geographic && typeof Core.explorationAreaFromLocation === "function") {
+      const coordinate = geographic.representativeCoordinate || geographic.mapOrigin;
+      const area = Core.explorationAreaFromLocation(coordinate);
+      if (area && area.id) return area.id;
+    }
+    return currentAreaId;
+  }
+
   function geographicRuleSignature(discovery) {
     const features = safeTerrain(discovery && discovery.features).sort();
     const kind = cleanText(discovery && discovery.contentKind, "unknown");
@@ -60,7 +70,7 @@
   function worldKnowledgeEntry(discovery, key, now) {
     const geographic = geographicIdentity(discovery) || {};
     const timestamp = Number(now);
-    return {
+    const entry = {
       key,
       name: cleanText(discovery && discovery.name, cleanText(geographic.title, "名もない発見")),
       baseTitle: cleanText(geographic.baseTitle),
@@ -70,6 +80,9 @@
       firstDiscoveredAt: Number.isFinite(timestamp) && timestamp > 0 ? timestamp : Date.now(),
       visits: 1
     };
+    const areaId = discoveryAreaId(discovery);
+    if (areaId) entry.areaId = areaId;
+    return entry;
   }
 
   function getKnowledgeData(state) {
@@ -175,6 +188,8 @@
           visits: Math.max(1, Number(previous.visits) || 1) + 1
         }
       : incoming;
+    if (incoming.areaId) entry.areaId = incoming.areaId;
+    else if (previous && previous.areaId) entry.areaId = previous.areaId;
 
     next.worldKnowledge.discoveries[key] = entry;
     last.discoveryKey = key;
@@ -274,12 +289,12 @@
   function applySelectedGeographicDiscovery(next, slot) { if (!next || !next.expedition || !geographicDiscoveries.length) return next; const geographic = geographicDiscoveries[slot]; if (!geographic) return next; const exp = next.expedition, last = exp.lastDiscovery; enrichDiscovery(last, geographic); if (last && Array.isArray(exp.discoveries)) { const history = exp.discoveries.find((item) => item && item.id === last.id); if (history && history !== last) enrichDiscovery(history, geographic); } if (exp.encounter && exp.encounter.discovery) enrichDiscovery(exp.encounter.discovery, geographic); if (exp.pendingEvent && exp.pendingEvent.discovery) enrichDiscovery(exp.pendingEvent.discovery, geographic); return next; }
   Core.discoverLocation = function discoverLocationWithGeography(state, choiceId) { const slot = choiceSlot(state, choiceId); return recordWorldKnowledge(applySelectedGeographicDiscovery(originalDiscoverLocation(state, choiceId), slot)); };
 
-  function getCurrentLocation() { if (!navigator.geolocation) return Promise.reject(new Error("geolocation unavailable")); diagnostics.gps = "requesting"; diagnostics.gpsOptions = Object.assign({}, GEOLOCATION_OPTIONS); const startedAt = performance.now(); showLocationStatus(); return new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition((position) => { diagnostics.gps = "ok"; diagnostics.gpsElapsedMs = Math.round(performance.now() - startedAt); showLocationStatus(); resolve({ latitude: position.coords.latitude, longitude: position.coords.longitude }); }, (error) => { const classified = classifyGeolocationError(error); diagnostics.gps = classified.state; diagnostics.gpsCode = classified.code; diagnostics.gpsName = classified.name; diagnostics.gpsMessage = error && error.message ? error.message : ""; diagnostics.gpsElapsedMs = Math.round(performance.now() - startedAt); showLocationStatus(); reject(error); }, GEOLOCATION_OPTIONS)); }
+  function getCurrentLocation() { if (!navigator.geolocation) return Promise.reject(new Error("geolocation unavailable")); diagnostics.gps = "requesting"; diagnostics.gpsOptions = Object.assign({}, GEOLOCATION_OPTIONS); const startedAt = performance.now(); showLocationStatus(); return new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition((position) => { diagnostics.gps = "ok"; diagnostics.gpsElapsedMs = Math.round(performance.now() - startedAt); const location = { latitude: position.coords.latitude, longitude: position.coords.longitude }; const area = typeof Core.explorationAreaFromLocation === "function" ? Core.explorationAreaFromLocation(location) : null; currentAreaId = area && area.id ? area.id : ""; showLocationStatus(); resolve(location); }, (error) => { currentAreaId = ""; const classified = classifyGeolocationError(error); diagnostics.gps = classified.state; diagnostics.gpsCode = classified.code; diagnostics.gpsName = classified.name; diagnostics.gpsMessage = error && error.message ? error.message : ""; diagnostics.gpsElapsedMs = Math.round(performance.now() - startedAt); showLocationStatus(); reject(error); }, GEOLOCATION_OPTIONS)); }
   function applyProviderStatus(status) { diagnostics.osm = status && status.state ? status.state : diagnostics.osm; diagnostics.endpoint = status && status.endpoint ? status.endpoint : diagnostics.endpoint; diagnostics.attempt = Number(status && status.attempt) || 0; diagnostics.total = Number(status && status.total) || diagnostics.total || 0; diagnostics.httpStatus = status && status.httpStatus ? status.httpStatus : null; diagnostics.error = status && status.state === "failed" ? (status.error || (status.timedOut ? "timeout" : "failed")) : ""; if (status && status.state === "success") { diagnostics.discoveries = Number(status.discoveries) || 0; diagnostics.features = Array.isArray(status.features) ? status.features.slice() : []; diagnostics.names = Array.isArray(status.names) ? status.names.slice() : []; } showLocationStatus(); }
   async function performGeographicDiscovery() { let provider = null; try { const location = await getCurrentLocation(); provider = GeographyApi.createProxyLocationDiscoveryProvider({ limit: 3, radius: 650, timeoutMs: 22000, endpoint: window.CROWNLESS_GEOGRAPHY_API || GeographyApi.DEFAULT_PROXY_ENDPOINT, onStatus: applyProviderStatus }); const discovered = await provider.discover({ location }); geographicDiscoveries = ensureQaWatchtowerDiscoveries(discovered); diagnostics.endpoint = provider.endpoint || diagnostics.endpoint || "unknown"; diagnostics.discoveries = geographicDiscoveries.length; diagnostics.features = [...new Set(geographicDiscoveries.flatMap((item) => item.features || []))]; diagnostics.names = [...new Set(geographicDiscoveries.map((item) => item.realPlaceName).filter(Boolean))]; locationState = geographicDiscoveries.length ? "ready" : "failed"; if (!geographicDiscoveries.length) diagnostics.error = "no matching discoveries"; } catch (error) { if (QA_WATCHTOWER_MODE) { geographicDiscoveries = ensureQaWatchtowerDiscoveries([]); locationState = "ready"; diagnostics.endpoint = provider && provider.endpoint ? provider.endpoint : diagnostics.endpoint || "-"; applyQaDiagnostics(error); } else { geographicDiscoveries = []; locationState = error && error.code === 1 ? "denied" : "failed"; diagnostics.endpoint = provider && provider.endpoint ? provider.endpoint : diagnostics.endpoint || "-"; diagnostics.error = provider && provider.error ? provider.error : (error && error.message ? error.message : "unknown error"); if (diagnostics.gps === "ok" && diagnostics.osm === "idle") diagnostics.osm = "failed"; } } return geographicDiscoveries; }
   function beginGeographicDiscoveryAfterPaint() { return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))).then(performGeographicDiscovery); }
   function loadGeographicDiscoveries() { if (locationPromise) return locationPromise; locationState = "loading"; diagnostics = emptyDiagnostics("requesting"); setPendingUi(); locationPromise = beginGeographicDiscoveryAfterPaint(); return locationPromise; }
-  function reloadGeographicDiscoveries() { locationPromise = null; geographicDiscoveries = []; const discovery = loadGeographicDiscoveries(); discovery.finally(() => { if (!document.getElementById("explore-screen")?.classList.contains("active")) return; refreshLeadCards(); setPendingUi(); }); return discovery; }
+  function reloadGeographicDiscoveries() { locationPromise = null; geographicDiscoveries = []; currentAreaId = ""; const discovery = loadGeographicDiscoveries(); discovery.finally(() => { if (!document.getElementById("explore-screen")?.classList.contains("active")) return; refreshLeadCards(); setPendingUi(); }); return discovery; }
   function restoreGeographicPresentationAfterRender() { if (locationState !== "ready" || !geographicDiscoveries.length) return; Promise.resolve().then(() => { if (!document.getElementById("explore-screen")?.classList.contains("active")) return; refreshLeadCards(); setPendingUi(); }); }
 
   if (originalCreateInitialState) { Core.createInitialState = function createInitialStateWithWorldKnowledge(...args) { const next = originalCreateInitialState(...args); ensureWorldKnowledge(next); Promise.resolve().then(() => renderWorldKnowledge(next)); return next; }; }
@@ -289,6 +304,7 @@
   window.CrownlessLocationDiscoveryRuntime = {
     get state() { return locationState; },
     get discoveries() { return geographicDiscoveries.slice(); },
+    get currentAreaId() { return currentAreaId; },
     get diagnostics() { return Object.assign({}, diagnostics, { gpsOptions: Object.assign({}, diagnostics.gpsOptions), features: diagnostics.features.slice(), names: diagnostics.names.slice() }); },
     get qaMode() { return QA_WATCHTOWER_MODE ? "watchtower" : ""; },
     classifyGeolocationError,
