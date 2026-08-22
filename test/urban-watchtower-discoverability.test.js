@@ -4,13 +4,19 @@ const Discovery = require("../src/discovery-provider.js");
 const ProxyCore = require("../src/geography-proxy.js");
 const GeographyApi = require("../src/geography-api-provider.js");
 
-test("tower-like OSM features become height signals", () => {
+test("sparse vertical OSM landmarks become height signals", () => {
   const dedicatedTower = Discovery.normalizeGeographicFeature({ id: 1, tags: { man_made: "tower", name: "旧監視塔" } });
   const viewpoint = Discovery.normalizeGeographicFeature({ id: 2, tags: { tourism: "viewpoint", name: "展望地点" } });
-  const ordinary = Discovery.normalizeGeographicFeature({ id: 3, tags: { building: "office", name: "中央ビル" } });
+  const mast = Discovery.normalizeGeographicFeature({ id: 3, tags: { man_made: "mast", name: "無線鉄塔" } });
+  const waterTower = Discovery.normalizeGeographicFeature({ id: 4, tags: { man_made: "water_tower", name: "給水塔" } });
+  const lighthouse = Discovery.normalizeGeographicFeature({ id: 5, tags: { man_made: "lighthouse", name: "灯台" } });
+  const ordinary = Discovery.normalizeGeographicFeature({ id: 6, tags: { building: "office", name: "中央ビル" } });
 
   assert.ok(dedicatedTower.types.includes("height"));
   assert.ok(viewpoint.types.includes("height"));
+  assert.ok(mast.types.includes("height"));
+  assert.ok(waterTower.types.includes("height"));
+  assert.ok(lighthouse.types.includes("height"));
   assert.equal(ordinary.types.includes("height"), false);
 });
 
@@ -19,7 +25,20 @@ test("production query extends sparse height signals without scanning dense buil
 
   assert.match(query, /nw\(35\.685508,139\.77447,35\.694492,139\.78553\)\[waterway\]/);
   assert.match(query, /nw\(35\.682814,139\.771152,35\.697186,139\.788848\)\[tourism=viewpoint\]/);
-  assert.match(query, /nw\(35\.682814,139\.771152,35\.697186,139\.788848\)\[man_made~/);
+  assert.match(query, /nw\(35\.682814,139\.771152,35\.697186,139\.788848\)\[man_made~"\^\(tower\|communications_tower\)\$"\]/);
+  assert.match(query, /nw\(35\.682814,139\.771152,35\.697186,139\.788848\)\[man_made=mast\]\[height\]/);
+  assert.match(query, /nw\(35\.682814,139\.771152,35\.697186,139\.788848\)\[man_made~"\^\(water_tower\|lighthouse\)\$"\]/);
+  assert.doesNotMatch(query, /\[building\]\[name~/);
+  assert.doesNotMatch(query, /\[building\]\["name:ja"~/);
+});
+
+test("direct Overpass query uses sparse height tags instead of tower-name building scans", () => {
+  const query = Discovery.buildOverpassQuery(35.69, 139.78, 500);
+
+  assert.match(query, /\[man_made=tower\]/);
+  assert.match(query, /\[man_made=communications_tower\]/);
+  assert.match(query, /\[man_made=mast\]\[height\]/);
+  assert.match(query, /\[man_made~"\^\(water_tower\|lighthouse\)\$"\]/);
   assert.doesNotMatch(query, /\[building\]\[name~/);
   assert.doesNotMatch(query, /\[building\]\["name:ja"~/);
 });
@@ -57,6 +76,38 @@ test("viewpoint survives competing real-world signals into the top three watchto
   assert.equal(watchtower.realPlaceName, "遠見の展望地点");
   assert.equal(watchtower.contentKind, "dungeon");
   assert.equal(watchtower.sourceRef, "node:16");
+  assert.deepEqual(watchtower.features, ["height"]);
+});
+
+test("water tower can naturally produce a watchtower discovery through the proxy path", async () => {
+  const provider = GeographyApi.createProxyLocationDiscoveryProvider({
+    endpoint: "https://crownless.test/api/geography",
+    limit: 3,
+    fetch: async () => ({
+      ok: true,
+      status: 200,
+      async json() {
+        return {
+          endpoint: "https://overpass.test/api",
+          total: 1,
+          attempts: [{ endpoint: "https://overpass.test/api", state: "success", httpStatus: 200 }],
+          elements: [
+            { type: "way", id: 30, center: { lat: 35.69, lon: 139.78 }, tags: { waterway: "river", "name:ja": "古川" } },
+            { type: "way", id: 31, center: { lat: 35.6901, lon: 139.7801 }, tags: { bridge: "yes", "name:ja": "古橋" } },
+            { type: "node", id: 32, lat: 35.6902, lon: 139.7802, tags: { amenity: "place_of_worship", "name:ja": "稲荷社" } },
+            { type: "node", id: 33, lat: 35.696, lon: 139.786, tags: { man_made: "water_tower", "name:ja": "旧給水塔" } }
+          ]
+        };
+      }
+    })
+  });
+
+  const discoveries = await provider.discover({ location: { latitude: 35.69, longitude: 139.78 } });
+  const watchtower = discoveries.find((item) => item.baseTitle === "崩れた物見台");
+  assert.ok(watchtower);
+  assert.equal(watchtower.realPlaceName, "旧給水塔");
+  assert.equal(watchtower.contentKind, "dungeon");
+  assert.equal(watchtower.sourceRef, "node:33");
   assert.deepEqual(watchtower.features, ["height"]);
 });
 

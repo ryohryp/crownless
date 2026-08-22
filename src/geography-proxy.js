@@ -81,6 +81,8 @@ function buildSignalQuery(spatialFilter, heightSpatialFilter) {
     + `nw(${spatialFilter})[railway=station];`
     + `nw(${spatialFilter})[public_transport=station];`
     + `nw(${heightFilter})[man_made~"^(tower|communications_tower)$"];`
+    + `nw(${heightFilter})[man_made=mast][height];`
+    + `nw(${heightFilter})[man_made~"^(water_tower|lighthouse)$"];`
     + `nw(${heightFilter})[tourism=viewpoint];`
     + `nw(${heightFilter})[historic=tower];`
     + `nw(${spatialFilter})[place~"^(city|town|village|hamlet|suburb|neighbourhood|quarter|island)$"];`;
