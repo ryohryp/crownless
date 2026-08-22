@@ -146,3 +146,44 @@
     max-width: 90%;
   }
 }
+
+@media (min-width: 901px) {
+  /* Desktop has enough width to keep the room composition, but the original
+     hero copy could grow to 66px and wrap into the map. Cap it to two visual
+     lines and reserve a lower wall band for the discovery map. */
+  #hub-screen .hearth-scene-copy {
+    width: min(500px, 44%);
+  }
+
+  #hub-screen .hearth-scene-copy h1 {
+    font-size: clamp(44px, 4.2vw, 58px);
+    line-height: .98;
+  }
+
+  #hub-screen .hearth-scene-copy .lede {
+    max-width: 450px;
+    line-height: 1.45;
+  }
+
+  #hub-screen .hearth-map {
+    left: 3%;
+    top: 225px;
+  }
+
+  /* Keep the three lower interaction labels in separate horizontal lanes.
+     The shelf label is pulled toward the wall while character and fire move
+     just enough apart to preserve their readable hit-target captions. */
+  #hub-screen .hearth-loot-shelf .object-label {
+    left: -72px;
+    width: 125px;
+    min-width: 0;
+  }
+
+  #hub-screen .hearth-character {
+    left: 28%;
+  }
+
+  #hub-screen .hearth-fire {
+    left: 46%;
+  }
+}
