@@ -8,6 +8,9 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function createDiscoveryJournalBrowser() {
   "use strict";
 
+  const AREA_ZOOM = 14;
+  const AREA_MAP_RADIUS = 2;
+
   const TERRAIN_LABELS = Object.freeze({
     water: "水辺",
     crossing: "渡り場",
@@ -40,6 +43,45 @@
     return text || fallback;
   }
 
+  function parseAreaId(value) {
+    const match = /^area:(\d{1,2}):(\d+):(\d+)$/.exec(cleanText(value));
+    if (!match) return null;
+    const zoom = Number(match[1]);
+    const x = Number(match[2]);
+    const y = Number(match[3]);
+    if (!Number.isInteger(zoom) || zoom < 1 || zoom > 22) return null;
+    const size = 2 ** zoom;
+    if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x >= size || y >= size) return null;
+    return { id: `area:${zoom}:${x}:${y}`, zoom, x, y };
+  }
+
+  function areaFromCellId(value, zoom = AREA_ZOOM) {
+    const match = /^cell:(\d{1,2}):(\d+):(\d+)$/.exec(cleanText(value));
+    if (!match) return null;
+    const cellZoom = Number(match[1]);
+    const cellX = Number(match[2]);
+    const cellY = Number(match[3]);
+    const targetZoom = Number(zoom);
+    if (!Number.isInteger(cellZoom) || !Number.isInteger(targetZoom) || targetZoom < 1 || cellZoom < targetZoom || cellZoom > 22) return null;
+    const cellSize = 2 ** cellZoom;
+    if (!Number.isInteger(cellX) || !Number.isInteger(cellY) || cellX < 0 || cellY < 0 || cellX >= cellSize || cellY >= cellSize) return null;
+    const factor = 2 ** (cellZoom - targetZoom);
+    const x = Math.floor(cellX / factor);
+    const y = Math.floor(cellY / factor);
+    return { id: `area:${targetZoom}:${x}:${y}`, zoom: targetZoom, x, y };
+  }
+
+  function areaGoal(value, resolver) {
+    const area = parseAreaId(value && typeof value === "object" ? value.id : value);
+    if (!area) return 0;
+    if (typeof resolver === "function") {
+      const resolved = Number(resolver(area.id));
+      if (Number.isInteger(resolved) && resolved > 0) return resolved;
+    }
+    const hash = ((area.x * 31) + (area.y * 17) + (area.zoom * 13)) >>> 0;
+    return 5 + (hash % 3);
+  }
+
   function journalEntries(worldKnowledge) {
     const discoveries = worldKnowledge && worldKnowledge.discoveries;
     if (!discoveries || typeof discoveries !== "object" || Array.isArray(discoveries)) return [];
@@ -47,6 +89,108 @@
       .filter((entry) => entry && typeof entry === "object")
       .map((entry) => ({ ...entry }))
       .sort((left, right) => (Number(right.firstDiscoveredAt) || 0) - (Number(left.firstDiscoveredAt) || 0));
+  }
+
+  function areaSummaries(worldKnowledge, goalResolver) {
+    const byId = new Map();
+
+    function ensure(area) {
+      if (!area) return null;
+      if (!byId.has(area.id)) {
+        byId.set(area.id, {
+          id: area.id,
+          zoom: area.zoom,
+          x: area.x,
+          y: area.y,
+          exploredCells: 0,
+          discoveries: 0,
+          lastRecordedAt: 0
+        });
+      }
+      return byId.get(area.id);
+    }
+
+    const exploredCells = worldKnowledge && worldKnowledge.exploredCells;
+    if (exploredCells && typeof exploredCells === "object" && !Array.isArray(exploredCells)) {
+      Object.values(exploredCells).forEach((cell) => {
+        const area = areaFromCellId(cell && typeof cell === "object" ? cell.id : cell);
+        const summary = ensure(area);
+        if (!summary) return;
+        summary.exploredCells += 1;
+        summary.lastRecordedAt = Math.max(summary.lastRecordedAt, Number(cell && cell.firstExploredAt) || 0);
+      });
+    }
+
+    journalEntries(worldKnowledge).forEach((entry) => {
+      const area = parseAreaId(entry.areaId);
+      const summary = ensure(area);
+      if (!summary) return;
+      summary.discoveries += 1;
+      summary.lastRecordedAt = Math.max(summary.lastRecordedAt, Number(entry.firstDiscoveredAt) || 0);
+    });
+
+    return Array.from(byId.values())
+      .map((summary) => {
+        const goal = areaGoal(summary.id, goalResolver);
+        const progress = Math.min(summary.discoveries, goal);
+        return {
+          ...summary,
+          goal,
+          progress,
+          complete: goal > 0 && summary.discoveries >= goal,
+          known: summary.exploredCells > 0 || summary.discoveries > 0
+        };
+      })
+      .sort((left, right) => right.lastRecordedAt - left.lastRecordedAt || left.y - right.y || left.x - right.x);
+  }
+
+  function defaultAreaId(worldKnowledge) {
+    const newestMappedDiscovery = journalEntries(worldKnowledge).find((entry) => parseAreaId(entry.areaId));
+    if (newestMappedDiscovery) return parseAreaId(newestMappedDiscovery.areaId).id;
+    const summaries = areaSummaries(worldKnowledge);
+    return summaries.length ? summaries[0].id : "";
+  }
+
+  function areaWindowModel(worldKnowledge, centerAreaId, radius = AREA_MAP_RADIUS, goalResolver) {
+    const center = parseAreaId(centerAreaId || defaultAreaId(worldKnowledge));
+    if (!center) return [];
+    const normalizedRadius = Math.max(1, Math.min(4, Math.floor(Number(radius) || AREA_MAP_RADIUS)));
+    const summaries = new Map(areaSummaries(worldKnowledge, goalResolver).map((summary) => [summary.id, summary]));
+    const size = 2 ** center.zoom;
+    const cells = [];
+    for (let offsetY = -normalizedRadius; offsetY <= normalizedRadius; offsetY += 1) {
+      for (let offsetX = -normalizedRadius; offsetX <= normalizedRadius; offsetX += 1) {
+        const x = center.x + offsetX;
+        const y = center.y + offsetY;
+        if (x < 0 || y < 0 || x >= size || y >= size) continue;
+        const id = `area:${center.zoom}:${x}:${y}`;
+        const summary = summaries.get(id) || null;
+        cells.push({
+          id,
+          zoom: center.zoom,
+          x,
+          y,
+          offsetX,
+          offsetY,
+          known: Boolean(summary && summary.known),
+          discoveries: summary ? summary.discoveries : 0,
+          progress: summary ? summary.progress : 0,
+          goal: summary ? summary.goal : areaGoal(id, goalResolver),
+          complete: Boolean(summary && summary.complete),
+          exploredCells: summary ? summary.exploredCells : 0
+        });
+      }
+    }
+    return cells;
+  }
+
+  function entriesForArea(entries, areaId) {
+    const area = parseAreaId(areaId);
+    if (!area) return Array.isArray(entries) ? entries.slice() : [];
+    return (Array.isArray(entries) ? entries : []).filter((entry) => {
+      const mapped = parseAreaId(entry && entry.areaId);
+      return Boolean(mapped && mapped.id === area.id);
+    });
   }
 
   function entryViewModel(entry, LocationVisuals) {
@@ -57,6 +201,7 @@
     const visual = LocationVisuals && typeof LocationVisuals.resolveLocationVisual === "function"
       ? LocationVisuals.resolveLocationVisual(source)
       : null;
+    const area = parseAreaId(source.areaId);
     return {
       key: cleanText(source.key),
       name: cleanText(source.name, "名もない発見"),
@@ -68,6 +213,7 @@
       terrainLabel: terrain.length ? terrain.map((item) => TERRAIN_LABELS[item] || item).join(" / ") : "地形不明",
       visits: Math.max(1, Number(source.visits) || 1),
       firstDiscoveredAt: Math.max(0, Number(source.firstDiscoveredAt) || 0),
+      areaId: area ? area.id : "",
       visual
     };
   }
@@ -142,7 +288,8 @@
         ["種別", model.kindLabel],
         ["地形", model.terrainLabel],
         ["訪問", `${model.visits}回`],
-        ["初回", formatDiscoveryDate(model.firstDiscoveredAt)]
+        ["初回", formatDiscoveryDate(model.firstDiscoveredAt)],
+        ["区画", model.areaId ? "探索地図に記録" : "旧記録"]
       ]) {
         const row = document.createElement("div");
         const term = document.createElement("span");
@@ -161,11 +308,30 @@
       detail.append(media, copy);
     }
 
+    function renderEmptyDetail(detail, selectedAreaId) {
+      detail.innerHTML = "";
+      const empty = document.createElement("div");
+      empty.className = "discovery-journal-empty";
+      const emptyTitle = document.createElement("strong");
+      emptyTitle.textContent = selectedAreaId ? "この区画には、まだ発見がない。" : "探索録はまだ白紙だ。";
+      const emptyCopy = document.createElement("p");
+      emptyCopy.textContent = selectedAreaId
+        ? "歩いて区画を探り、痕跡を見つけると達成度が埋まっていく。"
+        : "霧の外へ出て場所を見つけると、ここから過去の発見を読み返せる。";
+      empty.append(emptyTitle, emptyCopy);
+      detail.appendChild(empty);
+    }
+
     function openBrowser() {
       closeBrowser();
       previousFocus = document.activeElement;
       const safe = Core.loadSafeState();
-      const entries = journalEntries(safe && safe.worldKnowledge);
+      const worldKnowledge = safe && safe.worldKnowledge ? safe.worldKnowledge : {};
+      const entries = journalEntries(worldKnowledge);
+      const areas = areaSummaries(worldKnowledge, Core.explorationAreaGoal);
+      const areaById = new Map(areas.map((area) => [area.id, area]));
+      const centerAreaId = defaultAreaId(worldKnowledge);
+      let selectedAreaId = "";
 
       const viewer = document.createElement("div");
       viewer.id = "discovery-journal-browser";
@@ -196,6 +362,10 @@
       close.setAttribute("aria-label", "探索録を閉じる");
       close.addEventListener("click", closeBrowser);
 
+      const areaOverview = document.createElement("section");
+      areaOverview.className = "discovery-area-overview";
+      areaOverview.setAttribute("aria-label", "探索済みエリアの簡易地図");
+
       const body = document.createElement("div");
       body.className = "discovery-journal-body";
       const list = document.createElement("nav");
@@ -205,8 +375,21 @@
       detail.className = "discovery-journal-detail";
       detail.setAttribute("aria-live", "polite");
 
-      if (entries.length) {
-        entries.forEach((entry, index) => {
+      function renderList() {
+        list.innerHTML = "";
+        detail.innerHTML = "";
+        const visibleEntries = entriesForArea(entries, selectedAreaId);
+
+        if (!visibleEntries.length) {
+          const listEmpty = document.createElement("div");
+          listEmpty.className = "discovery-journal-list-empty";
+          listEmpty.textContent = selectedAreaId ? "この区画の発見はまだない。" : "まだ発見はない。";
+          list.appendChild(listEmpty);
+          renderEmptyDetail(detail, selectedAreaId);
+          return;
+        }
+
+        visibleEntries.forEach((entry, index) => {
           const model = entryViewModel(entry, LocationVisuals);
           const button = document.createElement("button");
           button.type = "button";
@@ -224,21 +407,88 @@
           });
           list.appendChild(button);
         });
-        renderDetail(detail, entries[0]);
-      } else {
-        const empty = document.createElement("div");
-        empty.className = "discovery-journal-empty";
-        const emptyTitle = document.createElement("strong");
-        emptyTitle.textContent = "探索録はまだ白紙だ。";
-        const emptyCopy = document.createElement("p");
-        emptyCopy.textContent = "霧の外へ出て場所を見つけると、ここから過去の発見を読み返せる。";
-        empty.append(emptyTitle, emptyCopy);
-        body.classList.add("empty");
-        detail.appendChild(empty);
+        renderDetail(detail, visibleEntries[0]);
       }
 
+      function renderAreaOverview() {
+        areaOverview.innerHTML = "";
+        const copy = document.createElement("div");
+        copy.className = "discovery-area-copy";
+        const mapKicker = document.createElement("small");
+        mapKicker.textContent = "KNOWN AREAS / COARSE MAP";
+        const mapTitle = document.createElement("strong");
+        mapTitle.textContent = "探索地図";
+        const completed = areas.filter((area) => area.complete).length;
+        const mapStatus = document.createElement("span");
+        mapStatus.textContent = areas.length
+          ? `${completed}/${areas.length} 区画踏破 · 発見を埋めると COMPLETE`
+          : "歩いた場所が、粗い区画としてここに残る。";
+        const all = document.createElement("button");
+        all.type = "button";
+        all.className = `discovery-area-all${selectedAreaId ? "" : " selected"}`;
+        all.textContent = "すべての探索録";
+        all.addEventListener("click", () => {
+          selectedAreaId = "";
+          renderAreaOverview();
+          renderList();
+        });
+        copy.append(mapKicker, mapTitle, mapStatus, all);
+
+        const mapWrap = document.createElement("div");
+        mapWrap.className = "discovery-area-map-wrap";
+        const grid = document.createElement("div");
+        grid.className = "discovery-area-map";
+        grid.setAttribute("role", "group");
+        grid.setAttribute("aria-label", "探索済み区画。中央付近を基準にした粗い相対地図");
+        const mapCells = areaWindowModel(worldKnowledge, centerAreaId, AREA_MAP_RADIUS, Core.explorationAreaGoal);
+
+        if (mapCells.length) {
+          mapCells.forEach((area) => {
+            const cell = document.createElement("button");
+            cell.type = "button";
+            cell.className = `discovery-area-cell${area.known ? " known" : " unknown"}${area.complete ? " complete" : ""}${selectedAreaId === area.id ? " selected" : ""}`;
+            cell.disabled = !area.known;
+            cell.dataset.areaId = area.id;
+            if (area.known) {
+              const mark = document.createElement("span");
+              mark.textContent = area.complete ? "✓" : "•";
+              const progress = document.createElement("strong");
+              progress.textContent = `${area.progress}/${area.goal}`;
+              const label = document.createElement("small");
+              label.textContent = area.complete ? "COMPLETE" : "FOUND";
+              cell.append(mark, progress, label);
+              cell.setAttribute("aria-label", `探索済み区画。発見 ${area.progress}/${area.goal}${area.complete ? "。踏破済み" : ""}`);
+              cell.addEventListener("click", () => {
+                selectedAreaId = area.id;
+                renderAreaOverview();
+                renderList();
+              });
+            } else {
+              cell.textContent = "·";
+              cell.setAttribute("aria-label", "未踏の区画");
+            }
+            grid.appendChild(cell);
+          });
+        } else {
+          const blank = document.createElement("div");
+          blank.className = "discovery-area-map-empty";
+          blank.textContent = "まだ地図に残る区画がない。";
+          grid.appendChild(blank);
+        }
+
+        const legend = document.createElement("p");
+        legend.className = "discovery-area-legend";
+        legend.textContent = "z16探索セルを16枚ずつ束ねた粗い区画。正確な移動経路は保存しない。";
+        mapWrap.append(grid, legend);
+        areaOverview.append(copy, mapWrap);
+      }
+
+      if (!entries.length && !areas.length) body.classList.add("empty");
+      renderAreaOverview();
+      renderList();
+
       body.append(list, detail);
-      folio.append(header, body, close);
+      folio.append(header, areaOverview, body, close);
       viewer.appendChild(folio);
       viewer.addEventListener("click", (event) => {
         if (event.target === viewer) closeBrowser();
@@ -267,9 +517,18 @@
   }
 
   const api = {
+    AREA_ZOOM,
+    AREA_MAP_RADIUS,
     TERRAIN_LABELS,
     KIND_LABELS,
     STATE_LABELS,
+    parseAreaId,
+    areaFromCellId,
+    areaGoal,
+    areaSummaries,
+    defaultAreaId,
+    areaWindowModel,
+    entriesForArea,
     journalEntries,
     entryViewModel,
     formatDiscoveryDate,
