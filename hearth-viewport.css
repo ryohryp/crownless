@@ -36,9 +36,8 @@
     grid-template-columns: 1fr;
   }
 
-  /* Keep the mobile Hearth as a room, but give its copy, wall objects and
-     floor objects distinct vertical bands instead of shrinking them into the
-     same 690px canvas. */
+  /* Keep the mobile Hearth as a room, with hit regions aligned to the
+     selected background composition. */
   #hub-screen .hearth-scene {
     min-height: 820px;
   }
@@ -46,13 +45,13 @@
   #hub-screen .hearth-scene-copy {
     top: 18px;
     left: 16px;
-    width: calc(100% - 32px);
+    width: min(290px, calc(100% - 32px));
     max-width: none;
   }
 
   #hub-screen .hearth-scene-copy h1 {
     margin-bottom: 8px;
-    font-size: clamp(34px, 10vw, 48px);
+    font-size: clamp(32px, 9vw, 46px);
     line-height: .98;
   }
 
@@ -60,21 +59,28 @@
     display: none;
   }
 
-  /* Wall band: the map stays below the hero copy and the gate gets its own
-     right-hand area. Location art only changes the map paper background, so
-     unlocking a visual cannot alter these dimensions. */
-  #hub-screen .hearth-map {
-    left: 4%;
-    top: 190px;
-    transform: scale(.68) rotate(-1.5deg);
-    transform-origin: left top;
+  #hub-screen .hearth-scene--visual-candidate .hearth-scene-art {
+    background-position: 44% center;
   }
 
-  #hub-screen .hearth-gate {
-    top: 220px;
-    right: 2%;
-    width: 46%;
-    height: 270px;
+  #hub-screen .hearth-scene--visual-candidate .hearth-map {
+    left: 10%;
+    top: 142px;
+    width: 25%;
+    height: 16%;
+    transform: none;
+  }
+
+  #hub-screen .hearth-scene--visual-candidate .hearth-gate {
+    top: 124px;
+    right: auto;
+    left: 29%;
+    width: 43%;
+    height: 47%;
+  }
+
+  #hub-screen .hearth-scene--visual-candidate .hearth-gate .object-label {
+    right: -42px;
   }
 
   #hub-screen .hearth-gate .object-label {
@@ -83,58 +89,54 @@
     min-width: 142px;
   }
 
-  /* Floor band: move the character away from the reward shelf and keep the
-     fire label on the far right. Secondary prose is already available through
-     interaction feedback and is intentionally hidden at this width. */
-  #hub-screen .hearth-character {
-    left: 43%;
-    bottom: 155px;
-    transform: translateX(-50%) scale(.78);
-    transform-origin: center bottom;
+  #hub-screen .hearth-scene--visual-candidate .hearth-character {
+    left: 31%;
+    bottom: 17%;
+    width: 22%;
+    height: 42%;
+    transform: translateX(-50%);
   }
 
-  #hub-screen .hearth-character:active {
-    transform: translateX(-50%) scale(.77);
+  #hub-screen .hearth-scene--visual-candidate .hearth-avatar-sprite {
+    width: 190px;
+    height: 270px;
+    bottom: -14px;
   }
 
-  #hub-screen .hearth-character .object-label {
-    width: 185px;
+  #hub-screen .hearth-scene--visual-candidate .hearth-fire {
+    left: 11%;
+    bottom: 13%;
+    width: 22%;
+    height: 24%;
+    transform: translateX(-50%);
   }
 
-  #hub-screen .hearth-fire {
+  #hub-screen .hearth-scene--visual-candidate .hearth-loot-shelf {
     left: 78%;
-    bottom: 96px;
-    transform: translateX(-50%) scale(.76);
-    transform-origin: center bottom;
+    bottom: 16%;
+    width: 20%;
+    height: 37%;
+    transform: none;
   }
 
-  #hub-screen .hearth-fire:active {
-    transform: translateX(-50%) scale(.75);
-  }
-
-  #hub-screen .hearth-loot-shelf {
-    left: 2%;
-    bottom: 42px;
-    transform: scale(.60);
-    transform-origin: left bottom;
-  }
-
-  #hub-screen .hearth-loot-shelf .object-label {
-    top: -56px;
+  #hub-screen .hearth-scene--visual-candidate .hearth-loot-shelf .object-label {
+    right: 0;
+    left: auto;
+    top: -10px;
     bottom: auto;
   }
 
-  #hub-screen .hearth-forge {
+  #hub-screen .hearth-scene--visual-candidate .hearth-forge {
     right: 0;
-    bottom: 42px;
-    transform: scale(.56);
+    bottom: 8%;
+    transform: scale(.65);
     transform-origin: right bottom;
   }
 
-  #hub-screen .hearth-recovery-cache {
+  #hub-screen .hearth-scene--visual-candidate .hearth-recovery-cache {
     right: 25%;
-    bottom: 54px;
-    transform: scale(.60);
+    bottom: 12%;
+    transform: scale(.7);
   }
 
   #hub-screen .hearth-object .object-label span {
@@ -147,43 +149,72 @@
   }
 }
 
+@media (max-width: 560px) {
+  #hub-screen .hearth-scene--visual-candidate .hearth-scene-art {
+    background-position: 43% center;
+  }
+}
+
 @media (min-width: 901px) {
-  /* Desktop has enough width to keep the room composition, but the original
-     hero copy could grow to 66px and wrap into the map. Cap it to two visual
-     lines and reserve a lower wall band for the discovery map. */
+  /* Keep the scene title legible without competing with the gate. */
   #hub-screen .hearth-scene-copy {
-    width: min(500px, 44%);
+    width: min(310px, 30%);
   }
 
   #hub-screen .hearth-scene-copy h1 {
-    font-size: clamp(44px, 4.2vw, 58px);
+    font-size: clamp(38px, 3.8vw, 50px);
     line-height: .98;
   }
 
   #hub-screen .hearth-scene-copy .lede {
-    max-width: 450px;
+    max-width: 270px;
     line-height: 1.45;
   }
 
-  #hub-screen .hearth-map {
-    left: 3%;
-    top: 225px;
+  #hub-screen .hearth-scene--visual-candidate .hearth-map {
+    left: 13%;
+    top: 16%;
+    width: 16%;
+    height: 19%;
+    transform: none;
   }
 
-  /* Keep the three lower interaction labels in separate horizontal lanes.
-     The shelf label is pulled toward the wall while character and fire move
-     just enough apart to preserve their readable hit-target captions. */
-  #hub-screen .hearth-loot-shelf .object-label {
-    left: -72px;
-    width: 125px;
+  #hub-screen .hearth-scene--visual-candidate .hearth-gate {
+    top: 5%;
+    right: auto;
+    left: 34%;
+    width: 33%;
+    height: 70%;
+  }
+
+  #hub-screen .hearth-scene--visual-candidate .hearth-character {
+    left: 31%;
+    bottom: 12%;
+    width: 18%;
+    height: 48%;
+    transform: translateX(-50%);
+  }
+
+  #hub-screen .hearth-scene--visual-candidate .hearth-fire {
+    left: 12%;
+    bottom: 10%;
+    width: 18%;
+    height: 25%;
+    transform: translateX(-50%);
+  }
+
+  #hub-screen .hearth-scene--visual-candidate .hearth-loot-shelf {
+    left: 81%;
+    bottom: 15%;
+    width: 17%;
+    height: 45%;
+    transform: none;
+  }
+
+  #hub-screen .hearth-scene--visual-candidate .hearth-loot-shelf .object-label {
+    right: 0;
+    left: auto;
+    width: 140px;
     min-width: 0;
-  }
-
-  #hub-screen .hearth-character {
-    left: 28%;
-  }
-
-  #hub-screen .hearth-fire {
-    left: 46%;
   }
 }

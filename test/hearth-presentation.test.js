@@ -22,6 +22,18 @@ test("Grey Hearth exposes interactive world objects instead of a single CTA card
   assert.match(html, /id="hearth-map-focus"/);
 });
 
+test("Issue 162 keeps the scene visual primary and reveals secondary labels on interaction", () => {
+  assert.match(html, /data-visual="grey-hearth-b-gate-centered"/);
+  assert.match(html, /<h1>灰炉<em>帰る場所が、<br>少しずつ育つ。<\/em><\/h1>/);
+  assert.match(css, /\.hearth-scene-copy\s*\{[\s\S]*?width:\s*min\(290px,\s*32%\)/);
+  assert.match(css, /\.hearth-object \.object-label\s*\{[\s\S]*?opacity:\s*0[\s\S]*?visibility:\s*hidden/);
+  assert.match(css, /\.hearth-object:hover \.object-label/);
+  assert.match(css, /\.hearth-object:focus \.object-label/);
+  assert.match(css, /\.hearth-gate \.object-label\s*\{[\s\S]*?opacity:\s*1[\s\S]*?visibility:\s*visible/);
+  assert.match(css, /\.hearth-scene-art::after\s*\{[\s\S]*?animation:\s*hearthRoomMist/);
+  assert.match(css, /\.hearth-scene-art::after,[\s\S]*?animation:\s*none\s*!important/);
+});
+
 test("existing hub state ids remain wired for app rendering", () => {
   for (const id of ["equipped-label", "loadout-title", "loadout-description", "secured-count", "secured-loot", "stat-runs", "stat-survived", "stat-kills", "stat-defeats"]) {
     assert.match(html, new RegExp(`id="${id}"`));
