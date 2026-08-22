@@ -18,7 +18,9 @@ test("desktop Grey Hearth restores unconstrained hero sizing", () => {
   assert.match(css, /body:has\(#hub-screen\.active\) #hub-screen \.loadout-card[\s\S]*?min-height: 430px;/);
 });
 
-test("exploration keeps its one-screen desktop layout", () => {
-  assert.match(css, /#explore-screen\.screen\.active[\s\S]*?grid-template-rows: auto auto minmax\(0, 1fr\) auto;[\s\S]*?overflow: hidden;/);
-  assert.match(css, /#exploration-map-panel[\s\S]*?height: 100%;[\s\S]*?overflow: hidden;/);
+test("Grey Hearth and exploration keep independent desktop scroll scopes", () => {
+  assert.match(css, /body:has\(#hub-screen\.active\) main[\s\S]*?overflow-y: auto;/);
+  assert.match(css, /body:has\(#explore-screen\.active\) main[\s\S]*?overflow-y: auto;/);
+  assert.match(css, /body:has\(#hub-screen\.active\) #hub-screen\.screen\.active[\s\S]*?height: auto !important;/);
+  assert.match(css, /body:has\(#explore-screen\.active\) #explore-screen\.screen\.active[\s\S]*?height: auto !important;/);
 });
