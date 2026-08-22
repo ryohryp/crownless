@@ -25,7 +25,9 @@ test("production query extends sparse height signals without scanning dense buil
 
   assert.match(query, /nw\(35\.685508,139\.77447,35\.694492,139\.78553\)\[waterway\]/);
   assert.match(query, /nw\(35\.682814,139\.771152,35\.697186,139\.788848\)\[tourism=viewpoint\]/);
-  assert.match(query, /nw\(35\.682814,139\.771152,35\.697186,139\.788848\)\[man_made~\"\^\(tower\|communications_tower\|mast\|water_tower\|lighthouse\)\$\"\]/);
+  assert.match(query, /nw\(35\.682814,139\.771152,35\.697186,139\.788848\)\[man_made~"\^\(tower\|communications_tower\)\$"\]/);
+  assert.match(query, /nw\(35\.682814,139\.771152,35\.697186,139\.788848\)\[man_made=mast\]\[height\]/);
+  assert.match(query, /nw\(35\.682814,139\.771152,35\.697186,139\.788848\)\[man_made~"\^\(water_tower\|lighthouse\)\$"\]/);
   assert.doesNotMatch(query, /\[building\]\[name~/);
   assert.doesNotMatch(query, /\[building\]\["name:ja"~/);
 });
@@ -33,7 +35,10 @@ test("production query extends sparse height signals without scanning dense buil
 test("direct Overpass query uses sparse height tags instead of tower-name building scans", () => {
   const query = Discovery.buildOverpassQuery(35.69, 139.78, 500);
 
-  assert.match(query, /\[man_made~"\^\(tower\|communications_tower\|mast\|water_tower\|lighthouse\)\$"\]/);
+  assert.match(query, /\[man_made=tower\]/);
+  assert.match(query, /\[man_made=communications_tower\]/);
+  assert.match(query, /\[man_made=mast\]\[height\]/);
+  assert.match(query, /\[man_made~"\^\(water_tower\|lighthouse\)\$"\]/);
   assert.doesNotMatch(query, /\[building\]\[name~/);
   assert.doesNotMatch(query, /\[building\]\["name:ja"~/);
 });
