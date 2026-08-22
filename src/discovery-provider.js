@@ -121,6 +121,27 @@
     }, DISCOVERY_SIGNAL_PRIORITY.length);
   }
 
+  function candidateRequiresFeature(candidate, feature) {
+    return !!(candidate && candidate.rule && Array.isArray(candidate.rule.requires) && candidate.rule.requires.includes(feature));
+  }
+
+  function preserveHeightDiversity(candidates, selected, limit) {
+    const max = Math.max(1, Number(limit) || 3);
+    if (max < 3 || selected.length < max || selected.some((candidate) => candidateRequiresFeature(candidate, "height"))) return selected;
+
+    const heightCandidate = candidates.find((candidate) => candidateRequiresFeature(candidate, "height"));
+    if (!heightCandidate) return selected;
+
+    const result = selected.slice();
+    const heightPlaceName = String(heightCandidate.realPlaceName || "").trim();
+    const samePlaceIndex = heightPlaceName
+      ? result.findIndex((candidate) => String(candidate && candidate.realPlaceName || "").trim() === heightPlaceName)
+      : -1;
+    const replacementIndex = samePlaceIndex >= 0 ? samePlaceIndex : result.length - 1;
+    result[replacementIndex] = heightCandidate;
+    return result;
+  }
+
   function selectDiverseDiscoveryCandidates(candidates, limit) {
     const source = Array.isArray(candidates) ? candidates : [];
     const max = Math.max(1, Number(limit) || 3);
@@ -151,8 +172,6 @@
     primaries.sort((left, right) => left.order - right.order);
 
     const selected = primaries.slice(0, max).map((entry) => entry.candidate);
-    if (selected.length >= max) return selected;
-
     const selectedSet = new Set(selected);
     for (const candidate of source) {
       if (selected.length >= max) break;
@@ -160,7 +179,7 @@
       selected.push(candidate);
       selectedSet.add(candidate);
     }
-    return selected;
+    return preserveHeightDiversity(source, selected, max);
   }
 
   function discoveriesFromFeatures(features, options) {
