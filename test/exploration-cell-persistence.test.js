@@ -118,7 +118,7 @@ test("browser entrypoint keeps fallback independent and renders manuscript terri
   const indexSource = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
 
   assert.match(runtimeSource, /exploration-cell-tile\.known/);
-  assert.match(runtimeSource, /exploration-cell-tile\.unknown/);
+  assert.match(runtimeSource, /entry\.known \? "known" : "unknown"/);
   assert.match(runtimeSource, /KNOWN TERRITORY/);
   assert.match(runtimeSource, /getCurrentPosition/);
   assert.doesNotMatch(runtimeSource, /Overpass|GeographyApi|google\.maps|mapbox|leaflet/i);
