@@ -3,6 +3,8 @@ name: refactor-183-integrate
 on:
   push:
     branches: [refactor/183-extract-combat-action-profiles]
+  pull_request:
+    branches: [main]
 
 permissions:
   contents: write
