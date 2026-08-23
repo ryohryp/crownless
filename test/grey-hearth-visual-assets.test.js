@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { createHash } from 'node:crypto';
 import { readFile } from 'node:fs/promises';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -45,6 +46,18 @@ test('Grey Hearth avatar baseline remains the valid unarmed player source', asyn
   const avatar = await readFile(join(root, 'assets', 'hearth', manifest.avatar_baseline));
   assert.deepEqual([...avatar.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
   assert.ok(avatar.length > 1000);
+});
+
+test('approved Grey Hearth avatar stays separate from the combat source and Canon Anchor', async () => {
+  assert.equal(manifest.avatar_runtime_status, 'approved');
+  assert.equal(manifest.avatar_runtime_approval.approved_by, 'user');
+  assert.equal(manifest.avatar_runtime_anchor, '../../docs/assets/player-unarmed-approved-anchor-v0.3.png');
+  assert.equal(manifest.avatar_runtime_policy.global_character_canon_changed, false);
+
+  const runtimeAvatar = await readFile(join(root, 'assets', 'hearth', manifest.avatar_runtime_candidate));
+  assert.deepEqual(readPngSize(runtimeAvatar), { width: 1024, height: 1536 });
+  assert.equal(createHash('sha256').update(runtimeAvatar).digest('hex'), manifest.avatar_runtime_approval.sha256);
+  assert.notEqual(manifest.avatar_runtime_candidate, manifest.avatar_baseline);
 });
 
 test('Issue 166 runtime background is the approved 16:9 PNG without a baked runtime layer', async () => {
