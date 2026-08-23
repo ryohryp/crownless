@@ -51,7 +51,7 @@ test('Grey Hearth avatar baseline remains the valid unarmed player source', asyn
 test('approved Grey Hearth avatar stays separate from the combat source and Canon Anchor', async () => {
   assert.equal(manifest.avatar_runtime_status, 'approved');
   assert.equal(manifest.avatar_runtime_approval.approved_by, 'user');
-  assert.equal(manifest.avatar_runtime_anchor, '../combat/minimal-v0.1/actors/player-unarmed-approved-anchor-v0.4.png');
+  assert.equal(manifest.avatar_runtime_anchor, '../../docs/assets/player-unarmed-approved-anchor-v0.4.png');
   assert.equal(manifest.avatar_runtime_policy.global_character_canon_changed, false);
 
   const runtimeAvatar = await readFile(join(root, 'assets', 'hearth', manifest.avatar_runtime_candidate));

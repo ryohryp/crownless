@@ -15,7 +15,7 @@
   },
   "canon_contract": "docs/visual/CHARACTER_VISUAL_CANON.md",
   "source": {
-    "path": "assets/combat/minimal-v0.1/actors/player-unarmed-approved-anchor-v0.4.png",
+    "path": "docs/assets/player-unarmed-approved-anchor-v0.4.png",
     "dimensions": [1024, 1536],
     "sha256": "9eb013534537a6d1b2c55d9759ab3d6a4ab81d05a97f6e3507fce4ee82dbdba7",
     "mime_type": "image/png",

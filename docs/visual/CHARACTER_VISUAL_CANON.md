@@ -16,11 +16,11 @@ This file maps Crownless combat subjects to the current character rules used by 
 
 ### Approved Visual Anchor
 
-- `assets/combat/minimal-v0.1/actors/player-unarmed-approved-anchor-v0.4.png`
+- `docs/assets/player-unarmed-approved-anchor-v0.4.png`
 
 This anchor is the approved identity, clothing/material, palette, silhouette, and unarmed-fighting reference. It is a transparent single-frame combat-ready anchor authored for the oblique top-down battlefield camera; runtime integration must preserve its visible alpha bounds, bottom-center foot point, uniform X/Y scale, and phone-scale readability.
 
-The v0.4 replacement was generated from the approved v0.3 identity anchor after the prior v0.2 WebP failed local decode validation. The replacement is recorded in `docs/assets/player-unarmed-approved-anchor-v0.4.json`; the approval-package copy at `docs/assets/player-unarmed-approved-anchor-v0.4.png` is byte-identical provenance. The previous v0.3 plate remains historical calibration only; the unreadable v0.2 file remains a legacy reference and must not be used as a generation parent.
+The v0.4 replacement was generated from the approved v0.3 identity anchor after the prior v0.2 WebP failed local decode validation. The replacement is recorded in `docs/assets/player-unarmed-approved-anchor-v0.4.json`. The previous v0.3 plate remains historical calibration only; the unreadable v0.2 file remains a legacy reference and must not be used as a generation parent.
 
 ### Reference calibration
 

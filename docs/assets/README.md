@@ -18,7 +18,7 @@ When a detail conflicts with current textual Canon or accepted combat actors, th
 
 ## Approved protagonist visual Anchor
 
-- `assets/combat/minimal-v0.1/actors/player-unarmed-approved-anchor-v0.4.png` — **the approved protagonist identity Anchor**. This transparent single-frame combat-ready manuscript/woodcut sprite establishes the anonymous unarmed survivor's compact folk-doll silhouette, wrapped hands, patched clothing, scavenged belt/pouch, restrained palette, and physical ink treatment for the oblique battlefield camera. The byte-identical copy at `docs/assets/player-unarmed-approved-anchor-v0.4.png` remains with the approval record for provenance.
+- `player-unarmed-approved-anchor-v0.4.png` — **the approved protagonist identity Anchor**. This transparent single-frame combat-ready manuscript/woodcut sprite establishes the anonymous unarmed survivor's compact folk-doll silhouette, wrapped hands, patched clothing, scavenged belt/pouch, restrained palette, and physical ink treatment for the oblique battlefield camera.
 
 The approval and integrity record is `player-unarmed-approved-anchor-v0.4.json`. This is an identity/reference asset, not a runtime sprite atlas; runtime actors must preserve its subject grammar while adapting the pose, transparent bounds, foot point, and scale to the oblique battlefield camera.
 
