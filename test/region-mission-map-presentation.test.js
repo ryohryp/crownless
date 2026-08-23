@@ -19,11 +19,12 @@ test('regional mission target presentation loads after the exploration map', () 
   assert.ok(explorationFeel > regionalMap);
 });
 
-test('regional mission map marker is schematic and does not request precise location data', () => {
+test('revealed regional target is a schematic map marker that points combat back to Grey Hearth', () => {
   const source = fs.readFileSync(presentationPath, 'utf8');
 
+  assert.match(source, /getRegionMissionBoard/);
   assert.match(source, /region-mission-map-point/);
-  assert.match(source, /data-discovery-source="region-mission"/);
+  assert.match(source, /攻略は灰炉で/);
   assert.match(source, /marker\.style\.left = "76%"/);
   assert.match(source, /marker\.style\.top = "31%"/);
   assert.doesNotMatch(source, /getCurrentPosition|latitude|longitude|coordinates|representativeCoordinate|mapOrigin/);
