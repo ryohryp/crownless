@@ -5,18 +5,11 @@
   "status": "approved",
   "global_reference": "docs/assets/crownless-visual-design-reference-v0.1.jpg",
   "selected_concept": "concepts/grey-hearth-empty-room-v0.2.png",
-  "previous_selected_concept": "concepts/grey-hearth-b-gate-centered.png",
   "runtime_candidate": "concepts/grey-hearth-empty-room-v0.2.png",
   "concepts": [
-    "concepts/grey-hearth-a-hearth-centered.png",
-    "concepts/grey-hearth-b-gate-centered.png",
-    "concepts/grey-hearth-c-avatar-centered.png",
     "concepts/grey-hearth-empty-room-v0.2.png"
   ],
-  "supporting_candidates": [
-    "concepts/mist-gate-reference.png",
-    "concepts/hearth-prop-reference-set.png"
-  ],
+  "supporting_candidates": [],
   "avatar_baseline": "../combat/minimal-v0.1/actors/player-unarmed.png",
   "avatar_runtime_candidate": "actors/player-unarmed-hearth-v0.1.png",
   "avatar_runtime_status": "approved",
@@ -45,6 +38,7 @@
     "approved_by": "user",
     "approved_on": "2026-08-23",
     "approved_candidate_manifest": "approved/grey-hearth-empty-room-v0.2.json",
-    "note": "This scoped Approved Visual Anchor applies to the Grey Hearth background. It does not edit the global character Canon or approve the other Hearth concepts."
-  }
+    "note": "This scoped Approved Visual Anchor applies to the Grey Hearth background. It does not edit the global character Canon or approve other historical Hearth concepts."
+  },
+  "history_policy": "Rejected and superseded candidates are preserved in Git history rather than retained on main."
 }
