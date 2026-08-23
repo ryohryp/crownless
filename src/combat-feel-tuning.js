@@ -12,61 +12,66 @@
   const Core = window.CrownlessCore;
   if (!Core || Core.__combatFeelTuned) return;
 
-  const ROLE_PACE = {
-    rusher: { speed: 1.06, range: 68 },
-    guard: { speed: 0.88, range: 76 },
-    skirmisher: { speed: 1.10, range: 245 }
-  };
-
-  const RUSHER_IDENTITY = Object.freeze({
-    healthScale: 0.84,
-    damageScale: 1.18,
-    role: "fast / dangerous / fragile"
+  const ENEMY_ROLE_TUNING = Object.freeze({
+    rusher: Object.freeze({
+      speed: 1.06,
+      range: 68,
+      healthScale: 0.84,
+      damageScale: 1.18,
+      role: "fast / dangerous / fragile"
+    }),
+    guard: Object.freeze({
+      speed: 0.88,
+      range: 76,
+      healthScale: 1.08,
+      damageScale: 0.92,
+      role: "slow / armored / break then punish"
+    }),
+    skirmisher: Object.freeze({
+      speed: 1.10,
+      range: 245,
+      healthScale: 0.90,
+      damageScale: 1.12,
+      role: "mobile / evasive / punish neglect"
+    })
   });
 
-  const GUARD_IDENTITY = Object.freeze({
-    healthScale: 1.08,
-    damageScale: 0.92,
-    role: "slow / armored / break then punish"
-  });
+  const ROLE_PACE = Object.freeze(Object.fromEntries(
+    Object.entries(ENEMY_ROLE_TUNING).map(([kind, tuning]) => [
+      kind,
+      Object.freeze({ speed: tuning.speed, range: tuning.range })
+    ])
+  ));
 
-  const SKIRMISHER_IDENTITY = Object.freeze({
-    healthScale: 0.90,
-    damageScale: 1.12,
-    role: "mobile / evasive / punish neglect"
-  });
+  function identityFor(kind) {
+    const tuning = ENEMY_ROLE_TUNING[kind];
+    return Object.freeze({
+      healthScale: tuning.healthScale,
+      damageScale: tuning.damageScale,
+      role: tuning.role
+    });
+  }
 
-  const PLAYER_MOVE_SCALE = {
+  const RUSHER_IDENTITY = identityFor("rusher");
+  const GUARD_IDENTITY = identityFor("guard");
+  const SKIRMISHER_IDENTITY = identityFor("skirmisher");
+
+  const PLAYER_MOVE_SCALE = Object.freeze({
     fists: 1.05,
     dagger: 1.05,
     sword: 1.04
-  };
+  });
 
   function tuneEnemy(enemy) {
     if (!enemy || enemy.boss) return enemy;
-    const pace = ROLE_PACE[enemy.kind];
-    if (!pace) return enemy;
-    enemy.moveSpeed = Math.round(enemy.moveSpeed * pace.speed);
-    enemy.attackRange = pace.range;
+    const tuning = ENEMY_ROLE_TUNING[enemy.kind];
+    if (!tuning) return enemy;
 
-    if (enemy.kind === "rusher") {
-      enemy.maxHealth = Math.max(1, Math.round(enemy.maxHealth * RUSHER_IDENTITY.healthScale));
-      enemy.damage = Math.max(1, Math.round(enemy.damage * RUSHER_IDENTITY.damageScale));
-      enemy.combatRole = "rusher";
-    }
-
-    if (enemy.kind === "guard") {
-      enemy.maxHealth = Math.max(1, Math.round(enemy.maxHealth * GUARD_IDENTITY.healthScale));
-      enemy.damage = Math.max(1, Math.round(enemy.damage * GUARD_IDENTITY.damageScale));
-      enemy.combatRole = "guard";
-    }
-
-    if (enemy.kind === "skirmisher") {
-      enemy.maxHealth = Math.max(1, Math.round(enemy.maxHealth * SKIRMISHER_IDENTITY.healthScale));
-      enemy.damage = Math.max(1, Math.round(enemy.damage * SKIRMISHER_IDENTITY.damageScale));
-      enemy.combatRole = "skirmisher";
-    }
-
+    enemy.moveSpeed = Math.round(enemy.moveSpeed * tuning.speed);
+    enemy.attackRange = tuning.range;
+    enemy.maxHealth = Math.max(1, Math.round(enemy.maxHealth * tuning.healthScale));
+    enemy.damage = Math.max(1, Math.round(enemy.damage * tuning.damageScale));
+    enemy.combatRole = enemy.kind;
     return enemy;
   }
 
@@ -77,13 +82,15 @@
     return state;
   }
 
-  ["discoverLocation", "resolveEventChoice", "discoverNextCell"].forEach((name) => {
+  function wrapEncounterTransition(name) {
     const original = Core[name];
     if (typeof original !== "function") return;
     Core[name] = function tunedEncounterTransition(...args) {
       return tuneEncounterState(original.apply(this, args));
     };
-  });
+  }
+
+  ["discoverLocation", "resolveEventChoice", "discoverNextCell"].forEach(wrapEncounterTransition);
 
   const originalBuildEnemies = Core.buildEnemies;
   if (typeof originalBuildEnemies === "function") {

@@ -17,7 +17,8 @@ function makeState() {
           { kind: 'rusher', moveSpeed: 132, attackRange: 52, maxHealth: 44, damage: 11 },
           { kind: 'guard', moveSpeed: 72, attackRange: 76, maxHealth: 62, damage: 13 },
           { kind: 'skirmisher', moveSpeed: 104, attackRange: 250, maxHealth: 38, damage: 9 },
-          { kind: 'rusher', moveSpeed: 140, attackRange: 54, maxHealth: 80, damage: 18, boss: true }
+          { kind: 'rusher', moveSpeed: 140, attackRange: 54, maxHealth: 80, damage: 18, boss: true },
+          { kind: 'mystery', moveSpeed: 91, attackRange: 101, maxHealth: 51, damage: 7 }
         ]
       }
     }
@@ -64,6 +65,16 @@ test('boss tuning stays untouched', () => {
     { moveSpeed: boss.moveSpeed, attackRange: boss.attackRange, maxHealth: boss.maxHealth, damage: boss.damage },
     { moveSpeed: 140, attackRange: 54, maxHealth: 80, damage: 18 }
   );
+});
+
+test('unsupported enemy roles stay untouched', () => {
+  const { CrownlessCore } = loadTuning();
+  const enemy = CrownlessCore.discoverLocation().expedition.encounter.enemies[4];
+  assert.deepEqual(
+    { kind: enemy.kind, moveSpeed: enemy.moveSpeed, attackRange: enemy.attackRange, maxHealth: enemy.maxHealth, damage: enemy.damage },
+    { kind: 'mystery', moveSpeed: 91, attackRange: 101, maxHealth: 51, damage: 7 }
+  );
+  assert.equal(enemy.combatRole, undefined);
 });
 
 test('three ordinary enemy identities are explicit tuning intent', () => {
