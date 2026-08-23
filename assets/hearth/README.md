@@ -1,10 +1,10 @@
 # Grey Hearth visual candidates
 
-These files are Grey Hearth design candidates. The empty-room background added
-for Issue #166 is the runtime candidate: it keeps the physical room in one
-image while leaving the player and state annotations to the application. These
-files are not Approved Visual Anchors and must not be chained as generation
-parents.
+These files contain Grey Hearth design candidates. The empty-room background
+added for Issue #166 is now the scoped Approved Visual Anchor and runtime
+source: it keeps the physical room in one image while leaving the player and
+state annotations to the application. The other concepts remain candidates and
+must not be chained as generation parents.
 
 ## Concept comparison
 
@@ -13,12 +13,15 @@ parents.
 | `concepts/grey-hearth-a-hearth-centered.png` | Hearth-centered | Compared, not selected | Safety and return-home reference |
 | `concepts/grey-hearth-b-gate-centered.png` | Mist-gate-centered | Historical direction | Key visual candidate for #162 handoff |
 | `concepts/grey-hearth-c-avatar-centered.png` | Avatar-centered | Compared, not selected | Player-presence reference |
-| `concepts/grey-hearth-empty-room-v0.2.png` | Empty-room / gate-centered | **Issue #166 runtime candidate** | Background with no baked person or UI |
+| `concepts/grey-hearth-empty-room-v0.2.png` | Empty-room / gate-centered | **Approved Visual Anchor for Grey Hearth** | Background with no baked person or UI |
 
-The selected B direction gives the Mist Gate the clearest actionable silhouette
-while keeping the warm Hearth, player figure, map, shelf, rumor board, and forge
-visible as one lived-in place. Selection is a composition decision only; the
-image remains a review candidate until explicitly approved.
+The approved empty-room direction gives the Mist Gate a clear actionable
+silhouette while keeping the warm Hearth, physical map board, shelf, and forge
+visible as one lived-in place. The player and state annotations remain runtime
+layers.
+
+The approval record and source hash are maintained in
+`approved/grey-hearth-empty-room-v0.2.json`.
 
 ## Supporting candidates
 
@@ -37,6 +40,6 @@ All generated images were prepared from the Crownless Global Visual Canon with
 no UI, logo, issue metadata, or progress text in the handoff.
 
 The Issue #166 background was prepared through Visual Director as a subjectless
-`background` Generation Package. It has no Approved Visual Anchor requirement;
-the source/reference boundary was rebuilt from the Canon after the host rejected
-the local JPG upload. The generated file is still a review Candidate.
+`background` Generation Package. It had no Approved Visual Anchor requirement
+for generation; after the user's explicit approval, the exact source is now
+registered as the scoped Grey Hearth Approved Visual Anchor.

@@ -2,7 +2,7 @@
   "schema_version": 1,
   "project_id": "crownless",
   "asset_type": "hearth_visual_candidates",
-  "status": "candidate",
+  "status": "approved",
   "global_reference": "docs/assets/crownless-visual-design-reference-v0.1.jpg",
   "selected_concept": "concepts/grey-hearth-empty-room-v0.2.png",
   "previous_selected_concept": "concepts/grey-hearth-b-gate-centered.png",
@@ -24,9 +24,12 @@
     "must_use_approved_anchor": false
   },
   "approval": {
-    "approved_visual_anchor": false,
+    "approved_visual_anchor": true,
     "approved_for_grey_hearth_runtime": true,
-    "approval_scope": "Issue #166 selected the empty-room background for Grey Hearth runtime integration",
-    "note": "Runtime integration approval is separate from Canon promotion. This file remains a Candidate and is not an Approved Visual Anchor."
+    "approval_scope": "User-approved Grey Hearth background source for Issue #166 runtime and exact Visual Director source binding",
+    "approved_by": "user",
+    "approved_on": "2026-08-23",
+    "approved_candidate_manifest": "approved/grey-hearth-empty-room-v0.2.json",
+    "note": "This scoped Approved Visual Anchor applies to the Grey Hearth background. It does not edit the global character Canon or approve the other Hearth concepts."
   }
 }
