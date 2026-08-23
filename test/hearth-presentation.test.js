@@ -14,7 +14,7 @@ test("Grey Hearth exposes interactive world objects instead of a single CTA card
   assert.match(html, /id="hearth-scene"/);
   assert.match(html, /class="hearth-scene hearth-scene--empty-room"/);
   assert.match(html, /class="hearth-scene-art"/);
-  assert.match(html, /assets\/combat\/minimal-v0\.1\/actors\/player-unarmed\.png/);
+  assert.match(html, /assets\/hearth\/actors\/player-unarmed-hearth-v0\.1\.png/);
   assert.match(html, /id="start-expedition"[^>]*class="hearth-object hearth-gate"/);
   assert.match(html, /id="hearth-fire-interaction"/);
   assert.match(html, /id="hearth-character-interaction"/);
