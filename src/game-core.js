@@ -82,31 +82,148 @@
 
   const ITEM_BASES = [
     {
+      baseId: "grave-wraps",
       type: "handwraps",
       name: "墓布の拳帯",
       style: "unarmed",
       styleLabel: "拳闘",
       playstyle: "連撃 / 密着",
       damage: 2,
-      description: "拳を守るだけの粗布。素手の速さを殺さない。"
+      description: "拳を守るだけの粗布。素手の速さを殺さない。",
+      baseCombat: {},
+      regionTags: ["chapel", "crypt"]
     },
     {
+      baseId: "iron-studded-gauntlet",
+      type: "handwraps",
+      name: "鉄鋲の拳甲",
+      style: "unarmed",
+      styleLabel: "拳闘",
+      playstyle: "重打 / 崩し",
+      damage: 3,
+      description: "鉄鋲を打った重い拳甲。連打は鈍るが、打ち合いで相手を崩しやすい。",
+      baseCombat: { heavyDamageMultiplier: 1.1, heavyStaggerMultiplier: 1.12, moveSpeedMultiplier: 0.98 },
+      regionTags: ["road", "watchfire"]
+    },
+    {
+      baseId: "pilgrim-leather-wraps",
+      type: "handwraps",
+      name: "巡礼者の革巻き",
+      style: "unarmed",
+      styleLabel: "拳闘",
+      playstyle: "回避 / 機動",
+      damage: 2,
+      description: "長旅で手になじんだ革巻き。踏み込みを邪魔せず、危うい間合いから戻りやすい。",
+      baseCombat: { moveSpeedMultiplier: 1.05, lightDamageMultiplier: 0.98, evadeEmpower: true },
+      regionTags: ["road", "pilgrim"]
+    },
+    {
+      baseId: "bone-stitched-gauntlet",
+      type: "handwraps",
+      name: "骨縫いの手甲",
+      style: "unarmed",
+      styleLabel: "拳闘",
+      playstyle: "Technique / 完走",
+      damage: 2.5,
+      description: "獣骨を革へ縫い留めた手甲。大振りの一撃と連撃の締めに向く。",
+      baseCombat: { heavyDamageMultiplier: 1.08, comboFinisherMultiplier: 1.06, reachMultiplier: 0.98 },
+      regionTags: ["woods", "marsh"]
+    },
+    {
+      baseId: "poacher-dagger",
       type: "dagger",
       name: "密猟者の短刀",
       style: "blade",
       styleLabel: "短刀",
       playstyle: "差し込み / 回避",
       damage: 3,
-      description: "短いが速い。相手の懐へ潜るための刃。"
+      description: "短いが速い。相手の懐へ潜るための刃。",
+      baseCombat: {},
+      regionTags: ["woods", "road"]
     },
     {
+      baseId: "bog-iron-stiletto",
+      type: "dagger",
+      name: "沼鉄の刺突刀",
+      style: "blade",
+      styleLabel: "短刀",
+      playstyle: "差し込み / 単発",
+      damage: 3.4,
+      description: "細く硬い沼鉄の刃。連撃を欲張るより、止まった一瞬に深く刺す。",
+      baseCombat: { lightDamageMultiplier: 1.1, comboFinisherMultiplier: 0.96, reachMultiplier: 0.98 },
+      regionTags: ["marsh"]
+    },
+    {
+      baseId: "bone-hilt-curved-blade",
+      type: "dagger",
+      name: "骨柄の曲刃",
+      style: "blade",
+      styleLabel: "短刀",
+      playstyle: "連撃 / 完走",
+      damage: 2.8,
+      description: "握りの軽い曲刃。浅い傷を重ね、最後の一手まで走り切るための短刀。",
+      baseCombat: { lightDamageMultiplier: 0.98, comboFinisherMultiplier: 1.14, moveSpeedMultiplier: 1.02 },
+      regionTags: ["woods", "marsh"]
+    },
+    {
+      baseId: "undertaker-narrow-blade",
+      type: "dagger",
+      name: "葬送人の細刃",
+      style: "blade",
+      styleLabel: "短刀",
+      playstyle: "反撃 / Technique",
+      damage: 3.1,
+      description: "隙間へ刃を通すための細身剣。避けた直後の決断を重くする。",
+      baseCombat: { heavyDamageMultiplier: 1.11, moveSpeedMultiplier: 0.99, evadeEmpower: true },
+      regionTags: ["chapel", "crypt"]
+    },
+    {
+      baseId: "chipped-arming-sword",
       type: "sword",
       name: "刃欠けの武装剣",
       style: "blade",
       styleLabel: "長剣",
       playstyle: "間合い / 強打",
       damage: 5,
-      description: "重い一振り。拳では届かない距離を支配する。"
+      description: "重い一振り。拳では届かない距離を支配する。",
+      baseCombat: {},
+      regionTags: ["road", "watchfire"]
+    },
+    {
+      baseId: "old-soldier-longsword",
+      type: "sword",
+      name: "古兵の長剣",
+      style: "blade",
+      styleLabel: "長剣",
+      playstyle: "間合い / 牽制",
+      damage: 4.5,
+      description: "柄の長い古式剣。威力を少し捨て、先端の届く距離を選んだ。",
+      baseCombat: { reachMultiplier: 1.1, lightDamageMultiplier: 0.96, heavyDamageMultiplier: 0.96 },
+      regionTags: ["road", "hill"]
+    },
+    {
+      baseId: "bell-warden-iron-sword",
+      type: "sword",
+      name: "鐘守の鉄剣",
+      style: "blade",
+      styleLabel: "長剣",
+      playstyle: "崩し / Technique",
+      damage: 4.8,
+      description: "礼拝堂の衛士が使った厚刃。斬るより、盾ごと姿勢を崩すことに向く。",
+      baseCombat: { heavyStaggerMultiplier: 1.2, heavyDamageMultiplier: 1.03, moveSpeedMultiplier: 0.98 },
+      regionTags: ["chapel", "watchfire"]
+    },
+    {
+      baseId: "fallen-road-execution-sword",
+      type: "sword",
+      name: "王道落ちの処刑剣",
+      style: "blade",
+      styleLabel: "長剣",
+      playstyle: "高火力 / 重い足",
+      damage: 6,
+      description: "処刑用の刃を戦場へ持ち出した大剣。振りは重いが、一度止まれば火力で押し切る。",
+      baseCombat: { lightDamageMultiplier: 1.08, heavyDamageMultiplier: 1.12, moveSpeedMultiplier: 0.93, reachMultiplier: 0.96 },
+      regionTags: ["road", "ruin"]
     }
   ];
 
@@ -129,7 +246,7 @@
       id: "knuckle-saint",
       name: "〈拳聖〉",
       tag: "COMBO",
-      description: "素手の連撃テンポが速くなり、3段目の威力が上がる。",
+      description: "素手の連撃テンポが速くなり、3段目以降の完走火力が上がる。",
       effect: { unarmedTempo: 1.35, comboFinisher: 1.25 },
       styles: ["unarmed"]
     },
@@ -139,6 +256,52 @@
       tag: "LOW HP",
       description: "瀕死時は攻撃が鋭くなるが、受ける傷も深くなる。",
       effect: { lowHealthRisk: true }
+    },
+    {
+      id: "ambusher",
+      name: "〈待ち伏せ〉",
+      tag: "STAND ATTACK",
+      description: "立ち止まって刻む通常攻撃が強くなる代わりに、Techniqueの一撃は少し軽くなる。",
+      effect: { lightDamageMultiplier: 1.14, heavyDamageMultiplier: 0.94 }
+    },
+    {
+      id: "turning-edge",
+      name: "〈返し刃〉",
+      tag: "PERFECT EVADE / TECHNIQUE",
+      description: "寸前回避からの反撃を強く意識する調整。Techniqueは重くなるが、通常攻撃は少し軽い。",
+      effect: { evadeEmpower: true, heavyDamageMultiplier: 1.12, lightDamageMultiplier: 0.96 },
+      styles: ["blade"]
+    },
+    {
+      id: "rough-breath",
+      name: "〈荒息〉",
+      tag: "COMBO FINISHER",
+      description: "コンボを完走した一撃が強くなる代わりに、Technique威力は少し落ちる。",
+      effect: { comboFinisher: 1.22, heavyDamageMultiplier: 0.96 }
+    },
+    {
+      id: "unyielding",
+      name: "〈不退〉",
+      tag: "STAGGER",
+      description: "強打の怯ませが大きく増す代わりに、通常攻撃の威力は少し落ちる。",
+      effect: { heavyStagger: 1.5, lightDamageMultiplier: 0.96 },
+      types: ["handwraps", "sword"]
+    },
+    {
+      id: "chase-down",
+      name: "〈追い打ち〉",
+      tag: "PRESSURE",
+      description: "機動と通常攻撃を強める代わりに、攻撃間合いがわずかに短くなる。",
+      effect: { lightDamageMultiplier: 1.1, moveSpeedMultiplier: 1.04, reachMultiplier: 0.95 },
+      types: ["handwraps", "dagger"]
+    },
+    {
+      id: "one-breath",
+      name: "〈一息〉",
+      tag: "RHYTHM",
+      description: "連撃のテンポと完走火力を高める代わりに、一発ごとの通常威力は少し落ちる。",
+      effect: { unarmedTempo: 1.12, comboFinisher: 1.12, lightDamageMultiplier: 0.97 },
+      types: ["handwraps", "dagger"]
     }
   ];
 
@@ -486,10 +649,17 @@
     return next;
   }
 
+  function isModifierCompatible(modifier, base) {
+    if (!modifier || !base) return false;
+    const styleCompatible = !modifier.styles || modifier.styles.includes(base.style);
+    const typeCompatible = !modifier.types || modifier.types.includes(base.type);
+    return styleCompatible && typeCompatible;
+  }
+
   function rollLoot(seed, depth, index, rewardBias = 0) {
     const rng = createRng(Number(seed) + depth * 211 + index * 43 + rewardBias * 29 + 7);
     const base = clone(pick(ITEM_BASES, rng));
-    const compatibleModifiers = MODIFIERS.filter((modifier) => !modifier.styles || modifier.styles.includes(base.style));
+    const compatibleModifiers = MODIFIERS.filter((modifier) => isModifierCompatible(modifier, base));
     const modifier = clone(pick(compatibleModifiers, rng));
     const rarityRoll = Math.min(0.999, rng() + rewardBias * 0.035);
     const rarity = rarityRoll > 0.93 ? "relic" : rarityRoll > 0.68 ? "rare" : "uncommon";
@@ -497,6 +667,10 @@
 
     return {
       id: `loot-${seed}-${depth}-${index}`,
+      itemKind: "ordinary",
+      collectionEligible: false,
+      baseId: base.baseId,
+      baseName: base.name,
       type: base.type,
       style: base.style,
       styleLabel: base.styleLabel,
@@ -505,6 +679,8 @@
       rarity,
       power,
       description: base.description,
+      baseCombat: clone(base.baseCombat || {}),
+      regionTags: clone(base.regionTags || []),
       modifier
     };
   }
@@ -580,10 +756,91 @@
     return equipped ? equipped.power : 2;
   }
 
+  function numberOr(value, fallback = 1) {
+    const numeric = Number(value);
+    return Number.isFinite(numeric) && numeric > 0 ? numeric : fallback;
+  }
+
+  function combatTuningForItem(item) {
+    const type = item ? item.type : "fists";
+    const baseEffect = item && item.baseCombat && typeof item.baseCombat === "object" ? item.baseCombat : {};
+    const effect = item && item.modifier && item.modifier.effect && typeof item.modifier.effect === "object"
+      ? item.modifier.effect
+      : {};
+    const familyReach = type === "sword" ? 82 : type === "dagger" ? 62 : 53;
+    const familyMoveSpeed = type === "sword" ? 190 : 218;
+    const baseLightDamage = item ? 10 + (Number(item.power) || 0) : 11;
+    const baseHeavyDamage = item ? 19 + (Number(item.power) || 0) * 1.45 : 21;
+
+    return {
+      style: item ? item.style : "unarmed",
+      weaponType: type,
+      lightDamage: baseLightDamage
+        * numberOr(baseEffect.lightDamageMultiplier)
+        * numberOr(effect.lightDamageMultiplier),
+      heavyDamage: baseHeavyDamage
+        * numberOr(baseEffect.heavyDamageMultiplier)
+        * numberOr(effect.heavyDamageMultiplier),
+      reach: familyReach
+        * numberOr(baseEffect.reachMultiplier)
+        * numberOr(effect.reachMultiplier),
+      moveSpeed: familyMoveSpeed
+        * numberOr(baseEffect.moveSpeedMultiplier)
+        * numberOr(effect.moveSpeedMultiplier),
+      heavyStagger: numberOr(effect.heavyStagger)
+        * numberOr(baseEffect.heavyStaggerMultiplier)
+        * numberOr(effect.heavyStaggerMultiplier),
+      evadeEmpower: Boolean(baseEffect.evadeEmpower || effect.evadeEmpower),
+      unarmedTempo: numberOr(effect.unarmedTempo)
+        * numberOr(baseEffect.unarmedTempoMultiplier)
+        * numberOr(effect.unarmedTempoMultiplier),
+      comboFinisher: numberOr(effect.comboFinisher)
+        * numberOr(baseEffect.comboFinisherMultiplier)
+        * numberOr(effect.comboFinisherMultiplier),
+      lowHealthRisk: Boolean(baseEffect.lowHealthRisk || effect.lowHealthRisk)
+    };
+  }
+
+  function getItemKind(item) {
+    if (!item || typeof item !== "object") return "ordinary";
+    if (["ordinary", "named", "relic"].includes(item.itemKind)) return item.itemKind;
+    const tag = item.modifier && item.modifier.tag ? String(item.modifier.tag).toUpperCase() : "";
+    if (tag.includes("HUNT RELIC") || tag.includes("DUNGEON RELIC") || tag.includes("MISSION RELIC")) return "relic";
+    if (item.namedId || item.collectionId) return "named";
+    return "ordinary";
+  }
+
+  function describeCombatDifferences(currentTuning, nextTuning) {
+    const differences = [];
+    const ratio = (next, current) => current ? next / current : 1;
+    const addRatio = (label, next, current, threshold = 0.06) => {
+      const value = ratio(next, current);
+      if (value >= 1 + threshold) differences.push(`${label}↑`);
+      else if (value <= 1 - threshold) differences.push(`${label}↓`);
+    };
+
+    if (Math.abs(nextTuning.reach - currentTuning.reach) >= 5) {
+      differences.push(`間合い${nextTuning.reach > currentTuning.reach ? "↑" : "↓"}`);
+    }
+    addRatio("通常攻撃", nextTuning.lightDamage, currentTuning.lightDamage, 0.07);
+    addRatio("Technique", nextTuning.heavyDamage, currentTuning.heavyDamage, 0.07);
+    addRatio("機動", nextTuning.moveSpeed, currentTuning.moveSpeed, 0.04);
+    addRatio("崩し", nextTuning.heavyStagger, currentTuning.heavyStagger, 0.1);
+    addRatio("連撃テンポ", nextTuning.unarmedTempo, currentTuning.unarmedTempo, 0.08);
+    addRatio("コンボ完走", nextTuning.comboFinisher, currentTuning.comboFinisher, 0.08);
+    if (nextTuning.evadeEmpower !== currentTuning.evadeEmpower) {
+      differences.push(nextTuning.evadeEmpower ? "Perfect Evade派生" : "Perfect Evade派生なし");
+    }
+    if (nextTuning.lowHealthRisk !== currentTuning.lowHealthRisk) {
+      differences.push(nextTuning.lowHealthRisk ? "瀕死リスク型" : "瀕死リスクなし");
+    }
+    return differences.slice(0, 3);
+  }
+
   function compareItem(state, item) {
     const equipped = getEquippedItem(state);
     const currentPower = basePowerForState(state);
-    const delta = Number((item.power - currentPower).toFixed(1));
+    const delta = Number(((Number(item.power) || 0) - currentPower).toFixed(1));
     const styleChange = !equipped ? item.type !== "handwraps" : item.type !== equipped.type;
 
     let verdict = "同等";
@@ -592,31 +849,29 @@
     else if (delta <= -2) verdict = "大幅低下";
     else if (delta < -0.2) verdict = "低下";
 
+    const combatDifferences = describeCombatDifferences(
+      combatTuningForItem(equipped),
+      combatTuningForItem(item)
+    );
+    const traitSummary = combatDifferences.join("・");
+    const summaryParts = [verdict];
+    if (styleChange) summaryParts.push("戦型変更");
+    if (traitSummary) summaryParts.push(traitSummary);
+
     return {
       delta,
       verdict,
       styleChange,
       currentName: equipped ? equipped.name : "素手",
-      summary: `${verdict}${styleChange ? " / 戦型変更" : ""}`
+      combatDifferences,
+      traitSummary,
+      itemKind: getItemKind(item),
+      summary: summaryParts.join(" / ")
     };
   }
 
   function getCombatTuning(state) {
-    const item = getEquippedItem(state);
-    const effect = item ? item.modifier.effect : {};
-    return {
-      style: item ? item.style : "unarmed",
-      weaponType: item ? item.type : "fists",
-      lightDamage: item ? 10 + item.power : 11,
-      heavyDamage: item ? 19 + item.power * 1.45 : 21,
-      reach: item && item.type === "sword" ? 82 : item && item.type === "dagger" ? 62 : 53,
-      moveSpeed: item && item.type === "sword" ? 190 : 218,
-      heavyStagger: effect.heavyStagger || 1,
-      evadeEmpower: Boolean(effect.evadeEmpower),
-      unarmedTempo: effect.unarmedTempo || 1,
-      comboFinisher: effect.comboFinisher || 1,
-      lowHealthRisk: Boolean(effect.lowHealthRisk)
-    };
+    return combatTuningForItem(getEquippedItem(state));
   }
 
   return {
@@ -636,6 +891,7 @@
     discoverLocation,
     resolveEventChoice,
     discoverNextCell,
+    isModifierCompatible,
     rollLoot,
     resolveVictory,
     continueExpedition,
@@ -643,6 +899,8 @@
     resolveDefeat,
     equipItem,
     getEquippedItem,
+    getItemKind,
+    getItemCombatTuning: combatTuningForItem,
     compareItem,
     getCombatTuning
   };
