@@ -24,7 +24,7 @@ layers.
 
 `actors/player-unarmed-hearth-v0.1.png` is a separate high-resolution,
 transparent Grey Hearth runtime asset derived from the approved
-`docs/assets/player-unarmed-approved-anchor-v0.4.png`. It is scoped to the
+`assets/combat/minimal-v0.1/actors/player-unarmed-approved-anchor-v0.4.png`. It is scoped to the
 safe-room display and does not replace or modify the combat source at
 `../combat/minimal-v0.1/actors/player-unarmed.png`.
 
@@ -46,7 +46,7 @@ The approval record and source hash are maintained in
   `docs/assets/player-unarmed-approved-anchor-v0.2.webp` could not be decoded
   during this work because its WebP bitstream is corrupt, so it was not used as a
   generation parent. It has since been replaced for the global character Canon
-  by the validated `docs/assets/player-unarmed-approved-anchor-v0.4.png`.
+by the validated `assets/combat/minimal-v0.1/actors/player-unarmed-approved-anchor-v0.4.png`.
 
 All generated images were prepared from the Crownless Global Visual Canon with
 `must_not_chain_from_candidate: true`, `must_review_after_generation: true`, and
