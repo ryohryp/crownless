@@ -18,6 +18,21 @@
     "concepts/hearth-prop-reference-set.png"
   ],
   "avatar_baseline": "../combat/minimal-v0.1/actors/player-unarmed.png",
+  "avatar_runtime_candidate": "actors/player-unarmed-hearth-v0.1.png",
+  "avatar_runtime_status": "approved",
+  "avatar_runtime_scope": "Grey Hearth only; the combat avatar remains the baseline above",
+  "avatar_runtime_anchor": "../../docs/assets/player-unarmed-approved-anchor-v0.3.png",
+  "avatar_runtime_approval": {
+    "approved_by": "user",
+    "approved_on": "2026-08-23",
+    "sha256": "be76a2d55fd95bc714134d2904963feaa692c485c280bb51832bfec89de440af",
+    "dimensions": [1024, 1536]
+  },
+  "avatar_runtime_policy": {
+    "must_use_approved_anchor": true,
+    "must_not_chain_from_candidate": true,
+    "global_character_canon_changed": false
+  },
   "policy": {
     "must_not_chain_from_candidate": true,
     "must_review_after_generation": true,

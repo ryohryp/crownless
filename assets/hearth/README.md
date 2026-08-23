@@ -1,4 +1,4 @@
-# Grey Hearth visual candidates
+# Grey Hearth visual assets
 
 These files contain Grey Hearth design candidates. The empty-room background
 added for Issue #166 is now the scoped Approved Visual Anchor and runtime
@@ -19,6 +19,18 @@ The approved empty-room direction gives the Mist Gate a clear actionable
 silhouette while keeping the warm Hearth, physical map board, shelf, and forge
 visible as one lived-in place. The player and state annotations remain runtime
 layers.
+
+## Avatar runtime (approved)
+
+`actors/player-unarmed-hearth-v0.1.png` is a separate high-resolution,
+transparent Grey Hearth runtime asset derived from the approved
+`docs/assets/player-unarmed-approved-anchor-v0.3.png`. It is scoped to the
+safe-room display and does not replace or modify the combat source at
+`../combat/minimal-v0.1/actors/player-unarmed.png`.
+
+The user approved this file for Grey Hearth runtime use on 2026-08-23. This
+approval keeps the global protagonist Anchor and Canon unchanged; the file is
+a runtime presentation asset only.
 
 The approval record and source hash are maintained in
 `approved/grey-hearth-empty-room-v0.2.json`.
