@@ -23,9 +23,9 @@ test('regional mission map marker is schematic and does not request precise loca
   const source = fs.readFileSync(presentationPath, 'utf8');
 
   assert.match(source, /region-mission-map-point/);
-  assert.match(source, /data-discovery-source=\\"region-mission\\"/);
-  assert.match(source, /marker\.style\.left = \\"76%\\"/);
-  assert.match(source, /marker\.style\.top = \\"31%\\"/);
+  assert.match(source, /data-discovery-source="region-mission"/);
+  assert.match(source, /marker\.style\.left = "76%"/);
+  assert.match(source, /marker\.style\.top = "31%"/);
   assert.doesNotMatch(source, /getCurrentPosition|latitude|longitude|coordinates|representativeCoordinate|mapOrigin/);
 });
 
