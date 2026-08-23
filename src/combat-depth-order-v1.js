@@ -15,7 +15,7 @@
 
   const previousGetContext = HTMLCanvasElement.prototype.getContext;
   const ENEMY_ACTOR = /\/actors\/enemy-(rusher|guard|skirmisher)\.png(?:$|\?)/i;
-  const PLAYER_ACTOR = /\/actors\/player-unarmed\.png(?:$|\?)/i;
+  const PLAYER_ACTOR = /\/actors\/player-unarmed(?:-combat-sprite-sheet-v0\.1)?\.png(?:$|\?)/i;
 
   const publicState = {
     enabled: true,
@@ -42,7 +42,11 @@
     if (!combatAssets || typeof combatAssets.status !== "function") return false;
     try {
       const status = combatAssets.status();
-      return Boolean(status && status.player && status.player !== "ready");
+      return Boolean(
+        status
+        && status.player !== "ready"
+        && status.playerSheet !== "ready"
+      );
     } catch (_) {
       return false;
     }

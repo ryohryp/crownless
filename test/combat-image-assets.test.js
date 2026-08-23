@@ -10,6 +10,7 @@ const js = fs.readFileSync(rendererPath, 'utf8');
 
 const expectedAssets = [
   'actors/player-unarmed.png',
+  'actors/player-unarmed-combat-sprite-sheet-v0.1.png',
   'actors/enemy-rusher.png',
   'actors/enemy-guard.png',
   'actors/enemy-skirmisher.png',

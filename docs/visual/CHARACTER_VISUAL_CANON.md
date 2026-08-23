@@ -16,11 +16,11 @@ This file maps Crownless combat subjects to the current character rules used by 
 
 ### Approved Visual Anchor
 
-- `docs/assets/player-unarmed-approved-anchor-v0.3.png`
+- `docs/assets/player-unarmed-approved-anchor-v0.4.png`
 
-This anchor is the approved identity, clothing/material, palette, silhouette, and unarmed-fighting reference. It is a full-body manuscript/woodcut identity plate with a parchment field; runtime sprites must adapt it to the oblique top-down battlefield camera and phone-scale readability rather than copy its portrait framing verbatim.
+This anchor is the approved identity, clothing/material, palette, silhouette, and unarmed-fighting reference. It is a transparent single-frame combat-ready anchor authored for the oblique top-down battlefield camera; runtime integration must preserve its visible alpha bounds, bottom-center foot point, uniform X/Y scale, and phone-scale readability.
 
-The v0.3 replacement was generated after the prior v0.2 WebP failed local decode validation. The replacement is recorded in `docs/assets/player-unarmed-approved-anchor-v0.3.json`. The unreadable v0.2 file remains a legacy reference only and must not be used as a generation parent.
+The v0.4 replacement was generated from the approved v0.3 identity anchor after the prior v0.2 WebP failed local decode validation. The replacement is recorded in `docs/assets/player-unarmed-approved-anchor-v0.4.json`. The previous v0.3 plate remains historical calibration only; the unreadable v0.2 file remains a legacy reference and must not be used as a generation parent.
 
 ### Reference calibration
 
@@ -30,7 +30,7 @@ The v0.3 replacement was generated after the prior v0.2 WebP failed local decode
 
 - `docs/assets/player-unarmed-sprite-sheet-reference-v0.1.webp`
 
-Use this sheet as a historical presentation/reference for the protagonist's directional pose family and unarmed action language only if it decodes correctly. It is not the runtime atlas, and its labels, background treatment, and sheet layout must not appear in gameplay sprites. The v0.3 Approved Visual Anchor above is the generation parent for subject identity, clothing/material language, palette, silhouette, and unarmed combat identity.
+Use this sheet as a historical presentation/reference for the protagonist's directional pose family and unarmed action language only if it decodes correctly. It is not the runtime atlas, and its labels, background treatment, and sheet layout must not appear in gameplay sprites. The v0.4 Approved Visual Anchor above is the generation parent for subject identity, clothing/material language, palette, silhouette, and unarmed combat identity.
 
 ### Accepted Combat Sprite Source
 

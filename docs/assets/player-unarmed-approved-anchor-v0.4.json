@@ -1,0 +1,53 @@
+{
+  "candidate_id": "player_unarmed_approved_anchor_v0.4",
+  "asset_type": "character_visual_anchor",
+  "project_id": "crownless",
+  "subject_id": "player-unarmed",
+  "status": "approved_candidate",
+  "generation": {
+    "provider": "OpenAI built-in imagegen",
+    "generation_id": "exec-bdf361c6-46c2-416f-a0c2-8f5f452a1bf0",
+    "original_dimensions": [1024, 1536],
+    "original_sha256": "9eb013534537a6d1b2c55d9759ab3d6a4ab81d05a97f6e3507fce4ee82dbdba7",
+    "reference_assets": [
+      "docs/assets/player-unarmed-approved-anchor-v0.3.png"
+    ]
+  },
+  "canon_contract": "docs/visual/CHARACTER_VISUAL_CANON.md",
+  "source": {
+    "path": "docs/assets/player-unarmed-approved-anchor-v0.4.png",
+    "dimensions": [1024, 1536],
+    "sha256": "9eb013534537a6d1b2c55d9759ab3d6a4ab81d05a97f6e3507fce4ee82dbdba7",
+    "mime_type": "image/png",
+    "purpose": "transparent single-frame protagonist identity Anchor for Visual Director and character Canon"
+  },
+  "review": {
+    "decodes": "pass",
+    "transparent_background": "pass",
+    "visible_alpha_bounds": [123, 91, 916, 1444],
+    "baked_in_text_ui_or_logo": "absent",
+    "meta_output": "absent",
+    "unarmed_base_state": "pass",
+    "compact_folk_doll_proportion": "pass",
+    "oblique_three_quarter_combat_view": "pass",
+    "feet_visible_and_grounded": "pass",
+    "manuscript_woodcut_grammar": "pass",
+    "phone_scale_identity_readability": "pass"
+  },
+  "approval": {
+    "approved_by": "user",
+    "approved_on": "2026-08-23",
+    "scope": "Replacement for the global Character Canon protagonist Anchor and Visual Director subject player-unarmed"
+  },
+  "runtime": {
+    "status": "identity_reference_only",
+    "runtime_actor_replacement": "not_requested",
+    "runtime_source_remains": "assets/combat/minimal-v0.1/actors/player-unarmed.png"
+  },
+  "notes": [
+    "This v0.4 PNG replaces the v0.3 protagonist identity Anchor after explicit user approval.",
+    "The previous v0.3 PNG and manifest remain available as historical provenance.",
+    "The image contains only the requested game asset: no issue, PR, progress, validation, approval, or metadata text.",
+    "The Anchor establishes identity and visual grammar; runtime actor replacement remains a separate integration step."
+  ]
+}

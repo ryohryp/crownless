@@ -18,9 +18,11 @@ When a detail conflicts with current textual Canon or accepted combat actors, th
 
 ## Approved protagonist visual Anchor
 
-- `player-unarmed-approved-anchor-v0.3.png` — **the approved protagonist identity Anchor**. This full-body manuscript/woodcut plate establishes the anonymous unarmed survivor's compact folk-doll silhouette, wrapped hands, patched clothing, scavenged belt/pouch, restrained palette, and physical ink treatment.
+- `player-unarmed-approved-anchor-v0.4.png` — **the approved protagonist identity Anchor**. This transparent single-frame combat-ready manuscript/woodcut sprite establishes the anonymous unarmed survivor's compact folk-doll silhouette, wrapped hands, patched clothing, scavenged belt/pouch, restrained palette, and physical ink treatment for the oblique battlefield camera.
 
-The approval and integrity record is `player-unarmed-approved-anchor-v0.3.json`. This is an identity/reference asset, not a runtime sprite atlas; runtime actors must preserve its subject grammar while adapting the pose, transparent bounds, foot point, and scale to the oblique battlefield camera.
+The approval and integrity record is `player-unarmed-approved-anchor-v0.4.json`. This is an identity/reference asset, not a runtime sprite atlas; runtime actors must preserve its subject grammar while adapting the pose, transparent bounds, foot point, and scale to the oblique battlefield camera.
+
+The previous `player-unarmed-approved-anchor-v0.3.png` and its manifest remain in the repository as historical provenance for the replaced identity anchor.
 
 The previous `player-unarmed-approved-anchor-v0.2.webp` and `player-unarmed-sprite-sheet-reference-v0.1.webp` are retained as legacy files for history, but failed local decode validation and must not be used as generation parents.
 
@@ -28,13 +30,14 @@ The previous `player-unarmed-approved-anchor-v0.2.webp` and `player-unarmed-spri
 
 - `player-unarmed-sprite-sheet-reference-v0.1.webp` — approved appearance and motion-sheet reference for the unarmed protagonist. It establishes the compact 3–3.5-head silhouette, subdued scavenged clothing, unarmed pose language, directional readability, and core action family.
 
-This sheet is a **visual / animation reference**, not a runtime sprite atlas. It contains presentation labels and sheet-level composition, so gameplay frames must be produced separately as transparent, text-free, consistently grounded assets before integration. Because the local WebP failed decode validation, the v0.3 PNG Anchor above is the authoritative readable identity source.
+This sheet is a **visual / animation reference**, not a runtime sprite atlas. It contains presentation labels and sheet-level composition, so gameplay frames must be produced separately as transparent, text-free, consistently grounded assets before integration. Because the local WebP failed decode validation, the v0.4 PNG Anchor above is the authoritative readable identity source.
 
 ## Accepted protagonist combat sprite source
 
 - `assets/combat/minimal-v0.1/actors/player-unarmed-combat-sprite-sheet-v0.1.png` — accepted transparent combat sprite source sheet for the unarmed protagonist (optimized runtime-source derivative, 768×512).
+- `assets/combat/minimal-v0.1/player-unarmed-animation.json` — measured cell rectangles, visible bounds, ground-pivot policy, and the MVP `idle` / `walk` / `jab` / `hurt` mappings.
 
-The sheet is approved as source art for runtime slicing. It does not replace the Approved Visual Anchor or current `player-unarmed.png` automatically; frame coordinates, ground points, animation timing, and the first in-game slice (`idle` / `walk` / `jab` / `hurt`) remain implementation and validation work.
+The sheet is approved as source art for runtime slicing. It does not replace the Approved Visual Anchor; the existing `player-unarmed.png` remains the load-time fallback while the measured sheet metadata drives the in-game `idle` / `walk` / `jab` / `hurt` slice.
 
 ## Legacy detail references
 

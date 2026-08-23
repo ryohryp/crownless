@@ -1306,8 +1306,33 @@
     ctx.fillRect(0, 0, canvas.width, canvas.height);
   }
 
+  function syncPlayerAnimationPresentation() {
+    const assets = window.CrownlessCombatAssets;
+    if (!assets || typeof assets.setPlayerAnimation !== "function") return;
+    const p = battle && battle.player;
+    if (!p) {
+      assets.setPlayerAnimation("idle", 0, 0);
+      return;
+    }
+    if (p.flash > 0) {
+      const duration = 0.18;
+      assets.setPlayerAnimation("hurt", duration - p.flash, duration);
+      return;
+    }
+    if (p.attack && p.attack.kind === "light") {
+      assets.setPlayerAnimation("jab", p.attack.elapsed, p.attack.duration);
+      return;
+    }
+    if (p.moving) {
+      assets.setPlayerAnimation("walk", battle.elapsed, 0);
+      return;
+    }
+    assets.setPlayerAnimation("idle", battle.elapsed, 0);
+  }
+
   function drawBattle() {
     if (!battle) return;
+    syncPlayerAnimationPresentation();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     const discovery = state.expedition && state.expedition.lastDiscovery;
     drawGround(discovery ? discovery.palette : "road", battle.elapsed);

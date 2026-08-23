@@ -5,8 +5,8 @@ const path = require('node:path');
 const test = require('node:test');
 
 const root = path.join(__dirname, '..');
-const anchorPath = path.join(root, 'docs', 'assets', 'player-unarmed-approved-anchor-v0.3.png');
-const manifestPath = path.join(root, 'docs', 'assets', 'player-unarmed-approved-anchor-v0.3.json');
+const anchorPath = path.join(root, 'docs', 'assets', 'player-unarmed-approved-anchor-v0.4.png');
+const manifestPath = path.join(root, 'docs', 'assets', 'player-unarmed-approved-anchor-v0.4.json');
 const canonPath = path.join(root, 'docs', 'visual', 'CHARACTER_VISUAL_CANON.md');
 const compiledCanonPath = path.join(root, '.visual-director', 'compiled-canon.json');
 
@@ -28,11 +28,11 @@ test('Visual Director and character Canon point at the replacement protagonist A
   const canon = fs.readFileSync(canonPath, 'utf8');
   const compiled = JSON.parse(fs.readFileSync(compiledCanonPath, 'utf8'));
 
-  assert.match(canon, /player-unarmed-approved-anchor-v0\.3\.png/);
+  assert.match(canon, /player-unarmed-approved-anchor-v0\.4\.png/);
   assert.doesNotMatch(canon, /player-unarmed-approved-anchor-v0\.2\.webp/);
   assert.equal(
     compiled.subjects.find((subject) => subject.subject_id === 'player-unarmed').approved_anchor_path,
-    'docs/assets/player-unarmed-approved-anchor-v0.3.png'
+    'docs/assets/player-unarmed-approved-anchor-v0.4.png'
   );
   assert.doesNotMatch(JSON.stringify(compiled), /player-unarmed-approved-anchor-v0\.2\.webp/);
 });
