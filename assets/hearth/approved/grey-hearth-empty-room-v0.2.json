@@ -1,0 +1,45 @@
+{
+  "candidate_id": "grey_hearth_empty_room_v0.2",
+  "asset_type": "background",
+  "background_type": "GREY_HEARTH",
+  "status": "approved_candidate",
+  "generation": {
+    "provider": "OpenAI built-in imagegen",
+    "generation_id": "exec-ce321023-b41b-439d-8923-04b574e208a7",
+    "original_dimensions": [1672, 941],
+    "original_sha256": "db8ad9f47fcdf818ac902710d092857a690a79e7e0ccbf84cf99f682d8207856"
+  },
+  "canon_contract": "docs/visual-design-guide-v0.2.md",
+  "source": {
+    "path": "assets/hearth/concepts/grey-hearth-empty-room-v0.2.png",
+    "dimensions": [1672, 941],
+    "sha256": "db8ad9f47fcdf818ac902710d092857a690a79e7e0ccbf84cf99f682d8207856",
+    "purpose": "full-resolution Grey Hearth background source pixels"
+  },
+  "review": {
+    "empty_room": "pass",
+    "baked_in_characters": "absent",
+    "baked_in_ui": "absent",
+    "gate_readability": "pass",
+    "physical_map_board": "present",
+    "manuscript_woodcut_grammar": "pass",
+    "crop_16_9": "pass",
+    "phone_view_runtime": "pass"
+  },
+  "approval": {
+    "approved_by": "user",
+    "approved_on": "2026-08-23",
+    "scope": "Grey Hearth background for Issue #166 runtime and exact Visual Director source binding"
+  },
+  "runtime": {
+    "target_path": "assets/hearth/concepts/grey-hearth-empty-room-v0.2.png",
+    "status": "adopted",
+    "adopted_sha256": "db8ad9f47fcdf818ac902710d092857a690a79e7e0ccbf84cf99f682d8207856",
+    "adopted_dimensions": [1672, 941]
+  },
+  "notes": [
+    "The image is approved for the Grey Hearth scene and exact approved-source binding.",
+    "This scoped approval does not edit the global character Canon or promote any other Hearth concept.",
+    "The source contains no issue, PR, progress, UI, logo, or readable metadata text."
+  ]
+}
