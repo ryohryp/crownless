@@ -1,5 +1,5 @@
 {
-  "schema": "crownless.player-unarmed-animation.v1",
+  "schema": "crownless.player-unarmed-direction-reference.v1",
   "sheet": "actors/player-unarmed-combat-sprite-sheet-v0.1.png",
   "sheetSize": {
     "width": 768,
@@ -7,7 +7,8 @@
   },
   "analysis": {
     "alphaThreshold": 18,
-    "note": "Cell rectangles are derived from the transparent gaps between the measured visible bounds. The visible bounds are source-pixel measurements and are retained for clipping/pivot audits."
+    "layout": "directional pose families, not temporal animation sequences",
+    "note": "Cell rectangles are derived from the transparent gaps between measured visible bounds. Within each row, columns rotate the subject through directional views; they must not be replayed over time."
   },
   "rows": [
     {
@@ -87,14 +88,19 @@
       ]
     }
   ],
-  "animations": {
-    "idle": {"frames": [0, 1, 2, 3, 4, 5, 6, 7], "loop": true, "frameDuration": 0.12},
-    "walk": {"frames": [8, 9, 10, 11, 12, 13, 14, 15], "loop": true, "frameDuration": 0.085},
-    "jab": {"frames": [16, 17, 18, 19, 20, 21, 22, 23], "loop": false, "duration": 0.215},
-    "hurt": {"frames": [24, 25, 26, 27, 28, 29, 30, 31], "loop": false, "duration": 0.18}
+  "directionalPoseFamilies": {
+    "idle": {"directionSlots": [0, 1, 2, 3, 4, 5, 6, 7]},
+    "walk": {"directionSlots": [8, 9, 10, 11, 12, 13, 14, 15]},
+    "jab": {"directionSlots": [16, 17, 18, 19, 20, 21, 22, 23]},
+    "hurt": {"directionSlots": [24, 25, 26, 27, 28, 29, 30, 31]}
   },
   "excluded": {
     "down": [32, 33, 34, 35]
   },
-  "pivot": "visible-alpha-bottom; renderer trims each cell and aligns the resulting bottom to the existing actor ground point"
+  "pivot": "visible-alpha-bottom",
+  "runtime": {
+    "eligible": false,
+    "fallback": "actors/player-unarmed.png",
+    "reason": "The sheet supplies directional poses rather than temporal frames and its subject identity does not match the approved player-unarmed Anchor."
+  }
 }

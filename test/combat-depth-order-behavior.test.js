@@ -98,7 +98,7 @@ test('player is depth-sorted between enemies by projected foot Y while ground we
   const ctx = canvas.getContext('2d');
   const farEnemy = actorImage('assets/combat/minimal-v0.1/actors/enemy-rusher.png');
   const nearEnemy = actorImage('assets/combat/minimal-v0.1/actors/enemy-guard.png');
-  const player = actorImage('assets/combat/minimal-v0.1/actors/player-unarmed-combat-sprite-sheet-v0.1.png');
+  const player = actorImage('assets/combat/minimal-v0.1/actors/player-unarmed.png');
   const weapon = actorImage('assets/combat/minimal-v0.1/weapons/dropped-sword.png');
 
   drawAt(ctx, farEnemy, 180, 120);

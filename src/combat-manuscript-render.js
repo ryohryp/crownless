@@ -15,7 +15,6 @@
   const ASSET_ROOT = "assets/combat/minimal-v0.1";
   const assetManifest = {
     player: `${ASSET_ROOT}/actors/player-unarmed.png`,
-    playerSheet: `${ASSET_ROOT}/actors/player-unarmed-combat-sprite-sheet-v0.1.png`,
     rusher: `${ASSET_ROOT}/actors/enemy-rusher.png`,
     guard: `${ASSET_ROOT}/actors/enemy-guard.png`,
     skirmisher: `${ASSET_ROOT}/actors/enemy-skirmisher.png`,
@@ -25,35 +24,12 @@
     telegraph: `${ASSET_ROOT}/effects/vermilion-telegraphs-sheet.png`
   };
 
-  // Measured from player-unarmed-combat-sprite-sheet-v0.1.png. The x edges
-  // are the midpoints between neighboring visible alpha bounds, not an
-  // assumed equal 8x5 grid. The bottom row is intentionally excluded from
-  // the MVP actions because it is a downed/fallen presentation.
-  const playerAnimationRows = [
-    { y: 0, height: 108, xEdges: [0, 109, 210, 306, 399, 491, 584, 676, 768], action: "idle" },
-    { y: 108, height: 108, xEdges: [0, 110, 213, 313, 398, 489, 577, 675, 768], action: "walk" },
-    { y: 216, height: 104, xEdges: [0, 103, 208, 304, 406, 488, 578, 674, 768], action: "jab" },
-    { y: 320, height: 106, xEdges: [0, 95, 205, 317, 408, 498, 587, 680, 768], action: "hurt" },
-    { y: 426, height: 86, xEdges: [0, 188, 357, 542, 768], action: "down" }
-  ];
-  const playerAnimationFrames = playerAnimationRows.flatMap((row, rowIndex) => (
-    row.xEdges.slice(0, -1).map((x, column) => ({
-      index: rowIndex * 8 + column,
-      action: row.action,
-      region: {
-        sx: x,
-        sy: row.y,
-        sw: row.xEdges[column + 1] - x,
-        sh: row.height
-      }
-    }))
-  ));
-  const playerAnimations = {
-    idle: { frames: [0, 1, 2, 3, 4, 5, 6, 7], loop: true, frameDuration: 0.12 },
-    walk: { frames: [8, 9, 10, 11, 12, 13, 14, 15], loop: true, frameDuration: 0.085 },
-    jab: { frames: [16, 17, 18, 19, 20, 21, 22, 23], loop: false, duration: 0.215 },
-    hurt: { frames: [24, 25, 26, 27, 28, 29, 30, 31], loop: false, duration: 0.18 }
-  };
+  // The 768x512 source sheet contains directional pose variants, not
+  // temporal frames. Cycling its columns makes the character turn through
+  // front, side, and back views. It also does not match the approved
+  // player-unarmed identity, so runtime presentation stays on the canonical
+  // single-sprite fallback until identity-matched animation art exists.
+  const playerAnimationStates = new Set(["idle", "walk", "jab", "hurt"]);
   const playerAnimationState = { state: "idle", elapsed: 0, duration: 0 };
 
   const assets = Object.create(null);
@@ -133,9 +109,7 @@
       record.image = image;
       record.ready = true;
       if (key === "ink" || key === "telegraph") record.regions = splitSheetRegions(image);
-      else if (key === "playerSheet") {
-        record.frameBounds = playerAnimationFrames.map((frame) => alphaBounds(image, frame.region) || frame.region);
-      } else record.bounds = alphaBounds(image);
+      else record.bounds = alphaBounds(image);
     };
     image.onerror = () => { record.failed = true; };
     image.src = url;
@@ -150,22 +124,10 @@
   }
 
   function setPlayerAnimation(state, elapsed = 0, duration = 0) {
-    const nextState = Object.prototype.hasOwnProperty.call(playerAnimations, state) ? state : "idle";
+    const nextState = playerAnimationStates.has(state) ? state : "idle";
     playerAnimationState.state = nextState;
     playerAnimationState.elapsed = Math.max(0, Number(elapsed) || 0);
     playerAnimationState.duration = Math.max(0, Number(duration) || 0);
-  }
-
-  function playerFrameIndex() {
-    const animation = playerAnimations[playerAnimationState.state] || playerAnimations.idle;
-    if (!animation.frames.length) return 0;
-    if (animation.loop) {
-      const frameDuration = Math.max(0.001, animation.frameDuration || 0.1);
-      return animation.frames[Math.floor(playerAnimationState.elapsed / frameDuration) % animation.frames.length];
-    }
-    const duration = Math.max(0.001, playerAnimationState.duration || animation.duration || 0.1);
-    const progress = Math.max(0, Math.min(0.999999, playerAnimationState.elapsed / duration));
-    return animation.frames[Math.min(animation.frames.length - 1, Math.floor(progress * animation.frames.length))];
   }
 
   function drawTrimmed(target, record, dx, dy, dw, dh) {
@@ -231,31 +193,6 @@
     drawGroundShadow(target, footY);
     target.drawImage(
       image,
-      source.sx,
-      source.sy,
-      source.sw,
-      source.sh,
-      -width / 2,
-      footY - height,
-      width,
-      height
-    );
-    return true;
-  }
-
-  function drawPlayerActorBillboard(target, record, logicalHeight, logicalFootOffset = 37) {
-    if (!record || !record.ready || !record.image || !record.frameBounds) return false;
-    const frame = playerAnimationFrames[playerFrameIndex()];
-    const source = record.frameBounds[frame.index] || frame.region;
-    const { yCompensation, footY } = actorFootMetrics(target, logicalFootOffset);
-    // Keep authored pose-size differences (for example, crouched jab/hurt
-    // frames) while using one source-pixel scale for the whole actor family.
-    const scale = logicalHeight / 106;
-    const width = source.sw * scale;
-    const height = source.sh * scale * yCompensation;
-    drawGroundShadow(target, footY);
-    target.drawImage(
-      record.image,
       source.sx,
       source.sy,
       source.sw,
@@ -480,15 +417,12 @@
     }
 
     function drawActor(role) {
-      const usePlayerSheet = role === "player" && recordReady("playerSheet");
-      if (!usePlayerSheet && !recordReady(role)) return false;
-      const record = usePlayerSheet ? assets.playerSheet : assets[role];
+      if (!recordReady(role)) return false;
+      const record = assets[role];
       const logicalHeight = role === "guard" ? 138 : role === "rusher" ? 132 : role === "skirmisher" ? 132 : 132;
       ctx.save();
       ctx.imageSmoothingEnabled = true;
-      const drawn = usePlayerSheet
-        ? drawPlayerActorBillboard(ctx, record, logicalHeight, 37)
-        : drawActorBillboard(ctx, record, logicalHeight, 37);
+      const drawn = drawActorBillboard(ctx, record, logicalHeight, 37);
       ctx.restore();
       if (drawn) rememberRole(role);
       return drawn;
@@ -728,8 +662,9 @@
   window.CrownlessCombatAssets = {
     manifest: { ...assetManifest },
     playerAnimation: {
-      rows: playerAnimationRows.map((row) => ({ ...row, xEdges: row.xEdges.slice() })),
-      actions: JSON.parse(JSON.stringify(playerAnimations))
+      mode: "static-fallback",
+      states: Array.from(playerAnimationStates),
+      source: assetManifest.player
     },
     setPlayerAnimation,
     status() {

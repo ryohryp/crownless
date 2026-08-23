@@ -10,7 +10,6 @@ const js = fs.readFileSync(rendererPath, 'utf8');
 
 const expectedAssets = [
   'actors/player-unarmed.png',
-  'actors/player-unarmed-combat-sprite-sheet-v0.1.png',
   'actors/enemy-rusher.png',
   'actors/enemy-guard.png',
   'actors/enemy-skirmisher.png',
@@ -22,6 +21,7 @@ const expectedAssets = [
 
 test('generated minimal combat asset set is wired into the runtime renderer', () => {
   expectedAssets.forEach((asset) => assert.ok(js.includes(asset), `missing runtime asset reference: ${asset}`));
+  assert.ok(!js.includes('actors/player-unarmed-combat-sprite-sheet-v0.1.png'), 'directional player sheet must not be replayed as runtime animation');
 });
 
 test('image integration stays presentation-only and falls back to legacy primitives', () => {

@@ -32,12 +32,12 @@ The previous `player-unarmed-approved-anchor-v0.2.webp` and `player-unarmed-spri
 
 This sheet is a **visual / animation reference**, not a runtime sprite atlas. It contains presentation labels and sheet-level composition, so gameplay frames must be produced separately as transparent, text-free, consistently grounded assets before integration. Because the local WebP failed decode validation, the v0.4 PNG Anchor above is the authoritative readable identity source.
 
-## Accepted protagonist combat sprite source
+## Directional protagonist combat source
 
-- `assets/combat/minimal-v0.1/actors/player-unarmed-combat-sprite-sheet-v0.1.png` — accepted transparent combat sprite source sheet for the unarmed protagonist (optimized runtime-source derivative, 768×512).
-- `assets/combat/minimal-v0.1/player-unarmed-animation.json` — measured cell rectangles, visible bounds, ground-pivot policy, and the MVP `idle` / `walk` / `jab` / `hurt` mappings.
+- `assets/combat/minimal-v0.1/actors/player-unarmed-combat-sprite-sheet-v0.1.png` — transparent 768×512 directional-pose source retained for diagnosis and future re-authoring.
+- `assets/combat/minimal-v0.1/player-unarmed-animation.json` — measured cell rectangles, visible bounds, directional-pose families, ground-pivot policy, and runtime eligibility.
 
-The sheet is approved as source art for runtime slicing. It does not replace the Approved Visual Anchor; the existing `player-unarmed.png` remains the load-time fallback while the measured sheet metadata drives the in-game `idle` / `walk` / `jab` / `hurt` slice.
+Pixel review confirmed that each eight-column row rotates the subject through directional views rather than supplying eight temporal animation frames. Replaying those columns over time makes the actor spin. The sheet also drifts from the Approved Visual Anchor's protagonist identity. It is therefore **not runtime-eligible**. Combat continues to use `player-unarmed.png` until an identity-matched `idle` / `walk` / `jab` / `hurt` set passes the runtime acceptance gate.
 
 ## Legacy detail references
 

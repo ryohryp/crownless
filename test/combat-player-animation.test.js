@@ -100,12 +100,13 @@ function rowFrames(row) {
   }));
 }
 
-test('accepted protagonist sheet has measured MVP frame rectangles and complete alpha bounds', () => {
+test('directional protagonist sheet has measured pose rectangles and complete alpha bounds', () => {
   const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'));
   const image = decodeIndexedPng(sheetPath);
   assert.deepEqual({ width: image.width, height: image.height }, metadata.sheetSize);
   assert.deepEqual(metadata.rows.map((row) => row.action), ['idle', 'walk', 'jab', 'hurt', 'down']);
-  assert.deepEqual(Object.keys(metadata.animations), ['idle', 'walk', 'jab', 'hurt']);
+  assert.equal(metadata.analysis.layout, 'directional pose families, not temporal animation sequences');
+  assert.deepEqual(Object.keys(metadata.directionalPoseFamilies), ['idle', 'walk', 'jab', 'hurt']);
 
   metadata.rows.forEach((row) => {
     assert.equal(row.xEdges.at(-1), image.width);
@@ -118,20 +119,23 @@ test('accepted protagonist sheet has measured MVP frame rectangles and complete 
     });
   });
 
-  assert.deepEqual(metadata.animations.idle.frames, [0, 1, 2, 3, 4, 5, 6, 7]);
-  assert.deepEqual(metadata.animations.walk.frames, [8, 9, 10, 11, 12, 13, 14, 15]);
-  assert.deepEqual(metadata.animations.jab.frames, [16, 17, 18, 19, 20, 21, 22, 23]);
-  assert.deepEqual(metadata.animations.hurt.frames, [24, 25, 26, 27, 28, 29, 30, 31]);
+  assert.deepEqual(metadata.directionalPoseFamilies.idle.directionSlots, [0, 1, 2, 3, 4, 5, 6, 7]);
+  assert.deepEqual(metadata.directionalPoseFamilies.walk.directionSlots, [8, 9, 10, 11, 12, 13, 14, 15]);
+  assert.deepEqual(metadata.directionalPoseFamilies.jab.directionSlots, [16, 17, 18, 19, 20, 21, 22, 23]);
+  assert.deepEqual(metadata.directionalPoseFamilies.hurt.directionSlots, [24, 25, 26, 27, 28, 29, 30, 31]);
   assert.deepEqual(metadata.excluded.down, [32, 33, 34, 35]);
+  assert.equal(metadata.runtime.eligible, false);
+  assert.equal(metadata.runtime.fallback, 'actors/player-unarmed.png');
 });
 
-test('player animation uses the existing actor renderer and explicit combat state', () => {
+test('runtime keeps the approved player identity and never cycles directional poses as animation', () => {
   const renderer = fs.readFileSync(rendererPath, 'utf8');
   const app = fs.readFileSync(appPath, 'utf8');
-  assert.match(renderer, /playerSheet:\s*`\$\{ASSET_ROOT\}\/actors\/player-unarmed-combat-sprite-sheet-v0\.1\.png`/);
-  assert.match(renderer, /record\.frameBounds = playerAnimationFrames\.map/);
-  assert.match(renderer, /function drawPlayerActorBillboard/);
-  assert.match(renderer, /footY - height/);
+  assert.match(renderer, /player:\s*`\$\{ASSET_ROOT\}\/actors\/player-unarmed\.png`/);
+  assert.doesNotMatch(renderer, /playerSheet:/);
+  assert.doesNotMatch(renderer, /playerFrameIndex/);
+  assert.doesNotMatch(renderer, /drawPlayerActorBillboard/);
+  assert.match(renderer, /mode:\s*"static-fallback"/);
   assert.match(renderer, /setPlayerAnimation/);
   assert.match(app, /p\.flash > 0/);
   assert.match(app, /p\.attack && p\.attack\.kind === "light"/);

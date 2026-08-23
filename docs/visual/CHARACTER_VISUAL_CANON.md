@@ -32,11 +32,11 @@ The v0.4 replacement was generated from the approved v0.3 identity anchor after 
 
 Use this sheet as a historical presentation/reference for the protagonist's directional pose family and unarmed action language only if it decodes correctly. It is not the runtime atlas, and its labels, background treatment, and sheet layout must not appear in gameplay sprites. The v0.4 Approved Visual Anchor above is the generation parent for subject identity, clothing/material language, palette, silhouette, and unarmed combat identity.
 
-### Accepted Combat Sprite Source
+### Directional Combat Source — not runtime-eligible
 
 - `assets/combat/minimal-v0.1/actors/player-unarmed-combat-sprite-sheet-v0.1.png`
 
-This transparent 768×512 optimized derivative is accepted as the source-art sheet for runtime combat animation. It must be sliced, normalized, and validated before runtime replacement. The Approved Visual Anchor remains the identity parent.
+This transparent 768×512 derivative is retained as a directional-pose source. Pixel and runtime review established that its eight columns are direction variants rather than temporal frames; cycling them produces a rotating actor. Its hair, collar, and clothing silhouette also do not preserve the Approved Visual Anchor's subject identity. It must not replace `assets/combat/minimal-v0.1/actors/player-unarmed.png`. A future runtime animation set must be authored from the v0.4 Approved Visual Anchor and pass `docs/visual/generation-packages/player-unarmed-runtime-sprite-acceptance-v0.1.md`.
 
 ### Accepted visual conditions
 
