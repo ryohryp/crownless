@@ -114,6 +114,17 @@ When choosing between architectural novelty and something that makes the prototy
 - For combat actor PNG changes, verify that the image decodes and contains a meaningful non-transparent silhouette. Do not use file byte size alone as an integrity test.
 - For presentation changes, validate with a real phone-size screenshot or equivalent viewport, including crowded multi-enemy cases.
 
+## Resource lifecycle
+
+Keep `main` centered on current gameplay, Canon, Approved assets, runtime sources, and intentionally maintained tools.
+
+- Remove isolated experiment pages, scripts, styles, and their dedicated tests after the useful behavior has been absorbed into the playable prototype, unless the experiment is explicitly designated as ongoing.
+- Do not keep Rejected, corrupt, or superseded generated Candidates on `main` solely for history; Git history is the default archive.
+- Keep Candidate / Approved / runtime roles explicit in manifests and asset READMEs.
+- Older versioned design documents may remain when they are intentionally useful as historical design context; they do not override current Canon.
+- Before deleting a Canon, Approved, runtime, deployment, or tooling source, trace direct and dynamic references and update every manifest, test, documentation reference, and runtime path that makes it authoritative.
+- A file that is absent from `index.html` is not automatically unused; check dynamic loaders and server/tooling entry points before removal.
+
 ## Product priority
 
 If a change makes the architecture cleaner but the game no more fun, it is probably not the next task.
