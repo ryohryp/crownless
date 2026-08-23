@@ -1,18 +1,20 @@
 (() => {
   "use strict";
 
+  const Core = window.CrownlessCore;
   const exploreScreen = document.getElementById("explore-screen");
   const leadList = document.getElementById("lead-list");
-  if (!exploreScreen || !leadList || typeof MutationObserver !== "function") return;
+  if (!Core || !exploreScreen || !leadList || typeof MutationObserver !== "function") return;
 
   let scheduled = false;
 
-  function setText(node, value) {
-    if (node && node.textContent !== value) node.textContent = value;
-  }
-
-  function regionalTargetCard() {
-    return leadList.querySelector('.lead-card[data-discovery-source="region-mission"]');
+  function revealedMission() {
+    if (typeof Core.getRegionMissionBoard !== "function" || typeof Core.loadSafeState !== "function") return null;
+    const safe = Core.loadSafeState();
+    const board = Core.getRegionMissionBoard(safe);
+    return Array.isArray(board)
+      ? board.find((mission) => mission && mission.stage === "investigated" && !mission.completed) || null
+      : null;
   }
 
   function removeMarker(map) {
@@ -27,8 +29,8 @@
   function ensureMarker() {
     const map = document.getElementById("exploration-sketch-map");
     if (!map) return;
-    const card = regionalTargetCard();
-    if (!card) {
+    const mission = revealedMission();
+    if (!mission) {
       removeMarker(map);
       return;
     }
@@ -49,22 +51,18 @@
       marker.style.top = "31%";
       marker.dataset.labelHorizontal = "inset-right";
       marker.dataset.labelVertical = "below";
-      marker.setAttribute("aria-label", "地域依頼の追跡地点。街道荒らしの野営地");
+      marker.setAttribute("aria-label", "地域依頼の追跡地点。街道荒らしの野営地。攻略は灰炉で行う");
       marker.innerHTML = `
         <i class="sketch-map-glyph">⚔</i>
         <small>追</small>
-        <span><strong></strong><em>地域依頼 / 追跡地点</em></span>`;
+        <span><strong>街道荒らしの野営地</strong><em>追跡地点 / 攻略は灰炉で</em></span>`;
       marker.addEventListener("click", () => {
-        const current = regionalTargetCard();
-        if (!current) return;
-        if (typeof current.focus === "function") current.focus({ preventScroll: true });
-        if (typeof current.scrollIntoView === "function") current.scrollIntoView({ behavior: "smooth", block: "center" });
+        const returnButton = document.getElementById("return-from-explore");
+        if (returnButton && typeof returnButton.focus === "function") returnButton.focus({ preventScroll: true });
+        if (returnButton && typeof returnButton.scrollIntoView === "function") returnButton.scrollIntoView({ behavior: "smooth", block: "center" });
       });
       points.appendChild(marker);
     }
-
-    const title = card.querySelector("h3")?.textContent?.trim() || "街道荒らしの野営地";
-    setText(marker.querySelector("strong"), title);
   }
 
   function schedule() {
@@ -82,7 +80,7 @@
     childList: true,
     characterData: true,
     attributes: true,
-    attributeFilter: ["class", "data-discovery-source", "hidden"]
+    attributeFilter: ["class", "hidden"]
   });
 
   document.getElementById("start-expedition")?.addEventListener("click", schedule, true);
