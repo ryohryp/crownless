@@ -38,6 +38,13 @@ Use this sheet as a historical presentation/reference for the protagonist's dire
 
 This transparent 768×512 derivative is retained as a directional-pose source. Pixel and runtime review established that its eight columns are direction variants rather than temporal frames; cycling them produces a rotating actor. Its hair, collar, and clothing silhouette also do not preserve the Approved Visual Anchor's subject identity. It must not replace `assets/combat/minimal-v0.1/actors/player-unarmed.png`. A future runtime animation set must be authored from the v0.4 Approved Visual Anchor and pass `docs/visual/generation-packages/player-unarmed-runtime-sprite-acceptance-v0.1.md`.
 
+### Accepted MVP Runtime Animation
+
+- `assets/combat/minimal-v0.1/actors/player-unarmed-combat-sprite-sheet-v0.3.png`
+- `assets/combat/minimal-v0.1/player-unarmed-animation.json`
+
+The user-approved v3 atlas is the accepted runtime source for `idle`, `walk`, `jab`, and `hurt`. It preserves the v0.4 Approved Visual Anchor's identity and unarmed equipment language across one fixed oblique top-down facing. Each action has four temporal frames on a transparent 512×512 cell with an authored ground pivot at `(256, 480)`. The existing `player-unarmed.png` remains the static decode/load fallback; the v0.4 Anchor remains the generation parent and is not replaced by this atlas.
+
 ### Accepted visual conditions
 
 - anonymous unknown survivor with no crown, class costume, or permanent allegiance

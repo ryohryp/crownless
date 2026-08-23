@@ -1,106 +1,88 @@
 {
-  "schema": "crownless.player-unarmed-direction-reference.v1",
-  "sheet": "actors/player-unarmed-combat-sprite-sheet-v0.1.png",
+  "schema": "crownless.player-unarmed-animation.v1",
+  "sheet": "actors/player-unarmed-combat-sprite-sheet-v0.3.png",
   "sheetSize": {
-    "width": 768,
-    "height": 512
+    "width": 2048,
+    "height": 2048
+  },
+  "grid": {
+    "columns": 4,
+    "rows": 4,
+    "frameWidth": 512,
+    "frameHeight": 512
   },
   "analysis": {
     "alphaThreshold": 18,
-    "layout": "directional pose families, not temporal animation sequences",
-    "note": "Cell rectangles are derived from the transparent gaps between measured visible bounds. Within each row, columns rotate the subject through directional views; they must not be replayed over time."
+    "layout": "temporal animation rows with one fixed oblique top-down facing",
+    "approvedAnchor": "../../../docs/assets/player-unarmed-approved-anchor-v0.4.png",
+    "acceptedCandidateSha256": "0235960b8b618c39a1483969c684bb46014f143ae2b0fe9792725ecc4722eef8",
+    "acceptedOn": "2026-08-24",
+    "note": "Rows are idle, walk, jab, and hurt. Columns progress through time and must never be interpreted as direction slots. Attack trails and impact effects remain separate runtime layers."
   },
-  "rows": [
+  "pivot": {
+    "x": 256,
+    "y": 480,
+    "policy": "authored-ground-point"
+  },
+  "referenceVisibleHeight": 288,
+  "actions": [
     {
       "action": "idle",
-      "y": 0,
-      "height": 108,
-      "xEdges": [0, 109, 210, 306, 399, 491, 584, 676, 768],
+      "row": 0,
+      "frameCount": 4,
+      "timing": "loop",
+      "frameDurationMs": 180,
       "visibleBounds": [
-        {"x": 25, "y": 6, "width": 65, "height": 101},
-        {"x": 130, "y": 5, "width": 63, "height": 103},
-        {"x": 230, "y": 5, "width": 57, "height": 103},
-        {"x": 328, "y": 6, "width": 53, "height": 102},
-        {"x": 417, "y": 6, "width": 56, "height": 102},
-        {"x": 510, "y": 7, "width": 54, "height": 101},
-        {"x": 603, "y": 4, "width": 63, "height": 104},
-        {"x": 688, "y": 7, "width": 65, "height": 100}
+        {"x": 191, "y": 199, "width": 172, "height": 282},
+        {"x": 192, "y": 195, "width": 170, "height": 286},
+        {"x": 194, "y": 195, "width": 166, "height": 286},
+        {"x": 191, "y": 193, "width": 170, "height": 288}
       ]
     },
     {
       "action": "walk",
-      "y": 108,
-      "height": 108,
-      "xEdges": [0, 110, 213, 313, 398, 489, 577, 675, 768],
+      "row": 1,
+      "frameCount": 4,
+      "timing": "loop",
+      "frameDurationMs": 120,
       "visibleBounds": [
-        {"x": 25, "y": 110, "width": 62, "height": 101},
-        {"x": 133, "y": 113, "width": 62, "height": 99},
-        {"x": 231, "y": 108, "width": 68, "height": 105},
-        {"x": 329, "y": 116, "width": 54, "height": 100},
-        {"x": 416, "y": 108, "width": 58, "height": 107},
-        {"x": 506, "y": 116, "width": 55, "height": 95},
-        {"x": 595, "y": 108, "width": 68, "height": 103},
-        {"x": 691, "y": 110, "width": 60, "height": 104}
+        {"x": 129, "y": 205, "width": 195, "height": 277},
+        {"x": 119, "y": 201, "width": 205, "height": 280},
+        {"x": 122, "y": 201, "width": 203, "height": 280},
+        {"x": 129, "y": 202, "width": 199, "height": 279}
       ]
     },
     {
       "action": "jab",
-      "y": 216,
-      "height": 104,
-      "xEdges": [0, 103, 208, 304, 406, 488, 578, 674, 768],
+      "row": 2,
+      "frameCount": 4,
+      "timing": "action-progress",
+      "frameDurationMs": 90,
       "visibleBounds": [
-        {"x": 17, "y": 216, "width": 65, "height": 101},
-        {"x": 125, "y": 219, "width": 71, "height": 99},
-        {"x": 219, "y": 218, "width": 74, "height": 102},
-        {"x": 316, "y": 220, "width": 78, "height": 100},
-        {"x": 420, "y": 222, "width": 60, "height": 94},
-        {"x": 499, "y": 221, "width": 67, "height": 92},
-        {"x": 591, "y": 217, "width": 70, "height": 103},
-        {"x": 689, "y": 219, "width": 62, "height": 100}
+        {"x": 202, "y": 212, "width": 175, "height": 269},
+        {"x": 199, "y": 216, "width": 239, "height": 265},
+        {"x": 197, "y": 216, "width": 257, "height": 266},
+        {"x": 207, "y": 212, "width": 169, "height": 269}
       ]
     },
     {
       "action": "hurt",
-      "y": 320,
-      "height": 106,
-      "xEdges": [0, 95, 205, 317, 408, 498, 587, 680, 768],
+      "row": 3,
+      "frameCount": 4,
+      "timing": "action-progress",
+      "frameDurationMs": 120,
       "visibleBounds": [
-        {"x": 18, "y": 321, "width": 67, "height": 100},
-        {"x": 106, "y": 321, "width": 91, "height": 97},
-        {"x": 216, "y": 320, "width": 92, "height": 102},
-        {"x": 326, "y": 320, "width": 71, "height": 106},
-        {"x": 419, "y": 330, "width": 71, "height": 88},
-        {"x": 505, "y": 323, "width": 72, "height": 99},
-        {"x": 599, "y": 320, "width": 71, "height": 104},
-        {"x": 692, "y": 323, "width": 60, "height": 101}
-      ]
-    },
-    {
-      "action": "down",
-      "y": 426,
-      "height": 86,
-      "xEdges": [0, 188, 357, 542, 768],
-      "visibleBounds": [
-        {"x": 63, "y": 429, "width": 97, "height": 72},
-        {"x": 218, "y": 434, "width": 107, "height": 69},
-        {"x": 390, "y": 448, "width": 135, "height": 52},
-        {"x": 560, "y": 452, "width": 149, "height": 47}
+        {"x": 208, "y": 217, "width": 174, "height": 264},
+        {"x": 217, "y": 236, "width": 186, "height": 245},
+        {"x": 215, "y": 243, "width": 192, "height": 238},
+        {"x": 197, "y": 195, "width": 170, "height": 286}
       ]
     }
   ],
-  "directionalPoseFamilies": {
-    "idle": {"directionSlots": [0, 1, 2, 3, 4, 5, 6, 7]},
-    "walk": {"directionSlots": [8, 9, 10, 11, 12, 13, 14, 15]},
-    "jab": {"directionSlots": [16, 17, 18, 19, 20, 21, 22, 23]},
-    "hurt": {"directionSlots": [24, 25, 26, 27, 28, 29, 30, 31]}
-  },
-  "excluded": {
-    "down": [32, 33, 34, 35]
-  },
-  "pivot": "visible-alpha-bottom",
   "runtime": {
-    "eligible": false,
+    "eligible": true,
     "fallback": "actors/player-unarmed.png",
-    "reason": "The sheet supplies directional poses rather than temporal frames and its subject identity does not match the approved player-unarmed Anchor."
+    "states": ["idle", "walk", "jab", "hurt"],
+    "reason": "The user-approved v3 atlas preserves the Approved Anchor identity, fixed battlefield facing, transparent frame cells, and stable authored ground point."
   }
 }

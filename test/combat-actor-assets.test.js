@@ -101,3 +101,11 @@ test('skirmisher combat sprite is a valid PNG with a readable non-transparent si
   assert.ok(image.boundsWidth >= image.width * 0.68, `skirmisher silhouette too narrow: ${image.boundsWidth}`);
   assert.ok(image.boundsHeight >= image.height * 0.82, `skirmisher silhouette too short: ${image.boundsHeight}`);
 });
+
+test('accepted protagonist animation atlas is a valid RGBA PNG with meaningful visible coverage', () => {
+  const image = inspectActorPng('assets/combat/minimal-v0.1/actors/player-unarmed-combat-sprite-sheet-v0.3.png');
+  assert.deepEqual({ width: image.width, height: image.height }, { width: 2048, height: 2048 });
+  assert.ok(image.visible >= 400000, `protagonist atlas visible coverage too small: ${image.visible}`);
+  assert.ok(image.boundsWidth >= 1700, `protagonist atlas occupied width unexpectedly small: ${image.boundsWidth}`);
+  assert.ok(image.boundsHeight >= 1700, `protagonist atlas occupied height unexpectedly small: ${image.boundsHeight}`);
+});

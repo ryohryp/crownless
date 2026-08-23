@@ -15,6 +15,7 @@
   const ASSET_ROOT = "assets/combat/minimal-v0.1";
   const assetManifest = {
     player: `${ASSET_ROOT}/actors/player-unarmed.png`,
+    playerAnimation: `${ASSET_ROOT}/actors/player-unarmed-combat-sprite-sheet-v0.3.png`,
     rusher: `${ASSET_ROOT}/actors/enemy-rusher.png`,
     guard: `${ASSET_ROOT}/actors/enemy-guard.png`,
     skirmisher: `${ASSET_ROOT}/actors/enemy-skirmisher.png`,
@@ -24,13 +25,21 @@
     telegraph: `${ASSET_ROOT}/effects/vermilion-telegraphs-sheet.png`
   };
 
-  // The 768x512 source sheet contains directional pose variants, not
-  // temporal frames. Cycling its columns makes the character turn through
-  // front, side, and back views. It also does not match the approved
-  // player-unarmed identity, so runtime presentation stays on the canonical
-  // single-sprite fallback until identity-matched animation art exists.
   const playerAnimationStates = new Set(["idle", "walk", "jab", "hurt"]);
   const playerAnimationState = { state: "idle", elapsed: 0, duration: 0 };
+  const playerAnimationConfig = {
+    frameWidth: 512,
+    frameHeight: 512,
+    pivotX: 256,
+    pivotY: 480,
+    referenceVisibleHeight: 288,
+    actions: {
+      idle: { row: 0, frameCount: 4, timing: "loop", frameDuration: 0.18 },
+      walk: { row: 1, frameCount: 4, timing: "loop", frameDuration: 0.12 },
+      jab: { row: 2, frameCount: 4, timing: "action-progress", frameDuration: 0.09 },
+      hurt: { row: 3, frameCount: 4, timing: "action-progress", frameDuration: 0.12 }
+    }
+  };
 
   const assets = Object.create(null);
 
@@ -199,6 +208,51 @@
       source.sh,
       -width / 2,
       footY - height,
+      width,
+      height
+    );
+    return true;
+  }
+
+  function playerFrame() {
+    const action = playerAnimationConfig.actions[playerAnimationState.state]
+      || playerAnimationConfig.actions.idle;
+    let frame = 0;
+    if (action.timing === "loop") {
+      frame = Math.floor(playerAnimationState.elapsed / action.frameDuration) % action.frameCount;
+    } else if (playerAnimationState.duration > 0) {
+      const progress = Math.max(0, Math.min(0.999999, playerAnimationState.elapsed / playerAnimationState.duration));
+      frame = Math.floor(progress * action.frameCount);
+    } else {
+      frame = Math.min(action.frameCount - 1, Math.floor(playerAnimationState.elapsed / action.frameDuration));
+    }
+    return {
+      sx: frame * playerAnimationConfig.frameWidth,
+      sy: action.row * playerAnimationConfig.frameHeight,
+      sw: playerAnimationConfig.frameWidth,
+      sh: playerAnimationConfig.frameHeight,
+      index: frame
+    };
+  }
+
+  function drawPlayerActorBillboard(target, record, logicalHeight, logicalFootOffset = 37) {
+    if (!record || !record.ready || !record.image) return false;
+    const frame = playerFrame();
+    const { yCompensation, footY } = actorFootMetrics(target, logicalFootOffset);
+    const scale = logicalHeight / playerAnimationConfig.referenceVisibleHeight;
+    const width = frame.sw * scale;
+    const height = frame.sh * scale * yCompensation;
+    const x = -playerAnimationConfig.pivotX * scale;
+    const y = footY - playerAnimationConfig.pivotY * scale * yCompensation;
+    drawGroundShadow(target, footY);
+    target.drawImage(
+      record.image,
+      frame.sx,
+      frame.sy,
+      frame.sw,
+      frame.sh,
+      x,
+      y,
       width,
       height
     );
@@ -417,12 +471,20 @@
     }
 
     function drawActor(role) {
-      if (!recordReady(role)) return false;
-      const record = assets[role];
       const logicalHeight = role === "guard" ? 138 : role === "rusher" ? 132 : role === "skirmisher" ? 132 : 132;
       ctx.save();
       ctx.imageSmoothingEnabled = true;
-      const drawn = drawActorBillboard(ctx, record, logicalHeight, 37);
+      let drawn = false;
+      if (role === "player") {
+        if (recordReady("playerAnimation")) {
+          drawn = drawPlayerActorBillboard(ctx, assets.playerAnimation, logicalHeight, 37);
+        }
+        if (!drawn && recordReady("player")) {
+          drawn = drawActorBillboard(ctx, assets.player, logicalHeight, 37);
+        }
+      } else if (recordReady(role)) {
+        drawn = drawActorBillboard(ctx, assets[role], logicalHeight, 37);
+      }
       ctx.restore();
       if (drawn) rememberRole(role);
       return drawn;
@@ -662,9 +724,13 @@
   window.CrownlessCombatAssets = {
     manifest: { ...assetManifest },
     playerAnimation: {
-      mode: "static-fallback",
+      mode: "temporal-atlas",
       states: Array.from(playerAnimationStates),
-      source: assetManifest.player
+      source: assetManifest.playerAnimation,
+      fallback: assetManifest.player,
+      frameWidth: playerAnimationConfig.frameWidth,
+      frameHeight: playerAnimationConfig.frameHeight,
+      pivot: { x: playerAnimationConfig.pivotX, y: playerAnimationConfig.pivotY }
     },
     setPlayerAnimation,
     status() {

@@ -10,6 +10,7 @@ const js = fs.readFileSync(rendererPath, 'utf8');
 
 const expectedAssets = [
   'actors/player-unarmed.png',
+  'actors/player-unarmed-combat-sprite-sheet-v0.3.png',
   'actors/enemy-rusher.png',
   'actors/enemy-guard.png',
   'actors/enemy-skirmisher.png',
@@ -40,8 +41,12 @@ test('actor sprites preserve their source proportions in final screen space', ()
   assert.match(js, /Math\.hypot\(matrix\.a \* cssX, matrix\.b \* cssY\)/);
   assert.match(js, /Math\.hypot\(matrix\.c \* cssX, matrix\.d \* cssY\)/);
   assert.match(js, /function drawActorBillboard\(target, record, logicalHeight/);
+  assert.match(js, /function drawPlayerActorBillboard\(target, record, logicalHeight/);
   assert.match(js, /axes\.x \/ axes\.y/);
-  assert.match(js, /drawActorBillboard\(ctx, record, logicalHeight, 37\)/);
+  assert.match(js, /drawActorBillboard\(ctx, assets\[role\], logicalHeight, 37\)/);
+  assert.match(js, /drawActorBillboard\(ctx, assets\.player, logicalHeight, 37\)/);
+  assert.match(js, /playerAnimationConfig\.referenceVisibleHeight/);
+  assert.match(js, /playerAnimationConfig\.pivotY \* scale \* yCompensation/);
 });
 
 test('actor shadow shares the billboard foot anchor and survives image fallback', () => {

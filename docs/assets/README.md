@@ -23,10 +23,17 @@ Earlier WebP protagonist references failed local decode validation and have been
 
 ## Directional protagonist combat source
 
-- `assets/combat/minimal-v0.1/actors/player-unarmed-combat-sprite-sheet-v0.1.png` — transparent directional-pose source retained for diagnosis and future re-authoring.
-- `assets/combat/minimal-v0.1/player-unarmed-animation.json` — measured cell rectangles, visible bounds, directional-pose families, ground-pivot policy, and runtime eligibility.
+- `assets/combat/minimal-v0.1/actors/player-unarmed-combat-sprite-sheet-v0.1.png` — transparent 768×512 directional-pose source retained for diagnosis and future re-authoring.
+- `assets/combat/minimal-v0.1/player-unarmed-direction-reference.json` — measured cell rectangles, visible bounds, directional-pose families, ground-pivot policy, and runtime rejection record.
 
-Pixel review confirmed that each eight-column row rotates the subject through directional views rather than supplying eight temporal animation frames. Replaying those columns over time makes the actor spin. The sheet also drifts from the Approved Visual Anchor's protagonist identity. It is therefore **not runtime-eligible**. Combat continues to use `player-unarmed.png` until an identity-matched `idle` / `walk` / `jab` / `hurt` set passes the runtime acceptance gate.
+Pixel review confirmed that each eight-column row rotates the subject through directional views rather than supplying eight temporal animation frames. Replaying those columns over time makes the actor spin. The sheet also drifts from the Approved Visual Anchor's protagonist identity. It remains **not runtime-eligible**.
+
+## Accepted protagonist runtime animation
+
+- `assets/combat/minimal-v0.1/actors/player-unarmed-combat-sprite-sheet-v0.3.png` — accepted 2048×2048 RGBA temporal atlas for the MVP combat runtime.
+- `assets/combat/minimal-v0.1/player-unarmed-animation.json` — 4×4 frame grid, authored foot pivot, measured alpha bounds, timing policy, provenance hash, and fallback contract.
+
+The four rows are `idle`, `walk`, `jab`, and `hurt`; the four columns are time-progressing frames in one fixed oblique battlefield facing. The atlas was explicitly accepted on 2026-08-24 after identity, transparency, foot-point, clipping, and non-rotation review. `player-unarmed.png` remains the fail-safe static runtime fallback. Attack trails and impact ink are still drawn by their existing separate presentation layers.
 
 ## Legacy detail references
 
