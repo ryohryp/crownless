@@ -16,11 +16,19 @@ Treat this as a calibration anchor, not optional inspiration. A generated image 
 
 When a detail conflicts with current textual Canon or accepted combat actors, the more specific current rule wins. In particular, the accepted actor set overrides any older character proportions visible on supporting boards.
 
-## Approved protagonist sprite reference
+## Approved protagonist visual Anchor
+
+- `player-unarmed-approved-anchor-v0.3.png` — **the approved protagonist identity Anchor**. This full-body manuscript/woodcut plate establishes the anonymous unarmed survivor's compact folk-doll silhouette, wrapped hands, patched clothing, scavenged belt/pouch, restrained palette, and physical ink treatment.
+
+The approval and integrity record is `player-unarmed-approved-anchor-v0.3.json`. This is an identity/reference asset, not a runtime sprite atlas; runtime actors must preserve its subject grammar while adapting the pose, transparent bounds, foot point, and scale to the oblique battlefield camera.
+
+The previous `player-unarmed-approved-anchor-v0.2.webp` and `player-unarmed-sprite-sheet-reference-v0.1.webp` are retained as legacy files for history, but failed local decode validation and must not be used as generation parents.
+
+## Historical protagonist sprite reference
 
 - `player-unarmed-sprite-sheet-reference-v0.1.webp` — approved appearance and motion-sheet reference for the unarmed protagonist. It establishes the compact 3–3.5-head silhouette, subdued scavenged clothing, unarmed pose language, directional readability, and core action family.
 
-This sheet is a **visual / animation reference**, not a runtime sprite atlas. It contains presentation labels and sheet-level composition, so gameplay frames must be produced separately as transparent, text-free, consistently grounded assets before integration.
+This sheet is a **visual / animation reference**, not a runtime sprite atlas. It contains presentation labels and sheet-level composition, so gameplay frames must be produced separately as transparent, text-free, consistently grounded assets before integration. Because the local WebP failed decode validation, the v0.3 PNG Anchor above is the authoritative readable identity source.
 
 ## Accepted protagonist combat sprite source
 

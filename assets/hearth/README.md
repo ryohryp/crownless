@@ -33,7 +33,8 @@ The approval record and source hash are maintained in
   player source and the avatar baseline for this handoff. The separate
   `docs/assets/player-unarmed-approved-anchor-v0.2.webp` could not be decoded
   during this work because its WebP bitstream is corrupt, so it was not used as a
-  generation parent.
+  generation parent. It has since been replaced for the global character Canon
+  by the validated `docs/assets/player-unarmed-approved-anchor-v0.3.png`.
 
 All generated images were prepared from the Crownless Global Visual Canon with
 `must_not_chain_from_candidate: true`, `must_review_after_generation: true`, and
