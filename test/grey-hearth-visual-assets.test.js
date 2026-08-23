@@ -18,23 +18,26 @@ function readPngSize(buffer) {
   };
 }
 
-test('Grey Hearth visual handoff keeps the selected empty-room Approved Visual Anchor and prior directions', async () => {
+test('Grey Hearth asset package keeps only the approved runtime source on main', async () => {
   assert.equal(manifest.project_id, 'crownless');
   assert.equal(manifest.status, 'approved');
   assert.equal(manifest.approval.approved_visual_anchor, true);
   assert.equal(manifest.selected_concept, 'concepts/grey-hearth-empty-room-v0.2.png');
-  assert.equal(manifest.previous_selected_concept, 'concepts/grey-hearth-b-gate-centered.png');
-  assert.equal(manifest.concepts.length, 4);
+  assert.equal(manifest.runtime_candidate, manifest.selected_concept);
+  assert.deepEqual(manifest.concepts, ['concepts/grey-hearth-empty-room-v0.2.png']);
+  assert.deepEqual(manifest.supporting_candidates, []);
+  assert.match(manifest.history_policy, /Git history/);
   assert.equal(manifest.approval.approved_for_grey_hearth_runtime, true);
   assert.equal(manifest.policy.must_not_chain_from_candidate, true);
   assert.equal(manifest.policy.must_review_after_generation, true);
+
   const approvalManifest = JSON.parse(await readFile(join(root, 'assets', 'hearth', manifest.approval.approved_candidate_manifest), 'utf8'));
   assert.equal(approvalManifest.status, 'approved_candidate');
   assert.equal(approvalManifest.source.path, join('assets', 'hearth', manifest.selected_concept).replaceAll('\\', '/'));
   assert.equal(approvalManifest.source.sha256, 'db8ad9f47fcdf818ac902710d092857a690a79e7e0ccbf84cf99f682d8207856');
   assert.deepEqual(approvalManifest.source.dimensions, [1672, 941]);
 
-  for (const relativePath of [...manifest.concepts, ...manifest.supporting_candidates]) {
+  for (const relativePath of manifest.concepts) {
     const bytes = await readFile(join(root, 'assets', 'hearth', relativePath));
     const size = readPngSize(bytes);
     assert.ok(Math.abs(size.width / size.height - 16 / 9) < 0.01);
