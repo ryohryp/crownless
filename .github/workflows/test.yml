@@ -24,6 +24,7 @@ jobs:
           node --check src/progression-system.js
           node --check src/save-system.js
           node --check src/app-runtime-state.js
+          node --check src/combat-action-profiles.js
           node --check src/app.js
           node --check src/noncombat-presentation.js
           node --check src/exploration-map-presentation.js
