@@ -6,9 +6,6 @@ on:
   pull_request:
     branches: [main]
 
-permissions:
-  contents: write
-
 jobs:
   integrate:
     if: github.actor != 'github-actions[bot]'
@@ -28,10 +25,11 @@ jobs:
           node --check src/app.js
       - name: Run tests
         run: npm test
-      - name: Commit integrated refactor
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git commit -m "refactor: wire combat action profiles into app (#183)"
-          git push origin HEAD:refactor/183-extract-combat-action-profiles
+      - name: Upload integrated files
+        uses: actions/upload-artifact@v4
+        with:
+          name: refactor-183-integrated
+          path: |
+            src/app.js
+            index.html
+            test/combat-action-profiles.test.js
