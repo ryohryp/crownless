@@ -2,14 +2,13 @@ name: refactor-183-integrate
 
 on:
   push:
-    branches: [fix/186-complete-combat-action-profile-extraction]
+    branches: [_manual_refactor_disabled]
 
 permissions:
   contents: write
 
 jobs:
   integrate:
-    if: github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
