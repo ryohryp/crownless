@@ -2,7 +2,7 @@ name: refactor-183-integrate
 
 on:
   push:
-    branches: [_manual_refactor_disabled]
+    branches: [fix/186-complete-combat-action-profile-extraction]
 
 permissions:
   contents: write
