@@ -2,9 +2,10 @@ name: refactor-183-integrate
 
 on:
   push:
-    branches: [refactor/183-extract-combat-action-profiles]
-  pull_request:
-    branches: [main]
+    branches: [fix/183-finalize-combat-action-profiles]
+
+permissions:
+  contents: write
 
 jobs:
   integrate:
@@ -13,7 +14,8 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: refactor/183-extract-combat-action-profiles
+          ref: fix/183-finalize-combat-action-profiles
+          fetch-depth: 0
       - uses: actions/setup-node@v4
         with:
           node-version: 22
@@ -25,11 +27,14 @@ jobs:
           node --check src/app.js
       - name: Run tests
         run: npm test
-      - name: Upload integrated files
-        uses: actions/upload-artifact@v4
-        with:
-          name: refactor-183-integrated
-          path: |
-            src/app.js
-            index.html
-            test/combat-action-profiles.test.js
+      - name: Commit integrated refactor
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "No integration changes to commit."
+            exit 0
+          fi
+          git commit -m "refactor: integrate combat action profiles"
+          git push origin HEAD:fix/183-finalize-combat-action-profiles
