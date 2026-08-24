@@ -1,0 +1,35 @@
+name: refactor-183-integrate
+
+on:
+  push:
+    branches: [refactor/183-extract-combat-action-profiles]
+  pull_request:
+    branches: [main]
+
+jobs:
+  integrate:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refactor/183-extract-combat-action-profiles
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Apply focused refactor
+        run: node scripts/apply-refactor-183.cjs
+      - name: Validate syntax
+        run: |
+          node --check src/combat-action-profiles.js
+          node --check src/app.js
+      - name: Run tests
+        run: npm test
+      - name: Upload integrated files
+        uses: actions/upload-artifact@v4
+        with:
+          name: refactor-183-integrated
+          path: |
+            src/app.js
+            index.html
+            test/combat-action-profiles.test.js
