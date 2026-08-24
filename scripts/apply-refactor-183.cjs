@@ -23,7 +23,7 @@ if (!app.includes('const CombatActionProfiles = window.CrownlessCombatActionProf
 app = replaceOnce(
   app,
   /  function techniqueProfile\(counter = false\) \{[\s\S]*?(?=  function dropEnemyWeapon\(enemy\) \{)/,
-  `  function techniqueProfile(counter = false) {\n    const weapon = battle ? battle.tuning.weaponType : "fists";\n    return CombatActionProfiles.techniqueProfile(weapon, counter);\n  }\n\n  function normalAttackProfile() {\n    return CombatActionProfiles.normalAttackProfile(battle ? battle.tuning : null);\n  }\n\n  function battlefieldWeaponSpec(enemy) {\n    return CombatActionProfiles.battlefieldWeaponSpec(enemy && enemy.kind);\n  }\n\n  function battlefieldWeaponTuning(type) {\n    const base = battle.baseTuning || battle.tuning;\n    return CombatActionProfiles.battlefieldWeaponTuning(base, type);\n  }\n\n`,
+  `  function techniqueProfile(counter = false) {\n    const weapon = battle ? battle.tuning.weaponType : "fists";\n    return CombatActionProfiles.techniqueProfile(weapon, counter);\n  }\n\n  function normalAttackProfile() {\n    return CombatActionProfiles.normalAttackProfile(battle.tuning);\n  }\n\n  function battlefieldWeaponSpec(enemy) {\n    return CombatActionProfiles.battlefieldWeaponSpec(enemy && enemy.kind);\n  }\n\n  function battlefieldWeaponTuning(type) {\n    const base = battle.baseTuning || battle.tuning;\n    return CombatActionProfiles.battlefieldWeaponTuning(base, type);\n  }\n\n`,
   'combat profile wrappers'
 );
 fs.writeFileSync('src/app.js', app);
@@ -39,17 +39,6 @@ if (!html.includes('src/combat-action-profiles.js')) {
   fs.writeFileSync('index.html', html);
 }
 
-let workflow = fs.readFileSync('.github/workflows/test.yml', 'utf8');
-if (!workflow.includes('node --check src/combat-action-profiles.js')) {
-  workflow = replaceOnce(
-    workflow,
-    '          node --check src/app-runtime-state.js\n',
-    '          node --check src/app-runtime-state.js\n          node --check src/combat-action-profiles.js\n',
-    'combat action profile syntax check'
-  );
-  fs.writeFileSync('.github/workflows/test.yml', workflow);
-}
-
 let testSource = fs.readFileSync('test/combat-action-profiles.test.js', 'utf8');
 if (!testSource.includes("const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');")) {
   testSource = replaceOnce(
@@ -60,7 +49,7 @@ if (!testSource.includes("const html = fs.readFileSync(path.join(root, 'index.ht
   );
 }
 if (!testSource.includes("test('combat action profiles load before app.js'")) {
-  testSource += `\n\ntest('combat action profiles load before app.js', () => {\n  const profiles = html.indexOf('src/combat-action-profiles.js');\n  const app = html.indexOf('src/app.js');\n  assert.ok(profiles >= 0 && profiles < app);\n});\n\ntest('app.js delegates static combat profile lookup to the extracted module', () => {\n  assert.match(appSource, /const CombatActionProfiles = window\\.CrownlessCombatActionProfiles/);\n  assert.match(appSource, /CombatActionProfiles\\.techniqueProfile\\(weapon, counter\\)/);\n  assert.match(appSource, /CombatActionProfiles\\.normalAttackProfile\\(battle \\? battle\\.tuning : null\\)/);\n  assert.match(appSource, /CombatActionProfiles\\.battlefieldWeaponSpec\\(enemy && enemy\\.kind\\)/);\n  assert.match(appSource, /CombatActionProfiles\\.battlefieldWeaponTuning\\(base, type\\)/);\n});\n`;
+  testSource += `\n\ntest('combat action profiles load before app.js', () => {\n  const profiles = html.indexOf('src/combat-action-profiles.js');\n  const app = html.indexOf('src/app.js');\n  assert.ok(profiles >= 0 && profiles < app);\n});\n\ntest('app.js delegates static combat profile lookup to the extracted module', () => {\n  assert.match(appSource, /const CombatActionProfiles = window\\.CrownlessCombatActionProfiles/);\n  assert.match(appSource, /CombatActionProfiles\\.techniqueProfile\\(weapon, counter\\)/);\n  assert.match(appSource, /CombatActionProfiles\\.normalAttackProfile\\(battle\\.tuning\\)/);\n  assert.match(appSource, /CombatActionProfiles\\.battlefieldWeaponSpec\\(enemy && enemy\\.kind\\)/);\n  assert.match(appSource, /CombatActionProfiles\\.battlefieldWeaponTuning\\(base, type\\)/);\n});\n`;
   fs.writeFileSync('test/combat-action-profiles.test.js', testSource);
 }
 
@@ -73,7 +62,7 @@ requireCondition(
 );
 requireCondition(
   integratedApp.includes('CombatActionProfiles.techniqueProfile(weapon, counter)') &&
-    integratedApp.includes('CombatActionProfiles.normalAttackProfile(battle ? battle.tuning : null)') &&
+    integratedApp.includes('CombatActionProfiles.normalAttackProfile(battle.tuning)') &&
     integratedApp.includes('CombatActionProfiles.battlefieldWeaponSpec(enemy && enemy.kind)') &&
     integratedApp.includes('CombatActionProfiles.battlefieldWeaponTuning(base, type)'),
   'app.js must delegate all extracted combat profile lookups'
