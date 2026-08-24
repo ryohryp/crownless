@@ -37,11 +37,11 @@
     return clone(counter ? weapon.counter : weapon.standard);
   }
 
-  function normalAttackProfile(tuning = {}) {
-    const weaponType = tuning && tuning.weaponType || "fists";
+  function normalAttackProfile(tuning) {
+    const weaponType = tuning ? tuning.weaponType : "fists";
     const profile = NORMAL_ATTACK_PROFILES[weaponType] || NORMAL_ATTACK_PROFILES.fists;
-    const reach = Number.isFinite(tuning && tuning.reach) ? tuning.reach : 53;
-    const tempo = weaponType === "fists" && Number.isFinite(tuning && tuning.unarmedTempo) ? tuning.unarmedTempo : 1;
+    const reach = tuning ? tuning.reach : 53;
+    const tempo = profile === NORMAL_ATTACK_PROFILES.fists ? (tuning ? tuning.unarmedTempo : 1) : 1;
     return {
       settle: profile.settle,
       range: reach + profile.reachBonus,
@@ -61,9 +61,8 @@
   }
 
   function battlefieldWeaponTuning(baseTuning, type) {
-    const base = baseTuning || {};
-    const lightBase = Math.max(11, Number.isFinite(base.lightDamage) ? base.lightDamage : 11);
-    const heavyBase = Math.max(21, Number.isFinite(base.heavyDamage) ? base.heavyDamage : 21);
+    const lightBase = Math.max(11, baseTuning.lightDamage);
+    const heavyBase = Math.max(21, baseTuning.heavyDamage);
     if (type === "sword") {
       return {
         style: "blade", weaponType: "sword",
