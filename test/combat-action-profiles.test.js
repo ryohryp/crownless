@@ -36,6 +36,16 @@ test('normal attack profiles preserve reach and unarmed tempo behavior', () => {
   assert.equal(fists.comboLength, 4);
   assert.equal(fists.duration, 0.215 / 1.2);
   assert.equal(fists.activeAt, 0.06 / 1.2);
+
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(profiles.normalAttackProfile(null))),
+    { settle: 0.085, range: 59, comboLength: 4, duration: 0.215, activeAt: 0.06, cadence: 0.02, lunge: 10, damage: 1, finisher: 1.38, arc: 0.04 }
+  );
+
+  const unknownWeapon = profiles.normalAttackProfile({ weaponType: 'unknown', reach: 50, unarmedTempo: 2 });
+  assert.equal(unknownWeapon.range, 56);
+  assert.equal(unknownWeapon.duration, 0.215 / 2);
+  assert.equal(unknownWeapon.activeAt, 0.06 / 2);
 });
 
 test('battlefield weapon drops and temporary tuning preserve current values', () => {
@@ -55,6 +65,10 @@ test('battlefield weapon drops and temporary tuning preserve current values', ()
   assert.equal(dagger.lightDamage, 11 * 0.92);
   assert.equal(dagger.heavyDamage, 21 * 0.95);
   assert.equal(dagger.reach, 62);
+
+  const invalidBase = profiles.battlefieldWeaponTuning({ lightDamage: undefined, heavyDamage: undefined }, 'dagger');
+  assert.ok(Number.isNaN(invalidBase.lightDamage));
+  assert.ok(Number.isNaN(invalidBase.heavyDamage));
 });
 
 test('profile callers receive fresh objects instead of shared mutable config', () => {
