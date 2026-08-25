@@ -2,6 +2,8 @@
   "use strict";
 
   const Core = window.CrownlessCore;
+  const CombatActionProfiles = window.CrownlessCombatActionProfiles;
+  if (!CombatActionProfiles) throw new Error("CrownlessCombatActionProfiles must load before app.js");
   let state = Core.createInitialState();
   let battle = null;
   let raf = null;
@@ -112,53 +114,20 @@
 
   function techniqueProfile(counter = false) {
     const weapon = battle ? battle.tuning.weaponType : "fists";
-    if (!counter) {
-      if (weapon === "dagger") return { duration: 0.5, activeAt: 0.2, lunge: 46, damage: 0.96, stagger: 0.95, knock: 0.9, label: "TECHNIQUE" };
-      if (weapon === "sword") return { duration: 0.68, activeAt: 0.34, lunge: 34, damage: 1.1, stagger: 1.18, knock: 1.2, label: "TECHNIQUE" };
-      return { duration: 0.54, activeAt: 0.23, lunge: 38, damage: 1, stagger: 1, knock: 1, label: "TECHNIQUE" };
-    }
-    if (weapon === "dagger") return { duration: 0.34, activeAt: 0.09, lunge: 78, damage: 1.75, stagger: 0.9, knock: 0.72, label: "RIPOSTE" };
-    if (weapon === "sword") return { duration: 0.5, activeAt: 0.18, lunge: 50, damage: 1.6, stagger: 1.75, knock: 1.5, label: "CLASH" };
-    return { duration: 0.37, activeAt: 0.1, lunge: 54, damage: 1.48, stagger: 1.15, knock: 1.08, label: "RUSH" };
+    return CombatActionProfiles.techniqueProfile(weapon, counter);
   }
 
   function normalAttackProfile() {
-    const weapon = battle ? battle.tuning.weaponType : "fists";
-    const reach = battle ? battle.tuning.reach : 53;
-    if (weapon === "dagger") {
-      return { settle: 0.06, range: reach + 8, comboLength: 6, duration: 0.17, activeAt: 0.046, cadence: 0.015, lunge: 9, damage: 0.82, finisher: 1.5, arc: 0.28 };
-    }
-    if (weapon === "sword") {
-      return { settle: 0.14, range: reach + 14, comboLength: 3, duration: 0.39, activeAt: 0.145, cadence: 0.055, lunge: 6, damage: 1.18, finisher: 1.3, arc: -0.16 };
-    }
-    const tempo = battle ? battle.tuning.unarmedTempo : 1;
-    return { settle: 0.085, range: reach + 6, comboLength: 4, duration: 0.215 / tempo, activeAt: 0.06 / tempo, cadence: 0.02, lunge: 10, damage: 1, finisher: 1.38, arc: 0.04 };
+    return CombatActionProfiles.normalAttackProfile(battle ? battle.tuning : null);
   }
 
   function battlefieldWeaponSpec(enemy) {
-    if (enemy.kind === "guard") return { type: "sword", name: "欠け盾兵の剣" };
-    if (enemy.kind === "skirmisher") return { type: "dagger", name: "藪射ちの狩猟刀" };
-    return { type: "dagger", name: "街道荒らしの短刀" };
+    return CombatActionProfiles.battlefieldWeaponSpec(enemy.kind);
   }
 
   function battlefieldWeaponTuning(type) {
     const base = battle.baseTuning || battle.tuning;
-    const lightBase = Math.max(11, base.lightDamage);
-    const heavyBase = Math.max(21, base.heavyDamage);
-    if (type === "sword") {
-      return {
-        style: "blade", weaponType: "sword",
-        lightDamage: lightBase * 1.08, heavyDamage: heavyBase * 1.12,
-        reach: 82, moveSpeed: 190, heavyStagger: 1.15,
-        evadeEmpower: false, unarmedTempo: 1, comboFinisher: 1, lowHealthRisk: false
-      };
-    }
-    return {
-      style: "blade", weaponType: "dagger",
-      lightDamage: lightBase * 0.92, heavyDamage: heavyBase * 0.95,
-      reach: 62, moveSpeed: 218, heavyStagger: 0.95,
-      evadeEmpower: false, unarmedTempo: 1, comboFinisher: 1, lowHealthRisk: false
-    };
+    return CombatActionProfiles.battlefieldWeaponTuning(base, type);
   }
 
   function dropEnemyWeapon(enemy) {
