@@ -1,45 +1,174 @@
 # Crownless
 
-**Location-based medieval fantasy action hack-and-slash RPG.**
+**Location-discovery idle expedition RPG in a medieval fantasy world.**
 
 Crownless is built around one loop:
 
-> Explore → Fight → Loot → Survive → Grow → Explore deeper
+> **Walk → Discover → Prepare → Dispatch → Wait → Report → Adapt**
 
-The project combines:
+Real-world movement reveals the game world. The player then returns to safety, chooses companions and equipment, sends an expedition into a discovered place, and later reads what happened.
 
-- the tense dungeon exploration, party identity, and survival pressure of **Wizardry**
-- the direct, satisfying action feel of **Kunio-kun**
-- the loot hunting and build experimentation of **Diablo**
-- real-world discovery driven by **GPS / location data**
-- a medieval fantasy world of factions, territory, and war inspired by **Game of Thrones**
+The project is currently undergoing a deliberate design pivot tracked in [Issue #189](https://github.com/ryohryp/crownless/issues/189) and [ADR 0002](docs/adr/0002-idle-expedition-pivot.md).
 
 ## Core idea
 
-Location is not a pedometer reward system. Walking through the real world reveals, remembers, and develops the game world.
+Location is not a pedometer reward system.
 
-The player begins as an unknown, unarmed person. Bare hands remain a valid fighting style rather than only a tutorial state.
+Walking through reality reveals, remembers, and develops Crownless. A newly discovered forest, ruin, road, cave, or settlement becomes a place the player can later send people into.
+
+The central question is:
+
+> **After dispatching an expedition, do you want to reopen the game to see what happened?**
+
+## What the player does
+
+- walk somewhere and reveal new Crownless world knowledge
+- return to the **Grey Hearth**
+- choose a discovered destination
+- choose companions
+- assign weapons, clothing, tools, and supplies
+- choose an objective and risk policy
+- dispatch the expedition
+- let time pass
+- read a concise result and optional chronological report
+- secure returned loot and knowledge
+- deal with injuries, delays, missing companions, or rescue opportunities
+- adapt and send the next expedition
+
+Combat may occur during an expedition, but the current design no longer requires player-controlled real-time action combat.
+
+## Design pillars
+
+- **Discovery:** real-world movement opens the world instead of filling an energy meter
+- **Expedition judgment:** the important input is who / what / where / why / how risky
+- **Waiting with anticipation:** elapsed time should create curiosity, not chores
+- **Reports as stories:** results should be memorable beyond `Gold +100`
+- **Companion history:** people become meaningful through survival, injury, rescue, and repeated expeditions
+- **Loot with options:** equipment should change possible expedition outcomes and branches, not only stats
+- **Survival and return:** carried value is not fully safe until people come home
+- **Living medieval world:** factions, territory, war, regional events, hunts, and dungeons remain compatible future layers
+
+## Canonical documents
+
+- [Current Game System Design](docs/game-system-design.md) — canonical overall gameplay design
+- [Expedition System Specification](docs/expedition-system-spec.md) — dispatch, elapsed time, event resolution, companions, reports, injury / missing state, and loot
+- [Exploration & Location Discovery Specification](docs/exploration-location-spec.md) — GPS / geography discovery and persistent world knowledge
+- [Grey Hearth Presentation Specification](docs/hearth-presentation-spec.md) — safe-room presentation and expedition preparation / review
+- [ADR 0002 — Idle expedition pivot](docs/adr/0002-idle-expedition-pivot.md) — deliberate replacement of action-combat-centered design
+- [Visual Design Guide v0.2](docs/visual-design-guide-v0.2.md) — canonical global visual rules
+- [Deployment strategy](docs/deployment-strategy.md)
+- [Development guide for coding agents](AGENTS.md)
+
+Historical action-combat documents remain in the repository only as deprecated transition references and do not override the current Canon.
+
+## Current implementation transition
+
+The existing browser prototype still contains the earlier action-combat implementation, combat CSS/assets, Named Hunt combat, and other systems created before ADR 0002.
+
+Do **not** interpret that code as the current product direction.
+
+The next implementation should first prove a small new loop:
+
+```text
+known destination
+  ↓
+choose companion + equipment + policy
+  ↓
+dispatch
+  ↓
+elapsed time
+  ↓
+resolve deterministic events
+  ↓
+report
+  ↓
+loot / injury / discovery
+  ↓
+dispatch again
+```
+
+Old combat code should be removed or repurposed incrementally only after tracing runtime/test/document references.
+
+## First PoC target
+
+Keep the first slice deliberately small:
+
+- 3 companions
+- 3–5 destinations
+- forest / abandoned village / cave destination families
+- cautious / standard / greedy policies
+- roughly 15 equipment / supply items
+- a small deterministic event library
+- injury
+- loot
+- new-place discovery
+- policy-driven early return
+- concise result summary + expandable chronology
+- instant / accelerated developer resolution
+
+If this does not create a reason to come back for the result, do not expand the world simulation yet.
+
+## Location rules
+
+- device GPS is used only after explicit permission / player action
+- external geography is translated into Crownless fiction rather than copied literally
+- private homes and individual businesses are not turned directly into dangerous game targets
+- no continuous background location tracking is required
+- no step-count reward loop
+- no exact route history stored as game collection state
+- deterministic / simulated location fallback remains available
+- once a place is legitimately discovered, its expedition content can normally be played later from safety
+
+## Idle-time implementation rule
+
+The first version does not need an always-on backend simulator.
+
+An active expedition can persist:
+
+- dispatch inputs
+- `startedAt`
+- `expectedReturnAt`
+- deterministic seed
+- rules / content version
+
+When the app is reopened, elapsed events can be resolved deterministically and idempotently.
+
+## Visual direction
+
+The existing Crownless visual identity remains active:
+
+- living medieval manuscript / woodcut presentation
+- irregular ink lines
+- parchment / ash fields
+- restrained semantic color
+- compact folk-doll-like characters
+- physical / annotation-like UI rather than glossy mobile-RPG panels
+
+See [Visual Design Guide v0.2](docs/visual-design-guide-v0.2.md).
+
+## Intentionally deferred
+
+- real-time action combat as a core requirement
+- gacha
+- stamina / energy monetization
+- daily chores
+- PvP
+- clans
+- large crafting trees
+- always-on faction-war simulation
+- production cloud accounts
+- large LLM-driven event generation
+- monetization design
 
 ## Development principles
 
 1. **Fun beats technical novelty.**
 2. **Design → smallest implementation → play → improve.**
-3. Build and deepen the core loop before expanding the world.
-4. Keep exploration, combat, loot, survival, and return tightly connected.
-5. Respect the canonical design documents and the current implementation.
+3. Build the dispatch / anticipation / report loop before infrastructure.
+4. Prefer deterministic systems that can be tested without live GPS or network access.
+5. If architecture is cleaner but the prototype is no more compelling, it is probably not the next task.
 
-## Canonical documents
-
-- [Current Game System Design](docs/game-system-design.md) — canonical living gameplay design
-- [Exploration & Location Discovery Specification](docs/exploration-location-spec.md) — GPS, persistent exploration, Discovery Journal, regional missions, and target map direction
-- [Combat Presentation Specification](docs/combat-presentation-spec.md) — oblique top-down camera, HUD, actor rendering, overlap, and combat-loot presentation
-- [Grey Hearth Presentation Specification](docs/hearth-presentation-spec.md) — safe-room scene, interactions, progression presentation, and stationary regional-content entry
-- [Visual Design Guide v0.2](docs/visual-design-guide-v0.2.md) — canonical global visual rules
-- [Game System Design v0.1](docs/game-system-design-v0.1.md) — historical baseline
-- [Deployment strategy](docs/deployment-strategy.md)
-- [Development guide for coding agents](AGENTS.md)
-
-## Play the prototype
+## Play locally
 
 ```bash
 npm start
@@ -47,120 +176,15 @@ npm start
 
 Open `http://localhost:4173`.
 
-The current browser prototype includes both deterministic exploration and real GPS / geography enrichment. Location failure or permission denial must degrade safely rather than make the rest of the game unusable.
-
-### Combat controls
-
-The current model is **stand-to-strike**: move to survive and reposition, then stop to attack.
-
-- Movement: `WASD` / arrow keys on desktop, or **drag on the combat arena** on pointer / touch devices
-- Normal attacks / combo: **AUTO while stopped** with an enemy in weapon range
-- Technique: `K` or the **技** button
-- Evade / perfect evade: `Space` or the **回避** button
-- Enemy attacks telegraph and often lock their aim, so movement creates punish windows
-- Defeated enemies can drop temporary battlefield weapons; move onto one and stop briefly to pick it up
-- Fighting well builds **闘志**; at full meter the next Technique becomes **決着**
-
-The player owns positioning but does not need a separate light-attack button.
-
-## What is currently playable
-
-Try several expeditions rather than only one encounter. The current slice tests whether the player wants to begin another run through a combination of combat feel, discovery, loot risk, persistent knowledge, and longer goals.
-
-### Exploration and location
-
-- Device GPS can enrich exploration with nearby public geographic signals.
-- Geographic data is translated into Crownless fiction rather than shown as a literal POI checklist.
-- A manuscript-style nearby sketch map shows approximate local discovery context rather than navigation-grade roads.
-- Deterministic / simulated discovery remains available for development and fallback.
-- Discovered places persist in the **Discovery Journal** even if the expedition later ends in defeat.
-- Stable geographic identity distinguishes source namespaces such as node / way / relation.
-- Coarse explored areas persist without storing raw GPS tracks or exact route history.
-- The Discovery Journal can show area-level discovery progress and browse known places in list / detail form.
-- Supported discovery archetypes can unlock location visuals; the first production slice includes the **Ruined Watchtower / 崩れた物見台**.
-
-### Regional mission
-
-The first regional mission is **消えた荷駄隊**.
-
-Its current loop is:
-
-> road-like discovery → collect two traces → reveal 街道荒らしの野営地 → return to the Grey Hearth → deliberately launch the assault → win unsecured loot → return alive → regional knowledge / next rumor
-
-This is the first implemented bridge between outdoor discovery and longer stationary combat.
-
-### Combat
-
-- **Rusher** closes distance aggressively.
-- **Guard** blocks ordinary pressure and rewards Technique / guard breaking.
-- **Skirmisher** keeps range and fires telegraphed projectiles.
-- Fists, daggers, and swords use different stop-to-attack rhythms.
-- Technique, Evade, perfect-evade counters, **闘志**, and **決着** reward clean play.
-- Temporary battlefield weapons let an unarmed character improvise without changing secured equipment.
-- Combat uses the fixed oblique top-down presentation defined in the combat spec.
-
-### Loot, survival, and return
-
-- Fresh loot shows combat style, modifier, and comparison with equipped gear.
-- Carried loot remains unsecured until the player returns to the Grey Hearth.
-- Defeat can lose unsecured value without deleting permanent progression.
-- Safe return and defeat use dedicated expedition reports.
-- The current ordinary loot pool proves build-sensitive itemization but is still comparatively small; expanding variety within Fists / Dagger / Sword is a current priority.
-
-### Named Hunts and dungeon
-
-The Grey Hearth tracks three named targets in sequence:
-
-1. **灰牙** — Rusher identity → `灰牙の血布`
-2. **鐘なき騎士** — Guard identity → `鐘喰らいの武装剣`
-3. **沼鴉** — Skirmisher identity → `沼鴉の嘴`
-
-Hunt clues persist across expeditions. Signature relics still have to be carried home alive.
-
-The **灰喰い坑道** is a three-room retreatable dungeon with an elite fight, boss, first-clear reward, and deliberate push-deeper / retreat decisions.
-
-### Grey Hearth and persistence
-
-- Successful returns build **Renown**.
-- Hearth milestones at 5 / 15 / 30 Renown add small functional benefits.
-- The Grey Hearth is presented as a scene-first safe room rather than a dashboard.
-- The wall map is the physical home for accumulated discovery knowledge.
-- Regional danger discovered outdoors can be surfaced at the Hearth for deliberate stationary assault.
-- Safe state is stored locally.
-- Unfinished expedition state is never treated as secured progress.
-- Learned world knowledge may persist without securing carried expedition value.
-
-## Current priorities
-
-Before Party or faction-scale systems, prioritize:
-
-1. deeper ordinary equipment variety and more meaningful loot choices
-2. playtesting the first regional mission loop
-3. incremental improvements to progressive map reveal / frontier curiosity
-4. continued real-phone readability and interaction QA
-
-## Intentionally deferred
-
-- Party implementation
-- real-time multiplayer
-- faction / territory warfare simulation
-- cloud accounts / production backend persistence
-- large crafting systems
-- monetization systems
-- massive seamless world generation
-
-Real GPS is **not** deferred; it is already part of the current playable exploration slice.
+During the design transition, the current runtime may still expose legacy action-combat behavior until the new PoC replaces it.
 
 ## Hosting
 
-During rapid development:
-
 - **GitHub Pages** publishes the latest `main` build for frequent browser / phone playtests.
-- **Vercel Git auto-deploys are disabled**; Vercel is reserved for deliberate stable production releases and server-side capabilities such as geography access.
-- Isolated UI / interaction experiments may be prototyped separately before successful ideas are brought back into the repository.
+- **Vercel Git auto-deploys are disabled**; Vercel is reserved for deliberate stable releases and server-side capabilities such as geography access.
 
 See [Deployment strategy](docs/deployment-strategy.md) for details.
 
 ## Status
 
-Playable browser prototype / rapid iteration.
+Playable browser prototype / major gameplay pivot in progress.
