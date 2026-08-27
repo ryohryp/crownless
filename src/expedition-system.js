@@ -5,7 +5,7 @@
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (root) root.CrownlessExpeditionSystem = api;
 })(typeof globalThis !== "undefined" ? globalThis : this, function expeditionSystemFactory() {
-  const RULES_VERSION = "expedition-poc-v1";
+  const RULES_VERSION = "expedition-poc-v2";
   const DEFAULT_DURATION_MS = 3 * 60 * 1000;
 
   const companions = [
@@ -29,9 +29,34 @@
   ];
 
   const policies = {
-    cautious: { id: "cautious", name: "慎重", risk: -2 },
-    standard: { id: "standard", name: "通常", risk: 0 },
-    greedy: { id: "greedy", name: "強欲", risk: 2 },
+    cautious: { id: "cautious", name: "慎重", risk: -2, retreatHpRatio: 0.68, combatBias: -0.05 },
+    standard: { id: "standard", name: "通常", risk: 0, retreatHpRatio: 0.42, combatBias: 0 },
+    greedy: { id: "greedy", name: "強欲", risk: 2, retreatHpRatio: 0.18, combatBias: 0.08 },
+  };
+
+  const combatEncounters = {
+    wolves: {
+      id: "wolves",
+      name: "灰狼の群れ",
+      count: 4,
+      threat: 4.5,
+      tags: ["beast", "fast"],
+      rewards: [
+        { id: "wolf-hide", name: "灰狼の毛皮", tags: ["hide", "valuable"] },
+        { id: "wolf-fang", name: "灰狼の牙", tags: ["trophy", "valuable"] },
+      ],
+    },
+    bandits: {
+      id: "bandits",
+      name: "街道荒らし",
+      count: 3,
+      threat: 5.2,
+      tags: ["bandit", "armed"],
+      rewards: [
+        { id: "bandit-silver", name: "盗賊の銀貨袋", tags: ["valuable"] },
+        { id: "bandit-cleaver", name: "盗賊の鉈", tags: ["cut"] },
+      ],
+    },
   };
 
   function hashString(input) {
@@ -126,6 +151,103 @@
     return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
   }
 
+  function encounterFor(destination) {
+    return destination.dangerTags.includes("bandit") ? combatEncounters.bandits : combatEncounters.wolves;
+  }
+
+  function combatBonuses(traits, capabilities, encounter) {
+    let attack = 0;
+    let defense = 0;
+    const causes = [];
+    if (traits.has("strong")) {
+      attack += 1.05;
+      causes.push("strong");
+    }
+    if (traits.has("brave")) {
+      attack += 0.55;
+      causes.push("brave");
+    }
+    if (traits.has("woodsman") && encounter.tags.includes("beast")) {
+      attack += 0.8;
+      defense += 0.55;
+      causes.push("woodsman");
+    }
+    if (traits.has("cautious")) {
+      defense += 0.7;
+      causes.push("cautious trait");
+    }
+    if (traits.has("stubborn")) {
+      defense += 0.35;
+      causes.push("stubborn");
+    }
+    if (capabilities.has("cut")) {
+      attack += 0.7;
+      causes.push("cut");
+    }
+    if (capabilities.has("ranged")) {
+      attack += encounter.tags.includes("fast") ? 1.0 : 0.75;
+      defense += 0.35;
+      causes.push("ranged");
+    }
+    if (capabilities.has("conceal") && encounter.tags.includes("bandit")) {
+      defense += 0.6;
+      causes.push("conceal");
+    }
+    return { attack, defense, causes };
+  }
+
+  function resolveCombatEncounter(input) {
+    const { encounter, party, traits, capabilities, policy, hp, maxHp, rng } = input;
+    const bonuses = combatBonuses(traits, capabilities, encounter);
+    const healthRatio = maxHp > 0 ? hp / maxHp : 0;
+    const partyBase = party.length * 4.2;
+    const attackRoll = rng() * 2.8;
+    const enemyRoll = rng() * 2.4;
+    const attackScore = partyBase + bonuses.attack + attackRoll + policy.combatBias * 4 + Math.max(-1.4, (healthRatio - 0.5) * 1.5);
+    const enemyScore = encounter.threat + encounter.count * 0.42 + enemyRoll;
+    const margin = attackScore - enemyScore;
+
+    let result = "victory";
+    if (margin < -2.0) result = "defeat";
+    else if (margin < -0.55) result = "retreat";
+
+    let damage = Math.round(10 + encounter.threat * 3.2 + Math.max(0, -margin) * 5.5 - bonuses.defense * 3.2 + rng() * 9);
+    if (result === "victory") damage -= 5;
+    if (result === "defeat") damage += 12;
+    damage = Math.max(4, Math.min(hp, damage));
+
+    let nextHp = Math.max(0, hp - damage);
+    let healed = 0;
+    if (capabilities.has("heal") && nextHp > 0) {
+      healed = Math.min(Math.round(6 + rng() * 5), maxHp - nextHp);
+      nextHp += healed;
+    }
+
+    return {
+      encounterId: encounter.id,
+      encounterName: encounter.name,
+      enemyCount: encounter.count,
+      enemyTags: encounter.tags.slice(),
+      result,
+      damage,
+      healed,
+      hpBefore: hp,
+      hpAfter: nextHp,
+      maxHp,
+      attackScore: Number(attackScore.toFixed(2)),
+      enemyScore: Number(enemyScore.toFixed(2)),
+      causes: bonuses.causes,
+      margin: Number(margin.toFixed(2)),
+    };
+  }
+
+  function shouldContinueAfterCombat(policy, combat, encounterIndex, maxEncounters) {
+    if (combat.result === "defeat" || combat.hpAfter <= 0) return false;
+    if (combat.result === "retreat") return false;
+    if (encounterIndex + 1 >= maxEncounters) return false;
+    return combat.hpAfter / combat.maxHp > policy.retreatHpRatio;
+  }
+
   function resolveExpedition(expedition, stateInput) {
     const state = normalizeState(stateInput);
     const rng = makeRng(expedition.seed);
@@ -158,25 +280,87 @@
       add(31, "hazard", "不安定な足場を慎重に進んだ。", destination.dangerTags);
     }
 
-    const pressureRoll = rng() * 6 + danger;
-    let injuredId = null;
-    let earlyReturn = false;
-    if (pressureRoll > 7.2) {
-      const target = party[Math.floor(rng() * party.length)];
-      injuredId = target && target.id;
-      add(49, "injury", `${target.name}が負傷した。`, ["danger", ...(capabilities.has("heal") ? ["heal mitigated"] : [])]);
-      if (policy.id === "cautious") {
-        earlyReturn = true;
-        add(55, "retreat", "慎重方針に従い、成果より生還を優先して帰路についた。", ["cautious", "injury"]);
-      }
-    } else {
-      add(49, "encounter", destination.dangerTags.includes("bandit") ? "物陰の人影をやり過ごした。" : "危険な痕跡を見つけ、進路を調整した。", [traits.has("cautious") ? "cautious trait" : "field judgment"]);
-    }
-
     const loot = [];
     const discoveries = [];
-    if (!earlyReturn || policy.id === "greedy") {
-      const lootChance = Math.min(0.9, 0.38 + opportunity * 0.07 + (expedition.inputs.objective === "scavenge" ? 0.12 : 0));
+    const injuries = [];
+    const encounterTemplate = encounterFor(destination);
+    const maxHp = Math.max(100, party.length * 100);
+    let hp = maxHp;
+    const combats = [];
+    let forcedReturn = false;
+    let defeated = false;
+    const maxEncounters = policy.id === "greedy" ? 2 : policy.id === "standard" && rng() > 0.35 ? 2 : 1;
+
+    for (let index = 0; index < maxEncounters; index += 1) {
+      const encounter = {
+        ...encounterTemplate,
+        count: encounterTemplate.count + index,
+        threat: encounterTemplate.threat + index * 0.75,
+      };
+      const minute = 43 + index * 24;
+      add(minute, "combat-encounter", `${encounter.name}${encounter.count}体と遭遇。`, [encounter.id, ...encounter.tags]);
+
+      if (capabilities.has("ranged")) {
+        add(minute + 1, "combat-tactic", "狩り弓で接近前に数を減らした。", ["ranged"]);
+      } else if (traits.has("strong")) {
+        add(minute + 1, "combat-tactic", `${party.find((item) => (item.traits || []).includes("strong"))?.name || "仲間"}が前へ出て敵を引きつけた。`, ["strong"]);
+      } else if (traits.has("woodsman") && encounter.tags.includes("beast")) {
+        add(minute + 1, "combat-tactic", "獣の動きを読み、包囲されない場所を選んだ。", ["woodsman"]);
+      }
+
+      const combat = resolveCombatEncounter({ encounter, party, traits, capabilities, policy, hp, maxHp, rng });
+      combats.push(combat);
+      hp = combat.hpAfter;
+
+      if (combat.result === "victory") {
+        add(minute + 5, "combat-victory", `${encounter.name}を退けた。HP ${combat.hpBefore} → ${combat.hpAfter}。`, [...combat.causes, `damage ${combat.damage}`]);
+        const reward = encounter.rewards[Math.floor(rng() * encounter.rewards.length)];
+        const combatLoot = { ...reward, id: `${reward.id}-${index + 1}` };
+        loot.push(combatLoot);
+        add(minute + 7, "combat-loot", `${combatLoot.name}を戦利品として回収した。`, combatLoot.tags);
+      } else if (combat.result === "retreat") {
+        forcedReturn = true;
+        add(minute + 5, "combat-retreat", `押し切れず戦闘から離脱した。HP ${combat.hpBefore} → ${combat.hpAfter}。`, [...combat.causes, `damage ${combat.damage}`]);
+      } else {
+        forcedReturn = true;
+        defeated = true;
+        add(minute + 5, "combat-defeat", `隊列が崩れ、これ以上戦えない。HP ${combat.hpBefore} → ${combat.hpAfter}。`, [...combat.causes, `damage ${combat.damage}`]);
+      }
+
+      if (combat.healed > 0) {
+        add(minute + 6, "combat-heal", `薬草包みで${combat.healed}回復した。`, ["heal"]);
+      }
+
+      if (combat.damage >= 30 || combat.hpAfter / maxHp <= 0.38) {
+        const target = party[Math.floor(rng() * party.length)];
+        if (target && !injuries.includes(target.id)) {
+          injuries.push(target.id);
+          add(minute + 8, "injury", `${target.name}が戦闘で負傷した。`, ["combat damage"]);
+        }
+      }
+
+      if (!shouldContinueAfterCombat(policy, combat, index, maxEncounters)) {
+        if (!forcedReturn && index + 1 < maxEncounters) {
+          forcedReturn = true;
+          add(minute + 9, "retreat", `${policy.name}方針の撤退基準に達したため、次の戦闘を避けて帰路についた。`, [policy.id, `HP ${combat.hpAfter}/${maxHp}`]);
+        }
+        break;
+      }
+
+      add(minute + 10, "policy", `${policy.name}方針で、消耗を抱えたまま探索を続行した。`, [policy.id, `HP ${combat.hpAfter}/${maxHp}`]);
+    }
+
+    const pressureRoll = rng() * 6 + danger;
+    if (!forcedReturn && pressureRoll > 8.8 && injuries.length === 0) {
+      const target = party[Math.floor(rng() * party.length)];
+      if (target) {
+        injuries.push(target.id);
+        add(92, "injury", `${target.name}が帰路の崩れた足場で負傷した。`, ["danger", ...(capabilities.has("heal") ? ["heal mitigated"] : [])]);
+      }
+    }
+
+    if (!forcedReturn) {
+      const lootChance = Math.min(0.9, 0.32 + opportunity * 0.06 + (expedition.inputs.objective === "scavenge" ? 0.12 : 0));
       if (rng() < lootChance) {
         const lootByFamily = {
           forest: [{ id: "amber-resin", name: "琥珀色の樹脂", tags: ["valuable"] }, { id: "hunter-arrow", name: "古い狩人の矢束", tags: ["ranged"] }],
@@ -186,20 +370,21 @@
         const choices = lootByFamily[destination.family] || lootByFamily.forest;
         const found = choices[Math.floor(rng() * choices.length)];
         loot.push(found);
-        add(71, "loot", `${found.name}を回収した。`, found.tags);
+        add(96, "loot", `${found.name}を回収した。`, found.tags);
       }
-      const discoveryChance = 0.25 + (expedition.inputs.objective === "explore" ? 0.18 : 0) + (traits.has("tracker") ? 0.12 : 0);
+      const discoveryChance = 0.22 + (expedition.inputs.objective === "explore" ? 0.18 : 0) + (traits.has("tracker") ? 0.12 : 0);
       if (rng() < discoveryChance) {
         const discovery = { id: `rumor-${destination.id}-${expedition.seed % 997}`, name: `${destination.name}の奥へ続く印`, sourceDestinationId: destination.id };
         discoveries.push(discovery);
-        add(82, "discovery", `${discovery.name}を記録した。`, ["learned value"]);
+        add(102, "discovery", `${discovery.name}を記録した。`, ["learned value"]);
       }
     }
 
-    if (policy.id === "greedy" && !earlyReturn) add(93, "policy", "強欲方針に従い、帰路につく前にもう一度周囲を探った。", ["greedy"]);
-    add(110, "return", earlyReturn ? "予定より早く灰炉へ戻った。" : "灰炉へ帰還した。", [earlyReturn ? "early return" : "returned"]);
+    const earlyReturn = forcedReturn && !defeated;
+    if (policy.id === "greedy" && !forcedReturn && combats.length > 1) add(104, "policy", "強欲方針に従い、二度目の戦闘後も周囲を探った。", ["greedy"]);
+    add(110, "return", defeated ? "傷ついた隊が灰炉へ運び戻された。" : earlyReturn ? "予定より早く灰炉へ戻った。" : "灰炉へ帰還した。", [defeated ? "defeat" : earlyReturn ? "early return" : "returned"]);
 
-    const outcome = injuredId && policy.id === "greedy" && pressureRoll > 9.2 ? "failed" : earlyReturn ? "early-return" : "success";
+    const outcome = defeated ? "failed" : earlyReturn ? "early-return" : "success";
     return {
       expeditionId: expedition.id,
       outcome,
@@ -212,9 +397,15 @@
       completedAt: expedition.expectedReturnAt,
       durationMs: expedition.expectedReturnAt - expedition.startedAt,
       loot,
-      injuries: injuredId ? [injuredId] : [],
+      injuries,
       discoveries,
-      notableEvent: log.find((item) => ["injury", "loot", "discovery", "retreat"].includes(item.type)) || log[log.length - 1],
+      combat: {
+        startHp: maxHp,
+        endHp: hp,
+        maxHp,
+        encounters: combats,
+      },
+      notableEvent: log.find((item) => ["combat-defeat", "combat-retreat", "injury", "combat-loot", "loot", "discovery", "retreat"].includes(item.type)) || log[log.length - 1],
       log,
       rulesVersion: expedition.rulesVersion,
       seed: expedition.seed,
@@ -264,9 +455,12 @@
     destinations,
     equipment,
     policies,
+    combatEncounters,
     initialState,
     normalizeState,
     dispatchExpedition,
+    resolveCombatEncounter,
+    shouldContinueAfterCombat,
     resolveExpedition,
     applyReport,
     advance,
