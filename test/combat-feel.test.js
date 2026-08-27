@@ -4,11 +4,13 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 
 const source = fs.readFileSync(path.join(__dirname, "..", "src", "app.js"), "utf8");
+const profileSource = fs.readFileSync(path.join(__dirname, "..", "src", "combat-action-profiles.js"), "utf8");
 
 test("stop-to-strike starts sooner across weapon profiles", () => {
-  assert.match(source, /settle: 0\.06[\s\S]*duration: 0\.17[\s\S]*activeAt: 0\.046/);
-  assert.match(source, /settle: 0\.14[\s\S]*duration: 0\.39[\s\S]*activeAt: 0\.145/);
-  assert.match(source, /settle: 0\.085[\s\S]*duration: 0\.215 \/ tempo[\s\S]*activeAt: 0\.06 \/ tempo/);
+  assert.match(source, /CombatActionProfiles\.normalAttackProfile\(battle \? battle\.tuning : null\)/);
+  assert.match(profileSource, /dagger:.*settle: 0\.06.*duration: 0\.17.*activeAt: 0\.046/s);
+  assert.match(profileSource, /sword:.*settle: 0\.14.*duration: 0\.39.*activeAt: 0\.145/s);
+  assert.match(profileSource, /fists:.*settle: 0\.085.*duration: 0\.215.*activeAt: 0\.06/s);
 });
 
 test("impact feedback keeps clear normal finisher technique hierarchy", () => {
