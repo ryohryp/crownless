@@ -4,12 +4,14 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const app = fs.readFileSync(path.join(__dirname, "..", "src", "app.js"), "utf8");
+const profiles = fs.readFileSync(path.join(__dirname, "..", "src", "combat-action-profiles.js"), "utf8");
 
 test("defeated enemies drop battlefield weapons", () => {
   assert.match(app, /function dropEnemyWeapon/);
   assert.match(app, /dropEnemyWeapon\(enemy\)/);
-  assert.match(app, /enemy\.kind === "guard".*type: "sword"/s);
-  assert.match(app, /enemy\.kind === "skirmisher".*type: "dagger"/s);
+  assert.match(app, /CombatActionProfiles\.battlefieldWeaponSpec\(enemy\.kind\)/);
+  assert.match(profiles, /guard:.*type: "sword"/s);
+  assert.match(profiles, /skirmisher:.*type: "dagger"/s);
 });
 
 test("touching a dropped weapon picks it up without a stationary hold", () => {

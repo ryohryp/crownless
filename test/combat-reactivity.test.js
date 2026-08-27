@@ -6,6 +6,7 @@ const vm = require("node:vm");
 
 const appPath = path.join(__dirname, "..", "src", "app.js");
 const source = fs.readFileSync(appPath, "utf8");
+const profileSource = fs.readFileSync(path.join(__dirname, "..", "src", "combat-action-profiles.js"), "utf8");
 
 test("combat app remains valid JavaScript", () => {
   assert.doesNotThrow(() => new vm.Script(source, { filename: "src/app.js" }));
@@ -40,7 +41,8 @@ test("perfect evade opens a dedicated counter window", () => {
 });
 
 test("weapon families have distinct counter identities", () => {
-  assert.match(source, /label: "RIPOSTE"/);
-  assert.match(source, /label: "CLASH"/);
-  assert.match(source, /label: "RUSH"/);
+  assert.match(source, /CombatActionProfiles\.techniqueProfile\(weapon, counter\)/);
+  assert.match(profileSource, /label: "RIPOSTE"/);
+  assert.match(profileSource, /label: "CLASH"/);
+  assert.match(profileSource, /label: "RUSH"/);
 });

@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const app = fs.readFileSync(path.join(__dirname, "..", "src", "app.js"), "utf8");
+const profiles = fs.readFileSync(path.join(__dirname, "..", "src", "combat-action-profiles.js"), "utf8");
 
 test("main combat removes auto pathing and uses player movement intent", () => {
   assert.doesNotMatch(app, /function updateAutoPilot/);
@@ -21,12 +22,10 @@ test("standing still gates automatic normal attacks", () => {
 });
 
 test("fists dagger and sword create different stop rhythms", () => {
-  assert.match(app, /weapon === "dagger"/);
-  assert.match(app, /comboLength: 6/);
-  assert.match(app, /weapon === "sword"/);
-  assert.match(app, /comboLength: 3/);
-  assert.match(app, /comboLength: 4/);
-  assert.match(app, /arc: -0\.16/);
+  assert.match(app, /CombatActionProfiles\.normalAttackProfile\(battle \? battle\.tuning : null\)/);
+  assert.match(profiles, /dagger:.*comboLength: 6/s);
+  assert.match(profiles, /sword:.*comboLength: 3.*arc: -0\.16/s);
+  assert.match(profiles, /fists:.*comboLength: 4/s);
 });
 
 test("enemy ranged telegraphs lock their aim before release", () => {
