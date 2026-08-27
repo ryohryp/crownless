@@ -94,6 +94,10 @@
     return box;
   }
 
+  function companionAvailable(item) {
+    return !item.condition || ["healthy", "ready"].includes(item.condition);
+  }
+
   function choiceGroup(title, name, items, selectedId, describe) {
     const group = el("fieldset", "expedition-choice");
     group.append(el("legend", "", title));
@@ -103,7 +107,13 @@
       input.type = "radio";
       input.name = name;
       input.value = item.id;
-      if (item.id === selectedId) input.checked = true;
+      const unavailableCompanion = name === "companion" && !companionAvailable(item);
+      input.disabled = unavailableCompanion;
+      if (item.id === selectedId && !unavailableCompanion) input.checked = true;
+      if (unavailableCompanion) {
+        label.setAttribute("aria-disabled", "true");
+        label.style.opacity = "0.5";
+      }
       const body = el("span", "");
       body.append(el("strong", "", item.name), el("small", "", describe(item)));
       label.append(input, body);
@@ -115,9 +125,10 @@
   function renderPrepare(content) {
     content.append(heading("GREY HEARTH / PREPARE", "誰を、どこへ送り出す？", "選ぶのは少しだけ。結果はあとで報告として返ってくる。"));
     const form = el("form", "expedition-prepare");
+    const availableCompanions = state.companions.filter(companionAvailable);
     form.append(
       choiceGroup("遠征先", "destination", state.destinations, state.destinations[0].id, (d) => `危険: ${d.dangerTags.join("・")} / 約${Math.round(d.durationMs / 60000)}分`),
-      choiceGroup("仲間", "companion", state.companions, state.companions.find((c) => c.condition === "healthy")?.id, (c) => `${c.origin} / ${c.traits.join("・")} / ${c.condition}`),
+      choiceGroup("仲間", "companion", state.companions, availableCompanions[0]?.id, (c) => `${c.origin} / ${c.traits.join("・")} / ${c.condition}`),
       choiceGroup("方針", "policy", Object.values(system.policies), "standard", (p) => p.id === "cautious" ? "負傷や危険で早めに引く" : p.id === "greedy" ? "成果のため危険を受け入れる" : "生還と成果の中間")
     );
 
@@ -134,14 +145,48 @@
     });
     form.append(gear);
 
+    const feedback = el("p", "expedition-form-feedback", "");
+    feedback.setAttribute("role", "status");
+    feedback.setAttribute("aria-live", "polite");
+    form.append(feedback);
+
     const actions = el("div", "expedition-actions");
     const dispatch = el("button", "expedition-dispatch", "遠征を送り出す →");
     dispatch.type = "submit";
     const instant = el("label", "expedition-dev-toggle");
     instant.innerHTML = '<input type="checkbox" name="instant"> 開発用: 即時帰還';
-    actions.append(instant, dispatch);
+    actions.append(instant);
+
+    if (!availableCompanions.length) {
+      dispatch.disabled = true;
+      dispatch.textContent = "派遣できる仲間がいない";
+      const recover = el("button", "expedition-secondary", "灰炉で休養する");
+      recover.type = "button";
+      recover.addEventListener("click", () => {
+        let recovered = 0;
+        state.companions.forEach((companion) => {
+          if (companion.condition === "injured") {
+            companion.condition = "healthy";
+            companion.history = `${companion.history || ""} / 灰炉で休養`;
+            recovered += 1;
+          }
+        });
+        save(state);
+        if (!recovered) {
+          feedback.textContent = "今すぐ遠征に出せる仲間がいない。";
+          return;
+        }
+        content.replaceChildren();
+        renderPrepare(content);
+      });
+      actions.append(recover);
+      feedback.textContent = "全員が負傷中。休養させると再び派遣できる。";
+    }
+
+    actions.append(dispatch);
     form.append(actions);
     form.addEventListener("change", (event) => {
+      feedback.textContent = "";
       if (event.target.name === "equipment") {
         const checked = form.querySelectorAll('input[name="equipment"]:checked');
         if (checked.length > 2) event.target.checked = false;
@@ -150,18 +195,27 @@
     form.addEventListener("submit", (event) => {
       event.preventDefault();
       const data = new FormData(form);
+      const companionId = data.get("companion");
+      if (!companionId) {
+        feedback.textContent = "派遣できる仲間を選んでください。";
+        return;
+      }
       const now = Date.now();
-      state = system.dispatchExpedition(state, {
-        destinationId: data.get("destination"),
-        companionIds: [data.get("companion")],
-        equipmentIds: data.getAll("equipment"),
-        policyId: data.get("policy"),
-        objective: "explore",
-        durationMs: data.get("instant") ? 0 : undefined,
-      }, now);
-      save(state);
-      refresh(now);
-      render();
+      try {
+        state = system.dispatchExpedition(state, {
+          destinationId: data.get("destination"),
+          companionIds: [companionId],
+          equipmentIds: data.getAll("equipment"),
+          policyId: data.get("policy"),
+          objective: "explore",
+          durationMs: data.get("instant") ? 0 : undefined,
+        }, now);
+        save(state);
+        refresh(now);
+        render();
+      } catch (error) {
+        feedback.textContent = `遠征を開始できない: ${error && error.message ? error.message : "不明なエラー"}`;
+      }
     });
     content.append(form);
   }
