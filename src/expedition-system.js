@@ -5,7 +5,7 @@
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (root) root.CrownlessExpeditionSystem = api;
 })(typeof globalThis !== "undefined" ? globalThis : this, function expeditionSystemFactory() {
-  const RULES_VERSION = "expedition-poc-v2";
+  const RULES_VERSION = "expedition-poc-v3";
   const DEFAULT_DURATION_MS = 3 * 60 * 1000;
 
   const companions = [
@@ -36,22 +36,14 @@
 
   const combatEncounters = {
     wolves: {
-      id: "wolves",
-      name: "灰狼の群れ",
-      count: 4,
-      threat: 4.5,
-      tags: ["beast", "fast"],
+      id: "wolves", name: "灰狼の群れ", count: 4, threat: 4.5, tags: ["beast", "fast"],
       rewards: [
         { id: "wolf-hide", name: "灰狼の毛皮", tags: ["hide", "valuable"] },
         { id: "wolf-fang", name: "灰狼の牙", tags: ["trophy", "valuable"] },
       ],
     },
     bandits: {
-      id: "bandits",
-      name: "街道荒らし",
-      count: 3,
-      threat: 5.2,
-      tags: ["bandit", "armed"],
+      id: "bandits", name: "街道荒らし", count: 3, threat: 5.2, tags: ["bandit", "armed"],
       rewards: [
         { id: "bandit-silver", name: "盗賊の銀貨袋", tags: ["valuable"] },
         { id: "bandit-cleaver", name: "盗賊の鉈", tags: ["cut"] },
@@ -61,9 +53,8 @@
 
   function hashString(input) {
     let hash = 2166136261;
-    const text = String(input);
-    for (let i = 0; i < text.length; i += 1) {
-      hash ^= text.charCodeAt(i);
+    for (const ch of String(input)) {
+      hash ^= ch.charCodeAt(0);
       hash = Math.imul(hash, 16777619);
     }
     return hash >>> 0;
@@ -80,21 +71,14 @@
     };
   }
 
-  function clone(value) {
-    return JSON.parse(JSON.stringify(value));
-  }
+  const clone = (value) => JSON.parse(JSON.stringify(value));
 
   function initialState() {
     return {
       rulesVersion: RULES_VERSION,
-      companions: clone(companions),
-      destinations: clone(destinations),
-      equipment: clone(equipment),
-      activeExpedition: null,
-      completedReports: [],
-      securedLoot: [],
-      discoveredDestinationIds: destinations.map((item) => item.id),
-      appliedExpeditionIds: [],
+      companions: clone(companions), destinations: clone(destinations), equipment: clone(equipment),
+      activeExpedition: null, completedReports: [], securedLoot: [],
+      discoveredDestinationIds: destinations.map((item) => item.id), appliedExpeditionIds: [],
     };
   }
 
@@ -102,8 +86,7 @@
     const base = initialState();
     const state = input && typeof input === "object" ? input : {};
     return {
-      ...base,
-      ...state,
+      ...base, ...state,
       companions: Array.isArray(state.companions) ? state.companions : base.companions,
       destinations: Array.isArray(state.destinations) ? state.destinations : base.destinations,
       equipment: Array.isArray(state.equipment) ? state.equipment : base.equipment,
@@ -134,14 +117,9 @@
       objective: input.objective || "explore",
     };
     const seed = Number.isFinite(input.seed) ? input.seed >>> 0 : hashString(JSON.stringify(immutable) + ":" + startedAt);
-    const id = input.id || `exp-${startedAt.toString(36)}-${seed.toString(36)}`;
     state.activeExpedition = {
-      id,
-      inputs: immutable,
-      startedAt,
-      expectedReturnAt: startedAt + durationMs,
-      seed,
-      rulesVersion: RULES_VERSION,
+      id: input.id || `exp-${startedAt.toString(36)}-${seed.toString(36)}`,
+      inputs: immutable, startedAt, expectedReturnAt: startedAt + durationMs, seed, rulesVersion: RULES_VERSION,
     };
     return state;
   }
@@ -159,91 +137,101 @@
     let attack = 0;
     let defense = 0;
     const causes = [];
-    if (traits.has("strong")) {
-      attack += 1.05;
-      causes.push("strong");
-    }
-    if (traits.has("brave")) {
-      attack += 0.55;
-      causes.push("brave");
-    }
-    if (traits.has("woodsman") && encounter.tags.includes("beast")) {
-      attack += 0.8;
-      defense += 0.55;
-      causes.push("woodsman");
-    }
-    if (traits.has("cautious")) {
-      defense += 0.7;
-      causes.push("cautious trait");
-    }
-    if (traits.has("stubborn")) {
-      defense += 0.35;
-      causes.push("stubborn");
-    }
-    if (capabilities.has("cut")) {
-      attack += 0.7;
-      causes.push("cut");
-    }
-    if (capabilities.has("ranged")) {
-      attack += encounter.tags.includes("fast") ? 1.0 : 0.75;
-      defense += 0.35;
-      causes.push("ranged");
-    }
-    if (capabilities.has("conceal") && encounter.tags.includes("bandit")) {
-      defense += 0.6;
-      causes.push("conceal");
-    }
+    if (traits.has("strong")) { attack += 1.05; causes.push("strong"); }
+    if (traits.has("brave")) { attack += 0.55; causes.push("brave"); }
+    if (traits.has("woodsman") && encounter.tags.includes("beast")) { attack += 0.8; defense += 0.55; causes.push("woodsman"); }
+    if (traits.has("cautious")) { defense += 0.7; causes.push("cautious trait"); }
+    if (traits.has("stubborn")) { defense += 0.35; causes.push("stubborn"); }
+    if (capabilities.has("cut")) { attack += 0.7; causes.push("cut"); }
+    if (capabilities.has("ranged")) { attack += encounter.tags.includes("fast") ? 1.0 : 0.75; defense += 0.35; causes.push("ranged"); }
+    if (capabilities.has("conceal") && encounter.tags.includes("bandit")) { defense += 0.6; causes.push("conceal"); }
     return { attack, defense, causes };
+  }
+
+  function roundRetreatThreshold(policy, remainingEnemies, initialEnemies) {
+    if (policy.id !== "greedy") return policy.retreatHpRatio;
+    if (remainingEnemies <= Math.ceil(initialEnemies / 3)) return policy.retreatHpRatio * 0.55;
+    return policy.retreatHpRatio;
   }
 
   function resolveCombatEncounter(input) {
     const { encounter, party, traits, capabilities, policy, hp, maxHp, rng } = input;
     const bonuses = combatBonuses(traits, capabilities, encounter);
-    const healthRatio = maxHp > 0 ? hp / maxHp : 0;
-    const partyBase = party.length * 4.2;
-    const attackRoll = rng() * 2.8;
-    const enemyRoll = rng() * 2.4;
-    const attackScore = partyBase + bonuses.attack + attackRoll + policy.combatBias * 4 + Math.max(-1.4, (healthRatio - 0.5) * 1.5);
-    const enemyScore = encounter.threat + encounter.count * 0.42 + enemyRoll;
-    const margin = attackScore - enemyScore;
+    const rounds = [];
+    const initialEnemyCount = encounter.count;
+    let remainingEnemyCount = initialEnemyCount;
+    let currentHp = hp;
+    let totalDamage = 0;
+    let totalHealed = 0;
+    let result = "retreat";
+    const maxRounds = Math.min(6, Math.max(3, initialEnemyCount + 1));
 
-    let result = "victory";
-    if (margin < -2.0) result = "defeat";
-    else if (margin < -0.55) result = "retreat";
+    for (let round = 1; round <= maxRounds && remainingEnemyCount > 0 && currentHp > 0; round += 1) {
+      const hpBefore = currentHp;
+      const enemyPressure = encounter.threat * (0.45 + 0.55 * remainingEnemyCount / initialEnemyCount);
+      const healthRatio = currentHp / maxHp;
+      const attackScore = party.length * 2.6 + bonuses.attack + policy.combatBias * 3 + rng() * 2.2 + healthRatio;
+      const defenseScore = bonuses.defense + rng() * 1.4;
+      const enemyScore = enemyPressure + remainingEnemyCount * 0.38 + rng() * 1.7;
+      const margin = attackScore - enemyScore;
 
-    let damage = Math.round(10 + encounter.threat * 3.2 + Math.max(0, -margin) * 5.5 - bonuses.defense * 3.2 + rng() * 9);
-    if (result === "victory") damage -= 5;
-    if (result === "defeat") damage += 12;
-    damage = Math.max(4, Math.min(hp, damage));
+      let defeatedThisRound = margin > 1.7 ? 2 : margin > -0.45 ? 1 : 0;
+      if (round === 1 && capabilities.has("ranged")) defeatedThisRound += 1;
+      if (round === 1 && capabilities.has("conceal") && encounter.tags.includes("bandit")) defeatedThisRound += 1;
+      if (traits.has("strong") && capabilities.has("cut") && margin > 0.5 && rng() > 0.55) defeatedThisRound += 1;
+      if (remainingEnemyCount === initialEnemyCount && initialEnemyCount > 1) defeatedThisRound = Math.min(defeatedThisRound, initialEnemyCount - 1);
+      defeatedThisRound = Math.max(0, Math.min(remainingEnemyCount, defeatedThisRound));
 
-    let nextHp = Math.max(0, hp - damage);
-    let healed = 0;
-    if (capabilities.has("heal") && nextHp > 0) {
-      healed = Math.min(Math.round(6 + rng() * 5), maxHp - nextHp);
-      nextHp += healed;
+      const pressureAfterAttack = Math.max(0, remainingEnemyCount - defeatedThisRound);
+      let damage = pressureAfterAttack === 0 ? Math.round(2 + rng() * 5) : Math.round(
+        4 + enemyPressure * 1.35 + pressureAfterAttack * 2.2 + Math.max(0, -margin) * 3.3 - defenseScore * 2.1 + rng() * 5
+      );
+      damage = Math.max(0, Math.min(currentHp, damage));
+      currentHp = Math.max(0, currentHp - damage);
+      remainingEnemyCount = pressureAfterAttack;
+      totalDamage += damage;
+
+      let healed = 0;
+      if (capabilities.has("heal") && currentHp > 0 && currentHp < maxHp && (round > 1 || damage >= 12)) {
+        healed = Math.min(Math.round(3 + rng() * 5), maxHp - currentHp);
+        currentHp += healed;
+        totalHealed += healed;
+      }
+
+      const events = [];
+      if (round === 1 && capabilities.has("ranged") && defeatedThisRound > 0) events.push("ranged-opener");
+      if (round === 1 && capabilities.has("conceal") && encounter.tags.includes("bandit") && defeatedThisRound > 0) events.push("ambush");
+      if (traits.has("woodsman") && encounter.tags.includes("beast")) events.push("read-beast");
+      if (traits.has("strong") && defeatedThisRound > 0) events.push("strong-finish");
+      if (healed > 0) events.push("heal");
+
+      rounds.push({
+        round, hpBefore, hpAfter: currentHp, damage, healed,
+        enemyCountBefore: remainingEnemyCount + defeatedThisRound,
+        enemiesDefeated: defeatedThisRound,
+        remainingEnemyCount,
+        attackScore: Number(attackScore.toFixed(2)), enemyScore: Number(enemyScore.toFixed(2)),
+        causes: bonuses.causes.slice(), events,
+      });
+
+      if (remainingEnemyCount === 0) { result = "victory"; break; }
+      if (currentHp <= 0) { result = "defeat"; break; }
+      const threshold = roundRetreatThreshold(policy, remainingEnemyCount, initialEnemyCount);
+      if (currentHp / maxHp <= threshold) { result = "retreat"; break; }
+      if (round === maxRounds) result = "retreat";
     }
 
     return {
-      encounterId: encounter.id,
-      encounterName: encounter.name,
-      enemyCount: encounter.count,
-      enemyTags: encounter.tags.slice(),
-      result,
-      damage,
-      healed,
-      hpBefore: hp,
-      hpAfter: nextHp,
-      maxHp,
-      attackScore: Number(attackScore.toFixed(2)),
-      enemyScore: Number(enemyScore.toFixed(2)),
-      causes: bonuses.causes,
-      margin: Number(margin.toFixed(2)),
+      encounterId: encounter.id, encounterName: encounter.name,
+      enemyCount: initialEnemyCount, initialEnemyCount, remainingEnemyCount,
+      enemyTags: encounter.tags.slice(), result,
+      damage: totalDamage, healed: totalHealed, hpBefore: hp, hpAfter: currentHp, maxHp,
+      causes: bonuses.causes, rounds,
     };
   }
 
   function shouldContinueAfterCombat(policy, combat, encounterIndex, maxEncounters) {
-    if (combat.result === "defeat" || combat.hpAfter <= 0) return false;
-    if (combat.result === "retreat") return false;
+    if (combat.result !== "victory" || combat.hpAfter <= 0) return false;
     if (encounterIndex + 1 >= maxEncounters) return false;
     return combat.hpAfter / combat.maxHp > policy.retreatHpRatio;
   }
@@ -257,12 +245,7 @@
     const traits = new Set(party.flatMap((item) => item.traits || []));
     const capabilities = new Set(gear.flatMap((item) => item.tags || []));
     const policy = policies[expedition.inputs.policyId] || policies.standard;
-    let danger = 3 + policy.risk;
     let opportunity = 3 + Math.max(0, policy.risk);
-    if (traits.has("cautious")) danger -= 1;
-    if (traits.has("woodsman") && destination.family === "forest") danger -= 1;
-    if (capabilities.has("heal")) danger -= 1;
-    if (capabilities.has("ranged") && destination.dangerTags.includes("beast")) danger -= 1;
     if (capabilities.has("climb") && ["cave", "village"].includes(destination.family)) opportunity += 1;
     if (traits.has("keen-eye")) opportunity += 1;
     if (traits.has("greedy")) opportunity += 1;
@@ -271,92 +254,72 @@
     const add = (minute, type, text, causes) => log.push({ minute, time: formatClock(expedition.startedAt, minute), type, text, causes: causes || [] });
     add(0, "departure", `${party.map((item) => item.name).join("、")}が${destination.name}へ向かった。`, [policy.name]);
     add(18, "arrival", `${destination.name}へ到着。${destination.dangerTags.join("・")}の気配がある。`, destination.dangerTags);
-
-    if (traits.has("woodsman") && destination.family === "forest") {
-      add(31, "trait", "ミラが古い獣道を見抜き、危険な藪を避けた。", ["woodsman"]);
-    } else if (capabilities.has("climb") && destination.family !== "forest") {
-      add(31, "equipment", "麻縄を使い、崩れた足場を安全に越えた。", ["climb"]);
-    } else {
-      add(31, "hazard", "不安定な足場を慎重に進んだ。", destination.dangerTags);
-    }
+    if (traits.has("woodsman") && destination.family === "forest") add(31, "trait", "ミラが古い獣道を見抜き、危険な藪を避けた。", ["woodsman"]);
+    else if (capabilities.has("climb") && destination.family !== "forest") add(31, "equipment", "麻縄を使い、崩れた足場を安全に越えた。", ["climb"]);
+    else add(31, "hazard", "不安定な足場を慎重に進んだ。", destination.dangerTags);
 
     const loot = [];
     const discoveries = [];
     const injuries = [];
+    const combats = [];
     const encounterTemplate = encounterFor(destination);
     const maxHp = Math.max(100, party.length * 100);
     let hp = maxHp;
-    const combats = [];
     let forcedReturn = false;
     let defeated = false;
     const maxEncounters = policy.id === "greedy" ? 2 : policy.id === "standard" && rng() > 0.35 ? 2 : 1;
 
     for (let index = 0; index < maxEncounters; index += 1) {
-      const encounter = {
-        ...encounterTemplate,
-        count: encounterTemplate.count + index,
-        threat: encounterTemplate.threat + index * 0.75,
-      };
-      const minute = 43 + index * 24;
+      const encounter = { ...encounterTemplate, count: encounterTemplate.count + index, threat: encounterTemplate.threat + index * 0.75 };
+      const minute = 43 + index * 30;
       add(minute, "combat-encounter", `${encounter.name}${encounter.count}体と遭遇。`, [encounter.id, ...encounter.tags]);
-
-      if (capabilities.has("ranged")) {
-        add(minute + 1, "combat-tactic", "狩り弓で接近前に数を減らした。", ["ranged"]);
-      } else if (traits.has("strong")) {
-        add(minute + 1, "combat-tactic", `${party.find((item) => (item.traits || []).includes("strong"))?.name || "仲間"}が前へ出て敵を引きつけた。`, ["strong"]);
-      } else if (traits.has("woodsman") && encounter.tags.includes("beast")) {
-        add(minute + 1, "combat-tactic", "獣の動きを読み、包囲されない場所を選んだ。", ["woodsman"]);
-      }
-
       const combat = resolveCombatEncounter({ encounter, party, traits, capabilities, policy, hp, maxHp, rng });
       combats.push(combat);
-      hp = combat.hpAfter;
 
+      combat.rounds.forEach((round, roundIndex) => {
+        const at = minute + 1 + roundIndex * 2;
+        if (round.events.includes("ranged-opener")) add(at, "combat-tactic", `狩り弓の初撃で${Math.max(1, round.enemiesDefeated)}体を崩した。残り${round.remainingEnemyCount}体。`, ["ranged"]);
+        else if (round.events.includes("ambush")) add(at, "combat-tactic", `物陰から先手を取り、${Math.max(1, round.enemiesDefeated)}体を倒した。残り${round.remainingEnemyCount}体。`, ["conceal"]);
+        else if (round.enemiesDefeated > 0) {
+          const actor = traits.has("strong") ? party.find((item) => (item.traits || []).includes("strong"))?.name : null;
+          add(at, "combat-round", `${actor ? `${actor}が` : "隊が"}${round.enemiesDefeated}体を仕留めた。残り${round.remainingEnemyCount}体。`, round.causes);
+        } else add(at, "combat-round", `攻め切れない。敵はまだ${round.remainingEnemyCount}体いる。`, round.causes);
+        if (round.damage > 0) add(at + 1, "combat-damage", `反撃を受ける。HP ${round.hpBefore} → ${round.hpAfter}${round.healed ? `（応急処置 +${round.healed}）` : ""}。`, [`damage ${round.damage}`, ...round.events]);
+      });
+
+      hp = combat.hpAfter;
+      const endMinute = minute + 2 + combat.rounds.length * 2;
       if (combat.result === "victory") {
-        add(minute + 5, "combat-victory", `${encounter.name}を退けた。HP ${combat.hpBefore} → ${combat.hpAfter}。`, [...combat.causes, `damage ${combat.damage}`]);
+        add(endMinute, "combat-victory", `${encounter.name}を退けた。${combat.rounds.length}ラウンド、HP ${combat.hpBefore} → ${combat.hpAfter}。`, combat.causes);
         const reward = encounter.rewards[Math.floor(rng() * encounter.rewards.length)];
         const combatLoot = { ...reward, id: `${reward.id}-${index + 1}` };
         loot.push(combatLoot);
-        add(minute + 7, "combat-loot", `${combatLoot.name}を戦利品として回収した。`, combatLoot.tags);
+        add(endMinute + 1, "combat-loot", `${combatLoot.name}を戦利品として回収した。`, combatLoot.tags);
       } else if (combat.result === "retreat") {
         forcedReturn = true;
-        add(minute + 5, "combat-retreat", `押し切れず戦闘から離脱した。HP ${combat.hpBefore} → ${combat.hpAfter}。`, [...combat.causes, `damage ${combat.damage}`]);
+        add(endMinute, "combat-retreat", `残り${combat.remainingEnemyCount}体。${policy.name}方針の撤退基準に達し戦闘から離脱した。`, [policy.id, `HP ${combat.hpAfter}/${maxHp}`]);
       } else {
         forcedReturn = true;
         defeated = true;
-        add(minute + 5, "combat-defeat", `隊列が崩れ、これ以上戦えない。HP ${combat.hpBefore} → ${combat.hpAfter}。`, [...combat.causes, `damage ${combat.damage}`]);
-      }
-
-      if (combat.healed > 0) {
-        add(minute + 6, "combat-heal", `薬草包みで${combat.healed}回復した。`, ["heal"]);
+        add(endMinute, "combat-defeat", `隊列が崩れた。敵を${combat.remainingEnemyCount}体残して戦闘不能になった。`, [`HP ${combat.hpAfter}/${maxHp}`]);
       }
 
       if (combat.damage >= 30 || combat.hpAfter / maxHp <= 0.38) {
         const target = party[Math.floor(rng() * party.length)];
         if (target && !injuries.includes(target.id)) {
           injuries.push(target.id);
-          add(minute + 8, "injury", `${target.name}が戦闘で負傷した。`, ["combat damage"]);
+          add(endMinute + 2, "injury", `${target.name}が戦闘で負傷した。`, ["combat damage"]);
         }
       }
 
       if (!shouldContinueAfterCombat(policy, combat, index, maxEncounters)) {
         if (!forcedReturn && index + 1 < maxEncounters) {
           forcedReturn = true;
-          add(minute + 9, "retreat", `${policy.name}方針の撤退基準に達したため、次の戦闘を避けて帰路についた。`, [policy.id, `HP ${combat.hpAfter}/${maxHp}`]);
+          add(endMinute + 2, "retreat", `${policy.name}方針の撤退基準に達したため、次の遭遇を避けて帰路についた。`, [policy.id, `HP ${combat.hpAfter}/${maxHp}`]);
         }
         break;
       }
-
-      add(minute + 10, "policy", `${policy.name}方針で、消耗を抱えたまま探索を続行した。`, [policy.id, `HP ${combat.hpAfter}/${maxHp}`]);
-    }
-
-    const pressureRoll = rng() * 6 + danger;
-    if (!forcedReturn && pressureRoll > 8.8 && injuries.length === 0) {
-      const target = party[Math.floor(rng() * party.length)];
-      if (target) {
-        injuries.push(target.id);
-        add(92, "injury", `${target.name}が帰路の崩れた足場で負傷した。`, ["danger", ...(capabilities.has("heal") ? ["heal mitigated"] : [])]);
-      }
+      add(endMinute + 2, "policy", `${policy.name}方針で、消耗を抱えたまま探索を続行した。`, [policy.id, `HP ${combat.hpAfter}/${maxHp}`]);
     }
 
     if (!forcedReturn) {
@@ -370,45 +333,28 @@
         const choices = lootByFamily[destination.family] || lootByFamily.forest;
         const found = choices[Math.floor(rng() * choices.length)];
         loot.push(found);
-        add(96, "loot", `${found.name}を回収した。`, found.tags);
+        add(100, "loot", `${found.name}を回収した。`, found.tags);
       }
       const discoveryChance = 0.22 + (expedition.inputs.objective === "explore" ? 0.18 : 0) + (traits.has("tracker") ? 0.12 : 0);
       if (rng() < discoveryChance) {
         const discovery = { id: `rumor-${destination.id}-${expedition.seed % 997}`, name: `${destination.name}の奥へ続く印`, sourceDestinationId: destination.id };
         discoveries.push(discovery);
-        add(102, "discovery", `${discovery.name}を記録した。`, ["learned value"]);
+        add(104, "discovery", `${discovery.name}を記録した。`, ["learned value"]);
       }
     }
 
     const earlyReturn = forcedReturn && !defeated;
-    if (policy.id === "greedy" && !forcedReturn && combats.length > 1) add(104, "policy", "強欲方針に従い、二度目の戦闘後も周囲を探った。", ["greedy"]);
     add(110, "return", defeated ? "傷ついた隊が灰炉へ運び戻された。" : earlyReturn ? "予定より早く灰炉へ戻った。" : "灰炉へ帰還した。", [defeated ? "defeat" : earlyReturn ? "early return" : "returned"]);
-
     const outcome = defeated ? "failed" : earlyReturn ? "early-return" : "success";
     return {
-      expeditionId: expedition.id,
-      outcome,
-      destinationId: destination.id,
-      destinationName: destination.name,
-      companionIds: expedition.inputs.companionIds.slice(),
-      policyId: policy.id,
-      policyName: policy.name,
-      startedAt: expedition.startedAt,
-      completedAt: expedition.expectedReturnAt,
+      expeditionId: expedition.id, outcome, destinationId: destination.id, destinationName: destination.name,
+      companionIds: expedition.inputs.companionIds.slice(), policyId: policy.id, policyName: policy.name,
+      startedAt: expedition.startedAt, completedAt: expedition.expectedReturnAt,
       durationMs: expedition.expectedReturnAt - expedition.startedAt,
-      loot,
-      injuries,
-      discoveries,
-      combat: {
-        startHp: maxHp,
-        endHp: hp,
-        maxHp,
-        encounters: combats,
-      },
+      loot, injuries, discoveries,
+      combat: { startHp: maxHp, endHp: hp, maxHp, encounters: combats },
       notableEvent: log.find((item) => ["combat-defeat", "combat-retreat", "injury", "combat-loot", "loot", "discovery", "retreat"].includes(item.type)) || log[log.length - 1],
-      log,
-      rulesVersion: expedition.rulesVersion,
-      seed: expedition.seed,
+      log, rulesVersion: expedition.rulesVersion, seed: expedition.seed,
     };
   }
 
@@ -421,9 +367,7 @@
     state.appliedExpeditionIds.push(report.expeditionId);
     state.completedReports = [report, ...state.completedReports.filter((item) => item.expeditionId !== report.expeditionId)].slice(0, 20);
     for (const item of report.loot) {
-      if (!state.securedLoot.some((existing) => existing.sourceExpeditionId === report.expeditionId && existing.id === item.id)) {
-        state.securedLoot.push({ ...item, sourceExpeditionId: report.expeditionId });
-      }
+      if (!state.securedLoot.some((existing) => existing.sourceExpeditionId === report.expeditionId && existing.id === item.id)) state.securedLoot.push({ ...item, sourceExpeditionId: report.expeditionId });
     }
     for (const id of report.injuries) {
       const companion = state.companions.find((item) => item.id === id);
@@ -433,9 +377,7 @@
       const companion = state.companions.find((item) => item.id === id);
       if (companion) companion.history = `${report.destinationName} / ${report.policyName} / ${report.outcome}`;
     }
-    for (const discovery of report.discoveries) {
-      if (!state.discoveredDestinationIds.includes(discovery.id)) state.discoveredDestinationIds.push(discovery.id);
-    }
+    for (const discovery of report.discoveries) if (!state.discoveredDestinationIds.includes(discovery.id)) state.discoveredDestinationIds.push(discovery.id);
     if (state.activeExpedition && state.activeExpedition.id === report.expeditionId) state.activeExpedition = null;
     return state;
   }
@@ -450,20 +392,8 @@
   }
 
   return {
-    RULES_VERSION,
-    companions,
-    destinations,
-    equipment,
-    policies,
-    combatEncounters,
-    initialState,
-    normalizeState,
-    dispatchExpedition,
-    resolveCombatEncounter,
-    shouldContinueAfterCombat,
-    resolveExpedition,
-    applyReport,
-    advance,
-    hashString,
+    RULES_VERSION, companions, destinations, equipment, policies, combatEncounters,
+    initialState, normalizeState, dispatchExpedition, resolveCombatEncounter,
+    shouldContinueAfterCombat, resolveExpedition, applyReport, advance, hashString,
   };
 });
