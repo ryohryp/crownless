@@ -3,6 +3,7 @@
 (function expeditionPresentation() {
   const STORAGE_KEY = "crownless.expedition-poc.v1";
   const system = window.CrownlessExpeditionSystem;
+  const narrative = window.CrownlessExpeditionNarrative;
   if (!system) return;
 
   function load() {
@@ -238,15 +239,40 @@
     content.append(status);
   }
 
+  function renderBattleNarrative(content, report) {
+    if (!narrative || typeof narrative.buildExpeditionNarrative !== "function") return;
+    const generated = narrative.buildExpeditionNarrative({ report, companions: state.companions, policies: system.policies });
+    if (!generated.battles.length) return;
+
+    const section = el("section", "expedition-narrative");
+    const title = el("header", "expedition-narrative__heading");
+    title.append(el("small", "", "BATTLE NARRATIVE"), el("strong", "", "遠征記"));
+    section.append(title);
+
+    generated.battles.forEach((battle, index) => {
+      const outcome = { victory: "勝利", retreat: "撤退", defeat: "敗北" }[battle.outcome] || battle.outcome;
+      const article = el("article", "expedition-narrative__battle");
+      article.append(el("h3", "", `${index + 1}. ${battle.encounterName} — ${outcome}`));
+      battle.lines.forEach((line) => {
+        const paragraph = el("p", "expedition-narrative__line", line.text);
+        paragraph.dataset.phase = line.phase;
+        article.append(paragraph);
+      });
+      section.append(article);
+    });
+
+    content.append(section);
+  }
+
   function renderReport(content, report) {
     const outcomeLabel = { success: "生還", "early-return": "早期撤退", failed: "失敗" }[report.outcome] || report.outcome;
     content.append(heading("RETURN REPORT", `${report.destinationName} — ${outcomeLabel}`, `${report.policyName}方針。${report.notableEvent ? report.notableEvent.text : "報告が届いた。"}`));
     const summary = el("div", "expedition-report-summary");
     summary.innerHTML = `<div><small>戦利品</small><strong>${report.loot.length ? report.loot.map((x) => x.name).join("、") : "なし"}</strong></div><div><small>負傷</small><strong>${report.injuries.length ? report.injuries.map((id) => state.companions.find((c) => c.id === id)?.name || id).join("、") : "なし"}</strong></div><div><small>新発見</small><strong>${report.discoveries.length ? report.discoveries.map((x) => x.name).join("、") : "なし"}</strong></div>`;
     content.append(summary);
+    renderBattleNarrative(content, report);
     const details = el("details", "expedition-log");
-    details.open = true;
-    details.append(el("summary", "", "時系列の報告を読む"));
+    details.append(el("summary", "", "時系列と戦闘数値を確認する"));
     const list = el("ol", "");
     report.log.forEach((entry) => {
       const li = el("li", "");

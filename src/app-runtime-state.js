@@ -43,19 +43,30 @@ var audioContext = null;
     head.appendChild(css);
   }
 
-  const domain = document.createElement("script");
-  domain.src = "src/expedition-system.js";
-  domain.onload = function loadExpeditionPresentation() {
-    const presentation = document.createElement("script");
-    presentation.src = "src/expedition-presentation.js";
-    presentation.onload = function expeditionPresentationReady() {
-      presentationReady = true;
-      if (replayQueued && gate) {
-        replayQueued = false;
-        gate.click();
-      }
+  function loadExpeditionDomain() {
+    const domain = document.createElement("script");
+    domain.src = "src/expedition-system.js";
+    domain.onload = function loadExpeditionPresentation() {
+      const presentation = document.createElement("script");
+      presentation.src = "src/expedition-presentation.js";
+      presentation.onload = function expeditionPresentationReady() {
+        presentationReady = true;
+        if (replayQueued && gate) {
+          replayQueued = false;
+          gate.click();
+        }
+      };
+      document.body.appendChild(presentation);
     };
-    document.body.appendChild(presentation);
-  };
-  document.body.appendChild(domain);
+    document.body.appendChild(domain);
+  }
+
+  // Issue #200: narrative generation is a separate deterministic projection of
+  // raw combat state. Load it independently so resolver rules never depend on
+  // prose generation, while the report presentation can opt into the layer.
+  const narrative = document.createElement("script");
+  narrative.src = "src/expedition-narrative.js";
+  narrative.onload = loadExpeditionDomain;
+  narrative.onerror = loadExpeditionDomain;
+  document.body.appendChild(narrative);
 })();
