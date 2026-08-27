@@ -3,7 +3,8 @@
 > **Status:** canonical subsystem specification  
 > **Updated:** 2026-08-27  
 > **Parent design:** [`game-system-design.md`](game-system-design.md)  
-> **Related expedition spec:** [`expedition-system-spec.md`](expedition-system-spec.md)
+> **Related expedition spec:** [`expedition-system-spec.md`](expedition-system-spec.md)  
+> **Platform decision:** [`adr/0003-web-first-native-ready-location.md`](adr/0003-web-first-native-ready-location.md)
 
 ## 1. Purpose
 
@@ -54,7 +55,92 @@ These remain useful foundations.
 
 The change is what happens **after discovery**: newly found places should feed the expedition system instead of requiring a real-time combat session.
 
-## 4. Discovery states
+## 4. Platform strategy — web-first, native-ready
+
+The idle-expedition PoC remains browser-based.
+
+For the PoC, location discovery only requires **foreground, explicit current-location acquisition** after player interaction. The game does not require the browser to keep tracking while closed or backgrounded.
+
+Typical PoC flow:
+
+```text
+open Crownless
+  ↓
+request current location
+  ↓
+resolve coarse WorldCell / nearby geography
+  ↓
+reveal new Crownless knowledge
+  ↓
+close the game
+  ↓
+later dispatch expeditions from safety
+```
+
+This is enough to test whether real movement creates valuable expedition destinations.
+
+### 4.1 Platform boundary
+
+Game and discovery rules must not become coupled directly to `navigator.geolocation`.
+
+Maintain a replaceable boundary conceptually equivalent to:
+
+```text
+Game / Discovery Core
+        |
+        v
+LocationProvider
+   |          |
+   |          +-- future NativeLocationProvider
+   |
+   +-- WebLocationProvider
+          navigator.geolocation
+
+SimulatedLocationProvider
+  - deterministic tests
+  - development
+  - permission / platform fallback
+```
+
+The provider is responsible for acquiring location input. The following remain platform-independent:
+
+- coarse WorldCell derivation
+- geography normalization
+- fantasy discovery translation
+- stable place identity
+- Discovery Journal persistence
+- expedition-target availability
+- privacy / persistence rules
+
+### 4.2 Native migration is conditional
+
+Crownless should not become native merely because it uses GPS.
+
+Native packaging, Capacitor, and native location APIs become relevant if playtesting proves that the game materially benefits from this experience:
+
+> **walk with the phone in a pocket → reopen later → Crownless has discovered places encountered while the app was not actively open**
+
+That may require background / significant-location-change / geofence-style capabilities and platform-specific permission handling.
+
+Those features are deliberately deferred until the idle-expedition loop itself is fun.
+
+### 4.3 PoC non-goals
+
+Do not make these requirements for the first PoC:
+
+- background location
+- continuous GPS tracking
+- exact route logging
+- native app-store packaging
+- Capacitor integration
+- Swift / Kotlin game rewrite
+- discovery of every point traversed while the browser is closed
+
+The platform decision is:
+
+> **Native is justified when background movement becomes part of the fun, not simply because Crownless reads location.**
+
+## 5. Discovery states
 
 A place may move through:
 
@@ -67,7 +153,7 @@ A place may move through:
 
 Not every place needs every state.
 
-## 5. Persistent world knowledge
+## 6. Persistent world knowledge
 
 Once a location reaches **Discovered**, the fact that it exists is learned value.
 
@@ -90,7 +176,7 @@ Do not persist as collection state:
 
 Transient coordinates may be used to render nearby context while the player is exploring.
 
-## 6. Real geography → Crownless world
+## 7. Real geography → Crownless world
 
 Real geography is an input, not a literal reskin.
 
@@ -120,7 +206,7 @@ Possible Crownless outputs include:
 
 Do not map a private home or individual business directly into a dangerous fantasy target.
 
-## 7. Outdoor play rule
+## 8. Outdoor play rule
 
 Outdoor play should be glanceable and safe.
 
@@ -144,7 +230,7 @@ Avoid:
 
 The game should work even if the player briefly opens it, discovers something, and closes it again.
 
-## 8. Discovered places become expedition destinations
+## 9. Discovered places become expedition destinations
 
 A core rule of the new design is:
 
@@ -163,7 +249,7 @@ The real-world trip created the destination. The game should respect that invest
 
 Exceptions may exist later for special live events, but they are not the baseline.
 
-## 9. Nearby sketch map
+## 10. Nearby sketch map
 
 The map remains a discovery surface, not a navigation app.
 
@@ -178,7 +264,7 @@ It should:
 
 Do not add navigation chrome, exact coordinates, satellite rendering, or route optimization.
 
-## 10. Simulated fallback
+## 11. Simulated fallback
 
 Location-dependent systems must remain testable and playable without live GPS.
 
@@ -191,7 +277,7 @@ Requirements:
 
 Live external geography enriches the world; it must not be the only way to exercise the core game loop.
 
-## 11. Regional content under the new loop
+## 12. Regional content under the new loop
 
 Regional missions, hunts, dungeons, and events should now primarily produce **expedition targets or modifiers**.
 
@@ -215,7 +301,7 @@ regional knowledge changes
 
 Do not route this back through deprecated real-time combat.
 
-## 12. AI generation policy
+## 13. AI generation policy
 
 AI may help transform regional facts into Crownless flavor, but gameplay must not depend on a paid model call per movement or expedition event.
 
@@ -230,7 +316,7 @@ Rules:
 
 AI is for naming and flavor, not authoritative local-history facts or hidden combat resolution.
 
-## 13. Conceptual model
+## 14. Conceptual model
 
 ### ExploredArea
 
@@ -264,7 +350,7 @@ AI is for naming and flavor, not authoritative local-history facts or hidden com
 
 Persistent models must avoid raw location history.
 
-## 14. Success criteria
+## 15. Success criteria
 
 Location gameplay is working when:
 
