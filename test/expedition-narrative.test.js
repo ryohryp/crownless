@@ -118,7 +118,7 @@ test("victory retreat and defeat finish with different aftertastes", () => {
   assert.match(finish(defeat), /支えきれ|膝|崩れ/);
 });
 
-test("report UI loads narrative before scene and domain layers and keeps raw chronology collapsed", () => {
+test("report UI loads narrative before scene and domain layers and keeps completed raw chronology collapsed", () => {
   const root = path.join(__dirname, "..");
   const runtime = fs.readFileSync(path.join(root, "src", "app-runtime-state.js"), "utf8");
   const presentation = fs.readFileSync(path.join(root, "src", "expedition-presentation.js"), "utf8");
@@ -132,5 +132,22 @@ test("report UI loads narrative before scene and domain layers and keeps raw chr
   assert.match(presentation, /BATTLE NARRATIVE/);
   assert.match(presentation, /遠征記/);
   assert.match(presentation, /時系列と戦闘数値を確認する/);
-  assert.doesNotMatch(presentation, /details\.open = true/);
+  const reportStart = presentation.indexOf("function renderReport");
+  const reportEnd = presentation.indexOf("document.addEventListener", reportStart);
+  assert.ok(reportStart >= 0 && reportEnd > reportStart);
+  assert.doesNotMatch(presentation.slice(reportStart, reportEnd), /details\.open = true/);
+});
+
+test("active expedition UI progressively reveals only elapsed log entries", () => {
+  const root = path.join(__dirname, "..");
+  const presentation = fs.readFileSync(path.join(root, "src", "expedition-presentation.js"), "utf8");
+  assert.doesNotThrow(() => new Function(presentation));
+  assert.match(presentation, /function activeLogEntries/);
+  assert.match(presentation, /const progress = elapsed \/ duration/);
+  assert.match(presentation, /const preview = system\.resolveExpedition\(expedition, state\)/);
+  assert.match(presentation, /entry\.type !== "return" && entry\.minute <= cutoffMinute/);
+  assert.match(presentation, /liveTime: formatLiveClock/);
+  assert.match(presentation, /遠征中の記録/);
+  assert.match(presentation, /最新の記録を確認する/);
+  assert.match(presentation, /details\.open = true/);
 });

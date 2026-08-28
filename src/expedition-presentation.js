@@ -72,8 +72,8 @@
     const span = gate.querySelector(".object-label span:last-child");
     if (state.activeExpedition) {
       const destination = state.destinations.find((d) => d.id === state.activeExpedition.inputs.destinationId);
-      if (strong) strong.textContent = "遠征の帰りを待つ →";
-      if (span) span.textContent = `${destination ? destination.name : "遠征先"}へ派遣中。報告は帰還後に届く。`;
+      if (strong) strong.textContent = "遠征の様子を見る →";
+      if (span) span.textContent = `${destination ? destination.name : "遠征先"}へ派遣中。進行中の記録を確認できる。`;
     } else if (state.completedReports.length) {
       if (strong) strong.textContent = "遠征台帳を開く →";
       if (span) span.textContent = "帰還報告を読み、次の遠征を決める。";
@@ -224,15 +224,52 @@
     content.append(form);
   }
 
+  function formatLiveClock(timestamp) {
+    const date = new Date(timestamp);
+    return `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+  }
+
+  function activeLogEntries(expedition, now) {
+    const duration = Math.max(1, expedition.expectedReturnAt - expedition.startedAt);
+    const elapsed = Math.max(0, Math.min(duration, now - expedition.startedAt));
+    const progress = elapsed / duration;
+    const preview = system.resolveExpedition(expedition, state);
+    const endMinute = Math.max(1, ...preview.log.map((entry) => Number(entry.minute) || 0));
+    const cutoffMinute = progress * endMinute;
+
+    return preview.log
+      .filter((entry) => entry.type !== "return" && entry.minute <= cutoffMinute)
+      .map((entry) => ({
+        ...entry,
+        liveTime: formatLiveClock(expedition.startedAt + (entry.minute / endMinute) * duration),
+      }));
+  }
+
+  function renderActiveLog(content, expedition, now) {
+    const entries = activeLogEntries(expedition, now);
+    const details = el("details", "expedition-log expedition-log--active");
+    details.open = true;
+    details.append(el("summary", "", `遠征中の記録（${entries.length}件）`));
+    const list = el("ol", "");
+    entries.forEach((entry) => {
+      const li = el("li", "");
+      li.append(el("time", "", entry.liveTime), el("span", "", entry.text));
+      list.append(li);
+    });
+    details.append(list);
+    content.append(details);
+  }
+
   function renderActive(content) {
     const exp = state.activeExpedition;
     const destination = state.destinations.find((d) => d.id === exp.inputs.destinationId);
     const party = exp.inputs.companionIds.map((id) => state.companions.find((c) => c.id === id)).filter(Boolean);
-    const remaining = Math.max(0, exp.expectedReturnAt - Date.now());
-    content.append(heading("DISPATCHED / WAIT", destination ? destination.name : "遠征中", `${party.map((c) => c.name).join("、")}がまだ戻っていない。`));
+    const now = Date.now();
+    const remaining = Math.max(0, exp.expectedReturnAt - now);
+    content.append(heading("DISPATCHED / WAIT", destination ? destination.name : "遠征中", `${party.map((c) => c.name).join("、")}がまだ戻っていない。遠征中に届いた記録だけがここへ追記される。`));
     const status = el("div", "expedition-active");
     status.append(el("strong", "", `帰還まで 約${Math.max(1, Math.ceil(remaining / 60000))}分`), el("p", "", `方針: ${system.policies[exp.inputs.policyId].name} / seed ${exp.seed}`));
-    const check = el("button", "expedition-dispatch", "帰還を確認する");
+    const check = el("button", "expedition-dispatch", "最新の記録を確認する");
     check.type = "button";
     check.addEventListener("click", () => { refresh(Date.now()); render(); });
     const finish = el("button", "expedition-secondary", "開発用: 時間を進める");
@@ -240,6 +277,7 @@
     finish.addEventListener("click", () => { refresh(exp.expectedReturnAt); render(); });
     status.append(check, finish);
     content.append(status);
+    renderActiveLog(content, exp, now);
   }
 
   function buildBattleNarrative(report) {
