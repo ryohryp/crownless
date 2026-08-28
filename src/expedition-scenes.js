@@ -5,10 +5,13 @@
   if (typeof module !== "undefined" && module.exports) module.exports = api;
   if (root) root.CrownlessExpeditionScenes = api;
 })(typeof globalThis !== "undefined" ? globalThis : this, function expeditionScenesFactory() {
-  const SCENE_VERSION = "expedition-scenes-v1";
+  const SCENE_VERSION = "expedition-scenes-v2";
   const MAX_SCENES = 5;
+  const MAX_COMBAT_SCENES = 3;
 
   const VISUALS = Object.freeze({
+    // Kept for compatibility with already-materialized scene keys. The v2
+    // selector no longer spends representative-scene slots on departure or arrival.
     "hearth.departure": Object.freeze({
       motif: "hearth",
       assetPath: "assets/hearth/concepts/grey-hearth-empty-room-v0.2.png",
@@ -29,15 +32,15 @@
       motif: "combat-beast",
       assetPath: "assets/combat/minimal-v0.1/actors/enemy-rusher.png",
       assetRole: "figure",
-      alt: "獣との遭遇",
+      alt: "獣との戦闘",
     }),
     "combat.bandit": Object.freeze({
       motif: "combat-bandit",
       assetPath: "assets/combat/minimal-v0.1/actors/enemy-guard.png",
       assetRole: "figure",
-      alt: "山賊との遭遇",
+      alt: "山賊との戦闘",
     }),
-    "combat.other": Object.freeze({ motif: "combat", glyph: "⚔", alt: "敵との遭遇" }),
+    "combat.other": Object.freeze({ motif: "combat", glyph: "⚔", alt: "敵との戦闘" }),
     "combat.turning": Object.freeze({ motif: "turning", glyph: "／", alt: "戦況が動いた場面" }),
     "injury.wound": Object.freeze({ motif: "injury", glyph: "✚", alt: "仲間が負傷した場面" }),
     "loot.weapon": Object.freeze({
@@ -83,23 +86,13 @@
     return entries.find(({ entry }) => wanted.has(entry && entry.type)) || null;
   }
 
-  function familyFor(report, destinations) {
-    const destination = Array.isArray(destinations)
-      ? destinations.find((item) => item && item.id === report.destinationId)
-      : null;
-    if (destination && destination.family) return destination.family;
-    const id = String(report.destinationId || "").toLowerCase();
-    const name = String(report.destinationName || "");
-    if (id.includes("forest") || /森|林/.test(name)) return "forest";
-    if (id.includes("village") || /村|集落/.test(name)) return "village";
-    if (id.includes("cave") || id.includes("mine") || /洞窟|洞穴|坑|鉱/.test(name)) return "cave";
-    return "unknown";
+  function combatEncounters(report) {
+    return Array.isArray(report && report.combat && report.combat.encounters) ? report.combat.encounters : [];
   }
 
   function visualForCombat(report, battle) {
-    const encounter = Array.isArray(report && report.combat && report.combat.encounters)
-      ? report.combat.encounters.find((item) => item && (!battle || item.encounterId === battle.encounterId))
-      : null;
+    const encounter = combatEncounters(report)
+      .find((item) => item && (!battle || item.encounterId === battle.encounterId));
     const tags = new Set(encounter && encounter.enemyTags || []);
     if (tags.has("beast")) return "combat.beast";
     if (tags.has("bandit")) return "combat.bandit";
@@ -123,91 +116,128 @@
     };
   }
 
-  function openingScenes(report, entries, destinations) {
-    const scenes = [];
-    const departure = firstByType(entries, ["departure"]);
-    const arrival = firstByType(entries, ["arrival"]);
-    if (departure) {
-      scenes.push(makeScene(report, {
-        kind: "departure",
-        phase: "opening",
-        headline: "灰炉を出る",
-        caption: departure.entry.text,
+  function isCombatScene(scene) {
+    return Boolean(scene && (scene.kind === "combat" || scene.kind.startsWith("combat-")));
+  }
+
+  function combatPriority(combat, outcome, battleIndex) {
+    let priority = 90 + Math.min(2, battleIndex);
+    if (outcome === "defeat") return 100;
+    if (outcome === "retreat") return 98;
+    const maxHp = Number(combat && combat.maxHp) || Number(combat && combat.hpBefore) || 0;
+    const damage = Number(combat && combat.damage) || Math.max(0, (Number(combat && combat.hpBefore) || 0) - (Number(combat && combat.hpAfter) || 0));
+    const damageRatio = maxHp > 0 ? damage / maxHp : 0;
+    const enemyCount = Number(combat && (combat.initialEnemyCount || combat.enemyCount)) || 0;
+    if (damageRatio >= 0.3) priority += 6;
+    else if (damageRatio >= 0.15) priority += 3;
+    if (enemyCount >= 4) priority += 2;
+    return Math.min(99, priority);
+  }
+
+  function battleBounds(entries, battleIndex) {
+    const encounters = entries.filter(({ entry }) => entry && entry.type === "combat-encounter");
+    const encounter = encounters[battleIndex] || null;
+    if (!encounter) return { encounter: null, terminal: null };
+    const next = encounters[battleIndex + 1];
+    const terminalTypes = new Set(["combat-victory", "combat-retreat", "combat-defeat"]);
+    const terminal = entries.find(({ entry, index }) => (
+      index > encounter.index
+      && (!next || index < next.index)
+      && entry
+      && terminalTypes.has(entry.type)
+    )) || null;
+    return { encounter, terminal };
+  }
+
+  function outcomeHeadline(outcome) {
+    if (outcome === "defeat") return "隊列が崩れる";
+    if (outcome === "retreat") return "退路を開く";
+    return "戦況を押し切る";
+  }
+
+  function rawBattleCandidates(report, entries) {
+    const encounters = entries.filter(({ entry }) => entry && entry.type === "combat-encounter");
+    return encounters.flatMap((encounter, battleIndex) => {
+      const bounds = battleBounds(entries, battleIndex);
+      const combat = combatEncounters(report)[battleIndex] || null;
+      const outcome = combat && combat.result
+        ? combat.result
+        : bounds.terminal && bounds.terminal.entry.type === "combat-defeat"
+          ? "defeat"
+          : bounds.terminal && bounds.terminal.entry.type === "combat-retreat"
+            ? "retreat"
+            : "victory";
+      const visualKey = visualForCombat(report, combat || null);
+      const basePriority = combatPriority(combat, outcome, battleIndex);
+      const candidates = [makeScene(report, {
+        kind: "combat-opening",
+        phase: "battle",
+        headline: combat && combat.encounterName ? `${combat.encounterName}と接敵` : "接敵",
+        caption: encounter.entry.text,
         actorIds: report.companionIds,
-        visualKey: "hearth.departure",
-        priority: 100,
-        sourceEventIds: [departure.id],
-      }));
-    }
-    if (arrival) {
-      const family = familyFor(report, destinations);
-      scenes.push(makeScene(report, {
-        kind: "arrival",
-        phase: "opening",
-        headline: report.destinationName || "遠征先",
-        caption: arrival.entry.text,
-        actorIds: report.companionIds,
-        visualKey: `${family}.arrival`,
-        priority: 96,
-        sourceEventIds: [arrival.id],
-      }));
-    }
-    return scenes;
+        visualKey,
+        priority: Math.max(80, basePriority - 4),
+        sourceEventIds: [encounter.id],
+      })];
+      if (bounds.terminal) {
+        candidates.push(makeScene(report, {
+          kind: "combat-climax",
+          phase: "battle",
+          headline: outcomeHeadline(outcome),
+          caption: bounds.terminal.entry.text,
+          actorIds: report.companionIds,
+          visualKey,
+          priority: basePriority,
+          sourceEventIds: [bounds.terminal.id],
+        }));
+      }
+      return candidates;
+    });
   }
 
   function battleCandidates(report, entries, expeditionNarrative) {
     const battles = expeditionNarrative && Array.isArray(expeditionNarrative.battles) ? expeditionNarrative.battles : [];
-    if (!battles.length) {
-      const encounter = firstByType(entries, ["combat-encounter"]);
-      if (!encounter) return [];
-      return [makeScene(report, {
-        kind: "combat",
-        phase: "middle",
-        headline: "接敵",
-        caption: encounter.entry.text,
-        actorIds: report.companionIds,
-        visualKey: visualForCombat(report, null),
-        priority: 77,
-        sourceEventIds: [encounter.id],
-      })];
-    }
+    if (!battles.length) return rawBattleCandidates(report, entries);
 
     const candidates = [];
     battles.forEach((battle, battleIndex) => {
-      const encounter = entries.find(({ entry }) => entry && entry.type === "combat-encounter" && normalizeText(entry.text).includes(battle.encounterName))
-        || entries.filter(({ entry }) => entry && entry.type === "combat-encounter")[battleIndex]
+      const bounds = battleBounds(entries, battleIndex);
+      const combat = combatEncounters(report).find((item) => item && item.encounterId === battle.encounterId)
+        || combatEncounters(report)[battleIndex]
         || null;
+      const visualKey = visualForCombat(report, battle);
+      const basePriority = combatPriority(combat, battle.outcome, battleIndex);
       const opening = (battle.lines || []).find((line) => line.phase === "opening") || (battle.lines || [])[0];
       if (opening) {
         candidates.push(makeScene(report, {
-          kind: "combat",
-          phase: "middle",
-          headline: battle.encounterName || "接敵",
+          kind: "combat-opening",
+          phase: "battle",
+          headline: `${battle.encounterName || "敵"}と接敵`,
           caption: opening.text,
           actorIds: battle.actorIds || [opening.actorId],
-          visualKey: visualForCombat(report, battle),
-          priority: 78 + Math.min(2, battleIndex),
-          sourceEventIds: encounter ? [encounter.id] : [`battle-${battleIndex}`],
+          visualKey,
+          priority: Math.max(80, basePriority - 4),
+          sourceEventIds: bounds.encounter ? [bounds.encounter.id] : [`battle-${battleIndex}-opening`],
         }));
       }
 
-      const turning = (battle.lines || []).find((line) => line.phase === "turning-point")
+      const climax = (battle.lines || []).find((line) => line.phase === "turning-point")
         || (battle.lines || []).find((line) => line.phase === "pressure")
         || (battle.lines || []).find((line) => line.phase === "finish");
-      if (turning && turning !== opening) {
+      if (climax && climax !== opening) {
         candidates.push(makeScene(report, {
-          kind: "turning-point",
-          phase: "middle",
-          headline: battle.outcome === "victory" ? "戦況が傾く" : "退き際",
-          caption: turning.text,
-          actorIds: [turning.actorId].filter(Boolean),
-          visualKey: "combat.turning",
-          priority: battle.outcome === "victory" ? 84 : 89,
-          sourceEventIds: encounter ? [encounter.id, `battle-${battleIndex}-${turning.phase}`] : [`battle-${battleIndex}-${turning.phase}`],
+          kind: "combat-climax",
+          phase: "battle",
+          headline: outcomeHeadline(battle.outcome),
+          caption: climax.text,
+          actorIds: [climax.actorId].filter(Boolean),
+          visualKey,
+          priority: basePriority,
+          sourceEventIds: bounds.terminal ? [bounds.terminal.id] : [`battle-${battleIndex}-${climax.phase}`],
         }));
       }
     });
-    return candidates;
+    return candidates.length ? candidates : rawBattleCandidates(report, entries);
   }
 
   function consequenceCandidates(report, entries) {
@@ -232,7 +262,7 @@
       candidates.push(makeScene(report, {
         kind: "defeat",
         phase: "middle",
-        headline: "隊列が崩れる",
+        headline: "生還だけを求める",
         caption: defeat.entry.text,
         actorIds: report.companionIds,
         visualKey: "defeat.return",
@@ -306,14 +336,55 @@
   }
 
   function dedupeCandidates(candidates) {
-    const seenKinds = new Set();
+    const seenIds = new Set();
     const seenCaptions = new Set();
     return candidates.filter((scene) => {
       const captionKey = scene.caption.toLowerCase();
-      if (seenKinds.has(scene.kind) || seenCaptions.has(captionKey)) return false;
-      seenKinds.add(scene.kind);
+      if (seenIds.has(scene.sceneId) || seenCaptions.has(captionKey)) return false;
+      seenIds.add(scene.sceneId);
       seenCaptions.add(captionKey);
       return true;
+    });
+  }
+
+  function sourceOrder(scene, entries) {
+    const indexById = new Map(entries.map(({ id, index }) => [String(id), index]));
+    const indexes = scene.sourceEventIds.map((id) => indexById.get(String(id))).filter(Number.isFinite);
+    return indexes.length ? Math.min(...indexes) : Number.MAX_SAFE_INTEGER;
+  }
+
+  function selectMiddleScenes(battleScenes, consequenceScenes, entries) {
+    const battles = dedupeCandidates(battleScenes)
+      .sort((a, b) => b.priority - a.priority || a.sceneId.localeCompare(b.sceneId));
+    const pool = dedupeCandidates([...consequenceScenes, ...battles])
+      .sort((a, b) => b.priority - a.priority || a.sceneId.localeCompare(b.sceneId));
+    const selected = [];
+    const middleLimit = MAX_SCENES - 1;
+
+    // Combat is the reason to spend paper-theatre frames: if a battle happened,
+    // guarantee at least one battle beat before considering other highlights.
+    if (battles.length) selected.push(battles[0]);
+
+    for (const candidate of pool) {
+      if (selected.some((scene) => scene.sceneId === candidate.sceneId)) continue;
+      const combatCount = selected.filter(isCombatScene).length;
+      if (isCombatScene(candidate) && combatCount >= MAX_COMBAT_SCENES) continue;
+      selected.push(candidate);
+      if (selected.length >= middleLimit) break;
+    }
+
+    // A normal expedition report should read as at least two incidents plus the
+    // return frame. Prefer another battle beat before inventing filler scenes.
+    if (selected.length < 2) {
+      const fallback = battles.find((scene) => !selected.some((chosen) => chosen.sceneId === scene.sceneId))
+        || pool.find((scene) => !selected.some((chosen) => chosen.sceneId === scene.sceneId));
+      if (fallback) selected.push(fallback);
+    }
+
+    return selected.sort((a, b) => {
+      const orderDelta = sourceOrder(a, entries) - sourceOrder(b, entries);
+      if (orderDelta !== 0) return orderDelta;
+      return b.priority - a.priority || a.sceneId.localeCompare(b.sceneId);
     });
   }
 
@@ -321,23 +392,11 @@
     const report = input && input.report ? input.report : null;
     if (!report) return { version: SCENE_VERSION, expeditionId: null, scenes: [] };
     const entries = indexedLog(report);
-    const openings = openingScenes(report, entries, input.destinations);
-    const middles = dedupeCandidates([
-      ...consequenceCandidates(report, entries),
-      ...battleCandidates(report, entries, input.narrative),
-    ]).sort((a, b) => b.priority - a.priority || a.sceneId.localeCompare(b.sceneId));
+    const battles = battleCandidates(report, entries, input.narrative);
+    const consequences = consequenceCandidates(report, entries);
     const ending = endingScene(report, entries);
-
-    const scenes = [];
-    openings.slice(0, 2).forEach((scene) => scenes.push(scene));
-    const middleSlots = Math.max(0, MAX_SCENES - scenes.length - 1);
-    middles.slice(0, middleSlots).forEach((scene) => scenes.push(scene));
+    const scenes = selectMiddleScenes(battles, consequences, entries);
     scenes.push(ending);
-
-    if (scenes.length < 3 && middles.length) {
-      const missing = middles.find((scene) => !scenes.some((chosen) => chosen.sceneId === scene.sceneId));
-      if (missing) scenes.splice(Math.max(1, scenes.length - 1), 0, missing);
-    }
 
     return {
       version: SCENE_VERSION,
@@ -352,5 +411,5 @@
     return { key, ...clone(VISUALS[key]) };
   }
 
-  return { SCENE_VERSION, MAX_SCENES, VISUALS, buildExpeditionScenes, resolveVisual };
+  return { SCENE_VERSION, MAX_SCENES, MAX_COMBAT_SCENES, VISUALS, buildExpeditionScenes, resolveVisual };
 });
