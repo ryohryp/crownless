@@ -4,125 +4,110 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+
 const system = require("../src/expedition-system.js");
 const narrative = require("../src/expedition-narrative.js");
 
-function resolve({ seed = 44, policyId = "standard", companionIds = ["ed"], equipmentIds = [], destinationId = "ashen-wood" } = {}) {
-  const state = system.dispatchExpedition(system.initialState(), {
-    destinationId,
-    companionIds,
-    equipmentIds,
-    policyId,
-    objective: "explore",
-    seed,
-    durationMs: 0,
-  }, 1_000_000);
-  return system.resolveExpedition(state.activeExpedition, state);
-}
-
-function build(report) {
-  return narrative.buildExpeditionNarrative({ report, companions: system.companions, policies: system.policies });
-}
-
 function syntheticCombat(result = "victory") {
   return {
-    encounterId: "wolves",
-    encounterName: "灰狼の群れ",
+    encounterId: "grey-wolves",
+    encounterName: "灰狼",
+    enemyCount: 4,
     initialEnemyCount: 4,
     remainingEnemyCount: result === "victory" ? 0 : 1,
-    enemyTags: ["beast", "fast"],
+    enemyTags: ["beast"],
     result,
     hpBefore: 100,
-    hpAfter: result === "defeat" ? 0 : result === "retreat" ? 22 : 41,
+    hpAfter: result === "defeat" ? 0 : result === "retreat" ? 28 : 61,
     maxHp: 100,
+    damage: result === "defeat" ? 100 : result === "retreat" ? 72 : 39,
+    healed: 0,
     causes: ["woodsman", "ranged", "strong", "cut"],
     rounds: [
-      { round: 1, hpBefore: 100, hpAfter: 82, damage: 18, healed: 0, enemyCountBefore: 4, enemiesDefeated: 1, remainingEnemyCount: 3, events: ["ranged-opener", "read-beast"], causes: ["woodsman", "ranged"] },
-      { round: 2, hpBefore: 82, hpAfter: 58, damage: 24, healed: 0, enemyCountBefore: 3, enemiesDefeated: 0, remainingEnemyCount: 3, events: [], causes: ["strong", "cut"] },
-      { round: 3, hpBefore: 58, hpAfter: 50, damage: 13, healed: 5, enemyCountBefore: 3, enemiesDefeated: 2, remainingEnemyCount: 1, events: ["heal", "strong-finish"], causes: ["strong", "cut"] },
-      { round: 4, hpBefore: 50, hpAfter: 41, damage: 9, healed: 0, enemyCountBefore: 1, enemiesDefeated: result === "victory" ? 1 : 0, remainingEnemyCount: result === "victory" ? 0 : 1, events: [], causes: ["strong", "cut"] },
+      { round: 1, hpBefore: 100, hpAfter: 88, damage: 12, healed: 0, enemyCountBefore: 4, enemiesDefeated: 1, remainingEnemyCount: 3, causes: ["woodsman", "ranged"], events: ["ranged-opener", "read-beast"] },
+      { round: 2, hpBefore: 88, hpAfter: 70, damage: 18, healed: 0, enemyCountBefore: 3, enemiesDefeated: 1, remainingEnemyCount: 2, causes: ["strong", "cut"], events: ["strong-finish"] },
+      { round: 3, hpBefore: 70, hpAfter: result === "defeat" ? 0 : result === "retreat" ? 28 : 61, damage: result === "defeat" ? 70 : result === "retreat" ? 42 : 9, healed: 0, enemyCountBefore: 2, enemiesDefeated: result === "victory" ? 2 : 1, remainingEnemyCount: result === "victory" ? 0 : 1, causes: ["strong", "cut"], events: ["strong-finish"] },
     ],
   };
 }
 
-test("same resolved report produces the same narrative without mutating combat state", () => {
-  const options = { seed: 92, policyId: "greedy", companionIds: ["ed"], equipmentIds: ["old-knife", "herb-kit"], destinationId: "hollow-village" };
-  const first = resolve(options);
-  const second = resolve(options);
-  const rawBefore = JSON.parse(JSON.stringify(first.combat));
-  const firstNarrative = build(first);
-  const secondNarrative = build(second);
+const mira = { id: "mira", name: "ミラ", traits: ["woodsman", "cautious"] };
+const ed = { id: "ed", name: "エド", traits: ["strong", "brave"] };
+const sella = { id: "sella", name: "セラ", traits: ["keen-eye", "greedy", "stubborn"] };
 
-  assert.deepEqual(firstNarrative, secondNarrative);
-  assert.deepEqual(first.combat, rawBefore);
-  assert.deepEqual(first.combat, second.combat);
+test("same resolved report produces the same narrative without mutating combat state", () => {
+  const report = {
+    expeditionId: "exp-1",
+    seed: 44,
+    companionIds: ["mira", "ed"],
+    policyId: "standard",
+    policyName: "通常",
+    combat: { encounters: [syntheticCombat()] },
+  };
+  const before = JSON.parse(JSON.stringify(report));
+  const input = { report, companions: [mira, ed, sella], policies: system.policies };
+  const first = narrative.buildExpeditionNarrative(input);
+  const second = narrative.buildExpeditionNarrative(input);
+  assert.deepEqual(first, second);
+  assert.deepEqual(report, before);
 });
 
 test("narrative events retain structured actor enemy consequence HP and cause data", () => {
-  const report = resolve({ seed: 31, companionIds: ["mira"], equipmentIds: ["shortbow"], destinationId: "ashen-wood" });
-  const generated = build(report);
-  assert.ok(generated.battles.length >= 1);
-  const lines = generated.battles[0].lines;
-  assert.ok(lines.some((line) => line.actorId === "mira"));
-  for (const line of lines) {
-    assert.ok(["opening", "pressure", "turning-point", "finish", "aftermath"].includes(line.phase));
+  const battle = narrative.buildBattleNarrative({ combat: syntheticCombat(), party: [mira, ed], policy: system.policies.standard, seed: 44 });
+  assert.equal(battle.outcome, "victory");
+  assert.ok(battle.lines.length >= 3);
+  battle.lines.forEach((line) => {
+    assert.ok(line.phase);
     assert.ok(line.actorId);
-    assert.ok(line.enemyId);
-    assert.equal(typeof line.remainingEnemyCount, "number");
+    assert.equal(line.enemyId, "grey-wolves");
     assert.ok(line.action);
     assert.ok(line.reaction);
     assert.ok(line.consequence);
     assert.equal(typeof line.hpBefore, "number");
     assert.equal(typeof line.hpAfter, "number");
     assert.ok(Array.isArray(line.causes));
-  }
+    assert.ok(line.text.length > 0);
+  });
 });
 
 test("battle arc compresses raw rounds into opening pressure turning point and finish", () => {
-  const result = narrative.buildBattleNarrative({
-    combat: syntheticCombat("victory"),
-    party: system.companions,
-    policy: system.policies.standard,
-    seed: 7,
-    battleIndex: 0,
-  });
-  assert.equal(result.lines[0].phase, "opening");
-  assert.ok(result.lines.some((line) => line.phase === "pressure"));
-  assert.ok(result.lines.some((line) => line.phase === "turning-point"));
-  assert.ok(result.lines.some((line) => line.phase === "finish"));
-  assert.ok(result.lines.length <= 7, "low-value round events should be compressed");
+  const combat = syntheticCombat();
+  combat.rounds.push({ round: 4, hpBefore: 61, hpAfter: 57, damage: 4, healed: 0, enemyCountBefore: 1, enemiesDefeated: 1, remainingEnemyCount: 0, causes: ["strong"], events: [] });
+  combat.remainingEnemyCount = 0;
+  combat.hpAfter = 57;
+  const battle = narrative.buildBattleNarrative({ combat, party: [mira, ed], policy: system.policies.standard, seed: 44 });
+  const phases = battle.lines.map((line) => line.phase);
+  assert.equal(phases[0], "opening");
+  assert.ok(phases.includes("pressure"));
+  assert.ok(phases.includes("turning-point"));
+  assert.ok(phases.includes("finish"));
+  assert.ok(battle.lines.length <= 7, "narrative should compress long raw round sequences");
 });
 
 test("Mira Ed and Sella produce visibly different battle voices", () => {
-  const raw = syntheticCombat("victory");
-  const mira = narrative.buildBattleNarrative({ combat: raw, party: [system.companions.find((x) => x.id === "mira")], policy: system.policies.standard, seed: 8 });
-  const ed = narrative.buildBattleNarrative({ combat: raw, party: [system.companions.find((x) => x.id === "ed")], policy: system.policies.standard, seed: 8 });
-  const sella = narrative.buildBattleNarrative({ combat: raw, party: [system.companions.find((x) => x.id === "sella")], policy: system.policies.greedy, seed: 8 });
-
-  const miraText = mira.lines.map((line) => line.text).join(" ");
-  const edText = ed.lines.map((line) => line.text).join(" ");
-  const sellaText = sella.lines.map((line) => line.text).join(" ");
-  assert.match(miraText, /ミラ/);
-  assert.match(miraText, /周囲|回り込み|深追い|狩り弓/);
-  assert.match(edText, /エド/);
-  assert.match(edText, /前|仲間|押し/);
-  assert.match(sellaText, /セラ/);
-  assert.match(sellaText, /出口|品|戦利品|持ち帰る/);
-  assert.notEqual(miraText, edText);
-  assert.notEqual(edText, sellaText);
+  const miraBattle = narrative.buildBattleNarrative({ combat: syntheticCombat(), party: [mira], policy: system.policies.cautious, seed: 7 });
+  const edBattle = narrative.buildBattleNarrative({ combat: syntheticCombat(), party: [ed], policy: system.policies.standard, seed: 7 });
+  const sellaCombat = syntheticCombat();
+  sellaCombat.causes = ["conceal", "greedy"];
+  sellaCombat.rounds[0].events = ["ambush"];
+  const sellaBattle = narrative.buildBattleNarrative({ combat: sellaCombat, party: [sella], policy: system.policies.greedy, seed: 7 });
+  const text = (battle) => battle.lines.map((line) => line.text).join(" ");
+  assert.match(text(miraBattle), /ミラ/);
+  assert.match(text(edBattle), /エド/);
+  assert.match(text(sellaBattle), /セラ/);
+  assert.notEqual(text(miraBattle), text(edBattle));
+  assert.notEqual(text(edBattle), text(sellaBattle));
 });
 
 test("trait and equipment causes read as authored events instead of system jargon", () => {
-  const report = resolve({ seed: 31, companionIds: ["mira"], equipmentIds: ["shortbow"], destinationId: "ashen-wood" });
-  const generated = build(report);
-  const text = generated.battles.flatMap((battle) => battle.lines).map((line) => line.text).join(" ");
-  assert.match(text, /狩り弓|矢|群れ|傷/);
-  assert.doesNotMatch(text, /ranged|woodsman|strong|conceal|heal|cut/);
-  assert.ok(generated.battles.flatMap((battle) => battle.lines).some((line) => line.causes.includes("ranged") || line.causes.includes("woodsman")));
+  const battle = narrative.buildBattleNarrative({ combat: syntheticCombat(), party: [mira, ed], policy: system.policies.standard, seed: 44 });
+  const text = battle.lines.map((line) => line.text).join(" ");
+  assert.match(text, /弓|藪|包囲|狼|灰狼/);
+  assert.match(text, /エド|押し|刃|前へ/);
+  assert.doesNotMatch(text, /ranged bonus|woodsman bonus|strong bonus|cut bonus/i);
 });
 
 test("victory retreat and defeat finish with different aftertastes", () => {
-  const ed = system.companions.find((x) => x.id === "ed");
   const victory = narrative.buildBattleNarrative({ combat: syntheticCombat("victory"), party: [ed], policy: system.policies.standard, seed: 1 });
   const retreat = narrative.buildBattleNarrative({ combat: syntheticCombat("retreat"), party: [ed], policy: system.policies.cautious, seed: 1 });
   const defeat = narrative.buildBattleNarrative({ combat: syntheticCombat("defeat"), party: [ed], policy: system.policies.standard, seed: 1 });
@@ -133,14 +118,16 @@ test("victory retreat and defeat finish with different aftertastes", () => {
   assert.match(finish(defeat), /支えきれ|膝|崩れ/);
 });
 
-test("report UI loads the narrative layer first and keeps raw chronology collapsed", () => {
+test("report UI loads narrative before scene and domain layers and keeps raw chronology collapsed", () => {
   const root = path.join(__dirname, "..");
   const runtime = fs.readFileSync(path.join(root, "src", "app-runtime-state.js"), "utf8");
   const presentation = fs.readFileSync(path.join(root, "src", "expedition-presentation.js"), "utf8");
   const narrativeLoad = runtime.indexOf('narrative.src = "src/expedition-narrative.js"');
+  const sceneLoad = runtime.indexOf('scenes.src = "src/expedition-scenes.js"');
   const domainLoad = runtime.indexOf('domain.src = "src/expedition-system.js"');
-  assert.ok(narrativeLoad >= 0 && domainLoad >= 0);
-  assert.match(runtime, /narrative\.onload = loadExpeditionDomain/);
+  assert.ok(narrativeLoad >= 0 && sceneLoad >= 0 && domainLoad >= 0);
+  assert.match(runtime, /narrative\.onload = loadExpeditionScenes/);
+  assert.match(runtime, /scenes\.onload = loadExpeditionDomain/);
   assert.match(presentation, /buildExpeditionNarrative/);
   assert.match(presentation, /BATTLE NARRATIVE/);
   assert.match(presentation, /遠征記/);

@@ -1,0 +1,383 @@
+.expedition-kamishibai {
+  position: relative;
+  margin: 22px 0 26px;
+  padding: 14px;
+  border: 1px solid rgba(48, 38, 27, .52);
+  background:
+    linear-gradient(90deg, rgba(73, 52, 29, .05), transparent 16% 84%, rgba(73, 52, 29, .05)),
+    rgba(230, 214, 177, .34);
+  box-shadow: inset 0 0 0 4px rgba(112, 86, 52, .04);
+}
+
+.expedition-kamishibai::before {
+  content: "";
+  position: absolute;
+  inset: 7px;
+  pointer-events: none;
+  border: 1px dashed rgba(67, 52, 36, .16);
+}
+
+.expedition-kamishibai__heading {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: 2px 16px;
+  margin: 0 2px 10px;
+}
+
+.expedition-kamishibai__heading small {
+  grid-column: 1;
+  color: #6d2f23;
+  font-size: .66rem;
+  font-weight: 900;
+  letter-spacing: .17em;
+}
+
+.expedition-kamishibai__heading strong {
+  grid-column: 1;
+  font: 700 1.28rem/1.1 Georgia, "Times New Roman", serif;
+  letter-spacing: .04em;
+}
+
+.expedition-kamishibai__skip {
+  grid-column: 2;
+  grid-row: 1 / span 2;
+  align-self: center;
+  border: 0;
+  border-bottom: 1px solid rgba(45, 36, 25, .42);
+  padding: 7px 2px 4px;
+  color: #4d4233;
+  background: transparent;
+  cursor: pointer;
+  font-size: .74rem;
+  font-weight: 800;
+}
+
+.expedition-kamishibai__frame {
+  position: relative;
+  overflow: hidden;
+  border: 2px solid #453a2a;
+  background: #b8a57d;
+  box-shadow:
+    0 8px 16px rgba(53, 40, 25, .16),
+    inset 0 0 0 5px rgba(238, 222, 185, .2);
+}
+
+.expedition-kamishibai__frame::before {
+  content: "";
+  position: absolute;
+  z-index: 4;
+  inset: 6px;
+  pointer-events: none;
+  border: 1px solid rgba(41, 32, 23, .32);
+  clip-path: polygon(0 2%, 99% 0, 100% 97%, 1% 100%);
+}
+
+.expedition-kamishibai__visual {
+  position: relative;
+  min-height: 310px;
+  overflow: hidden;
+  isolation: isolate;
+  background:
+    radial-gradient(circle at 72% 26%, rgba(239, 221, 178, .2), transparent 22%),
+    linear-gradient(180deg, #75684f, #2f2a20);
+}
+
+.expedition-kamishibai__visual::before {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  inset: 0;
+  pointer-events: none;
+  opacity: .34;
+  background:
+    repeating-linear-gradient(12deg, rgba(27, 24, 19, .15) 0 1px, transparent 1px 7px),
+    repeating-linear-gradient(103deg, rgba(244, 224, 183, .08) 0 1px, transparent 1px 13px);
+  mix-blend-mode: multiply;
+}
+
+.expedition-kamishibai__visual::after {
+  content: "";
+  position: absolute;
+  z-index: 3;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(27, 22, 16, .08), transparent 32%, rgba(20, 17, 13, .56)),
+    radial-gradient(ellipse at center, transparent 42%, rgba(28, 22, 16, .42) 100%);
+}
+
+.expedition-kamishibai__visual[data-motif="hearth"],
+.expedition-kamishibai__visual[data-motif="hearth-return"] {
+  background: linear-gradient(180deg, #66533b, #211c16);
+}
+
+.expedition-kamishibai__visual[data-motif="hearth-return"]::after {
+  background:
+    radial-gradient(circle at 52% 70%, rgba(184, 104, 43, .28), transparent 20%),
+    linear-gradient(180deg, rgba(17, 14, 11, .12), rgba(19, 15, 11, .58));
+}
+
+.expedition-kamishibai__visual[data-motif="forest"] {
+  background:
+    repeating-linear-gradient(92deg, transparent 0 8%, rgba(35, 45, 31, .9) 8.5% 11%, transparent 11.5% 19%),
+    radial-gradient(ellipse at 50% 100%, rgba(141, 135, 91, .34), transparent 42%),
+    linear-gradient(180deg, #6f7657, #283126 66%, #171912);
+}
+
+.expedition-kamishibai__visual[data-motif="village"] {
+  background:
+    linear-gradient(153deg, transparent 0 46%, #44392d 47% 55%, transparent 56%) 9% 69% / 30% 58% no-repeat,
+    linear-gradient(207deg, transparent 0 46%, #332d27 47% 55%, transparent 56%) 54% 73% / 36% 54% no-repeat,
+    linear-gradient(180deg, #82765f 0 48%, #4f4738 49% 64%, #2b271f 65%);
+}
+
+.expedition-kamishibai__visual[data-motif="cave"] {
+  background:
+    radial-gradient(ellipse at 50% 53%, #151612 0 21%, #3d3b31 22% 38%, transparent 39%),
+    radial-gradient(ellipse at 50% 58%, rgba(182, 151, 91, .18), transparent 50%),
+    linear-gradient(180deg, #5b574b, #25251f);
+}
+
+.expedition-kamishibai__visual[data-motif="road"] {
+  background:
+    linear-gradient(103deg, transparent 0 46%, rgba(95, 77, 48, .48) 47% 54%, transparent 55%),
+    linear-gradient(180deg, #7f765f 0 52%, #504936 53% 69%, #29261f 70%);
+}
+
+.expedition-kamishibai__visual[data-motif="combat-beast"],
+.expedition-kamishibai__visual[data-motif="combat-bandit"],
+.expedition-kamishibai__visual[data-motif="combat"] {
+  background:
+    radial-gradient(circle at 68% 52%, rgba(120, 48, 38, .34), transparent 28%),
+    linear-gradient(128deg, transparent 0 42%, rgba(35, 28, 22, .72) 43% 54%, transparent 55%),
+    linear-gradient(180deg, #70634e, #29241c);
+}
+
+.expedition-kamishibai__visual[data-motif="turning"] {
+  background:
+    linear-gradient(142deg, transparent 0 43%, rgba(104, 39, 30, .72) 44% 47%, transparent 48%),
+    linear-gradient(36deg, transparent 0 55%, rgba(32, 29, 23, .74) 56% 62%, transparent 63%),
+    #766a52;
+}
+
+.expedition-kamishibai__visual[data-motif="injury"] {
+  background:
+    radial-gradient(circle at 58% 55%, rgba(121, 45, 35, .44), transparent 23%),
+    repeating-linear-gradient(120deg, rgba(58, 38, 29, .22) 0 2px, transparent 2px 14px),
+    #756752;
+}
+
+.expedition-kamishibai__visual[data-motif="loot"] {
+  background:
+    radial-gradient(circle at 50% 62%, rgba(186, 145, 66, .35), transparent 20%),
+    linear-gradient(180deg, #70644d, #332b1e 74%);
+}
+
+.expedition-kamishibai__visual[data-motif="discovery"] {
+  background:
+    radial-gradient(circle at 66% 38%, rgba(126, 151, 132, .28), transparent 25%),
+    linear-gradient(24deg, transparent 0 46%, rgba(54, 81, 70, .42) 47% 50%, transparent 51%),
+    linear-gradient(180deg, #788072, #33443c 72%);
+}
+
+.expedition-kamishibai__visual[data-motif="retreat"] {
+  background:
+    linear-gradient(154deg, transparent 0 48%, rgba(60, 46, 34, .72) 49% 54%, transparent 55%),
+    linear-gradient(180deg, #6e6656, #332f27);
+}
+
+.expedition-kamishibai__visual[data-motif="defeat"] {
+  background:
+    linear-gradient(25deg, transparent 0 47%, rgba(91, 37, 31, .72) 48% 52%, transparent 53%),
+    linear-gradient(155deg, transparent 0 47%, rgba(34, 30, 25, .8) 48% 54%, transparent 55%),
+    #4c453a;
+}
+
+.expedition-kamishibai__asset {
+  position: absolute;
+  z-index: 1;
+  display: block;
+  pointer-events: none;
+  user-select: none;
+}
+
+.expedition-kamishibai__asset--backdrop {
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  opacity: .72;
+  filter: sepia(.42) saturate(.58) contrast(1.06) brightness(.76);
+}
+
+.expedition-kamishibai__asset--figure {
+  right: 10%;
+  bottom: -2%;
+  width: min(39%, 230px);
+  height: 86%;
+  object-fit: contain;
+  object-position: center bottom;
+  opacity: .82;
+  filter: grayscale(.55) sepia(.3) contrast(1.18) brightness(.72) drop-shadow(8px 10px 0 rgba(31, 25, 19, .18));
+}
+
+.expedition-kamishibai__asset--relic {
+  left: 50%;
+  bottom: 12%;
+  width: min(46%, 270px);
+  height: 58%;
+  object-fit: contain;
+  transform: translateX(-50%) rotate(-4deg);
+  opacity: .76;
+  filter: grayscale(.52) sepia(.48) contrast(1.12) brightness(.82) drop-shadow(7px 9px 0 rgba(34, 27, 19, .18));
+}
+
+.expedition-kamishibai__glyph {
+  position: absolute;
+  z-index: 1;
+  left: 50%;
+  top: 46%;
+  transform: translate(-50%, -50%) rotate(-3deg);
+  color: rgba(36, 30, 23, .56);
+  font: 700 clamp(5rem, 15vw, 9rem)/1 Georgia, "Times New Roman", serif;
+  text-shadow: 2px 3px 0 rgba(232, 211, 170, .12);
+}
+
+.expedition-kamishibai__mark {
+  position: absolute;
+  z-index: 5;
+  top: 14px;
+  left: 14px;
+  padding: 5px 8px 4px;
+  border: 1px solid rgba(231, 211, 171, .5);
+  color: #ead8b1;
+  background: rgba(35, 28, 20, .72);
+  font-size: .66rem;
+  font-weight: 900;
+  letter-spacing: .14em;
+}
+
+.expedition-kamishibai__copy {
+  position: relative;
+  z-index: 5;
+  min-height: 142px;
+  padding: 18px 20px 20px;
+  border-top: 2px solid #453a2a;
+  background:
+    radial-gradient(circle at 10% 22%, rgba(92, 60, 31, .06), transparent 26%),
+    #d7c7a3;
+}
+
+.expedition-kamishibai__phase {
+  display: block;
+  margin-bottom: 5px;
+  color: #6d2f23;
+  font-size: .68rem;
+  font-weight: 900;
+  letter-spacing: .13em;
+}
+
+.expedition-kamishibai__copy h3 {
+  margin: 0 0 7px;
+  color: #221c14;
+  font: 700 clamp(1.2rem, 4vw, 1.55rem)/1.2 Georgia, "Times New Roman", serif;
+}
+
+.expedition-kamishibai__copy p {
+  max-width: 44rem;
+  margin: 0;
+  color: #3e3427;
+  font: 500 1rem/1.72 Georgia, "Times New Roman", serif;
+}
+
+.expedition-kamishibai__nav {
+  position: relative;
+  z-index: 2;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: 10px;
+  margin-top: 11px;
+}
+
+.expedition-kamishibai__nav button:last-child {
+  justify-self: end;
+}
+
+.expedition-kamishibai__nav button:disabled {
+  opacity: .36;
+  cursor: default;
+}
+
+.expedition-kamishibai__counter {
+  min-width: 50px;
+  color: #554735;
+  font: 700 .78rem/1 Georgia, "Times New Roman", serif;
+  text-align: center;
+  letter-spacing: .12em;
+}
+
+.expedition-report-summary[data-expedition-summary] {
+  scroll-margin-top: 18px;
+}
+
+@media (max-width: 600px) {
+  .expedition-kamishibai {
+    margin: 18px -4px 22px;
+    padding: 10px;
+  }
+
+  .expedition-kamishibai__heading {
+    margin-inline: 1px;
+  }
+
+  .expedition-kamishibai__visual {
+    min-height: 46vh;
+    max-height: 390px;
+  }
+
+  .expedition-kamishibai__copy {
+    min-height: 156px;
+    padding: 16px 15px 18px;
+  }
+
+  .expedition-kamishibai__copy p {
+    font-size: .96rem;
+    line-height: 1.62;
+  }
+
+  .expedition-kamishibai__nav {
+    grid-template-columns: 1fr auto 1fr;
+    gap: 6px;
+  }
+
+  .expedition-kamishibai__nav .expedition-secondary,
+  .expedition-kamishibai__nav .expedition-dispatch {
+    min-height: 44px;
+    padding: 9px 10px;
+    font-size: .78rem;
+  }
+
+  .expedition-kamishibai__asset--figure {
+    right: 5%;
+    width: min(52%, 220px);
+  }
+
+  .expedition-kamishibai__asset--relic {
+    width: min(62%, 260px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .expedition-kamishibai *,
+  .expedition-kamishibai *::before,
+  .expedition-kamishibai *::after {
+    scroll-behavior: auto !important;
+    transition: none !important;
+    animation: none !important;
+  }
+}
