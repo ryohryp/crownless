@@ -19,7 +19,17 @@ function richReport() {
     loot: [{ id: "old-sword", name: "古い軍用剣", tags: ["cut", "authority"] }],
     discoveries: [{ id: "deep-mark", name: "灰の森の奥へ続く印" }],
     combat: {
-      encounters: [{ encounterId: "grey-wolf", encounterName: "灰狼", enemyTags: ["beast"] }],
+      encounters: [{
+        encounterId: "grey-wolf",
+        encounterName: "灰狼",
+        enemyTags: ["beast"],
+        result: "victory",
+        initialEnemyCount: 4,
+        damage: 34,
+        hpBefore: 200,
+        hpAfter: 166,
+        maxHp: 200,
+      }],
     },
     log: [
       { minute: 0, time: "06:00", type: "departure", text: "ミラ、エドが灰の森へ向かった。", causes: [] },
@@ -52,6 +62,10 @@ function battleNarrative() {
 
 const destinations = [{ id: "ash-forest", name: "灰の森", family: "forest" }];
 
+function combatScenes(deck) {
+  return deck.scenes.filter((scene) => scene.kind === "combat" || scene.kind.startsWith("combat-"));
+}
+
 test("completed expedition projects to a deterministic 3-5 scene deck", () => {
   const report = richReport();
   const before = JSON.parse(JSON.stringify(report));
@@ -62,18 +76,75 @@ test("completed expedition projects to a deterministic 3-5 scene deck", () => {
   assert.deepEqual(first, second);
   assert.deepEqual(report, before, "scene projection must not mutate the completed report");
   assert.ok(first.scenes.length >= 3 && first.scenes.length <= 5);
-  assert.equal(first.scenes[0].phase, "opening");
   assert.equal(first.scenes.at(-1).phase, "ending");
   assert.equal(first.scenes.at(-1).kind, "return");
 });
 
-test("high-consequence events outrank ordinary battle beats", () => {
+test("departure and arrival no longer consume representative scene slots", () => {
   const deck = scenes.buildExpeditionScenes({ report: richReport(), narrative: battleNarrative(), destinations });
-  const middleKinds = deck.scenes.filter((scene) => scene.phase === "middle").map((scene) => scene.kind);
+  const kinds = deck.scenes.map((scene) => scene.kind);
 
-  assert.ok(middleKinds.includes("injury"), "injury should become a representative scene");
-  assert.ok(middleKinds.some((kind) => ["loot", "discovery", "turning-point", "combat"].includes(kind)));
-  assert.ok(!middleKinds.includes("combat") || middleKinds.indexOf("injury") <= middleKinds.indexOf("combat"));
+  assert.ok(!kinds.includes("departure"));
+  assert.ok(!kinds.includes("arrival"));
+  assert.ok(combatScenes(deck).length >= 1, "a combat expedition must show at least one battle scene");
+});
+
+test("high-consequence events remain visible beside battle scenes", () => {
+  const deck = scenes.buildExpeditionScenes({ report: richReport(), narrative: battleNarrative(), destinations });
+  const kinds = deck.scenes.map((scene) => scene.kind);
+
+  assert.ok(kinds.includes("injury"), "injury should become a representative scene");
+  assert.ok(combatScenes(deck).length >= 1, "battle should not disappear behind consequence scoring");
+  assert.ok(kinds.some((kind) => ["loot", "discovery"].includes(kind)), "another meaningful expedition result should remain visible");
+});
+
+test("battle-heavy expeditions may use multiple combat frames but never more than three", () => {
+  const report = richReport();
+  report.injuries = [];
+  report.discoveries = [];
+  report.loot = [];
+  report.combat.encounters.push({
+    encounterId: "bandit-guard",
+    encounterName: "落人兵",
+    enemyTags: ["bandit"],
+    result: "victory",
+    initialEnemyCount: 3,
+    damage: 12,
+    hpBefore: 166,
+    hpAfter: 154,
+    maxHp: 200,
+  });
+  report.log = report.log.filter((entry) => !["injury", "discovery", "combat-loot"].includes(entry.type));
+  report.log.splice(report.log.length - 1, 0,
+    { minute: 70, time: "07:10", type: "combat-encounter", text: "落人兵3体と遭遇。", causes: ["bandit-guard", "bandit"] },
+    { minute: 82, time: "07:22", type: "combat-victory", text: "落人兵を退けた。", causes: [] }
+  );
+  const narrative = battleNarrative();
+  narrative.battles.push({
+    encounterId: "bandit-guard",
+    encounterName: "落人兵",
+    outcome: "victory",
+    actorIds: ["mira", "ed"],
+    lines: [
+      { phase: "opening", actorId: "mira", text: "落人兵が道を塞ぐ。ミラが弓を引き、足を止めさせた。" },
+      { phase: "turning-point", actorId: "ed", text: "エドが盾役を崩し、隊が一気に前へ出た。" },
+      { phase: "finish", actorId: "ed", text: "残る落人兵が武器を捨てて逃げた。" },
+    ],
+  });
+
+  const deck = scenes.buildExpeditionScenes({ report, narrative, destinations });
+  const battles = combatScenes(deck);
+  assert.ok(battles.length >= 2, "multiple battles should be allowed to occupy multiple frames");
+  assert.ok(battles.length <= scenes.MAX_COMBAT_SCENES);
+  assert.equal(scenes.MAX_COMBAT_SCENES, 3);
+});
+
+test("raw combat logs still produce battle scenes when narrative generation is unavailable", () => {
+  const deck = scenes.buildExpeditionScenes({ report: richReport(), narrative: null, destinations });
+  const battles = combatScenes(deck);
+
+  assert.ok(battles.length >= 1);
+  assert.ok(battles.some((scene) => /灰狼|接敵|退け/.test(`${scene.headline}${scene.caption}`)));
 });
 
 test("early return is represented as a decision before the ending", () => {
@@ -82,7 +153,8 @@ test("early return is represented as a decision before the ending", () => {
   report.injuries = [];
   report.discoveries = [];
   report.loot = [];
-  report.log = report.log.filter((entry) => !["injury", "discovery", "combat-loot"].includes(entry.type));
+  report.combat.encounters[0].result = "retreat";
+  report.log = report.log.filter((entry) => !["injury", "discovery", "combat-loot", "combat-victory"].includes(entry.type));
   report.log.splice(report.log.length - 1, 0, {
     minute: 70,
     time: "07:10",
@@ -91,9 +163,12 @@ test("early return is represented as a decision before the ending", () => {
     causes: ["standard"],
   });
   report.log[report.log.length - 1] = { minute: 80, time: "07:20", type: "return", text: "予定より早く灰炉へ戻った。", causes: ["early return"] };
+  const narrative = battleNarrative();
+  narrative.battles[0].outcome = "retreat";
 
-  const deck = scenes.buildExpeditionScenes({ report, narrative: battleNarrative(), destinations });
+  const deck = scenes.buildExpeditionScenes({ report, narrative, destinations });
   assert.ok(deck.scenes.some((scene) => scene.kind === "retreat"));
+  assert.ok(combatScenes(deck).length >= 1);
   assert.equal(deck.scenes.at(-1).headline, "早い帰還");
 });
 
@@ -108,14 +183,16 @@ test("scene records carry stable source references, captions, and visual keys", 
   });
 });
 
-test("visual keys resolve to fixed canon assets when an existing asset is appropriate", () => {
+test("combat visual keys resolve to fixed canon assets when an existing asset is appropriate", () => {
   const hearth = scenes.resolveVisual("hearth.return");
   const beast = scenes.resolveVisual("combat.beast");
+  const bandit = scenes.resolveVisual("combat.bandit");
   const weapon = scenes.resolveVisual("loot.weapon");
 
   assert.equal(hearth.assetPath, "assets/hearth/concepts/grey-hearth-empty-room-v0.2.png");
   assert.equal(hearth.assetRole, "backdrop");
   assert.equal(beast.assetPath, "assets/combat/minimal-v0.1/actors/enemy-rusher.png");
   assert.equal(beast.assetRole, "figure");
+  assert.equal(bandit.assetPath, "assets/combat/minimal-v0.1/actors/enemy-guard.png");
   assert.equal(weapon.assetPath, "assets/combat/minimal-v0.1/weapons/dropped-sword.png");
 });
