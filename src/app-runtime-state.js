@@ -36,12 +36,13 @@ var audioContext = null;
     }, true);
   }
 
-  if (!document.querySelector('link[href="expedition.css"]')) {
+  ["expedition.css", "expedition-kamishibai.css"].forEach((href) => {
+    if (document.querySelector(`link[href="${href}"]`)) return;
     const css = document.createElement("link");
     css.rel = "stylesheet";
-    css.href = "expedition.css";
+    css.href = href;
     head.appendChild(css);
-  }
+  });
 
   function loadExpeditionDomain() {
     const domain = document.createElement("script");
