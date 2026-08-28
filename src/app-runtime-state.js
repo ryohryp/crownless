@@ -61,12 +61,23 @@ var audioContext = null;
     document.body.appendChild(domain);
   }
 
+  // Issue #203: representative paper-theatre scenes are another pure
+  // projection of a completed report. Keep this optional so a scene-layer
+  // loading failure never blocks the deterministic expedition resolver.
+  function loadExpeditionScenes() {
+    const scenes = document.createElement("script");
+    scenes.src = "src/expedition-scenes.js";
+    scenes.onload = loadExpeditionDomain;
+    scenes.onerror = loadExpeditionDomain;
+    document.body.appendChild(scenes);
+  }
+
   // Issue #200: narrative generation is a separate deterministic projection of
   // raw combat state. Load it independently so resolver rules never depend on
   // prose generation, while the report presentation can opt into the layer.
   const narrative = document.createElement("script");
   narrative.src = "src/expedition-narrative.js";
-  narrative.onload = loadExpeditionDomain;
-  narrative.onerror = loadExpeditionDomain;
+  narrative.onload = loadExpeditionScenes;
+  narrative.onerror = loadExpeditionScenes;
   document.body.appendChild(narrative);
 })();
