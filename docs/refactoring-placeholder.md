@@ -1,1 +1,0 @@
-Temporary placeholder to keep branch write sequencing explicit. This file will be removed before merge.
