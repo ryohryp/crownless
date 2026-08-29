@@ -138,7 +138,7 @@ test("report UI uses narrative through the scroll only and keeps raw chronology 
   assert.doesNotMatch(presentation, /renderBattleNarrative/);
   assert.doesNotMatch(css, /\.expedition-narrative/);
   assert.match(presentation, /時系列と戦闘数値を確認する/);
-  assert.match(presentation, /data-expedition-details/);
+  assert.match(presentation, /details\.dataset\.expeditionDetails/);
 
   const reportStart = presentation.indexOf("function renderReport");
   const reportEnd = presentation.indexOf("document.addEventListener", reportStart);
