@@ -108,6 +108,7 @@
       phase: data.phase,
       headline: normalizeText(data.headline),
       caption: shorten(data.caption),
+      copySource: data.copySource || "report-log",
       actorIds: Array.from(new Set((data.actorIds || []).filter(Boolean).map(String))),
       locationId: report.destinationId || null,
       visualKey: data.visualKey,
@@ -155,6 +156,52 @@
     return "戦況を押し切る";
   }
 
+  function narrativeBattles(expeditionNarrative) {
+    return expeditionNarrative && Array.isArray(expeditionNarrative.battles) ? expeditionNarrative.battles : [];
+  }
+
+  function narrativeLine(battle, phases) {
+    const lines = battle && Array.isArray(battle.lines) ? battle.lines : [];
+    for (const phase of phases) {
+      const found = lines.find((line) => line && line.phase === phase && normalizeText(line.text));
+      if (found) return found;
+    }
+    return null;
+  }
+
+  function narrativeOutcomeLine(expeditionNarrative, outcome, phases) {
+    const matching = narrativeBattles(expeditionNarrative).filter((battle) => battle && battle.outcome === outcome);
+    return narrativeLine(matching.at(-1), phases);
+  }
+
+  function narrativeInjuryLine(expeditionNarrative) {
+    const candidates = narrativeBattles(expeditionNarrative).flatMap((battle) => (
+      Array.isArray(battle && battle.lines) ? battle.lines : []
+    )).map((line, index) => {
+      const hpBefore = Number(line && line.hpBefore);
+      const hpAfter = Number(line && line.hpAfter);
+      return {
+        line,
+        index,
+        damage: Number.isFinite(hpBefore) && Number.isFinite(hpAfter) ? Math.max(0, hpBefore - hpAfter) : 0,
+      };
+    }).filter(({ line, damage }) => (
+      line
+      && ["pressure", "turning-point"].includes(line.phase)
+      && damage > 0
+      && normalizeText(line.text)
+    )).sort((a, b) => b.damage - a.damage || a.index - b.index);
+    return candidates.length ? candidates[0].line : null;
+  }
+
+  function narrativeEndingLine(expeditionNarrative, outcome) {
+    const battles = narrativeBattles(expeditionNarrative);
+    const last = battles.at(-1);
+    if (!last) return null;
+    if (outcome === "early-return" || outcome === "failed") return narrativeLine(last, ["aftermath", "finish"]);
+    return narrativeLine(last, ["aftermath"]);
+  }
+
   function rawBattleCandidates(report, entries) {
     const encounters = entries.filter(({ entry }) => entry && entry.type === "combat-encounter");
     return encounters.flatMap((encounter, battleIndex) => {
@@ -196,7 +243,7 @@
   }
 
   function battleCandidates(report, entries, expeditionNarrative) {
-    const battles = expeditionNarrative && Array.isArray(expeditionNarrative.battles) ? expeditionNarrative.battles : [];
+    const battles = narrativeBattles(expeditionNarrative);
     if (!battles.length) return rawBattleCandidates(report, entries);
 
     const candidates = [];
@@ -207,13 +254,14 @@
         || null;
       const visualKey = visualForCombat(report, battle);
       const basePriority = combatPriority(combat, battle.outcome, battleIndex);
-      const opening = (battle.lines || []).find((line) => line.phase === "opening") || (battle.lines || [])[0];
+      const opening = narrativeLine(battle, ["opening"]) || (battle.lines || [])[0];
       if (opening) {
         candidates.push(makeScene(report, {
           kind: "combat-opening",
           phase: "battle",
           headline: `${battle.encounterName || "敵"}と接敵`,
           caption: opening.text,
+          copySource: "narrative",
           actorIds: battle.actorIds || [opening.actorId],
           visualKey,
           priority: Math.max(80, basePriority - 4),
@@ -221,15 +269,14 @@
         }));
       }
 
-      const climax = (battle.lines || []).find((line) => line.phase === "turning-point")
-        || (battle.lines || []).find((line) => line.phase === "pressure")
-        || (battle.lines || []).find((line) => line.phase === "finish");
+      const climax = narrativeLine(battle, ["turning-point", "pressure", "finish"]);
       if (climax && climax !== opening) {
         candidates.push(makeScene(report, {
           kind: "combat-climax",
           phase: "battle",
           headline: outcomeHeadline(battle.outcome),
           caption: climax.text,
+          copySource: "narrative",
           actorIds: [climax.actorId].filter(Boolean),
           visualKey,
           priority: basePriority,
@@ -240,15 +287,17 @@
     return candidates.length ? candidates : rawBattleCandidates(report, entries);
   }
 
-  function consequenceCandidates(report, entries) {
+  function consequenceCandidates(report, entries, expeditionNarrative) {
     const candidates = [];
     const injury = firstByType(entries, ["injury"]);
+    const injuryNarrative = narrativeInjuryLine(expeditionNarrative);
     if (injury || (Array.isArray(report.injuries) && report.injuries.length)) {
       candidates.push(makeScene(report, {
         kind: "injury",
         phase: "middle",
         headline: "傷を負う",
-        caption: injury ? injury.entry.text : "遠征の途中で仲間が傷を負った。",
+        caption: injuryNarrative ? injuryNarrative.text : injury ? injury.entry.text : "遠征の途中で仲間が傷を負った。",
+        copySource: injuryNarrative ? "narrative" : "report-log",
         actorIds: report.injuries || [],
         visualKey: "injury.wound",
         priority: 98,
@@ -258,12 +307,15 @@
 
     const defeat = firstByType(entries, ["combat-defeat"]);
     const retreat = firstByType(entries, ["combat-retreat", "retreat"]);
+    const defeatNarrative = narrativeOutcomeLine(expeditionNarrative, "defeat", ["finish", "aftermath"]);
+    const retreatNarrative = narrativeOutcomeLine(expeditionNarrative, "retreat", ["finish", "aftermath"]);
     if (defeat) {
       candidates.push(makeScene(report, {
         kind: "defeat",
         phase: "middle",
         headline: "生還だけを求める",
-        caption: defeat.entry.text,
+        caption: defeatNarrative ? defeatNarrative.text : defeat.entry.text,
+        copySource: defeatNarrative ? "narrative" : "report-log",
         actorIds: report.companionIds,
         visualKey: "defeat.return",
         priority: 100,
@@ -274,7 +326,8 @@
         kind: "retreat",
         phase: "middle",
         headline: "帰路を選ぶ",
-        caption: retreat ? retreat.entry.text : "これ以上は追わず、灰炉へ戻ることを選んだ。",
+        caption: retreatNarrative ? retreatNarrative.text : retreat ? retreat.entry.text : "これ以上は追わず、灰炉へ戻ることを選んだ。",
+        copySource: retreatNarrative ? "narrative" : "report-log",
         actorIds: report.companionIds,
         visualKey: "retreat.return",
         priority: 97,
@@ -318,16 +371,18 @@
     return candidates;
   }
 
-  function endingScene(report, entries) {
+  function endingScene(report, entries, expeditionNarrative) {
     const returned = firstByType(entries, ["return"]);
     const outcome = report.outcome || "success";
     const headline = outcome === "failed" ? "それでも灰炉へ" : outcome === "early-return" ? "早い帰還" : "灰炉の灯り";
     const fallback = outcome === "failed" ? "傷ついた隊が、どうにか灰炉へ運び戻された。" : "遠征隊は灰炉へ帰還した。";
+    const endingNarrative = narrativeEndingLine(expeditionNarrative, outcome);
     return makeScene(report, {
       kind: "return",
       phase: "ending",
       headline,
-      caption: returned ? returned.entry.text : fallback,
+      caption: endingNarrative ? endingNarrative.text : returned ? returned.entry.text : fallback,
+      copySource: endingNarrative ? "narrative" : "report-log",
       actorIds: report.companionIds,
       visualKey: "hearth.return",
       priority: 100,
@@ -393,8 +448,8 @@
     if (!report) return { version: SCENE_VERSION, expeditionId: null, scenes: [] };
     const entries = indexedLog(report);
     const battles = battleCandidates(report, entries, input.narrative);
-    const consequences = consequenceCandidates(report, entries);
-    const ending = endingScene(report, entries);
+    const consequences = consequenceCandidates(report, entries, input.narrative);
+    const ending = endingScene(report, entries, input.narrative);
     const scenes = selectMiddleScenes(battles, consequences, entries);
     scenes.push(ending);
 
