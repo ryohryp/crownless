@@ -52,9 +52,11 @@ function battleNarrative() {
       outcome: "victory",
       actorIds: ["mira", "ed"],
       lines: [
-        { phase: "opening", actorId: "mira", text: "ミラが先に足を止めた。灰狼が間合いを詰める前に狩り弓を引く。" },
-        { phase: "turning-point", actorId: "ed", text: "エドが前へ出て一頭を押し返し、群れの勢いが止まった。" },
-        { phase: "finish", actorId: "ed", text: "残った灰狼も森の奥へ退いた。" },
+        { phase: "opening", actorId: "mira", hpBefore: 200, hpAfter: 196, text: "ミラが先に足を止めた。灰狼が間合いを詰める前に狩り弓を引く。" },
+        { phase: "pressure", actorId: "ed", hpBefore: 196, hpAfter: 166, text: "反撃を受けても、エドは前を譲らない。敵の目を自分へ引きつけ、仲間の足場を守った。" },
+        { phase: "turning-point", actorId: "ed", hpBefore: 166, hpAfter: 166, text: "エドが前へ出て一頭を押し返し、群れの勢いが止まった。" },
+        { phase: "finish", actorId: "ed", hpBefore: 166, hpAfter: 166, text: "残った灰狼も森の奥へ退いた。" },
+        { phase: "aftermath", actorId: "ed", hpBefore: 166, hpAfter: 166, text: "勝ちはした。だがエドたちの足取りは重い。戦利品より先に、帰路の長さが気になった。" },
       ],
     }],
   };
@@ -96,6 +98,27 @@ test("high-consequence events remain visible beside battle scenes", () => {
   assert.ok(kinds.includes("injury"), "injury should become a representative scene");
   assert.ok(combatScenes(deck).length >= 1, "battle should not disappear behind consequence scoring");
   assert.ok(kinds.some((kind) => ["loot", "discovery"].includes(kind)), "another meaningful expedition result should remain visible");
+});
+
+test("kamishibai reuses expedition narrative copy whenever a narrative beat matches the scene", () => {
+  const narrative = battleNarrative();
+  const deck = scenes.buildExpeditionScenes({ report: richReport(), narrative, destinations });
+  const narrativeTexts = new Set(narrative.battles.flatMap((battle) => battle.lines).map((line) => line.text));
+
+  combatScenes(deck).forEach((scene) => {
+    assert.equal(scene.copySource, "narrative");
+    assert.ok(narrativeTexts.has(scene.caption));
+  });
+
+  const injury = deck.scenes.find((scene) => scene.kind === "injury");
+  assert.ok(injury, "injury should be present in the rich report deck");
+  assert.equal(injury.copySource, "narrative");
+  assert.equal(injury.caption, narrative.battles[0].lines.find((line) => line.phase === "pressure").text);
+
+  const ending = deck.scenes.at(-1);
+  assert.equal(ending.kind, "return");
+  assert.equal(ending.copySource, "narrative");
+  assert.equal(ending.caption, narrative.battles[0].lines.find((line) => line.phase === "aftermath").text);
 });
 
 test("battle-heavy expeditions may use multiple combat frames but never more than three", () => {
@@ -145,6 +168,7 @@ test("raw combat logs still produce battle scenes when narrative generation is u
 
   assert.ok(battles.length >= 1);
   assert.ok(battles.some((scene) => /灰狼|接敵|退け/.test(`${scene.headline}${scene.caption}`)));
+  assert.ok(battles.every((scene) => scene.copySource === "report-log"));
 });
 
 test("early return is represented as a decision before the ending", () => {
@@ -165,11 +189,17 @@ test("early return is represented as a decision before the ending", () => {
   report.log[report.log.length - 1] = { minute: 80, time: "07:20", type: "return", text: "予定より早く灰炉へ戻った。", causes: ["early return"] };
   const narrative = battleNarrative();
   narrative.battles[0].outcome = "retreat";
+  narrative.battles[0].lines.find((line) => line.phase === "finish").text = "エドが殿に残り、追ってくる気配を引き受ける。勝ち切るより、全員で帰る道を選んだ。";
+  narrative.battles[0].lines.find((line) => line.phase === "aftermath").text = "背後の気配が遠のくまで、誰も足を緩めなかった。生きて戻るための撤退だった。";
 
   const deck = scenes.buildExpeditionScenes({ report, narrative, destinations });
-  assert.ok(deck.scenes.some((scene) => scene.kind === "retreat"));
+  const retreat = deck.scenes.find((scene) => scene.kind === "retreat");
+  assert.ok(retreat);
+  assert.equal(retreat.copySource, "narrative");
+  assert.equal(retreat.caption, narrative.battles[0].lines.find((line) => line.phase === "finish").text);
   assert.ok(combatScenes(deck).length >= 1);
   assert.equal(deck.scenes.at(-1).headline, "早い帰還");
+  assert.equal(deck.scenes.at(-1).caption, narrative.battles[0].lines.find((line) => line.phase === "aftermath").text);
 });
 
 test("scene records carry stable source references, captions, and visual keys", () => {
@@ -178,6 +208,7 @@ test("scene records carry stable source references, captions, and visual keys", 
     assert.ok(scene.sceneId);
     assert.ok(scene.visualKey);
     assert.ok(scene.caption.length > 0 && scene.caption.length <= 170);
+    assert.ok(["narrative", "report-log"].includes(scene.copySource));
     assert.ok(Array.isArray(scene.sourceEventIds) && scene.sourceEventIds.length > 0);
     assert.ok(Array.isArray(scene.actorIds));
   });
