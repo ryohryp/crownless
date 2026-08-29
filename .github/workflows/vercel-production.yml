@@ -1,23 +1,10 @@
 name: deploy-vercel-production
 
+# Vercel production deploys consume a limited deployment quota.
+# Normal main updates are published through GitHub Pages; run this workflow
+# manually only when a Vercel production deployment is intentionally needed.
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - "api/**"
-      - "index.html"
-      - "*.css"
-      - "src/geography-proxy.js"
-      - "src/discovery-provider.js"
-      - "src/location-discovery-runtime.js"
-      - "src/location-visuals.js"
-      - "src/exploration-map-presentation.js"
-      - "src/hearth-presentation.js"
-      - "assets/locations/**"
-      - "vercel.json"
-      - ".github/workflows/vercel-production.yml"
 
 permissions:
   contents: read
