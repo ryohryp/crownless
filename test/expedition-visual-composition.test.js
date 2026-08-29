@@ -109,7 +109,9 @@ test("retreat and defeat become explicit pressure states", () => {
 test("unknown enemy roles fall back to CSS silhouettes instead of inventing an asset", () => {
   const report = reportFixture();
   report.combat.encounters[0].enemyTags = ["unknown-horror"];
-  const result = composition.buildBattleComposition({ report, scene: scene("combat-opening", ["log-0"]), destinations });
+  const unknownScene = scene("combat-opening", ["log-0"]);
+  unknownScene.visualKey = "combat.other";
+  const result = composition.buildBattleComposition({ report, scene: unknownScene, destinations });
 
   assert.ok(result.layers.filter((layer) => layer.side === "enemy").every((layer) => layer.assetPath === null));
 });
