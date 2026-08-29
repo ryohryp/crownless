@@ -285,11 +285,11 @@
     return narrative.buildExpeditionNarrative({ report, companions: state.companions, policies: system.policies });
   }
 
-  function scrollToReportSummary(content) {
-    const summary = content.querySelector("[data-expedition-summary]");
-    if (!summary) return;
+  function scrollToReportDetails(content) {
+    const details = content.querySelector("[data-expedition-details]");
+    if (!details) return;
     const reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    summary.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
+    details.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
   }
 
   function renderKamishibai(content, report, generatedNarrative) {
@@ -308,15 +308,15 @@
     reportSceneCursor = Math.max(0, Math.min(reportSceneCursor, deck.scenes.length - 1));
 
     const section = el("section", "expedition-kamishibai");
-    section.setAttribute("aria-label", "遠征の紙芝居");
+    section.setAttribute("aria-label", "遠征絵巻");
     const headingBox = el("header", "expedition-kamishibai__heading");
     headingBox.append(
       el("small", "", "EXPEDITION SCENES"),
       el("strong", "", "遠征絵巻")
     );
-    const skip = el("button", "expedition-kamishibai__skip", "成果へ ↓");
+    const skip = el("button", "expedition-kamishibai__skip", "詳細へ ↓");
     skip.type = "button";
-    skip.addEventListener("click", () => scrollToReportSummary(content));
+    skip.addEventListener("click", () => scrollToReportDetails(content));
     headingBox.append(skip);
 
     const frame = el("article", "expedition-kamishibai__frame");
@@ -370,7 +370,7 @@
       caption.textContent = scene.caption;
       counter.textContent = `${reportSceneCursor + 1} / ${deck.scenes.length}`;
       previous.disabled = reportSceneCursor === 0;
-      next.textContent = reportSceneCursor === deck.scenes.length - 1 ? "成果を見る ↓" : "次の場面 →";
+      next.textContent = reportSceneCursor === deck.scenes.length - 1 ? "詳細を見る ↓" : "次の場面 →";
     }
 
     previous.addEventListener("click", () => {
@@ -380,7 +380,7 @@
     });
     next.addEventListener("click", () => {
       if (reportSceneCursor >= deck.scenes.length - 1) {
-        scrollToReportSummary(content);
+        scrollToReportDetails(content);
         return;
       }
       reportSceneCursor += 1;
@@ -393,44 +393,20 @@
     return true;
   }
 
-  function renderBattleNarrative(content, report, generated) {
-    const built = generated || buildBattleNarrative(report);
-    if (!built || !built.battles.length) return;
-
-    const section = el("section", "expedition-narrative");
-    const title = el("header", "expedition-narrative__heading");
-    title.append(el("small", "", "BATTLE NARRATIVE"), el("strong", "", "遠征記"));
-    section.append(title);
-
-    built.battles.forEach((battle, index) => {
-      const outcome = { victory: "勝利", retreat: "撤退", defeat: "敗北" }[battle.outcome] || battle.outcome;
-      const article = el("article", "expedition-narrative__battle");
-      article.append(el("h3", "", `${index + 1}. ${battle.encounterName} — ${outcome}`));
-      battle.lines.forEach((line) => {
-        const paragraph = el("p", "expedition-narrative__line", line.text);
-        paragraph.dataset.phase = line.phase;
-        article.append(paragraph);
-      });
-      section.append(article);
-    });
-
-    content.append(section);
-  }
-
   function renderReport(content, report) {
     const outcomeLabel = { success: "生還", "early-return": "早期撤退", failed: "失敗" }[report.outcome] || report.outcome;
     content.append(heading("RETURN REPORT", `${report.destinationName} — ${outcomeLabel}`, `${report.policyName}方針。帰ってきた遠征隊の話を辿る。`));
     const generatedNarrative = buildBattleNarrative(report);
-    renderKamishibai(content, report, generatedNarrative);
 
     const summary = el("section", "expedition-report-summary");
     summary.dataset.expeditionSummary = "";
     summary.setAttribute("aria-label", "遠征成果");
     summary.innerHTML = `<div><small>戦利品</small><strong>${report.loot.length ? report.loot.map((x) => x.name).join("、") : "なし"}</strong></div><div><small>負傷</small><strong>${report.injuries.length ? report.injuries.map((id) => state.companions.find((c) => c.id === id)?.name || id).join("、") : "なし"}</strong></div><div><small>新発見</small><strong>${report.discoveries.length ? report.discoveries.map((x) => x.name).join("、") : "なし"}</strong></div>`;
     content.append(summary);
-    renderBattleNarrative(content, report, generatedNarrative);
+    renderKamishibai(content, report, generatedNarrative);
 
     const details = el("details", "expedition-log");
+    details.dataset.expeditionDetails = "";
     details.append(el("summary", "", "時系列と戦闘数値を確認する"));
     const list = el("ol", "");
     report.log.forEach((entry) => {
