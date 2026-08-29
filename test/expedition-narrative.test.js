@@ -146,10 +146,11 @@ test("report UI uses narrative through the scroll only and keeps raw chronology 
   const reportEnd = presentation.indexOf("document.addEventListener", reportStart);
   assert.ok(reportStart >= 0 && reportEnd > reportStart);
   const reportBody = presentation.slice(reportStart, reportEnd);
-  const summaryPosition = reportBody.indexOf("content.append(summary)");
   const scrollPosition = reportBody.indexOf("renderKamishibai(content, report, generatedNarrative)");
+  const summaryPosition = reportBody.indexOf("content.append(summary)");
   const detailsPosition = reportBody.indexOf("details.dataset.expeditionDetails");
-  assert.ok(summaryPosition >= 0 && scrollPosition > summaryPosition && detailsPosition > scrollPosition, "report should read as summary → scroll → details");
+  assert.ok(scrollPosition >= 0 && summaryPosition > scrollPosition && detailsPosition > summaryPosition, "report should read as scroll → summary → details");
+  assert.match(reportBody, /details\.open = false/);
   assert.doesNotMatch(reportBody, /details\.open = true/);
 });
 
