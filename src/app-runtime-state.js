@@ -93,3 +93,13 @@ var audioContext = null;
   narrative.onerror = loadExpeditionScenes;
   document.body.appendChild(narrative);
 })();
+
+// Issue #216: the Grey Hearth wall map opens a manuscript-style atlas built
+// only from persisted coarse world knowledge. Keep it independent of the
+// expedition slice so the map remains available before or between dispatches.
+(function loadWorldAtlas() {
+  if (typeof document === "undefined" || document.querySelector('script[src="src/world-atlas.js"]')) return;
+  const atlas = document.createElement("script");
+  atlas.src = "src/world-atlas.js";
+  document.body.appendChild(atlas);
+})();

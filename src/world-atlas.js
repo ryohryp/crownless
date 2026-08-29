@@ -1,0 +1,411 @@
+(function (root, factory) {
+  "use strict";
+
+  const api = factory();
+  if (typeof module === "object" && module.exports) module.exports = api;
+  if (root) root.CrownlessWorldAtlas = api;
+  if (root && root.document) api.install(root.document, root.CrownlessCore, root);
+})(typeof globalThis !== "undefined" ? globalThis : this, function createWorldAtlas() {
+  "use strict";
+
+  const CELL_PADDING = 1;
+  const MAX_FRINGE_CELLS = 180;
+  const TERRAIN_GLYPHS = Object.freeze({
+    water: "≈",
+    crossing: "×",
+    sacred: "✣",
+    woods: "♧",
+    road_hub: "⌘",
+    height: "⌃",
+    coast: "≋",
+    settlement: "▦"
+  });
+
+  function parseCellId(value) {
+    const match = /^cell:(\d{1,2}):(\d+):(\d+)$/.exec(String(value || "").trim());
+    if (!match) return null;
+    const zoom = Number(match[1]);
+    const x = Number(match[2]);
+    const y = Number(match[3]);
+    if (!Number.isInteger(zoom) || zoom < 1 || zoom > 22) return null;
+    const size = 2 ** zoom;
+    if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x >= size || y >= size) return null;
+    return { id: `cell:${zoom}:${x}:${y}`, zoom, x, y };
+  }
+
+  function parseAreaId(value) {
+    const match = /^area:(\d{1,2}):(\d+):(\d+)$/.exec(String(value || "").trim());
+    if (!match) return null;
+    const zoom = Number(match[1]);
+    const x = Number(match[2]);
+    const y = Number(match[3]);
+    if (!Number.isInteger(zoom) || zoom < 1 || zoom > 22) return null;
+    const size = 2 ** zoom;
+    if (!Number.isInteger(x) || !Number.isInteger(y) || x < 0 || y < 0 || x >= size || y >= size) return null;
+    return { id: `area:${zoom}:${x}:${y}`, zoom, x, y };
+  }
+
+  function cleanText(value, fallback = "") {
+    const text = String(value == null ? "" : value).trim();
+    return text || fallback;
+  }
+
+  function terrainGlyph(entry) {
+    const terrain = Array.isArray(entry && entry.terrain) ? entry.terrain : [];
+    const key = terrain.find((item) => TERRAIN_GLYPHS[item]);
+    if (key) return TERRAIN_GLYPHS[key];
+    if (entry && entry.contentKind === "dungeon") return "◇";
+    if (entry && entry.contentKind === "encounter") return "†";
+    return "·";
+  }
+
+  function discoveryStateLabel(entry) {
+    if (!entry) return "探索録";
+    if (entry.state === "cleared") return "踏破済み";
+    if (entry.state === "investigated") return "調査済み / 遠征候補";
+    return "発見済み / 遠征候補";
+  }
+
+  function areaCenterInCellSpace(area, cellZoom) {
+    const parsed = typeof area === "string" ? parseAreaId(area) : area;
+    const zoom = Number(cellZoom);
+    if (!parsed || !Number.isInteger(zoom) || zoom < parsed.zoom || zoom > 22) return null;
+    const factor = 2 ** (zoom - parsed.zoom);
+    return {
+      x: parsed.x * factor + factor / 2,
+      y: parsed.y * factor + factor / 2
+    };
+  }
+
+  function fringeCells(explored, current) {
+    const cells = new Map();
+    explored.forEach((cell) => cells.set(cell.id, { ...cell, known: true, current: false }));
+    if (current && (!cells.size || current.zoom === explored[0]?.zoom)) {
+      const existing = cells.get(current.id);
+      cells.set(current.id, { ...(existing || current), known: Boolean(existing), current: true });
+    }
+
+    const anchors = [...cells.values()].filter((cell) => cell.known || cell.current);
+    let fringeCount = 0;
+    for (const anchor of anchors) {
+      if (fringeCount >= MAX_FRINGE_CELLS) break;
+      const size = 2 ** anchor.zoom;
+      for (let dy = -CELL_PADDING; dy <= CELL_PADDING; dy += 1) {
+        for (let dx = -CELL_PADDING; dx <= CELL_PADDING; dx += 1) {
+          if (dx === 0 && dy === 0) continue;
+          const x = anchor.x + dx;
+          const y = anchor.y + dy;
+          if (x < 0 || y < 0 || x >= size || y >= size) continue;
+          const id = `cell:${anchor.zoom}:${x}:${y}`;
+          if (cells.has(id)) continue;
+          cells.set(id, { id, zoom: anchor.zoom, x, y, known: false, current: false });
+          fringeCount += 1;
+          if (fringeCount >= MAX_FRINGE_CELLS) break;
+        }
+        if (fringeCount >= MAX_FRINGE_CELLS) break;
+      }
+    }
+    return [...cells.values()];
+  }
+
+  function atlasViewModel(worldKnowledge, currentCell) {
+    const knowledge = worldKnowledge && typeof worldKnowledge === "object" ? worldKnowledge : {};
+    const exploredSource = knowledge.exploredCells && typeof knowledge.exploredCells === "object" && !Array.isArray(knowledge.exploredCells)
+      ? knowledge.exploredCells
+      : {};
+    const explored = Object.keys(exploredSource).map(parseCellId).filter(Boolean);
+    const current = typeof currentCell === "string" ? parseCellId(currentCell) : parseCellId(currentCell && currentCell.id);
+    const cellZoom = explored[0]?.zoom || current?.zoom || 16;
+    const sameZoomExplored = explored.filter((cell) => cell.zoom === cellZoom);
+    const sameZoomCurrent = current && current.zoom === cellZoom ? current : null;
+    const rawCells = fringeCells(sameZoomExplored, sameZoomCurrent);
+
+    const discoveriesSource = knowledge.discoveries && typeof knowledge.discoveries === "object" && !Array.isArray(knowledge.discoveries)
+      ? knowledge.discoveries
+      : {};
+    const discoveries = [];
+    const unplacedDiscoveries = [];
+    Object.values(discoveriesSource).forEach((raw, index) => {
+      if (!raw || typeof raw !== "object") return;
+      const entry = {
+        key: cleanText(raw.key, `discovery-${index + 1}`),
+        name: cleanText(raw.name, "名もない発見"),
+        state: cleanText(raw.state, "discovered"),
+        visits: Math.max(1, Math.floor(Number(raw.visits) || 1)),
+        contentKind: cleanText(raw.contentKind, "unknown"),
+        terrain: Array.isArray(raw.terrain) ? raw.terrain.map((item) => cleanText(item)).filter(Boolean).slice(0, 8) : [],
+        areaId: cleanText(raw.areaId)
+      };
+      const area = parseAreaId(entry.areaId);
+      const point = areaCenterInCellSpace(area, cellZoom);
+      const modeled = {
+        ...entry,
+        glyph: terrainGlyph(entry),
+        stateLabel: discoveryStateLabel(entry)
+      };
+      if (!point) {
+        unplacedDiscoveries.push(modeled);
+        return;
+      }
+      discoveries.push({ ...modeled, mapX: point.x, mapY: point.y });
+    });
+
+    const coordinateXs = rawCells.map((cell) => cell.x);
+    const coordinateYs = rawCells.map((cell) => cell.y);
+    discoveries.forEach((entry) => {
+      coordinateXs.push(Math.floor(entry.mapX));
+      coordinateYs.push(Math.floor(entry.mapY));
+    });
+
+    if (!coordinateXs.length) {
+      return {
+        cellZoom,
+        exploredCount: 0,
+        discoveryCount: discoveries.length + unplacedDiscoveries.length,
+        cells: [],
+        discoveries: [],
+        unplacedDiscoveries,
+        bounds: null
+      };
+    }
+
+    const minX = Math.min(...coordinateXs);
+    const maxX = Math.max(...coordinateXs);
+    const minY = Math.min(...coordinateYs);
+    const maxY = Math.max(...coordinateYs);
+    const width = Math.max(1, maxX - minX + 1);
+    const height = Math.max(1, maxY - minY + 1);
+    const cells = rawCells.map((cell) => ({
+      ...cell,
+      left: ((cell.x - minX) / width) * 100,
+      top: ((cell.y - minY) / height) * 100,
+      width: 100 / width,
+      height: 100 / height
+    }));
+    const placedDiscoveries = discoveries.map((entry) => ({
+      ...entry,
+      left: ((entry.mapX - minX) / width) * 100,
+      top: ((entry.mapY - minY) / height) * 100
+    }));
+
+    return {
+      cellZoom,
+      exploredCount: sameZoomExplored.length,
+      discoveryCount: discoveries.length + unplacedDiscoveries.length,
+      cells,
+      discoveries: placedDiscoveries,
+      unplacedDiscoveries,
+      bounds: { minX, maxX, minY, maxY, width, height }
+    };
+  }
+
+  function ensureStylesheet(document) {
+    if (!document || document.querySelector('link[href="world-atlas.css"]')) return;
+    const link = document.createElement("link");
+    link.rel = "stylesheet";
+    link.href = "world-atlas.css";
+    document.head.appendChild(link);
+  }
+
+  function closeAtlas(document) {
+    const viewer = document && document.getElementById("world-atlas-viewer");
+    if (viewer) viewer.remove();
+    document && document.body && document.body.classList.remove("world-atlas-open");
+  }
+
+  function createDetail(document, entry) {
+    const detail = document.createElement("div");
+    detail.className = "world-atlas-detail";
+    const kicker = document.createElement("small");
+    kicker.textContent = "MAP NOTE / 探索録";
+    const title = document.createElement("strong");
+    title.textContent = entry ? entry.name : "墨印を選ぶ";
+    const state = document.createElement("span");
+    state.textContent = entry
+      ? `${entry.stateLabel} · VISIT ${entry.visits}`
+      : "地図上の墨印を選ぶと、既知情報をここに開く。";
+    const terrain = document.createElement("em");
+    terrain.textContent = entry && entry.terrain.length ? entry.terrain.join(" / ") : "粗い地勢だけが記録されている。";
+    detail.append(kicker, title, state, terrain);
+    return detail;
+  }
+
+  function openAtlas(document, Core, root) {
+    if (!document || !Core || typeof Core.loadSafeState !== "function") return false;
+    closeAtlas(document);
+    ensureStylesheet(document);
+
+    const safe = Core.loadSafeState();
+    const currentCell = root && root.CrownlessExplorationCells && typeof root.CrownlessExplorationCells.currentCell === "function"
+      ? root.CrownlessExplorationCells.currentCell()
+      : null;
+    const model = atlasViewModel(safe && safe.worldKnowledge, currentCell);
+
+    const viewer = document.createElement("div");
+    viewer.id = "world-atlas-viewer";
+    viewer.className = "world-atlas-viewer";
+    viewer.setAttribute("role", "dialog");
+    viewer.setAttribute("aria-modal", "true");
+    viewer.setAttribute("aria-label", "Crownless 世界地図");
+
+    const folio = document.createElement("section");
+    folio.className = "world-atlas-folio";
+
+    const header = document.createElement("header");
+    header.className = "world-atlas-header";
+    const heading = document.createElement("div");
+    const eyebrow = document.createElement("p");
+    eyebrow.className = "eyebrow";
+    eyebrow.textContent = "THE WRITTEN WORLD / WORLD ATLAS";
+    const title = document.createElement("h2");
+    title.textContent = "歩いて書いた世界";
+    const summary = document.createElement("span");
+    summary.textContent = `既知領域 ${model.exploredCount} · 探索録 ${model.discoveryCount}`;
+    heading.append(eyebrow, title, summary);
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "world-atlas-close";
+    close.textContent = "閉じる ×";
+    close.setAttribute("aria-label", "世界地図を閉じる");
+    close.addEventListener("click", () => closeAtlas(document));
+    header.append(heading, close);
+
+    const body = document.createElement("div");
+    body.className = "world-atlas-body";
+    const map = document.createElement("div");
+    map.className = "world-atlas-map";
+    map.setAttribute("role", "img");
+    map.setAttribute("aria-label", `探索済み領域 ${model.exploredCount}。未踏領域との境界と発見地点を示す粗い羊皮紙地図。`);
+
+    if (!model.cells.length) {
+      const blank = document.createElement("div");
+      blank.className = "world-atlas-blank";
+      blank.innerHTML = "<strong>まだ世界は書かれていない。</strong><span>現実を歩いて粗い領域を発見すると、ここに墨が増えていく。</span>";
+      map.appendChild(blank);
+    } else {
+      model.cells.slice().sort((a, b) => Number(a.known) - Number(b.known)).forEach((entry) => {
+        const cell = document.createElement("span");
+        cell.className = `world-atlas-cell ${entry.known ? "known" : "unknown"}${entry.current ? " current" : ""}`;
+        cell.style.left = `${entry.left}%`;
+        cell.style.top = `${entry.top}%`;
+        cell.style.width = `${entry.width}%`;
+        cell.style.height = `${entry.height}%`;
+        cell.setAttribute("aria-hidden", "true");
+        map.appendChild(cell);
+      });
+    }
+
+    let detail = createDetail(document, model.discoveries[0] || model.unplacedDiscoveries[0] || null);
+    model.discoveries.forEach((entry, index) => {
+      const marker = document.createElement("button");
+      marker.type = "button";
+      marker.className = "world-atlas-marker";
+      marker.style.left = `${entry.left}%`;
+      marker.style.top = `${entry.top}%`;
+      marker.dataset.state = entry.state;
+      marker.setAttribute("aria-label", `${entry.name}。${entry.stateLabel}。訪問 ${entry.visits}。`);
+      const glyph = document.createElement("i");
+      glyph.textContent = entry.glyph;
+      const number = document.createElement("small");
+      number.textContent = String(index + 1).padStart(2, "0");
+      marker.append(glyph, number);
+      marker.addEventListener("click", () => {
+        const nextDetail = createDetail(document, entry);
+        detail.replaceWith(nextDetail);
+        detail = nextDetail;
+        Array.from(map.querySelectorAll(".world-atlas-marker")).forEach((node) => node.classList.toggle("active", node === marker));
+      });
+      map.appendChild(marker);
+    });
+
+    const side = document.createElement("aside");
+    side.className = "world-atlas-side";
+    side.appendChild(detail);
+
+    if (model.unplacedDiscoveries.length) {
+      const unplaced = document.createElement("div");
+      unplaced.className = "world-atlas-unplaced";
+      const label = document.createElement("small");
+      label.textContent = "UNANCHORED NOTES / 所在未確定";
+      unplaced.appendChild(label);
+      model.unplacedDiscoveries.slice(0, 6).forEach((entry) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = entry.name;
+        button.addEventListener("click", () => {
+          const nextDetail = createDetail(document, entry);
+          detail.replaceWith(nextDetail);
+          detail = nextDetail;
+        });
+        unplaced.appendChild(button);
+      });
+      side.appendChild(unplaced);
+    }
+
+    const locationVisuals = root && root.CrownlessLocationVisuals;
+    const resolved = locationVisuals && typeof locationVisuals.resolveLatestDiscoveredVisual === "function"
+      ? locationVisuals.resolveLatestDiscoveredVisual(safe && safe.worldKnowledge)
+      : null;
+    const assetPath = resolved && resolved.visual ? cleanText(resolved.visual.assetPath) : "";
+    if (assetPath) {
+      const figure = document.createElement("figure");
+      figure.className = "world-atlas-latest-visual";
+      const image = document.createElement("img");
+      image.src = assetPath;
+      image.alt = cleanText(resolved.visual.alt, cleanText(resolved.entry && resolved.entry.name, "最新の発見地点"));
+      image.loading = "lazy";
+      const caption = document.createElement("figcaption");
+      caption.textContent = `最新の墨絵 · ${cleanText(resolved.entry && resolved.entry.name, "発見地点")}`;
+      figure.append(image, caption);
+      side.appendChild(figure);
+    }
+
+    body.append(map, side);
+    const note = document.createElement("p");
+    note.className = "world-atlas-note";
+    note.textContent = "正確な道路図ではない。歩いて知った領域と、残った探索録だけが羊皮紙に書き足される。";
+    folio.append(header, body, note);
+    viewer.appendChild(folio);
+
+    viewer.addEventListener("click", (event) => {
+      if (event.target === viewer) closeAtlas(document);
+    });
+    viewer.addEventListener("keydown", (event) => {
+      if (event.key === "Escape") closeAtlas(document);
+    });
+    document.body.appendChild(viewer);
+    document.body.classList.add("world-atlas-open");
+    close.focus();
+    return true;
+  }
+
+  function install(document, Core, root) {
+    if (!document || !Core || Core.__worldAtlasInstalled) return false;
+    const wallMap = document.getElementById("hearth-map-focus");
+    if (!wallMap) return false;
+    ensureStylesheet(document);
+    wallMap.setAttribute("aria-label", "これまで歩いて書いた世界地図を開く");
+    wallMap.addEventListener("click", (event) => {
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      openAtlas(document, Core, root);
+    }, true);
+    Core.__worldAtlasInstalled = true;
+    return true;
+  }
+
+  return {
+    CELL_PADDING,
+    MAX_FRINGE_CELLS,
+    TERRAIN_GLYPHS,
+    parseCellId,
+    parseAreaId,
+    areaCenterInCellSpace,
+    terrainGlyph,
+    discoveryStateLabel,
+    atlasViewModel,
+    closeAtlas,
+    openAtlas,
+    install
+  };
+});
