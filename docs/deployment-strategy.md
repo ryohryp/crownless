@@ -10,6 +10,10 @@ Use GitHub Pages for the latest tested `main` build while the app is under activ
 
 - `.github/workflows/test.yml` validates every relevant branch and `main`.
 - `.github/workflows/pages.yml` runs after the `test` workflow completes on `main` and publishes only when that run succeeded.
+- Merging a pull request into `main` requires no separate Pages deployment step: a successful `main` test run automatically publishes that exact tested commit.
+- If the `main` test run fails, Pages is not updated and the previously published build remains available.
+- Consecutive Pages deployments use a single concurrency group with `cancel-in-progress: true`, so the newest tested `main` commit wins during rapid merges.
+- `workflow_dispatch` remains available as a manual recovery / re-run path without changing the normal automatic flow.
 - Feature branches are validated by CI but do not need a hosted preview for every commit.
 - This is the primary URL for frequent phone and browser playtests.
 
@@ -110,4 +114,6 @@ Before a Vercel production release:
 
 - Vercel Git auto-deployment remains disabled.
 - GitHub Pages remains gated by successful `main` CI rather than publishing every feature commit.
+- GitHub Pages checks out the exact commit SHA that passed `main` CI.
+- GitHub Pages keeps a manual recovery trigger and latest-deploy-wins concurrency policy.
 - Vercel Production deployment remains manual-only, restricted to `main`, and deploys a prebuilt Production artifact.
