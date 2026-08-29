@@ -22,19 +22,20 @@ test("runtime loads scene projection, battle composition, and kamishibai styles 
   assert.match(runtime, /composition\.onerror = loadExpeditionDomain/);
 });
 
-test("completed report reads as result summary then kamishibai then details", () => {
+test("completed report reads as kamishibai then result summary then details", () => {
   const reportStart = presentation.indexOf("function renderReport");
   const reportEnd = presentation.indexOf("document.addEventListener", reportStart);
   assert.ok(reportStart >= 0 && reportEnd > reportStart);
   const reportBody = presentation.slice(reportStart, reportEnd);
-  const summaryCall = reportBody.indexOf('const summary = el("section", "expedition-report-summary")');
   const sceneCall = reportBody.indexOf("renderKamishibai(content, report, generatedNarrative)");
+  const summaryCall = reportBody.indexOf('const summary = el("section", "expedition-report-summary")');
   const detailsCall = reportBody.indexOf("details.dataset.expeditionDetails");
-  assert.ok(summaryCall >= 0, "result summary should exist");
-  assert.ok(sceneCall > summaryCall, "kamishibai should follow the result summary");
-  assert.ok(detailsCall > sceneCall, "raw details should follow the kamishibai");
-  assert.match(presentation, /詳細へ ↓/);
-  assert.match(presentation, /詳細を見る ↓/);
+  assert.ok(sceneCall >= 0, "kamishibai should exist");
+  assert.ok(summaryCall > sceneCall, "result summary should follow the kamishibai");
+  assert.ok(detailsCall > summaryCall, "raw details should follow the result summary");
+  assert.match(presentation, /成果へ ↓/);
+  assert.match(presentation, /成果を見る ↓/);
+  assert.match(reportBody, /details\.open = false/);
 });
 
 test("paper theatre is the only authored story surface while raw chronology remains available", () => {
@@ -46,6 +47,35 @@ test("paper theatre is the only authored story surface while raw chronology rema
   assert.match(presentation, /時系列と戦闘数値を確認する/);
   assert.match(presentation, /details\.dataset\.expeditionDetails/);
   assert.match(presentation, /expedition-log/);
+});
+
+test("scene kind deterministically controls the visible phase label", () => {
+  assert.match(presentation, /"combat-opening": "遭遇"/);
+  assert.match(presentation, /"combat-climax": "戦闘"/);
+  assert.match(presentation, /injury: "負傷"/);
+  assert.match(presentation, /retreat: "撤退"/);
+  assert.match(presentation, /defeat: "敗走"/);
+  assert.match(presentation, /return: "帰還"/);
+  assert.match(presentation, /discovery: "発見"/);
+  assert.match(presentation, /loot: "戦利品"/);
+  assert.match(presentation, /scenePhaseLabel\(scene\)/);
+  assert.doesNotMatch(presentation, /遠征の途中/);
+});
+
+test("paper theatre keeps one page counter and two-button navigation", () => {
+  assert.match(presentation, /sceneMark\.textContent/);
+  assert.doesNotMatch(presentation, /expedition-kamishibai__counter/);
+  assert.doesNotMatch(styles, /\.expedition-kamishibai__counter/);
+  assert.match(styles, /\.expedition-kamishibai__nav\s*\{[^}]*grid-template-columns:\s*1fr 1fr/s);
+  assert.match(presentation, /← 前の場面/);
+  assert.match(presentation, /次の場面 →/);
+});
+
+test("completed chronology is visually subordinate and explicitly collapsed", () => {
+  assert.match(presentation, /details\.open = false/);
+  assert.match(styles, /\.expedition-log\[data-expedition-details\]/);
+  assert.match(styles, /\.expedition-log\[data-expedition-details\] > summary/);
+  assert.match(styles, /font-size:\s*\.82rem/);
 });
 
 test("battle scenes render composition layers while keeping the fixed-asset fallback", () => {
