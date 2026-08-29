@@ -118,10 +118,11 @@ test("victory retreat and defeat finish with different aftertastes", () => {
   assert.match(finish(defeat), /支えきれ|膝|崩れ/);
 });
 
-test("report UI loads narrative before scene and domain layers and keeps completed raw chronology collapsed", () => {
+test("report UI uses narrative through the scroll only and keeps raw chronology collapsed", () => {
   const root = path.join(__dirname, "..");
   const runtime = fs.readFileSync(path.join(root, "src", "app-runtime-state.js"), "utf8");
   const presentation = fs.readFileSync(path.join(root, "src", "expedition-presentation.js"), "utf8");
+  const css = fs.readFileSync(path.join(root, "expedition.css"), "utf8");
   const narrativeLoad = runtime.indexOf('narrative.src = "src/expedition-narrative.js"');
   const sceneLoad = runtime.indexOf('scenes.src = "src/expedition-scenes.js"');
   const domainLoad = runtime.indexOf('domain.src = "src/expedition-system.js"');
@@ -129,13 +130,25 @@ test("report UI loads narrative before scene and domain layers and keeps complet
   assert.match(runtime, /narrative\.onload = loadExpeditionScenes/);
   assert.match(runtime, /scenes\.onload = loadExpeditionDomain/);
   assert.match(presentation, /buildExpeditionNarrative/);
-  assert.match(presentation, /BATTLE NARRATIVE/);
-  assert.match(presentation, /遠征記/);
+  assert.match(presentation, /renderKamishibai\(content, report, generatedNarrative\)/);
+  assert.match(presentation, /EXPEDITION SCENES/);
+  assert.match(presentation, /遠征絵巻/);
+  assert.doesNotMatch(presentation, /BATTLE NARRATIVE/);
+  assert.doesNotMatch(presentation, /遠征記/);
+  assert.doesNotMatch(presentation, /renderBattleNarrative/);
+  assert.doesNotMatch(css, /\.expedition-narrative/);
   assert.match(presentation, /時系列と戦闘数値を確認する/);
+  assert.match(presentation, /details\.dataset\.expeditionDetails/);
+
   const reportStart = presentation.indexOf("function renderReport");
   const reportEnd = presentation.indexOf("document.addEventListener", reportStart);
   assert.ok(reportStart >= 0 && reportEnd > reportStart);
-  assert.doesNotMatch(presentation.slice(reportStart, reportEnd), /details\.open = true/);
+  const reportBody = presentation.slice(reportStart, reportEnd);
+  const summaryPosition = reportBody.indexOf("content.append(summary)");
+  const scrollPosition = reportBody.indexOf("renderKamishibai(content, report, generatedNarrative)");
+  const detailsPosition = reportBody.indexOf("details.dataset.expeditionDetails");
+  assert.ok(summaryPosition >= 0 && scrollPosition > summaryPosition && detailsPosition > scrollPosition, "report should read as summary → scroll → details");
+  assert.doesNotMatch(reportBody, /details\.open = true/);
 });
 
 test("active expedition UI progressively reveals only elapsed log entries", () => {

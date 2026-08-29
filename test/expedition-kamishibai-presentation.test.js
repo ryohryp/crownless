@@ -17,18 +17,29 @@ test("runtime loads scene projection and kamishibai styles before report present
   assert.match(runtime, /scenes\.onerror = loadExpeditionDomain/);
 });
 
-test("completed report renders kamishibai before the result summary", () => {
-  const sceneCall = presentation.indexOf("renderKamishibai(content, report, generatedNarrative)");
-  const summaryCall = presentation.indexOf('const summary = el("section", "expedition-report-summary")');
-  assert.ok(sceneCall >= 0, "kamishibai render call should exist");
-  assert.ok(summaryCall > sceneCall, "kamishibai should be the primary report surface");
-  assert.match(presentation, /dataExpeditionSummary|dataset\.expeditionSummary/);
-  assert.match(presentation, /成果を見る ↓/);
+test("completed report reads as result summary then kamishibai then details", () => {
+  const reportStart = presentation.indexOf("function renderReport");
+  const reportEnd = presentation.indexOf("document.addEventListener", reportStart);
+  assert.ok(reportStart >= 0 && reportEnd > reportStart);
+  const reportBody = presentation.slice(reportStart, reportEnd);
+  const summaryCall = reportBody.indexOf('const summary = el("section", "expedition-report-summary")');
+  const sceneCall = reportBody.indexOf("renderKamishibai(content, report, generatedNarrative)");
+  const detailsCall = reportBody.indexOf("details.dataset.expeditionDetails");
+  assert.ok(summaryCall >= 0, "result summary should exist");
+  assert.ok(sceneCall > summaryCall, "kamishibai should follow the result summary");
+  assert.ok(detailsCall > sceneCall, "raw details should follow the kamishibai");
+  assert.match(presentation, /詳細へ ↓/);
+  assert.match(presentation, /詳細を見る ↓/);
 });
 
-test("paper theatre keeps both narrative and raw chronology available", () => {
-  assert.match(presentation, /renderBattleNarrative\(content, report, generatedNarrative\)/);
+test("paper theatre is the only authored story surface while raw chronology remains available", () => {
+  assert.match(presentation, /buildExpeditionNarrative/);
+  assert.match(presentation, /renderKamishibai\(content, report, generatedNarrative\)/);
+  assert.doesNotMatch(presentation, /renderBattleNarrative/);
+  assert.doesNotMatch(presentation, /BATTLE NARRATIVE/);
+  assert.doesNotMatch(presentation, /遠征記/);
   assert.match(presentation, /時系列と戦闘数値を確認する/);
+  assert.match(presentation, /details\.dataset\.expeditionDetails/);
   assert.match(presentation, /expedition-log/);
 });
 
