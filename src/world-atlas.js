@@ -10,6 +10,7 @@
 
   const CELL_PADDING = 1;
   const MAX_FRINGE_CELLS = 180;
+  const SCAN_COOLDOWN_MS = 30000;
   const TERRAIN_GLYPHS = Object.freeze({
     water: "≈",
     crossing: "×",
@@ -20,6 +21,8 @@
     coast: "≋",
     settlement: "▦"
   });
+  let lastScanAt = 0;
+  let lastScanResult = null;
 
   function parseCellId(value) {
     const match = /^cell:(\d{1,2}):(\d+):(\d+)$/.exec(String(value || "").trim());
@@ -199,6 +202,130 @@
     };
   }
 
+  function fallbackDiscoveryKey(discovery) {
+    const sourceRef = cleanText(discovery && discovery.sourceRef);
+    if (!sourceRef) return "";
+    const features = Array.isArray(discovery && discovery.features)
+      ? discovery.features.map((item) => cleanText(item)).filter(Boolean).sort()
+      : [];
+    const kind = cleanText(discovery && discovery.contentKind, "unknown");
+    return `geo:${sourceRef}:${kind}:${features.length ? features.join("+") : "unknown"}`;
+  }
+
+  function coarseAreaForDiscovery(Core, runtime, discovery) {
+    const coordinate = discovery && (discovery.representativeCoordinate || discovery.mapOrigin);
+    if (coordinate && Core && typeof Core.explorationAreaFromLocation === "function") {
+      const area = Core.explorationAreaFromLocation(coordinate);
+      if (area && area.id) return area.id;
+    }
+    return cleanText(runtime && runtime.currentAreaId);
+  }
+
+  function rememberScannedDiscoveries(Core, runtime, now = Date.now()) {
+    const empty = { state: null, newCount: 0, rememberedCount: 0, currentCell: null };
+    if (!Core || typeof Core.loadSafeState !== "function" || typeof Core.saveWorldKnowledge !== "function" || !runtime) return empty;
+    const safe = Core.loadSafeState();
+    if (!safe) return empty;
+    if (typeof Core.sanitizeWorldKnowledge === "function") safe.worldKnowledge = Core.sanitizeWorldKnowledge(safe.worldKnowledge);
+    if (!safe.worldKnowledge || typeof safe.worldKnowledge !== "object") safe.worldKnowledge = { discoveries: {} };
+    if (!safe.worldKnowledge.discoveries || typeof safe.worldKnowledge.discoveries !== "object") safe.worldKnowledge.discoveries = {};
+
+    const discoveries = Array.isArray(runtime.discoveries) ? runtime.discoveries : [];
+    let currentCell = null;
+    const mapOrigin = discoveries.find((entry) => entry && entry.mapOrigin)?.mapOrigin || null;
+    if (mapOrigin && typeof Core.recordExploredCell === "function") {
+      const explored = Core.recordExploredCell(safe, mapOrigin, now);
+      currentCell = explored && explored.cell ? explored.cell : null;
+    }
+
+    let newCount = 0;
+    discoveries.forEach((discovery, index) => {
+      if (!discovery || typeof discovery !== "object") return;
+      const key = typeof runtime.worldKnowledgeKey === "function"
+        ? cleanText(runtime.worldKnowledgeKey(discovery))
+        : fallbackDiscoveryKey(discovery);
+      if (!key) return;
+      const previous = safe.worldKnowledge.discoveries[key] || null;
+      const terrain = Array.isArray(discovery.features)
+        ? [...new Set(discovery.features.map((item) => cleanText(item)).filter(Boolean))].slice(0, 8)
+        : [];
+      const areaId = coarseAreaForDiscovery(Core, runtime, discovery);
+      const next = previous ? { ...previous } : {
+        key,
+        name: cleanText(discovery.title, `発見地点 ${index + 1}`),
+        baseTitle: cleanText(discovery.baseTitle),
+        terrain,
+        contentKind: cleanText(discovery.contentKind, "unknown"),
+        state: "discovered",
+        firstDiscoveredAt: Number(now) > 0 ? Number(now) : Date.now(),
+        visits: 1
+      };
+      next.name = cleanText(discovery.title, next.name || `発見地点 ${index + 1}`);
+      if (cleanText(discovery.baseTitle)) next.baseTitle = cleanText(discovery.baseTitle);
+      if (terrain.length) next.terrain = terrain;
+      if (cleanText(discovery.contentKind)) next.contentKind = cleanText(discovery.contentKind);
+      if (areaId) next.areaId = areaId;
+      safe.worldKnowledge.discoveries[key] = next;
+      if (!previous) newCount += 1;
+    });
+
+    Core.saveWorldKnowledge(safe);
+    return {
+      state: safe,
+      newCount,
+      rememberedCount: discoveries.length,
+      currentCell
+    };
+  }
+
+  async function scanNearby(Core, root, options = {}) {
+    const runtime = root && root.CrownlessLocationDiscoveryRuntime;
+    const now = Date.now();
+    if (!runtime || typeof runtime.reload !== "function") {
+      return { state: "unavailable", foundCount: 0, newCount: 0, rememberedCount: 0, currentCell: null, cached: false };
+    }
+    if (!options.force && lastScanResult && now - lastScanAt < SCAN_COOLDOWN_MS) {
+      return { ...lastScanResult, cached: true };
+    }
+
+    try {
+      const found = await runtime.reload();
+      const remembered = rememberScannedDiscoveries(Core, runtime, now);
+      const result = {
+        state: runtime.state === "ready" ? "ready" : runtime.state === "denied" ? "denied" : "failed",
+        foundCount: Array.isArray(found) ? found.length : 0,
+        newCount: remembered.newCount,
+        rememberedCount: remembered.rememberedCount,
+        currentCell: remembered.currentCell,
+        cached: false
+      };
+      lastScanAt = now;
+      lastScanResult = result;
+      if (root && typeof root.dispatchEvent === "function" && typeof root.CustomEvent === "function") {
+        root.dispatchEvent(new root.CustomEvent("crownless:world-knowledge-updated", { detail: { source: "atlas-scan", ...result } }));
+      }
+      return result;
+    } catch (_) {
+      const result = { state: "failed", foundCount: 0, newCount: 0, rememberedCount: 0, currentCell: null, cached: false };
+      lastScanAt = now;
+      lastScanResult = result;
+      return result;
+    }
+  }
+
+  function scanResultText(result, scanning) {
+    if (scanning) return "現在地を読み取り、周囲の地形と施設を照合している…";
+    if (!result) return "地図を開くと現在地の周囲を調べ、新しい遠征候補を探索録へ残す。";
+    if (result.state === "ready") {
+      if (!result.foundCount) return "周囲を調べたが、今は遠征候補になる痕跡を見つけられなかった。";
+      if (result.newCount) return `周囲から ${result.foundCount} 件を照合。新しく ${result.newCount} 件を探索録へ書き足した。`;
+      return `周囲の ${result.foundCount} 件を照合。すべて既知の探索候補だった。`;
+    }
+    if (result.state === "denied") return "位置情報を使えない。記憶済みの地図はそのまま閲覧できる。";
+    if (result.state === "unavailable") return "周辺調査を利用できない。記憶済みの地図を表示している。";
+    return "周辺情報を読み取れなかった。記憶済みの地図は失われない。";
+  }
+
   function ensureStylesheet(document) {
     if (!document || document.querySelector('link[href="world-atlas.css"]')) return;
     const link = document.createElement("link");
@@ -230,15 +357,16 @@
     return detail;
   }
 
-  function openAtlas(document, Core, root) {
+  function openAtlas(document, Core, root, options = {}) {
     if (!document || !Core || typeof Core.loadSafeState !== "function") return false;
     closeAtlas(document);
     ensureStylesheet(document);
 
     const safe = Core.loadSafeState();
-    const currentCell = root && root.CrownlessExplorationCells && typeof root.CrownlessExplorationCells.currentCell === "function"
+    const runtimeCurrent = root && root.CrownlessExplorationCells && typeof root.CrownlessExplorationCells.currentCell === "function"
       ? root.CrownlessExplorationCells.currentCell()
       : null;
+    const currentCell = options.scanResult && options.scanResult.currentCell ? options.scanResult.currentCell : runtimeCurrent;
     const model = atlasViewModel(safe && safe.worldKnowledge, currentCell);
 
     const viewer = document.createElement("div");
@@ -270,6 +398,22 @@
     close.addEventListener("click", () => closeAtlas(document));
     header.append(heading, close);
 
+    const scan = document.createElement("div");
+    scan.className = `world-atlas-scan${options.scanning ? " scanning" : ""}`;
+    scan.setAttribute("role", "status");
+    scan.setAttribute("aria-live", "polite");
+    const scanCopy = document.createElement("div");
+    const scanKicker = document.createElement("small");
+    scanKicker.textContent = "READING THE NEARBY WORLD / GPS";
+    const scanText = document.createElement("span");
+    scanText.textContent = scanResultText(options.scanResult, Boolean(options.scanning));
+    scanCopy.append(scanKicker, scanText);
+    const rescan = document.createElement("button");
+    rescan.type = "button";
+    rescan.textContent = "周辺を再調査";
+    rescan.disabled = Boolean(options.scanning);
+    scan.append(scanCopy, rescan);
+
     const body = document.createElement("div");
     body.className = "world-atlas-body";
     const map = document.createElement("div");
@@ -280,7 +424,7 @@
     if (!model.cells.length) {
       const blank = document.createElement("div");
       blank.className = "world-atlas-blank";
-      blank.innerHTML = "<strong>まだ世界は書かれていない。</strong><span>現実を歩いて粗い領域を発見すると、ここに墨が増えていく。</span>";
+      blank.innerHTML = "<strong>まだ世界は書かれていない。</strong><span>現在地の周囲を調べたり、現実を歩いたりすると、ここに墨が増えていく。</span>";
       map.appendChild(blank);
     } else {
       model.cells.slice().sort((a, b) => Number(a.known) - Number(b.known)).forEach((entry) => {
@@ -363,8 +507,8 @@
     body.append(map, side);
     const note = document.createElement("p");
     note.className = "world-atlas-note";
-    note.textContent = "正確な道路図ではない。歩いて知った領域と、残った探索録だけが羊皮紙に書き足される。";
-    folio.append(header, body, note);
+    note.textContent = "正確な道路図ではない。GPSは周囲の痕跡を見つけるためだけに使い、保存するのは粗い領域と探索録だけだ。";
+    folio.append(header, scan, body, note);
     viewer.appendChild(folio);
 
     viewer.addEventListener("click", (event) => {
@@ -376,6 +520,20 @@
     document.body.appendChild(viewer);
     document.body.classList.add("world-atlas-open");
     close.focus();
+
+    function runScan(force) {
+      if (!viewer.isConnected) return;
+      rescan.disabled = true;
+      scan.classList.add("scanning");
+      scanText.textContent = scanResultText(null, true);
+      Promise.resolve(scanNearby(Core, root, { force })).then((result) => {
+        if (!viewer.isConnected || document.getElementById("world-atlas-viewer") !== viewer) return;
+        openAtlas(document, Core, root, { autoScan: false, scanResult: result });
+      });
+    }
+
+    rescan.addEventListener("click", () => runScan(true));
+    if (options.autoScan !== false && !options.scanning) runScan(false);
     return true;
   }
 
@@ -384,7 +542,7 @@
     const wallMap = document.getElementById("hearth-map-focus");
     if (!wallMap) return false;
     ensureStylesheet(document);
-    wallMap.setAttribute("aria-label", "これまで歩いて書いた世界地図を開く");
+    wallMap.setAttribute("aria-label", "現在地周辺を調べ、これまで歩いて書いた世界地図を開く");
     wallMap.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopImmediatePropagation();
@@ -397,6 +555,7 @@
   return {
     CELL_PADDING,
     MAX_FRINGE_CELLS,
+    SCAN_COOLDOWN_MS,
     TERRAIN_GLYPHS,
     parseCellId,
     parseAreaId,
@@ -404,6 +563,11 @@
     terrainGlyph,
     discoveryStateLabel,
     atlasViewModel,
+    fallbackDiscoveryKey,
+    coarseAreaForDiscovery,
+    rememberScannedDiscoveries,
+    scanNearby,
+    scanResultText,
     closeAtlas,
     openAtlas,
     install
