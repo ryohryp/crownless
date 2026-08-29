@@ -5,6 +5,7 @@
   const system = window.CrownlessExpeditionSystem;
   const narrative = window.CrownlessExpeditionNarrative;
   const sceneProjection = window.CrownlessExpeditionScenes;
+  const visualComposition = window.CrownlessExpeditionVisualComposition;
   if (!system) return;
 
   function load() {
@@ -292,6 +293,29 @@
     details.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
   }
 
+  function appendBattleComposition(visual, composition) {
+    composition.layers.forEach((layer) => {
+      const side = layer.side === "enemy" ? "enemy" : "ally";
+      const layerNode = el("span", `expedition-kamishibai__battle-layer expedition-kamishibai__battle-layer--${side} expedition-kamishibai__battle-layer--${layer.slot}`);
+      layerNode.setAttribute("aria-hidden", "true");
+      if (layer.actorId) layerNode.dataset.actorId = layer.actorId;
+      if (Number.isFinite(layer.enemyIndex)) layerNode.dataset.enemyIndex = String(layer.enemyIndex);
+      if (layer.focal) layerNode.dataset.focal = "true";
+
+      if (layer.assetPath) {
+        const image = document.createElement("img");
+        image.src = layer.assetPath;
+        image.alt = "";
+        image.setAttribute("aria-hidden", "true");
+        image.draggable = false;
+        layerNode.append(image);
+      } else {
+        layerNode.classList.add("expedition-kamishibai__battle-layer--silhouette");
+      }
+      visual.append(layerNode);
+    });
+  }
+
   function renderKamishibai(content, report, generatedNarrative) {
     if (!sceneProjection || typeof sceneProjection.buildExpeditionScenes !== "function") return false;
     const deck = sceneProjection.buildExpeditionScenes({
@@ -343,25 +367,39 @@
       const resolved = typeof sceneProjection.resolveVisual === "function"
         ? sceneProjection.resolveVisual(scene.visualKey)
         : { key: scene.visualKey, motif: "road" };
+      const composition = visualComposition && typeof visualComposition.buildBattleComposition === "function"
+        ? visualComposition.buildBattleComposition({ scene, report, destinations: state.destinations })
+        : null;
       const phaseLabel = scene.phase === "opening" ? "旅のはじまり" : scene.phase === "ending" ? "帰還" : "遠征の途中";
 
       visual.replaceChildren();
       visual.dataset.visualKey = resolved.key || scene.visualKey;
       visual.dataset.motif = resolved.motif || "road";
+      delete visual.dataset.sceneKind;
+      delete visual.dataset.outcome;
+      delete visual.dataset.terrain;
       visual.setAttribute("role", "img");
       visual.setAttribute("aria-label", resolved.alt || scene.headline);
-      if (resolved.assetPath) {
-        const image = document.createElement("img");
-        image.className = `expedition-kamishibai__asset expedition-kamishibai__asset--${resolved.assetRole || "figure"}`;
-        image.src = resolved.assetPath;
-        image.alt = "";
-        image.setAttribute("aria-hidden", "true");
-        visual.append(image);
-      }
-      if (resolved.glyph) {
-        const glyph = el("span", "expedition-kamishibai__glyph", resolved.glyph);
-        glyph.setAttribute("aria-hidden", "true");
-        visual.append(glyph);
+
+      if (composition) {
+        visual.dataset.sceneKind = composition.kind;
+        visual.dataset.outcome = composition.outcome;
+        visual.dataset.terrain = composition.terrain;
+        appendBattleComposition(visual, composition);
+      } else {
+        if (resolved.assetPath) {
+          const image = document.createElement("img");
+          image.className = `expedition-kamishibai__asset expedition-kamishibai__asset--${resolved.assetRole || "figure"}`;
+          image.src = resolved.assetPath;
+          image.alt = "";
+          image.setAttribute("aria-hidden", "true");
+          visual.append(image);
+        }
+        if (resolved.glyph) {
+          const glyph = el("span", "expedition-kamishibai__glyph", resolved.glyph);
+          glyph.setAttribute("aria-hidden", "true");
+          visual.append(glyph);
+        }
       }
 
       sceneMark.textContent = `${String(reportSceneCursor + 1).padStart(2, "0")} / ${String(deck.scenes.length).padStart(2, "0")}`;
