@@ -14,14 +14,28 @@ test('Vercel automatic Git deployments stay disabled', () => {
   assert.equal(config.git?.deploymentEnabled, false);
 });
 
-test('GitHub Pages publishes only after successful main CI', () => {
+test('GitHub Pages automatically publishes only a successful tested main commit', () => {
   const workflow = read('.github/workflows/pages.yml');
 
   assert.match(workflow, /workflow_run:/);
   assert.match(workflow, /workflows:\s*\["test"\]/);
+  assert.match(workflow, /types:\s*\[completed\]/);
   assert.match(workflow, /branches:\s*\[main\]/);
   assert.match(workflow, /workflow_run\.conclusion == 'success'/);
+  assert.match(workflow, /ref:\s*\$\{\{ github\.event_name == 'workflow_run' && github\.event\.workflow_run\.head_sha \|\| github\.sha \}\}/);
+  assert.doesNotMatch(workflow, /\n\s*push:/);
   assert.doesNotMatch(workflow, /enablement:\s*true/);
+});
+
+test('GitHub Pages keeps manual recovery and latest-deploy-wins safeguards', () => {
+  const workflow = read('.github/workflows/pages.yml');
+
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /group:\s*github-pages/);
+  assert.match(workflow, /cancel-in-progress:\s*true/);
+  assert.match(workflow, /pages:\s*write/);
+  assert.match(workflow, /id-token:\s*write/);
+  assert.match(workflow, /actions\/deploy-pages@v4/);
 });
 
 test('Vercel Production deploys frontend and geography changes from main and remains manually runnable', () => {
