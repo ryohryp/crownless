@@ -151,6 +151,7 @@ test("report UI uses narrative through the scroll only and keeps raw chronology 
   const detailsPosition = reportBody.indexOf("details.dataset.expeditionDetails");
   assert.ok(scrollPosition >= 0 && summaryPosition > scrollPosition && detailsPosition > summaryPosition, "report should read as scroll → summary → details");
   assert.match(reportBody, /details\.open = false/);
+  assert.doesNotMatch(reportBody, /details\.open = true/);
 });
 
 test("active expedition UI progressively reveals only elapsed log entries", () => {

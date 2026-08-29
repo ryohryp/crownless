@@ -28,33 +28,14 @@ test("completed report reads as kamishibai then result summary then details", ()
   assert.ok(reportStart >= 0 && reportEnd > reportStart);
   const reportBody = presentation.slice(reportStart, reportEnd);
   const sceneCall = reportBody.indexOf("renderKamishibai(content, report, generatedNarrative)");
-  const summaryCall = reportBody.indexOf("content.append(summary)");
+  const summaryCall = reportBody.indexOf('const summary = el("section", "expedition-report-summary")');
   const detailsCall = reportBody.indexOf("details.dataset.expeditionDetails");
   assert.ok(sceneCall >= 0, "kamishibai should exist");
   assert.ok(summaryCall > sceneCall, "result summary should follow the kamishibai");
   assert.ok(detailsCall > summaryCall, "raw details should follow the result summary");
-  assert.match(presentation, /詳細へ ↓/);
-  assert.match(presentation, /詳細を見る ↓/);
-  assert.match(presentation, /details\.open = false/);
-});
-
-test("scene kind drives explicit phase labels without generic combat copy", () => {
-  assert.match(presentation, /function scenePhaseLabel/);
-  assert.match(presentation, /"combat-opening": "遭遇"/);
-  assert.match(presentation, /"combat-climax": "戦闘"/);
-  assert.match(presentation, /injury: "負傷"/);
-  assert.match(presentation, /retreat: "撤退"/);
-  assert.match(presentation, /defeat: "敗走"/);
-  assert.match(presentation, /return: "帰還"/);
-  assert.doesNotMatch(presentation, /"遠征の途中"/);
-});
-
-test("paper theatre keeps only one page counter and two navigation actions", () => {
-  assert.match(presentation, /expedition-kamishibai__mark/);
-  assert.doesNotMatch(presentation, /expedition-kamishibai__counter/);
-  assert.doesNotMatch(styles, /\.expedition-kamishibai__counter/);
-  assert.match(presentation, /nav\.append\(previous, next\)/);
-  assert.match(styles, /grid-template-columns: 1fr 1fr/);
+  assert.match(presentation, /成果へ ↓/);
+  assert.match(presentation, /成果を見る ↓/);
+  assert.match(reportBody, /details\.open = false/);
 });
 
 test("paper theatre is the only authored story surface while raw chronology remains available", () => {
@@ -65,8 +46,36 @@ test("paper theatre is the only authored story surface while raw chronology rema
   assert.doesNotMatch(presentation, /遠征記/);
   assert.match(presentation, /時系列と戦闘数値を確認する/);
   assert.match(presentation, /details\.dataset\.expeditionDetails/);
-  assert.match(presentation, /expedition-log--report-details/);
-  assert.match(styles, /\.expedition-log--report-details/);
+  assert.match(presentation, /expedition-log/);
+});
+
+test("scene kind deterministically controls the visible phase label", () => {
+  assert.match(presentation, /"combat-opening": "遭遇"/);
+  assert.match(presentation, /"combat-climax": "戦闘"/);
+  assert.match(presentation, /injury: "負傷"/);
+  assert.match(presentation, /retreat: "撤退"/);
+  assert.match(presentation, /defeat: "敗走"/);
+  assert.match(presentation, /return: "帰還"/);
+  assert.match(presentation, /discovery: "発見"/);
+  assert.match(presentation, /loot: "戦利品"/);
+  assert.match(presentation, /scenePhaseLabel\(scene\)/);
+  assert.doesNotMatch(presentation, /遠征の途中/);
+});
+
+test("paper theatre keeps one page counter and two-button navigation", () => {
+  assert.match(presentation, /sceneMark\.textContent/);
+  assert.doesNotMatch(presentation, /expedition-kamishibai__counter/);
+  assert.doesNotMatch(styles, /\.expedition-kamishibai__counter/);
+  assert.match(styles, /\.expedition-kamishibai__nav\s*\{[^}]*grid-template-columns:\s*1fr 1fr/s);
+  assert.match(presentation, /← 前の場面/);
+  assert.match(presentation, /次の場面 →/);
+});
+
+test("completed chronology is visually subordinate and explicitly collapsed", () => {
+  assert.match(presentation, /details\.open = false/);
+  assert.match(styles, /\.expedition-log\[data-expedition-details\]/);
+  assert.match(styles, /\.expedition-log\[data-expedition-details\] > summary/);
+  assert.match(styles, /font-size:\s*\.82rem/);
 });
 
 test("battle scenes render composition layers while keeping the fixed-asset fallback", () => {
@@ -97,7 +106,6 @@ test("kamishibai offers phone-friendly navigation and manuscript visual motifs",
   assert.match(styles, /\.expedition-kamishibai__visual/);
   assert.match(styles, /data-motif="forest"/);
   assert.match(styles, /data-motif="combat-beast"/);
-  assert.match(styles, /min-height: 44vh/);
   assert.match(styles, /@media \(max-width: 600px\)/);
   assert.match(styles, /@media \(prefers-reduced-motion: reduce\)/);
   assert.match(presentation, /← 前の場面/);

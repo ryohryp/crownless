@@ -1,7 +1,7 @@
 .expedition-kamishibai {
   position: relative;
-  margin: 20px 0 20px;
-  padding: 14px;
+  margin: 18px 0 20px;
+  padding: 12px;
   border: 1px solid rgba(48, 38, 27, .52);
   background:
     linear-gradient(90deg, rgba(73, 52, 29, .05), transparent 16% 84%, rgba(73, 52, 29, .05)),
@@ -314,32 +314,31 @@
 }
 
 .expedition-report-summary[data-expedition-summary] {
-  margin-top: 12px;
+  margin: 14px 0 18px;
   scroll-margin-top: 18px;
 }
 
-.expedition-log--report-details {
-  margin-top: 10px;
-  border-color: rgba(66, 52, 36, .24);
-  background: rgba(226, 211, 178, .08);
-  box-shadow: none;
-  opacity: .82;
+.expedition-log[data-expedition-details] {
+  margin-top: 8px;
+  border-color: rgba(45, 36, 25, .16);
+  padding: 9px 0;
 }
 
-.expedition-log--report-details[open] {
-  opacity: .96;
-}
-
-.expedition-log--report-details > summary {
-  color: #665c4d;
+.expedition-log[data-expedition-details] > summary {
+  color: #625747;
   font-size: .82rem;
   font-weight: 700;
+  letter-spacing: .03em;
+}
+
+.expedition-log[data-expedition-details] ol {
+  font-size: .9rem;
 }
 
 @media (max-width: 600px) {
   .expedition-kamishibai {
     margin: 14px -4px 18px;
-    padding: 9px;
+    padding: 8px;
   }
 
   .expedition-kamishibai__heading {
@@ -347,13 +346,13 @@
   }
 
   .expedition-kamishibai__visual {
-    min-height: 44vh;
+    min-height: 46vh;
     max-height: 390px;
   }
 
   .expedition-kamishibai__copy {
     min-height: 148px;
-    padding: 16px 15px 18px;
+    padding: 15px 14px 16px;
   }
 
   .expedition-kamishibai__copy p {
@@ -380,10 +379,6 @@
 
   .expedition-kamishibai__asset--relic {
     width: min(62%, 260px);
-  }
-
-  .expedition-log--report-details {
-    margin-top: 8px;
   }
 }
 
