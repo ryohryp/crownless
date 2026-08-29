@@ -9,12 +9,17 @@ const root = path.join(__dirname, "..");
 const runtime = fs.readFileSync(path.join(root, "src", "app-runtime-state.js"), "utf8");
 const presentation = fs.readFileSync(path.join(root, "src", "expedition-presentation.js"), "utf8");
 const styles = fs.readFileSync(path.join(root, "expedition-kamishibai.css"), "utf8");
+const battleStyles = fs.readFileSync(path.join(root, "expedition-kamishibai-battle.css"), "utf8");
 
-test("runtime loads scene projection and kamishibai styles before report presentation", () => {
+test("runtime loads scene projection, battle composition, and kamishibai styles before report presentation", () => {
   assert.match(runtime, /expedition-kamishibai\.css/);
+  assert.match(runtime, /expedition-kamishibai-battle\.css/);
   assert.match(runtime, /src\/expedition-scenes\.js/);
-  assert.match(runtime, /scenes\.onload = loadExpeditionDomain/);
-  assert.match(runtime, /scenes\.onerror = loadExpeditionDomain/);
+  assert.match(runtime, /src\/expedition-visual-composition\.js/);
+  assert.match(runtime, /scenes\.onload = loadExpeditionComposition/);
+  assert.match(runtime, /scenes\.onerror = loadExpeditionComposition/);
+  assert.match(runtime, /composition\.onload = loadExpeditionDomain/);
+  assert.match(runtime, /composition\.onerror = loadExpeditionDomain/);
 });
 
 test("completed report reads as result summary then kamishibai then details", () => {
@@ -41,6 +46,30 @@ test("paper theatre is the only authored story surface while raw chronology rema
   assert.match(presentation, /時系列と戦闘数値を確認する/);
   assert.match(presentation, /details\.dataset\.expeditionDetails/);
   assert.match(presentation, /expedition-log/);
+});
+
+test("battle scenes render composition layers while keeping the fixed-asset fallback", () => {
+  assert.match(presentation, /CrownlessExpeditionVisualComposition/);
+  assert.match(presentation, /buildBattleComposition/);
+  assert.match(presentation, /appendBattleComposition/);
+  assert.match(presentation, /visual\.dataset\.sceneKind = composition\.kind/);
+  assert.match(presentation, /visual\.dataset\.outcome = composition\.outcome/);
+  assert.match(presentation, /expedition-kamishibai__battle-layer/);
+  assert.match(presentation, /if \(composition\)/);
+  assert.match(presentation, /if \(resolved\.assetPath\)/);
+});
+
+test("opening, climax, injury, and retreat states have distinct responsive compositions", () => {
+  assert.match(battleStyles, /data-scene-kind="combat-opening"/);
+  assert.match(battleStyles, /data-scene-kind="combat-climax"/);
+  assert.match(battleStyles, /data-outcome="victory"/);
+  assert.match(battleStyles, /data-outcome="retreat"/);
+  assert.match(battleStyles, /data-scene-kind="injury"/);
+  assert.match(battleStyles, /data-scene-kind="defeat"/);
+  assert.match(battleStyles, /battle-layer--enemy-rear-2/);
+  assert.match(battleStyles, /battle-layer--silhouette/);
+  assert.match(battleStyles, /@media \(max-width: 600px\)/);
+  assert.match(battleStyles, /@media \(prefers-reduced-motion: reduce\)/);
 });
 
 test("kamishibai offers phone-friendly navigation and manuscript visual motifs", () => {

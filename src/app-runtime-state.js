@@ -36,7 +36,7 @@ var audioContext = null;
     }, true);
   }
 
-  ["expedition.css", "expedition-kamishibai.css"].forEach((href) => {
+  ["expedition.css", "expedition-kamishibai.css", "expedition-kamishibai-battle.css"].forEach((href) => {
     if (document.querySelector(`link[href="${href}"]`)) return;
     const css = document.createElement("link");
     css.rel = "stylesheet";
@@ -62,14 +62,25 @@ var audioContext = null;
     document.body.appendChild(domain);
   }
 
+  // Issue #211: battle compositions remain a pure optional presentation layer.
+  // A missing helper must never block deterministic expedition resolution or
+  // the existing single-asset kamishibai fallback.
+  function loadExpeditionComposition() {
+    const composition = document.createElement("script");
+    composition.src = "src/expedition-visual-composition.js";
+    composition.onload = loadExpeditionDomain;
+    composition.onerror = loadExpeditionDomain;
+    document.body.appendChild(composition);
+  }
+
   // Issue #203: representative paper-theatre scenes are another pure
   // projection of a completed report. Keep this optional so a scene-layer
   // loading failure never blocks the deterministic expedition resolver.
   function loadExpeditionScenes() {
     const scenes = document.createElement("script");
     scenes.src = "src/expedition-scenes.js";
-    scenes.onload = loadExpeditionDomain;
-    scenes.onerror = loadExpeditionDomain;
+    scenes.onload = loadExpeditionComposition;
+    scenes.onerror = loadExpeditionComposition;
     document.body.appendChild(scenes);
   }
 

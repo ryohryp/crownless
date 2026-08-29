@@ -125,10 +125,12 @@ test("report UI uses narrative through the scroll only and keeps raw chronology 
   const css = fs.readFileSync(path.join(root, "expedition.css"), "utf8");
   const narrativeLoad = runtime.indexOf('narrative.src = "src/expedition-narrative.js"');
   const sceneLoad = runtime.indexOf('scenes.src = "src/expedition-scenes.js"');
+  const compositionLoad = runtime.indexOf('composition.src = "src/expedition-visual-composition.js"');
   const domainLoad = runtime.indexOf('domain.src = "src/expedition-system.js"');
-  assert.ok(narrativeLoad >= 0 && sceneLoad >= 0 && domainLoad >= 0);
+  assert.ok(narrativeLoad >= 0 && sceneLoad >= 0 && compositionLoad >= 0 && domainLoad >= 0);
   assert.match(runtime, /narrative\.onload = loadExpeditionScenes/);
-  assert.match(runtime, /scenes\.onload = loadExpeditionDomain/);
+  assert.match(runtime, /scenes\.onload = loadExpeditionComposition/);
+  assert.match(runtime, /composition\.onload = loadExpeditionDomain/);
   assert.match(presentation, /buildExpeditionNarrative/);
   assert.match(presentation, /renderKamishibai\(content, report, generatedNarrative\)/);
   assert.match(presentation, /EXPEDITION SCENES/);
