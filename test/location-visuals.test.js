@@ -99,12 +99,14 @@ test("latest mapped discovery visual is resolved from world knowledge without pe
   assert.equal(worldKnowledge.discoveries.newestTower.assetPath, undefined);
 });
 
-test("location visual runtime and future location assets trigger Production deployment", () => {
-  const workflow = fs.readFileSync(path.join(__dirname, "..", ".github", "workflows", "vercel-production.yml"), "utf8");
-  assert.match(workflow, /"index\.html"/);
-  assert.match(workflow, /"src\/location-visuals\.js"/);
-  assert.match(workflow, /"src\/hearth-presentation\.js"/);
-  assert.match(workflow, /"assets\/locations\/\*\*"/);
+test("location visual runtime and assets publish through the repository-root GitHub Pages artifact", () => {
+  const pagesWorkflow = fs.readFileSync(path.join(__dirname, "..", ".github", "workflows", "pages.yml"), "utf8");
+  const vercelWorkflow = fs.readFileSync(path.join(__dirname, "..", ".github", "workflows", "vercel-production.yml"), "utf8");
+  assert.match(pagesWorkflow, /actions\/upload-pages-artifact@v3/);
+  assert.match(pagesWorkflow, /path:\s*\./);
+  assert.match(pagesWorkflow, /branches:\s*\[main\]/);
+  assert.match(vercelWorkflow, /workflow_dispatch:/);
+  assert.doesNotMatch(vercelWorkflow, /\n\s*push:/);
 });
 
 test("Ruined Watchtower Candidate is a decoded 16:9 PNG at the canonical runtime path", () => {
