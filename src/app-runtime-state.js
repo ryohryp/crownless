@@ -109,25 +109,64 @@ var audioContext = null;
 })();
 
 // Issue #216: the Grey Hearth wall map opens a manuscript-style atlas built
-// only from persisted coarse world knowledge. Keep it independent of the
-// expedition slice so the map remains available before or between dispatches.
+// only from persisted coarse world knowledge. Issue #222 adds deterministic
+// Crownless lore as a pure projection of the same stable discovery identity.
 (function loadWorldAtlas() {
   if (typeof document === "undefined") return;
 
+  function loadLorePresentation() {
+    if (document.querySelector('script[src="src/world-atlas-lore-presentation.js"]')) return;
+    const lorePresentation = document.createElement("script");
+    lorePresentation.src = "src/world-atlas-lore-presentation.js";
+    document.body.appendChild(lorePresentation);
+  }
+
   function loadSelectionPreview() {
-    if (document.querySelector('script[src="src/world-atlas-selection-preview.js"]')) return;
+    const existingPreview = document.querySelector('script[src="src/world-atlas-selection-preview.js"]');
+    if (existingPreview) {
+      if (window.CrownlessWorldAtlasPreview) loadLorePresentation();
+      else {
+        existingPreview.addEventListener("load", loadLorePresentation, { once: true });
+        existingPreview.addEventListener("error", loadLorePresentation, { once: true });
+      }
+      return;
+    }
     const preview = document.createElement("script");
     preview.src = "src/world-atlas-selection-preview.js";
+    preview.onload = loadLorePresentation;
+    preview.onerror = loadLorePresentation;
     document.body.appendChild(preview);
   }
 
-  const existingAtlas = document.querySelector('script[src="src/world-atlas.js"]');
-  if (existingAtlas) {
-    loadSelectionPreview();
+  function loadAtlas() {
+    const existingAtlas = document.querySelector('script[src="src/world-atlas.js"]');
+    if (existingAtlas) {
+      if (window.CrownlessWorldAtlas) loadSelectionPreview();
+      else {
+        existingAtlas.addEventListener("load", loadSelectionPreview, { once: true });
+        existingAtlas.addEventListener("error", loadSelectionPreview, { once: true });
+      }
+      return;
+    }
+    const atlas = document.createElement("script");
+    atlas.src = "src/world-atlas.js";
+    atlas.onload = loadSelectionPreview;
+    atlas.onerror = loadSelectionPreview;
+    document.body.appendChild(atlas);
+  }
+
+  const existingLore = document.querySelector('script[src="src/discovery-lore.js"]');
+  if (existingLore) {
+    if (window.CrownlessDiscoveryLore) loadAtlas();
+    else {
+      existingLore.addEventListener("load", loadAtlas, { once: true });
+      existingLore.addEventListener("error", loadAtlas, { once: true });
+    }
     return;
   }
-  const atlas = document.createElement("script");
-  atlas.src = "src/world-atlas.js";
-  atlas.onload = loadSelectionPreview;
-  document.body.appendChild(atlas);
+  const lore = document.createElement("script");
+  lore.src = "src/discovery-lore.js";
+  lore.onload = loadAtlas;
+  lore.onerror = loadAtlas;
+  document.body.appendChild(lore);
 })();
