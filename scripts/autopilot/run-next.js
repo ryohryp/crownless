@@ -173,7 +173,7 @@ function removeWorktree(run, root, worktreePath) {
   checked(run, "git", ["worktree", "remove", worktreePath], { cwd: root });
 }
 
-function buildExecutionPrompt(issue, contract, policy = "") {
+function buildExecutionPrompt(issue, contract, policy = "", focusedTests = []) {
   return [
     "You are the implementation agent for the selected Crownless Issue.",
     "Before editing, explicitly read AGENTS.md, docs/game-system-design.md, the relevant canonical subsystem specification, and the current implementation from the target worktree.",
@@ -189,6 +189,7 @@ function buildExecutionPrompt(issue, contract, policy = "") {
     `--- Issue #${issue.number}: ${issue.title} ---`,
     issue.body || "(Issue body is empty.)",
     "--- end Issue ---",
+    `The runner will execute these Issue-focused test paths after implementation: ${focusedTests.length ? focusedTests.join(", ") : "none supplied"}. Add or update a directly relevant test when the Issue requires one; do not substitute Autopilot's own tests for an Issue-focused test.`,
     "Implement the smallest complete change. Run focused tests, repository-required full validation, and a final diff review. Do not commit, push, create a PR, merge, or close the Issue; return concise evidence and unverified items.",
   ].join("\n\n");
 }
@@ -490,7 +491,7 @@ function runAutopilotInternal(options = {}, dependencies = {}) {
     let validation;
     let review;
     try {
-      let prompt = buildExecutionPrompt(refreshedIssue, contract, policy);
+      let prompt = buildExecutionPrompt(refreshedIssue, contract, policy, focusedTests);
       for (let revision = 0; revision <= MAX_REVISIONS; revision += 1) {
         invokeCodex(run, worktreePath, prompt, implementationOutput);
         validation = runValidation({ cwd: worktreePath, run, focusedTests });

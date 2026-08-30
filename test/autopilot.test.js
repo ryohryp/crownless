@@ -55,11 +55,12 @@ test("duplicate detection also blocks an existing deterministic branch", () => {
 });
 
 test("execution prompt carries Canon and Issue while preserving the runner boundaries", () => {
-  const prompt = buildExecutionPrompt({ number: 225, title: "Autopilot", body: "Acceptance Criteria" }, "Execution contract", "Control-plane policy");
+  const prompt = buildExecutionPrompt({ number: 225, title: "Autopilot", body: "Acceptance Criteria" }, "Execution contract", "Control-plane policy", ["test/issue.test.js"]);
   assert.match(prompt, /Execution contract/);
   assert.match(prompt, /Control-plane policy/);
   assert.match(prompt, /Do not assume those control-plane files exist in the target worktree/);
   assert.match(prompt, /Acceptance Criteria/);
+  assert.match(prompt, /test\/issue\.test\.js/);
   assert.match(prompt, /Do not commit, push, create a PR/);
 });
 
