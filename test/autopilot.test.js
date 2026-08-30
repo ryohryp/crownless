@@ -109,8 +109,12 @@ test("PR body records evidence, unverified playtest, and no auto-merge", () => {
 });
 
 test("worktrees cannot be created inside the mutable source checkout", () => {
-  assert.throws(() => assertOutsideSource("C:\\repo", "C:\\repo\\child"), /outside/);
-  assert.equal(assertOutsideSource("C:\\repo", "C:\\repo-autopilot"), path.resolve("C:\\repo-autopilot"));
+  const source = fs.mkdtempSync(path.join(os.tmpdir(), "crownless-autopilot-source-"));
+  const child = path.join(source, "child");
+  const sibling = path.join(path.dirname(source), `${path.basename(source)}-autopilot`);
+  assert.throws(() => assertOutsideSource(source, child), /outside/);
+  assert.equal(assertOutsideSource(source, sibling), path.resolve(sibling));
+  fs.rmSync(source, { recursive: true, force: true });
 });
 
 test("safety scan includes untracked files before they can be committed", () => {
