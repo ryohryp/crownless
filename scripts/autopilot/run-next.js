@@ -40,15 +40,24 @@ function parseArgs(argv) {
     throw new Error("--issue must be an integer.");
   }
   if (options.issueNumber !== undefined && options.issueNumber < 1) throw new Error("--issue must be a positive integer.");
-  if (options.focusedTests.length === 0) options.focusedTests.push("test/autopilot.test.js");
   return options;
 }
 
-function checked(run, command, args, options = {}) {
+function checked(run, command, args, options = {}, stage = "command") {
   const result = run(command, args, options);
   if (result.status !== 0) {
     const details = [result.stdout, result.stderr].filter(Boolean).join("\n").trim();
-    throw new Error(`Command failed: ${command} ${args.join(" ")}\n${details}`);
+    const error = new Error(`[stage=${stage}] Command failed: ${command} ${args.join(" ")}\n${details}`);
+    error.autopilotDiagnostic = {
+      stage,
+      command,
+      args,
+      status: result.status,
+      stdout: result.stdout || "",
+      stderr: result.stderr || "",
+      error: result.error?.message || "",
+    };
+    throw error;
   }
   return result;
 }
@@ -166,8 +175,8 @@ function removeWorktree(run, root, worktreePath) {
 
 function buildExecutionPrompt(issue, contract) {
   return [
-    "You are the implementation agent for Crownless Autopilot.",
-    "Read AGENTS.md, docs/game-system-design.md, the relevant canonical subsystem specification, and the current implementation before editing.",
+    "You are the implementation agent for the selected Crownless Issue.",
+    "Before editing, explicitly read AGENTS.md, docs/game-system-design.md, the relevant canonical subsystem specification, docs/autonomous-development-policy.md, and the current implementation.",
     "The following repository execution contract is authoritative for this run:",
     "--- execution contract ---",
     contract,
@@ -182,14 +191,14 @@ function buildExecutionPrompt(issue, contract) {
 
 function invokeCodex(run, worktreePath, prompt, outputPath, codexBin = process.env.AUTOPILOT_CODEX_BIN || "codex") {
   return checked(run, codexBin, [
-    "exec", "--cd", worktreePath, "--sandbox", "workspace-write", "--ephemeral", "--output-last-message", outputPath, "-",
-  ], { cwd: worktreePath, input: prompt });
+    "exec", "--cd", worktreePath, "--sandbox", "workspace-write", "--ephemeral", "--ignore-user-config", "--output-last-message", outputPath, "-",
+  ], { cwd: worktreePath, input: prompt }, "codex-implementation");
 }
 
 function invokeReview(run, worktreePath, schemaPath, prompt, outputPath, codexBin = process.env.AUTOPILOT_CODEX_BIN || "codex") {
   return checked(run, codexBin, [
-    "exec", "--cd", worktreePath, "--output-last-message", outputPath, "review", "--uncommitted", "--output-schema", schemaPath, "-",
-  ], { cwd: worktreePath, input: prompt });
+    "exec", "--cd", worktreePath, "--sandbox", "read-only", "--ephemeral", "--ignore-user-config", "--output-schema", schemaPath, "--output-last-message", outputPath, "-",
+  ], { cwd: worktreePath, input: prompt }, "structured-review");
 }
 
 function readReview(outputPath) {
@@ -199,16 +208,61 @@ function readReview(outputPath) {
   } catch (error) {
     throw new Error(`Codex review did not produce valid JSON: ${error.message}`);
   }
-  if (!parsed || !["pass", "changes_requested"].includes(parsed.status) || !Array.isArray(parsed.findings)) {
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed) || !["pass", "changes_requested"].includes(parsed.status) || !Array.isArray(parsed.findings)) {
     throw new Error("Codex review result is missing a valid status/findings contract.");
+  }
+  const resultKeys = Object.keys(parsed);
+  if (resultKeys.some((key) => !["status", "findings"].includes(key))) {
+    throw new Error("Codex review result contains unexpected top-level fields.");
+  }
+  const allowedKeys = new Set(["severity", "message", "file", "line"]);
+  for (const finding of parsed.findings) {
+    if (!finding || typeof finding !== "object" || Array.isArray(finding) || Object.keys(finding).some((key) => !allowedKeys.has(key)) || !["severity", "message", "file", "line"].every((key) => Object.hasOwn(finding, key))) {
+      throw new Error("Codex review result contains an invalid finding object.");
+    }
+    if (!["error", "warning", "note"].includes(finding.severity) || typeof finding.message !== "string") {
+      throw new Error("Codex review result contains an invalid finding severity/message.");
+    }
+    if (finding.file !== undefined && finding.file !== null && typeof finding.file !== "string") {
+      throw new Error("Codex review result contains an invalid finding file.");
+    }
+    if (finding.line !== undefined && finding.line !== null && (!Number.isInteger(finding.line) || finding.line < 1)) {
+      throw new Error("Codex review result contains an invalid finding line.");
+    }
   }
   return parsed;
 }
 
-function reviewPrompt(issue) {
+function reviewContext(worktreePath) {
+  const files = [
+    "AGENTS.md",
+    "docs/game-system-design.md",
+    "docs/expedition-system-spec.md",
+    "docs/exploration-location-spec.md",
+    "docs/hearth-presentation-spec.md",
+    "docs/autonomous-development-policy.md",
+    "docs/autopilot-execution-contract.md",
+  ];
+  return files.map((relativePath) => [
+    `--- ${relativePath} ---`,
+    fs.readFileSync(path.join(worktreePath, relativePath), "utf8"),
+    `--- end ${relativePath} ---`,
+  ].join("\n")).join("\n\n");
+}
+
+function reviewPrompt(issue, diff = "", canon = "") {
   return [
-    `Review the uncommitted diff for Issue #${issue.number} against AGENTS.md, the current Canon, and the Issue Acceptance Criteria.`,
-    "Return only the JSON object required by the supplied schema. Use status=changes_requested for any correctness, scope, safety, validation, or Canon problem; use status=pass only when the diff is ready for PR creation.",
+    `Review the uncommitted diff for Issue #${issue.number}: ${issue.title || "(untitled)"} against the supplied AGENTS.md, current Canon, execution contract, and Issue Acceptance Criteria.`,
+    "The complete Issue body and repository review context are supplied below. Do not call tools, modify files, or perform additional commands. Return only the JSON object required by the supplied schema. Use status=changes_requested for any correctness, scope, safety, validation, or Canon problem; use status=pass only when the diff is ready for PR creation.",
+    "--- Issue body ---",
+    issue.body || "(Issue body is empty.)",
+    "--- end Issue body ---",
+    "--- repository review context ---",
+    canon || "(review context unavailable)",
+    "--- end repository review context ---",
+    "--- uncommitted diff ---",
+    diff || "(empty diff)",
+    "--- end uncommitted diff ---",
   ].join(" ");
 }
 
@@ -247,24 +301,52 @@ function assertSafeDiff(run, cwd, baseRef) {
   if (violations.length) throw new Error(`Diff contains a blocked credential/raw-coordinate pattern:\n${violations.join("\n")}`);
 }
 
-function commitAndPush(run, worktreePath, branchName, issueNumber, repo) {
-  checked(run, "git", ["diff", "--check"], { cwd: worktreePath });
-  checked(run, "git", ["add", "-A"], { cwd: worktreePath });
-  const staged = checked(run, "git", ["diff", "--cached", "--name-only"], { cwd: worktreePath }).stdout.trim();
+function issueSubject(issue, maxLength = 72) {
+  const title = String(issue?.title || "").replace(/\s+/g, " ").trim();
+  if (!title) return `Issue #${issue.number}`;
+  return title.length <= maxLength ? title : `${title.slice(0, maxLength - 1).trimEnd()}…`;
+}
+
+function buildCommitMessage(issue) {
+  return `Issue #${issue.number}: ${issueSubject(issue, 60)}`;
+}
+
+function buildPullRequestTitle(issue) {
+  return `${issueSubject(issue, 64)} (#${issue.number})`;
+}
+
+function issueAcceptanceCriteria(issue) {
+  const body = String(issue?.body || "");
+  const section = body.match(/(?:^|\r?\n)##\s+Acceptance Criteria\s*\r?\n([\s\S]*?)(?=\r?\n##\s+|$)/i)?.[1] || "";
+  return section.split(/\r?\n/).map((line) => line.match(/^\s*[-*]\s+\[[ xX]\]\s+(.+?)\s*$/)?.[1]).filter(Boolean);
+}
+
+function commitAndPush(run, worktreePath, branchName, issue) {
+  checked(run, "git", ["diff", "--check"], { cwd: worktreePath }, "commit");
+  checked(run, "git", ["add", "-A"], { cwd: worktreePath }, "commit");
+  const staged = checked(run, "git", ["diff", "--cached", "--name-only"], { cwd: worktreePath }, "commit").stdout.trim();
   if (!staged) throw new Error("Codex completed without producing a diff; no PR will be created.");
-  checked(run, "git", ["commit", "-m", `feat: implement Crownless Autopilot MVP (#${issueNumber})`], { cwd: worktreePath });
-  checked(run, "git", ["push", "--set-upstream", "origin", branchName], { cwd: worktreePath });
+  checked(run, "git", ["commit", "-m", buildCommitMessage(issue)], { cwd: worktreePath }, "commit");
+  checked(run, "git", ["push", "--set-upstream", "origin", branchName], { cwd: worktreePath }, "push");
   return staged.split(/\r?\n/).filter(Boolean);
 }
 
-function buildPrBody(issue, branchName, validation, review) {
+function buildPrBody(issue, branchName, validation, review, changedFiles = []) {
   const commands = validation.commands.map(({ command, args }) => `\`${command} ${args.join(" ")}\``).join(", ");
   const findings = review.findings.length ? JSON.stringify(review.findings) : "none";
+  const criteria = issueAcceptanceCriteria(issue);
+  const criteriaEvidence = criteria.length
+    ? [
+      "The Issue criteria were supplied to the implementation agent and structured reviewer. The runner does not infer completion for criteria that require separate CI, human, or external evidence.",
+      ...criteria.map((criterion) => `- [ ] ${criterion} — reviewed by implementation and structured review; criterion-specific completion evidence is required.`),
+    ].join("\n")
+    : "- No checkbox-form Acceptance Criteria were present in the Issue body; the Issue text was supplied to implementation and review.";
   return [
     `Fixes #${issue.number}`,
     "",
     "## Summary",
-    "- Adds the one-Issue Crownless Autopilot runner with explicit eligibility, duplicate-run locking, isolated worktrees, Codex execution, validation, self-review, and PR creation.",
+    `- Implements Issue #${issue.number}: ${issueSubject(issue)}.`,
+    `- Changed files: ${changedFiles.length ? changedFiles.map((file) => `\`${file}\``).join(", ") : "not recorded"}.`,
     `- Runner branch: \`${branchName}\``,
     "- Automatic merge is intentionally not implemented.",
     "",
@@ -273,8 +355,11 @@ function buildPrBody(issue, branchName, validation, review) {
     "- Keeps human gates for product direction, playtest, privacy, save compatibility, visual approval, and other decisions listed in the policy.",
     "- Does not introduce raw GPS/route history, credentials, or paid provider keys.",
     "",
+    "## Acceptance Criteria",
+    criteriaEvidence,
+    "",
     "## Verification",
-    `- Acceptance Criteria: eligible open Issue only; one selection; duplicate lock; isolated worktree; Codex contract; focused/full validation; final diff review; PR only after pass — covered by runner and tests.`,
+    "- Acceptance evidence: the selected open Issue was processed in an isolated worktree; focused/full validation and the structured final review passed before commit, push, and PR creation.",
     `- Full validation: ${commands}.`,
     `- Final self-review: \`pass\`; findings: ${findings}.`,
     "- Unverified: human playtest and product judgment remain with the human reviewer.",
@@ -289,7 +374,7 @@ function createPullRequest(run, repo, cwd, issue, branchName, body) {
   const bodyPath = path.join(tempRoot, "body.md");
   fs.writeFileSync(bodyPath, body, "utf8");
   try {
-    return checked(run, "gh", ["pr", "create", "--repo", repo, "--head", branchName, "--base", DEFAULT_PR_BASE, "--title", `Codex Autopilot MVP (#${issue.number})`, "--body-file", bodyPath], { cwd }).stdout.trim();
+    return checked(run, "gh", ["pr", "create", "--repo", repo, "--head", branchName, "--base", DEFAULT_PR_BASE, "--title", buildPullRequestTitle(issue), "--body-file", bodyPath], { cwd }, "pr-create").stdout.trim();
   } finally {
     fs.rmSync(tempRoot, { recursive: true, force: true });
   }
@@ -305,10 +390,41 @@ function formatDryRun(issue, branchName, baseRef, blockers) {
   ].join("\n");
 }
 
-function runAutopilot(options = {}, dependencies = {}) {
+function diagnosticRoot(cwd) {
+  let current = path.resolve(cwd);
+  while (true) {
+    if (fs.existsSync(path.join(current, ".git"))) return current;
+    const parent = path.dirname(current);
+    if (parent === current) return path.resolve(cwd);
+    current = parent;
+  }
+}
+
+function persistDiagnostic(cwd, issueNumber, error) {
+  if (!error?.autopilotDiagnostic) return null;
+  try {
+    const directory = path.join(diagnosticRoot(cwd), ".git", "crownless-autopilot-diagnostics");
+    fs.mkdirSync(directory, { recursive: true });
+    const filePath = path.join(directory, `issue-${issueNumber || "unknown"}-${Date.now()}.json`);
+    fs.writeFileSync(filePath, JSON.stringify({
+      issueNumber: issueNumber ?? null,
+      message: error.message,
+      ...error.autopilotDiagnostic,
+    }, null, 2), "utf8");
+    return filePath;
+  } catch (diagnosticError) {
+    process.stderr.write(`Warning: could not persist Autopilot diagnostics: ${diagnosticError.message}\n`);
+    return null;
+  }
+}
+
+function runAutopilotInternal(options = {}, dependencies = {}) {
   const run = dependencies.run || defaultRun;
-  const focusedTests = options.focusedTests?.length ? options.focusedTests : ["test/autopilot.test.js"];
+  const focusedTests = options.focusedTests || [];
   const sourceCwd = options.cwd || process.cwd();
+  if (!options.dryRun && focusedTests.length === 0) {
+    throw new Error("[stage=validation] Live Autopilot requires at least one --focused-test path for the selected Issue.");
+  }
   const root = gitRoot(run, sourceCwd);
   const repo = options.repo || repoFromRemote(run, root);
   const baseRef = options.baseRef || process.env.AUTOPILOT_BASE_REF || DEFAULT_BASE_REF;
@@ -355,14 +471,14 @@ function runAutopilot(options = {}, dependencies = {}) {
         invokeCodex(run, worktreePath, prompt, implementationOutput);
         validation = runValidation({ cwd: worktreePath, run, focusedTests });
         assertSafeDiff(run, worktreePath, baseRef);
-        invokeReview(run, worktreePath, schemaPath, reviewPrompt(refreshedIssue), reviewOutput);
+        invokeReview(run, worktreePath, schemaPath, reviewPrompt(refreshedIssue, addedDiff(run, worktreePath, baseRef), reviewContext(worktreePath)), reviewOutput);
         review = readReview(reviewOutput);
         if (review.status === "pass") break;
         if (revision === MAX_REVISIONS) throw new Error("Codex final diff review requested changes after the allowed revision.");
         prompt = revisionPrompt(review);
       }
-      const changedFiles = commitAndPush(run, worktreePath, branchName, issue.number, repo);
-      const body = buildPrBody(refreshedIssue, branchName, validation, review);
+      const changedFiles = commitAndPush(run, worktreePath, branchName, refreshedIssue);
+      const body = buildPrBody(refreshedIssue, branchName, validation, review, changedFiles);
       const prUrl = createPullRequest(run, repo, root, refreshedIssue, branchName, body);
       return { issue: refreshedIssue, branchName, baseRef, worktreePath, changedFiles, validation, review, prUrl };
     } finally {
@@ -387,6 +503,16 @@ function runAutopilot(options = {}, dependencies = {}) {
   }
 }
 
+function runAutopilot(options = {}, dependencies = {}) {
+  try {
+    return runAutopilotInternal(options, dependencies);
+  } catch (error) {
+    const diagnosticPath = persistDiagnostic(options.cwd || process.cwd(), options.issueNumber, error);
+    if (diagnosticPath) error.message += `\nDiagnostics: ${diagnosticPath}`;
+    throw error;
+  }
+}
+
 if (require.main === module) {
   try {
     const result = runAutopilot(parseArgs(process.argv.slice(2)));
@@ -404,10 +530,15 @@ module.exports = {
   branchExists,
   branchForIssue,
   buildExecutionPrompt,
+  buildCommitMessage,
+  buildPullRequestTitle,
   buildPrBody,
   findRunningIssues,
   formatDryRun,
+  invokeCodex,
+  invokeReview,
   parseArgs,
   readReview,
+  persistDiagnostic,
   runAutopilot,
 };

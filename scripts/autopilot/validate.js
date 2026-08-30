@@ -33,10 +33,20 @@ function defaultRun(command, args, options = {}) {
   };
 }
 
-function assertCommandPassed(result) {
+function assertCommandPassed(result, stage = "validation") {
   if (result.error || result.status !== 0) {
     const details = [result.stdout, result.stderr].filter(Boolean).join("\n").trim();
-    throw new Error(`Validation command failed: ${result.command} ${result.args.join(" ")}\n${result.error?.message || details}`);
+    const error = new Error(`[stage=${stage}] Validation command failed: ${result.command} ${result.args.join(" ")}\n${result.error?.message || details}`);
+    error.autopilotDiagnostic = {
+      stage,
+      command: result.command,
+      args: result.args,
+      status: result.status,
+      stdout: result.stdout || "",
+      stderr: result.stderr || "",
+      error: result.error?.message || "",
+    };
+    throw error;
   }
 }
 

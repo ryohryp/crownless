@@ -8,10 +8,15 @@ const {
   assertSafeDiff,
   assertOutsideSource,
   branchForIssue,
+  buildCommitMessage,
   buildExecutionPrompt,
+  buildPullRequestTitle,
   buildPrBody,
+  invokeCodex,
+  invokeReview,
   parseArgs,
   readReview,
+  persistDiagnostic,
 } = require("../scripts/autopilot/run-next.js");
 const { findBlockers, selectIssue } = require("../scripts/autopilot/select-issue.js");
 const { REQUIRED_SYNTAX_FILES, runValidation } = require("../scripts/autopilot/validate.js");
@@ -96,16 +101,70 @@ test("review result is fail-closed when malformed", () => {
   fs.rmSync(directory, { recursive: true, force: true });
 });
 
+test("review result rejects schema-shaped objects with invalid extra data", () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "crownless-autopilot-review-"));
+  const file = path.join(directory, "review.json");
+  fs.writeFileSync(file, JSON.stringify({ status: "pass", findings: [], unexpected: true }));
+  assert.throws(() => readReview(file), /unexpected top-level/);
+  fs.writeFileSync(file, JSON.stringify({ status: "pass", findings: [{ severity: "note", message: "ok", unexpected: true }] }));
+  assert.throws(() => readReview(file), /invalid finding object/);
+  fs.writeFileSync(file, JSON.stringify({ status: "pass", findings: [{ severity: "note", message: "ok" }] }));
+  assert.throws(() => readReview(file), /invalid finding object/);
+  fs.rmSync(directory, { recursive: true, force: true });
+});
+
+test("Codex implementation and review use isolated, config-independent execution", () => {
+  const calls = [];
+  const run = (command, args) => {
+    calls.push([command, args]);
+    return { command, args, status: 0, stdout: "", stderr: "" };
+  };
+  invokeCodex(run, "C:\\worktree", "prompt", "C:\\tmp\\implementation.txt", "codex-test");
+  invokeReview(run, "C:\\worktree", "C:\\worktree\\schema.json", "review", "C:\\tmp\\review.json", "codex-test");
+  assert.equal(calls.length, 2);
+  assert.ok(calls[0][1].includes("--ignore-user-config"));
+  assert.ok(calls[1][1].includes("--ignore-user-config"));
+  assert.ok(calls[1][1].includes("--sandbox") && calls[1][1].includes("read-only"));
+  assert.ok(calls[1][1].includes("--ephemeral") && calls[1][1].includes("--output-schema"));
+  assert.equal(calls[1][1].includes("review"), false);
+});
+
 test("PR body records evidence, unverified playtest, and no auto-merge", () => {
   const body = buildPrBody(
-    { number: 225 },
-    branchForIssue(225),
+    { number: 231, title: "Fix expedition report wording", body: "## Acceptance Criteria\n- [ ] Report wording is concise\n- [ ] Existing behavior remains stable\n\n## Non-goals\n- [ ] Redesign the report" },
+    branchForIssue(231),
     { commands: [{ command: "npm", args: ["test"] }] },
     { status: "pass", findings: [] },
+    ["src/report.js"],
   );
-  assert.match(body, /Fixes #225/);
+  assert.match(body, /Fixes #231/);
+  assert.match(body, /Fix expedition report wording/);
+  assert.match(body, /src\/report\.js/);
+  assert.match(body, /\[ \] Report wording is concise/);
+  assert.match(body, /\[ \] Existing behavior remains stable/);
+  assert.doesNotMatch(body, /Redesign the report/);
   assert.match(body, /human playtest/);
   assert.match(body, /does not merge/);
+  assert.doesNotMatch(body, /one-Issue Crownless Autopilot runner/);
+});
+
+test("PR and commit metadata are derived from the selected Issue", () => {
+  const issue = { number: 231, title: "Fix expedition report wording" };
+  assert.equal(buildCommitMessage(issue), "Issue #231: Fix expedition report wording");
+  assert.equal(buildPullRequestTitle(issue), "Fix expedition report wording (#231)");
+});
+
+test("failed Codex commands preserve stage and stdout/stderr diagnostics", () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "crownless-autopilot-diagnostic-"));
+  fs.mkdirSync(path.join(directory, ".git"));
+  const error = new Error("codex failed");
+  error.autopilotDiagnostic = { stage: "codex-implementation", command: "codex", args: ["exec"], status: 1, stdout: "out", stderr: "err" };
+  const filePath = persistDiagnostic(directory, 231, error);
+  const diagnostic = JSON.parse(fs.readFileSync(filePath, "utf8"));
+  assert.equal(diagnostic.stage, "codex-implementation");
+  assert.equal(diagnostic.stdout, "out");
+  assert.equal(diagnostic.stderr, "err");
+  fs.rmSync(directory, { recursive: true, force: true });
 });
 
 test("worktrees cannot be created inside the mutable source checkout", () => {
@@ -131,7 +190,7 @@ test("safety scan includes untracked files before they can be committed", () => 
 });
 
 test("CLI parsing keeps dry-run explicit and rejects unknown flags", () => {
-  assert.deepEqual(parseArgs(["--dry-run", "--issue", "225"]), { dryRun: true, keepWorktree: false, focusedTests: ["test/autopilot.test.js"], issueNumber: 225 });
+  assert.deepEqual(parseArgs(["--dry-run", "--issue", "225"]), { dryRun: true, keepWorktree: false, focusedTests: [], issueNumber: 225 });
   assert.deepEqual(parseArgs(["--focused-test", "test/autopilot.test.js"]), { dryRun: false, keepWorktree: false, focusedTests: ["test/autopilot.test.js"] });
   assert.throws(() => parseArgs(["--issue", "0"]), /positive integer/);
   assert.throws(() => parseArgs(["--unsafe"]), /Unknown option/);

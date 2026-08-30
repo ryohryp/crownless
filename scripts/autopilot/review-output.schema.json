@@ -10,12 +10,12 @@
       "items": {
         "type": "object",
         "additionalProperties": false,
-        "required": ["severity", "message"],
+        "required": ["severity", "message", "file", "line"],
         "properties": {
           "severity": { "enum": ["error", "warning", "note"] },
           "message": { "type": "string" },
-          "file": { "type": "string" },
-          "line": { "type": "integer", "minimum": 1 }
+          "file": { "type": ["string", "null"] },
+          "line": { "type": ["integer", "null"], "minimum": 1 }
         }
       }
     }
