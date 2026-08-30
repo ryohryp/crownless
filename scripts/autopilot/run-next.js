@@ -171,7 +171,7 @@ function buildExecutionPrompt(issue, contract) {
 
 function invokeCodex(run, worktreePath, prompt, outputPath, codexBin = process.env.AUTOPILOT_CODEX_BIN || "codex") {
   return checked(run, codexBin, [
-    "exec", "--cd", worktreePath, "--sandbox", "workspace-write", "--ask-for-approval", "never", "--ephemeral", "--output-last-message", outputPath, "-",
+    "exec", "--cd", worktreePath, "--sandbox", "workspace-write", "--ephemeral", "--output-last-message", outputPath, "-",
   ], { cwd: worktreePath, input: prompt });
 }
 
