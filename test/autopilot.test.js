@@ -119,7 +119,8 @@ test("worktrees cannot be created inside the mutable source checkout", () => {
 
 test("safety scan includes untracked files before they can be committed", () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "crownless-autopilot-safety-"));
-  fs.writeFileSync(path.join(directory, "candidate.js"), "const token = 'sk-123456789012345678901234';\n");
+  const fakeToken = ["sk", "123456789012345678901234"].join("-");
+  fs.writeFileSync(path.join(directory, "candidate.js"), `const token = '${fakeToken}';\n`);
   const run = (_command, args) => {
     if (args[0] === "diff") return { status: 0, stdout: "", stderr: "" };
     if (args[0] === "ls-files") return { status: 0, stdout: "candidate.js\n", stderr: "" };
