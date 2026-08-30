@@ -37,7 +37,8 @@ The repository implementation is `scripts/autopilot/run-next.js`. Eligibility is
 Use `npm run autopilot -- --dry-run` to inspect the next candidate without changing
 GitHub or the filesystem. A live run uses an isolated worktree, invokes Codex with
 [`docs/autopilot-execution-contract.md`](autopilot-execution-contract.md), runs the
-required validation and structured self-review, then creates one PR. It never merges.
+focused tests (use `--focused-test test/path.test.js` when needed), required
+validation and structured self-review, then creates one PR. It never merges.
 
 Target flow:
 

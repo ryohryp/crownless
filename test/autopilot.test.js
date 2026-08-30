@@ -39,6 +39,15 @@ test("duplicate detection blocks running locks, matching branches, and linked PR
   assert.equal(blockers.length, 3);
 });
 
+test("duplicate detection also blocks an existing deterministic branch", () => {
+  const blockers = findBlockers({
+    issueNumber: 225,
+    branchName: branchForIssue(225),
+    branchExists: true,
+  });
+  assert.deepEqual(blockers, ["Autopilot branch codex/autopilot-issue-225 already exists."]);
+});
+
 test("execution prompt carries Canon and Issue while preserving the runner boundaries", () => {
   const prompt = buildExecutionPrompt({ number: 225, title: "Autopilot", body: "Acceptance Criteria" }, "AGENTS Canon");
   assert.match(prompt, /AGENTS Canon/);
@@ -59,6 +68,23 @@ test("validation runs every repository syntax check and npm test", () => {
   });
   assert.equal(result.commands.length, REQUIRED_SYNTAX_FILES.length + 1);
   assert.equal(calls.at(-1)[0], "npm-test");
+  assert.deepEqual(calls.at(-1)[1], ["test"]);
+});
+
+test("validation records focused tests before full validation", () => {
+  const calls = [];
+  const result = runValidation({
+    cwd: "C:\\work",
+    focusedTests: ["test/autopilot.test.js"],
+    run(command, args) {
+      calls.push([command, args]);
+      return { command, args, status: 0, stdout: "", stderr: "" };
+    },
+    nodeCommand: "node-test",
+    npmCommand: "npm-test",
+  });
+  assert.equal(result.commands.at(-2).focused, true);
+  assert.deepEqual(calls.at(-2)[1], ["test", "--", "test/autopilot.test.js"]);
   assert.deepEqual(calls.at(-1)[1], ["test"]);
 });
 
@@ -100,6 +126,8 @@ test("safety scan includes untracked files before they can be committed", () => 
 });
 
 test("CLI parsing keeps dry-run explicit and rejects unknown flags", () => {
-  assert.deepEqual(parseArgs(["--dry-run", "--issue", "225"]), { dryRun: true, keepWorktree: false, issueNumber: 225 });
+  assert.deepEqual(parseArgs(["--dry-run", "--issue", "225"]), { dryRun: true, keepWorktree: false, focusedTests: ["test/autopilot.test.js"], issueNumber: 225 });
+  assert.deepEqual(parseArgs(["--focused-test", "test/autopilot.test.js"]), { dryRun: false, keepWorktree: false, focusedTests: ["test/autopilot.test.js"] });
+  assert.throws(() => parseArgs(["--issue", "0"]), /positive integer/);
   assert.throws(() => parseArgs(["--unsafe"]), /Unknown option/);
 });

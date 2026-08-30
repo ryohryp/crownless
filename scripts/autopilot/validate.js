@@ -40,7 +40,7 @@ function assertCommandPassed(result) {
   }
 }
 
-function runValidation({ cwd, run = defaultRun, nodeCommand = process.execPath, npmCommand = process.platform === "win32" ? "npm.cmd" : "npm" } = {}) {
+function runValidation({ cwd, run = defaultRun, nodeCommand = process.execPath, npmCommand = process.platform === "win32" ? "npm.cmd" : "npm", focusedTests = [] } = {}) {
   if (!cwd) throw new Error("Validation requires a working directory.");
   const commands = [];
   for (const relativePath of REQUIRED_SYNTAX_FILES) {
@@ -48,17 +48,29 @@ function runValidation({ cwd, run = defaultRun, nodeCommand = process.execPath, 
     commands.push({ command: nodeCommand, args: ["--check", relativePath], result });
     assertCommandPassed(result);
   }
-  let testCommand = npmCommand;
-  let testArgs = ["test"];
-  let result = run(testCommand, testArgs, { cwd });
-  if (result.error?.code === "ENOENT" && process.env.CI !== "true") {
-    testCommand = nodeCommand;
-    testArgs = ["--test"];
-    result = run(testCommand, testArgs, { cwd });
+  for (const focusedTest of focusedTests) {
+    const focused = runTest(run, cwd, focusedTest, nodeCommand, npmCommand);
+    commands.push({ ...focused.command, result: focused.result, focused: true, fallback: focused.fallback });
+    assertCommandPassed(focused.result);
   }
-  commands.push({ command: testCommand, args: testArgs, result, fallback: testCommand === nodeCommand });
-  assertCommandPassed(result);
+  const full = runTest(run, cwd, null, nodeCommand, npmCommand);
+  commands.push({ ...full.command, result: full.result, fallback: full.fallback });
+  assertCommandPassed(full.result);
   return { commands };
 }
 
-module.exports = { REQUIRED_SYNTAX_FILES, assertCommandPassed, defaultRun, runValidation };
+function runTest(run, cwd, focusedTest, nodeCommand, npmCommand) {
+  let command = npmCommand;
+  let args = focusedTest ? ["test", "--", focusedTest] : ["test"];
+  let result = run(command, args, { cwd });
+  let fallback = false;
+  if (result.error?.code === "ENOENT" && process.env.CI !== "true") {
+    command = nodeCommand;
+    args = focusedTest ? ["--test", focusedTest] : ["--test"];
+    result = run(command, args, { cwd });
+    fallback = true;
+  }
+  return { command: { command, args }, result, fallback };
+}
+
+module.exports = { REQUIRED_SYNTAX_FILES, assertCommandPassed, defaultRun, runTest, runValidation };

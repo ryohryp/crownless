@@ -6,7 +6,7 @@ function labelNames(issue) {
 }
 
 function isEligibleIssue(issue) {
-  return issue?.state === "OPEN" && labelNames(issue).has(AGENT_READY_LABEL);
+  return String(issue?.state || "").toUpperCase() === "OPEN" && labelNames(issue).has(AGENT_READY_LABEL);
 }
 
 function selectIssue(issues) {
@@ -15,7 +15,7 @@ function selectIssue(issues) {
 }
 
 function assertEligibleIssue(issue) {
-  if (!issue || issue.state !== "OPEN") {
+  if (!issue || String(issue.state || "").toUpperCase() !== "OPEN") {
     throw new Error("The requested Issue is not open.");
   }
   if (!labelNames(issue).has(AGENT_READY_LABEL)) {
@@ -35,11 +35,12 @@ function pullRequestTouchesIssue(pullRequest, issueNumber, branchName) {
   return issueReferenceMatches(pullRequest?.title, issueNumber) || issueReferenceMatches(pullRequest?.body, issueNumber);
 }
 
-function findBlockers({ issue, issueNumber = issue?.number, openPullRequests = [], runningIssues = [], branchName }) {
+function findBlockers({ issue, issueNumber = issue?.number, openPullRequests = [], runningIssues = [], branchName, branchExists = false }) {
   const blockers = [];
   if (runningIssues.some((candidate) => Number(candidate.number) === Number(issueNumber))) {
     blockers.push(`Issue #${issueNumber} already has an agent-running lock.`);
   }
+  if (branchExists) blockers.push(`Autopilot branch ${branchName} already exists.`);
   const overlappingPrs = openPullRequests.filter((pullRequest) => pullRequestTouchesIssue(pullRequest, issueNumber, branchName));
   for (const pullRequest of overlappingPrs) {
     blockers.push(`Open PR #${pullRequest.number} already touches Issue #${issueNumber}.`);

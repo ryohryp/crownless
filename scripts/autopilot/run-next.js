@@ -17,12 +17,16 @@ const DEFAULT_PR_BASE = "main";
 const MAX_REVISIONS = 1;
 
 function parseArgs(argv) {
-  const options = { dryRun: false, keepWorktree: false };
+  const options = { dryRun: false, keepWorktree: false, focusedTests: [] };
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
     if (argument === "--dry-run") options.dryRun = true;
     else if (argument === "--keep-worktree") options.keepWorktree = true;
-    else if (["--issue", "--base-ref", "--worktree"].includes(argument)) {
+    else if (argument === "--focused-test") {
+      const value = argv[++index];
+      if (!value || path.isAbsolute(value) || value.includes("..")) throw new Error("--focused-test must be a repository-relative path.");
+      options.focusedTests.push(value);
+    } else if (["--issue", "--base-ref", "--worktree"].includes(argument)) {
       const value = argv[++index];
       if (!value) throw new Error(`${argument} requires a value.`);
       if (argument === "--issue") options.issueNumber = Number(value);
@@ -35,6 +39,8 @@ function parseArgs(argv) {
   if (options.issueNumber !== undefined && !Number.isInteger(options.issueNumber)) {
     throw new Error("--issue must be an integer.");
   }
+  if (options.issueNumber !== undefined && options.issueNumber < 1) throw new Error("--issue must be a positive integer.");
+  if (options.focusedTests.length === 0) options.focusedTests.push("test/autopilot.test.js");
   return options;
 }
 
@@ -97,6 +103,13 @@ function branchForIssue(issueNumber) {
   return `codex/autopilot-issue-${issueNumber}`;
 }
 
+function branchExists(run, cwd, branchName) {
+  const result = run("git", ["show-ref", "--verify", "--quiet", `refs/heads/${branchName}`], { cwd });
+  if (result.status === 0) return true;
+  if (result.status === 1) return false;
+  throw new Error(`Could not inspect branch ${branchName}.`);
+}
+
 function acquireLocalLock(run, root, issueNumber) {
   const lockRoot = path.join(gitCommonDir(run, root), "crownless-autopilot-locks");
   fs.mkdirSync(lockRoot, { recursive: true });
@@ -127,9 +140,7 @@ function ensureClean(run, cwd) {
 }
 
 function ensureBranchAbsent(run, cwd, branchName) {
-  const result = run("git", ["show-ref", "--verify", "--quiet", `refs/heads/${branchName}`], { cwd });
-  if (result.status === 0) throw new Error(`Branch ${branchName} already exists.`);
-  if (result.status !== 1) throw new Error(`Could not inspect branch ${branchName}.`);
+  if (branchExists(run, cwd, branchName)) throw new Error(`Branch ${branchName} already exists.`);
 }
 
 function assertOutsideSource(root, candidate) {
@@ -296,6 +307,7 @@ function formatDryRun(issue, branchName, baseRef, blockers) {
 
 function runAutopilot(options = {}, dependencies = {}) {
   const run = dependencies.run || defaultRun;
+  const focusedTests = options.focusedTests?.length ? options.focusedTests : ["test/autopilot.test.js"];
   const sourceCwd = options.cwd || process.cwd();
   const root = gitRoot(run, sourceCwd);
   const repo = options.repo || repoFromRemote(run, root);
@@ -310,7 +322,7 @@ function runAutopilot(options = {}, dependencies = {}) {
   assertEligibleIssue(issue);
   const branchName = branchForIssue(issue.number);
   const openPullRequests = getOpenPullRequests(run, repo, root);
-  const blockers = findBlockers({ issue, issueNumber: issue.number, openPullRequests, runningIssues: findRunningIssues(issues), branchName });
+  const blockers = findBlockers({ issue, issueNumber: issue.number, openPullRequests, runningIssues: findRunningIssues(issues), branchName, branchExists: branchExists(run, root, branchName) });
   if (blockers.length) throw new Error(blockers.join("\n"));
   if (options.dryRun) return { issue, branchName, baseRef, blockers, output: formatDryRun(issue, branchName, baseRef, blockers) };
 
@@ -322,7 +334,7 @@ function runAutopilot(options = {}, dependencies = {}) {
     const refreshedIssue = getIssue(run, repo, issue.number, root);
     assertEligibleIssue(refreshedIssue);
     const refreshedIssues = [refreshedIssue, ...getOpenIssues(run, repo, root)];
-    const refreshedBlockers = findBlockers({ issue: refreshedIssue, issueNumber: issue.number, openPullRequests: getOpenPullRequests(run, repo, root), runningIssues: findRunningIssues(refreshedIssues), branchName });
+    const refreshedBlockers = findBlockers({ issue: refreshedIssue, issueNumber: issue.number, openPullRequests: getOpenPullRequests(run, repo, root), runningIssues: findRunningIssues(refreshedIssues), branchName, branchExists: branchExists(run, root, branchName) });
     if (refreshedBlockers.length) throw new Error(refreshedBlockers.join("\n"));
     checked(run, "gh", ["issue", "edit", String(issue.number), "--add-label", AGENT_RUNNING_LABEL, "--repo", repo], { cwd: root });
     runningLabel = true;
@@ -341,7 +353,7 @@ function runAutopilot(options = {}, dependencies = {}) {
       let prompt = buildExecutionPrompt(refreshedIssue, contract);
       for (let revision = 0; revision <= MAX_REVISIONS; revision += 1) {
         invokeCodex(run, worktreePath, prompt, implementationOutput);
-        validation = runValidation({ cwd: worktreePath, run });
+        validation = runValidation({ cwd: worktreePath, run, focusedTests });
         assertSafeDiff(run, worktreePath, baseRef);
         invokeReview(run, worktreePath, schemaPath, reviewPrompt(refreshedIssue), reviewOutput);
         review = readReview(reviewOutput);
@@ -389,6 +401,7 @@ module.exports = {
   DEFAULT_BASE_REF,
   assertOutsideSource,
   assertSafeDiff,
+  branchExists,
   branchForIssue,
   buildExecutionPrompt,
   buildPrBody,
