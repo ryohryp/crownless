@@ -284,8 +284,12 @@ test("diagnostic retention records the copied run when source cleanup fails", ()
 test("worktrees cannot be created inside the mutable source checkout", () => {
   const source = fs.mkdtempSync(path.join(os.tmpdir(), "crownless-autopilot-source-"));
   const child = path.join(source, "child");
+  const allowed = path.join(source, ".git", "crownless-autopilot-worktrees", "issue-230");
   const sibling = path.join(path.dirname(source), `${path.basename(source)}-autopilot`);
   assert.throws(() => assertOutsideSource(source, child), /outside/);
+  assert.equal(assertOutsideSource(source, allowed, allowed), path.resolve(allowed));
+  assert.throws(() => assertOutsideSource(source, path.dirname(allowed), allowed), /outside/);
+  if (process.platform === "win32") assert.throws(() => assertOutsideSource(source, `${source.toUpperCase()}\\child`), /outside/);
   assert.equal(assertOutsideSource(source, sibling), path.resolve(sibling));
   fs.rmSync(source, { recursive: true, force: true });
 });

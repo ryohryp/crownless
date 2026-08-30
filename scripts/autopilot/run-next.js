@@ -174,20 +174,54 @@ function ensureBranchAbsent(run, cwd, branchName) {
   if (branchExists(run, cwd, branchName)) throw new Error(`Branch ${branchName} already exists.`);
 }
 
-function assertOutsideSource(root, candidate) {
+function assertOutsideSource(root, candidate, allowedInsideSource = null) {
   const source = path.resolve(root);
   const resolved = path.resolve(candidate);
   const sourcePrefix = source.endsWith(path.sep) ? source : `${source}${path.sep}`;
-  if (resolved === source || resolved.startsWith(sourcePrefix)) {
+  const allowed = allowedInsideSource ? path.resolve(allowedInsideSource) : null;
+  const comparable = (value) => process.platform === "win32" ? value.toLowerCase() : value;
+  const comparableSource = comparable(source);
+  const comparableResolved = comparable(resolved);
+  const comparableSourcePrefix = comparable(sourcePrefix);
+  const isAllowedInternalPath = allowed && comparableResolved === comparable(allowed);
+  if (comparableResolved === comparableSource || (comparableResolved.startsWith(comparableSourcePrefix) && !isAllowedInternalPath)) {
     throw new Error(`Worktree must be outside the source checkout: ${resolved}`);
+  }
+  if (isAllowedInternalPath) {
+    assertNoSymlinkedAncestors(resolved);
   }
   return resolved;
 }
 
-function createWorktree(run, root, worktreePath, branchName, baseRef) {
-  const resolved = assertOutsideSource(root, worktreePath);
+function assertNoSymlinkedAncestors(candidate) {
+  const comparable = (value) => process.platform === "win32" ? value.toLowerCase() : value;
+  let current = path.resolve(candidate);
+  while (true) {
+    if (fs.existsSync(current) && comparable(fs.realpathSync(current)) !== comparable(current)) {
+      throw new Error(`Worktree path contains a symlinked ancestor: ${current}`);
+    }
+    const parent = path.dirname(current);
+    if (parent === current) break;
+    current = parent;
+  }
+}
+
+function createWorktree(run, root, worktreePath, branchName, baseRef, allowedInsideSource = null) {
+  const resolved = assertOutsideSource(root, worktreePath, allowedInsideSource);
   if (fs.existsSync(resolved)) throw new Error(`Worktree path already exists: ${resolved}`);
   checked(run, "git", ["worktree", "add", resolved, branchName], { cwd: root });
+  if (allowedInsideSource) {
+    try {
+      assertOutsideSource(root, resolved, allowedInsideSource);
+    } catch (error) {
+      try {
+        checked(run, "git", ["worktree", "remove", "--force", resolved], { cwd: root }, "worktree-cleanup");
+      } catch (cleanupError) {
+        error.message += `\n[stage=worktree-cleanup] ${cleanupError.message}`;
+      }
+      throw error;
+    }
+  }
   return resolved;
 }
 
@@ -531,10 +565,11 @@ function runAutopilotInternal(options = {}, dependencies = {}) {
     checked(run, "gh", ["issue", "edit", String(issue.number), "--add-label", AGENT_RUNNING_LABEL, "--repo", repo], { cwd: root });
     runningLabel = true;
     ensureBranchAbsent(run, root, branchName);
-    const selectedWorktree = options.worktreePath || path.resolve(root, "..", `.crownless-autopilot-issue-${issue.number}`);
+    const defaultWorktreeRoot = path.resolve(fs.realpathSync(gitCommonDir(run, root)), "crownless-autopilot-worktrees");
+    const selectedWorktree = options.worktreePath || path.join(defaultWorktreeRoot, `issue-${issue.number}`);
     checked(run, "git", ["branch", branchName, baseRef], { cwd: root }, "branch-create");
     branchCreated = true;
-    worktreePath = createWorktree(run, root, selectedWorktree, branchName, baseRef);
+    worktreePath = createWorktree(run, root, selectedWorktree, branchName, baseRef, options.worktreePath ? null : selectedWorktree);
     const controlPlane = resolveControlPlaneArtifacts(root);
     const contract = fs.readFileSync(controlPlane.contractPath, "utf8");
     const policy = fs.readFileSync(controlPlane.policyPath, "utf8");
