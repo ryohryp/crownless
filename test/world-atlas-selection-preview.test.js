@@ -35,14 +35,42 @@ test("a selected discovery without registered artwork becomes an explicit empty 
   assert.equal(model.name, "綾瀬川の血濡れの渡し場");
 });
 
-test("atlas preview controller follows nearby, world, and unplaced selection clicks", () => {
+test("marker identity is resolved by the marker's discovery name rather than DOM index", () => {
+  const marker = {
+    getAttribute(name) {
+      return name === "aria-label" ? "四つ木公園。南東、少し先。発見済み / 遠征候補。" : "";
+    },
+    querySelector() { return null; },
+    textContent: ""
+  };
+  const safe = {
+    worldKnowledge: {
+      discoveries: {
+        park: {
+          key: "park",
+          name: "四つ木公園",
+          contentKind: "encounter",
+          terrain: ["woods"]
+        }
+      }
+    }
+  };
+
+  assert.equal(Preview.markerName(marker), "四つ木公園");
+  assert.equal(Preview.rememberedByName(safe, Preview.markerName(marker)).key, "park");
+});
+
+test("atlas preview controller updates detail and artwork from label clicks", () => {
   assert.match(source, /world-atlas-nearby-marker/);
   assert.match(source, /world-atlas-marker/);
   assert.match(source, /world-atlas-unplaced button/);
+  assert.match(source, /syncDetail/);
+  assert.match(source, /syncSelection/);
   assert.match(source, /resolveLocationVisual/);
   assert.match(source, /選択地点の墨絵/);
   assert.match(source, /この地点の墨絵はまだ記録されていない/);
-  assert.match(source, /document\.addEventListener\("click"/);
+  assert.match(source, /pointer-events:auto !important/);
+  assert.match(source, /document\.addEventListener\("click"[\s\S]*true\);/);
 });
 
 test("runtime loads selected-location preview only after world atlas", () => {
