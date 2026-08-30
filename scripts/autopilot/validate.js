@@ -23,20 +23,20 @@ function defaultRun(command, args, options = {}) {
     input: options.input,
     windowsHide: true,
   });
-  if (result.error) throw result.error;
   return {
     command,
     args,
     status: result.status,
+    error: result.error,
     stdout: result.stdout || "",
     stderr: result.stderr || "",
   };
 }
 
 function assertCommandPassed(result) {
-  if (result.status !== 0) {
+  if (result.error || result.status !== 0) {
     const details = [result.stdout, result.stderr].filter(Boolean).join("\n").trim();
-    throw new Error(`Validation command failed: ${result.command} ${result.args.join(" ")}\n${details}`);
+    throw new Error(`Validation command failed: ${result.command} ${result.args.join(" ")}\n${result.error?.message || details}`);
   }
 }
 
@@ -48,8 +48,15 @@ function runValidation({ cwd, run = defaultRun, nodeCommand = process.execPath, 
     commands.push({ command: nodeCommand, args: ["--check", relativePath], result });
     assertCommandPassed(result);
   }
-  const result = run(npmCommand, ["test"], { cwd });
-  commands.push({ command: npmCommand, args: ["test"], result });
+  let testCommand = npmCommand;
+  let testArgs = ["test"];
+  let result = run(testCommand, testArgs, { cwd });
+  if (result.error?.code === "ENOENT" && process.env.CI !== "true") {
+    testCommand = nodeCommand;
+    testArgs = ["--test"];
+    result = run(testCommand, testArgs, { cwd });
+  }
+  commands.push({ command: testCommand, args: testArgs, result, fallback: testCommand === nodeCommand });
   assertCommandPassed(result);
   return { commands };
 }

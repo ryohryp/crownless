@@ -177,7 +177,7 @@ function invokeCodex(run, worktreePath, prompt, outputPath, codexBin = process.e
 
 function invokeReview(run, worktreePath, schemaPath, prompt, outputPath, codexBin = process.env.AUTOPILOT_CODEX_BIN || "codex") {
   return checked(run, codexBin, [
-    "exec", "review", "--uncommitted", "--cd", worktreePath, "--output-schema", schemaPath, "--output-last-message", outputPath, "-",
+    "exec", "--cd", worktreePath, "--output-last-message", outputPath, "review", "--uncommitted", "--output-schema", schemaPath, "-",
   ], { cwd: worktreePath, input: prompt });
 }
 
