@@ -196,13 +196,13 @@ function buildExecutionPrompt(issue, contract, policy = "", focusedTests = []) {
 
 function invokeCodex(run, worktreePath, prompt, outputPath, codexBin = process.env.AUTOPILOT_CODEX_BIN || "codex") {
   return checked(run, codexBin, [
-    "exec", "--cd", worktreePath, "--add-dir", worktreePath, "--sandbox", "workspace-write", "--ephemeral", "--ignore-user-config", "--output-last-message", outputPath, "-",
+    "exec", "--cd", worktreePath, "--add-dir", worktreePath, "--sandbox", "workspace-write", "--ephemeral", "--ignore-user-config", "--ignore-rules", "--output-last-message", outputPath, "-",
   ], { cwd: worktreePath, input: prompt }, "codex-implementation");
 }
 
 function invokeReview(run, worktreePath, schemaPath, prompt, outputPath, codexBin = process.env.AUTOPILOT_CODEX_BIN || "codex") {
   return checked(run, codexBin, [
-    "exec", "--cd", worktreePath, "--sandbox", "read-only", "--ephemeral", "--ignore-user-config", "--output-schema", schemaPath, "--output-last-message", outputPath, "-",
+    "exec", "--cd", worktreePath, "--sandbox", "read-only", "--ephemeral", "--ignore-user-config", "--ignore-rules", "--output-schema", schemaPath, "--output-last-message", outputPath, "-",
   ], { cwd: worktreePath, input: prompt }, "structured-review");
 }
 
@@ -526,6 +526,7 @@ function runAutopilotInternal(options = {}, dependencies = {}) {
       let prompt = buildExecutionPrompt(refreshedIssue, contract, policy, focusedTests);
       for (let revision = 0; revision <= MAX_REVISIONS; revision += 1) {
         invokeCodex(run, worktreePath, prompt, implementationOutput);
+        ensureClean(run, root);
         validation = runValidation({ cwd: worktreePath, run, focusedTests });
         assertSafeDiff(run, worktreePath, baseRef);
         invokeReview(run, worktreePath, schemaPath, reviewPrompt(refreshedIssue, addedDiff(run, worktreePath, baseRef), reviewContext(worktreePath, root)), reviewOutput);
