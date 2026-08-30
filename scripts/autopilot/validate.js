@@ -75,7 +75,7 @@ function runTest(run, cwd, focusedTest, nodeCommand, npmCommand) {
   let result = run(command, args, { cwd });
   let fallback = false;
   const npmExecutableMissing = result.error?.code === "ENOENT"
-    || (process.platform === "win32" && npmCommand.toLowerCase().endsWith(".cmd") && result.error?.code === "EINVAL");
+    || (npmCommand.toLowerCase().endsWith(".cmd") && result.error?.code === "EINVAL");
   if (npmExecutableMissing && process.env.CI !== "true") {
     command = nodeCommand;
     args = focusedTest ? ["--test", focusedTest] : ["--test"];
