@@ -7,6 +7,9 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function createWorldAtlasPreview() {
   "use strict";
 
+  const MOUSE_MAGNET_RADIUS = 72;
+  const TOUCH_MAGNET_RADIUS = 88;
+
   function cleanText(value, fallback = "") {
     const text = String(value == null ? "" : value).trim();
     return text || fallback;
@@ -178,12 +181,67 @@
     return detail || preview;
   }
 
+  function markerSelectorForMap(map) {
+    return map && map.classList && map.classList.contains("world-atlas-map--nearby")
+      ? ".world-atlas-nearby-marker"
+      : ".world-atlas-marker";
+  }
+
+  function nearestMarkerForPoint(map, clientX, clientY, maxDistance = MOUSE_MAGNET_RADIUS) {
+    if (!map || typeof map.querySelectorAll !== "function") return null;
+    const x = Number(clientX);
+    const y = Number(clientY);
+    const limit = Math.max(0, Number(maxDistance) || 0);
+    if (!Number.isFinite(x) || !Number.isFinite(y) || !limit) return null;
+    let best = null;
+    let bestDistance = Infinity;
+    Array.from(map.querySelectorAll(markerSelectorForMap(map))).forEach((marker) => {
+      if (!marker || typeof marker.getBoundingClientRect !== "function") return;
+      const rect = marker.getBoundingClientRect();
+      const centerX = Number(rect.left) + Number(rect.width) / 2;
+      const centerY = Number(rect.top) + Number(rect.height) / 2;
+      if (!Number.isFinite(centerX) || !Number.isFinite(centerY)) return;
+      const distance = Math.hypot(x - centerX, y - centerY);
+      if (distance < bestDistance) {
+        best = marker;
+        bestDistance = distance;
+      }
+    });
+    return bestDistance <= limit ? best : null;
+  }
+
+  function markActive(map, marker) {
+    if (!map || !marker || typeof map.querySelectorAll !== "function") return;
+    Array.from(map.querySelectorAll(markerSelectorForMap(map))).forEach((node) => {
+      if (node && node.classList) node.classList.toggle("active", node === marker);
+    });
+  }
+
+  function pointerSelection(document, root, event) {
+    const target = event && event.target;
+    if (!target || typeof target.closest !== "function") return false;
+    const directMarker = target.closest(".world-atlas-nearby-marker, .world-atlas-marker");
+    const map = directMarker
+      ? directMarker.closest(".world-atlas-map--nearby, .world-atlas-map--world")
+      : target.closest(".world-atlas-map--nearby, .world-atlas-map--world");
+    if (!map) return false;
+    const radius = event.pointerType === "touch" || event.pointerType === "pen" ? TOUCH_MAGNET_RADIUS : MOUSE_MAGNET_RADIUS;
+    const marker = directMarker || nearestMarkerForPoint(map, event.clientX, event.clientY, radius);
+    if (!marker) return false;
+    const entry = entryForMarker(root, safeState(root), marker);
+    if (!entry) return false;
+    markActive(map, marker);
+    syncSelection(document, root, entry);
+    return true;
+  }
+
   function ensureInteractionStyles(document) {
     if (!document || document.getElementById("world-atlas-selection-interaction-styles")) return;
     const style = document.createElement("style");
     style.id = "world-atlas-selection-interaction-styles";
     style.textContent = `
       .world-atlas-nearby-marker > span { pointer-events:auto !important; cursor:pointer; }
+      .world-atlas-map--nearby, .world-atlas-map--world { touch-action:manipulation; }
       .world-atlas-selection-preview-empty { min-height:120px; display:grid; place-items:center; padding:18px; color:#8f8775; font-size:10px; line-height:1.6; text-align:center; border:1px dashed rgba(201,163,93,.16); }
     `;
     document.head.appendChild(style);
@@ -206,6 +264,10 @@
       });
     }
 
+    document.addEventListener("pointerup", (event) => {
+      pointerSelection(document, root, event);
+    }, true);
+
     document.addEventListener("click", (event) => {
       const entry = entryForTarget(root, event.target);
       if (!entry) return;
@@ -224,6 +286,8 @@
   }
 
   return {
+    MOUSE_MAGNET_RADIUS,
+    TOUCH_MAGNET_RADIUS,
     previewModel,
     markerName,
     rememberedByName,
@@ -235,6 +299,8 @@
     createPreview,
     syncPreview,
     syncSelection,
+    nearestMarkerForPoint,
+    pointerSelection,
     install
   };
 });
