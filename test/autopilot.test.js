@@ -168,6 +168,7 @@ test("Codex implementation and review use isolated, config-independent execution
   invokeReview(run, "C:\\worktree", "C:\\worktree\\schema.json", "review", "C:\\tmp\\review.json", "codex-test");
   assert.equal(calls.length, 2);
   assert.ok(calls[0][1].includes("--ignore-user-config"));
+  assert.deepEqual(calls[0][1].slice(0, 10), ["exec", "--cd", "C:\\worktree", "--add-dir", "C:\\worktree", "--sandbox", "workspace-write", "--ephemeral", "--ignore-user-config", "--output-last-message"]);
   assert.ok(calls[1][1].includes("--ignore-user-config"));
   assert.ok(calls[1][1].includes("--sandbox") && calls[1][1].includes("read-only"));
   assert.ok(calls[1][1].includes("--ephemeral") && calls[1][1].includes("--output-schema"));
