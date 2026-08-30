@@ -1,3 +1,4 @@
+const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 
@@ -17,11 +18,22 @@ const REQUIRED_SYNTAX_FILES = [
 ];
 
 function defaultRun(command, args, options = {}) {
+  const useShell = process.platform === "win32" && /\.(?:cmd|bat)$/i.test(command);
+  if (useShell && !commandAvailable(command)) {
+    return {
+      command,
+      args,
+      status: null,
+      error: Object.assign(new Error(`Executable not found: ${command}`), { code: "ENOENT" }),
+      stdout: "",
+      stderr: "",
+    };
+  }
   const result = spawnSync(command, args, {
     cwd: options.cwd,
     encoding: "utf8",
     input: options.input,
-    shell: process.platform === "win32" && /\.(?:cmd|bat)$/i.test(command),
+    shell: useShell,
     windowsHide: true,
   });
   return {
@@ -49,6 +61,12 @@ function assertCommandPassed(result, stage = "validation") {
     };
     throw error;
   }
+}
+
+function commandAvailable(command) {
+  if (path.isAbsolute(command)) return fs.existsSync(command);
+  const pathValue = process.env.PATH || process.env.Path || "";
+  return pathValue.split(path.delimiter).filter(Boolean).some((directory) => fs.existsSync(path.join(directory, command)));
 }
 
 function runValidation({ cwd, run = defaultRun, nodeCommand = process.execPath, npmCommand = process.platform === "win32" ? "npm.cmd" : "npm", focusedTests = [] } = {}) {
