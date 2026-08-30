@@ -21,6 +21,7 @@ function defaultRun(command, args, options = {}) {
     cwd: options.cwd,
     encoding: "utf8",
     input: options.input,
+    shell: process.platform === "win32" && /\.(?:cmd|bat)$/i.test(command),
     windowsHide: true,
   });
   return {
