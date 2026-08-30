@@ -112,8 +112,22 @@ var audioContext = null;
 // only from persisted coarse world knowledge. Keep it independent of the
 // expedition slice so the map remains available before or between dispatches.
 (function loadWorldAtlas() {
-  if (typeof document === "undefined" || document.querySelector('script[src="src/world-atlas.js"]')) return;
+  if (typeof document === "undefined") return;
+
+  function loadSelectionPreview() {
+    if (document.querySelector('script[src="src/world-atlas-selection-preview.js"]')) return;
+    const preview = document.createElement("script");
+    preview.src = "src/world-atlas-selection-preview.js";
+    document.body.appendChild(preview);
+  }
+
+  const existingAtlas = document.querySelector('script[src="src/world-atlas.js"]');
+  if (existingAtlas) {
+    loadSelectionPreview();
+    return;
+  }
   const atlas = document.createElement("script");
   atlas.src = "src/world-atlas.js";
+  atlas.onload = loadSelectionPreview;
   document.body.appendChild(atlas);
 })();

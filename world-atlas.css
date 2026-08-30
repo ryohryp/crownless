@@ -1,34 +1,61 @@
 body.world-atlas-open { overflow:hidden; }
 .world-atlas-viewer { position:fixed; inset:0; z-index:1400; display:grid; place-items:center; padding:max(14px,env(safe-area-inset-top)) max(14px,env(safe-area-inset-right)) max(14px,env(safe-area-inset-bottom)) max(14px,env(safe-area-inset-left)); background:rgba(6,6,5,.82); backdrop-filter:blur(2px); }
-.world-atlas-folio { position:relative; width:min(1080px,96vw); max-height:92vh; overflow:auto; padding:18px; border:1px solid rgba(201,163,93,.42); border-radius:0; background:linear-gradient(115deg,rgba(224,207,171,.10),transparent 46%),repeating-linear-gradient(4deg,rgba(235,221,190,.025) 0 1px,transparent 1px 8px),#17150f; box-shadow:0 24px 70px rgba(0,0,0,.52),inset 0 0 0 1px rgba(235,221,190,.025); color:#e2d5b6; }
+.world-atlas-folio { position:relative; width:min(1080px,96vw); max-height:92vh; overflow:auto; padding:18px; border:1px solid rgba(201,163,93,.42); background:linear-gradient(115deg,rgba(224,207,171,.10),transparent 46%),repeating-linear-gradient(4deg,rgba(235,221,190,.025) 0 1px,transparent 1px 8px),#17150f; box-shadow:0 24px 70px rgba(0,0,0,.52),inset 0 0 0 1px rgba(235,221,190,.025); color:#e2d5b6; }
 .world-atlas-folio::before { content:""; position:absolute; inset:7px; pointer-events:none; border:1px dashed rgba(201,163,93,.10); }
 .world-atlas-header { position:relative; z-index:1; display:flex; justify-content:space-between; align-items:flex-start; gap:18px; padding:2px 2px 13px; border-bottom:1px solid rgba(201,163,93,.18); }
 .world-atlas-header h2 { margin:2px 0 5px; color:#e8d9b6; font:500 clamp(24px,4vw,42px)/1.05 Georgia,serif; }
 .world-atlas-header span { color:#9d947f; font-size:10px; letter-spacing:.06em; }
-.world-atlas-close { flex:0 0 auto; min-height:34px; padding:7px 9px; border:0; border-left:1px solid rgba(201,163,93,.34); border-radius:0; background:transparent; color:#cdbd94; font-size:10px; cursor:pointer; }
+.world-atlas-close { flex:0 0 auto; min-height:34px; padding:7px 9px; border:0; border-left:1px solid rgba(201,163,93,.34); background:transparent; color:#cdbd94; font-size:10px; cursor:pointer; }
 .world-atlas-scan { position:relative; z-index:1; display:flex; align-items:center; justify-content:space-between; gap:14px; margin-top:10px; padding:9px 10px; border-left:2px solid rgba(99,137,116,.48); background:rgba(72,105,89,.07); }
 .world-atlas-scan > div { min-width:0; }
 .world-atlas-scan small,.world-atlas-scan span { display:block; }
 .world-atlas-scan small { margin-bottom:3px; color:#829887; font-size:8px; letter-spacing:.1em; }
 .world-atlas-scan span { color:#afa58d; font-size:10px; line-height:1.45; }
-.world-atlas-scan button { flex:0 0 auto; min-height:34px; padding:6px 9px; border:1px solid rgba(201,163,93,.30); border-radius:0; background:rgba(201,163,93,.04); color:#cdbd94; font-size:9px; cursor:pointer; }
+.world-atlas-scan button { flex:0 0 auto; min-height:34px; padding:6px 9px; border:1px solid rgba(201,163,93,.30); background:rgba(201,163,93,.04); color:#cdbd94; font-size:9px; cursor:pointer; }
 .world-atlas-scan button:disabled { opacity:.42; cursor:default; }
 .world-atlas-scan.scanning { border-left-color:rgba(201,163,93,.56); background:rgba(201,163,93,.045); }
-.world-atlas-scan.scanning small { color:#ad985f; }
-.world-atlas-body { display:grid; grid-template-columns:minmax(0,1fr) minmax(220px,290px); gap:14px; margin-top:14px; }
+.world-atlas-view-toggle { position:relative; z-index:1; display:flex; gap:0; margin-top:10px; border-bottom:1px solid rgba(201,163,93,.16); }
+.world-atlas-view-toggle button { min-height:36px; padding:7px 13px; border:0; border-bottom:2px solid transparent; background:transparent; color:#817967; font:600 9px/1 sans-serif; letter-spacing:.06em; cursor:pointer; }
+.world-atlas-view-toggle button.active { border-bottom-color:#b79a57; color:#dccda9; background:rgba(201,163,93,.035); }
+.world-atlas-view-toggle button:disabled { opacity:.3; cursor:default; }
+.world-atlas-body { display:grid; grid-template-columns:minmax(0,1fr) minmax(220px,290px); gap:14px; margin-top:12px; }
 .world-atlas-map { position:relative; min-height:520px; overflow:hidden; border:1px solid rgba(201,163,93,.22); background:radial-gradient(circle at 45% 48%,rgba(77,111,94,.08),transparent 38%),repeating-linear-gradient(7deg,rgba(229,216,186,.02) 0 1px,transparent 1px 11px),#12110d; isolation:isolate; }
-.world-atlas-map::before,.world-atlas-map::after { content:""; position:absolute; inset:0; z-index:-1; pointer-events:none; }
-.world-atlas-map::before { opacity:.17; background:linear-gradient(12deg,transparent 0 28%,rgba(201,163,93,.18) 28.2% 28.35%,transparent 28.5% 58%,rgba(201,163,93,.13) 58.2% 58.35%,transparent 58.5%); transform:rotate(-1deg) scale(1.08); }
-.world-atlas-map::after { box-shadow:inset 0 0 80px rgba(0,0,0,.45); }
+.world-atlas-map::after { content:""; position:absolute; inset:0; z-index:-1; pointer-events:none; box-shadow:inset 0 0 80px rgba(0,0,0,.45); }
+.world-atlas-map--world::before { content:""; position:absolute; inset:0; z-index:-1; opacity:.17; pointer-events:none; background:linear-gradient(12deg,transparent 0 28%,rgba(201,163,93,.18) 28.2% 28.35%,transparent 28.5% 58%,rgba(201,163,93,.13) 58.2% 58.35%,transparent 58.5%); transform:rotate(-1deg) scale(1.08); }
 .world-atlas-cell { position:absolute; box-sizing:border-box; min-width:3px; min-height:3px; transition:background .16s ease,border-color .16s ease; }
 .world-atlas-cell.unknown { border:1px dashed rgba(156,147,124,.17); background:repeating-linear-gradient(135deg,transparent 0 10px,rgba(157,147,123,.018) 10px 11px); }
 .world-atlas-cell.known { border:1px solid rgba(99,137,116,.38); background:linear-gradient(rgba(72,105,89,.22),rgba(72,105,89,.12)),repeating-linear-gradient(21deg,rgba(109,145,126,.05) 0 1px,transparent 1px 7px); box-shadow:inset 0 0 18px rgba(70,110,89,.07); }
 .world-atlas-cell.current { outline:1px solid rgba(215,182,107,.78); outline-offset:-3px; }
-.world-atlas-cell.current::after { content:""; position:absolute; left:50%; top:50%; width:5px; height:5px; border-radius:50%; background:#d7b66b; box-shadow:0 0 0 4px rgba(215,182,107,.09); transform:translate(-50%,-50%); }
-.world-atlas-marker { position:absolute; z-index:4; width:34px; height:34px; padding:0; border:0; background:transparent; color:#d4bd7c; transform:translate(-50%,-50%); cursor:pointer; }
-.world-atlas-marker i { display:grid; place-items:center; width:30px; height:30px; border:1px solid rgba(201,163,93,.58); border-radius:47% 53% 49% 51%; background:#17140f; font:normal 18px/1 Georgia,serif; transform:rotate(-3deg); }
-.world-atlas-marker small { position:absolute; left:24px; top:-5px; color:#a98d54; font-size:7px; font-weight:800; letter-spacing:.08em; }
+.world-atlas-current-cell-label { position:absolute; z-index:3; display:flex; align-items:center; gap:6px; transform:translate(-50%,-50%); padding:4px 6px; background:rgba(17,15,11,.84); color:#ddc986; font-size:8px; white-space:nowrap; pointer-events:none; }
+.world-atlas-current-cell-label i { width:8px; height:8px; border:1px solid #d7b66b; border-radius:50%; background:#d7b66b; box-shadow:0 0 0 4px rgba(215,182,107,.09); }
+.world-atlas-current-cell-label b { font-weight:600; }
+.world-atlas-marker { position:absolute; z-index:4; width:44px; height:44px; padding:0; border:0; background:transparent; color:#d4bd7c; transform:translate(-50%,-50%); cursor:pointer; touch-action:manipulation; }
+.world-atlas-marker i { display:grid; place-items:center; width:30px; height:30px; margin:auto; border:1px solid rgba(201,163,93,.58); border-radius:47% 53% 49% 51%; background:#17140f; font:normal 18px/1 Georgia,serif; transform:rotate(-3deg); pointer-events:none; }
+.world-atlas-marker small { position:absolute; left:30px; top:-1px; color:#a98d54; font-size:7px; font-weight:800; letter-spacing:.08em; pointer-events:none; }
+.world-atlas-marker:hover,.world-atlas-marker:focus-visible,.world-atlas-marker.active { z-index:12; }
 .world-atlas-marker:hover i,.world-atlas-marker:focus-visible i,.world-atlas-marker.active i { border-color:#e0bf6d; background:#263027; outline:1px solid rgba(224,191,109,.25); outline-offset:3px; transform:rotate(2deg) scale(1.08); }
+.world-atlas-nearby-caption { position:absolute; z-index:2; left:14px; top:12px; display:grid; gap:2px; max-width:220px; padding:7px 9px; border-left:1px solid rgba(201,163,93,.30); background:rgba(12,11,9,.72); pointer-events:none; }
+.world-atlas-nearby-caption small { color:#829887; font-size:7px; letter-spacing:.1em; }
+.world-atlas-nearby-caption strong { color:#ddcfad; font:500 14px/1.2 Georgia,serif; }
+.world-atlas-nearby-caption span { color:#817a6c; font-size:8px; line-height:1.35; }
+.world-atlas-nearby-ink { position:absolute; inset:0; width:100%; height:100%; fill:none; stroke:#a9894e; stroke-width:.38; stroke-dasharray:1.8 2.6; opacity:.25; vector-effect:non-scaling-stroke; pointer-events:none; }
+.world-atlas-nearby-ink circle { stroke-dasharray:1 4; opacity:.65; }
+.world-atlas-nearby-current { position:absolute; left:50%; top:50%; z-index:4; display:grid; place-items:center; transform:translate(-50%,-50%); color:#ead9ad; font-size:9px; text-align:center; pointer-events:none; }
+.world-atlas-nearby-current i { width:16px; height:16px; border:2px solid #d7b66b; border-radius:46% 54% 49% 51%; background:#17140f; box-shadow:0 0 0 6px rgba(215,182,107,.09); }
+.world-atlas-nearby-current b { margin-top:6px; padding:2px 5px; background:rgba(12,11,9,.84); font-weight:700; letter-spacing:.06em; }
+.world-atlas-nearby-marker { position:absolute; z-index:5; width:48px; height:48px; min-width:48px; min-height:48px; padding:0; border:0; background:transparent; color:inherit; transform:translate(-50%,-50%); cursor:pointer; touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
+.world-atlas-nearby-marker > i { display:grid; place-items:center; width:34px; height:34px; margin:auto; border:1px solid rgba(201,163,93,.58); border-radius:45% 55% 49% 51%; background:#12110e; color:#d7bd7d; font:normal 18px/1 Georgia,serif; box-shadow:0 0 0 3px rgba(8,8,7,.7); transform:rotate(-3deg); pointer-events:none; }
+.world-atlas-nearby-marker > small { position:absolute; left:calc(50% + 15px); top:-3px; color:#a98d54; font-size:7px; font-weight:800; pointer-events:none; }
+.world-atlas-nearby-marker > span { position:absolute; left:50%; top:43px; width:max-content; max-width:150px; transform:translateX(-50%); padding:7px 9px; background:rgba(11,10,8,.88); border:1px solid transparent; cursor:pointer; pointer-events:auto; touch-action:manipulation; }
+.world-atlas-nearby-marker strong,.world-atlas-nearby-marker em { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; pointer-events:none; }
+.world-atlas-nearby-marker strong { max-width:138px; color:#e4d6b5; font:600 10px/1.25 Georgia,serif; }
+.world-atlas-nearby-marker em { margin-top:2px; max-width:138px; color:#8d897e; font:normal 8px/1.3 sans-serif; }
+.world-atlas-nearby-marker[data-label-horizontal="inset-left"] > span { left:0; transform:none; text-align:left; }
+.world-atlas-nearby-marker[data-label-horizontal="inset-right"] > span { left:auto; right:0; transform:none; text-align:right; }
+.world-atlas-nearby-marker[data-label-vertical="above"] > span { top:auto; bottom:43px; }
+.world-atlas-nearby-marker:hover,.world-atlas-nearby-marker:focus-visible,.world-atlas-nearby-marker.active { z-index:14; }
+.world-atlas-nearby-marker:hover > span,.world-atlas-nearby-marker:focus-visible > span,.world-atlas-nearby-marker.active > span { border-color:rgba(224,191,109,.22); background:rgba(18,17,13,.96); }
+.world-atlas-nearby-marker:hover > i,.world-atlas-nearby-marker:focus-visible > i,.world-atlas-nearby-marker.active > i { border-color:#dfbd69; background:#263027; outline:1px solid rgba(224,191,109,.25); outline-offset:3px; transform:rotate(2deg) scale(1.1); }
 .world-atlas-side { display:flex; flex-direction:column; gap:10px; min-width:0; }
 .world-atlas-detail,.world-atlas-unplaced,.world-atlas-latest-visual { margin:0; padding:12px; border-left:1px solid rgba(201,163,93,.34); background:rgba(224,207,171,.035); }
 .world-atlas-detail small,.world-atlas-unplaced > small { display:block; color:#9c8f70; font-size:8px; letter-spacing:.11em; }
@@ -36,14 +63,13 @@ body.world-atlas-open { overflow:hidden; }
 .world-atlas-detail span,.world-atlas-detail em { display:block; color:#a89f8a; font-size:10px; line-height:1.5; font-style:normal; }
 .world-atlas-detail em { margin-top:6px; color:#839b8b; }
 .world-atlas-unplaced { display:grid; gap:5px; }
-.world-atlas-unplaced button { padding:5px 0; border:0; border-bottom:1px dashed rgba(201,163,93,.15); border-radius:0; background:transparent; color:#cbbd9b; text-align:left; font:500 11px/1.35 Georgia,serif; cursor:pointer; }
+.world-atlas-unplaced button { padding:5px 0; border:0; border-bottom:1px dashed rgba(201,163,93,.15); background:transparent; color:#cbbd9b; text-align:left; font:500 11px/1.35 Georgia,serif; cursor:pointer; }
 .world-atlas-latest-visual img { display:block; width:100%; max-height:190px; object-fit:cover; filter:saturate(.72) contrast(.98) brightness(.82); }
 .world-atlas-latest-visual figcaption { margin-top:6px; color:#9c927b; font-size:9px; line-height:1.4; }
 .world-atlas-blank { position:absolute; inset:0; display:grid; place-content:center; gap:7px; padding:28px; text-align:center; }
 .world-atlas-blank strong { color:#cbb98f; font:500 21px/1.3 Georgia,serif; }
 .world-atlas-blank span { max-width:370px; color:#8e8777; font-size:10px; line-height:1.6; }
 .world-atlas-note { margin:12px 2px 0; color:#8f8775; font-size:9px; line-height:1.55; letter-spacing:.02em; }
-
 .exploration-cell-tile { border-color:rgba(169,155,125,.20) !important; }
 .exploration-cell-tile:not(.known) { background:repeating-linear-gradient(135deg,transparent 0 11px,rgba(169,155,125,.03) 11px 12px) !important; }
 .exploration-cell-tile.known { border-color:rgba(103,137,117,.42) !important; }
@@ -55,13 +81,16 @@ body.world-atlas-open { overflow:hidden; }
   .world-atlas-header h2 { font-size:26px; }
   .world-atlas-scan { align-items:flex-start; }
   .world-atlas-scan button { min-height:40px; }
+  .world-atlas-view-toggle button { min-height:42px; flex:1 1 0; }
   .world-atlas-body { grid-template-columns:1fr; }
   .world-atlas-map { min-height:52dvh; }
+  .world-atlas-nearby-caption { max-width:180px; }
+  .world-atlas-nearby-marker { width:52px; height:52px; min-width:52px; min-height:52px; }
+  .world-atlas-nearby-marker > span { max-width:118px; padding:8px 10px; }
+  .world-atlas-nearby-marker strong,.world-atlas-nearby-marker em { max-width:104px; }
   .world-atlas-side { display:grid; grid-template-columns:1fr; }
-  .world-atlas-marker { width:38px; height:38px; }
-  .world-atlas-marker i { width:32px; height:32px; }
 }
 
 @media (prefers-reduced-motion:reduce) {
-  .world-atlas-cell,.world-atlas-marker i { transition:none; }
+  .world-atlas-cell,.world-atlas-marker i,.world-atlas-nearby-marker > i { transition:none; }
 }

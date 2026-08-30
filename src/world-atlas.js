@@ -11,6 +11,9 @@
   const CELL_PADDING = 1;
   const MAX_FRINGE_CELLS = 180;
   const SCAN_COOLDOWN_MS = 30000;
+  const NEARBY_LIMIT = 3;
+  const NEARBY_RADIUS_METRES = 650;
+  const MARKER_INSET_PERCENT = 5;
   const TERRAIN_GLYPHS = Object.freeze({
     water: "≈",
     crossing: "×",
@@ -24,8 +27,17 @@
   let lastScanAt = 0;
   let lastScanResult = null;
 
+  function cleanText(value, fallback = "") {
+    const text = String(value == null ? "" : value).trim();
+    return text || fallback;
+  }
+
+  function clamp(value, min, max) {
+    return Math.max(min, Math.min(max, value));
+  }
+
   function parseCellId(value) {
-    const match = /^cell:(\d{1,2}):(\d+):(\d+)$/.exec(String(value || "").trim());
+    const match = /^cell:(\d{1,2}):(\d+):(\d+)$/.exec(cleanText(value));
     if (!match) return null;
     const zoom = Number(match[1]);
     const x = Number(match[2]);
@@ -37,7 +49,7 @@
   }
 
   function parseAreaId(value) {
-    const match = /^area:(\d{1,2}):(\d+):(\d+)$/.exec(String(value || "").trim());
+    const match = /^area:(\d{1,2}):(\d+):(\d+)$/.exec(cleanText(value));
     if (!match) return null;
     const zoom = Number(match[1]);
     const x = Number(match[2]);
@@ -48,13 +60,16 @@
     return { id: `area:${zoom}:${x}:${y}`, zoom, x, y };
   }
 
-  function cleanText(value, fallback = "") {
-    const text = String(value == null ? "" : value).trim();
-    return text || fallback;
+  function validCoordinate(point) {
+    const latitude = Number(point && point.latitude);
+    const longitude = Number(point && point.longitude);
+    return Number.isFinite(latitude) && Number.isFinite(longitude) && latitude >= -90 && latitude <= 90 && longitude >= -180 && longitude <= 180
+      ? { latitude, longitude }
+      : null;
   }
 
   function terrainGlyph(entry) {
-    const terrain = Array.isArray(entry && entry.terrain) ? entry.terrain : [];
+    const terrain = Array.isArray(entry && (entry.terrain || entry.features)) ? (entry.terrain || entry.features) : [];
     const key = terrain.find((item) => TERRAIN_GLYPHS[item]);
     if (key) return TERRAIN_GLYPHS[key];
     if (entry && entry.contentKind === "dungeon") return "◇";
@@ -74,10 +89,7 @@
     const zoom = Number(cellZoom);
     if (!parsed || !Number.isInteger(zoom) || zoom < parsed.zoom || zoom > 22) return null;
     const factor = 2 ** (zoom - parsed.zoom);
-    return {
-      x: parsed.x * factor + factor / 2,
-      y: parsed.y * factor + factor / 2
-    };
+    return { x: parsed.x * factor + factor / 2, y: parsed.y * factor + factor / 2 };
   }
 
   function fringeCells(explored, current) {
@@ -113,39 +125,29 @@
 
   function atlasViewModel(worldKnowledge, currentCell) {
     const knowledge = worldKnowledge && typeof worldKnowledge === "object" ? worldKnowledge : {};
-    const exploredSource = knowledge.exploredCells && typeof knowledge.exploredCells === "object" && !Array.isArray(knowledge.exploredCells)
-      ? knowledge.exploredCells
-      : {};
+    const exploredSource = knowledge.exploredCells && typeof knowledge.exploredCells === "object" && !Array.isArray(knowledge.exploredCells) ? knowledge.exploredCells : {};
     const explored = Object.keys(exploredSource).map(parseCellId).filter(Boolean);
     const current = typeof currentCell === "string" ? parseCellId(currentCell) : parseCellId(currentCell && currentCell.id);
     const cellZoom = explored[0]?.zoom || current?.zoom || 16;
     const sameZoomExplored = explored.filter((cell) => cell.zoom === cellZoom);
     const sameZoomCurrent = current && current.zoom === cellZoom ? current : null;
     const rawCells = fringeCells(sameZoomExplored, sameZoomCurrent);
-
-    const discoveriesSource = knowledge.discoveries && typeof knowledge.discoveries === "object" && !Array.isArray(knowledge.discoveries)
-      ? knowledge.discoveries
-      : {};
+    const discoveriesSource = knowledge.discoveries && typeof knowledge.discoveries === "object" && !Array.isArray(knowledge.discoveries) ? knowledge.discoveries : {};
     const discoveries = [];
     const unplacedDiscoveries = [];
+
     Object.values(discoveriesSource).forEach((raw, index) => {
       if (!raw || typeof raw !== "object") return;
       const entry = {
         key: cleanText(raw.key, `discovery-${index + 1}`),
         name: cleanText(raw.name, "名もない発見"),
         state: cleanText(raw.state, "discovered"),
-        visits: Math.max(1, Math.floor(Number(raw.visits) || 1)),
         contentKind: cleanText(raw.contentKind, "unknown"),
         terrain: Array.isArray(raw.terrain) ? raw.terrain.map((item) => cleanText(item)).filter(Boolean).slice(0, 8) : [],
         areaId: cleanText(raw.areaId)
       };
-      const area = parseAreaId(entry.areaId);
-      const point = areaCenterInCellSpace(area, cellZoom);
-      const modeled = {
-        ...entry,
-        glyph: terrainGlyph(entry),
-        stateLabel: discoveryStateLabel(entry)
-      };
+      const point = areaCenterInCellSpace(parseAreaId(entry.areaId), cellZoom);
+      const modeled = { ...entry, glyph: terrainGlyph(entry), stateLabel: discoveryStateLabel(entry) };
       if (!point) {
         unplacedDiscoveries.push(modeled);
         return;
@@ -161,15 +163,7 @@
     });
 
     if (!coordinateXs.length) {
-      return {
-        cellZoom,
-        exploredCount: 0,
-        discoveryCount: discoveries.length + unplacedDiscoveries.length,
-        cells: [],
-        discoveries: [],
-        unplacedDiscoveries,
-        bounds: null
-      };
+      return { cellZoom, exploredCount: 0, discoveryCount: discoveries.length + unplacedDiscoveries.length, cells: [], discoveries: [], unplacedDiscoveries, bounds: null };
     }
 
     const minX = Math.min(...coordinateXs);
@@ -187,8 +181,8 @@
     }));
     const placedDiscoveries = discoveries.map((entry) => ({
       ...entry,
-      left: ((entry.mapX - minX) / width) * 100,
-      top: ((entry.mapY - minY) / height) * 100
+      left: clamp(((entry.mapX - minX) / width) * 100, MARKER_INSET_PERCENT, 100 - MARKER_INSET_PERCENT),
+      top: clamp(((entry.mapY - minY) / height) * 100, MARKER_INSET_PERCENT, 100 - MARKER_INSET_PERCENT)
     }));
 
     return {
@@ -202,14 +196,96 @@
     };
   }
 
+  function relativeOffsetMeters(origin, point) {
+    const from = validCoordinate(origin);
+    const to = validCoordinate(point);
+    if (!from || !to) return null;
+    const metresPerDegree = 111320;
+    const latitudeRadians = from.latitude * Math.PI / 180;
+    const north = (to.latitude - from.latitude) * metresPerDegree;
+    const east = (to.longitude - from.longitude) * metresPerDegree * Math.cos(latitudeRadians);
+    return { east, north, distance: Math.hypot(east, north) };
+  }
+
+  function projectNearbyPoint(origin, point, radius = NEARBY_RADIUS_METRES) {
+    const offset = relativeOffsetMeters(origin, point);
+    if (!offset) return null;
+    const scale = Math.max(100, Number(radius) || NEARBY_RADIUS_METRES);
+    return {
+      x: clamp(50 + (offset.east / scale) * 34, 16, 84),
+      y: clamp(50 - (offset.north / scale) * 34, 16, 84),
+      east: offset.east,
+      north: offset.north,
+      distance: offset.distance
+    };
+  }
+
+  function directionLabel(offset) {
+    if (!offset) return "方角不明";
+    if (offset.distance < 12) return "現在地付近";
+    const angle = Math.atan2(offset.east, offset.north) * 180 / Math.PI;
+    const normalized = (angle + 360) % 360;
+    const labels = ["北", "北東", "東", "南東", "南", "南西", "西", "北西"];
+    return labels[Math.round(normalized / 45) % 8];
+  }
+
+  function distanceBand(distance) {
+    const metres = Number(distance);
+    if (!Number.isFinite(metres)) return "距離不明";
+    if (metres < 180) return "近い気配";
+    if (metres < 430) return "少し先";
+    return "探索域の外縁";
+  }
+
   function fallbackDiscoveryKey(discovery) {
     const sourceRef = cleanText(discovery && discovery.sourceRef);
     if (!sourceRef) return "";
-    const features = Array.isArray(discovery && discovery.features)
-      ? discovery.features.map((item) => cleanText(item)).filter(Boolean).sort()
-      : [];
+    const features = Array.isArray(discovery && discovery.features) ? discovery.features.map((item) => cleanText(item)).filter(Boolean).sort() : [];
     const kind = cleanText(discovery && discovery.contentKind, "unknown");
     return `geo:${sourceRef}:${kind}:${features.length ? features.join("+") : "unknown"}`;
+  }
+
+  function nearbyViewModel(runtime, worldKnowledge, projectionApi) {
+    if (!runtime || runtime.state !== "ready" || !Array.isArray(runtime.discoveries)) return [];
+    const knowledge = worldKnowledge && worldKnowledge.discoveries && typeof worldKnowledge.discoveries === "object" ? worldKnowledge.discoveries : {};
+    return runtime.discoveries.slice(0, NEARBY_LIMIT).map((discovery) => {
+      const origin = validCoordinate(discovery && discovery.mapOrigin);
+      const point = validCoordinate(discovery && discovery.representativeCoordinate);
+      const projected = projectionApi && typeof projectionApi.projectDiscoveryPoint === "function"
+        ? projectionApi.projectDiscoveryPoint(origin, point, NEARBY_RADIUS_METRES)
+        : projectNearbyPoint(origin, point, NEARBY_RADIUS_METRES);
+      if (!projected) return null;
+      const key = typeof runtime.worldKnowledgeKey === "function" ? cleanText(runtime.worldKnowledgeKey(discovery)) : fallbackDiscoveryKey(discovery);
+      const remembered = key ? knowledge[key] : null;
+      const terrain = remembered && Array.isArray(remembered.terrain)
+        ? remembered.terrain.slice()
+        : Array.isArray(discovery.features) ? discovery.features.slice() : [];
+      const entry = {
+        key,
+        name: cleanText(remembered && remembered.name, cleanText(discovery.title, "名もない発見")),
+        shortName: cleanText(discovery.realPlaceName, cleanText(discovery.baseTitle, cleanText(discovery.title, "発見地点"))),
+        state: cleanText(remembered && remembered.state, "discovered"),
+        contentKind: cleanText(remembered && remembered.contentKind, cleanText(discovery.contentKind, "unknown")),
+        terrain,
+        glyph: terrainGlyph({ terrain, contentKind: discovery.contentKind }),
+        stateLabel: discoveryStateLabel(remembered || { state: "discovered" }),
+        x: projected.x,
+        y: projected.y,
+        direction: projectionApi && typeof projectionApi.directionLabel === "function" ? projectionApi.directionLabel(projected) : directionLabel(projected),
+        distanceBand: projectionApi && typeof projectionApi.distanceBand === "function" ? projectionApi.distanceBand(projected.distance) : distanceBand(projected.distance),
+        distance: projected.distance
+      };
+      entry.labelHorizontal = entry.x <= 28 ? "inset-left" : entry.x >= 72 ? "inset-right" : "center";
+      entry.labelVertical = entry.y >= 66 ? "above" : "below";
+      return entry;
+    }).filter(Boolean);
+  }
+
+  function initialAtlasView(scanResult, nearbyModel, requested) {
+    const hasNearby = Array.isArray(nearbyModel) && nearbyModel.length > 0;
+    if (requested === "world") return "world";
+    if (requested === "nearby") return hasNearby ? "nearby" : "world";
+    return scanResult && scanResult.state === "ready" && hasNearby ? "nearby" : "world";
   }
 
   function coarseAreaForDiscovery(Core, runtime, discovery) {
@@ -241,14 +317,10 @@
     let newCount = 0;
     discoveries.forEach((discovery, index) => {
       if (!discovery || typeof discovery !== "object") return;
-      const key = typeof runtime.worldKnowledgeKey === "function"
-        ? cleanText(runtime.worldKnowledgeKey(discovery))
-        : fallbackDiscoveryKey(discovery);
+      const key = typeof runtime.worldKnowledgeKey === "function" ? cleanText(runtime.worldKnowledgeKey(discovery)) : fallbackDiscoveryKey(discovery);
       if (!key) return;
       const previous = safe.worldKnowledge.discoveries[key] || null;
-      const terrain = Array.isArray(discovery.features)
-        ? [...new Set(discovery.features.map((item) => cleanText(item)).filter(Boolean))].slice(0, 8)
-        : [];
+      const terrain = Array.isArray(discovery.features) ? [...new Set(discovery.features.map((item) => cleanText(item)).filter(Boolean))].slice(0, 8) : [];
       const areaId = coarseAreaForDiscovery(Core, runtime, discovery);
       const next = previous ? { ...previous } : {
         key,
@@ -270,23 +342,14 @@
     });
 
     Core.saveWorldKnowledge(safe);
-    return {
-      state: safe,
-      newCount,
-      rememberedCount: discoveries.length,
-      currentCell
-    };
+    return { state: safe, newCount, rememberedCount: discoveries.length, currentCell };
   }
 
   async function scanNearby(Core, root, options = {}) {
     const runtime = root && root.CrownlessLocationDiscoveryRuntime;
     const now = Date.now();
-    if (!runtime || typeof runtime.reload !== "function") {
-      return { state: "unavailable", foundCount: 0, newCount: 0, rememberedCount: 0, currentCell: null, cached: false };
-    }
-    if (!options.force && lastScanResult && now - lastScanAt < SCAN_COOLDOWN_MS) {
-      return { ...lastScanResult, cached: true };
-    }
+    if (!runtime || typeof runtime.reload !== "function") return { state: "unavailable", foundCount: 0, newCount: 0, rememberedCount: 0, currentCell: null, cached: false };
+    if (!options.force && lastScanResult && now - lastScanAt < SCAN_COOLDOWN_MS) return { ...lastScanResult, cached: true };
 
     try {
       const found = await runtime.reload();
@@ -337,7 +400,7 @@
   function closeAtlas(document) {
     const viewer = document && document.getElementById("world-atlas-viewer");
     if (viewer) viewer.remove();
-    document && document.body && document.body.classList.remove("world-atlas-open");
+    if (document && document.body) document.body.classList.remove("world-atlas-open");
   }
 
   function createDetail(document, entry) {
@@ -348,13 +411,183 @@
     const title = document.createElement("strong");
     title.textContent = entry ? entry.name : "墨印を選ぶ";
     const state = document.createElement("span");
-    state.textContent = entry
-      ? `${entry.stateLabel} · VISIT ${entry.visits}`
-      : "地図上の墨印を選ぶと、既知情報をここに開く。";
+    state.textContent = entry ? entry.stateLabel : "地図上の墨印を選ぶと、既知情報をここに開く。";
     const terrain = document.createElement("em");
-    terrain.textContent = entry && entry.terrain.length ? entry.terrain.join(" / ") : "粗い地勢だけが記録されている。";
+    terrain.textContent = entry && entry.terrain && entry.terrain.length ? entry.terrain.join(" / ") : "粗い地勢だけが記録されている。";
     detail.append(kicker, title, state, terrain);
     return detail;
+  }
+
+  function appendLatestVisual(document, side, root, worldKnowledge) {
+    const locationVisuals = root && root.CrownlessLocationVisuals;
+    const resolved = locationVisuals && typeof locationVisuals.resolveLatestDiscoveredVisual === "function" ? locationVisuals.resolveLatestDiscoveredVisual(worldKnowledge) : null;
+    const assetPath = resolved && resolved.visual ? cleanText(resolved.visual.assetPath) : "";
+    if (!assetPath) return;
+    const figure = document.createElement("figure");
+    figure.className = "world-atlas-latest-visual";
+    const image = document.createElement("img");
+    image.src = assetPath;
+    image.alt = cleanText(resolved.visual.alt, cleanText(resolved.entry && resolved.entry.name, "最新の発見地点"));
+    image.loading = "lazy";
+    const caption = document.createElement("figcaption");
+    caption.textContent = `最新の墨絵 · ${cleanText(resolved.entry && resolved.entry.name, "発見地点")}`;
+    figure.append(image, caption);
+    side.appendChild(figure);
+  }
+
+  function renderNearbySurface(document, body, model, root, worldKnowledge) {
+    const map = document.createElement("div");
+    map.className = "world-atlas-map world-atlas-map--nearby";
+    map.setAttribute("role", "region");
+    map.setAttribute("aria-label", `現在地を中心にした周辺探索図。発見地点 ${model.length} 件。`);
+
+    const caption = document.createElement("div");
+    caption.className = "world-atlas-nearby-caption";
+    caption.innerHTML = "<small>NEARBY MANUSCRIPT</small><strong>現在地周辺</strong><span>約650m / 相対配置 / 線は経路ではない</span>";
+    map.appendChild(caption);
+
+    const ink = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    ink.setAttribute("class", "world-atlas-nearby-ink");
+    ink.setAttribute("viewBox", "0 0 100 100");
+    ink.setAttribute("preserveAspectRatio", "none");
+    ink.setAttribute("aria-hidden", "true");
+    const ring = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+    ring.setAttribute("cx", "50");
+    ring.setAttribute("cy", "50");
+    ring.setAttribute("r", "34");
+    ink.appendChild(ring);
+    model.forEach((entry) => {
+      const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
+      line.setAttribute("x1", "50");
+      line.setAttribute("y1", "50");
+      line.setAttribute("x2", String(entry.x));
+      line.setAttribute("y2", String(entry.y));
+      ink.appendChild(line);
+    });
+    map.appendChild(ink);
+
+    const current = document.createElement("span");
+    current.className = "world-atlas-nearby-current";
+    current.setAttribute("aria-label", "現在地");
+    current.innerHTML = "<i></i><b>現在地</b>";
+    map.appendChild(current);
+
+    let detail = createDetail(document, model[0] || null);
+    model.forEach((entry, index) => {
+      const marker = document.createElement("button");
+      marker.type = "button";
+      marker.className = "world-atlas-nearby-marker";
+      marker.style.left = `${entry.x}%`;
+      marker.style.top = `${entry.y}%`;
+      marker.dataset.labelHorizontal = entry.labelHorizontal;
+      marker.dataset.labelVertical = entry.labelVertical;
+      marker.setAttribute("aria-label", `${entry.name}。${entry.direction}、${entry.distanceBand}。${entry.stateLabel}。`);
+      const glyph = document.createElement("i");
+      glyph.textContent = entry.glyph;
+      const number = document.createElement("small");
+      number.textContent = String(index + 1).padStart(2, "0");
+      const label = document.createElement("span");
+      const strong = document.createElement("strong");
+      strong.textContent = entry.shortName;
+      const em = document.createElement("em");
+      em.textContent = `${entry.direction} · ${entry.distanceBand}`;
+      label.append(strong, em);
+      marker.append(glyph, number, label);
+      marker.addEventListener("click", () => {
+        const next = createDetail(document, entry);
+        detail.replaceWith(next);
+        detail = next;
+        Array.from(map.querySelectorAll(".world-atlas-nearby-marker")).forEach((node) => node.classList.toggle("active", node === marker));
+      });
+      map.appendChild(marker);
+    });
+
+    const side = document.createElement("aside");
+    side.className = "world-atlas-side";
+    side.appendChild(detail);
+    appendLatestVisual(document, side, root, worldKnowledge);
+    body.replaceChildren(map, side);
+  }
+
+  function renderWorldSurface(document, body, model, root, worldKnowledge) {
+    const map = document.createElement("div");
+    map.className = "world-atlas-map world-atlas-map--world";
+    map.setAttribute("role", "region");
+    map.setAttribute("aria-label", `探索済み領域 ${model.exploredCount}。未踏領域との境界と発見地点を示す粗い羊皮紙地図。`);
+
+    if (!model.cells.length) {
+      const blank = document.createElement("div");
+      blank.className = "world-atlas-blank";
+      blank.innerHTML = "<strong>まだ世界は書かれていない。</strong><span>現在地の周囲を調べたり、現実を歩いたりすると、ここに墨が増えていく。</span>";
+      map.appendChild(blank);
+    } else {
+      model.cells.slice().sort((a, b) => Number(a.known) - Number(b.known)).forEach((entry) => {
+        const cell = document.createElement("span");
+        cell.className = `world-atlas-cell ${entry.known ? "known" : "unknown"}${entry.current ? " current" : ""}`;
+        cell.style.left = `${entry.left}%`;
+        cell.style.top = `${entry.top}%`;
+        cell.style.width = `${entry.width}%`;
+        cell.style.height = `${entry.height}%`;
+        cell.setAttribute("aria-hidden", "true");
+        map.appendChild(cell);
+        if (entry.current) {
+          const current = document.createElement("span");
+          current.className = "world-atlas-current-cell-label";
+          current.style.left = `${clamp(entry.left + entry.width / 2, 8, 92)}%`;
+          current.style.top = `${clamp(entry.top + entry.height / 2, 8, 92)}%`;
+          current.innerHTML = "<i></i><b>現在地の領域</b>";
+          map.appendChild(current);
+        }
+      });
+    }
+
+    let detail = createDetail(document, model.discoveries[0] || model.unplacedDiscoveries[0] || null);
+    model.discoveries.forEach((entry, index) => {
+      const marker = document.createElement("button");
+      marker.type = "button";
+      marker.className = "world-atlas-marker";
+      marker.style.left = `${entry.left}%`;
+      marker.style.top = `${entry.top}%`;
+      marker.dataset.state = entry.state;
+      marker.setAttribute("aria-label", `${entry.name}。${entry.stateLabel}。`);
+      const glyph = document.createElement("i");
+      glyph.textContent = entry.glyph;
+      const number = document.createElement("small");
+      number.textContent = String(index + 1).padStart(2, "0");
+      marker.append(glyph, number);
+      marker.addEventListener("click", () => {
+        const next = createDetail(document, entry);
+        detail.replaceWith(next);
+        detail = next;
+        Array.from(map.querySelectorAll(".world-atlas-marker")).forEach((node) => node.classList.toggle("active", node === marker));
+      });
+      map.appendChild(marker);
+    });
+
+    const side = document.createElement("aside");
+    side.className = "world-atlas-side";
+    side.appendChild(detail);
+    if (model.unplacedDiscoveries.length) {
+      const unplaced = document.createElement("div");
+      unplaced.className = "world-atlas-unplaced";
+      const label = document.createElement("small");
+      label.textContent = "UNANCHORED NOTES / 所在未確定";
+      unplaced.appendChild(label);
+      model.unplacedDiscoveries.slice(0, 6).forEach((entry) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = entry.name;
+        button.addEventListener("click", () => {
+          const next = createDetail(document, entry);
+          detail.replaceWith(next);
+          detail = next;
+        });
+        unplaced.appendChild(button);
+      });
+      side.appendChild(unplaced);
+    }
+    appendLatestVisual(document, side, root, worldKnowledge);
+    body.replaceChildren(map, side);
   }
 
   function openAtlas(document, Core, root, options = {}) {
@@ -363,11 +596,13 @@
     ensureStylesheet(document);
 
     const safe = Core.loadSafeState();
-    const runtimeCurrent = root && root.CrownlessExplorationCells && typeof root.CrownlessExplorationCells.currentCell === "function"
-      ? root.CrownlessExplorationCells.currentCell()
-      : null;
+    const runtimeCurrent = root && root.CrownlessExplorationCells && typeof root.CrownlessExplorationCells.currentCell === "function" ? root.CrownlessExplorationCells.currentCell() : null;
     const currentCell = options.scanResult && options.scanResult.currentCell ? options.scanResult.currentCell : runtimeCurrent;
-    const model = atlasViewModel(safe && safe.worldKnowledge, currentCell);
+    const worldModel = atlasViewModel(safe && safe.worldKnowledge, currentCell);
+    const runtime = root && root.CrownlessLocationDiscoveryRuntime;
+    const nearbyModel = nearbyViewModel(runtime, safe && safe.worldKnowledge, root && root.CrownlessExplorationMap);
+    let selectedView = initialAtlasView(options.scanResult || lastScanResult, nearbyModel, options.view);
+    let viewTouched = Boolean(options.view);
 
     const viewer = document.createElement("div");
     viewer.id = "world-atlas-viewer";
@@ -378,7 +613,6 @@
 
     const folio = document.createElement("section");
     folio.className = "world-atlas-folio";
-
     const header = document.createElement("header");
     header.className = "world-atlas-header";
     const heading = document.createElement("div");
@@ -388,7 +622,7 @@
     const title = document.createElement("h2");
     title.textContent = "歩いて書いた世界";
     const summary = document.createElement("span");
-    summary.textContent = `既知領域 ${model.exploredCount} · 探索録 ${model.discoveryCount}`;
+    summary.textContent = `既知領域 ${worldModel.exploredCount} · 探索録 ${worldModel.discoveryCount}`;
     heading.append(eyebrow, title, summary);
     const close = document.createElement("button");
     close.type = "button";
@@ -414,109 +648,42 @@
     rescan.disabled = Boolean(options.scanning);
     scan.append(scanCopy, rescan);
 
+    const toggle = document.createElement("div");
+    toggle.className = "world-atlas-view-toggle";
+    toggle.setAttribute("role", "tablist");
+    toggle.setAttribute("aria-label", "地図表示を切り替える");
+    const nearbyTab = document.createElement("button");
+    nearbyTab.type = "button";
+    nearbyTab.textContent = "周辺探索図";
+    nearbyTab.disabled = nearbyModel.length === 0;
+    const worldTab = document.createElement("button");
+    worldTab.type = "button";
+    worldTab.textContent = "世界Atlas";
+    toggle.append(nearbyTab, worldTab);
+
     const body = document.createElement("div");
     body.className = "world-atlas-body";
-    const map = document.createElement("div");
-    map.className = "world-atlas-map";
-    map.setAttribute("role", "img");
-    map.setAttribute("aria-label", `探索済み領域 ${model.exploredCount}。未踏領域との境界と発見地点を示す粗い羊皮紙地図。`);
-
-    if (!model.cells.length) {
-      const blank = document.createElement("div");
-      blank.className = "world-atlas-blank";
-      blank.innerHTML = "<strong>まだ世界は書かれていない。</strong><span>現在地の周囲を調べたり、現実を歩いたりすると、ここに墨が増えていく。</span>";
-      map.appendChild(blank);
-    } else {
-      model.cells.slice().sort((a, b) => Number(a.known) - Number(b.known)).forEach((entry) => {
-        const cell = document.createElement("span");
-        cell.className = `world-atlas-cell ${entry.known ? "known" : "unknown"}${entry.current ? " current" : ""}`;
-        cell.style.left = `${entry.left}%`;
-        cell.style.top = `${entry.top}%`;
-        cell.style.width = `${entry.width}%`;
-        cell.style.height = `${entry.height}%`;
-        cell.setAttribute("aria-hidden", "true");
-        map.appendChild(cell);
-      });
+    function renderSelectedView() {
+      const nearby = selectedView === "nearby" && nearbyModel.length > 0;
+      selectedView = nearby ? "nearby" : "world";
+      nearbyTab.classList.toggle("active", selectedView === "nearby");
+      worldTab.classList.toggle("active", selectedView === "world");
+      nearbyTab.setAttribute("aria-selected", String(selectedView === "nearby"));
+      worldTab.setAttribute("aria-selected", String(selectedView === "world"));
+      if (selectedView === "nearby") renderNearbySurface(document, body, nearbyModel, root, safe && safe.worldKnowledge);
+      else renderWorldSurface(document, body, worldModel, root, safe && safe.worldKnowledge);
     }
+    nearbyTab.addEventListener("click", () => { viewTouched = true; selectedView = "nearby"; renderSelectedView(); });
+    worldTab.addEventListener("click", () => { viewTouched = true; selectedView = "world"; renderSelectedView(); });
+    renderSelectedView();
 
-    let detail = createDetail(document, model.discoveries[0] || model.unplacedDiscoveries[0] || null);
-    model.discoveries.forEach((entry, index) => {
-      const marker = document.createElement("button");
-      marker.type = "button";
-      marker.className = "world-atlas-marker";
-      marker.style.left = `${entry.left}%`;
-      marker.style.top = `${entry.top}%`;
-      marker.dataset.state = entry.state;
-      marker.setAttribute("aria-label", `${entry.name}。${entry.stateLabel}。訪問 ${entry.visits}。`);
-      const glyph = document.createElement("i");
-      glyph.textContent = entry.glyph;
-      const number = document.createElement("small");
-      number.textContent = String(index + 1).padStart(2, "0");
-      marker.append(glyph, number);
-      marker.addEventListener("click", () => {
-        const nextDetail = createDetail(document, entry);
-        detail.replaceWith(nextDetail);
-        detail = nextDetail;
-        Array.from(map.querySelectorAll(".world-atlas-marker")).forEach((node) => node.classList.toggle("active", node === marker));
-      });
-      map.appendChild(marker);
-    });
-
-    const side = document.createElement("aside");
-    side.className = "world-atlas-side";
-    side.appendChild(detail);
-
-    if (model.unplacedDiscoveries.length) {
-      const unplaced = document.createElement("div");
-      unplaced.className = "world-atlas-unplaced";
-      const label = document.createElement("small");
-      label.textContent = "UNANCHORED NOTES / 所在未確定";
-      unplaced.appendChild(label);
-      model.unplacedDiscoveries.slice(0, 6).forEach((entry) => {
-        const button = document.createElement("button");
-        button.type = "button";
-        button.textContent = entry.name;
-        button.addEventListener("click", () => {
-          const nextDetail = createDetail(document, entry);
-          detail.replaceWith(nextDetail);
-          detail = nextDetail;
-        });
-        unplaced.appendChild(button);
-      });
-      side.appendChild(unplaced);
-    }
-
-    const locationVisuals = root && root.CrownlessLocationVisuals;
-    const resolved = locationVisuals && typeof locationVisuals.resolveLatestDiscoveredVisual === "function"
-      ? locationVisuals.resolveLatestDiscoveredVisual(safe && safe.worldKnowledge)
-      : null;
-    const assetPath = resolved && resolved.visual ? cleanText(resolved.visual.assetPath) : "";
-    if (assetPath) {
-      const figure = document.createElement("figure");
-      figure.className = "world-atlas-latest-visual";
-      const image = document.createElement("img");
-      image.src = assetPath;
-      image.alt = cleanText(resolved.visual.alt, cleanText(resolved.entry && resolved.entry.name, "最新の発見地点"));
-      image.loading = "lazy";
-      const caption = document.createElement("figcaption");
-      caption.textContent = `最新の墨絵 · ${cleanText(resolved.entry && resolved.entry.name, "発見地点")}`;
-      figure.append(image, caption);
-      side.appendChild(figure);
-    }
-
-    body.append(map, side);
     const note = document.createElement("p");
     note.className = "world-atlas-note";
     note.textContent = "正確な道路図ではない。GPSは周囲の痕跡を見つけるためだけに使い、保存するのは粗い領域と探索録だけだ。";
-    folio.append(header, scan, body, note);
+    folio.append(header, scan, toggle, body, note);
     viewer.appendChild(folio);
-
-    viewer.addEventListener("click", (event) => {
-      if (event.target === viewer) closeAtlas(document);
-    });
-    viewer.addEventListener("keydown", (event) => {
-      if (event.key === "Escape") closeAtlas(document);
-    });
+    viewer.addEventListener("click", (event) => { if (event.target === viewer) closeAtlas(document); });
+    viewer.addEventListener("keydown", (event) => { if (event.key === "Escape") closeAtlas(document); });
     document.body.appendChild(viewer);
     document.body.classList.add("world-atlas-open");
     close.focus();
@@ -528,7 +695,7 @@
       scanText.textContent = scanResultText(null, true);
       Promise.resolve(scanNearby(Core, root, { force })).then((result) => {
         if (!viewer.isConnected || document.getElementById("world-atlas-viewer") !== viewer) return;
-        openAtlas(document, Core, root, { autoScan: false, scanResult: result });
+        openAtlas(document, Core, root, { autoScan: false, scanResult: result, view: force || viewTouched ? selectedView : undefined });
       });
     }
 
@@ -556,6 +723,9 @@
     CELL_PADDING,
     MAX_FRINGE_CELLS,
     SCAN_COOLDOWN_MS,
+    NEARBY_LIMIT,
+    NEARBY_RADIUS_METRES,
+    MARKER_INSET_PERCENT,
     TERRAIN_GLYPHS,
     parseCellId,
     parseAreaId,
@@ -563,7 +733,13 @@
     terrainGlyph,
     discoveryStateLabel,
     atlasViewModel,
+    relativeOffsetMeters,
+    projectNearbyPoint,
+    directionLabel,
+    distanceBand,
     fallbackDiscoveryKey,
+    nearbyViewModel,
+    initialAtlasView,
     coarseAreaForDiscovery,
     rememberScannedDiscoveries,
     scanNearby,
