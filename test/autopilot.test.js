@@ -17,6 +17,7 @@ const {
   parseArgs,
   readReview,
   persistDiagnostic,
+  resolveControlPlaneArtifacts,
 } = require("../scripts/autopilot/run-next.js");
 const { findBlockers, selectIssue } = require("../scripts/autopilot/select-issue.js");
 const { REQUIRED_SYNTAX_FILES, runValidation } = require("../scripts/autopilot/validate.js");
@@ -54,10 +55,18 @@ test("duplicate detection also blocks an existing deterministic branch", () => {
 });
 
 test("execution prompt carries Canon and Issue while preserving the runner boundaries", () => {
-  const prompt = buildExecutionPrompt({ number: 225, title: "Autopilot", body: "Acceptance Criteria" }, "AGENTS Canon");
-  assert.match(prompt, /AGENTS Canon/);
+  const prompt = buildExecutionPrompt({ number: 225, title: "Autopilot", body: "Acceptance Criteria" }, "Execution contract", "Control-plane policy");
+  assert.match(prompt, /Execution contract/);
+  assert.match(prompt, /Control-plane policy/);
+  assert.match(prompt, /Do not assume those control-plane files exist in the target worktree/);
   assert.match(prompt, /Acceptance Criteria/);
   assert.match(prompt, /Do not commit, push, create a PR/);
+});
+
+test("control-plane artifacts resolve from the runner checkout", () => {
+  const artifacts = resolveControlPlaneArtifacts(path.resolve(__dirname, ".."));
+  assert.match(artifacts.contractPath, /docs[\\/]autopilot-execution-contract\.md$/);
+  assert.match(artifacts.schemaPath, /scripts[\\/]autopilot[\\/]review-output\.schema\.json$/);
 });
 
 test("validation runs every repository syntax check and npm test", () => {

@@ -173,10 +173,14 @@ function removeWorktree(run, root, worktreePath) {
   checked(run, "git", ["worktree", "remove", worktreePath], { cwd: root });
 }
 
-function buildExecutionPrompt(issue, contract) {
+function buildExecutionPrompt(issue, contract, policy = "") {
   return [
     "You are the implementation agent for the selected Crownless Issue.",
-    "Before editing, explicitly read AGENTS.md, docs/game-system-design.md, the relevant canonical subsystem specification, docs/autonomous-development-policy.md, and the current implementation.",
+    "Before editing, explicitly read AGENTS.md, docs/game-system-design.md, the relevant canonical subsystem specification, and the current implementation from the target worktree.",
+    "The runner supplied the control-plane policy and execution contract below. Do not assume those control-plane files exist in the target worktree.",
+    "--- control-plane policy ---",
+    policy || "(policy unavailable)",
+    "--- end control-plane policy ---",
     "The following repository execution contract is authoritative for this run:",
     "--- execution contract ---",
     contract,
@@ -233,21 +237,30 @@ function readReview(outputPath) {
   return parsed;
 }
 
-function reviewContext(worktreePath) {
-  const files = [
+function reviewContext(worktreePath, controlPlaneRoot) {
+  const canonFiles = [
     "AGENTS.md",
     "docs/game-system-design.md",
     "docs/expedition-system-spec.md",
     "docs/exploration-location-spec.md",
     "docs/hearth-presentation-spec.md",
+  ];
+  const controlPlaneFiles = [
     "docs/autonomous-development-policy.md",
     "docs/autopilot-execution-contract.md",
   ];
-  return files.map((relativePath) => [
+  return [
+    ...canonFiles.map((relativePath) => [
     `--- ${relativePath} ---`,
     fs.readFileSync(path.join(worktreePath, relativePath), "utf8"),
     `--- end ${relativePath} ---`,
-  ].join("\n")).join("\n\n");
+    ].join("\n")),
+    ...controlPlaneFiles.map((relativePath) => [
+      `--- runner control-plane ${relativePath} ---`,
+      fs.readFileSync(path.join(controlPlaneRoot, relativePath), "utf8"),
+      `--- end runner control-plane ${relativePath} ---`,
+    ].join("\n")),
+  ].join("\n\n");
 }
 
 function reviewPrompt(issue, diff = "", canon = "") {
@@ -400,6 +413,16 @@ function diagnosticRoot(cwd) {
   }
 }
 
+function resolveControlPlaneArtifacts(root) {
+  const contractPath = path.resolve(root, "docs", "autopilot-execution-contract.md");
+  const policyPath = path.resolve(root, "docs", "autonomous-development-policy.md");
+  const schemaPath = path.resolve(root, "scripts", "autopilot", "review-output.schema.json");
+  for (const artifactPath of [contractPath, policyPath, schemaPath]) {
+    if (!fs.existsSync(artifactPath)) throw new Error(`Runner control-plane artifact is missing: ${artifactPath}`);
+  }
+  return { contractPath, policyPath, schemaPath };
+}
+
 function persistDiagnostic(cwd, issueNumber, error) {
   if (!error?.autopilotDiagnostic) return null;
   try {
@@ -457,21 +480,22 @@ function runAutopilotInternal(options = {}, dependencies = {}) {
     ensureBranchAbsent(run, root, branchName);
     const selectedWorktree = options.worktreePath || path.resolve(root, "..", `.crownless-autopilot-issue-${issue.number}`);
     worktreePath = createWorktree(run, root, selectedWorktree, branchName, baseRef);
-    const contractPath = path.resolve(root, "docs", "autopilot-execution-contract.md");
-    const contract = fs.readFileSync(contractPath, "utf8");
+    const controlPlane = resolveControlPlaneArtifacts(root);
+    const contract = fs.readFileSync(controlPlane.contractPath, "utf8");
+    const policy = fs.readFileSync(controlPlane.policyPath, "utf8");
     const runRoot = fs.mkdtempSync(path.join(os.tmpdir(), "crownless-autopilot-run-"));
     const implementationOutput = path.join(runRoot, "implementation.txt");
     const reviewOutput = path.join(runRoot, "review.json");
-    const schemaPath = path.resolve(worktreePath, "scripts", "autopilot", "review-output.schema.json");
+    const schemaPath = controlPlane.schemaPath;
     let validation;
     let review;
     try {
-      let prompt = buildExecutionPrompt(refreshedIssue, contract);
+      let prompt = buildExecutionPrompt(refreshedIssue, contract, policy);
       for (let revision = 0; revision <= MAX_REVISIONS; revision += 1) {
         invokeCodex(run, worktreePath, prompt, implementationOutput);
         validation = runValidation({ cwd: worktreePath, run, focusedTests });
         assertSafeDiff(run, worktreePath, baseRef);
-        invokeReview(run, worktreePath, schemaPath, reviewPrompt(refreshedIssue, addedDiff(run, worktreePath, baseRef), reviewContext(worktreePath)), reviewOutput);
+        invokeReview(run, worktreePath, schemaPath, reviewPrompt(refreshedIssue, addedDiff(run, worktreePath, baseRef), reviewContext(worktreePath, root)), reviewOutput);
         review = readReview(reviewOutput);
         if (review.status === "pass") break;
         if (revision === MAX_REVISIONS) throw new Error("Codex final diff review requested changes after the allowed revision.");
@@ -539,6 +563,7 @@ module.exports = {
   invokeReview,
   parseArgs,
   readReview,
+  resolveControlPlaneArtifacts,
   persistDiagnostic,
   runAutopilot,
 };
