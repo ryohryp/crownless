@@ -88,6 +88,7 @@ test("atlas presentation exposes nearby/world switching and explicit current pos
 test("nearby discovery labels are real hit targets instead of visual-only text", () => {
   assert.match(css, /\.world-atlas-nearby-marker \{[^}]*width:48px;[^}]*height:48px;/s);
   assert.match(css, /\.world-atlas-nearby-marker > span \{[^}]*pointer-events:auto;[^}]*touch-action:manipulation;/s);
+  assert.match(css, /\.world-atlas-nearby-marker strong,\.world-atlas-nearby-marker em \{[^}]*pointer-events:none;/s);
   assert.match(css, /\.world-atlas-nearby-marker:hover,\.world-atlas-nearby-marker:focus-visible,\.world-atlas-nearby-marker\.active \{ z-index:14; \}/);
   assert.match(css, /@media \(max-width:700px\)[\s\S]*\.world-atlas-nearby-marker \{ width:52px; height:52px;/);
 });
