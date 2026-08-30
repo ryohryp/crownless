@@ -90,7 +90,7 @@ test("validation records focused tests before full validation", () => {
   const calls = [];
   const result = runValidation({
     cwd: "C:\\work",
-    focusedTests: ["test/autopilot.test.js"],
+    focusedTests: ["test/package-metadata.test.js"],
     run(command, args) {
       calls.push([command, args]);
       return { command, args, status: 0, stdout: "", stderr: "" };
@@ -99,8 +99,17 @@ test("validation records focused tests before full validation", () => {
     npmCommand: "npm-test",
   });
   assert.equal(result.commands.at(-2).focused, true);
-  assert.deepEqual(calls.at(-2)[1], ["test", "--", "test/autopilot.test.js"]);
+  assert.deepEqual(calls.at(-2)[1], ["test", "--", "test/package-metadata.test.js"]);
+  assert.equal(result.commands.filter((command) => command.focused).length, 1);
+  assert.equal(result.commands.some((command) => command.args.includes("test/autopilot.test.js")), false);
   assert.deepEqual(calls.at(-1)[1], ["test"]);
+});
+
+test("CLI carries an Issue-specific focused test into validation", () => {
+  const options = parseArgs(["--issue", "230", "--focused-test", "test/package-metadata.test.js"]);
+  assert.equal(options.issueNumber, 230);
+  assert.deepEqual(options.focusedTests, ["test/package-metadata.test.js"]);
+  assert.notDeepEqual(options.focusedTests, ["test/autopilot.test.js"]);
 });
 
 test("non-CI Windows npm command spawn differences use the node test fallback", () => {
@@ -193,14 +202,45 @@ test("PR and commit metadata are derived from the selected Issue", () => {
 test("failed Codex commands preserve stage and stdout/stderr diagnostics", () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "crownless-autopilot-diagnostic-"));
   fs.mkdirSync(path.join(directory, ".git"));
+  const runArtifactsPath = fs.mkdtempSync(path.join(os.tmpdir(), "crownless-autopilot-run-"));
+  fs.writeFileSync(path.join(runArtifactsPath, "implementation.txt"), "codex output");
   const error = new Error("codex failed");
-  error.autopilotDiagnostic = { stage: "codex-implementation", command: "codex", args: ["exec"], status: 1, stdout: "out", stderr: "err" };
+  error.autopilotDiagnostic = { stage: "codex-implementation", command: "codex", args: ["exec"], status: 1, stdout: "out", stderr: "err", runArtifactsPath, runArtifactsOwned: true };
   const filePath = persistDiagnostic(directory, 231, error);
   const diagnostic = JSON.parse(fs.readFileSync(filePath, "utf8"));
   assert.equal(diagnostic.stage, "codex-implementation");
   assert.equal(diagnostic.stdout, "out");
   assert.equal(diagnostic.stderr, "err");
+  assert.ok(diagnostic.runArtifactsPath);
+  assert.ok(fs.existsSync(diagnostic.runArtifactsPath));
+  assert.equal(fs.existsSync(runArtifactsPath), false);
   fs.rmSync(directory, { recursive: true, force: true });
+});
+
+test("diagnostic retention records the copied run when source cleanup fails", () => {
+  const directory = fs.mkdtempSync(path.join(os.tmpdir(), "crownless-autopilot-retention-"));
+  fs.mkdirSync(path.join(directory, ".git"));
+  const runArtifactsPath = fs.mkdtempSync(path.join(os.tmpdir(), "crownless-autopilot-run-"));
+  fs.writeFileSync(path.join(runArtifactsPath, "review.json"), "{}");
+  const originalRmSync = fs.rmSync;
+  const error = new Error("codex failed");
+  error.autopilotDiagnostic = { stage: "codex-review", command: "codex", args: ["exec"], status: 1, stdout: "out", stderr: "err", runArtifactsPath, runArtifactsOwned: true };
+  fs.rmSync = (target, options) => {
+    if (target === runArtifactsPath) throw new Error("source cleanup failed");
+    return originalRmSync(target, options);
+  };
+  let filePath;
+  try {
+    filePath = persistDiagnostic(directory, 232, error);
+  } finally {
+    fs.rmSync = originalRmSync;
+  }
+  const diagnostic = JSON.parse(fs.readFileSync(filePath, "utf8"));
+  assert.match(diagnostic.runArtifactsPath, /issue-232-.*-run/);
+  assert.equal(diagnostic.runArtifactsCleanupError, "source cleanup failed");
+  assert.ok(fs.existsSync(diagnostic.runArtifactsPath));
+  fs.rmSync(directory, { recursive: true, force: true });
+  fs.rmSync(runArtifactsPath, { recursive: true, force: true });
 });
 
 test("worktrees cannot be created inside the mutable source checkout", () => {

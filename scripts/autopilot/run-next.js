@@ -165,7 +165,7 @@ function assertOutsideSource(root, candidate) {
 function createWorktree(run, root, worktreePath, branchName, baseRef) {
   const resolved = assertOutsideSource(root, worktreePath);
   if (fs.existsSync(resolved)) throw new Error(`Worktree path already exists: ${resolved}`);
-  checked(run, "git", ["worktree", "add", "-b", branchName, resolved, baseRef], { cwd: root });
+  checked(run, "git", ["worktree", "add", resolved, branchName], { cwd: root });
   return resolved;
 }
 
@@ -189,7 +189,7 @@ function buildExecutionPrompt(issue, contract, policy = "", focusedTests = []) {
     `--- Issue #${issue.number}: ${issue.title} ---`,
     issue.body || "(Issue body is empty.)",
     "--- end Issue ---",
-    `The runner will execute these Issue-focused test paths after implementation: ${focusedTests.length ? focusedTests.join(", ") : "none supplied"}. Add or update a directly relevant test when the Issue requires one; do not substitute Autopilot's own tests for an Issue-focused test.`,
+    `The runner will execute these Issue-focused test paths after implementation: ${focusedTests.length ? focusedTests.join(", ") : "none supplied"}. If a requested path does not exist, create that directly relevant regression test as part of the smallest complete change; do not skip it or substitute Autopilot's own tests.`,
     "Implement the smallest complete change. Run focused tests, repository-required full validation, and a final diff review. Do not commit, push, create a PR, merge, or close the Issue; return concise evidence and unverified items.",
   ].join("\n\n");
 }
@@ -429,12 +429,40 @@ function persistDiagnostic(cwd, issueNumber, error) {
   try {
     const directory = path.join(diagnosticRoot(cwd), ".git", "crownless-autopilot-diagnostics");
     fs.mkdirSync(directory, { recursive: true });
-    const filePath = path.join(directory, `issue-${issueNumber || "unknown"}-${Date.now()}.json`);
-    fs.writeFileSync(filePath, JSON.stringify({
-      issueNumber: issueNumber ?? null,
-      message: error.message,
-      ...error.autopilotDiagnostic,
-    }, null, 2), "utf8");
+    const stamp = Date.now();
+    const filePath = path.join(directory, `issue-${issueNumber || "unknown"}-${stamp}.json`);
+    const diagnostic = { issueNumber: issueNumber ?? null, message: error.message, ...error.autopilotDiagnostic };
+    const sourceArtifactsPath = diagnostic.runArtifactsPath;
+    if (sourceArtifactsPath && fs.existsSync(sourceArtifactsPath)) {
+      const retainedArtifactsPath = path.join(directory, `issue-${issueNumber || "unknown"}-${stamp}-run`);
+      try {
+        fs.cpSync(sourceArtifactsPath, retainedArtifactsPath, { recursive: true });
+        diagnostic.runArtifactsPath = retainedArtifactsPath;
+      } catch (artifactError) {
+        diagnostic.runArtifactsError = artifactError.message;
+      }
+    }
+    const writeDiagnostic = () => {
+      const temporaryPath = `${filePath}.${process.pid}.tmp`;
+      try {
+        fs.writeFileSync(temporaryPath, JSON.stringify(diagnostic, null, 2), "utf8");
+        fs.renameSync(temporaryPath, filePath);
+      } catch (writeError) {
+        try { fs.rmSync(temporaryPath, { force: true }); } catch {}
+        throw writeError;
+      }
+    };
+    writeDiagnostic();
+    if (diagnostic.runArtifactsOwned === true && sourceArtifactsPath && diagnostic.runArtifactsPath !== sourceArtifactsPath && fs.existsSync(sourceArtifactsPath)) {
+      try {
+        fs.rmSync(sourceArtifactsPath, { recursive: true, force: true });
+      } catch (artifactError) {
+        diagnostic.runArtifactsCleanupError = artifactError.message;
+        try { writeDiagnostic(); } catch (writeError) {
+          process.stderr.write(`Warning: could not update Autopilot diagnostics after artifact cleanup failure: ${writeError.message}\n`);
+        }
+      }
+    }
     return filePath;
   } catch (diagnosticError) {
     process.stderr.write(`Warning: could not persist Autopilot diagnostics: ${diagnosticError.message}\n`);
@@ -470,6 +498,8 @@ function runAutopilotInternal(options = {}, dependencies = {}) {
   const lock = acquireLocalLock(run, root, issue.number);
   let runningLabel = false;
   let worktreePath;
+  let branchCreated = false;
+  let completed = false;
   try {
     const refreshedIssue = getIssue(run, repo, issue.number, root);
     assertEligibleIssue(refreshedIssue);
@@ -480,6 +510,8 @@ function runAutopilotInternal(options = {}, dependencies = {}) {
     runningLabel = true;
     ensureBranchAbsent(run, root, branchName);
     const selectedWorktree = options.worktreePath || path.resolve(root, "..", `.crownless-autopilot-issue-${issue.number}`);
+    checked(run, "git", ["branch", branchName, baseRef], { cwd: root }, "branch-create");
+    branchCreated = true;
     worktreePath = createWorktree(run, root, selectedWorktree, branchName, baseRef);
     const controlPlane = resolveControlPlaneArtifacts(root);
     const contract = fs.readFileSync(controlPlane.contractPath, "utf8");
@@ -505,9 +537,31 @@ function runAutopilotInternal(options = {}, dependencies = {}) {
       const changedFiles = commitAndPush(run, worktreePath, branchName, refreshedIssue);
       const body = buildPrBody(refreshedIssue, branchName, validation, review, changedFiles);
       const prUrl = createPullRequest(run, repo, root, refreshedIssue, branchName, body);
+      completed = true;
       return { issue: refreshedIssue, branchName, baseRef, worktreePath, changedFiles, validation, review, prUrl };
+    } catch (error) {
+      if (!completed && runRoot && fs.existsSync(runRoot)) {
+        error.autopilotDiagnostic = {
+          stage: error.autopilotDiagnostic?.stage || "autopilot-run",
+          command: error.autopilotDiagnostic?.command || "autopilot",
+          args: error.autopilotDiagnostic?.args || [],
+          status: error.autopilotDiagnostic?.status ?? 1,
+          stdout: error.autopilotDiagnostic?.stdout || "",
+          stderr: error.autopilotDiagnostic?.stderr || "",
+          error: error.autopilotDiagnostic?.error || error.message,
+          runArtifactsPath: runRoot,
+          runArtifactsOwned: true,
+        };
+      }
+      throw error;
     } finally {
-      fs.rmSync(runRoot, { recursive: true, force: true });
+      if (completed) {
+        try {
+          fs.rmSync(runRoot, { recursive: true, force: true });
+        } catch (error) {
+          process.stderr.write(`Warning: could not remove successful run artifacts at ${runRoot}: ${error.message}\n`);
+        }
+      }
     }
   } finally {
     if (runningLabel) {
@@ -523,6 +577,13 @@ function runAutopilotInternal(options = {}, dependencies = {}) {
         removeWorktree(run, root, worktreePath);
       } catch (error) {
         process.stderr.write(`Warning: worktree retained at ${worktreePath}: ${error.message}\n`);
+      }
+    }
+    if (branchCreated && !completed && !options.keepWorktree && branchExists(run, root, branchName)) {
+      try {
+        checked(run, "git", ["branch", "-D", branchName], { cwd: root }, "cleanup");
+      } catch (error) {
+        process.stderr.write(`Warning: could not remove failed-run branch ${branchName}: ${error.message}\n`);
       }
     }
   }
