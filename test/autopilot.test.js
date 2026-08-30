@@ -171,6 +171,32 @@ test("non-CI Windows npm command spawn differences use the node test fallback", 
   assert.deepEqual(calls.at(-1), ["node-test", ["--test"]]);
 });
 
+test("non-CI shell command-not-found output also uses the node test fallback", () => {
+  const calls = [];
+  const previousCi = process.env.CI;
+  delete process.env.CI;
+  let result;
+  try {
+    result = runValidation({
+      cwd: "C:\\work",
+      focusedTests: ["test/package-metadata.test.js"],
+      run(command, args) {
+        calls.push([command, args]);
+        if (command === "npm.cmd") return { command, args, status: 1, stdout: "", stderr: "'npm.cmd' is not recognized as an internal or external command." };
+        return { command, args, status: 0, stdout: "", stderr: "" };
+      },
+      nodeCommand: "node-test",
+      npmCommand: "npm.cmd",
+    });
+  } finally {
+    if (previousCi === undefined) delete process.env.CI;
+    else process.env.CI = previousCi;
+  }
+  assert.equal(result.commands[REQUIRED_SYNTAX_FILES.length].fallback, true);
+  assert.deepEqual(calls.at(-3), ["node-test", ["--test", "test/package-metadata.test.js"]]);
+  assert.deepEqual(calls.at(-1), ["node-test", ["--test"]]);
+});
+
 test("review result is fail-closed when malformed", () => {
   const directory = fs.mkdtempSync(path.join(os.tmpdir(), "crownless-autopilot-test-"));
   const file = path.join(directory, "review.json");

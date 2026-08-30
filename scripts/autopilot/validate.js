@@ -75,8 +75,9 @@ function runTest(run, cwd, focusedTest, nodeCommand, npmCommand) {
   let args = focusedTest ? ["test", "--", focusedTest] : ["test"];
   let result = run(command, args, { cwd });
   let fallback = false;
+  const commandNotFound = /(?:not recognized|cannot find|認識されていません)/i.test(`${result.stdout || ""}\n${result.stderr || ""}`);
   const npmExecutableMissing = result.error?.code === "ENOENT"
-    || (npmCommand.toLowerCase().endsWith(".cmd") && result.error?.code === "EINVAL");
+    || (npmCommand.toLowerCase().endsWith(".cmd") && (result.error?.code === "EINVAL" || commandNotFound));
   if (npmExecutableMissing && process.env.CI !== "true") {
     command = nodeCommand;
     args = focusedTest ? ["--test", focusedTest] : ["--test"];
