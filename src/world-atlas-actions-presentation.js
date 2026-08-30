@@ -102,6 +102,7 @@
   }
 
   function injectPurchasedEquipmentChoices(document, root) {
+    patchExpeditionSystem(root);
     const form = document && document.querySelector("#expedition-folio-content form.expedition-prepare");
     if (!form) return 0;
     const first = form.querySelector('input[name="equipment"]');
@@ -156,6 +157,19 @@
     return null;
   }
 
+  function entryByKey(root, key) {
+    const wanted = cleanText(key);
+    const Core = root && root.CrownlessCore;
+    if (!wanted || !Core || typeof Core.loadSafeState !== "function") return null;
+    try {
+      const safe = Core.loadSafeState();
+      const discoveries = safe && safe.worldKnowledge && safe.worldKnowledge.discoveries;
+      return discoveries && typeof discoveries === "object" && !Array.isArray(discoveries) ? discoveries[wanted] || null : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   function createActionButton(document, action) {
     const button = document.createElement("button");
     button.type = "button";
@@ -173,6 +187,7 @@
     const actionsApi = root && root.CrownlessDiscoveryActions;
     const panel = document.createElement("section");
     panel.className = "world-atlas-actions";
+    panel.dataset.discoveryKey = cleanText(entry && entry.key);
     panel.setAttribute("aria-label", "この地点でできること");
     const kicker = document.createElement("small");
     kicker.className = "world-atlas-actions__kicker";
@@ -403,6 +418,7 @@
   }
 
   function openExpedition(document, root, entry, status) {
+    patchExpeditionSystem(root);
     const state = loadExpeditionState(root);
     if (state && state.activeExpedition) {
       if (status) status.textContent = "別の遠征隊が派遣中。帰還後にこの地点を選べる。";
@@ -462,8 +478,9 @@
       const actionButton = target.closest("[data-atlas-action-kind]");
       if (actionButton) {
         const viewer = document.getElementById("world-atlas-viewer");
-        const entry = entryForSelection(document, root, viewer);
-        const status = actionButton.closest(".world-atlas-actions")?.querySelector(".world-atlas-actions__status");
+        const panel = actionButton.closest(".world-atlas-actions");
+        const entry = entryByKey(root, panel && panel.dataset.discoveryKey) || entryForSelection(document, root, viewer);
+        const status = panel && panel.querySelector(".world-atlas-actions__status");
         const kind = actionButton.dataset.atlasActionKind;
         if (kind === "expedition") openExpedition(document, root, entry, status);
         else if (kind === "event") openEvent(document, root, entry);
@@ -506,6 +523,7 @@
     injectPurchasedEquipmentChoices,
     buyMerchantItem,
     entryForSelection,
+    entryByKey,
     createActionsPanel,
     syncActions,
     openEvent,
