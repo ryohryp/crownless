@@ -105,17 +105,25 @@ test("validation records focused tests before full validation", () => {
 
 test("non-CI Windows npm command spawn differences use the node test fallback", () => {
   const calls = [];
-  const result = runValidation({
-    cwd: "C:\\work",
-    focusedTests: ["test/package-metadata.test.js"],
-    run(command, args) {
-      calls.push([command, args]);
-      if (command === "npm.cmd") return { command, args, status: null, stdout: "", stderr: "", error: Object.assign(new Error("spawnSync npm.cmd EINVAL"), { code: "EINVAL" }) };
-      return { command, args, status: 0, stdout: "", stderr: "" };
-    },
-    nodeCommand: "node-test",
-    npmCommand: "npm.cmd",
-  });
+  const previousCi = process.env.CI;
+  delete process.env.CI;
+  let result;
+  try {
+    result = runValidation({
+      cwd: "C:\\work",
+      focusedTests: ["test/package-metadata.test.js"],
+      run(command, args) {
+        calls.push([command, args]);
+        if (command === "npm.cmd") return { command, args, status: null, stdout: "", stderr: "", error: Object.assign(new Error("spawnSync npm.cmd EINVAL"), { code: "EINVAL" }) };
+        return { command, args, status: 0, stdout: "", stderr: "" };
+      },
+      nodeCommand: "node-test",
+      npmCommand: "npm.cmd",
+    });
+  } finally {
+    if (previousCi === undefined) delete process.env.CI;
+    else process.env.CI = previousCi;
+  }
   assert.equal(result.commands[REQUIRED_SYNTAX_FILES.length].fallback, true);
   assert.deepEqual(calls.at(-3), ["node-test", ["--test", "test/package-metadata.test.js"]]);
   assert.deepEqual(calls.at(-1), ["node-test", ["--test"]]);
