@@ -47,78 +47,93 @@
     try { return Core.loadSafeState(); } catch (_) { return null; }
   }
 
-  function currentWorldModel(root, safe) {
-    const Atlas = root && root.CrownlessWorldAtlas;
-    if (!Atlas || typeof Atlas.atlasViewModel !== "function") return null;
-    const currentCell = root.CrownlessExplorationCells && typeof root.CrownlessExplorationCells.currentCell === "function"
-      ? root.CrownlessExplorationCells.currentCell()
-      : null;
-    try { return Atlas.atlasViewModel(safe && safe.worldKnowledge, currentCell); } catch (_) { return null; }
+  function discoverySource(safe) {
+    const discoveries = safe && safe.worldKnowledge && safe.worldKnowledge.discoveries;
+    return discoveries && typeof discoveries === "object" && !Array.isArray(discoveries) ? discoveries : {};
   }
 
-  function nearbyEntry(root, safe, marker, map) {
-    const markers = Array.from(map.querySelectorAll(".world-atlas-nearby-marker"));
-    const index = markers.indexOf(marker);
-    if (index < 0) return null;
+  function markerName(marker) {
+    const aria = cleanText(marker && marker.getAttribute && marker.getAttribute("aria-label"));
+    if (aria) return cleanText(aria.split("。")[0]);
+    return cleanText(marker && marker.querySelector && marker.querySelector("strong")?.textContent,
+      cleanText(marker && marker.textContent));
+  }
+
+  function rememberedByName(safe, name) {
+    const wanted = cleanText(name);
+    if (!wanted) return null;
+    return Object.values(discoverySource(safe)).find((entry) => cleanText(entry && entry.name) === wanted) || null;
+  }
+
+  function runtimeDiscoveryByName(root, name) {
     const runtime = root && root.CrownlessLocationDiscoveryRuntime;
-    const discovery = runtime && Array.isArray(runtime.discoveries) ? runtime.discoveries[index] : null;
+    const discoveries = runtime && Array.isArray(runtime.discoveries) ? runtime.discoveries : [];
+    const wanted = cleanText(name);
+    return discoveries.find((entry) => cleanText(entry && entry.title) === wanted) || null;
+  }
+
+  function normalizedRuntimeEntry(root, safe, discovery) {
     if (!discovery) return null;
+    const runtime = root && root.CrownlessLocationDiscoveryRuntime;
     const key = runtime && typeof runtime.worldKnowledgeKey === "function" ? cleanText(runtime.worldKnowledgeKey(discovery)) : "";
-    const remembered = key && safe && safe.worldKnowledge && safe.worldKnowledge.discoveries
-      ? safe.worldKnowledge.discoveries[key]
-      : null;
+    const remembered = key ? discoverySource(safe)[key] : null;
     if (remembered) return remembered;
     return {
       key,
       name: cleanText(discovery.title, "発見地点"),
       baseTitle: cleanText(discovery.baseTitle),
       contentKind: cleanText(discovery.contentKind),
-      terrain: terrainOf(discovery)
+      terrain: terrainOf(discovery),
+      state: "discovered"
     };
   }
 
-  function worldEntry(root, safe, marker, map) {
-    const markers = Array.from(map.querySelectorAll(".world-atlas-marker"));
-    const index = markers.indexOf(marker);
-    if (index < 0) return null;
-    const model = currentWorldModel(root, safe);
-    return model && Array.isArray(model.discoveries) ? model.discoveries[index] || null : null;
-  }
-
-  function unplacedEntry(root, safe, button, side) {
-    const buttons = Array.from(side.querySelectorAll(".world-atlas-unplaced button"));
-    const index = buttons.indexOf(button);
-    if (index < 0) return null;
-    const model = currentWorldModel(root, safe);
-    return model && Array.isArray(model.unplacedDiscoveries) ? model.unplacedDiscoveries[index] || null : null;
+  function entryForMarker(root, safe, marker) {
+    const name = markerName(marker);
+    const remembered = rememberedByName(safe, name);
+    if (remembered) return remembered;
+    return normalizedRuntimeEntry(root, safe, runtimeDiscoveryByName(root, name));
   }
 
   function entryForTarget(root, target) {
     if (!target || typeof target.closest !== "function") return null;
     const safe = safeState(root);
-    const nearby = target.closest(".world-atlas-nearby-marker");
-    if (nearby) return nearbyEntry(root, safe, nearby, nearby.closest(".world-atlas-map--nearby"));
-    const world = target.closest(".world-atlas-marker");
-    if (world) return worldEntry(root, safe, world, world.closest(".world-atlas-map--world"));
+    const marker = target.closest(".world-atlas-nearby-marker, .world-atlas-marker");
+    if (marker) return entryForMarker(root, safe, marker);
     const unplaced = target.closest(".world-atlas-unplaced button");
-    if (unplaced) return unplacedEntry(root, safe, unplaced, unplaced.closest(".world-atlas-side"));
+    if (unplaced) return rememberedByName(safe, cleanText(unplaced.textContent));
     return null;
   }
 
   function defaultEntry(root, viewer) {
     if (!viewer) return null;
-    const nearby = viewer.querySelector(".world-atlas-map--nearby");
-    if (nearby) {
-      const marker = nearby.querySelector(".world-atlas-nearby-marker.active") || nearby.querySelector(".world-atlas-nearby-marker");
-      if (marker) return entryForTarget(root, marker);
-    }
-    const world = viewer.querySelector(".world-atlas-map--world");
-    if (world) {
-      const marker = world.querySelector(".world-atlas-marker.active") || world.querySelector(".world-atlas-marker");
-      if (marker) return entryForTarget(root, marker);
-    }
+    const marker = viewer.querySelector(".world-atlas-nearby-marker.active, .world-atlas-nearby-marker, .world-atlas-marker.active, .world-atlas-marker");
+    if (marker) return entryForTarget(root, marker);
     const unplaced = viewer.querySelector(".world-atlas-unplaced button");
     return unplaced ? entryForTarget(root, unplaced) : null;
+  }
+
+  function stateLabel(entry) {
+    if (!entry) return "探索録";
+    if (entry.state === "cleared") return "踏破済み";
+    if (entry.state === "investigated") return "調査済み / 遠征候補";
+    return "発見済み / 遠征候補";
+  }
+
+  function syncDetail(document, entry) {
+    const viewer = document && document.getElementById("world-atlas-viewer");
+    const detail = viewer && viewer.querySelector(".world-atlas-detail");
+    if (!detail || !entry) return false;
+    const title = detail.querySelector("strong");
+    const state = detail.querySelector("span");
+    const terrain = detail.querySelector("em");
+    if (title) title.textContent = cleanText(entry.name, cleanText(entry.title, "発見地点"));
+    if (state) state.textContent = cleanText(entry.stateLabel, stateLabel(entry));
+    if (terrain) {
+      const terrainItems = terrainOf(entry).map((item) => cleanText(item)).filter(Boolean);
+      terrain.textContent = terrainItems.length ? terrainItems.join(" / ") : "粗い地勢だけが記録されている。";
+    }
+    return true;
   }
 
   function createPreview(document, model) {
@@ -135,15 +150,6 @@
       const empty = document.createElement("div");
       empty.className = "world-atlas-selection-preview-empty";
       empty.textContent = "この地点の墨絵はまだ記録されていない。";
-      empty.style.minHeight = "120px";
-      empty.style.display = "grid";
-      empty.style.placeItems = "center";
-      empty.style.padding = "18px";
-      empty.style.color = "#8f8775";
-      empty.style.fontSize = "10px";
-      empty.style.lineHeight = "1.6";
-      empty.style.textAlign = "center";
-      empty.style.border = "1px dashed rgba(201,163,93,.16)";
       figure.appendChild(empty);
     }
     const caption = document.createElement("figcaption");
@@ -165,9 +171,28 @@
     return true;
   }
 
+  function syncSelection(document, root, entry) {
+    if (!entry) return false;
+    const detail = syncDetail(document, entry);
+    const preview = syncPreview(document, root, entry);
+    return detail || preview;
+  }
+
+  function ensureInteractionStyles(document) {
+    if (!document || document.getElementById("world-atlas-selection-interaction-styles")) return;
+    const style = document.createElement("style");
+    style.id = "world-atlas-selection-interaction-styles";
+    style.textContent = `
+      .world-atlas-nearby-marker > span { pointer-events:auto !important; cursor:pointer; }
+      .world-atlas-selection-preview-empty { min-height:120px; display:grid; place-items:center; padding:18px; color:#8f8775; font-size:10px; line-height:1.6; text-align:center; border:1px dashed rgba(201,163,93,.16); }
+    `;
+    document.head.appendChild(style);
+  }
+
   function install(document, root) {
     if (!document || !root || document.documentElement.dataset.worldAtlasPreviewInstalled === "true") return false;
     document.documentElement.dataset.worldAtlasPreviewInstalled = "true";
+    ensureInteractionStyles(document);
 
     let scheduled = false;
     function scheduleDefaultSync() {
@@ -177,15 +202,15 @@
         scheduled = false;
         const viewer = document.getElementById("world-atlas-viewer");
         if (!viewer) return;
-        syncPreview(document, root, defaultEntry(root, viewer));
+        syncSelection(document, root, defaultEntry(root, viewer));
       });
     }
 
     document.addEventListener("click", (event) => {
       const entry = entryForTarget(root, event.target);
       if (!entry) return;
-      queueMicrotask(() => syncPreview(document, root, entry));
-    });
+      syncSelection(document, root, entry);
+    }, true);
 
     const observer = new MutationObserver((records) => {
       if (!records.some((record) => Array.from(record.addedNodes || []).some((node) => node.nodeType === 1 && (
@@ -200,10 +225,16 @@
 
   return {
     previewModel,
+    markerName,
+    rememberedByName,
+    entryForMarker,
     entryForTarget,
     defaultEntry,
+    stateLabel,
+    syncDetail,
     createPreview,
     syncPreview,
+    syncSelection,
     install
   };
 });
