@@ -1,0 +1,20 @@
+.world-atlas-lore { display:grid; gap:9px; margin-top:11px; padding-top:11px; border-top:1px dashed rgba(201,163,93,.20); }
+.world-atlas-lore-kicker { color:#829887 !important; font-size:7px !important; letter-spacing:.1em !important; }
+.world-atlas-lore-discovery { margin:0; color:#c9bfa6; font:500 11px/1.55 Georgia,serif; }
+.world-atlas-lore-line { min-width:0; }
+.world-atlas-lore-line > small { margin-bottom:3px; color:#8f846a !important; font-size:7px !important; letter-spacing:.08em !important; }
+.world-atlas-lore-line > p { margin:0; color:#aaa18d; font-size:9px; line-height:1.55; overflow-wrap:anywhere; }
+.world-atlas-lore-line.is-rumor > p { padding-left:8px; border-left:1px solid rgba(201,163,93,.25); color:#d0c19e; font-family:Georgia,serif; }
+.world-atlas-lore-hint-grid { display:grid; grid-template-columns:minmax(0,1fr) minmax(0,1fr); gap:8px; }
+.world-atlas-lore-tags { display:flex; flex-wrap:wrap; gap:4px; min-width:0; }
+.world-atlas-lore-tags span { display:inline-block !important; max-width:100%; padding:3px 5px; border:1px solid rgba(201,163,93,.18); background:rgba(201,163,93,.035); color:#b5a98e !important; font-size:8px !important; line-height:1.2 !important; overflow-wrap:anywhere; }
+.world-atlas-lore-hints.is-threat .world-atlas-lore-tags span { border-color:rgba(139,72,58,.32); color:#bf9184 !important; }
+.world-atlas-lore-hints.is-reward .world-atlas-lore-tags span { border-color:rgba(99,137,116,.34); color:#91a996 !important; }
+.world-atlas-lore-line.is-record > p { color:#8fa18f; }
+.world-atlas-lore-fiction { padding-top:7px; border-top:1px solid rgba(201,163,93,.10); color:#777064 !important; font-size:7px !important; line-height:1.45; letter-spacing:0 !important; }
+
+@media (max-width:420px) {
+  .world-atlas-lore { gap:8px; margin-top:9px; padding-top:9px; }
+  .world-atlas-lore-hint-grid { grid-template-columns:1fr; gap:7px; }
+  .world-atlas-lore-discovery { font-size:10px; }
+}
