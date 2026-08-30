@@ -18,6 +18,7 @@ const {
   readReview,
   persistDiagnostic,
   resolveControlPlaneArtifacts,
+  runWithSourceClean,
 } = require("../scripts/autopilot/run-next.js");
 const { findBlockers, selectIssue } = require("../scripts/autopilot/select-issue.js");
 const { REQUIRED_SYNTAX_FILES, runValidation } = require("../scripts/autopilot/validate.js");
@@ -112,6 +113,38 @@ test("CLI carries an Issue-specific focused test into validation", () => {
   assert.notDeepEqual(options.focusedTests, ["test/autopilot.test.js"]);
 });
 
+test("implementation and review operations always check source cleanliness", () => {
+  const calls = [];
+  const run = (command, args, options) => {
+    calls.push([command, args, options]);
+    return { status: 0, stdout: "", stderr: "" };
+  };
+  assert.equal(runWithSourceClean(run, "C:\\runner", () => "implementation-result"), "implementation-result");
+  assert.equal(runWithSourceClean(run, "C:\\runner", () => "review-result"), "review-result");
+  assert.equal(calls.length, 2);
+  assert.deepEqual(calls.map((call) => call[1]), [["status", "--porcelain"], ["status", "--porcelain"]]);
+  assert.deepEqual(calls.map((call) => call[2].cwd), ["C:\\runner", "C:\\runner"]);
+});
+
+test("source cleanliness failure preserves an invocation diagnostic", () => {
+  const operationError = new Error("Codex failed");
+  operationError.autopilotDiagnostic = { stage: "codex-implementation", command: "codex", args: ["exec"], status: 1, stdout: "out", stderr: "err" };
+  const run = (command) => command === "git"
+    ? { status: 0, stdout: " M runner.js\n", stderr: "" }
+    : { status: 0, stdout: "", stderr: "" };
+  let caught;
+  try {
+    runWithSourceClean(run, "C:\\runner", () => { throw operationError; });
+  } catch (error) {
+    caught = error;
+  }
+  assert.equal(caught, operationError);
+  assert.match(caught.message, /Codex failed/);
+  assert.match(caught.message, /clean source checkout/);
+  assert.equal(caught.autopilotDiagnostic.stdout, "out");
+  assert.match(caught.autopilotDiagnostic.sourceCleanError, /clean source checkout/);
+});
+
 test("non-CI Windows npm command spawn differences use the node test fallback", () => {
   const calls = [];
   const previousCi = process.env.CI;
@@ -160,21 +193,23 @@ test("review result rejects schema-shaped objects with invalid extra data", () =
 
 test("Codex implementation and review use isolated, config-independent execution", () => {
   const calls = [];
-  const run = (command, args) => {
-    calls.push([command, args]);
+  const run = (command, args, options) => {
+    calls.push([command, args, options]);
     return { command, args, status: 0, stdout: "", stderr: "" };
   };
-  invokeCodex(run, "C:\\worktree", "prompt", "C:\\tmp\\implementation.txt", "codex-test");
+  invokeCodex(run, "C:\\worktree", "prompt", "C:\\tmp\\implementation.txt", "codex-test", "C:\\runner");
   invokeReview(run, "C:\\worktree", "C:\\worktree\\schema.json", "review", "C:\\tmp\\review.json", "codex-test");
   assert.equal(calls.length, 2);
   assert.ok(calls[0][1].includes("--ignore-user-config"));
   assert.ok(calls[0][1].includes("--ignore-rules"));
-  assert.deepEqual(calls[0][1].slice(0, 11), ["exec", "--cd", "C:\\worktree", "--add-dir", "C:\\worktree", "--sandbox", "workspace-write", "--ephemeral", "--ignore-user-config", "--ignore-rules", "--output-last-message"]);
+  assert.deepEqual(calls[0][1].slice(0, 13), ["exec", "--cd", "C:\\runner", "--add-dir", "C:\\worktree", "--sandbox", "workspace-write", "-c", "approval_policy=\"never\"", "--ephemeral", "--ignore-user-config", "--ignore-rules", "--output-last-message"]);
+  assert.equal(calls[0][2].cwd, "C:\\runner");
   assert.ok(calls[1][1].includes("--ignore-user-config"));
   assert.ok(calls[1][1].includes("--ignore-rules"));
   assert.ok(calls[1][1].includes("--sandbox") && calls[1][1].includes("read-only"));
   assert.ok(calls[1][1].includes("--ephemeral") && calls[1][1].includes("--output-schema"));
   assert.equal(calls[1][1].includes("review"), false);
+  assert.equal(calls[1][2].cwd, "C:\\worktree");
 });
 
 test("PR body records evidence, unverified playtest, and no auto-merge", () => {

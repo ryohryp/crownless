@@ -148,6 +148,28 @@ function ensureClean(run, cwd) {
   if (status) throw new Error("Autopilot requires a clean source checkout before starting.");
 }
 
+function runWithSourceClean(run, root, operation) {
+  let operationError;
+  let result;
+  try {
+    result = operation();
+  } catch (error) {
+    operationError = error;
+  }
+  try {
+    ensureClean(run, root);
+  } catch (sourceError) {
+    if (!operationError) throw sourceError;
+    operationError.message += `\n${sourceError.message}`;
+    operationError.autopilotDiagnostic = {
+      ...operationError.autopilotDiagnostic,
+      sourceCleanError: sourceError.message,
+    };
+  }
+  if (operationError) throw operationError;
+  return result;
+}
+
 function ensureBranchAbsent(run, cwd, branchName) {
   if (branchExists(run, cwd, branchName)) throw new Error(`Branch ${branchName} already exists.`);
 }
@@ -194,15 +216,15 @@ function buildExecutionPrompt(issue, contract, policy = "", focusedTests = []) {
   ].join("\n\n");
 }
 
-function invokeCodex(run, worktreePath, prompt, outputPath, codexBin = process.env.AUTOPILOT_CODEX_BIN || "codex") {
+function invokeCodex(run, worktreePath, prompt, outputPath, codexBin = process.env.AUTOPILOT_CODEX_BIN || "codex", workspaceRoot = worktreePath) {
   return checked(run, codexBin, [
-    "exec", "--cd", worktreePath, "--add-dir", worktreePath, "--sandbox", "workspace-write", "--ephemeral", "--ignore-user-config", "--ignore-rules", "--output-last-message", outputPath, "-",
-  ], { cwd: worktreePath, input: prompt }, "codex-implementation");
+    "exec", "--cd", workspaceRoot, "--add-dir", worktreePath, "--sandbox", "workspace-write", "-c", "approval_policy=\"never\"", "--ephemeral", "--ignore-user-config", "--ignore-rules", "--output-last-message", outputPath, "-",
+  ], { cwd: workspaceRoot, input: prompt }, "codex-implementation");
 }
 
 function invokeReview(run, worktreePath, schemaPath, prompt, outputPath, codexBin = process.env.AUTOPILOT_CODEX_BIN || "codex") {
   return checked(run, codexBin, [
-    "exec", "--cd", worktreePath, "--sandbox", "read-only", "--ephemeral", "--ignore-user-config", "--ignore-rules", "--output-schema", schemaPath, "--output-last-message", outputPath, "-",
+    "exec", "--cd", worktreePath, "--sandbox", "read-only", "-c", "approval_policy=\"never\"", "--ephemeral", "--ignore-user-config", "--ignore-rules", "--output-schema", schemaPath, "--output-last-message", outputPath, "-",
   ], { cwd: worktreePath, input: prompt }, "structured-review");
 }
 
@@ -525,11 +547,10 @@ function runAutopilotInternal(options = {}, dependencies = {}) {
     try {
       let prompt = buildExecutionPrompt(refreshedIssue, contract, policy, focusedTests);
       for (let revision = 0; revision <= MAX_REVISIONS; revision += 1) {
-        invokeCodex(run, worktreePath, prompt, implementationOutput);
-        ensureClean(run, root);
+        runWithSourceClean(run, root, () => invokeCodex(run, worktreePath, prompt, implementationOutput, undefined, root));
         validation = runValidation({ cwd: worktreePath, run, focusedTests });
         assertSafeDiff(run, worktreePath, baseRef);
-        invokeReview(run, worktreePath, schemaPath, reviewPrompt(refreshedIssue, addedDiff(run, worktreePath, baseRef), reviewContext(worktreePath, root)), reviewOutput);
+        runWithSourceClean(run, root, () => invokeReview(run, worktreePath, schemaPath, reviewPrompt(refreshedIssue, addedDiff(run, worktreePath, baseRef), reviewContext(worktreePath, root)), reviewOutput));
         review = readReview(reviewOutput);
         if (review.status === "pass") break;
         if (revision === MAX_REVISIONS) throw new Error("Codex final diff review requested changes after the allowed revision.");
@@ -628,5 +649,6 @@ module.exports = {
   readReview,
   resolveControlPlaneArtifacts,
   persistDiagnostic,
+  runWithSourceClean,
   runAutopilot,
 };
