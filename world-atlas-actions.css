@@ -1,0 +1,194 @@
+.world-atlas-actions {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(201, 163, 93, 0.2);
+}
+
+.world-atlas-actions__kicker,
+.world-atlas-action-sheet header > small,
+.world-atlas-event-related small {
+  display: block;
+  margin-bottom: 7px;
+  color: #9f8b62;
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.world-atlas-actions__list {
+  display: grid;
+  gap: 7px;
+}
+
+.world-atlas-action {
+  width: 100%;
+  display: grid;
+  gap: 3px;
+  padding: 10px 11px;
+  border: 1px solid rgba(201, 163, 93, 0.18);
+  border-left: 3px solid rgba(201, 163, 93, 0.42);
+  border-radius: 1px;
+  background: rgba(22, 19, 15, 0.72);
+  color: #d8ceb9;
+  text-align: left;
+  cursor: pointer;
+}
+
+.world-atlas-action strong { font-size: 12px; font-weight: 650; }
+.world-atlas-action small { color: #8f8775; font-size: 10px; line-height: 1.5; }
+.world-atlas-action:hover,
+.world-atlas-action:focus-visible { border-color: rgba(201, 163, 93, 0.5); background: rgba(37, 31, 23, 0.85); }
+.world-atlas-action:disabled { opacity: 0.48; cursor: not-allowed; }
+.world-atlas-action--event { border-left-color: rgba(118, 142, 123, 0.72); }
+.world-atlas-action--facility { border-left-color: rgba(177, 126, 67, 0.72); }
+
+.world-atlas-actions__empty,
+.world-atlas-actions__status {
+  margin: 7px 0 0;
+  color: #8f8775;
+  font-size: 10px;
+  line-height: 1.6;
+}
+
+.world-atlas-actions__status:empty { display: none; }
+
+.world-atlas-action-sheet {
+  position: absolute;
+  inset: 0;
+  z-index: 8;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+}
+
+.world-atlas-action-sheet__veil {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  border: 0;
+  background: rgba(8, 7, 6, 0.78);
+  cursor: default;
+}
+
+.world-atlas-action-sheet__page {
+  position: relative;
+  z-index: 1;
+  width: min(520px, 100%);
+  max-height: min(620px, calc(100vh - 48px));
+  overflow-y: auto;
+  padding: 18px;
+  border: 1px solid rgba(201, 163, 93, 0.34);
+  box-shadow: 0 18px 60px rgba(0, 0, 0, 0.42);
+  background:
+    linear-gradient(rgba(25, 22, 18, 0.96), rgba(17, 15, 12, 0.98)),
+    #17140f;
+  color: #d8ceb9;
+}
+
+.world-atlas-action-sheet header {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: start;
+  gap: 4px 12px;
+  padding-bottom: 11px;
+  border-bottom: 1px solid rgba(201, 163, 93, 0.18);
+}
+
+.world-atlas-action-sheet header > small { grid-column: 1; margin: 0; }
+.world-atlas-action-sheet h3 { grid-column: 1; margin: 0; font-size: 20px; font-weight: 650; }
+.world-atlas-action-sheet__close {
+  grid-column: 2;
+  grid-row: 1 / 3;
+  align-self: center;
+  padding: 6px 8px;
+  border: 0;
+  background: transparent;
+  color: #968c79;
+  cursor: pointer;
+}
+
+.world-atlas-action-sheet__lead {
+  margin: 14px 0;
+  color: #bcb29d;
+  font-size: 12px;
+  line-height: 1.8;
+}
+
+.world-atlas-event-choices { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.world-atlas-event-choices button,
+.world-atlas-merchant-stock button,
+.expedition-atlas-return {
+  padding: 9px 10px;
+  border: 1px solid rgba(201, 163, 93, 0.26);
+  border-radius: 1px;
+  background: rgba(43, 35, 25, 0.72);
+  color: #d9cdaF;
+  cursor: pointer;
+}
+
+.world-atlas-event-choices button:disabled,
+.world-atlas-merchant-stock button:disabled { opacity: 0.45; cursor: default; }
+
+.world-atlas-event-result,
+.world-atlas-merchant-feedback {
+  min-height: 2.7em;
+  margin: 12px 0 0;
+  color: #b7ad98;
+  font-size: 11px;
+  line-height: 1.7;
+}
+
+.world-atlas-event-related {
+  display: grid;
+  gap: 3px;
+  margin-top: 14px;
+  padding: 11px;
+  border-left: 2px solid rgba(105, 132, 113, 0.68);
+  background: rgba(69, 84, 72, 0.13);
+}
+
+.world-atlas-event-related small { margin: 0; }
+.world-atlas-event-related strong { font-size: 12px; }
+.world-atlas-event-related span { color: #8f9b8c; font-size: 10px; }
+
+.world-atlas-merchant-balance {
+  margin: 0 0 10px;
+  color: #b79c6d;
+  font-size: 10px;
+}
+
+.world-atlas-merchant-stock { display: grid; gap: 8px; }
+.world-atlas-merchant-stock article {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 10px;
+  border-top: 1px solid rgba(201, 163, 93, 0.14);
+  border-bottom: 1px solid rgba(201, 163, 93, 0.08);
+}
+
+.world-atlas-merchant-stock article > div { display: grid; gap: 4px; min-width: 0; }
+.world-atlas-merchant-stock strong { font-size: 12px; }
+.world-atlas-merchant-stock span { color: #8f8775; font-size: 10px; line-height: 1.5; overflow-wrap: anywhere; }
+.world-atlas-merchant-stock button { white-space: nowrap; }
+
+.expedition-choice--atlas-locked .expedition-choice__item:not(.is-atlas-selected) { display: none !important; }
+.expedition-choice--atlas-locked .is-atlas-selected { pointer-events: none; }
+.expedition-choice--atlas-locked .is-atlas-selected input { display: none; }
+.expedition-atlas-return { margin-top: 8px; color: #a69a84; }
+.expedition-choice__item--merchant::after {
+  content: "商人";
+  margin-left: auto;
+  color: #ad8956;
+  font-size: 9px;
+  letter-spacing: 0.08em;
+}
+
+@media (max-width: 620px) {
+  .world-atlas-action-sheet { align-items: end; padding: 10px; }
+  .world-atlas-action-sheet__page { width: 100%; max-height: 78vh; padding: 15px; }
+  .world-atlas-event-choices { grid-template-columns: 1fr; }
+  .world-atlas-merchant-stock article { grid-template-columns: 1fr; }
+  .world-atlas-merchant-stock button { width: 100%; }
+}
