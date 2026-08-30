@@ -110,14 +110,48 @@ var audioContext = null;
 
 // Issue #216: the Grey Hearth wall map opens a manuscript-style atlas built
 // only from persisted coarse world knowledge. Issue #222 adds deterministic
-// Crownless lore as a pure projection of the same stable discovery identity.
+// Crownless lore, while #224 turns each selected discovery into an action hub.
 (function loadWorldAtlas() {
   if (typeof document === "undefined") return;
 
+  function loadActionsPresentation() {
+    if (document.querySelector('script[src="src/world-atlas-actions-presentation.js"]')) return;
+    const presentation = document.createElement("script");
+    presentation.src = "src/world-atlas-actions-presentation.js";
+    document.body.appendChild(presentation);
+  }
+
+  function loadActionsDomain() {
+    const existingActions = document.querySelector('script[src="src/discovery-actions.js"]');
+    if (existingActions) {
+      if (window.CrownlessDiscoveryActions) loadActionsPresentation();
+      else {
+        existingActions.addEventListener("load", loadActionsPresentation, { once: true });
+        existingActions.addEventListener("error", loadActionsPresentation, { once: true });
+      }
+      return;
+    }
+    const actions = document.createElement("script");
+    actions.src = "src/discovery-actions.js";
+    actions.onload = loadActionsPresentation;
+    actions.onerror = loadActionsPresentation;
+    document.body.appendChild(actions);
+  }
+
   function loadLorePresentation() {
-    if (document.querySelector('script[src="src/world-atlas-lore-presentation.js"]')) return;
+    const existingLorePresentation = document.querySelector('script[src="src/world-atlas-lore-presentation.js"]');
+    if (existingLorePresentation) {
+      if (window.CrownlessWorldAtlasLorePresentation) loadActionsDomain();
+      else {
+        existingLorePresentation.addEventListener("load", loadActionsDomain, { once: true });
+        existingLorePresentation.addEventListener("error", loadActionsDomain, { once: true });
+      }
+      return;
+    }
     const lorePresentation = document.createElement("script");
     lorePresentation.src = "src/world-atlas-lore-presentation.js";
+    lorePresentation.onload = loadActionsDomain;
+    lorePresentation.onerror = loadActionsDomain;
     document.body.appendChild(lorePresentation);
   }
 
