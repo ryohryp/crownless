@@ -29,9 +29,10 @@ body.world-atlas-open { overflow:hidden; }
 .world-atlas-current-cell-label { position:absolute; z-index:3; display:flex; align-items:center; gap:6px; transform:translate(-50%,-50%); padding:4px 6px; background:rgba(17,15,11,.84); color:#ddc986; font-size:8px; white-space:nowrap; pointer-events:none; }
 .world-atlas-current-cell-label i { width:8px; height:8px; border:1px solid #d7b66b; border-radius:50%; background:#d7b66b; box-shadow:0 0 0 4px rgba(215,182,107,.09); }
 .world-atlas-current-cell-label b { font-weight:600; }
-.world-atlas-marker { position:absolute; z-index:4; width:38px; height:38px; padding:0; border:0; background:transparent; color:#d4bd7c; transform:translate(-50%,-50%); cursor:pointer; }
-.world-atlas-marker i { display:grid; place-items:center; width:30px; height:30px; margin:auto; border:1px solid rgba(201,163,93,.58); border-radius:47% 53% 49% 51%; background:#17140f; font:normal 18px/1 Georgia,serif; transform:rotate(-3deg); }
-.world-atlas-marker small { position:absolute; left:27px; top:-3px; color:#a98d54; font-size:7px; font-weight:800; letter-spacing:.08em; }
+.world-atlas-marker { position:absolute; z-index:4; width:44px; height:44px; padding:0; border:0; background:transparent; color:#d4bd7c; transform:translate(-50%,-50%); cursor:pointer; touch-action:manipulation; }
+.world-atlas-marker i { display:grid; place-items:center; width:30px; height:30px; margin:auto; border:1px solid rgba(201,163,93,.58); border-radius:47% 53% 49% 51%; background:#17140f; font:normal 18px/1 Georgia,serif; transform:rotate(-3deg); pointer-events:none; }
+.world-atlas-marker small { position:absolute; left:30px; top:-1px; color:#a98d54; font-size:7px; font-weight:800; letter-spacing:.08em; pointer-events:none; }
+.world-atlas-marker:hover,.world-atlas-marker:focus-visible,.world-atlas-marker.active { z-index:12; }
 .world-atlas-marker:hover i,.world-atlas-marker:focus-visible i,.world-atlas-marker.active i { border-color:#e0bf6d; background:#263027; outline:1px solid rgba(224,191,109,.25); outline-offset:3px; transform:rotate(2deg) scale(1.08); }
 .world-atlas-nearby-caption { position:absolute; z-index:2; left:14px; top:12px; display:grid; gap:2px; max-width:220px; padding:7px 9px; border-left:1px solid rgba(201,163,93,.30); background:rgba(12,11,9,.72); pointer-events:none; }
 .world-atlas-nearby-caption small { color:#829887; font-size:7px; letter-spacing:.1em; }
@@ -42,16 +43,18 @@ body.world-atlas-open { overflow:hidden; }
 .world-atlas-nearby-current { position:absolute; left:50%; top:50%; z-index:4; display:grid; place-items:center; transform:translate(-50%,-50%); color:#ead9ad; font-size:9px; text-align:center; pointer-events:none; }
 .world-atlas-nearby-current i { width:16px; height:16px; border:2px solid #d7b66b; border-radius:46% 54% 49% 51%; background:#17140f; box-shadow:0 0 0 6px rgba(215,182,107,.09); }
 .world-atlas-nearby-current b { margin-top:6px; padding:2px 5px; background:rgba(12,11,9,.84); font-weight:700; letter-spacing:.06em; }
-.world-atlas-nearby-marker { position:absolute; z-index:5; min-width:40px; min-height:40px; padding:0; border:0; background:transparent; color:inherit; transform:translate(-50%,-50%); cursor:pointer; }
-.world-atlas-nearby-marker > i { display:grid; place-items:center; width:32px; height:32px; margin:auto; border:1px solid rgba(201,163,93,.58); border-radius:45% 55% 49% 51%; background:#12110e; color:#d7bd7d; font:normal 18px/1 Georgia,serif; box-shadow:0 0 0 3px rgba(8,8,7,.7); transform:rotate(-3deg); }
-.world-atlas-nearby-marker > small { position:absolute; left:calc(50% + 14px); top:-5px; color:#a98d54; font-size:7px; font-weight:800; }
-.world-atlas-nearby-marker > span { position:absolute; left:50%; top:39px; width:max-content; max-width:150px; transform:translateX(-50%); padding:4px 6px; background:rgba(11,10,8,.84); pointer-events:none; }
-.world-atlas-nearby-marker strong,.world-atlas-nearby-marker em { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.world-atlas-nearby-marker { position:absolute; z-index:5; width:48px; height:48px; min-width:48px; min-height:48px; padding:0; border:0; background:transparent; color:inherit; transform:translate(-50%,-50%); cursor:pointer; touch-action:manipulation; -webkit-tap-highlight-color:transparent; }
+.world-atlas-nearby-marker > i { display:grid; place-items:center; width:34px; height:34px; margin:auto; border:1px solid rgba(201,163,93,.58); border-radius:45% 55% 49% 51%; background:#12110e; color:#d7bd7d; font:normal 18px/1 Georgia,serif; box-shadow:0 0 0 3px rgba(8,8,7,.7); transform:rotate(-3deg); pointer-events:none; }
+.world-atlas-nearby-marker > small { position:absolute; left:calc(50% + 15px); top:-3px; color:#a98d54; font-size:7px; font-weight:800; pointer-events:none; }
+.world-atlas-nearby-marker > span { position:absolute; left:50%; top:43px; width:max-content; max-width:150px; transform:translateX(-50%); padding:7px 9px; background:rgba(11,10,8,.88); border:1px solid transparent; cursor:pointer; pointer-events:auto; touch-action:manipulation; }
+.world-atlas-nearby-marker strong,.world-atlas-nearby-marker em { display:block; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; pointer-events:none; }
 .world-atlas-nearby-marker strong { max-width:138px; color:#e4d6b5; font:600 10px/1.25 Georgia,serif; }
 .world-atlas-nearby-marker em { margin-top:2px; max-width:138px; color:#8d897e; font:normal 8px/1.3 sans-serif; }
 .world-atlas-nearby-marker[data-label-horizontal="inset-left"] > span { left:0; transform:none; text-align:left; }
 .world-atlas-nearby-marker[data-label-horizontal="inset-right"] > span { left:auto; right:0; transform:none; text-align:right; }
-.world-atlas-nearby-marker[data-label-vertical="above"] > span { top:auto; bottom:39px; }
+.world-atlas-nearby-marker[data-label-vertical="above"] > span { top:auto; bottom:43px; }
+.world-atlas-nearby-marker:hover,.world-atlas-nearby-marker:focus-visible,.world-atlas-nearby-marker.active { z-index:14; }
+.world-atlas-nearby-marker:hover > span,.world-atlas-nearby-marker:focus-visible > span,.world-atlas-nearby-marker.active > span { border-color:rgba(224,191,109,.22); background:rgba(18,17,13,.96); }
 .world-atlas-nearby-marker:hover > i,.world-atlas-nearby-marker:focus-visible > i,.world-atlas-nearby-marker.active > i { border-color:#dfbd69; background:#263027; outline:1px solid rgba(224,191,109,.25); outline-offset:3px; transform:rotate(2deg) scale(1.1); }
 .world-atlas-side { display:flex; flex-direction:column; gap:10px; min-width:0; }
 .world-atlas-detail,.world-atlas-unplaced,.world-atlas-latest-visual { margin:0; padding:12px; border-left:1px solid rgba(201,163,93,.34); background:rgba(224,207,171,.035); }
@@ -82,8 +85,9 @@ body.world-atlas-open { overflow:hidden; }
   .world-atlas-body { grid-template-columns:1fr; }
   .world-atlas-map { min-height:52dvh; }
   .world-atlas-nearby-caption { max-width:180px; }
-  .world-atlas-nearby-marker > span { max-width:105px; }
-  .world-atlas-nearby-marker strong,.world-atlas-nearby-marker em { max-width:94px; }
+  .world-atlas-nearby-marker { width:52px; height:52px; min-width:52px; min-height:52px; }
+  .world-atlas-nearby-marker > span { max-width:118px; padding:8px 10px; }
+  .world-atlas-nearby-marker strong,.world-atlas-nearby-marker em { max-width:104px; }
   .world-atlas-side { display:grid; grid-template-columns:1fr; }
 }
 
