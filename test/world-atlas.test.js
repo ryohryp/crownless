@@ -66,6 +66,108 @@ test("discoveries without a coarse area stay visible as unanchored notes instead
   assert.equal(model.unplacedDiscoveries[0].name, "崩れた礼拝堂");
 });
 
+test("atlas scan remembers new geographic discoveries and persists only coarse geography", () => {
+  let stored = {
+    phase: "hub",
+    expedition: null,
+    worldKnowledge: { discoveries: {} }
+  };
+  const Core = {
+    loadSafeState() { return JSON.parse(JSON.stringify(stored)); },
+    sanitizeWorldKnowledge(value) { return value || { discoveries: {} }; },
+    explorationAreaFromLocation() { return { id: "area:14:25:50", zoom: 14, x: 25, y: 50 }; },
+    recordExploredCell(state) {
+      state.worldKnowledge.exploredCells = {
+        "cell:16:102:202": { id: "cell:16:102:202", firstExploredAt: 123 }
+      };
+      return { cell: { id: "cell:16:102:202", zoom: 16, x: 102, y: 202 }, added: true };
+    },
+    saveWorldKnowledge(state) { stored = JSON.parse(JSON.stringify(state)); return true; }
+  };
+  const runtime = {
+    currentAreaId: "area:14:25:50",
+    discoveries: [
+      {
+        title: "中川の血濡れの渡し場",
+        baseTitle: "血濡れの渡し場",
+        sourceRef: "way:901",
+        contentKind: "encounter",
+        features: ["water", "crossing"],
+        representativeCoordinate: { latitude: 35.69, longitude: 139.78 },
+        mapOrigin: { latitude: 35.68, longitude: 139.77 }
+      }
+    ],
+    worldKnowledgeKey() { return "geo:way:901:encounter:crossing+water"; }
+  };
+
+  const result = Atlas.rememberScannedDiscoveries(Core, runtime, 999);
+  assert.equal(result.newCount, 1);
+  assert.equal(result.rememberedCount, 1);
+  assert.equal(result.currentCell.id, "cell:16:102:202");
+  const entry = stored.worldKnowledge.discoveries["geo:way:901:encounter:crossing+water"];
+  assert.equal(entry.name, "中川の血濡れの渡し場");
+  assert.equal(entry.areaId, "area:14:25:50");
+  assert.equal(entry.visits, 1);
+  assert.deepEqual(entry.terrain, ["water", "crossing"]);
+  assert.ok(stored.worldKnowledge.exploredCells["cell:16:102:202"]);
+  assert.doesNotMatch(JSON.stringify(stored), /latitude|longitude|35\.69|139\.78|35\.68|139\.77/);
+});
+
+test("rescanning the same discovery keeps it remembered without inflating visits", () => {
+  let stored = {
+    phase: "hub",
+    expedition: null,
+    worldKnowledge: {
+      discoveries: {
+        "geo:node:7:dungeon:height": {
+          key: "geo:node:7:dungeon:height",
+          name: "古い物見台",
+          baseTitle: "崩れた物見台",
+          terrain: ["height"],
+          contentKind: "dungeon",
+          state: "discovered",
+          firstDiscoveredAt: 100,
+          visits: 1,
+          areaId: "area:14:12:13"
+        }
+      }
+    }
+  };
+  const Core = {
+    loadSafeState() { return JSON.parse(JSON.stringify(stored)); },
+    sanitizeWorldKnowledge(value) { return value; },
+    explorationAreaFromLocation() { return { id: "area:14:12:13" }; },
+    saveWorldKnowledge(state) { stored = JSON.parse(JSON.stringify(state)); return true; }
+  };
+  const runtime = {
+    currentAreaId: "area:14:12:13",
+    discoveries: [{
+      title: "丘の崩れた物見台",
+      baseTitle: "崩れた物見台",
+      sourceRef: "node:7",
+      contentKind: "dungeon",
+      features: ["height"],
+      representativeCoordinate: { latitude: 35.7, longitude: 139.8 }
+    }],
+    worldKnowledgeKey() { return "geo:node:7:dungeon:height"; }
+  };
+
+  const result = Atlas.rememberScannedDiscoveries(Core, runtime, 200);
+  assert.equal(result.newCount, 0);
+  assert.equal(stored.worldKnowledge.discoveries["geo:node:7:dungeon:height"].visits, 1);
+  assert.equal(stored.worldKnowledge.discoveries["geo:node:7:dungeon:height"].firstDiscoveredAt, 100);
+  assert.equal(stored.worldKnowledge.discoveries["geo:node:7:dungeon:height"].name, "丘の崩れた物見台");
+});
+
+test("atlas open automatically scans nearby world and offers a manual rescan", () => {
+  assert.match(source, /scanNearby\(Core, root/);
+  assert.match(source, /CrownlessLocationDiscoveryRuntime/);
+  assert.match(source, /周辺を再調査/);
+  assert.match(source, /SCAN_COOLDOWN_MS = 30000/);
+  assert.match(source, /crownless:world-knowledge-updated/);
+  assert.match(css, /world-atlas-scan/);
+});
+
 test("atlas remains manuscript UI rather than a navigation map and has phone rules", () => {
   assert.match(source, /THE WRITTEN WORLD \/ WORLD ATLAS/);
   assert.match(source, /正確な道路図ではない/);

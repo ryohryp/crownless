@@ -6,6 +6,15 @@ body.world-atlas-open { overflow:hidden; }
 .world-atlas-header h2 { margin:2px 0 5px; color:#e8d9b6; font:500 clamp(24px,4vw,42px)/1.05 Georgia,serif; }
 .world-atlas-header span { color:#9d947f; font-size:10px; letter-spacing:.06em; }
 .world-atlas-close { flex:0 0 auto; min-height:34px; padding:7px 9px; border:0; border-left:1px solid rgba(201,163,93,.34); border-radius:0; background:transparent; color:#cdbd94; font-size:10px; cursor:pointer; }
+.world-atlas-scan { position:relative; z-index:1; display:flex; align-items:center; justify-content:space-between; gap:14px; margin-top:10px; padding:9px 10px; border-left:2px solid rgba(99,137,116,.48); background:rgba(72,105,89,.07); }
+.world-atlas-scan > div { min-width:0; }
+.world-atlas-scan small,.world-atlas-scan span { display:block; }
+.world-atlas-scan small { margin-bottom:3px; color:#829887; font-size:8px; letter-spacing:.1em; }
+.world-atlas-scan span { color:#afa58d; font-size:10px; line-height:1.45; }
+.world-atlas-scan button { flex:0 0 auto; min-height:34px; padding:6px 9px; border:1px solid rgba(201,163,93,.30); border-radius:0; background:rgba(201,163,93,.04); color:#cdbd94; font-size:9px; cursor:pointer; }
+.world-atlas-scan button:disabled { opacity:.42; cursor:default; }
+.world-atlas-scan.scanning { border-left-color:rgba(201,163,93,.56); background:rgba(201,163,93,.045); }
+.world-atlas-scan.scanning small { color:#ad985f; }
 .world-atlas-body { display:grid; grid-template-columns:minmax(0,1fr) minmax(220px,290px); gap:14px; margin-top:14px; }
 .world-atlas-map { position:relative; min-height:520px; overflow:hidden; border:1px solid rgba(201,163,93,.22); background:radial-gradient(circle at 45% 48%,rgba(77,111,94,.08),transparent 38%),repeating-linear-gradient(7deg,rgba(229,216,186,.02) 0 1px,transparent 1px 11px),#12110d; isolation:isolate; }
 .world-atlas-map::before,.world-atlas-map::after { content:""; position:absolute; inset:0; z-index:-1; pointer-events:none; }
@@ -44,6 +53,8 @@ body.world-atlas-open { overflow:hidden; }
   .world-atlas-folio { width:100%; max-height:none; min-height:100dvh; padding:14px 12px calc(18px + env(safe-area-inset-bottom)); }
   .world-atlas-header { position:sticky; top:0; z-index:8; margin:-14px -12px 0; padding:14px 12px 11px; background:rgba(23,21,15,.96); }
   .world-atlas-header h2 { font-size:26px; }
+  .world-atlas-scan { align-items:flex-start; }
+  .world-atlas-scan button { min-height:40px; }
   .world-atlas-body { grid-template-columns:1fr; }
   .world-atlas-map { min-height:52dvh; }
   .world-atlas-side { display:grid; grid-template-columns:1fr; }

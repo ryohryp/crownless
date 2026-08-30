@@ -44,19 +44,33 @@ var audioContext = null;
     head.appendChild(css);
   });
 
+  function finishExpeditionPresentationReady() {
+    presentationReady = true;
+    if (replayQueued && gate) {
+      replayQueued = false;
+      gate.click();
+    }
+  }
+
+  function loadGeographicExpeditionBridge() {
+    if (document.querySelector('script[src="src/geographic-expedition-bridge.js"]')) {
+      finishExpeditionPresentationReady();
+      return;
+    }
+    const bridge = document.createElement("script");
+    bridge.src = "src/geographic-expedition-bridge.js";
+    bridge.onload = finishExpeditionPresentationReady;
+    bridge.onerror = finishExpeditionPresentationReady;
+    document.body.appendChild(bridge);
+  }
+
   function loadExpeditionDomain() {
     const domain = document.createElement("script");
     domain.src = "src/expedition-system.js";
     domain.onload = function loadExpeditionPresentation() {
       const presentation = document.createElement("script");
       presentation.src = "src/expedition-presentation.js";
-      presentation.onload = function expeditionPresentationReady() {
-        presentationReady = true;
-        if (replayQueued && gate) {
-          replayQueued = false;
-          gate.click();
-        }
-      };
+      presentation.onload = loadGeographicExpeditionBridge;
       document.body.appendChild(presentation);
     };
     document.body.appendChild(domain);
