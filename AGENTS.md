@@ -1,13 +1,16 @@
 # AGENTS.md
 
-This repository contains **Crownless**, a location-discovery idle expedition RPG in a medieval fantasy world.
+This repository contains **Crownless**, a location-discovery expedition RPG in a medieval fantasy world.
 
 ## Product direction
 
-The current deliberate design pivot is documented in:
+The current canonical product direction is documented in:
 
 - `docs/adr/0002-idle-expedition-pivot.md`
-- GitHub Issue #189
+- `docs/game-system-design.md`
+- GitHub Issue #189 (completed decision record)
+
+This is no longer an experimental pivot. Treat **Location × Expedition RPG** as the product direction unless a later explicit ADR deliberately changes it.
 
 Preserve these current pillars unless a later deliberate design change is documented:
 
@@ -28,6 +31,8 @@ The primary validation question is:
 > **After dispatching an expedition, does the player want to reopen the game to see what happened?**
 
 Real-time action combat is **not** part of the current core design. Existing stand-to-strike code, combat CSS, combat assets, and combat design documents are transition-era implementation / history unless explicitly repurposed by a current issue.
+
+Elapsed-time / idle resolution is a mechanic inside expeditions, not the primary genre identity. Do not optimize the product toward generic idle-game conventions at the expense of location discovery, expedition judgment, anticipation, reports, and consequences.
 
 ## Canonical gameplay documents
 
@@ -148,7 +153,7 @@ The following are **deprecated as gameplay Canon** after ADR 0002:
 
 They may remain temporarily as implementation/history references while old runtime code is removed or repurposed.
 
-Do not add or polish real-time combat, Technique, Evade, 闘志, 決着, combat HUD, battlefield weapon pickup, or combat-specific presentation unless a current issue explicitly authorizes that work under the new design.
+Do not add or polish real-time combat, Technique, Evade, 闘志, 決着, combat HUD, battlefield weapon pickup, or combat-specific presentation unless a current issue explicitly authorizes that work under a later deliberate Canon decision.
 
 Do not delete old combat runtime/resources blindly either. Trace runtime, tests, docs, manifests, and deployment references before cleanup.
 

@@ -1,7 +1,8 @@
-# ADR 0002 — Pivot to an idle expedition RPG
+# ADR 0002 — Crownless is a location-discovery expedition RPG
 
-- **Status:** Accepted
+- **Status:** Accepted / current product direction
 - **Date:** 2026-08-27
+- **Confirmed:** 2026-08-30
 - **Related:** #189
 
 ## Context
@@ -16,15 +17,23 @@ Action combat also competes with safe mobile/location play and makes every disco
 
 ## Decision
 
-Crownless is now a **location-discovery idle expedition RPG**.
+Crownless is a **location-discovery expedition RPG**.
 
-The canonical loop becomes:
+In product shorthand:
+
+> **Location × Expedition RPG**
+
+The canonical loop is:
 
 > **Walk → Discover → Prepare → Dispatch → Wait → Report → Adapt**
 
 Real-world movement reveals the game world. Once a place has been discovered, expeditions can be prepared and dispatched to it from the Grey Hearth or another safe stationary context.
 
-Combat may occur inside an expedition, but it is resolved by expedition rules, companion capabilities, equipment, circumstances, and player-authored policy. It is **not** a real-time player-controlled action layer in the new core design.
+Elapsed time is an important expedition mechanic, but `idle` is not the primary genre identity. The game is defined by discovering a world through location, making expedition decisions, waiting with anticipation, and reacting to reports and consequences.
+
+Combat may occur inside an expedition, but it is resolved by expedition rules, companion capabilities, equipment, circumstances, and player-authored policy. It is **not** a real-time player-controlled action layer in the current product direction.
+
+This decision supersedes the original action hack-and-slash direction. Real-time action combat must not be reintroduced as a core pillar unless a later explicit ADR deliberately changes this decision.
 
 The first validation question is:
 
@@ -52,10 +61,20 @@ The first validation question is:
 - battlefield weapon pickup as a required loop
 - the requirement that equipment primarily changes action-combat rhythm
 
-Existing combat code, tests, CSS, assets, and old combat specifications are transition-era implementation/history until a separate cleanup removes or repurposes them. They must not override the new gameplay Canon.
+Existing combat code, tests, CSS, assets, and old combat specifications are transition-era implementation/history until a separate cleanup removes or repurposes them. They must not override the current gameplay Canon.
 
 ## Implementation principle
 
 Do not replace action-combat complexity with idle-game platform complexity.
 
 The first implementation should use deterministic elapsed-time resolution and may resolve an expedition lazily when the app is reopened. No always-on simulation backend, background GPS tracking, generalized quest engine, gacha, stamina, or LiveOps system is required to prove the loop.
+
+When choosing work, prioritize improvements that strengthen one of these relationships:
+
+- walking → meaningful discovery
+- discovery → meaningful expedition option
+- preparation → understandable consequences
+- dispatch → anticipation
+- report → memorable story and next decision
+
+Architecture, content volume, and technical novelty are secondary to making that loop fun.
