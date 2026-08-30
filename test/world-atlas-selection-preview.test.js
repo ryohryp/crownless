@@ -60,17 +60,44 @@ test("marker identity is resolved by the marker's discovery name rather than DOM
   assert.equal(Preview.rememberedByName(safe, Preview.markerName(marker)).key, "park");
 });
 
-test("atlas preview controller updates detail and artwork from label clicks", () => {
+test("map clicks magnetize to the nearest discovery marker", () => {
+  const near = {
+    id: "near",
+    getBoundingClientRect() { return { left: 80, top: 80, width: 40, height: 40 }; }
+  };
+  const far = {
+    id: "far",
+    getBoundingClientRect() { return { left: 180, top: 80, width: 40, height: 40 }; }
+  };
+  const map = {
+    classList: { contains(name) { return name === "world-atlas-map--nearby"; } },
+    querySelectorAll(selector) {
+      assert.equal(selector, ".world-atlas-nearby-marker");
+      return [near, far];
+    }
+  };
+
+  assert.equal(Preview.nearestMarkerForPoint(map, 132, 100, Preview.MOUSE_MAGNET_RADIUS), near);
+  assert.equal(Preview.nearestMarkerForPoint(map, 168, 100, Preview.MOUSE_MAGNET_RADIUS), far);
+  assert.equal(Preview.nearestMarkerForPoint(map, 400, 400, Preview.MOUSE_MAGNET_RADIUS), null);
+  assert.ok(Preview.TOUCH_MAGNET_RADIUS > Preview.MOUSE_MAGNET_RADIUS);
+});
+
+test("atlas preview controller updates immediately on pointer release and remains keyboard-click compatible", () => {
   assert.match(source, /world-atlas-nearby-marker/);
   assert.match(source, /world-atlas-marker/);
   assert.match(source, /world-atlas-unplaced button/);
   assert.match(source, /syncDetail/);
   assert.match(source, /syncSelection/);
+  assert.match(source, /nearestMarkerForPoint/);
+  assert.match(source, /MOUSE_MAGNET_RADIUS = 72/);
+  assert.match(source, /TOUCH_MAGNET_RADIUS = 88/);
+  assert.match(source, /document\.addEventListener\("pointerup"/);
+  assert.match(source, /document\.addEventListener\("click"/);
   assert.match(source, /resolveLocationVisual/);
   assert.match(source, /選択地点の墨絵/);
   assert.match(source, /この地点の墨絵はまだ記録されていない/);
   assert.match(source, /pointer-events:auto !important/);
-  assert.match(source, /document\.addEventListener\("click"[\s\S]*true\);/);
 });
 
 test("runtime loads selected-location preview only after world atlas", () => {
