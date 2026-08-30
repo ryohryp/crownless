@@ -5,6 +5,7 @@
   "description": "Location-discovery idle expedition RPG in a medieval fantasy world",
   "scripts": {
     "start": "npx --yes serve . -l 4173",
-    "test": "node --test"
+    "test": "node --test",
+    "autopilot": "node scripts/autopilot/run-next.js"
   }
 }
