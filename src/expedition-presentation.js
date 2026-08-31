@@ -150,6 +150,7 @@
     content.append(heading("GREY HEARTH / PREPARE", "誰を、どこへ送り出す？", "選ぶのは少しだけ。結果はあとで報告として返ってくる。"));
     const form = el("form", "expedition-prepare");
     const availableCompanions = state.companions.filter(companionAvailable);
+    const injuredCompanions = state.companions.filter((companion) => companion.condition === "injured");
     form.append(
       choiceGroup("遠征先", "destination", state.destinations, state.destinations[0].id, (d) => `危険: ${d.dangerTags.join("・")} / 約${Math.round(d.durationMs / 60000)}分`),
       choiceGroup("仲間", "companion", state.companions, availableCompanions[0]?.id, (c) => `${c.origin} / ${c.traits.join("・")} / ${c.condition}`),
@@ -184,27 +185,28 @@
     if (!availableCompanions.length) {
       dispatch.disabled = true;
       dispatch.textContent = "派遣できる仲間がいない";
+      feedback.textContent = injuredCompanions.length
+        ? "全員が負傷中。休養させると再び派遣できる。"
+        : "今すぐ遠征に出せる仲間がいない。";
+    }
+
+    if (injuredCompanions.length) {
       const recover = el("button", "expedition-secondary", "灰炉で休養する");
       recover.type = "button";
       recover.addEventListener("click", () => {
-        let recovered = 0;
         state.companions.forEach((companion) => {
-          if (companion.condition === "injured") {
-            companion.condition = "healthy";
-            companion.history = `${companion.history || ""} / 灰炉で休養`;
-            recovered += 1;
-          }
+          if (companion.condition !== "injured") return;
+          companion.condition = "healthy";
+          companion.history = `${companion.history || ""} / 灰炉で休養`;
         });
         save(state);
-        if (!recovered) {
-          feedback.textContent = "今すぐ遠征に出せる仲間がいない。";
-          return;
-        }
         content.replaceChildren();
         renderPrepare(content);
       });
       actions.append(recover);
-      feedback.textContent = "全員が負傷中。休養させると再び派遣できる。";
+      if (availableCompanions.length) {
+        feedback.textContent = `負傷中の仲間が${injuredCompanions.length}人いる。灰炉で休ませると次の遠征へ戻せる。`;
+      }
     }
 
     actions.append(dispatch);
