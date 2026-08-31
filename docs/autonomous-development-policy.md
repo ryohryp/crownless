@@ -32,6 +32,14 @@ Real-time player-controlled action combat is not current Canon.
 
 The first Autopilot version processes **one explicitly eligible GitHub Issue at a time**.
 
+The repository implementation is `scripts/autopilot/run-next.js`. Eligibility is the
+`agent-ready` label on an open Issue; `agent-running` is the short-lived GitHub lock.
+Use `npm run autopilot -- --dry-run` to inspect the next candidate without changing
+GitHub or the filesystem. A live run uses an isolated worktree, invokes Codex with
+[`docs/autopilot-execution-contract.md`](autopilot-execution-contract.md), runs the
+  at least one Issue-relevant focused test supplied with `--focused-test test/path.test.js`, required
+validation and structured self-review, then creates one PR. It never merges.
+
 Target flow:
 
 ```text
