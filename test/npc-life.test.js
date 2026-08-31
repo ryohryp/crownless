@@ -62,15 +62,39 @@ test("other residents remain NORMAL in the first state-transition slice", () => 
   assert.ok(others.every((resident) => resident.state === NpcLife.STATES.NORMAL));
 });
 
-test("Hearth status tells the player who is present, where residents went, and visible travel state", () => {
+test("Mira's relationship line reacts deterministically to Marco traveling while she is at the Hearth", () => {
+  assert.equal(NpcLife.RELATIONSHIPS.length, 1);
+  assert.equal(NpcLife.RELATIONSHIPS[0].sourceId, "mira");
+  assert.equal(NpcLife.RELATIONSHIPS[0].targetId, "marco");
+
+  const beforeTravel = NpcLife.relationshipLines(NpcLife.snapshotAt(8));
+  const duringTravel = NpcLife.relationshipLines(NpcLife.snapshotAt(11));
+  const repeated = NpcLife.relationshipLines(NpcLife.snapshotAt(11));
+  const afterTravel = NpcLife.relationshipLines(NpcLife.snapshotAt(15));
+
+  assert.deepEqual(duringTravel, repeated);
+  assert.equal(beforeTravel.length, 0);
+  assert.equal(afterTravel.length, 0);
+  assert.equal(duringTravel.length, 1);
+  assert.equal(duringTravel[0].speakerName, "ミラ");
+  assert.equal(duringTravel[0].targetId, "marco");
+  assert.match(duringTravel[0].text, /マルコ/);
+  assert.match(duringTravel[0].text, /北の街道/);
+});
+
+test("Hearth status tells the player who is present, where residents went, visible travel state, and relationship dialogue", () => {
   const morning = NpcLife.formatHearthStatus(NpcLife.snapshotAt(7));
   const midday = NpcLife.formatHearthStatus(NpcLife.snapshotAt(11));
+  const afternoon = NpcLife.formatHearthStatus(NpcLife.snapshotAt(15));
 
   assert.match(morning, /マルコ（行商人）/);
   assert.match(morning, /エドガー→工房/);
   assert.doesNotMatch(morning, /旅の途中/);
+  assert.doesNotMatch(morning, /ミラ「/);
   assert.match(midday, /ミラ（薬師）/);
   assert.match(midday, /マルコ→北の街道・旅の途中/);
+  assert.match(midday, /ミラ「マルコなら北の街道へ向かったよ。帰りに薬瓶を運んでくれるって。」/);
+  assert.doesNotMatch(afternoon, /ミラ「/);
 });
 
 test("Grey Hearth loads NPC life on demand and refreshes the existing room annotation", () => {
