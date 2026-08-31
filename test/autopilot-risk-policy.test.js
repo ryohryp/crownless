@@ -53,6 +53,17 @@ test("fails closed when policy-gated topics appear despite low-risk self-report"
   }
 });
 
+test("non-goals may explicitly exclude policy-gated work without creating a false gate", () => {
+  const result = assessPlannerProposal(
+    proposal({ nonGoals: ["No save migration", "No raw GPS storage", "No production deployment changes"] }),
+  );
+  assert.deepEqual(result, {
+    eligible: true,
+    decision: "agent-ready",
+    reasons: [],
+  });
+});
+
 test("malformed proposals fail closed through the existing proposal validator", () => {
   const result = assessPlannerProposal(proposal({ acceptanceCriteria: [] }));
   assert.equal(result.eligible, false);
