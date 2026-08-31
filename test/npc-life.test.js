@@ -40,14 +40,37 @@ test("schedule boundaries resolve lazily from the supplied hour", () => {
   assert.equal(NpcLife.locationAtHour(mira, 18), NpcLife.LOCATIONS.HEARTH);
 });
 
-test("Hearth status tells the player who is present and where absent residents went", () => {
+test("Marco becomes TRAVELING only while his schedule places him on the north road", () => {
+  const marco = NpcLife.RESIDENTS.find((resident) => resident.id === "marco");
+
+  assert.equal(NpcLife.stateAtHour(marco, 8), NpcLife.STATES.NORMAL);
+  assert.equal(NpcLife.stateAtHour(marco, 9), NpcLife.STATES.TRAVELING);
+  assert.equal(NpcLife.stateAtHour(marco, 13), NpcLife.STATES.TRAVELING);
+  assert.equal(NpcLife.stateAtHour(marco, 14), NpcLife.STATES.NORMAL);
+
+  const first = NpcLife.snapshotAt(11).find((resident) => resident.id === "marco");
+  const repeated = NpcLife.snapshotAt(11).find((resident) => resident.id === "marco");
+  assert.deepEqual(first, repeated);
+  assert.equal(first.state, NpcLife.STATES.TRAVELING);
+  assert.equal(first.stateLabel, "旅の途中");
+});
+
+test("other residents remain NORMAL in the first state-transition slice", () => {
+  const snapshots = [7, 11, 20].flatMap((hour) => NpcLife.snapshotAt(hour));
+  const others = snapshots.filter((resident) => resident.id !== "marco");
+  assert.ok(others.length > 0);
+  assert.ok(others.every((resident) => resident.state === NpcLife.STATES.NORMAL));
+});
+
+test("Hearth status tells the player who is present, where residents went, and visible travel state", () => {
   const morning = NpcLife.formatHearthStatus(NpcLife.snapshotAt(7));
   const midday = NpcLife.formatHearthStatus(NpcLife.snapshotAt(11));
 
   assert.match(morning, /マルコ（行商人）/);
   assert.match(morning, /エドガー→工房/);
+  assert.doesNotMatch(morning, /旅の途中/);
   assert.match(midday, /ミラ（薬師）/);
-  assert.match(midday, /マルコ→北の街道/);
+  assert.match(midday, /マルコ→北の街道・旅の途中/);
 });
 
 test("Grey Hearth loads NPC life on demand and refreshes the existing room annotation", () => {
