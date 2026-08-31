@@ -32,6 +32,7 @@
 
   let state = load();
   let lastResolved = null;
+  let selectedReportExpeditionId = null;
   let reportSceneCursor = 0;
   let reportSceneExpeditionId = null;
 
@@ -58,6 +59,7 @@
 
   function open() {
     const shell = ensureShell();
+    selectedReportExpeditionId = null;
     refresh(Date.now());
     render();
     shell.classList.add("is-open");
@@ -71,7 +73,10 @@
   function refresh(now) {
     const advanced = system.advance(state, now);
     state = advanced.state;
-    if (advanced.report) lastResolved = advanced.report;
+    if (advanced.report) {
+      lastResolved = advanced.report;
+      selectedReportExpeditionId = advanced.report.expeditionId;
+    }
     save(state);
     updateGateCopy();
   }
@@ -99,8 +104,12 @@
     if (!content) return;
     content.replaceChildren();
     if (state.activeExpedition) renderActive(content);
-    else if (lastResolved || state.completedReports.length) renderReport(content, lastResolved || state.completedReports[0]);
-    else renderPrepare(content);
+    else if (lastResolved || state.completedReports.length) {
+      const selectedReport = state.completedReports.find((report) => report.expeditionId === selectedReportExpeditionId);
+      const report = lastResolved || selectedReport || state.completedReports[0];
+      selectedReportExpeditionId = report.expeditionId;
+      renderReport(content, report);
+    } else renderPrepare(content);
   }
 
   function heading(kicker, title, copy) {
@@ -225,6 +234,7 @@
           objective: "explore",
           durationMs: data.get("instant") ? 0 : undefined,
         }, now);
+        selectedReportExpeditionId = null;
         save(state);
         refresh(now);
         render();
@@ -443,7 +453,47 @@
     return true;
   }
 
+  function formatReportHistoryLabel(report, index) {
+    const completed = new Date(report.completedAt);
+    const timestamp = Number.isNaN(completed.getTime())
+      ? "日時不明"
+      : `${completed.getMonth() + 1}/${completed.getDate()} ${String(completed.getHours()).padStart(2, "0")}:${String(completed.getMinutes()).padStart(2, "0")}`;
+    const outcome = { success: "生還", "early-return": "早期撤退", failed: "失敗" }[report.outcome] || report.outcome;
+    return `${index === 0 ? "最新 / " : ""}${timestamp} / ${report.destinationName} / ${outcome}`;
+  }
+
+  function renderReportHistory(content, report) {
+    if (state.completedReports.length < 2) return;
+
+    const field = el("label", "expedition-choice__item expedition-report-history");
+    const copy = el("span", "");
+    copy.append(el("strong", "", "過去の帰還報告"), el("small", "", `保存済み ${state.completedReports.length}件。読むだけで遠征結果は再適用されない。`));
+    const select = document.createElement("select");
+    select.className = "expedition-secondary";
+    select.setAttribute("aria-label", "過去の帰還報告を選ぶ");
+    state.completedReports.forEach((item, index) => {
+      const option = document.createElement("option");
+      option.value = item.expeditionId;
+      option.textContent = formatReportHistoryLabel(item, index);
+      option.selected = item.expeditionId === report.expeditionId;
+      select.append(option);
+    });
+    select.addEventListener("change", () => {
+      const selected = state.completedReports.find((item) => item.expeditionId === select.value);
+      if (!selected) return;
+      lastResolved = null;
+      selectedReportExpeditionId = selected.expeditionId;
+      reportSceneExpeditionId = null;
+      reportSceneCursor = 0;
+      content.replaceChildren();
+      renderReport(content, selected);
+    });
+    field.append(copy, select);
+    content.append(field);
+  }
+
   function renderReport(content, report) {
+    renderReportHistory(content, report);
     const outcomeLabel = { success: "生還", "early-return": "早期撤退", failed: "失敗" }[report.outcome] || report.outcome;
     content.append(heading("RETURN REPORT", `${report.destinationName} — ${outcomeLabel}`, `${report.policyName}方針。帰ってきた遠征隊の話を辿る。`));
     const generatedNarrative = buildBattleNarrative(report);
@@ -473,6 +523,7 @@
     again.type = "button";
     again.addEventListener("click", () => {
       lastResolved = null;
+      selectedReportExpeditionId = null;
       reportSceneExpeditionId = null;
       reportSceneCursor = 0;
       content.replaceChildren();
