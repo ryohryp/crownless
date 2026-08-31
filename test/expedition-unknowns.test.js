@@ -65,13 +65,17 @@ test("known destinations are not turned back into first-discovery mysteries on r
   assert.deepEqual(allKnown.map((item) => item.title), ["既知の塔", "未踏の井戸"]);
 });
 
-test("browser bridge wraps geography discovery and resolves mystery before the existing journal records it", () => {
-  const source = fs.readFileSync(path.join(__dirname, "../src/exploration-cell-runtime.js"), "utf8");
+test("browser bridge owns geography coupling and resolves mystery before the existing journal records it", () => {
+  const cellSource = fs.readFileSync(path.join(__dirname, "../src/exploration-cell-runtime.js"), "utf8");
+  const bridgeSource = fs.readFileSync(path.join(__dirname, "../src/expedition-unknown-bridge.js"), "utf8");
+  const indexSource = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
 
-  assert.match(source, /createProxyLocationDiscoveryProvider = function createProviderWithExpeditionUnknowns/);
-  assert.match(source, /provider\.discover = async function discoverWithExpeditionUnknowns/);
-  assert.match(source, /applyUnknownness\(discovered, lastProfile, isKnown\)/);
-  assert.match(source, /Core\.discoverLocation = function discoverLocationWithUnknownReveal/);
-  assert.match(source, /Object\.assign\(visible, resolved\)/);
-  assert.match(source, /last\.wasUnknownDiscovery = true/);
+  assert.doesNotMatch(cellSource, /GeographyApi|Overpass|google\.maps|mapbox|leaflet/i);
+  assert.match(bridgeSource, /createProxyLocationDiscoveryProvider = function createProviderWithExpeditionUnknowns/);
+  assert.match(bridgeSource, /provider\.discover = async function discoverWithExpeditionUnknowns/);
+  assert.match(bridgeSource, /Cells\.applyUnknownness\(discovered, lastProfile, isKnown\)/);
+  assert.match(bridgeSource, /Core\.discoverLocation = function discoverLocationWithUnknownReveal/);
+  assert.match(bridgeSource, /Object\.assign\(visible, resolved\)/);
+  assert.match(bridgeSource, /last\.wasUnknownDiscovery = true/);
+  assert.ok(indexSource.indexOf("src/exploration-cell-runtime.js") < indexSource.indexOf("src/expedition-unknown-bridge.js"));
 });
