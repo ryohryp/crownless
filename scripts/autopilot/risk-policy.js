@@ -13,13 +13,12 @@ const POLICY_TOPICS = [
   { code: "monetization", pattern: /monetization|payment|subscription|課金|収益化|サブスクリプション/i },
 ];
 
-function proposalText(proposal) {
+function proposalIntentText(proposal) {
   return [
     proposal.title,
     proposal.whyNow,
     proposal.scope,
     ...(proposal.acceptanceCriteria || []),
-    ...(proposal.nonGoals || []),
   ]
     .filter((value) => typeof value === "string")
     .join("\n");
@@ -45,7 +44,9 @@ function assessPlannerProposal(proposal) {
   if (proposal.risk !== "low") reasons.push(`risk_${proposal.risk}`);
   if (proposal.playtestRequired) reasons.push("playtest_required");
 
-  const text = proposalText(proposal);
+  // Non-goals describe excluded work (for example, "No save migration").
+  // Treating those words as requested intent would create systematic false gates.
+  const text = proposalIntentText(proposal);
   for (const topic of POLICY_TOPICS) {
     if (topic.pattern.test(text)) reasons.push(`policy_${topic.code}`);
   }
