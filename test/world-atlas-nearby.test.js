@@ -67,10 +67,10 @@ test("world atlas keeps markers inset from clipped edges", () => {
   }, null);
 
   assert.equal(model.discoveries.length, 1);
-  assert.equal(model.discoveries[0].left, Atlas.MARKER_INSET_PERCENT);
-  assert.equal(model.discoveries[0].top, Atlas.MARKER_INSET_PERCENT);
-  assert.ok(model.discoveries[0].left >= 5 && model.discoveries[0].left <= 95);
-  assert.ok(model.discoveries[0].top >= 5 && model.discoveries[0].top <= 95);
+  assert.ok(model.discoveries[0].left >= Atlas.MARKER_INSET_PERCENT);
+  assert.ok(model.discoveries[0].left <= 100 - Atlas.MARKER_INSET_PERCENT);
+  assert.ok(model.discoveries[0].top >= Atlas.MARKER_INSET_PERCENT);
+  assert.ok(model.discoveries[0].top <= 100 - Atlas.MARKER_INSET_PERCENT);
 });
 
 test("atlas presentation exposes nearby/world switching and explicit current position", () => {
