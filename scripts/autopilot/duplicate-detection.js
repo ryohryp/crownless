@@ -49,10 +49,11 @@ function compareProposalToItem(proposal, item) {
   const proposalIntent = `${proposal.title} ${proposal.scope}`;
   const itemIntent = `${item.title || ""} ${item.body || ""}`;
   const intentScore = diceSimilarity(proposalIntent, itemIntent);
-  const score = Math.max(titleScore, intentScore);
 
-  if (score >= 0.72) {
-    return { reason: "ngram_similarity", score };
+  // Require both the compact title and the wider implementation intent to be similar.
+  // This catches Japanese paraphrases without weakening the detector into a body-only match.
+  if (titleScore >= 0.58 && intentScore >= 0.65) {
+    return { reason: "ngram_similarity", score: Math.max(titleScore, intentScore) };
   }
 
   return null;
