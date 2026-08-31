@@ -9,8 +9,23 @@
     document.head.appendChild(stylesheet);
   }
 
+  function ensureScript(src, onload) {
+    const existing = document.querySelector(`script[src="${src}"]`);
+    if (existing) {
+      if (window.CrownlessNpcLife) onload?.();
+      else existing.addEventListener("load", () => onload?.(), { once: true });
+      return;
+    }
+    const script = document.createElement("script");
+    script.src = src;
+    script.defer = true;
+    script.addEventListener("load", () => onload?.(), { once: true });
+    document.head.appendChild(script);
+  }
+
   ensureStylesheet("hearth-viewport.css");
   ensureStylesheet("hearth-location-visual.css");
+  ensureScript("src/npc-life.js", scheduleRefresh);
 
   const Core = window.CrownlessCore;
   const LocationVisuals = window.CrownlessLocationVisuals;
@@ -26,6 +41,7 @@
   const emberLayer = document.getElementById("hearth-embers");
   const shelfCount = document.getElementById("hearth-shelf-count");
   const mapStatus = document.getElementById("hearth-map-status");
+  const residentNote = scene.querySelector(".hearth-room-note");
   const knowledgePanel = document.getElementById("world-knowledge-panel");
 
   if (knowledgePanel) {
@@ -97,6 +113,13 @@
     else if (renown >= 15) milestone = "回収係";
     else if (renown >= 5) milestone = "地図掛け";
     return `RENOWN ${renown} / 探索録 ${discovered} / ${milestone}`;
+  }
+
+  function refreshResidentNote(now = new Date()) {
+    const NpcLife = window.CrownlessNpcLife;
+    if (!residentNote || !NpcLife || typeof NpcLife.snapshotAt !== "function" || typeof NpcLife.formatHearthStatus !== "function") return;
+    const next = `「${NpcLife.formatHearthStatus(NpcLife.snapshotAt(now))}」`;
+    if (residentNote.textContent !== next) residentNote.textContent = next;
   }
 
   function closeLocationVisualViewer() {
@@ -229,6 +252,7 @@
 
     if (shelfCount) shelfCount.textContent = String(secured);
     if (mapStatus) mapStatus.textContent = mapProgressLabel(renown, discovered);
+    refreshResidentNote();
     refreshMapVisual();
   }
 
