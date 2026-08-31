@@ -134,11 +134,14 @@
     if (!candidate) return false;
     const Atlas = window.CrownlessWorldAtlas;
     if (!Atlas || typeof Atlas.openAtlas !== "function") return false;
+    const safe = Core && typeof Core.loadSafeState === "function" ? Core.loadSafeState() : null;
+    const discoveries = safe && safe.worldKnowledge && safe.worldKnowledge.discoveries;
+    const remembered = discoveries && candidate.discoveryKey ? discoveries[candidate.discoveryKey] : null;
+    const name = String(remembered && remembered.name || candidate.destinationName || "");
     const opened = Atlas.openAtlas(document, Core, window, { view: "world", autoScan: false });
     if (!opened) return false;
     const viewer = document.getElementById("world-atlas-viewer");
     if (!viewer) return true;
-    const name = String(candidate.destinationName || "");
     const target = Array.from(viewer.querySelectorAll(".world-atlas-marker, .world-atlas-unplaced button")).find((node) => {
       if (node.classList?.contains("world-atlas-marker")) {
         const label = String(node.getAttribute("aria-label") || "");
