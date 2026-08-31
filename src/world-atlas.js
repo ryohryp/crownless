@@ -13,7 +13,8 @@
   const SCAN_COOLDOWN_MS = 30000;
   const NEARBY_LIMIT = 3;
   const NEARBY_RADIUS_METRES = 650;
-  const MARKER_INSET_PERCENT = 5;
+  const MARKER_INSET_PERCENT = 8;
+  const WORLD_MIN_SPAN_CELLS = 5;
   const TERRAIN_GLYPHS = Object.freeze({
     water: "≈",
     crossing: "×",
@@ -172,17 +173,22 @@
     const maxY = Math.max(...coordinateYs);
     const width = Math.max(1, maxX - minX + 1);
     const height = Math.max(1, maxY - minY + 1);
+    const span = Math.max(WORLD_MIN_SPAN_CELLS, width, height);
+    const offsetX = (span - width) / 2;
+    const offsetY = (span - height) / 2;
+    const drawablePercent = 100 - MARKER_INSET_PERCENT * 2;
+    const unitPercent = drawablePercent / span;
     const cells = rawCells.map((cell) => ({
       ...cell,
-      left: ((cell.x - minX) / width) * 100,
-      top: ((cell.y - minY) / height) * 100,
-      width: 100 / width,
-      height: 100 / height
+      left: MARKER_INSET_PERCENT + (offsetX + cell.x - minX) * unitPercent,
+      top: MARKER_INSET_PERCENT + (offsetY + cell.y - minY) * unitPercent,
+      width: unitPercent,
+      height: unitPercent
     }));
     const placedDiscoveries = discoveries.map((entry) => ({
       ...entry,
-      left: clamp(((entry.mapX - minX) / width) * 100, MARKER_INSET_PERCENT, 100 - MARKER_INSET_PERCENT),
-      top: clamp(((entry.mapY - minY) / height) * 100, MARKER_INSET_PERCENT, 100 - MARKER_INSET_PERCENT)
+      left: clamp(MARKER_INSET_PERCENT + (offsetX + entry.mapX - minX) * unitPercent, MARKER_INSET_PERCENT, 100 - MARKER_INSET_PERCENT),
+      top: clamp(MARKER_INSET_PERCENT + (offsetY + entry.mapY - minY) * unitPercent, MARKER_INSET_PERCENT, 100 - MARKER_INSET_PERCENT)
     }));
 
     return {
@@ -192,7 +198,7 @@
       cells,
       discoveries: placedDiscoveries,
       unplacedDiscoveries,
-      bounds: { minX, maxX, minY, maxY, width, height }
+      bounds: { minX, maxX, minY, maxY, width, height, span, inset: MARKER_INSET_PERCENT }
     };
   }
 
@@ -726,6 +732,7 @@
     NEARBY_LIMIT,
     NEARBY_RADIUS_METRES,
     MARKER_INSET_PERCENT,
+    WORLD_MIN_SPAN_CELLS,
     TERRAIN_GLYPHS,
     parseCellId,
     parseAreaId,
