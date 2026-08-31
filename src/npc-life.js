@@ -39,6 +39,16 @@
     [STATES.TRAVELING]: "旅の途中"
   });
 
+  const RELATIONSHIPS = Object.freeze([
+    Object.freeze({
+      id: "mira-tracks-marco-route",
+      sourceId: "mira",
+      targetId: "marco",
+      kind: "trade-contact",
+      line: "マルコなら北の街道へ向かったよ。帰りに薬瓶を運んでくれるって。"
+    })
+  ]);
+
   const RESIDENTS = Object.freeze([
     Object.freeze({
       id: "edgar",
@@ -120,6 +130,24 @@
     });
   }
 
+  function relationshipLines(snapshot) {
+    const residents = Array.isArray(snapshot) ? snapshot : [];
+    const byId = new Map(residents.map((resident) => [resident.id, resident]));
+    return RELATIONSHIPS.flatMap((relationship) => {
+      const source = byId.get(relationship.sourceId);
+      const target = byId.get(relationship.targetId);
+      if (!source || !target || !source.atHearth) return [];
+      if (target.state !== STATES.TRAVELING || target.location !== LOCATIONS.ROAD) return [];
+      return [Object.freeze({
+        relationshipId: relationship.id,
+        speakerId: source.id,
+        speakerName: source.name,
+        targetId: target.id,
+        text: relationship.line
+      })];
+    });
+  }
+
   function formatResidentTrail(resident) {
     const state = resident.state && resident.state !== STATES.NORMAL ? `・${resident.stateLabel || resident.state}` : "";
     return `${resident.name}→${resident.locationLabel}${state}`;
@@ -127,6 +155,10 @@
 
   function formatHearthStatus(snapshot) {
     const residents = Array.isArray(snapshot) ? snapshot : [];
+    const lines = relationshipLines(residents);
+    const dialogue = lines.length
+      ? ` / ${lines.map((line) => `${line.speakerName}「${line.text}」`).join(" / ")}`
+      : "";
     const present = residents.filter((resident) => resident.atHearth);
     if (present.length) {
       const names = present.map((resident) => `${resident.name}（${resident.role}）`).join("、");
@@ -134,20 +166,22 @@
       const trail = away.length
         ? ` / ${away.map(formatResidentTrail).join("・")}`
         : "";
-      return `炉端にいる: ${names}${trail}`;
+      return `炉端にいる: ${names}${trail}${dialogue}`;
     }
     if (!residents.length) return "住人の気配はまだない。";
-    return `炉端は空席 / ${residents.map(formatResidentTrail).join("・")}`;
+    return `炉端は空席 / ${residents.map(formatResidentTrail).join("・")}${dialogue}`;
   }
 
   return Object.freeze({
     LOCATIONS,
     STATES,
+    RELATIONSHIPS,
     RESIDENTS,
     normalizeHour,
     locationAtHour,
     stateAtHour,
     snapshotAt,
+    relationshipLines,
     formatHearthStatus
   });
 });
