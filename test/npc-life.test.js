@@ -100,6 +100,48 @@ test("relationship rumor becomes a deterministic exploration lead only during Ma
   assert.equal(Object.hasOwn(duringTravel[0], "longitude"), false);
 });
 
+test("known north-road discoveries become deterministic Marco reunion candidates", () => {
+  const known = {
+    "sim:north-road-ford": {
+      key: "sim:north-road-ford",
+      name: "北の街道の古い渡し場",
+      location: "north-road",
+      state: "discovered"
+    },
+    "sim:ruined-chapel": {
+      key: "sim:ruined-chapel",
+      name: "崩れた礼拝堂",
+      location: "old-hill",
+      state: "discovered"
+    }
+  };
+
+  const first = NpcLife.reunionCandidates(NpcLife.snapshotAt(11), known);
+  const repeated = NpcLife.reunionCandidates(NpcLife.snapshotAt(11), known);
+
+  assert.deepEqual(first, repeated);
+  assert.equal(first.length, 1);
+  assert.equal(first[0].targetId, "marco");
+  assert.equal(first[0].targetName, "マルコ");
+  assert.equal(first[0].location, "north-road");
+  assert.equal(first[0].discoveryKey, "sim:north-road-ford");
+  assert.equal(first[0].destinationName, "北の街道の古い渡し場");
+  assert.match(first[0].reason, /再会/);
+  assert.equal(Object.hasOwn(first[0], "latitude"), false);
+  assert.equal(Object.hasOwn(first[0], "longitude"), false);
+});
+
+test("reunion candidates stay empty without a matching known place or outside travel time", () => {
+  const unrelated = [{ key: "sim:chapel", name: "崩れた礼拝堂", location: "old-hill" }];
+  const labelOnly = [{ key: "sim:road-marker", name: "北の街道・道標" }];
+
+  assert.deepEqual(NpcLife.reunionCandidates(NpcLife.snapshotAt(11), unrelated), []);
+  assert.equal(NpcLife.reunionCandidates(NpcLife.snapshotAt(11), labelOnly).length, 1);
+  assert.deepEqual(NpcLife.reunionCandidates(NpcLife.snapshotAt(8), labelOnly), []);
+  assert.deepEqual(NpcLife.reunionCandidates(NpcLife.snapshotAt(15), labelOnly), []);
+  assert.deepEqual(NpcLife.reunionCandidates(NpcLife.snapshotAt(11), null), []);
+});
+
 test("Hearth status tells the player who is present, where residents went, dialogue, and the exploration lead", () => {
   const morning = NpcLife.formatHearthStatus(NpcLife.snapshotAt(7));
   const midday = NpcLife.formatHearthStatus(NpcLife.snapshotAt(11));

@@ -170,6 +170,41 @@
     });
   }
 
+  function knownDestinationEntries(knownDestinations) {
+    if (Array.isArray(knownDestinations)) return knownDestinations;
+    if (knownDestinations && typeof knownDestinations === "object") return Object.values(knownDestinations);
+    return [];
+  }
+
+  function destinationMatchesLead(destination, lead) {
+    if (!destination || typeof destination !== "object") return false;
+    const stableLocation = destination.location || destination.locationId || destination.regionId;
+    if (stableLocation && stableLocation === lead.location) return true;
+    const label = String(destination.title || destination.name || destination.baseTitle || "");
+    return Boolean(lead.locationLabel && label.includes(lead.locationLabel));
+  }
+
+  function reunionCandidates(snapshot, knownDestinations) {
+    const residents = Array.isArray(snapshot) ? snapshot : [];
+    const byId = new Map(residents.map((resident) => [resident.id, resident]));
+    const destinations = knownDestinationEntries(knownDestinations);
+    return explorationLeads(residents).flatMap((lead) => {
+      const target = byId.get(lead.targetId);
+      if (!target || target.state !== STATES.TRAVELING || target.location !== lead.location) return [];
+      return destinations
+        .filter((destination) => destinationMatchesLead(destination, lead))
+        .map((destination) => Object.freeze({
+          targetId: target.id,
+          targetName: target.name,
+          location: lead.location,
+          locationLabel: lead.locationLabel,
+          discoveryKey: String(destination.key || destination.id || ""),
+          destinationName: String(destination.title || destination.name || destination.baseTitle || lead.locationLabel),
+          reason: `${target.name}が${lead.locationLabel}を旅している。既知の場所なら再会できるかもしれない。`
+        }));
+    });
+  }
+
   function formatResidentTrail(resident) {
     const state = resident.state && resident.state !== STATES.NORMAL ? `・${resident.stateLabel || resident.state}` : "";
     return `${resident.name}→${resident.locationLabel}${state}`;
@@ -209,6 +244,7 @@
     snapshotAt,
     relationshipLines,
     explorationLeads,
+    reunionCandidates,
     formatHearthStatus
   });
 });
