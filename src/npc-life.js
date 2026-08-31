@@ -1,0 +1,127 @@
+((root, factory) => {
+  const api = factory();
+  if (typeof module === "object" && module.exports) module.exports = api;
+  if (root) root.CrownlessNpcLife = api;
+})(typeof window !== "undefined" ? window : globalThis, () => {
+  "use strict";
+
+  const LOCATIONS = Object.freeze({
+    HEARTH: "grey-hearth",
+    FORGE: "forge",
+    MARKET: "market",
+    ROAD: "north-road",
+    TAVERN: "tavern",
+    HOME: "home",
+    INN: "inn",
+    HERB_GARDEN: "herb-garden",
+    RIVERBANK: "riverbank"
+  });
+
+  const LOCATION_LABELS = Object.freeze({
+    [LOCATIONS.HEARTH]: "灰炉",
+    [LOCATIONS.FORGE]: "工房",
+    [LOCATIONS.MARKET]: "市場",
+    [LOCATIONS.ROAD]: "北の街道",
+    [LOCATIONS.TAVERN]: "酒場",
+    [LOCATIONS.HOME]: "自宅",
+    [LOCATIONS.INN]: "宿",
+    [LOCATIONS.HERB_GARDEN]: "薬草畑",
+    [LOCATIONS.RIVERBANK]: "川辺"
+  });
+
+  const RESIDENTS = Object.freeze([
+    Object.freeze({
+      id: "edgar",
+      name: "エドガー",
+      role: "鍛冶屋",
+      schedule: Object.freeze([
+        Object.freeze({ from: 0, location: LOCATIONS.HOME }),
+        Object.freeze({ from: 6, location: LOCATIONS.FORGE }),
+        Object.freeze({ from: 10, location: LOCATIONS.MARKET }),
+        Object.freeze({ from: 13, location: LOCATIONS.FORGE }),
+        Object.freeze({ from: 19, location: LOCATIONS.TAVERN }),
+        Object.freeze({ from: 23, location: LOCATIONS.HOME })
+      ])
+    }),
+    Object.freeze({
+      id: "marco",
+      name: "マルコ",
+      role: "行商人",
+      schedule: Object.freeze([
+        Object.freeze({ from: 0, location: LOCATIONS.INN }),
+        Object.freeze({ from: 6, location: LOCATIONS.HEARTH }),
+        Object.freeze({ from: 9, location: LOCATIONS.ROAD }),
+        Object.freeze({ from: 14, location: LOCATIONS.MARKET }),
+        Object.freeze({ from: 19, location: LOCATIONS.TAVERN }),
+        Object.freeze({ from: 23, location: LOCATIONS.INN })
+      ])
+    }),
+    Object.freeze({
+      id: "mira",
+      name: "ミラ",
+      role: "薬師",
+      schedule: Object.freeze([
+        Object.freeze({ from: 0, location: LOCATIONS.HEARTH }),
+        Object.freeze({ from: 6, location: LOCATIONS.HERB_GARDEN }),
+        Object.freeze({ from: 10, location: LOCATIONS.HEARTH }),
+        Object.freeze({ from: 14, location: LOCATIONS.RIVERBANK }),
+        Object.freeze({ from: 18, location: LOCATIONS.HEARTH })
+      ])
+    })
+  ]);
+
+  function normalizeHour(value) {
+    const numeric = Number(value);
+    if (!Number.isFinite(numeric)) return 0;
+    return ((Math.floor(numeric) % 24) + 24) % 24;
+  }
+
+  function locationAtHour(resident, hour) {
+    const normalized = normalizeHour(hour);
+    let location = resident.schedule[0].location;
+    for (const slot of resident.schedule) {
+      if (normalized < slot.from) break;
+      location = slot.location;
+    }
+    return location;
+  }
+
+  function snapshotAt(input = new Date()) {
+    const hour = input instanceof Date ? input.getHours() : normalizeHour(input);
+    return RESIDENTS.map((resident) => {
+      const location = locationAtHour(resident, hour);
+      return Object.freeze({
+        id: resident.id,
+        name: resident.name,
+        role: resident.role,
+        location,
+        locationLabel: LOCATION_LABELS[location] || location,
+        atHearth: location === LOCATIONS.HEARTH
+      });
+    });
+  }
+
+  function formatHearthStatus(snapshot) {
+    const residents = Array.isArray(snapshot) ? snapshot : [];
+    const present = residents.filter((resident) => resident.atHearth);
+    if (present.length) {
+      const names = present.map((resident) => `${resident.name}（${resident.role}）`).join("、");
+      const away = residents.filter((resident) => !resident.atHearth);
+      const trail = away.length
+        ? ` / ${away.map((resident) => `${resident.name}→${resident.locationLabel}`).join("・")}`
+        : "";
+      return `炉端にいる: ${names}${trail}`;
+    }
+    if (!residents.length) return "住人の気配はまだない。";
+    return `炉端は空席 / ${residents.map((resident) => `${resident.name}→${resident.locationLabel}`).join("・")}`;
+  }
+
+  return Object.freeze({
+    LOCATIONS,
+    RESIDENTS,
+    normalizeHour,
+    locationAtHour,
+    snapshotAt,
+    formatHearthStatus
+  });
+});
