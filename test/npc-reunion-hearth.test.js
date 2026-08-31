@@ -40,9 +40,10 @@ test("Grey Hearth connects persisted world knowledge to reunion candidates witho
 
 test("reunion candidate opens the existing world Atlas without triggering a new location scan", () => {
   assert.match(hearthPresentation, /CrownlessWorldAtlas/);
+  assert.match(hearthPresentation, /discoveries\[candidate\.discoveryKey\]/);
+  assert.match(hearthPresentation, /remembered && remembered\.name \|\| candidate\.destinationName/);
   assert.match(hearthPresentation, /Atlas\.openAtlas\(document, Core, window, \{ view: "world", autoScan: false \}\)/);
   assert.match(hearthPresentation, /world-atlas-marker, \.world-atlas-unplaced button/);
-  assert.match(hearthPresentation, /destinationName/);
   assert.match(hearthPresentation, /target\.click\(\)/);
   assert.match(hearthPresentation, /target\.focus\(\)/);
 });
