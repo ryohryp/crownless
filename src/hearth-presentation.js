@@ -55,6 +55,7 @@
   let mapVisualAsset = "";
   let mapVisualResolved = null;
   let unavailableMapVisualAsset = "";
+  let activeReunionCandidate = null;
 
   function speak(message, duration = 1500) {
     if (!whisper) return;
@@ -115,6 +116,47 @@
     return `RENOWN ${renown} / 探索録 ${discovered} / ${milestone}`;
   }
 
+  function syncReunionInteraction(candidate) {
+    activeReunionCandidate = candidate || null;
+    if (!residentNote) return;
+    if (!activeReunionCandidate) {
+      residentNote.removeAttribute("role");
+      residentNote.removeAttribute("tabindex");
+      residentNote.removeAttribute("aria-label");
+      return;
+    }
+    residentNote.setAttribute("role", "button");
+    residentNote.setAttribute("tabindex", "0");
+    residentNote.setAttribute("aria-label", `${activeReunionCandidate.destinationName}の再会候補を世界地図で確認する`);
+  }
+
+  function selectReunionDestination(candidate) {
+    if (!candidate) return false;
+    const Atlas = window.CrownlessWorldAtlas;
+    if (!Atlas || typeof Atlas.openAtlas !== "function") return false;
+    const safe = Core && typeof Core.loadSafeState === "function" ? Core.loadSafeState() : null;
+    const discoveries = safe && safe.worldKnowledge && safe.worldKnowledge.discoveries;
+    const remembered = discoveries && candidate.discoveryKey ? discoveries[candidate.discoveryKey] : null;
+    const name = String(remembered && remembered.name || candidate.destinationName || "");
+    const opened = Atlas.openAtlas(document, Core, window, { view: "world", autoScan: false });
+    if (!opened) return false;
+    const viewer = document.getElementById("world-atlas-viewer");
+    if (!viewer) return true;
+    const target = Array.from(viewer.querySelectorAll(".world-atlas-marker, .world-atlas-unplaced button")).find((node) => {
+      if (node.classList?.contains("world-atlas-marker")) {
+        const label = String(node.getAttribute("aria-label") || "");
+        return name && label.startsWith(`${name}。`);
+      }
+      return name && String(node.textContent || "").trim() === name;
+    });
+    if (target) {
+      target.click();
+      target.focus();
+    }
+    speak(`${name || "再会候補"}を世界地図で開いた。`, 1700);
+    return true;
+  }
+
   function refreshResidentNote(now = new Date()) {
     const NpcLife = window.CrownlessNpcLife;
     if (!residentNote || !NpcLife || typeof NpcLife.snapshotAt !== "function" || typeof NpcLife.formatHearthStatus !== "function") return;
@@ -124,6 +166,7 @@
     const reunions = typeof NpcLife.reunionCandidates === "function"
       ? NpcLife.reunionCandidates(snapshot, knownDestinations)
       : [];
+    syncReunionInteraction(reunions[0] || null);
     const reunionNote = reunions.length
       ? ` / 再会候補: ${reunions.map((candidate) => `${candidate.destinationName} — ${candidate.targetName}に会えるかもしれない。`).join(" / ")}`
       : "";
@@ -289,6 +332,15 @@
     const count = numberFrom("#secured-count");
     speak(count ? `棚には ${count} 個。持ち帰った物だけが、ここに残る。` : "棚は空だ。外から何か持ち帰るしかない。", 1500);
     scrollTo("#hub-screen .inventory-panel");
+  });
+
+  residentNote?.addEventListener("click", () => {
+    selectReunionDestination(activeReunionCandidate);
+  });
+  residentNote?.addEventListener("keydown", (event) => {
+    if (!activeReunionCandidate || (event.key !== "Enter" && event.key !== " ")) return;
+    event.preventDefault();
+    selectReunionDestination(activeReunionCandidate);
   });
 
   map?.addEventListener("click", () => {

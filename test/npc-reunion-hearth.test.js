@@ -38,6 +38,25 @@ test("Grey Hearth connects persisted world knowledge to reunion candidates witho
   assert.doesNotMatch(hearthPresentation, /setInterval\(/);
 });
 
+test("reunion candidate opens the existing world Atlas without triggering a new location scan", () => {
+  assert.match(hearthPresentation, /CrownlessWorldAtlas/);
+  assert.match(hearthPresentation, /discoveries\[candidate\.discoveryKey\]/);
+  assert.match(hearthPresentation, /remembered && remembered\.name \|\| candidate\.destinationName/);
+  assert.match(hearthPresentation, /Atlas\.openAtlas\(document, Core, window, \{ view: "world", autoScan: false \}\)/);
+  assert.match(hearthPresentation, /world-atlas-marker, \.world-atlas-unplaced button/);
+  assert.match(hearthPresentation, /target\.click\(\)/);
+  assert.match(hearthPresentation, /target\.focus\(\)/);
+});
+
+test("reunion note is keyboard-operable only while a candidate is active", () => {
+  assert.match(hearthPresentation, /residentNote\.setAttribute\("role", "button"\)/);
+  assert.match(hearthPresentation, /residentNote\.setAttribute\("tabindex", "0"\)/);
+  assert.match(hearthPresentation, /residentNote\.removeAttribute\("role"\)/);
+  assert.match(hearthPresentation, /residentNote\.removeAttribute\("tabindex"\)/);
+  assert.match(hearthPresentation, /event\.key !== "Enter" && event\.key !== " "/);
+  assert.match(hearthPresentation, /event\.preventDefault\(\)/);
+});
+
 test("existing Hearth resident status remains the base copy when no reunion candidate exists", () => {
   assert.match(hearthPresentation, /NpcLife\.formatHearthStatus\(snapshot\)/);
   assert.match(hearthPresentation, /reunions\.length/);
