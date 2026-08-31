@@ -177,7 +177,6 @@
       .exploration-cell-tile.newly-known { animation:crownless-cell-ink-in .5s ease-out both; }
       .exploration-cell-count { position:absolute; z-index:4; left:8px; bottom:6px; padding:3px 6px; border-left:1px solid rgba(101,137,116,.55); background:rgba(11,10,8,.72); color:#91aa99; font-size:7px; font-weight:800; letter-spacing:.1em; pointer-events:none; }
       .exploration-cells-active .sketch-map-field { background:radial-gradient(circle at 50% 50%,rgba(74,108,91,.1),transparent 38%),radial-gradient(circle at 18% 24%,rgba(201,163,93,.035),transparent 28%); }
-      .lead-card[data-expedition-unknown="true"] h3 { font-size:clamp(30px,5vw,48px); letter-spacing:.08em; }
       @keyframes crownless-cell-ink-in { from { opacity:.05; transform:scale(.92); } to { opacity:1; transform:scale(1); } }
       @media (prefers-reduced-motion:reduce) { .exploration-cell-tile.newly-known { animation:none; } }
     `;
@@ -192,84 +191,11 @@
     let currentCell = null;
     let lastAddedCellId = "";
     let locationPromise = null;
-    let lastProfile = expeditionProfile(null, []);
 
     function knownCellIds() {
       const safe = Core.loadSafeState();
       const cells = safe && safe.worldKnowledge && safe.worldKnowledge.exploredCells;
       return cells && typeof cells === "object" && !Array.isArray(cells) ? Object.keys(cells) : [];
-    }
-
-    function knownDiscoveryKeys() {
-      const safe = Core.loadSafeState();
-      const discoveries = safe && safe.worldKnowledge && safe.worldKnowledge.discoveries;
-      return new Set(discoveries && typeof discoveries === "object" && !Array.isArray(discoveries) ? Object.keys(discoveries) : []);
-    }
-
-    function installExpeditionUnknownBridge() {
-      const GeographyApi = root && root.CrownlessGeographyApi;
-      const runtime = root && root.CrownlessLocationDiscoveryRuntime;
-      if (!GeographyApi || typeof GeographyApi.createProxyLocationDiscoveryProvider !== "function" || !runtime) return false;
-      if (GeographyApi.__expeditionUnknownsInstalled) return true;
-
-      const originalCreateProvider = GeographyApi.createProxyLocationDiscoveryProvider.bind(GeographyApi);
-      GeographyApi.createProxyLocationDiscoveryProvider = function createProviderWithExpeditionUnknowns(...args) {
-        const provider = originalCreateProvider(...args);
-        if (!provider || typeof provider.discover !== "function") return provider;
-        const originalDiscover = provider.discover.bind(provider);
-        provider.discover = async function discoverWithExpeditionUnknowns(input) {
-          const discovered = await originalDiscover(input);
-          if (runtime.qaMode) return discovered;
-          const location = input && input.location;
-          const cell = typeof Core.explorationCellFromLocation === "function" ? Core.explorationCellFromLocation(location) : null;
-          lastProfile = expeditionProfile(cell, knownCellIds());
-          const knownKeys = knownDiscoveryKeys();
-          const isKnown = (item) => {
-            const key = typeof runtime.worldKnowledgeKey === "function" ? runtime.worldKnowledgeKey(item) : null;
-            return Boolean(key && knownKeys.has(key));
-          };
-          return applyUnknownness(discovered, lastProfile, isKnown);
-        };
-        return provider;
-      };
-
-      if (typeof Core.discoverLocation === "function") {
-        const originalDiscoverLocation = Core.discoverLocation.bind(Core);
-        Core.discoverLocation = function discoverLocationWithUnknownReveal(state, choiceId) {
-          const activeRuntime = root && root.CrownlessLocationDiscoveryRuntime;
-          const slot = activeRuntime && typeof activeRuntime.choiceSlot === "function" ? activeRuntime.choiceSlot(state, choiceId) : 0;
-          const visible = activeRuntime && Array.isArray(activeRuntime.discoveries) ? activeRuntime.discoveries[slot] : null;
-          const wasMystery = Boolean(visible && visible.mysteryIdentity);
-          const expeditionTier = visible && visible.expeditionTier || "";
-          const expeditionLabel = visible && visible.expeditionLabel || "";
-
-          if (wasMystery) {
-            const resolved = resolveDiscovery(visible);
-            Object.keys(visible).forEach((key) => { delete visible[key]; });
-            Object.assign(visible, resolved);
-          }
-
-          const next = originalDiscoverLocation(state, choiceId);
-          const last = next && next.expedition && next.expedition.lastDiscovery;
-          if (wasMystery && last) {
-            last.wasUnknownDiscovery = true;
-            last.expeditionTier = expeditionTier;
-            last.expeditionLabel = expeditionLabel;
-            if (Array.isArray(next.expedition.discoveries)) {
-              const history = next.expedition.discoveries.find((item) => item && item.id === last.id);
-              if (history) {
-                history.wasUnknownDiscovery = true;
-                history.expeditionTier = expeditionTier;
-                history.expeditionLabel = expeditionLabel;
-              }
-            }
-          }
-          return next;
-        };
-      }
-
-      GeographyApi.__expeditionUnknownsInstalled = true;
-      return true;
     }
 
     function renderCellLayer() {
@@ -340,8 +266,6 @@
       return locationPromise;
     }
 
-    installExpeditionUnknownBridge();
-
     const originalBeginExpedition = typeof Core.beginExpedition === "function" ? Core.beginExpedition.bind(Core) : null;
     const originalContinueExpedition = typeof Core.continueExpedition === "function" ? Core.continueExpedition.bind(Core) : null;
 
@@ -362,7 +286,6 @@
 
     Core.__explorationCellRuntimeInstalled = true;
     api.currentCell = () => currentCell ? { ...currentCell } : null;
-    api.lastExpeditionProfile = () => ({ ...lastProfile });
     api.render = renderCellLayer;
     api.reload = requestCurrentCell;
     return true;
@@ -387,7 +310,6 @@
     applyUnknownness,
     install,
     currentCell: () => null,
-    lastExpeditionProfile: () => expeditionProfile(null, []),
     render: () => false,
     reload: () => Promise.resolve(null)
   };
