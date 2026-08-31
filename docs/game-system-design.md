@@ -7,7 +7,7 @@
 
 ## 1. Vision
 
-Crownless is a **location-discovery idle expedition RPG** set in a medieval fantasy world.
+Crownless is a **location-discovery expedition RPG** set in a medieval fantasy world.
 
 The player walks through the real world to reveal unknown parts of Crownless, returns to a safe place, chooses who to send into those places, equips them, decides how much risk they may take, and later reads what happened.
 
