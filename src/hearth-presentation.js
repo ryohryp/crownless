@@ -118,7 +118,16 @@
   function refreshResidentNote(now = new Date()) {
     const NpcLife = window.CrownlessNpcLife;
     if (!residentNote || !NpcLife || typeof NpcLife.snapshotAt !== "function" || typeof NpcLife.formatHearthStatus !== "function") return;
-    const next = `「${NpcLife.formatHearthStatus(NpcLife.snapshotAt(now))}」`;
+    const snapshot = NpcLife.snapshotAt(now);
+    const safe = Core && typeof Core.loadSafeState === "function" ? Core.loadSafeState() : null;
+    const knownDestinations = safe && safe.worldKnowledge ? safe.worldKnowledge.discoveries : null;
+    const reunions = typeof NpcLife.reunionCandidates === "function"
+      ? NpcLife.reunionCandidates(snapshot, knownDestinations)
+      : [];
+    const reunionNote = reunions.length
+      ? ` / 再会候補: ${reunions.map((candidate) => `${candidate.destinationName} — ${candidate.targetName}に会えるかもしれない。`).join(" / ")}`
+      : "";
+    const next = `「${NpcLife.formatHearthStatus(snapshot)}${reunionNote}」`;
     if (residentNote.textContent !== next) residentNote.textContent = next;
   }
 
