@@ -29,6 +29,16 @@
     [LOCATIONS.RIVERBANK]: "川辺"
   });
 
+  const STATES = Object.freeze({
+    NORMAL: "normal",
+    TRAVELING: "traveling"
+  });
+
+  const STATE_LABELS = Object.freeze({
+    [STATES.NORMAL]: "普段どおり",
+    [STATES.TRAVELING]: "旅の途中"
+  });
+
   const RESIDENTS = Object.freeze([
     Object.freeze({
       id: "edgar",
@@ -86,19 +96,33 @@
     return location;
   }
 
+  function stateAtHour(resident, hour) {
+    const location = locationAtHour(resident, hour);
+    if (resident.id === "marco" && location === LOCATIONS.ROAD) return STATES.TRAVELING;
+    return STATES.NORMAL;
+  }
+
   function snapshotAt(input = new Date()) {
     const hour = input instanceof Date ? input.getHours() : normalizeHour(input);
     return RESIDENTS.map((resident) => {
       const location = locationAtHour(resident, hour);
+      const state = stateAtHour(resident, hour);
       return Object.freeze({
         id: resident.id,
         name: resident.name,
         role: resident.role,
         location,
         locationLabel: LOCATION_LABELS[location] || location,
+        state,
+        stateLabel: STATE_LABELS[state] || state,
         atHearth: location === LOCATIONS.HEARTH
       });
     });
+  }
+
+  function formatResidentTrail(resident) {
+    const state = resident.state && resident.state !== STATES.NORMAL ? `・${resident.stateLabel || resident.state}` : "";
+    return `${resident.name}→${resident.locationLabel}${state}`;
   }
 
   function formatHearthStatus(snapshot) {
@@ -108,19 +132,21 @@
       const names = present.map((resident) => `${resident.name}（${resident.role}）`).join("、");
       const away = residents.filter((resident) => !resident.atHearth);
       const trail = away.length
-        ? ` / ${away.map((resident) => `${resident.name}→${resident.locationLabel}`).join("・")}`
+        ? ` / ${away.map(formatResidentTrail).join("・")}`
         : "";
       return `炉端にいる: ${names}${trail}`;
     }
     if (!residents.length) return "住人の気配はまだない。";
-    return `炉端は空席 / ${residents.map((resident) => `${resident.name}→${resident.locationLabel}`).join("・")}`;
+    return `炉端は空席 / ${residents.map(formatResidentTrail).join("・")}`;
   }
 
   return Object.freeze({
     LOCATIONS,
+    STATES,
     RESIDENTS,
     normalizeHour,
     locationAtHour,
+    stateAtHour,
     snapshotAt,
     formatHearthStatus
   });
