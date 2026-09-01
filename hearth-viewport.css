@@ -29,6 +29,12 @@
   body:has(#hub-screen.active) #hub-screen .panel {
     min-height: 0;
   }
+
+  /* The player sits around 28% at this width; keep residents in the open
+     center aisle without pushing them into the gate that starts near 53%. */
+  #hub-screen .hearth-resident-layer {
+    left: 44%;
+  }
 }
 
 @media (max-width: 700px) {
@@ -95,6 +101,12 @@
     width: 25%;
     height: 42%;
     transform: translateX(-50%);
+  }
+
+  /* Do not stack a resident directly behind the player. The lower-left floor
+     remains visually open after the map interaction ends above this zone. */
+  #hub-screen .hearth-resident-layer {
+    left: 24%;
   }
 
   #hub-screen .hearth-scene--empty-room .hearth-avatar-sprite {
@@ -197,6 +209,12 @@
     width: 20%;
     height: 52%;
     transform: translateX(-50%);
+  }
+
+  /* Residents are companions in the room, not a shadow behind the avatar.
+     Keep their feet on the same floor plane but move them to a distinct bay. */
+  #hub-screen .hearth-resident-layer {
+    left: 32%;
   }
 
   #hub-screen .hearth-scene--empty-room .hearth-fire {
