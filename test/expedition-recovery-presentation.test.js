@@ -15,35 +15,26 @@ function functionBody(name, nextName) {
   return presentation.slice(start, end);
 }
 
-test("Grey Hearth offers recovery whenever any companion is injured", () => {
+test("Grey Hearth starts timed recovery instead of clearing injury immediately", () => {
   const body = functionBody("renderPrepare", "formatLiveClock");
   assert.match(body, /const injuredCompanions = state\.companions\.filter\(\(companion\) => companion\.condition === "injured"\)/);
-  assert.match(body, /if \(injuredCompanions\.length\)/);
-  assert.match(body, /灰炉で休養する/);
+  assert.match(body, /灰炉で休養を始める/);
+  assert.match(body, /system\.startRecovery\(state, injuredCompanions\.map\(\(companion\) => companion\.id\), Date\.now\(\)\)/);
+  assert.doesNotMatch(body, /companion\.condition = "healthy"/);
 });
 
-test("dispatch is disabled only when no companion is available", () => {
+test("recovering companions are shown separately and remain unavailable", () => {
   const body = functionBody("renderPrepare", "formatLiveClock");
-  const disabledBlockStart = body.indexOf("if (!availableCompanions.length)");
-  const recoveryBlockStart = body.indexOf("if (injuredCompanions.length)");
-  assert.ok(disabledBlockStart >= 0 && recoveryBlockStart > disabledBlockStart);
-  const disabledBlock = body.slice(disabledBlockStart, recoveryBlockStart);
-  assert.match(disabledBlock, /dispatch\.disabled = true/);
-  assert.doesNotMatch(body.slice(recoveryBlockStart), /dispatch\.disabled = true/);
+  assert.match(body, /const recoveringCompanions = state\.companions\.filter\(\(companion\) => companion\.condition === "recovering"\)/);
+  assert.match(body, /recoveryLabel\(companion\)/);
+  assert.match(body, /休養中/);
+  assert.match(body, /dispatch\.disabled = true/);
 });
 
-test("recovery changes only injured companions and records Grey Hearth rest", () => {
+test("prepare reconciles elapsed recovery before deriving available companions", () => {
   const body = functionBody("renderPrepare", "formatLiveClock");
-  assert.match(body, /if \(companion\.condition !== "injured"\) return/);
-  assert.match(body, /companion\.condition = "healthy"/);
-  assert.match(body, /companion\.history = `\$\{companion\.history \|\| ""\} \/ 灰炉で休養`/);
+  const reconcile = body.indexOf("state = system.reconcileRecoveries(state, Date.now())");
+  const available = body.indexOf("const availableCompanions = state.companions.filter(companionAvailable)");
+  assert.ok(reconcile >= 0 && available > reconcile);
   assert.match(body, /save\(state\)/);
-  assert.match(body, /renderPrepare\(content\)/);
-});
-
-test("recovery control is gated by injured companion count", () => {
-  const body = functionBody("renderPrepare", "formatLiveClock");
-  const gate = body.indexOf("if (injuredCompanions.length)");
-  const button = body.indexOf('"灰炉で休養する"');
-  assert.ok(gate >= 0 && button > gate);
 });
