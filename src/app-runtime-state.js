@@ -23,10 +23,6 @@ var audioContext = null;
   let presentationReady = false;
   let replayQueued = false;
 
-  // app.js still owns the transition-era click handler. The expedition slice
-  // is loaded dynamically, so a fast click can otherwise reach that old
-  // handler before expedition-presentation.js has installed its capture
-  // listener. Hold the click until the new entry point is ready.
   if (gate) {
     gate.addEventListener("click", function holdGateUntilExpeditionReady(event) {
       if (presentationReady) return;
@@ -76,9 +72,6 @@ var audioContext = null;
     document.body.appendChild(domain);
   }
 
-  // Issue #211: battle compositions remain a pure optional presentation layer.
-  // A missing helper must never block deterministic expedition resolution or
-  // the existing single-asset kamishibai fallback.
   function loadExpeditionComposition() {
     const composition = document.createElement("script");
     composition.src = "src/expedition-visual-composition.js";
@@ -87,9 +80,6 @@ var audioContext = null;
     document.body.appendChild(composition);
   }
 
-  // Issue #203: representative paper-theatre scenes are another pure
-  // projection of a completed report. Keep this optional so a scene-layer
-  // loading failure never blocks the deterministic expedition resolver.
   function loadExpeditionScenes() {
     const scenes = document.createElement("script");
     scenes.src = "src/expedition-scenes.js";
@@ -98,9 +88,6 @@ var audioContext = null;
     document.body.appendChild(scenes);
   }
 
-  // Issue #200: narrative generation is a separate deterministic projection of
-  // raw combat state. Load it independently so resolver rules never depend on
-  // prose generation, while the report presentation can opt into the layer.
   const narrative = document.createElement("script");
   narrative.src = "src/expedition-narrative.js";
   narrative.onload = loadExpeditionScenes;
@@ -155,20 +142,71 @@ var audioContext = null;
     document.body.appendChild(lorePresentation);
   }
 
+  function loadReunionPresentation() {
+    const existingPresentation = document.querySelector('script[src="src/world-atlas-reunion-presentation.js"]');
+    if (existingPresentation) {
+      if (window.CrownlessWorldAtlasReunionPresentation) loadLorePresentation();
+      else {
+        existingPresentation.addEventListener("load", loadLorePresentation, { once: true });
+        existingPresentation.addEventListener("error", loadLorePresentation, { once: true });
+      }
+      return;
+    }
+    const presentation = document.createElement("script");
+    presentation.src = "src/world-atlas-reunion-presentation.js";
+    presentation.onload = loadLorePresentation;
+    presentation.onerror = loadLorePresentation;
+    document.body.appendChild(presentation);
+  }
+
+  function loadReunionEncounter() {
+    const existingEncounter = document.querySelector('script[src="src/npc-reunion-encounter.js"]');
+    if (existingEncounter) {
+      if (window.CrownlessNpcReunionEncounter) loadReunionPresentation();
+      else {
+        existingEncounter.addEventListener("load", loadReunionPresentation, { once: true });
+        existingEncounter.addEventListener("error", loadReunionPresentation, { once: true });
+      }
+      return;
+    }
+    const encounter = document.createElement("script");
+    encounter.src = "src/npc-reunion-encounter.js";
+    encounter.onload = loadReunionPresentation;
+    encounter.onerror = loadReunionPresentation;
+    document.body.appendChild(encounter);
+  }
+
+  function loadNpcLifeForAtlas() {
+    const existingNpcLife = document.querySelector('script[src="src/npc-life.js"]');
+    if (existingNpcLife) {
+      if (window.CrownlessNpcLife) loadReunionEncounter();
+      else {
+        existingNpcLife.addEventListener("load", loadReunionEncounter, { once: true });
+        existingNpcLife.addEventListener("error", loadReunionEncounter, { once: true });
+      }
+      return;
+    }
+    const npcLife = document.createElement("script");
+    npcLife.src = "src/npc-life.js";
+    npcLife.onload = loadReunionEncounter;
+    npcLife.onerror = loadReunionEncounter;
+    document.body.appendChild(npcLife);
+  }
+
   function loadSelectionPreview() {
     const existingPreview = document.querySelector('script[src="src/world-atlas-selection-preview.js"]');
     if (existingPreview) {
-      if (window.CrownlessWorldAtlasPreview) loadLorePresentation();
+      if (window.CrownlessWorldAtlasPreview) loadNpcLifeForAtlas();
       else {
-        existingPreview.addEventListener("load", loadLorePresentation, { once: true });
-        existingPreview.addEventListener("error", loadLorePresentation, { once: true });
+        existingPreview.addEventListener("load", loadNpcLifeForAtlas, { once: true });
+        existingPreview.addEventListener("error", loadNpcLifeForAtlas, { once: true });
       }
       return;
     }
     const preview = document.createElement("script");
     preview.src = "src/world-atlas-selection-preview.js";
-    preview.onload = loadLorePresentation;
-    preview.onerror = loadLorePresentation;
+    preview.onload = loadNpcLifeForAtlas;
+    preview.onerror = loadNpcLifeForAtlas;
     document.body.appendChild(preview);
   }
 
