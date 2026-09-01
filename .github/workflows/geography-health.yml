@@ -22,11 +22,41 @@ jobs:
       - name: Check Production geography enrichment API
         shell: bash
         run: |
-          status="$(curl --show-error --silent --output /tmp/geography-response.json --write-out '%{http_code}' --max-time 18 "$GEOGRAPHY_URL")"
-          cat /tmp/geography-response.json
-          echo
-          if [ "$status" != "200" ]; then
-            echo "Expected HTTP 200 from Production geography enrichment API within 18 seconds, got $status" >&2
+          success="false"
+          last_status="unknown"
+
+          for attempt in 1 2; do
+            response="/tmp/geography-response-attempt-${attempt}.json"
+            status="000"
+
+            if status="$(curl --show-error --silent --output "$response" --write-out '%{http_code}' --max-time 18 "$GEOGRAPHY_URL")"; then
+              curl_exit=0
+            else
+              curl_exit=$?
+            fi
+
+            last_status="$status"
+            echo "Production geography health attempt ${attempt}/2: HTTP ${status}, curl exit ${curl_exit}"
+            if [ -f "$response" ]; then
+              cat "$response"
+              echo
+            fi
+
+            if [ "$curl_exit" -eq 0 ] && [ "$status" = "200" ]; then
+              mv "$response" /tmp/geography-response.json
+              echo "GEOGRAPHY_HEALTH_ATTEMPTS=$attempt" >> "$GITHUB_ENV"
+              success="true"
+              break
+            fi
+
+            if [ "$attempt" -eq 1 ]; then
+              echo "Transient Production geography failure; retrying once in 2 seconds." >&2
+              sleep 2
+            fi
+          done
+
+          if [ "$success" != "true" ]; then
+            echo "Expected HTTP 200 from Production geography enrichment API within two 18-second attempts, last status $last_status" >&2
             exit 1
           fi
 
@@ -43,6 +73,7 @@ jobs:
           const failed = payload.attempts.filter((attempt) => attempt && attempt.state === "failed");
           const lines = [
             "## Geography Production health", "",
+            `- Health-check attempts: ${process.env.GEOGRAPHY_HEALTH_ATTEMPTS || "1"}/2`,
             `- Selected endpoint: \`${payload.endpoint}\``,
             `- Recorded attempts: ${payload.attempts.length}/${payload.total || payload.attempts.length}`,
             `- Timeout per upstream: ${payload.timeoutMs || "unknown"} ms`,
