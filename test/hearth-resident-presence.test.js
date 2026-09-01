@@ -10,6 +10,7 @@ const root = path.join(__dirname, "..");
 const indexHtml = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const presentationSource = fs.readFileSync(path.join(root, "src", "hearth-resident-presence.js"), "utf8");
 const residentCss = fs.readFileSync(path.join(root, "hearth-residents.css"), "utf8");
+const viewportCss = fs.readFileSync(path.join(root, "hearth-viewport.css"), "utf8");
 
 test("23時台は灰炉にいるミラだけを人物表示対象にする", () => {
   const residents = HearthResidents.presentResidents(NpcLife.snapshotAt(23));
@@ -50,4 +51,18 @@ test("人物はゲームオブジェクトより背面に置き、reduced motion
   assert.match(residentCss, /pointer-events:\s*none;/);
   assert.match(residentCss, /@media \(prefers-reduced-motion: reduce\)/);
   assert.match(residentCss, /\.hearth-resident \{ animation: none !important; \}/);
+});
+
+test("PC幅では住人を中央のプレイヤーから左へ分離する", () => {
+  assert.match(viewportCss, /@media \(min-width: 901px\)[\s\S]*?#hub-screen \.hearth-scene--empty-room \.hearth-character\s*\{[\s\S]*?left:\s*47%;/);
+  assert.match(viewportCss, /@media \(min-width: 901px\)[\s\S]*?#hub-screen \.hearth-resident-layer\s*\{[\s\S]*?left:\s*32%;/);
+});
+
+test("スマホ幅でも住人をプレイヤーと同じX座標に置かない", () => {
+  assert.match(viewportCss, /@media \(max-width: 700px\)[\s\S]*?#hub-screen \.hearth-scene--empty-room \.hearth-character\s*\{[\s\S]*?left:\s*46%;/);
+  assert.match(viewportCss, /@media \(max-width: 700px\)[\s\S]*?#hub-screen \.hearth-resident-layer\s*\{[\s\S]*?left:\s*24%;/);
+});
+
+test("中間幅では住人をプレイヤーと門の間の空き床へ置く", () => {
+  assert.match(viewportCss, /@media \(min-width: 701px\) and \(max-width: 900px\)[\s\S]*?#hub-screen \.hearth-resident-layer\s*\{[\s\S]*?left:\s*44%;/);
 });
