@@ -43,6 +43,9 @@
   const mapStatus = document.getElementById("hearth-map-status");
   const residentNote = scene.querySelector(".hearth-room-note");
   const knowledgePanel = document.getElementById("world-knowledge-panel");
+  const equippedLabel = document.getElementById("equipped-label");
+  const loadoutTitle = document.getElementById("loadout-title");
+  const loadoutDescription = document.getElementById("loadout-description");
 
   if (knowledgePanel) {
     knowledgePanel.hidden = true;
@@ -106,6 +109,22 @@
     if (/剣|sword/.test(text)) return "sword";
     if (/短刀|刀|dagger/.test(text)) return "dagger";
     return "fists";
+  }
+
+  function syncExpeditionReadinessCopy() {
+    if (!character) return;
+    const equipped = String(equippedLabel?.textContent || "").trim();
+    const hasEquipment = Boolean(equipped && equipped !== "素手");
+    const nextTitle = hasEquipment ? null : "遠征の支度をする";
+    const nextDescription = hasEquipment
+      ? `${equipped}は遠征へ持ち出せる。誰に託し、どこへ送るかを決めよう。`
+      : "持ち出す装備はまだない。地図と仲間を見て、次の遠征を決めよう。";
+
+    if (character.getAttribute("aria-label") !== "遠征に持ち出す装備を確かめる") {
+      character.setAttribute("aria-label", "遠征に持ち出す装備を確かめる");
+    }
+    if (nextTitle && loadoutTitle && loadoutTitle.textContent !== nextTitle) loadoutTitle.textContent = nextTitle;
+    if (loadoutDescription && loadoutDescription.textContent !== nextDescription) loadoutDescription.textContent = nextDescription;
   }
 
   function mapProgressLabel(renown, discovered) {
@@ -304,6 +323,7 @@
 
     if (shelfCount) shelfCount.textContent = String(secured);
     if (mapStatus) mapStatus.textContent = mapProgressLabel(renown, discovered);
+    syncExpeditionReadinessCopy();
     refreshResidentNote();
     refreshMapVisual();
   }
@@ -324,8 +344,10 @@
 
   character?.addEventListener("click", () => {
     temporaryClass("character-ready", 650);
-    const equipped = document.getElementById("equipped-label")?.textContent || "素手";
-    speak(equipped === "素手" ? "拳を鳴らした。武器がなくても、外へは出られる。" : `${equipped}の重さを確かめた。`, 1700);
+    const equipped = String(equippedLabel?.textContent || "").trim();
+    speak(equipped && equipped !== "素手"
+      ? `${equipped}を遠征装備として確かめた。誰に託すかは、送り出す前に決める。`
+      : "装備棚はまだ心許ない。地図と仲間を見て、次の遠征を決めよう。", 1900);
   });
 
   loot?.addEventListener("click", () => {
