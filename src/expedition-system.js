@@ -7,6 +7,7 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function expeditionSystemFactory() {
   const RULES_VERSION = "expedition-poc-v3";
   const DEFAULT_DURATION_MS = 3 * 60 * 1000;
+  const RECOVERY_DURATION_MS = 10 * 60 * 1000;
 
   const companions = [
     { id: "mira", name: "ミラ", origin: "森番の娘", traits: ["woodsman", "cautious", "tracker"], condition: "healthy", history: "まだ帰還記録はない。" },
@@ -97,8 +98,43 @@
     };
   }
 
-  function dispatchExpedition(stateInput, input, nowMs) {
+  function appendCompanionHistory(companion, entry) {
+    const current = String(companion.history || "").trim();
+    companion.history = current ? `${current} / ${entry}` : entry;
+  }
+
+  function reconcileRecoveries(stateInput, nowMs) {
     const state = normalizeState(stateInput);
+    const now = Number.isFinite(nowMs) ? nowMs : Date.now();
+    for (const companion of state.companions) {
+      if (companion.condition !== "recovering") continue;
+      const recoveryUntil = Number(companion.recoveryUntil);
+      if (!Number.isFinite(recoveryUntil) || now < recoveryUntil) continue;
+      companion.condition = "healthy";
+      delete companion.recoveryStartedAt;
+      delete companion.recoveryUntil;
+      appendCompanionHistory(companion, "灰炉で回復");
+    }
+    return state;
+  }
+
+  function startRecovery(stateInput, companionIds, nowMs) {
+    const now = Number.isFinite(nowMs) ? nowMs : Date.now();
+    const state = reconcileRecoveries(stateInput, now);
+    const selected = new Set(Array.isArray(companionIds) ? companionIds : []);
+    for (const companion of state.companions) {
+      if (!selected.has(companion.id) || companion.condition !== "injured") continue;
+      companion.condition = "recovering";
+      companion.recoveryStartedAt = now;
+      companion.recoveryUntil = now + RECOVERY_DURATION_MS;
+      appendCompanionHistory(companion, "灰炉で休養開始");
+    }
+    return state;
+  }
+
+  function dispatchExpedition(stateInput, input, nowMs) {
+    const startedAt = Number.isFinite(nowMs) ? nowMs : Date.now();
+    const state = reconcileRecoveries(stateInput, startedAt);
     if (state.activeExpedition) throw new Error("an expedition is already active");
     const destination = state.destinations.find((item) => item.id === input.destinationId);
     if (!destination) throw new Error("unknown destination");
@@ -107,7 +143,6 @@
     if (selectedCompanions.some((item) => !["healthy", "ready"].includes(item.condition))) throw new Error("selected companion is unavailable");
     if (!policies[input.policyId]) throw new Error("unknown policy");
     const selectedEquipment = (input.equipmentIds || []).map((id) => state.equipment.find((item) => item.id === id)).filter(Boolean);
-    const startedAt = Number.isFinite(nowMs) ? nowMs : Date.now();
     const durationMs = Number.isFinite(input.durationMs) ? Math.max(0, input.durationMs) : destination.durationMs;
     const immutable = {
       destinationId: destination.id,
@@ -371,7 +406,11 @@
     }
     for (const id of report.injuries) {
       const companion = state.companions.find((item) => item.id === id);
-      if (companion) companion.condition = "injured";
+      if (companion) {
+        companion.condition = "injured";
+        delete companion.recoveryStartedAt;
+        delete companion.recoveryUntil;
+      }
     }
     for (const id of report.companionIds) {
       const companion = state.companions.find((item) => item.id === id);
@@ -383,17 +422,17 @@
   }
 
   function advance(stateInput, nowMs) {
-    const state = normalizeState(stateInput);
-    if (!state.activeExpedition) return { state, report: null, status: "idle" };
     const now = Number.isFinite(nowMs) ? nowMs : Date.now();
+    const state = reconcileRecoveries(stateInput, now);
+    if (!state.activeExpedition) return { state, report: null, status: "idle" };
     if (now < state.activeExpedition.expectedReturnAt) return { state, report: null, status: "active" };
     const report = resolveExpedition(state.activeExpedition, state);
     return { state: applyReport(state, report), report, status: "completed" };
   }
 
   return {
-    RULES_VERSION, companions, destinations, equipment, policies, combatEncounters,
-    initialState, normalizeState, dispatchExpedition, resolveCombatEncounter,
+    RULES_VERSION, RECOVERY_DURATION_MS, companions, destinations, equipment, policies, combatEncounters,
+    initialState, normalizeState, reconcileRecoveries, startRecovery, dispatchExpedition, resolveCombatEncounter,
     shouldContinueAfterCombat, resolveExpedition, applyReport, advance, hashString,
   };
 });
