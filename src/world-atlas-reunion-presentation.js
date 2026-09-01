@@ -28,6 +28,22 @@
     return Encounter.encounterAtDiscovery(NpcLife.snapshotAt(now), discoveries, key);
   }
 
+  function reunionClueForEntry(root, entry, now = new Date()) {
+    const reunion = reunionForEntry(root, entry, now);
+    const Actions = root && root.CrownlessDiscoveryActions;
+    if (!reunion || !Actions || typeof Actions.buildLocalEvent !== "function") return null;
+    const eventModel = Actions.buildLocalEvent(entry);
+    const hook = cleanText(eventModel && eventModel.hook);
+    if (!hook) return null;
+    return Object.freeze({
+      npcId: reunion.npcId,
+      npcName: reunion.npcName,
+      eventId: cleanText(eventModel && eventModel.id),
+      eventTitle: cleanText(eventModel && eventModel.title),
+      text: `${reunion.npcName}はこの辺りの話を教えてくれた。「${hook}」`
+    });
+  }
+
   function syncReunion(document, root, entry, now = new Date()) {
     const viewer = document && document.getElementById("world-atlas-viewer");
     const detail = viewer && viewer.querySelector(".world-atlas-detail");
@@ -41,6 +57,13 @@
     note.className = "world-atlas-reunion-note";
     note.dataset.npcId = encounter.npcId;
     note.textContent = `再会 / ${encounter.message}`;
+    const clue = reunionClueForEntry(root, entry, now);
+    if (clue) {
+      const clueText = document.createElement("span");
+      clueText.className = "world-atlas-reunion-clue";
+      clueText.textContent = `手がかり / ${clue.text}`;
+      note.appendChild(clueText);
+    }
     detail.appendChild(note);
     return true;
   }
@@ -49,7 +72,7 @@
     if (!document || document.getElementById("world-atlas-reunion-styles")) return;
     const style = document.createElement("style");
     style.id = "world-atlas-reunion-styles";
-    style.textContent = ".world-atlas-reunion-note{margin:.55rem 0 0;padding:.45rem .55rem;border-left:2px solid currentColor;font-size:.78rem;line-height:1.55;font-style:normal;}";
+    style.textContent = ".world-atlas-reunion-note{margin:.55rem 0 0;padding:.45rem .55rem;border-left:2px solid currentColor;font-size:.78rem;line-height:1.55;font-style:normal;}.world-atlas-reunion-clue{display:block;margin-top:.3rem;opacity:.88;}";
     document.head.appendChild(style);
   }
 
@@ -93,6 +116,7 @@
 
   return Object.freeze({
     reunionForEntry,
+    reunionClueForEntry,
     syncReunion,
     install
   });
