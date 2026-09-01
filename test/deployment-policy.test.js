@@ -67,3 +67,14 @@ test('scheduled geography health retries one transient failure without weakening
   assert.match(workflow, /payload\.attempts\.some\(\(attempt\) => attempt && attempt\.state === "success"\)/);
   assert.match(workflow, /Gameplay impact: non-blocking enrichment/);
 });
+
+test('scheduled geography health preserves structured upstream diagnostics on sustained failure', () => {
+  const workflow = read('.github/workflows/geography-health.yml');
+  assert.match(workflow, /GEOGRAPHY_FAILURE_RESPONSE/);
+  assert.match(workflow, /Geography Production failure/);
+  assert.match(workflow, /JSON\.parse\(fs\.readFileSync\(responsePath, "utf8"\)\)/);
+  assert.match(workflow, /Array\.isArray\(payload\.attempts\)/);
+  assert.match(workflow, /attempt\.failureKind/);
+  assert.match(workflow, /Structured upstream diagnostics: unavailable/);
+  assert.match(workflow, /fs\.appendFileSync\(process\.env\.GITHUB_STEP_SUMMARY/);
+});
