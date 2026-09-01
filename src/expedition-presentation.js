@@ -535,7 +535,7 @@
     const details = el("details", "expedition-log");
     details.dataset.expeditionDetails = "";
     details.open = false;
-    details.append(el("summary", "", "時系列と戦闘数値を確認する"));
+    details.append(el("summary", "", "遠征の記録を時系列で読む"));
     const list = el("ol", "");
     report.log.forEach((entry) => {
       const li = el("li", "");
