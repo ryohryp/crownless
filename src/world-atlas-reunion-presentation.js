@@ -112,20 +112,11 @@
     const encounter = reunionForEntry(root, entry, now);
     if (!encounter) return false;
 
-    const previous = reunionRecord(root, encounter);
     const note = document.createElement("p");
     note.className = "world-atlas-reunion-note";
     note.dataset.npcId = encounter.npcId;
-    note.textContent = `再会 / ${encounter.message}${previous ? " 以前にもここで会った。" : ""}`;
-    const clue = reunionClueForEntry(root, entry, now);
-    if (clue) {
-      const clueText = document.createElement("span");
-      clueText.className = "world-atlas-reunion-clue";
-      clueText.textContent = `手がかり / ${clue.text}`;
-      note.appendChild(clueText);
-    }
+    note.textContent = `再会候補 / ${encounter.npcName}がこの辺りを旅している。遠征で会えるかもしれない。`;
     detail.appendChild(note);
-    recordReunion(root, encounter, now);
     return true;
   }
 
