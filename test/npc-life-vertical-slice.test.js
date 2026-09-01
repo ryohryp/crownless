@@ -47,6 +47,13 @@ function rootFor(Core, storage) {
   };
 }
 
+function reunionRecords(Core) {
+  const safe = Core.loadSafeState();
+  return safe && safe.npcLife && safe.npcLife.reunions && typeof safe.npcLife.reunions === "object"
+    ? safe.npcLife.reunions
+    : {};
+}
+
 test("Mira rumor leads through a north-road expedition to one persisted Marco reunion", () => {
   const storage = memoryStorage();
   const Core = freshCore(storage);
@@ -106,7 +113,7 @@ test("Mira rumor leads through a north-road expedition to one persisted Marco re
     new Date(completedAt)
   );
   assert.ok(atlasEncounter, "Atlas may expose a reunion candidate without mutating history");
-  assert.equal(Object.keys(Core.loadSafeState().npcLife.reunions).length, 0);
+  assert.equal(Object.keys(reunionRecords(Core)).length, 0);
 
   const first = ReunionPresentation.syncLatestExpeditionReunion(root);
   assert.ok(first);
@@ -117,25 +124,25 @@ test("Mira rumor leads through a north-road expedition to one persisted Marco re
   assert.equal("latitude" in first.encounter, false);
   assert.equal("longitude" in first.encounter, false);
 
-  const afterFirstSync = Core.loadSafeState();
-  assert.deepEqual(afterFirstSync.npcLife.reunions[`marco|${discoveryKey}`], {
+  const afterFirstSync = reunionRecords(Core);
+  assert.deepEqual(afterFirstSync[`marco|${discoveryKey}`], {
     npcId: "marco",
     discoveryKey,
     firstReunitedAt: completedAt
   });
-  assert.equal(Object.keys(afterFirstSync.npcLife.reunions).length, 1);
+  assert.equal(Object.keys(afterFirstSync).length, 1);
 
   const second = ReunionPresentation.syncLatestExpeditionReunion(root);
   assert.ok(second);
   assert.equal(second.record.firstReunitedAt, completedAt);
-  assert.equal(Object.keys(Core.loadSafeState().npcLife.reunions).length, 1);
+  assert.equal(Object.keys(reunionRecords(Core)).length, 1);
 
   const reloadedCore = freshCore(storage);
   const reloadedRoot = rootFor(reloadedCore, storage);
   const afterReload = ReunionPresentation.syncLatestExpeditionReunion(reloadedRoot);
   assert.ok(afterReload);
   assert.equal(afterReload.record.firstReunitedAt, completedAt);
-  assert.equal(Object.keys(reloadedCore.loadSafeState().npcLife.reunions).length, 1);
+  assert.equal(Object.keys(reunionRecords(reloadedCore)).length, 1);
 
   delete global.localStorage;
 });
