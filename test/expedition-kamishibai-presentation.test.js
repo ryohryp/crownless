@@ -44,7 +44,8 @@ test("paper theatre is the only authored story surface while raw chronology rema
   assert.doesNotMatch(presentation, /renderBattleNarrative/);
   assert.doesNotMatch(presentation, /BATTLE NARRATIVE/);
   assert.doesNotMatch(presentation, /遠征記/);
-  assert.match(presentation, /時系列と戦闘数値を確認する/);
+  assert.match(presentation, /遠征の記録を時系列で読む/);
+  assert.doesNotMatch(presentation, /時系列と戦闘数値を確認する/);
   assert.match(presentation, /details\.dataset\.expeditionDetails/);
   assert.match(presentation, /expedition-log/);
 });
