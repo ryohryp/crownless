@@ -122,6 +122,17 @@
     return !item.condition || ["healthy", "ready"].includes(item.condition);
   }
 
+  function recoveryLabel(item, now = Date.now()) {
+    if (item.condition !== "recovering") return item.condition || "healthy";
+    const until = Number(item.recoveryUntil);
+    if (!Number.isFinite(until)) return "休養中";
+    const remainingMinutes = Math.max(0, Math.ceil((until - now) / 60000));
+    if (remainingMinutes <= 0) return "回復確認中";
+    const date = new Date(until);
+    const clock = `${String(date.getHours()).padStart(2, "0")}:${String(date.getMinutes()).padStart(2, "0")}`;
+    return `休養中・あと約${remainingMinutes}分（${clock}回復予定）`;
+  }
+
   function choiceGroup(title, name, items, selectedId, describe) {
     const group = el("fieldset", "expedition-choice");
     group.append(el("legend", "", title));
@@ -147,13 +158,16 @@
   }
 
   function renderPrepare(content) {
+    state = system.reconcileRecoveries(state, Date.now());
+    save(state);
     content.append(heading("GREY HEARTH / PREPARE", "誰を、どこへ送り出す？", "選ぶのは少しだけ。結果はあとで報告として返ってくる。"));
     const form = el("form", "expedition-prepare");
     const availableCompanions = state.companions.filter(companionAvailable);
     const injuredCompanions = state.companions.filter((companion) => companion.condition === "injured");
+    const recoveringCompanions = state.companions.filter((companion) => companion.condition === "recovering");
     form.append(
       choiceGroup("遠征先", "destination", state.destinations, state.destinations[0].id, (d) => `危険: ${d.dangerTags.join("・")} / 約${Math.round(d.durationMs / 60000)}分`),
-      choiceGroup("仲間", "companion", state.companions, availableCompanions[0]?.id, (c) => `${c.origin} / ${c.traits.join("・")} / ${c.condition}`),
+      choiceGroup("仲間", "companion", state.companions, availableCompanions[0]?.id, (c) => `${c.origin} / ${c.traits.join("・")} / ${recoveryLabel(c)}`),
       choiceGroup("方針", "policy", Object.values(system.policies), "standard", (p) => p.id === "cautious" ? "負傷や危険で早めに引く" : p.id === "greedy" ? "成果のため危険を受け入れる" : "生還と成果の中間")
     );
 
@@ -185,28 +199,30 @@
     if (!availableCompanions.length) {
       dispatch.disabled = true;
       dispatch.textContent = "派遣できる仲間がいない";
-      feedback.textContent = injuredCompanions.length
-        ? "全員が負傷中。休養させると再び派遣できる。"
-        : "今すぐ遠征に出せる仲間がいない。";
+      if (recoveringCompanions.length) {
+        feedback.textContent = `休養中の仲間が${recoveringCompanions.length}人いる。${recoveringCompanions.map((companion) => `${companion.name}: ${recoveryLabel(companion)}`).join(" / ")}`;
+      } else if (injuredCompanions.length) {
+        feedback.textContent = "全員が負傷中。灰炉で休養を始めると、10分後に再び派遣できる。";
+      } else {
+        feedback.textContent = "今すぐ遠征に出せる仲間がいない。";
+      }
     }
 
     if (injuredCompanions.length) {
-      const recover = el("button", "expedition-secondary", "灰炉で休養する");
+      const recover = el("button", "expedition-secondary", "灰炉で休養を始める");
       recover.type = "button";
       recover.addEventListener("click", () => {
-        state.companions.forEach((companion) => {
-          if (companion.condition !== "injured") return;
-          companion.condition = "healthy";
-          companion.history = `${companion.history || ""} / 灰炉で休養`;
-        });
+        state = system.startRecovery(state, injuredCompanions.map((companion) => companion.id), Date.now());
         save(state);
         content.replaceChildren();
         renderPrepare(content);
       });
       actions.append(recover);
       if (availableCompanions.length) {
-        feedback.textContent = `負傷中の仲間が${injuredCompanions.length}人いる。灰炉で休ませると次の遠征へ戻せる。`;
+        feedback.textContent = `負傷中の仲間が${injuredCompanions.length}人いる。休養を始めても健康な仲間はそのまま遠征へ出せる。`;
       }
+    } else if (recoveringCompanions.length && availableCompanions.length) {
+      feedback.textContent = `休養中: ${recoveringCompanions.map((companion) => `${companion.name} ${recoveryLabel(companion)}`).join(" / ")}`;
     }
 
     actions.append(dispatch);
@@ -548,7 +564,8 @@
   refresh(Date.now());
   updateGateCopy();
   window.setInterval(() => {
-    if (!state.activeExpedition) return;
+    const hasRecoveringCompanion = state.companions.some((companion) => companion.condition === "recovering");
+    if (!state.activeExpedition && !hasRecoveringCompanion) return;
     refresh(Date.now());
     const shell = document.getElementById("expedition-folio");
     if (shell && shell.classList.contains("is-open")) render();
