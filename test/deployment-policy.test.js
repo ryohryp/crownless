@@ -57,9 +57,13 @@ test('Vercel Production stays manual-only while retaining production smoke check
   assert.match(workflow, /payload\.timeoutMs\) > DEFAULT_TIMEOUT_MS/);
 });
 
-test('scheduled geography health uses the background enrichment budget', () => {
+test('scheduled geography health retries one transient failure without weakening validation', () => {
   const workflow = read('.github/workflows/geography-health.yml');
+  assert.match(workflow, /for attempt in 1 2/);
   assert.match(workflow, /--max-time 18/);
-  assert.match(workflow, /geography enrichment API within 18 seconds/);
+  assert.match(workflow, /sleep 2/);
+  assert.match(workflow, /GEOGRAPHY_HEALTH_ATTEMPTS=\$attempt/);
+  assert.match(workflow, /within two 18-second attempts/);
+  assert.match(workflow, /payload\.attempts\.some\(\(attempt\) => attempt && attempt\.state === "success"\)/);
   assert.match(workflow, /Gameplay impact: non-blocking enrichment/);
 });
