@@ -33,7 +33,22 @@
     });
   }
 
+  function encounterForExpedition(snapshot, knownDestinations, expeditionState, expedition) {
+    const destinationId = cleanKey(expedition && expedition.inputs && expedition.inputs.destinationId);
+    if (!destinationId) return null;
+
+    const destinations = Array.isArray(expeditionState && expeditionState.destinations)
+      ? expeditionState.destinations
+      : [];
+    const destination = destinations.find((entry) => cleanKey(entry && entry.id) === destinationId);
+    const discoveryKey = cleanKey(destination && destination.discoveryKey);
+    if (!discoveryKey) return null;
+
+    return encounterAtDiscovery(snapshot, knownDestinations, discoveryKey);
+  }
+
   return Object.freeze({
-    encounterAtDiscovery
+    encounterAtDiscovery,
+    encounterForExpedition
   });
 });
