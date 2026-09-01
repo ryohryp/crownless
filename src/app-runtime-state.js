@@ -155,20 +155,71 @@ var audioContext = null;
     document.body.appendChild(lorePresentation);
   }
 
+  function loadReunionPresentation() {
+    const existingPresentation = document.querySelector('script[src="src/world-atlas-reunion-presentation.js"]');
+    if (existingPresentation) {
+      if (window.CrownlessWorldAtlasReunionPresentation) loadLorePresentation();
+      else {
+        existingPresentation.addEventListener("load", loadLorePresentation, { once: true });
+        existingPresentation.addEventListener("error", loadLorePresentation, { once: true });
+      }
+      return;
+    }
+    const presentation = document.createElement("script");
+    presentation.src = "src/world-atlas-reunion-presentation.js";
+    presentation.onload = loadLorePresentation;
+    presentation.onerror = loadLorePresentation;
+    document.body.appendChild(presentation);
+  }
+
+  function loadReunionEncounter() {
+    const existingEncounter = document.querySelector('script[src="src/npc-reunion-encounter.js"]');
+    if (existingEncounter) {
+      if (window.CrownlessNpcReunionEncounter) loadReunionPresentation();
+      else {
+        existingEncounter.addEventListener("load", loadReunionPresentation, { once: true });
+        existingEncounter.addEventListener("error", loadReunionPresentation, { once: true });
+      }
+      return;
+    }
+    const encounter = document.createElement("script");
+    encounter.src = "src/npc-reunion-encounter.js";
+    encounter.onload = loadReunionPresentation;
+    encounter.onerror = loadReunionPresentation;
+    document.body.appendChild(encounter);
+  }
+
+  function loadNpcLifeForAtlas() {
+    const existingNpcLife = document.querySelector('script[src="src/npc-life.js"]');
+    if (existingNpcLife) {
+      if (window.CrownlessNpcLife) loadReunionEncounter();
+      else {
+        existingNpcLife.addEventListener("load", loadReunionEncounter, { once: true });
+        existingNpcLife.addEventListener("error", loadReunionEncounter, { once: true });
+      }
+      return;
+    }
+    const npcLife = document.createElement("script");
+    npcLife.src = "src/npc-life.js";
+    npcLife.onload = loadReunionEncounter;
+    npcLife.onerror = loadReunionEncounter;
+    document.body.appendChild(npcLife);
+  }
+
   function loadSelectionPreview() {
     const existingPreview = document.querySelector('script[src="src/world-atlas-selection-preview.js"]');
     if (existingPreview) {
-      if (window.CrownlessWorldAtlasPreview) loadLorePresentation();
+      if (window.CrownlessWorldAtlasPreview) loadNpcLifeForAtlas();
       else {
-        existingPreview.addEventListener("load", loadLorePresentation, { once: true });
-        existingPreview.addEventListener("error", loadLorePresentation, { once: true });
+        existingPreview.addEventListener("load", loadNpcLifeForAtlas, { once: true });
+        existingPreview.addEventListener("error", loadNpcLifeForAtlas, { once: true });
       }
       return;
     }
     const preview = document.createElement("script");
     preview.src = "src/world-atlas-selection-preview.js";
-    preview.onload = loadLorePresentation;
-    preview.onerror = loadLorePresentation;
+    preview.onload = loadNpcLifeForAtlas;
+    preview.onerror = loadNpcLifeForAtlas;
     document.body.appendChild(preview);
   }
 
