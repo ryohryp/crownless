@@ -44,6 +44,65 @@
     });
   }
 
+  function reunionRecordKey(encounter) {
+    const npcId = cleanText(encounter && encounter.npcId);
+    const discoveryKey = cleanText(encounter && encounter.discoveryKey);
+    return npcId && discoveryKey ? `${npcId}|${discoveryKey}` : "";
+  }
+
+  function reunionRecord(root, encounter) {
+    const key = reunionRecordKey(encounter);
+    if (!key) return null;
+    const safe = safeState(root);
+    const reunions = safe && safe.npcLife && safe.npcLife.reunions;
+    if (!reunions || typeof reunions !== "object" || Array.isArray(reunions)) return null;
+    const record = reunions[key];
+    if (!record || typeof record !== "object") return null;
+    if (cleanText(record.npcId) !== cleanText(encounter.npcId)) return null;
+    if (cleanText(record.discoveryKey) !== cleanText(encounter.discoveryKey)) return null;
+    return Object.freeze({
+      npcId: cleanText(record.npcId),
+      discoveryKey: cleanText(record.discoveryKey),
+      firstReunitedAt: Math.max(0, Number(record.firstReunitedAt) || 0)
+    });
+  }
+
+  function recordReunion(root, encounter, now = Date.now()) {
+    const Core = root && root.CrownlessCore;
+    const key = reunionRecordKey(encounter);
+    if (!key || !Core || typeof Core.loadSafeState !== "function" || typeof Core.saveSafeState !== "function") {
+      return Object.freeze({ added: false, persisted: false, record: null });
+    }
+    const safe = safeState(root);
+    if (!safe || typeof safe !== "object") return Object.freeze({ added: false, persisted: false, record: null });
+    if (!safe.npcLife || typeof safe.npcLife !== "object" || Array.isArray(safe.npcLife)) safe.npcLife = {};
+    if (!safe.npcLife.reunions || typeof safe.npcLife.reunions !== "object" || Array.isArray(safe.npcLife.reunions)) safe.npcLife.reunions = {};
+
+    const existing = safe.npcLife.reunions[key];
+    if (existing && typeof existing === "object") {
+      return Object.freeze({
+        added: false,
+        persisted: true,
+        record: Object.freeze({
+          npcId: cleanText(existing.npcId),
+          discoveryKey: cleanText(existing.discoveryKey),
+          firstReunitedAt: Math.max(0, Number(existing.firstReunitedAt) || 0)
+        })
+      });
+    }
+
+    const timestamp = Number(now instanceof Date ? now.getTime() : now);
+    const record = {
+      npcId: cleanText(encounter.npcId),
+      discoveryKey: cleanText(encounter.discoveryKey),
+      firstReunitedAt: Number.isFinite(timestamp) && timestamp > 0 ? timestamp : Date.now()
+    };
+    safe.npcLife.reunions[key] = record;
+    let persisted = false;
+    try { persisted = Core.saveSafeState(safe) === true; } catch (_) { persisted = false; }
+    return Object.freeze({ added: persisted, persisted, record: persisted ? Object.freeze({ ...record }) : null });
+  }
+
   function syncReunion(document, root, entry, now = new Date()) {
     const viewer = document && document.getElementById("world-atlas-viewer");
     const detail = viewer && viewer.querySelector(".world-atlas-detail");
@@ -53,10 +112,11 @@
     const encounter = reunionForEntry(root, entry, now);
     if (!encounter) return false;
 
+    const previous = reunionRecord(root, encounter);
     const note = document.createElement("p");
     note.className = "world-atlas-reunion-note";
     note.dataset.npcId = encounter.npcId;
-    note.textContent = `再会 / ${encounter.message}`;
+    note.textContent = `再会 / ${encounter.message}${previous ? " 以前にもここで会った。" : ""}`;
     const clue = reunionClueForEntry(root, entry, now);
     if (clue) {
       const clueText = document.createElement("span");
@@ -65,6 +125,7 @@
       note.appendChild(clueText);
     }
     detail.appendChild(note);
+    recordReunion(root, encounter, now);
     return true;
   }
 
@@ -117,6 +178,9 @@
   return Object.freeze({
     reunionForEntry,
     reunionClueForEntry,
+    reunionRecordKey,
+    reunionRecord,
+    recordReunion,
     syncReunion,
     install
   });
