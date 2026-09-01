@@ -23,6 +23,10 @@ var audioContext = null;
   let presentationReady = false;
   let replayQueued = false;
 
+  // app.js still owns the transition-era click handler. The expedition slice
+  // is loaded dynamically, so a fast click can otherwise reach that old
+  // handler before expedition-presentation.js has installed its capture
+  // listener. Hold the click until the new entry point is ready.
   if (gate) {
     gate.addEventListener("click", function holdGateUntilExpeditionReady(event) {
       if (presentationReady) return;
@@ -72,6 +76,9 @@ var audioContext = null;
     document.body.appendChild(domain);
   }
 
+  // Issue #211: battle compositions remain a pure optional presentation layer.
+  // A missing helper must never block deterministic expedition resolution or
+  // the existing single-asset kamishibai fallback.
   function loadExpeditionComposition() {
     const composition = document.createElement("script");
     composition.src = "src/expedition-visual-composition.js";
@@ -80,6 +87,9 @@ var audioContext = null;
     document.body.appendChild(composition);
   }
 
+  // Issue #203: representative paper-theatre scenes are another pure
+  // projection of a completed report. Keep this optional so a scene-layer
+  // loading failure never blocks the deterministic expedition resolver.
   function loadExpeditionScenes() {
     const scenes = document.createElement("script");
     scenes.src = "src/expedition-scenes.js";
@@ -88,6 +98,9 @@ var audioContext = null;
     document.body.appendChild(scenes);
   }
 
+  // Issue #200: narrative generation is a separate deterministic projection of
+  // raw combat state. Load it independently so resolver rules never depend on
+  // prose generation, while the report presentation can opt into the layer.
   const narrative = document.createElement("script");
   narrative.src = "src/expedition-narrative.js";
   narrative.onload = loadExpeditionScenes;
