@@ -60,8 +60,11 @@ test("selected known destination resolves Marco as a reunion encounter while he 
     location: "north-road",
     locationLabel: "北の街道",
     state: "reunion",
-    message: "北の街道の古い渡し場でマルコを見つけた。"
+    message: "北の街道の古い渡し場で、旅の途中のマルコと再会した。"
   });
+  assert.match(encounter.message, /北の街道の古い渡し場/);
+  assert.match(encounter.message, /マルコ/);
+  assert.match(encounter.message, /再会/);
 });
 
 test("reunion encounter disappears outside Marco's travel window", () => {

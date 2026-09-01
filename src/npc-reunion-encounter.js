@@ -29,7 +29,7 @@
       location: candidate.location,
       locationLabel: candidate.locationLabel,
       state: "reunion",
-      message: `${candidate.destinationName}で${candidate.targetName}を見つけた。`
+      message: `${candidate.destinationName}で、旅の途中の${candidate.targetName}と再会した。`
     });
   }
 
