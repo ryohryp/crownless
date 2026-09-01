@@ -23,9 +23,11 @@ test("dispatch form reports validation failures instead of failing silently", ()
   assert.match(presentation, /遠征を開始できない:/);
 });
 
-test("all-injured parties can recover at the hearth instead of deadlocking dispatch", () => {
+test("all-injured parties can start timed recovery without deadlocking the hearth", () => {
   assert.match(presentation, /availableCompanions\.length/);
-  assert.match(presentation, /灰炉で休養する/);
+  assert.match(presentation, /灰炉で休養を始める/);
   assert.match(presentation, /companion\.condition === "injured"/);
-  assert.match(presentation, /companion\.condition = "healthy"/);
+  assert.match(presentation, /system\.startRecovery\(/);
+  assert.match(presentation, /companion\.condition === "recovering"/);
+  assert.doesNotMatch(presentation, /companion\.condition = "healthy"/);
 });
