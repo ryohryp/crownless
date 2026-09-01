@@ -50,7 +50,7 @@ jobs:
             fi
 
             if [ "$attempt" -eq 1 ]; then
-              echo "Transient Production geography failure; retrying once in 2 seconds." >&2
+              echo "Transient Production geography transport failure; retrying once in 2 seconds." >&2
               sleep 2
             fi
           done
@@ -65,7 +65,7 @@ jobs:
               "## Geography Production failure", "",
               `- Final HTTP status: ${process.env.GEOGRAPHY_FAILURE_STATUS || "unknown"}`,
               "- Health-check attempts: 2/2",
-              "- Gameplay impact: non-blocking enrichment"
+              "- Gameplay impact: simulated discovery remains available"
             ];
 
             if (!responsePath || !fs.existsSync(responsePath)) {
@@ -95,29 +95,41 @@ jobs:
 
             fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${lines.join("\n")}\n`);
             NODE
-            echo "Expected HTTP 200 from Production geography enrichment API within two 18-second attempts, last status $last_status" >&2
+            echo "Expected HTTP 200 from Production geography API within two 18-second attempts, last status $last_status" >&2
             exit 1
           fi
 
-      - name: Validate structured upstream history
+      - name: Validate structured upstream history or simulated fallback
         shell: bash
         run: |
           node <<'NODE'
           const fs = require("node:fs");
           const payload = JSON.parse(fs.readFileSync("/tmp/geography-response.json", "utf8"));
-          if (!payload.endpoint || typeof payload.endpoint !== "string") throw new Error("Missing successful geography endpoint");
           if (!Array.isArray(payload.attempts) || payload.attempts.length === 0) throw new Error("Missing geography attempt history");
-          if (!payload.attempts.some((attempt) => attempt && attempt.state === "success")) throw new Error("No successful upstream attempt recorded");
+          if (!Array.isArray(payload.elements)) throw new Error("Missing geography elements array");
 
+          const degraded = payload.degraded === true;
+          const successful = payload.attempts.filter((attempt) => attempt && attempt.state === "success");
           const failed = payload.attempts.filter((attempt) => attempt && attempt.state === "failed");
+
+          if (degraded) {
+            if (payload.fallback !== "simulated") throw new Error("Degraded geography response must select simulated fallback");
+            if (successful.length) throw new Error("Degraded geography response unexpectedly contains a successful upstream");
+            if (payload.endpoint != null) throw new Error("Degraded geography response must not claim a selected upstream endpoint");
+          } else {
+            if (!payload.endpoint || typeof payload.endpoint !== "string") throw new Error("Missing successful geography endpoint");
+            if (!successful.length) throw new Error("No successful upstream attempt recorded");
+          }
+
           const lines = [
             "## Geography Production health", "",
             `- Health-check attempts: ${process.env.GEOGRAPHY_HEALTH_ATTEMPTS || "1"}/2`,
-            `- Selected endpoint: \`${payload.endpoint}\``,
+            `- Mode: ${degraded ? "simulated fallback" : "live geography"}`,
+            `- Selected endpoint: ${degraded ? "none" : `\`${payload.endpoint}\``}`,
             `- Recorded attempts: ${payload.attempts.length}/${payload.total || payload.attempts.length}`,
             `- Timeout per upstream: ${payload.timeoutMs || "unknown"} ms`,
             `- Degraded mirrors recorded: ${failed.length}`,
-            "- Gameplay impact: non-blocking enrichment"
+            `- Gameplay impact: ${degraded ? "live enrichment unavailable; simulated discovery remains playable" : "non-blocking enrichment"}`
           ];
           for (const attempt of payload.attempts) {
             const status = attempt.httpStatus == null ? "-" : attempt.httpStatus;
@@ -125,6 +137,7 @@ jobs:
             const kind = attempt.failureKind || "-";
             lines.push(`- ${attempt.state}: \`${attempt.endpoint}\` — HTTP ${status}, ${duration}, ${kind}`);
           }
-          if (failed.length) lines.push("", "> Production is available, but one or more Overpass upstreams are degraded.");
+          if (degraded) lines.push("", "> All configured Overpass upstreams failed; Crownless deliberately fell back to simulated discovery.");
+          else if (failed.length) lines.push("", "> Production is available, but one or more Overpass upstreams are degraded.");
           fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${lines.join("\n")}\n`);
           NODE

@@ -57,15 +57,17 @@ test('Vercel Production stays manual-only while retaining production smoke check
   assert.match(workflow, /payload\.timeoutMs\) > DEFAULT_TIMEOUT_MS/);
 });
 
-test('scheduled geography health retries one transient failure without weakening validation', () => {
+test('scheduled geography health retries transport failure and accepts explicit simulated fallback', () => {
   const workflow = read('.github/workflows/geography-health.yml');
   assert.match(workflow, /for attempt in 1 2/);
   assert.match(workflow, /--max-time 18/);
   assert.match(workflow, /sleep 2/);
   assert.match(workflow, /GEOGRAPHY_HEALTH_ATTEMPTS=\$attempt/);
   assert.match(workflow, /within two 18-second attempts/);
-  assert.match(workflow, /payload\.attempts\.some\(\(attempt\) => attempt && attempt\.state === "success"\)/);
-  assert.match(workflow, /Gameplay impact: non-blocking enrichment/);
+  assert.match(workflow, /const degraded = payload\.degraded === true/);
+  assert.match(workflow, /payload\.fallback !== "simulated"/);
+  assert.match(workflow, /successful\.length/);
+  assert.match(workflow, /Gameplay impact:/);
 });
 
 test('scheduled geography health preserves structured upstream diagnostics on sustained failure', () => {
