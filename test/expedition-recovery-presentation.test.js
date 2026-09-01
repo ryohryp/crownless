@@ -45,7 +45,7 @@ test("latest return report offers direct timed recovery only for currently injur
   assert.match(eligibility, /latestReport\.expeditionId !== report\.expeditionId/);
   assert.match(eligibility, /injuredIds\.has\(companion\.id\) && companion\.condition === "injured"/);
 
-  const report = functionBody("renderReport", "document.addEventListener");
+  const report = functionBody("renderReport");
   assert.match(report, /負傷者を休ませて次を準備する/);
   assert.match(report, /system\.startRecovery\(state, recoverableCompanions\.map\(\(companion\) => companion\.id\), Date\.now\(\)\)/);
   assert.match(report, /save\(state\)/);
