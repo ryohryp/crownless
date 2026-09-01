@@ -142,21 +142,27 @@ test("reunion candidates stay empty without a matching known place or outside tr
   assert.deepEqual(NpcLife.reunionCandidates(NpcLife.snapshotAt(11), null), []);
 });
 
-test("Hearth status tells the player who is present, where residents went, dialogue, and the exploration lead", () => {
+test("Hearth status shows presence and absence while rumors disclose relevant travel details", () => {
   const morning = NpcLife.formatHearthStatus(NpcLife.snapshotAt(7));
   const midday = NpcLife.formatHearthStatus(NpcLife.snapshotAt(11));
   const afternoon = NpcLife.formatHearthStatus(NpcLife.snapshotAt(15));
 
   assert.match(morning, /マルコ（行商人）/);
-  assert.match(morning, /エドガー→工房/);
+  assert.match(morning, /エドガー（不在）/);
+  assert.doesNotMatch(morning, /エドガー→工房/);
   assert.doesNotMatch(morning, /旅の途中/);
   assert.doesNotMatch(morning, /ミラ「/);
   assert.doesNotMatch(morning, /探索の手がかり/);
+
   assert.match(midday, /ミラ（薬師）/);
-  assert.match(midday, /マルコ→北の街道・旅の途中/);
+  assert.match(midday, /マルコ（不在・旅の途中）/);
+  assert.doesNotMatch(midday, /マルコ→北の街道/);
   assert.match(midday, /ミラ「マルコなら北の街道へ向かったよ。帰りに薬瓶を運んでくれるって。」/);
   assert.match(midday, /探索の手がかり: 北の街道/);
   assert.match(midday, /旅の途中のマルコを追えば/);
+
+  assert.match(afternoon, /不在:/);
+  assert.doesNotMatch(afternoon, /エドガー→|マルコ→|ミラ→/);
   assert.doesNotMatch(afternoon, /ミラ「/);
   assert.doesNotMatch(afternoon, /探索の手がかり/);
 });

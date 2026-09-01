@@ -205,9 +205,9 @@
     });
   }
 
-  function formatResidentTrail(resident) {
+  function formatAwayResident(resident) {
     const state = resident.state && resident.state !== STATES.NORMAL ? `・${resident.stateLabel || resident.state}` : "";
-    return `${resident.name}→${resident.locationLabel}${state}`;
+    return `${resident.name}（不在${state}）`;
   }
 
   function formatHearthStatus(snapshot) {
@@ -224,13 +224,13 @@
     if (present.length) {
       const names = present.map((resident) => `${resident.name}（${resident.role}）`).join("、");
       const away = residents.filter((resident) => !resident.atHearth);
-      const trail = away.length
-        ? ` / ${away.map(formatResidentTrail).join("・")}`
+      const absence = away.length
+        ? ` / 不在: ${away.map(formatAwayResident).join("、")}`
         : "";
-      return `炉端にいる: ${names}${trail}${dialogue}${exploration}`;
+      return `炉端にいる: ${names}${absence}${dialogue}${exploration}`;
     }
     if (!residents.length) return "住人の気配はまだない。";
-    return `炉端は空席 / ${residents.map(formatResidentTrail).join("・")}${dialogue}${exploration}`;
+    return `炉端は空席 / 不在: ${residents.map(formatAwayResident).join("、")}${dialogue}${exploration}`;
   }
 
   return Object.freeze({
