@@ -305,9 +305,10 @@
     const party = exp.inputs.companionIds.map((id) => state.companions.find((c) => c.id === id)).filter(Boolean);
     const now = Date.now();
     const remaining = Math.max(0, exp.expectedReturnAt - now);
+    const expectedReturn = formatLiveClock(exp.expectedReturnAt);
     content.append(heading("DISPATCHED / WAIT", destination ? destination.name : "遠征中", `${party.map((c) => c.name).join("、")}がまだ戻っていない。遠征中に届いた記録だけがここへ追記される。`));
     const status = el("div", "expedition-active");
-    status.append(el("strong", "", `帰還まで 約${Math.max(1, Math.ceil(remaining / 60000))}分`), el("p", "", `方針: ${system.policies[exp.inputs.policyId].name} / seed ${exp.seed}`));
+    status.append(el("strong", "", `帰還まで 約${Math.max(1, Math.ceil(remaining / 60000))}分`), el("p", "", `方針: ${system.policies[exp.inputs.policyId].name} / ${expectedReturn} 帰還予定`));
     const check = el("button", "expedition-dispatch", "最新の記録を確認する");
     check.type = "button";
     check.addEventListener("click", () => { refresh(Date.now()); render(); });
