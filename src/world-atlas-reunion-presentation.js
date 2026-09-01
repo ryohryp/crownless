@@ -7,6 +7,8 @@
 })(typeof globalThis !== "undefined" ? globalThis : this, function createWorldAtlasReunionPresentation() {
   "use strict";
 
+  const EXPEDITION_STORAGE_KEY = "crownless.expedition-poc.v1";
+
   function cleanText(value) {
     return String(value == null ? "" : value).trim();
   }
@@ -103,6 +105,81 @@
     return Object.freeze({ added: persisted, persisted, record: persisted ? Object.freeze({ ...record }) : null });
   }
 
+  function expeditionState(root) {
+    const System = root && root.CrownlessExpeditionSystem;
+    const storage = root && root.localStorage;
+    if (!System || typeof System.normalizeState !== "function" || !storage || typeof storage.getItem !== "function") return null;
+    try {
+      return System.normalizeState(JSON.parse(storage.getItem(EXPEDITION_STORAGE_KEY) || "null"));
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function reunionForExpeditionReport(root, report) {
+    const NpcLife = root && root.CrownlessNpcLife;
+    const Encounter = root && root.CrownlessNpcReunionEncounter;
+    const state = expeditionState(root);
+    const safe = safeState(root);
+    const discoveries = safe && safe.worldKnowledge && safe.worldKnowledge.discoveries;
+    if (!report || !state || !NpcLife || typeof NpcLife.snapshotAt !== "function" || !Encounter || typeof Encounter.encounterForExpedition !== "function") return null;
+    if (!discoveries || typeof discoveries !== "object" || Array.isArray(discoveries)) return null;
+    const completedAt = Number(report.completedAt);
+    if (!Number.isFinite(completedAt) || completedAt <= 0) return null;
+    return Encounter.encounterForExpedition(
+      NpcLife.snapshotAt(new Date(completedAt)),
+      discoveries,
+      state,
+      { inputs: { destinationId: cleanText(report.destinationId) } }
+    );
+  }
+
+  function expeditionReportReunion(root, report) {
+    const state = expeditionState(root);
+    const encounter = reunionForExpeditionReport(root, report);
+    if (!state || !encounter) return null;
+    const latest = Array.isArray(state.completedReports) && state.completedReports[0] && cleanText(state.completedReports[0].expeditionId) === cleanText(report.expeditionId);
+    let record = reunionRecord(root, encounter);
+    if (!record && latest) record = recordReunion(root, encounter, report.completedAt).record;
+    if (!record) return null;
+    return Object.freeze({ encounter, record, latest });
+  }
+
+  function reportForFolio(document, root) {
+    const summary = document && document.querySelector && document.querySelector("#expedition-folio-content [data-expedition-summary]");
+    if (!summary) return null;
+    const state = expeditionState(root);
+    if (!state || !Array.isArray(state.completedReports) || !state.completedReports.length) return null;
+    const history = document.querySelector("#expedition-folio-content .expedition-report-history select");
+    const expeditionId = cleanText(history && history.value) || cleanText(state.completedReports[0].expeditionId);
+    return state.completedReports.find((report) => cleanText(report && report.expeditionId) === expeditionId) || null;
+  }
+
+  function syncExpeditionReunion(document, root) {
+    const summary = document && document.querySelector && document.querySelector("#expedition-folio-content [data-expedition-summary]");
+    const existing = document && document.querySelector && document.querySelector("#expedition-folio-content .expedition-reunion-note");
+    if (!summary) {
+      if (existing) existing.remove();
+      return false;
+    }
+    const report = reportForFolio(document, root);
+    const reunion = expeditionReportReunion(root, report);
+    if (!reunion) {
+      if (existing) existing.remove();
+      return false;
+    }
+    const text = `再会 / ${reunion.encounter.message}`;
+    if (existing && existing.dataset.expeditionId === cleanText(report.expeditionId) && existing.textContent === text) return true;
+    if (existing) existing.remove();
+    const note = document.createElement("p");
+    note.className = "expedition-reunion-note";
+    note.dataset.expeditionId = cleanText(report.expeditionId);
+    note.dataset.npcId = reunion.encounter.npcId;
+    note.textContent = text;
+    summary.parentNode.insertBefore(note, summary);
+    return true;
+  }
+
   function syncReunion(document, root, entry, now = new Date()) {
     const viewer = document && document.getElementById("world-atlas-viewer");
     const detail = viewer && viewer.querySelector(".world-atlas-detail");
@@ -124,7 +201,7 @@
     if (!document || document.getElementById("world-atlas-reunion-styles")) return;
     const style = document.createElement("style");
     style.id = "world-atlas-reunion-styles";
-    style.textContent = ".world-atlas-reunion-note{margin:.55rem 0 0;padding:.45rem .55rem;border-left:2px solid currentColor;font-size:.78rem;line-height:1.55;font-style:normal;}.world-atlas-reunion-clue{display:block;margin-top:.3rem;opacity:.88;}";
+    style.textContent = ".world-atlas-reunion-note{margin:.55rem 0 0;padding:.45rem .55rem;border-left:2px solid currentColor;font-size:.78rem;line-height:1.55;font-style:normal;}.world-atlas-reunion-clue{display:block;margin-top:.3rem;opacity:.88;}.expedition-reunion-note{margin:.7rem 0;padding:.55rem .65rem;border-left:2px solid currentColor;font-size:.86rem;line-height:1.55;}";
     document.head.appendChild(style);
   }
 
@@ -150,16 +227,21 @@
     }
 
     document.addEventListener("pointerup", (event) => { syncFromTarget(event && event.target); }, true);
-    document.addEventListener("click", (event) => { syncFromTarget(event && event.target); }, true);
+    document.addEventListener("click", (event) => {
+      syncFromTarget(event && event.target);
+      queueMicrotask(() => syncExpeditionReunion(document, root));
+    }, true);
 
     const observer = new MutationObserver((records) => {
       const opened = records.some((record) => Array.from(record.addedNodes || []).some((node) => node.nodeType === 1 && (
         node.id === "world-atlas-viewer" || node.querySelector?.("#world-atlas-viewer")
       )));
-      if (!opened) return;
       queueMicrotask(() => {
-        const viewer = document.getElementById("world-atlas-viewer");
-        if (viewer) syncReunion(document, root, defaultEntry(root, viewer));
+        if (opened) {
+          const viewer = document.getElementById("world-atlas-viewer");
+          if (viewer) syncReunion(document, root, defaultEntry(root, viewer));
+        }
+        syncExpeditionReunion(document, root);
       });
     });
     observer.observe(document.body, { childList: true, subtree: true });
@@ -172,6 +254,11 @@
     reunionRecordKey,
     reunionRecord,
     recordReunion,
+    expeditionState,
+    reunionForExpeditionReport,
+    expeditionReportReunion,
+    reportForFolio,
+    syncExpeditionReunion,
     syncReunion,
     install
   });
