@@ -145,6 +145,16 @@
     return Object.freeze({ encounter, record, latest });
   }
 
+  function latestExpeditionReport(root) {
+    const state = expeditionState(root);
+    return state && Array.isArray(state.completedReports) ? state.completedReports[0] || null : null;
+  }
+
+  function syncLatestExpeditionReunion(root) {
+    const report = latestExpeditionReport(root);
+    return report ? expeditionReportReunion(root, report) : null;
+  }
+
   function reportForFolio(document, root) {
     const summary = document && document.querySelector && document.querySelector("#expedition-folio-content [data-expedition-summary]");
     if (!summary) return null;
@@ -156,6 +166,7 @@
   }
 
   function syncExpeditionReunion(document, root) {
+    syncLatestExpeditionReunion(root);
     const summary = document && document.querySelector && document.querySelector("#expedition-folio-content [data-expedition-summary]");
     const existing = document && document.querySelector && document.querySelector("#expedition-folio-content .expedition-reunion-note");
     if (!summary) {
@@ -245,6 +256,7 @@
       });
     });
     observer.observe(document.body, { childList: true, subtree: true });
+    queueMicrotask(() => syncLatestExpeditionReunion(root));
     return true;
   }
 
@@ -257,6 +269,8 @@
     expeditionState,
     reunionForExpeditionReport,
     expeditionReportReunion,
+    latestExpeditionReport,
+    syncLatestExpeditionReunion,
     reportForFolio,
     syncExpeditionReunion,
     syncReunion,
