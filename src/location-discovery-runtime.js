@@ -10,6 +10,7 @@
   const originalBeginExpedition = typeof Core.beginExpedition === "function" ? Core.beginExpedition.bind(Core) : null;
   const originalContinueExpedition = typeof Core.continueExpedition === "function" ? Core.continueExpedition.bind(Core) : null;
   const GEOLOCATION_OPTIONS = Object.freeze({ enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 });
+  const GEOLOCATION_MAX_ATTEMPTS = 2;
   const TERRAIN_LABELS = Object.freeze({ water: "水辺", crossing: "渡り場", sacred: "聖域", woods: "森", road_hub: "街道の結節", height: "高地", coast: "海辺", settlement: "集落" });
   const QA_WATCHTOWER_MODE = (() => {
     try { return new URLSearchParams(window.location.search).get("qa") === "watchtower"; }
@@ -17,7 +18,7 @@
   })();
   let geographicDiscoveries = [], locationState = "idle", locationPromise = null, knowledgeToastTimer = null, currentAreaId = "";
 
-  function emptyDiagnostics(gps = "idle") { return { gps, gpsCode: null, gpsName: "", gpsMessage: "", gpsElapsedMs: null, gpsOptions: Object.assign({}, GEOLOCATION_OPTIONS), osm: "idle", endpoint: "-", attempt: 0, total: 0, httpStatus: null, discoveries: 0, features: [], names: [], error: "" }; }
+  function emptyDiagnostics(gps = "idle") { return { gps, gpsCode: null, gpsName: "", gpsMessage: "", gpsElapsedMs: null, gpsOptions: Object.assign({}, GEOLOCATION_OPTIONS), gpsAttempt: 0, gpsTotal: GEOLOCATION_MAX_ATTEMPTS, gpsRetrying: false, gpsLastFailure: null, osm: "idle", endpoint: "-", attempt: 0, total: 0, httpStatus: null, discoveries: 0, features: [], names: [], error: "" }; }
   let diagnostics = emptyDiagnostics();
 
   function clone(value) { return JSON.parse(JSON.stringify(value)); }
@@ -215,6 +216,7 @@
   }
 
   function classifyGeolocationError(error) { const code = Number(error && error.code) || 0; if (code === 1) return { code, name: "PERMISSION_DENIED", state: "denied" }; if (code === 2) return { code, name: "POSITION_UNAVAILABLE", state: "unavailable" }; if (code === 3) return { code, name: "TIMEOUT", state: "timeout" }; return { code, name: "UNKNOWN", state: "error" }; }
+  function shouldRetryGeolocation(error, attempt) { const code = Number(error && error.code) || 0; return attempt < GEOLOCATION_MAX_ATTEMPTS && (code === 2 || code === 3); }
   function createQaWatchtowerDiscovery() {
     return {
       id: "qa-ruined-watchtower",
@@ -246,9 +248,9 @@
     diagnostics.names = ["QA固定候補"];
     if (error) diagnostics.error = `QA override: ${error && error.message ? error.message : String(error)}`;
   }
-  function statusText() { if (QA_WATCHTOWER_MODE && locationState === "loading") return "QAモード：崩れた物見台を候補に固定する。実地データの照合も並行している。"; if (QA_WATCHTOWER_MODE && locationState === "ready") return "QAモード：崩れた物見台を先頭候補に固定中。出現率とは別のE2E確認用。"; if (locationState === "loading") return "現在地の周囲に、道と水辺の痕跡を探している。通常の探索はそのまま始められる。"; if (locationState === "ready") return "現実で見つけた場所から、次の探索先を選べる。"; if (locationState === "denied") return "位置情報を使えないため、通常の探索候補を表示する。"; if (locationState === "failed") return "地理情報を読めなかったため、通常の探索候補を表示する。"; return ""; }
+  function statusText() { if (QA_WATCHTOWER_MODE && locationState === "loading") return "QAモード：崩れた物見台を候補に固定する。実地データの照合も並行している。"; if (QA_WATCHTOWER_MODE && locationState === "ready") return "QAモード：崩れた物見台を先頭候補に固定中。出現率とは別のE2E確認用。"; if (locationState === "loading" && diagnostics.gpsRetrying) return "現在地を再確認している。通常の探索はそのまま始められる。"; if (locationState === "loading") return "現在地の周囲に、道と水辺の痕跡を探している。通常の探索はそのまま始められる。"; if (locationState === "ready") return "現実で見つけた場所から、次の探索先を選べる。"; if (locationState === "denied") return "位置情報を使えないため、通常の探索候補を表示する。"; if (locationState === "failed") return "地理情報を読めなかったため、通常の探索候補を表示する。"; return ""; }
   function endpointLabel(endpoint) { if (!endpoint || endpoint === "-") return "-"; try { return new URL(endpoint).host; } catch (_) { return endpoint; } }
-  function diagnosticText() { const osmDetail = diagnostics.endpoint && diagnostics.endpoint !== "-" ? `${diagnostics.osm}@${endpointLabel(diagnostics.endpoint)}` : diagnostics.osm || "-"; const gpsDetail = diagnostics.gpsCode ? `${diagnostics.gps}(${diagnostics.gpsCode}:${diagnostics.gpsName})` : diagnostics.gps; const parts = [`GPS:${gpsDetail}`, `OSM:${osmDetail}`, `発見:${diagnostics.discoveries}`]; if (QA_WATCHTOWER_MODE) parts.unshift("QA:watchtower"); if (diagnostics.gpsElapsedMs !== null) parts.push(`GPS時間:${diagnostics.gpsElapsedMs}ms`); if (diagnostics.gpsOptions) parts.push(`GPS設定:high=${diagnostics.gpsOptions.enableHighAccuracy},timeout=${diagnostics.gpsOptions.timeout},age=${diagnostics.gpsOptions.maximumAge}`); if (diagnostics.gpsMessage) parts.push(`GPS詳細:${diagnostics.gpsMessage}`); if (diagnostics.attempt && diagnostics.total) parts.push(`試行:${diagnostics.attempt}/${diagnostics.total}`); if (diagnostics.httpStatus) parts.push(`HTTP:${diagnostics.httpStatus}`); if (diagnostics.features.length) parts.push(`地形:${diagnostics.features.join("/")}`); if (diagnostics.names.length) parts.push(`地名:${diagnostics.names.join("/")}`); if (diagnostics.error) parts.push(`ERROR:${diagnostics.error}`); return parts.join(" ｜ "); }
+  function diagnosticText() { const osmDetail = diagnostics.endpoint && diagnostics.endpoint !== "-" ? `${diagnostics.osm}@${endpointLabel(diagnostics.endpoint)}` : diagnostics.osm || "-"; const gpsDetail = diagnostics.gpsCode ? `${diagnostics.gps}(${diagnostics.gpsCode}:${diagnostics.gpsName})` : diagnostics.gps; const parts = [`GPS:${gpsDetail}`, `OSM:${osmDetail}`, `発見:${diagnostics.discoveries}`]; if (QA_WATCHTOWER_MODE) parts.unshift("QA:watchtower"); if (diagnostics.gpsAttempt) parts.push(`GPS試行:${diagnostics.gpsAttempt}/${diagnostics.gpsTotal}`); if (diagnostics.gpsRetrying) parts.push("GPS再試行中"); if (diagnostics.gpsLastFailure) parts.push(`GPS前回:${diagnostics.gpsLastFailure.attempt}:${diagnostics.gpsLastFailure.name}:${diagnostics.gpsLastFailure.elapsedMs}ms`); if (diagnostics.gpsElapsedMs !== null) parts.push(`GPS時間:${diagnostics.gpsElapsedMs}ms`); if (diagnostics.gpsOptions) parts.push(`GPS設定:high=${diagnostics.gpsOptions.enableHighAccuracy},timeout=${diagnostics.gpsOptions.timeout},age=${diagnostics.gpsOptions.maximumAge}`); if (diagnostics.gpsMessage) parts.push(`GPS詳細:${diagnostics.gpsMessage}`); if (diagnostics.attempt && diagnostics.total) parts.push(`試行:${diagnostics.attempt}/${diagnostics.total}`); if (diagnostics.httpStatus) parts.push(`HTTP:${diagnostics.httpStatus}`); if (diagnostics.features.length) parts.push(`地形:${diagnostics.features.join("/")}`); if (diagnostics.names.length) parts.push(`地名:${diagnostics.names.join("/")}`); if (diagnostics.error) parts.push(`ERROR:${diagnostics.error}`); return parts.join(" ｜ "); }
   function terrainLabel(discovery) { const features = Array.isArray(discovery && discovery.features) ? discovery.features : []; const labels = features.map((feature) => TERRAIN_LABELS[feature] || feature); return labels.length ? labels.join(" / ") : "街道周辺"; }
   function contentKindLabel(discovery) { if (!discovery) return "気配"; if (discovery.contentKind === "dungeon") return "遺構"; if (discovery.contentKind === "encounter") return "遭遇"; return "異変"; }
   function ensureSearchPresentation(marker) { let search = document.getElementById("location-discovery-search"); if (search) return search; search = document.createElement("div"); search.id = "location-discovery-search"; search.className = "location-discovery-search"; search.setAttribute("role", "status"); search.setAttribute("aria-live", "polite"); search.innerHTML = `<div class="location-discovery-ink" aria-hidden="true"><i></i><i></i><i></i><b></b></div><div class="location-discovery-search-copy"><small>READING THE NEARBY WORLD</small><strong>現実の痕跡を照合中</strong><span>水辺、古い道、集落の気配を羊皮紙へ写している。</span></div>`; marker.insertAdjacentElement("beforebegin", search); return search; }
@@ -289,7 +291,54 @@
   function applySelectedGeographicDiscovery(next, slot) { if (!next || !next.expedition || !geographicDiscoveries.length) return next; const geographic = geographicDiscoveries[slot]; if (!geographic) return next; const exp = next.expedition, last = exp.lastDiscovery; enrichDiscovery(last, geographic); if (last && Array.isArray(exp.discoveries)) { const history = exp.discoveries.find((item) => item && item.id === last.id); if (history && history !== last) enrichDiscovery(history, geographic); } if (exp.encounter && exp.encounter.discovery) enrichDiscovery(exp.encounter.discovery, geographic); if (exp.pendingEvent && exp.pendingEvent.discovery) enrichDiscovery(exp.pendingEvent.discovery, geographic); return next; }
   Core.discoverLocation = function discoverLocationWithGeography(state, choiceId) { const slot = choiceSlot(state, choiceId); return recordWorldKnowledge(applySelectedGeographicDiscovery(originalDiscoverLocation(state, choiceId), slot)); };
 
-  function getCurrentLocation() { if (!navigator.geolocation) return Promise.reject(new Error("geolocation unavailable")); diagnostics.gps = "requesting"; diagnostics.gpsOptions = Object.assign({}, GEOLOCATION_OPTIONS); const startedAt = performance.now(); showLocationStatus(); return new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition((position) => { diagnostics.gps = "ok"; diagnostics.gpsElapsedMs = Math.round(performance.now() - startedAt); const location = { latitude: position.coords.latitude, longitude: position.coords.longitude }; const area = typeof Core.explorationAreaFromLocation === "function" ? Core.explorationAreaFromLocation(location) : null; currentAreaId = area && area.id ? area.id : ""; showLocationStatus(); resolve(location); }, (error) => { currentAreaId = ""; const classified = classifyGeolocationError(error); diagnostics.gps = classified.state; diagnostics.gpsCode = classified.code; diagnostics.gpsName = classified.name; diagnostics.gpsMessage = error && error.message ? error.message : ""; diagnostics.gpsElapsedMs = Math.round(performance.now() - startedAt); showLocationStatus(); reject(error); }, GEOLOCATION_OPTIONS)); }
+  function getCurrentLocation() {
+    if (!navigator.geolocation) return Promise.reject(new Error("geolocation unavailable"));
+    diagnostics.gpsOptions = Object.assign({}, GEOLOCATION_OPTIONS);
+    diagnostics.gpsTotal = GEOLOCATION_MAX_ATTEMPTS;
+
+    function requestPosition(attempt) {
+      diagnostics.gpsAttempt = attempt;
+      diagnostics.gpsRetrying = attempt > 1;
+      diagnostics.gps = attempt > 1 ? "retrying" : "requesting";
+      diagnostics.gpsCode = null;
+      diagnostics.gpsName = "";
+      diagnostics.gpsMessage = "";
+      const startedAt = performance.now();
+      showLocationStatus();
+      return new Promise((resolve, reject) => navigator.geolocation.getCurrentPosition((position) => {
+        diagnostics.gps = "ok";
+        diagnostics.gpsRetrying = false;
+        diagnostics.gpsElapsedMs = Math.round(performance.now() - startedAt);
+        const location = { latitude: position.coords.latitude, longitude: position.coords.longitude };
+        const area = typeof Core.explorationAreaFromLocation === "function" ? Core.explorationAreaFromLocation(location) : null;
+        currentAreaId = area && area.id ? area.id : "";
+        showLocationStatus();
+        resolve(location);
+      }, (error) => {
+        currentAreaId = "";
+        const classified = classifyGeolocationError(error);
+        const elapsedMs = Math.round(performance.now() - startedAt);
+        diagnostics.gps = classified.state;
+        diagnostics.gpsCode = classified.code;
+        diagnostics.gpsName = classified.name;
+        diagnostics.gpsMessage = error && error.message ? error.message : "";
+        diagnostics.gpsElapsedMs = elapsedMs;
+        diagnostics.gpsLastFailure = { attempt, code: classified.code, name: classified.name, message: diagnostics.gpsMessage, elapsedMs };
+        if (shouldRetryGeolocation(error, attempt)) {
+          diagnostics.gps = "retrying";
+          diagnostics.gpsRetrying = true;
+          showLocationStatus();
+          resolve(requestPosition(attempt + 1));
+          return;
+        }
+        diagnostics.gpsRetrying = false;
+        showLocationStatus();
+        reject(error);
+      }, GEOLOCATION_OPTIONS));
+    }
+
+    return requestPosition(1);
+  }
   function applyProviderStatus(status) { diagnostics.osm = status && status.state ? status.state : diagnostics.osm; diagnostics.endpoint = status && status.endpoint ? status.endpoint : diagnostics.endpoint; diagnostics.attempt = Number(status && status.attempt) || 0; diagnostics.total = Number(status && status.total) || diagnostics.total || 0; diagnostics.httpStatus = status && status.httpStatus ? status.httpStatus : null; diagnostics.error = status && status.state === "failed" ? (status.error || (status.timedOut ? "timeout" : "failed")) : ""; if (status && status.state === "success") { diagnostics.discoveries = Number(status.discoveries) || 0; diagnostics.features = Array.isArray(status.features) ? status.features.slice() : []; diagnostics.names = Array.isArray(status.names) ? status.names.slice() : []; } showLocationStatus(); }
   async function performGeographicDiscovery() { let provider = null; try { const location = await getCurrentLocation(); provider = GeographyApi.createProxyLocationDiscoveryProvider({ limit: 3, radius: 650, timeoutMs: 22000, endpoint: window.CROWNLESS_GEOGRAPHY_API || GeographyApi.DEFAULT_PROXY_ENDPOINT, onStatus: applyProviderStatus }); const discovered = await provider.discover({ location }); geographicDiscoveries = ensureQaWatchtowerDiscoveries(discovered); diagnostics.endpoint = provider.endpoint || diagnostics.endpoint || "unknown"; diagnostics.discoveries = geographicDiscoveries.length; diagnostics.features = [...new Set(geographicDiscoveries.flatMap((item) => item.features || []))]; diagnostics.names = [...new Set(geographicDiscoveries.map((item) => item.realPlaceName).filter(Boolean))]; locationState = geographicDiscoveries.length ? "ready" : "failed"; if (!geographicDiscoveries.length) diagnostics.error = "no matching discoveries"; } catch (error) { if (QA_WATCHTOWER_MODE) { geographicDiscoveries = ensureQaWatchtowerDiscoveries([]); locationState = "ready"; diagnostics.endpoint = provider && provider.endpoint ? provider.endpoint : diagnostics.endpoint || "-"; applyQaDiagnostics(error); } else { geographicDiscoveries = []; locationState = error && error.code === 1 ? "denied" : "failed"; diagnostics.endpoint = provider && provider.endpoint ? provider.endpoint : diagnostics.endpoint || "-"; diagnostics.error = provider && provider.error ? provider.error : (error && error.message ? error.message : "unknown error"); if (diagnostics.gps === "ok" && diagnostics.osm === "idle") diagnostics.osm = "failed"; } } return geographicDiscoveries; }
   function beginGeographicDiscoveryAfterPaint() { return new Promise((resolve) => requestAnimationFrame(() => requestAnimationFrame(resolve))).then(performGeographicDiscovery); }
@@ -305,9 +354,11 @@
     get state() { return locationState; },
     get discoveries() { return geographicDiscoveries.slice(); },
     get currentAreaId() { return currentAreaId; },
-    get diagnostics() { return Object.assign({}, diagnostics, { gpsOptions: Object.assign({}, diagnostics.gpsOptions), features: diagnostics.features.slice(), names: diagnostics.names.slice() }); },
+    get diagnostics() { return Object.assign({}, diagnostics, { gpsOptions: Object.assign({}, diagnostics.gpsOptions), gpsLastFailure: diagnostics.gpsLastFailure ? Object.assign({}, diagnostics.gpsLastFailure) : null, features: diagnostics.features.slice(), names: diagnostics.names.slice() }); },
     get qaMode() { return QA_WATCHTOWER_MODE ? "watchtower" : ""; },
     classifyGeolocationError,
+    shouldRetryGeolocation,
+    getCurrentLocation,
     terrainLabel,
     choiceSlot,
     worldKnowledgeKey,
