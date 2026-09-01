@@ -53,6 +53,17 @@ test("人物はゲームオブジェクトより背面に置き、reduced motion
   assert.match(residentCss, /\.hearth-resident \{ animation: none !important; \}/);
 });
 
+test("住人ラベルは常設HUDカードではなく名前だけの控えめな墨注記にする", () => {
+  const labelBlock = residentCss.match(/\.hearth-resident-label\s*\{([\s\S]*?)\n\}/)?.[1] || "";
+  const roleBlock = residentCss.match(/\.hearth-resident-label small\s*\{([\s\S]*?)\n\}/)?.[1] || "";
+  assert.match(labelBlock, /background:\s*linear-gradient\(/);
+  assert.match(labelBlock, /min-width:\s*0;/);
+  assert.doesNotMatch(labelBlock, /rgba\(8, 7, 6, \.58\)/);
+  assert.match(roleBlock, /width:\s*1px;/);
+  assert.match(roleBlock, /overflow:\s*hidden;/);
+  assert.match(roleBlock, /clip:\s*rect\(0, 0, 0, 0\)/);
+});
+
 test("PC幅では住人を中央のプレイヤーから左へ分離する", () => {
   assert.match(viewportCss, /@media \(min-width: 901px\)[\s\S]*?#hub-screen \.hearth-scene--empty-room \.hearth-character\s*\{[\s\S]*?left:\s*47%;/);
   assert.match(viewportCss, /@media \(min-width: 901px\)[\s\S]*?#hub-screen \.hearth-resident-layer\s*\{[\s\S]*?left:\s*32%;/);
