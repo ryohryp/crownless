@@ -38,3 +38,24 @@ test("prepare reconciles elapsed recovery before deriving available companions",
   assert.ok(reconcile >= 0 && available > reconcile);
   assert.match(body, /save\(state\)/);
 });
+
+test("latest return report offers direct timed recovery only for currently injured companions", () => {
+  const eligibility = functionBody("reportRecoverableCompanions", "renderReport");
+  assert.match(eligibility, /const latestReport = state\.completedReports\[0\]/);
+  assert.match(eligibility, /latestReport\.expeditionId !== report\.expeditionId/);
+  assert.match(eligibility, /injuredIds\.has\(companion\.id\) && companion\.condition === "injured"/);
+
+  const report = functionBody("renderReport");
+  assert.match(report, /負傷者を休ませて次を準備する/);
+  assert.match(report, /system\.startRecovery\(state, recoverableCompanions\.map\(\(companion\) => companion\.id\), Date\.now\(\)\)/);
+  assert.match(report, /save\(state\)/);
+  assert.match(report, /renderPrepare\(content\)/);
+});
+
+test("historical reports and already recovering companions cannot reapply recovery", () => {
+  const eligibility = functionBody("reportRecoverableCompanions", "renderReport");
+  assert.match(eligibility, /if \(!latestReport \|\| latestReport\.expeditionId !== report\.expeditionId\) return \[\]/);
+  assert.match(eligibility, /companion\.condition === "injured"/);
+  assert.doesNotMatch(eligibility, /condition === "recovering"/);
+  assert.doesNotMatch(eligibility, /condition === "healthy"/);
+});

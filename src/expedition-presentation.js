@@ -510,6 +510,13 @@
     content.append(field);
   }
 
+  function reportRecoverableCompanions(report) {
+    const latestReport = state.completedReports[0];
+    if (!latestReport || latestReport.expeditionId !== report.expeditionId) return [];
+    const injuredIds = new Set(Array.isArray(report.injuries) ? report.injuries : []);
+    return state.companions.filter((companion) => injuredIds.has(companion.id) && companion.condition === "injured");
+  }
+
   function renderReport(content, report) {
     renderReportHistory(content, report);
     const outcomeLabel = { success: "生還", "early-return": "早期撤退", failed: "失敗" }[report.outcome] || report.outcome;
@@ -537,9 +544,14 @@
     details.append(list);
     content.append(details);
 
-    const again = el("button", "expedition-dispatch", "次の遠征を準備する →");
+    const recoverableCompanions = reportRecoverableCompanions(report);
+    const again = el("button", "expedition-dispatch", recoverableCompanions.length ? "負傷者を休ませて次を準備する →" : "次の遠征を準備する →");
     again.type = "button";
     again.addEventListener("click", () => {
+      if (recoverableCompanions.length) {
+        state = system.startRecovery(state, recoverableCompanions.map((companion) => companion.id), Date.now());
+        save(state);
+      }
       lastResolved = null;
       selectedReportExpeditionId = null;
       reportSceneExpeditionId = null;
