@@ -1,0 +1,229 @@
+/* Grey Hearth resident presence — visible NPC state without a parallel simulation. */
+.hearth-resident-layer {
+  position: absolute;
+  z-index: 4;
+  left: 49%;
+  bottom: 112px;
+  width: 150px;
+  height: 190px;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.hearth-resident-layer[hidden] { display: none; }
+
+.hearth-resident {
+  --resident-cloth: #4d4438;
+  --resident-accent: #76674f;
+  position: absolute;
+  left: calc(50% + (var(--resident-index, 0) * 22px));
+  bottom: 0;
+  width: 116px;
+  height: 182px;
+  transform: translateX(-50%);
+  filter: drop-shadow(0 10px 8px rgba(0, 0, 0, .38));
+  animation: hearthResidentIdle 4.8s steps(2, end) infinite alternate;
+}
+
+.hearth-resident[data-resident-index="0"] { --resident-index: 0; }
+.hearth-resident[data-resident-index="1"] { --resident-index: -1; }
+.hearth-resident[data-resident-index="2"] { --resident-index: 1; }
+
+.hearth-resident[data-resident-id="marco"] {
+  --resident-cloth: #514734;
+  --resident-accent: #90714a;
+}
+
+.hearth-resident[data-resident-id="mira"] {
+  --resident-cloth: #45473d;
+  --resident-accent: #66715e;
+}
+
+.hearth-resident[data-resident-id="edgar"] {
+  --resident-cloth: #4c4038;
+  --resident-accent: #785246;
+}
+
+.hearth-resident-figure {
+  position: absolute;
+  left: 50%;
+  bottom: 22px;
+  width: 82px;
+  height: 150px;
+  transform: translateX(-50%) rotate(-1deg);
+}
+
+.hearth-resident-figure i {
+  position: absolute;
+  display: block;
+  background: var(--resident-cloth);
+  border: 1px solid rgba(9, 8, 7, .86);
+  box-shadow: inset -5px -5px 0 rgba(11, 10, 8, .18), 1px 1px 0 rgba(221, 202, 165, .08);
+}
+
+.resident-head {
+  left: 22px;
+  top: 1px;
+  width: 40px;
+  height: 42px;
+  border-radius: 46% 51% 43% 48% / 49% 48% 53% 46%;
+  background:
+    linear-gradient(104deg, rgba(21, 18, 15, .52), transparent 44%),
+    var(--resident-accent) !important;
+}
+
+.resident-head::before,
+.resident-head::after {
+  content: "";
+  position: absolute;
+  top: 18px;
+  width: 3px;
+  height: 2px;
+  background: #17130f;
+  transform: rotate(-7deg);
+}
+
+.resident-head::before { left: 11px; }
+.resident-head::after { right: 10px; transform: rotate(8deg); }
+
+.resident-body {
+  left: 15px;
+  top: 38px;
+  width: 53px;
+  height: 69px;
+  clip-path: polygon(18% 0, 83% 4%, 100% 90%, 76% 100%, 12% 96%, 0 25%);
+}
+
+.resident-arm {
+  top: 46px;
+  width: 15px;
+  height: 62px;
+  border-radius: 48% 44% 56% 50%;
+  transform-origin: 50% 8%;
+}
+
+.resident-arm.left { left: 8px; transform: rotate(12deg); }
+.resident-arm.right { right: 7px; transform: rotate(-10deg); }
+
+.resident-leg {
+  top: 99px;
+  width: 17px;
+  height: 50px;
+  border-radius: 40% 48% 22% 26%;
+  transform-origin: 50% 5%;
+}
+
+.resident-leg.left { left: 22px; transform: rotate(3deg); }
+.resident-leg.right { right: 21px; transform: rotate(-4deg); }
+
+.resident-prop {
+  right: 2px;
+  top: 74px;
+  width: 22px;
+  height: 30px;
+  border-radius: 30% 45% 34% 38%;
+  background: var(--resident-accent) !important;
+  transform: rotate(8deg);
+}
+
+.hearth-resident[data-resident-id="marco"] .resident-prop::before {
+  content: "";
+  position: absolute;
+  left: -15px;
+  top: -42px;
+  width: 31px;
+  height: 52px;
+  border: 3px solid #211a14;
+  border-right-color: transparent;
+  border-bottom-color: transparent;
+  border-radius: 52% 0 0 0;
+  transform: rotate(-17deg);
+}
+
+.hearth-resident[data-resident-id="mira"] .resident-prop {
+  right: 0;
+  top: 80px;
+  width: 12px;
+  height: 23px;
+  border-radius: 42% 42% 25% 25%;
+  background: #657064 !important;
+}
+
+.hearth-resident[data-resident-id="mira"] .resident-head {
+  box-shadow: inset 0 8px 0 rgba(23, 25, 20, .36), inset -5px -5px 0 rgba(11, 10, 8, .16);
+}
+
+.hearth-resident[data-resident-id="edgar"] .resident-body { width: 60px; left: 11px; }
+.hearth-resident[data-resident-id="edgar"] .resident-prop {
+  width: 8px;
+  height: 56px;
+  right: -1px;
+  top: 56px;
+  border-radius: 3px;
+  transform: rotate(-17deg);
+}
+.hearth-resident[data-resident-id="edgar"] .resident-prop::after {
+  content: "";
+  position: absolute;
+  left: -8px;
+  top: -5px;
+  width: 25px;
+  height: 10px;
+  background: #51463c;
+  border: 1px solid #17130f;
+}
+
+.hearth-resident-label {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  display: grid;
+  min-width: 82px;
+  padding: 3px 6px 4px;
+  border-left: 1px solid rgba(221, 203, 169, .35);
+  background: rgba(8, 7, 6, .58);
+  color: rgba(229, 216, 192, .92);
+  transform: translateX(-50%) rotate(-1deg);
+  text-align: center;
+  line-height: 1.1;
+}
+
+.hearth-resident-label strong {
+  font: 500 11px/1.1 Georgia, serif;
+  letter-spacing: .03em;
+}
+
+.hearth-resident-label small {
+  margin-top: 2px;
+  color: rgba(194, 177, 147, .72);
+  font-size: 7px;
+  letter-spacing: .08em;
+}
+
+@keyframes hearthResidentIdle {
+  from { transform: translateX(-50%) translateY(0) rotate(-.35deg); }
+  to { transform: translateX(-50%) translateY(-2px) rotate(.35deg); }
+}
+
+@media (max-width: 900px) {
+  .hearth-resident-layer {
+    left: 46%;
+    bottom: 132px;
+    transform: translateX(-50%) scale(.84);
+    transform-origin: center bottom;
+  }
+}
+
+@media (max-width: 620px) {
+  .hearth-resident-layer {
+    left: 45%;
+    bottom: 112px;
+    transform: translateX(-50%) scale(.7);
+  }
+
+  .hearth-resident-label { min-width: 92px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hearth-resident { animation: none !important; }
+}
