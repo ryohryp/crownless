@@ -170,6 +170,43 @@ test("latest completed report persists reunion exactly once and reload remains i
   });
 });
 
+test("latest completed reunion reconciles without expedition report DOM", () => {
+  const report = reunionReport();
+  const expeditionState = {
+    destinations: [
+      {
+        id: report.destinationId,
+        name: report.destinationName,
+        discoveryKey: "sim:north-road-ford"
+      }
+    ],
+    completedReports: [report]
+  };
+  const root = rootWithKnowledge({ expeditionState });
+
+  const first = Presentation.syncLatestExpeditionReunion(root);
+  const second = Presentation.syncLatestExpeditionReunion(root);
+
+  assert.ok(first);
+  assert.ok(second);
+  assert.equal(first.encounter.npcId, "marco");
+  assert.equal(first.record.firstReunitedAt, report.completedAt);
+  assert.equal(root.getSaveCount(), 1);
+});
+
+test("latest reunion reconciliation is a no-op without completed reports", () => {
+  const root = rootWithKnowledge({
+    expeditionState: {
+      destinations: [],
+      completedReports: []
+    }
+  });
+
+  assert.equal(Presentation.latestExpeditionReport(root), null);
+  assert.equal(Presentation.syncLatestExpeditionReunion(root), null);
+  assert.equal(root.getSaveCount(), 0);
+});
+
 test("historical unrecorded report stays read-only", () => {
   const latest = reunionReport({ expeditionId: "exp-latest" });
   const historical = reunionReport({ expeditionId: "exp-old" });
@@ -219,7 +256,7 @@ test("Atlas candidate rendering is read-only and does not imply a confirmed reun
 test("expedition report only persists from the latest completed report", () => {
   const source = fs.readFileSync(path.join(__dirname, "../src/world-atlas-reunion-presentation.js"), "utf8");
   const start = source.indexOf("function expeditionReportReunion");
-  const end = source.indexOf("function reportForFolio");
+  const end = source.indexOf("function latestExpeditionReport");
   const body = source.slice(start, end);
 
   assert.match(body, /completedReports\[0\]/);
