@@ -20,3 +20,56 @@ test("production geography caps dense-area discovery radius at 500m", () => {
   assert.equal(geography.productionRadius(350), 350);
   assert.equal(geography.productionRadius(10), 100);
 });
+
+test("production geography converts all-upstream failure into an explicit simulated fallback", () => {
+  const payload = geography.productionFallbackPayload({
+    error: "Geographic upstreams could not be loaded",
+    attempts: [
+      { endpoint: "https://first.test", state: "failed", failureKind: "timeout" },
+      { endpoint: "https://second.test", state: "failed", failureKind: "http", httpStatus: 503 }
+    ],
+    total: 2,
+    timeoutMs: 15000
+  });
+
+  assert.equal(geography.PRODUCTION_FALLBACK, "simulated");
+  assert.equal(payload.degraded, true);
+  assert.equal(payload.fallback, "simulated");
+  assert.equal(payload.endpoint, null);
+  assert.deepEqual(payload.elements, []);
+  assert.equal(payload.attempts.length, 2);
+  assert.equal(payload.error, "Geographic upstreams could not be loaded");
+});
+
+test("production response maps only upstream 502 failures to HTTP 200 fallback", () => {
+  const writes = [];
+  const response = {
+    status(code) {
+      writes.push(["status", code]);
+      return this;
+    },
+    json(payload) {
+      writes.push(["json", payload]);
+      return payload;
+    },
+    setHeader() {},
+    end() {}
+  };
+
+  geography.createProductionResponse(response)
+    .status(502)
+    .json({ error: "upstream failed", attempts: [{ endpoint: "x", state: "failed" }], total: 1 });
+
+  assert.equal(writes[0][1], 200);
+  assert.equal(writes[1][1].degraded, true);
+  assert.equal(writes[1][1].fallback, "simulated");
+  assert.deepEqual(writes[1][1].elements, []);
+
+  writes.length = 0;
+  geography.createProductionResponse(response)
+    .status(400)
+    .json({ error: "Invalid latitude", attempts: [] });
+
+  assert.equal(writes[0][1], 400);
+  assert.equal(writes[1][1].degraded, undefined);
+});
