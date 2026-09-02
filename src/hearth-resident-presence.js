@@ -23,10 +23,18 @@
     documentRef.head?.appendChild(stylesheet);
   }
 
+  function residentDetailLabel(resident) {
+    const role = String(resident?.role || "").trim();
+    const activity = String(resident?.activity || "").trim();
+    return [role, activity].filter(Boolean).join("・");
+  }
+
   function residentAriaLabel(resident) {
     const name = String(resident?.name || "住人");
-    const role = String(resident?.role || "");
-    return role ? `${name}、${role}。灰炉にいる。` : `${name}。灰炉にいる。`;
+    const role = String(resident?.role || "").trim();
+    const activity = String(resident?.activity || "").trim();
+    const details = [role, activity].filter(Boolean).join("、");
+    return details ? `${name}、${details}。灰炉にいる。` : `${name}。灰炉にいる。`;
   }
 
   function createResidentNode(documentRef, resident, index = 0) {
@@ -34,6 +42,7 @@
     node.className = "hearth-resident";
     node.dataset.residentId = String(resident.id || "resident");
     node.dataset.residentIndex = String(index);
+    if (String(resident.activity || "").trim()) node.classList.add("has-activity");
     node.setAttribute("role", "img");
     node.setAttribute("aria-label", residentAriaLabel(resident));
 
@@ -51,9 +60,9 @@
     label.setAttribute("aria-hidden", "true");
     const name = documentRef.createElement("strong");
     name.textContent = String(resident.name || "住人");
-    const role = documentRef.createElement("small");
-    role.textContent = String(resident.role || "");
-    label.append(name, role);
+    const detail = documentRef.createElement("small");
+    detail.textContent = residentDetailLabel(resident);
+    label.append(name, detail);
 
     node.append(figure, label);
     return node;
@@ -133,6 +142,7 @@
     STYLE_HREF,
     LAYER_ID,
     presentResidents,
+    residentDetailLabel,
     residentAriaLabel,
     createResidentNode,
     renderResidents,
