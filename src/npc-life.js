@@ -141,6 +141,24 @@
     });
   }
 
+  function hearthMovementChanges(previousSnapshot, currentSnapshot) {
+    const previous = Array.isArray(previousSnapshot) ? previousSnapshot : [];
+    const current = Array.isArray(currentSnapshot) ? currentSnapshot : [];
+    const previousById = new Map(previous.map((resident) => [resident.id, resident]));
+    return current.flatMap((resident) => {
+      const before = previousById.get(resident.id);
+      if (!before || Boolean(before.atHearth) === Boolean(resident.atHearth)) return [];
+      return [Object.freeze({
+        residentId: resident.id,
+        residentName: resident.name,
+        direction: resident.atHearth ? "arrived" : "left",
+        text: resident.atHearth
+          ? `${resident.name}が炉端へ戻ってきた。`
+          : `${resident.name}は炉端を離れて出かけた。`
+      })];
+    });
+  }
+
   function relationshipLines(snapshot) {
     const residents = Array.isArray(snapshot) ? snapshot : [];
     const byId = new Map(residents.map((resident) => [resident.id, resident]));
@@ -254,6 +272,7 @@
     locationAtHour,
     stateAtHour,
     snapshotAt,
+    hearthMovementChanges,
     relationshipLines,
     explorationLeads,
     reunionCandidates,
