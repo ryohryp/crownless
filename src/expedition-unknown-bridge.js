@@ -15,41 +15,35 @@
     api.loadObjectiveChoices(root);
     api.loadEquipmentOpportunities(root);
     api.loadRescueLoop(root);
+    api.loadCompanionProposals(root);
   }
 })(typeof globalThis !== "undefined" ? globalThis : this, function createExpeditionUnknownBridge() {
   "use strict";
 
-  function loadObjectiveChoices(root) {
-    if (!root || !root.document || root.CrownlessExpeditionObjectives) return false;
-    const src = "src/expedition-objectives.js";
+  function loadScript(root, globalName, src) {
+    if (!root || !root.document || root[globalName]) return Boolean(root && root.document);
     if (root.document.querySelector(`script[src="${src}"]`)) return true;
     const script = root.document.createElement("script");
     script.src = src;
     script.defer = true;
     root.document.head.appendChild(script);
     return true;
+  }
+
+  function loadObjectiveChoices(root) {
+    return loadScript(root, "CrownlessExpeditionObjectives", "src/expedition-objectives.js");
   }
 
   function loadEquipmentOpportunities(root) {
-    if (!root || !root.document || root.CrownlessExpeditionEquipmentOpportunities) return false;
-    const src = "src/expedition-equipment-opportunities.js";
-    if (root.document.querySelector(`script[src="${src}"]`)) return true;
-    const script = root.document.createElement("script");
-    script.src = src;
-    script.defer = true;
-    root.document.head.appendChild(script);
-    return true;
+    return loadScript(root, "CrownlessExpeditionEquipmentOpportunities", "src/expedition-equipment-opportunities.js");
   }
 
   function loadRescueLoop(root) {
-    if (!root || !root.document || root.CrownlessExpeditionRescue) return false;
-    const src = "src/expedition-rescue.js";
-    if (root.document.querySelector(`script[src="${src}"]`)) return true;
-    const script = root.document.createElement("script");
-    script.src = src;
-    script.defer = true;
-    root.document.head.appendChild(script);
-    return true;
+    return loadScript(root, "CrownlessExpeditionRescue", "src/expedition-rescue.js");
+  }
+
+  function loadCompanionProposals(root) {
+    return loadScript(root, "CrownlessExpeditionCompanionProposals", "src/expedition-companion-proposals.js");
   }
 
   function install(Core, Cells, GeographyApi, runtime, root) {
@@ -140,6 +134,7 @@
     loadObjectiveChoices,
     loadEquipmentOpportunities,
     loadRescueLoop,
+    loadCompanionProposals,
     lastProfile: () => null
   };
 
