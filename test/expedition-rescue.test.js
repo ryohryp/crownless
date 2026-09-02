@@ -173,7 +173,9 @@ test("installed hook completes defeat -> missing -> rescue -> injured using exis
   assert.ok(rescued, "expected at least one deterministic rescue success seed");
   assert.equal(rescued.state.companions.find((item) => item.id === "mira").condition, "injured");
   assert.equal(rescue.availableRescueOpportunities(rescued.state).length, 0);
-  assert.ok(rescued.report.log.some((entry) => entry.type === "rescue" && /救助/.test(entry.text)));
+  const rescueLog = rescued.report.log.find((entry) => entry.type === "rescue");
+  assert.ok(rescueLog);
+  assert.match(rescueLog.text, /発見.*連れ帰/);
 });
 
 test("browser bridge loads the rescue sidecar", () => {
