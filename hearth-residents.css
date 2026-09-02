@@ -195,8 +195,9 @@
   white-space: nowrap;
 }
 
-/* The resident's role remains in the parent aria-label. Keep the room label to
-   the name only so it reads as a manuscript annotation, not a HUD card. */
+/* Role-only details stay visually hidden to preserve the manuscript annotation.
+   A real in-room activity earns a restrained second line because it makes the
+   resident read as someone currently doing something, not a static roster. */
 .hearth-resident-label small {
   position: absolute;
   width: 1px;
@@ -207,6 +208,18 @@
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border: 0;
+}
+
+.hearth-resident.has-activity .hearth-resident-label small {
+  position: static;
+  width: auto;
+  height: auto;
+  margin: 1px 0 0;
+  overflow: visible;
+  clip: auto;
+  font: 400 8px/1.15 Georgia, serif;
+  letter-spacing: .02em;
+  opacity: .78;
 }
 
 @keyframes hearthResidentIdle {
