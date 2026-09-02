@@ -59,6 +59,31 @@ test("closed-door investigation reveals concrete follow-up actions instead of fl
   assert.equal(merchant.effect.kind, "merchant");
 });
 
+test("wounded traveler investigation exposes a concrete armed-band lead and choices", () => {
+  const event = Actions.buildLocalEvent(entry({
+    key: "geo:settlement:2",
+    name: "街道脇の宿場跡",
+    contentKind: "unknown",
+    terrain: ["settlement"]
+  }));
+
+  assert.equal(event.title, "傷ついた旅人");
+  const investigate = event.choices.find((choice) => choice.id === "investigate");
+  assert.match(investigate.result, /赤布/);
+  assert.match(investigate.result, /武装集団/);
+  assert.ok(Array.isArray(investigate.followUps));
+  assert.deepEqual(investigate.followUps.map((choice) => choice.label), ["赤布の武装集団について聞く", "捨てた荷車の場所を確かめる", "旅人を休ませる"]);
+
+  const rumor = investigate.followUps.find((choice) => choice.id === "ask-red-cloth-band");
+  assert.equal(rumor.effect.kind, "rumor");
+  assert.equal(rumor.effect.name, "赤布の武装集団の噂");
+  assert.match(rumor.effect.baseTitle, /誰かを探している/);
+
+  const risk = investigate.followUps.find((choice) => choice.id === "check-abandoned-cart");
+  assert.equal(risk.effect, undefined);
+  assert.match(risk.result, /遠征の備え/);
+});
+
 test("unknown discovery state cannot expose actions", () => {
   assert.deepEqual(Actions.buildDiscoveryActions(entry({ state: "hinted" })), []);
 });
