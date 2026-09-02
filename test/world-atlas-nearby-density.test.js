@@ -31,7 +31,6 @@ test("nearby atlas can present six real-world discoveries without persisting raw
     worldKnowledgeKey(item) { return `geo:${item.sourceRef}`; }
   };
 
-  // Keep the helper's compact three-item default for existing callers; the production Atlas opts into six.
   const model = Atlas.nearbyViewModel(runtime, { discoveries: {} }, undefined, Atlas.NEARBY_DISPLAY_LIMIT);
   assert.equal(Atlas.NEARBY_LIMIT, 3);
   assert.equal(Atlas.NEARBY_DISPLAY_LIMIT, 6);
@@ -47,7 +46,7 @@ test("location runtime requests enough geographic discoveries to feed the denser
   assert.match(runtimeSource, /createProxyLocationDiscoveryProvider\(\{ limit: 3, radius: 650/);
   assert.match(runtimeSource, /provider\.discover\(\{ location, limit: NEARBY_DISCOVERY_LIMIT \}\)/);
   assert.match(runtimeSource, /return \[watchtower, \.\.\.source\]\.slice\(0, 6\)/);
-  assert.match(atlasSource, /nearbyViewModel\(runtime, safe && safe\.worldKnowledge, root && root\.CrownlessExplorationMap, NEARBY_DISPLAY_LIMIT\)/);
+  assert.match(atlasSource, /nearbyViewModel\(\s*runtime,\s*safe && safe\.worldKnowledge,\s*root && root\.CrownlessExplorationMap,\s*NEARBY_DISPLAY_LIMIT\s*\)/);
   assert.match(geographySource, /const defaultLimit = Math\.max\(1, Number\(settings\.limit\) \|\| 3\)/);
   assert.match(geographySource, /Number\(context && context\.limit\) \|\| defaultLimit/);
 });
