@@ -23,7 +23,7 @@ test("watchtower QA route creates the real watchtower archetype contract", () =>
 test("watchtower QA route guarantees slot zero without changing the normal path", () => {
   assert.match(runtimeSource, /if \(!QA_WATCHTOWER_MODE\) return source;/);
   assert.match(runtimeSource, /findIndex\(\(item\) => item && item\.baseTitle === "崩れた物見台"\)/);
-  assert.match(runtimeSource, /return \[watchtower, \.\.\.source\]\.slice\(0, 3\)/);
+  assert.match(runtimeSource, /return \[watchtower, \.\.\.source\]\.slice\(0, 6\)/);
   assert.match(runtimeSource, /geographicDiscoveries = ensureQaWatchtowerDiscoveries\(discovered\)/);
 });
 
