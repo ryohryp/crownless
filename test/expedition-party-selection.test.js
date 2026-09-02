@@ -18,6 +18,39 @@ test("party selection keeps at most two selected companion ids", () => {
   assert.equal(party.MAX_COMPANIONS, 2);
 });
 
+test("prepare enhancement becomes a no-op after the first DOM mutation pass", () => {
+  let legendWrites = 0;
+  let datasetWrites = 0;
+  const legend = {
+    _textContent: "仲間",
+    get textContent() { return this._textContent; },
+    set textContent(value) { this._textContent = value; legendWrites += 1; },
+  };
+  const dataset = {};
+  Object.defineProperty(dataset, "partySelection", {
+    get() { return this._partySelection; },
+    set(value) { this._partySelection = value; datasetWrites += 1; },
+    configurable: true,
+  });
+  const group = { dataset, querySelector: (selector) => selector === "legend" ? legend : null };
+  const inputs = [
+    { type: "radio", checked: true, disabled: false, closest: () => group },
+    { type: "radio", checked: false, disabled: false, closest: () => group },
+    { type: "radio", checked: false, disabled: false, closest: () => group },
+  ];
+  const form = { querySelectorAll: (selector) => selector === 'input[name="companion"]' ? inputs : [] };
+  const root = { document: { querySelector: () => form } };
+
+  assert.equal(party.enhancePrepare(root), true);
+  assert.equal(legendWrites, 1);
+  assert.equal(datasetWrites, 1);
+  assert.ok(inputs.every((input) => input.type === "checkbox"));
+
+  assert.equal(party.enhancePrepare(root), false);
+  assert.equal(legendWrites, 1, "stable prepare DOM must not rewrite legend text and retrigger childList observers");
+  assert.equal(datasetWrites, 1);
+});
+
 test("existing expedition resolver accepts two companions as immutable dispatch input", () => {
   const state = system.dispatchExpedition(system.initialState(), {
     destinationId: "ashen-wood",
