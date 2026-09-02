@@ -8,6 +8,7 @@
   "use strict";
 
   const MAX_COMPANIONS = 2;
+  const COMPANION_LEGEND = "仲間（2人まで）";
 
   function selectedCompanionIds(form) {
     if (!form) return [];
@@ -23,23 +24,41 @@
     const inputs = Array.from(form.querySelectorAll('input[name="companion"]'));
     if (!inputs.length) return false;
 
+    let changed = false;
     inputs.forEach((input) => {
-      input.type = "checkbox";
+      if (input.type !== "checkbox") {
+        input.type = "checkbox";
+        changed = true;
+      }
     });
 
     const checked = inputs.filter((input) => input.checked && !input.disabled);
     if (!checked.length) {
       const first = inputs.find((input) => !input.disabled);
-      if (first) first.checked = true;
+      if (first && !first.checked) {
+        first.checked = true;
+        changed = true;
+      }
     } else if (checked.length > MAX_COMPANIONS) {
-      checked.slice(MAX_COMPANIONS).forEach((input) => { input.checked = false; });
+      checked.slice(MAX_COMPANIONS).forEach((input) => {
+        if (input.checked) {
+          input.checked = false;
+          changed = true;
+        }
+      });
     }
 
     const group = inputs[0].closest("fieldset");
     const legend = group && group.querySelector("legend");
-    if (legend) legend.textContent = "仲間（2人まで）";
-    if (group) group.dataset.partySelection = "true";
-    return true;
+    if (legend && legend.textContent !== COMPANION_LEGEND) {
+      legend.textContent = COMPANION_LEGEND;
+      changed = true;
+    }
+    if (group && group.dataset.partySelection !== "true") {
+      group.dataset.partySelection = "true";
+      changed = true;
+    }
+    return changed;
   }
 
   function enforceLimit(event) {
