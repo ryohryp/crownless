@@ -27,9 +27,23 @@ test("在室者がいない時間帯は人物を描画しない", () => {
   assert.deepEqual(residents, []);
 });
 
-test("住人のアクセシブル名は名前・職業・在室状態を伝える", () => {
+test("住人のアクセシブル名は名前・職業・現在の生活行動を伝える", () => {
   const mira = NpcLife.snapshotAt(23).find((resident) => resident.id === "mira");
-  assert.equal(HearthResidents.residentAriaLabel(mira), "ミラ、薬師。灰炉にいる。");
+  assert.equal(HearthResidents.residentAriaLabel(mira), "ミラ、薬師、薬草を選り分け中。灰炉にいる。");
+  assert.equal(HearthResidents.residentDetailLabel(mira), "薬師・薬草を選り分け中");
+});
+
+test("生活行動がない在室者は職業だけを保つ", () => {
+  const resident = { name: "エドガー", role: "鍛冶屋", atHearth: true, activity: "" };
+  assert.equal(HearthResidents.residentAriaLabel(resident), "エドガー、鍛冶屋。灰炉にいる。");
+  assert.equal(HearthResidents.residentDetailLabel(resident), "鍛冶屋");
+});
+
+test("人物ラベルへオフスクリーンの正確な居場所を追加しない", () => {
+  const marco = NpcLife.snapshotAt(7).find((resident) => resident.id === "marco");
+  const detail = HearthResidents.residentDetailLabel(marco);
+  assert.equal(detail, "行商人・荷支度中");
+  assert.doesNotMatch(detail, /工房|市場|北の街道|酒場|自宅|宿|薬草畑|川辺/);
 });
 
 test("Grey HearthはNPC生活presentationの後に人物レイヤーを読み込む", () => {
@@ -53,15 +67,19 @@ test("人物はゲームオブジェクトより背面に置き、reduced motion
   assert.match(residentCss, /\.hearth-resident \{ animation: none !important; \}/);
 });
 
-test("住人ラベルは常設HUDカードではなく名前だけの控えめな墨注記にする", () => {
+test("住人ラベルは通常は名前だけ、生活行動がある時だけ控えめな詳細を見せる", () => {
   const labelBlock = residentCss.match(/\.hearth-resident-label\s*\{([\s\S]*?)\n\}/)?.[1] || "";
   const roleBlock = residentCss.match(/\.hearth-resident-label small\s*\{([\s\S]*?)\n\}/)?.[1] || "";
+  const activityBlock = residentCss.match(/\.hearth-resident\.has-activity \.hearth-resident-label small\s*\{([\s\S]*?)\n\}/)?.[1] || "";
   assert.match(labelBlock, /background:\s*linear-gradient\(/);
   assert.match(labelBlock, /min-width:\s*0;/);
   assert.doesNotMatch(labelBlock, /rgba\(8, 7, 6, \.58\)/);
   assert.match(roleBlock, /width:\s*1px;/);
   assert.match(roleBlock, /overflow:\s*hidden;/);
   assert.match(roleBlock, /clip:\s*rect\(0, 0, 0, 0\)/);
+  assert.match(activityBlock, /position:\s*static;/);
+  assert.match(activityBlock, /font:\s*400 8px\/1\.15 Georgia, serif;/);
+  assert.match(activityBlock, /opacity:\s*\.78;/);
 });
 
 test("PC幅では住人を中央のプレイヤーから左へ分離する", () => {
