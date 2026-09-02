@@ -371,6 +371,16 @@
     return true;
   }
 
+  function findPrepareTransitionButton(content) {
+    if (!content) return null;
+    const direct = Array.from(content.children || []).find((node) => (
+      node && typeof node.matches === "function" && node.matches("button.expedition-dispatch")
+    ));
+    if (direct) return direct;
+    const buttons = typeof content.querySelectorAll === "function" ? Array.from(content.querySelectorAll("button")) : [];
+    return buttons.find((button) => /(?:次の遠征を準備|次を準備)/.test(button.textContent || "")) || null;
+  }
+
   function lockAtlasDestination(document, root, entry) {
     const bridge = root && root.CrownlessGeographicExpeditionBridge;
     if (!bridge || typeof bridge.expeditionDestinationId !== "function" || typeof bridge.injectDestinationChoices !== "function") return false;
@@ -381,7 +391,7 @@
     if (!content) return false;
     let form = content.querySelector("form.expedition-prepare");
     if (!form) {
-      const prepare = Array.from(content.querySelectorAll("button")).find((button) => /次の遠征を準備/.test(button.textContent || ""));
+      const prepare = findPrepareTransitionButton(content);
       if (prepare) prepare.click();
       form = content.querySelector("form.expedition-prepare");
     }
@@ -528,6 +538,7 @@
     syncActions,
     openEvent,
     openMerchant,
+    findPrepareTransitionButton,
     lockAtlasDestination,
     openExpedition,
     install
