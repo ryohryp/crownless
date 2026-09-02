@@ -114,40 +114,71 @@ var audioContext = null;
 (function loadWorldAtlas() {
   if (typeof document === "undefined") return;
   const wallMap = document.getElementById("hearth-map-focus");
+  const runtimeVersion = (() => {
+    const current = document.currentScript;
+    if (!current || !current.src) return "";
+    try {
+      return new URL(current.src, document.baseURI).searchParams.get("v") || "";
+    } catch (_) {
+      return "";
+    }
+  })();
+  const atlasAsset = (path) => runtimeVersion ? `${path}?v=${encodeURIComponent(runtimeVersion)}` : path;
+  const findAtlasScript = (path) => {
+    const expected = atlasAsset(path);
+    const scripts = Array.from(document.scripts || []);
+    return scripts.find((script) => script.getAttribute("src") === expected)
+      || scripts.find((script) => script.getAttribute("src") === path)
+      || null;
+  };
   let atlasReady = Boolean(window.CrownlessWorldAtlas);
   let atlasReplayQueued = false;
+  let atlasLoadFailed = false;
 
-  // The atlas is loaded dynamically. On a slow mobile connection, the wall-map
-  // can be tapped before world-atlas.js installs its capture listener; without
-  // this guard the older Hearth click handler opens the legacy discovery view.
-  // Hold that first tap and replay it once the canonical Atlas entry point is
-  // available, matching the readiness guard used by the expedition gate above.
+  // The Atlas is the only supported wall-map entry point. Hold every tap until
+  // its capture listener is installed. A failed load must never release the
+  // click into the older Hearth/discovery handlers; the next tap retries the
+  // versioned Atlas asset instead.
   if (wallMap) {
     wallMap.addEventListener("click", function holdWallMapUntilAtlasReady(event) {
       if (atlasReady) return;
       event.preventDefault();
       event.stopImmediatePropagation();
       atlasReplayQueued = true;
+      if (atlasLoadFailed) {
+        atlasLoadFailed = false;
+        loadAtlas();
+      }
     }, true);
   }
 
   function finishAtlasReady() {
     atlasReady = true;
+    atlasLoadFailed = false;
     if (atlasReplayQueued && wallMap) {
       atlasReplayQueued = false;
       wallMap.click();
     }
   }
 
+  function failAtlasLoad(event) {
+    atlasReady = false;
+    atlasLoadFailed = true;
+    const failedScript = event && event.currentTarget;
+    if (failedScript && typeof failedScript.remove === "function") failedScript.remove();
+    const mapStatus = document.getElementById("hearth-map-status");
+    if (mapStatus) mapStatus.textContent = "地図を読み込めなかった。もう一度触れると再試行する。";
+  }
+
   function loadActionsPresentation() {
-    if (document.querySelector('script[src="src/world-atlas-actions-presentation.js"]')) return;
+    if (findAtlasScript("src/world-atlas-actions-presentation.js")) return;
     const presentation = document.createElement("script");
-    presentation.src = "src/world-atlas-actions-presentation.js";
+    presentation.src = atlasAsset("src/world-atlas-actions-presentation.js");
     document.body.appendChild(presentation);
   }
 
   function loadActionsDomain() {
-    const existingActions = document.querySelector('script[src="src/discovery-actions.js"]');
+    const existingActions = findAtlasScript("src/discovery-actions.js");
     if (existingActions) {
       if (window.CrownlessDiscoveryActions) loadActionsPresentation();
       else {
@@ -157,14 +188,14 @@ var audioContext = null;
       return;
     }
     const actions = document.createElement("script");
-    actions.src = "src/discovery-actions.js";
+    actions.src = atlasAsset("src/discovery-actions.js");
     actions.onload = loadActionsPresentation;
     actions.onerror = loadActionsPresentation;
     document.body.appendChild(actions);
   }
 
   function loadLorePresentation() {
-    const existingLorePresentation = document.querySelector('script[src="src/world-atlas-lore-presentation.js"]');
+    const existingLorePresentation = findAtlasScript("src/world-atlas-lore-presentation.js");
     if (existingLorePresentation) {
       if (window.CrownlessWorldAtlasLorePresentation) loadActionsDomain();
       else {
@@ -174,14 +205,14 @@ var audioContext = null;
       return;
     }
     const lorePresentation = document.createElement("script");
-    lorePresentation.src = "src/world-atlas-lore-presentation.js";
+    lorePresentation.src = atlasAsset("src/world-atlas-lore-presentation.js");
     lorePresentation.onload = loadActionsDomain;
     lorePresentation.onerror = loadActionsDomain;
     document.body.appendChild(lorePresentation);
   }
 
   function loadReunionPresentation() {
-    const existingPresentation = document.querySelector('script[src="src/world-atlas-reunion-presentation.js"]');
+    const existingPresentation = findAtlasScript("src/world-atlas-reunion-presentation.js");
     if (existingPresentation) {
       if (window.CrownlessWorldAtlasReunionPresentation) loadLorePresentation();
       else {
@@ -191,14 +222,14 @@ var audioContext = null;
       return;
     }
     const presentation = document.createElement("script");
-    presentation.src = "src/world-atlas-reunion-presentation.js";
+    presentation.src = atlasAsset("src/world-atlas-reunion-presentation.js");
     presentation.onload = loadLorePresentation;
     presentation.onerror = loadLorePresentation;
     document.body.appendChild(presentation);
   }
 
   function loadReunionEncounter() {
-    const existingEncounter = document.querySelector('script[src="src/npc-reunion-encounter.js"]');
+    const existingEncounter = findAtlasScript("src/npc-reunion-encounter.js");
     if (existingEncounter) {
       if (window.CrownlessNpcReunionEncounter) loadReunionPresentation();
       else {
@@ -208,14 +239,14 @@ var audioContext = null;
       return;
     }
     const encounter = document.createElement("script");
-    encounter.src = "src/npc-reunion-encounter.js";
+    encounter.src = atlasAsset("src/npc-reunion-encounter.js");
     encounter.onload = loadReunionPresentation;
     encounter.onerror = loadReunionPresentation;
     document.body.appendChild(encounter);
   }
 
   function loadNpcSignals() {
-    const existingSignals = document.querySelector('script[src="src/world-atlas-npc-signals.js"]');
+    const existingSignals = findAtlasScript("src/world-atlas-npc-signals.js");
     if (existingSignals) {
       if (window.CrownlessWorldAtlasNpcSignals) loadReunionEncounter();
       else {
@@ -225,14 +256,14 @@ var audioContext = null;
       return;
     }
     const signals = document.createElement("script");
-    signals.src = "src/world-atlas-npc-signals.js";
+    signals.src = atlasAsset("src/world-atlas-npc-signals.js");
     signals.onload = loadReunionEncounter;
     signals.onerror = loadReunionEncounter;
     document.body.appendChild(signals);
   }
 
   function loadNpcLifeForAtlas() {
-    const existingNpcLife = document.querySelector('script[src="src/npc-life.js"]');
+    const existingNpcLife = findAtlasScript("src/npc-life.js");
     if (existingNpcLife) {
       if (window.CrownlessNpcLife) loadNpcSignals();
       else {
@@ -242,15 +273,19 @@ var audioContext = null;
       return;
     }
     const npcLife = document.createElement("script");
-    npcLife.src = "src/npc-life.js";
+    npcLife.src = atlasAsset("src/npc-life.js");
     npcLife.onload = loadNpcSignals;
     npcLife.onerror = loadNpcSignals;
     document.body.appendChild(npcLife);
   }
 
-  function loadSelectionPreview() {
+  function loadSelectionPreview(event) {
+    if (!window.CrownlessWorldAtlas) {
+      failAtlasLoad(event);
+      return;
+    }
     finishAtlasReady();
-    const existingPreview = document.querySelector('script[src="src/world-atlas-selection-preview.js"]');
+    const existingPreview = findAtlasScript("src/world-atlas-selection-preview.js");
     if (existingPreview) {
       if (window.CrownlessWorldAtlasPreview) loadNpcLifeForAtlas();
       else {
@@ -260,30 +295,30 @@ var audioContext = null;
       return;
     }
     const preview = document.createElement("script");
-    preview.src = "src/world-atlas-selection-preview.js";
+    preview.src = atlasAsset("src/world-atlas-selection-preview.js");
     preview.onload = loadNpcLifeForAtlas;
     preview.onerror = loadNpcLifeForAtlas;
     document.body.appendChild(preview);
   }
 
   function loadAtlas() {
-    const existingAtlas = document.querySelector('script[src="src/world-atlas.js"]');
+    const existingAtlas = findAtlasScript("src/world-atlas.js");
     if (existingAtlas) {
       if (window.CrownlessWorldAtlas) loadSelectionPreview();
       else {
         existingAtlas.addEventListener("load", loadSelectionPreview, { once: true });
-        existingAtlas.addEventListener("error", loadSelectionPreview, { once: true });
+        existingAtlas.addEventListener("error", failAtlasLoad, { once: true });
       }
       return;
     }
     const atlas = document.createElement("script");
-    atlas.src = "src/world-atlas.js";
+    atlas.src = atlasAsset("src/world-atlas.js");
     atlas.onload = loadSelectionPreview;
-    atlas.onerror = loadSelectionPreview;
+    atlas.onerror = failAtlasLoad;
     document.body.appendChild(atlas);
   }
 
-  const existingLore = document.querySelector('script[src="src/discovery-lore.js"]');
+  const existingLore = findAtlasScript("src/discovery-lore.js");
   if (existingLore) {
     if (window.CrownlessDiscoveryLore) loadAtlas();
     else {
@@ -293,7 +328,7 @@ var audioContext = null;
     return;
   }
   const lore = document.createElement("script");
-  lore.src = "src/discovery-lore.js";
+  lore.src = atlasAsset("src/discovery-lore.js");
   lore.onload = loadAtlas;
   lore.onerror = loadAtlas;
   document.body.appendChild(lore);
