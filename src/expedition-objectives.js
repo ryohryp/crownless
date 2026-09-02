@@ -305,6 +305,17 @@
     return state;
   }
 
+  function persistTrackedHuntReward(state, report) {
+    if (!state || !report || !report.trackedHuntResolved || !Array.isArray(report.loot)) return state;
+    if (!Array.isArray(state.securedLoot)) state.securedLoot = [];
+    for (const item of report.loot.filter((loot) => loot && Array.isArray(loot.tags) && loot.tags.includes("tracked-hunt"))) {
+      if (!state.securedLoot.some((existing) => existing && existing.sourceExpeditionId === report.expeditionId && existing.id === item.id)) {
+        state.securedLoot.push({ ...item, sourceExpeditionId: report.expeditionId });
+      }
+    }
+    return state;
+  }
+
   function resolveTrackedHuntState(state, report) {
     if (!state || !report || !report.trackedHuntResolved || !report.targetHuntTraceId) return state;
     if (!Array.isArray(state.discoveredDestinationIds)) return state;
@@ -346,7 +357,10 @@
         ? availableHuntTraces(state).find((trace) => trace.id === report.targetHuntTraceId) || null
         : null;
       const decorated = decorateReport(report, report && report.objectiveId, targetTrace);
-      return resolveTrackedHuntState(persistHuntTrace(baseApplyReport(state, decorated), decorated), decorated);
+      const applied = baseApplyReport(state, decorated);
+      persistHuntTrace(applied, decorated);
+      persistTrackedHuntReward(applied, decorated);
+      return resolveTrackedHuntState(applied, decorated);
     };
 
     const baseAdvance = system.advance.bind(system);
@@ -358,6 +372,7 @@
       if (advanced && advanced.report) {
         decorateReport(advanced.report, objectiveId, targetTrace);
         persistHuntTrace(advanced.state, advanced.report);
+        persistTrackedHuntReward(advanced.state, advanced.report);
         resolveTrackedHuntState(advanced.state, advanced.report);
         const reports = advanced.state && advanced.state.completedReports;
         if (Array.isArray(reports)) {
@@ -403,6 +418,7 @@
     applyTrackedHunt,
     decorateReport,
     persistHuntTrace,
+    persistTrackedHuntReward,
     resolveTrackedHuntState,
     install,
   };
