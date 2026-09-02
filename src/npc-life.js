@@ -101,6 +101,15 @@
     return ((Math.floor(numeric) % 24) + 24) % 24;
   }
 
+  function timeOfDayLabel(value) {
+    const hour = normalizeHour(value);
+    if (hour < 6) return "深夜";
+    if (hour < 10) return "朝";
+    if (hour < 17) return "昼";
+    if (hour < 21) return "夕暮れ";
+    return "夜";
+  }
+
   function scheduleSlotAtHour(resident, hour) {
     const normalized = normalizeHour(hour);
     let slot = resident.schedule[0];
@@ -131,6 +140,7 @@
         id: resident.id,
         name: resident.name,
         role: resident.role,
+        hour,
         location,
         locationLabel: LOCATION_LABELS[location] || location,
         state,
@@ -250,6 +260,7 @@
     const exploration = leads.length
       ? ` / 探索の手がかり: ${leads.map((lead) => `${lead.locationLabel} — ${lead.reason}`).join(" / ")}`
       : "";
+    const period = residents.length ? `${timeOfDayLabel(residents[0].hour)}の炉端 — ` : "";
     const present = residents.filter((resident) => resident.atHearth);
     if (present.length) {
       const names = present.map(formatPresentResident).join("、");
@@ -257,10 +268,10 @@
       const absence = away.length
         ? ` / 不在: ${away.map(formatAwayResident).join("、")}`
         : "";
-      return `炉端にいる: ${names}${absence}${dialogue}${exploration}`;
+      return `${period}炉端にいる: ${names}${absence}${dialogue}${exploration}`;
     }
     if (!residents.length) return "住人の気配はまだない。";
-    return `炉端は空席 / 不在: ${residents.map(formatAwayResident).join("、")}${dialogue}${exploration}`;
+    return `${period}炉端は空席 / 不在: ${residents.map(formatAwayResident).join("、")}${dialogue}${exploration}`;
   }
 
   return Object.freeze({
@@ -269,6 +280,7 @@
     RELATIONSHIPS,
     RESIDENTS,
     normalizeHour,
+    timeOfDayLabel,
     locationAtHour,
     stateAtHour,
     snapshotAt,
