@@ -180,8 +180,9 @@ Open `http://localhost:4173`.
 
 ## Hosting
 
-- **GitHub Pages** publishes the latest `main` build for frequent browser / phone playtests.
-- **Vercel Git auto-deploys are disabled**; Vercel is reserved for deliberate stable releases and server-side capabilities such as geography access.
+- **Canonical public / phone-playtest URL:** https://ryohryp.github.io/crownless/
+- **GitHub Pages** publishes the latest tested `main` build and is the player-facing source of truth during active development.
+- **Vercel Git auto-deploys are disabled.** Vercel is not the canonical game URL; it is reserved for deliberate server-side / release verification such as `/api/geography`.
 
 See [Deployment strategy](docs/deployment-strategy.md) for details.
 
