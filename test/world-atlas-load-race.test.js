@@ -12,12 +12,12 @@ test("first wall-map tap is held until the dynamically loaded Atlas is ready", (
   assert.match(runtimeSource, /function finishAtlasReady\(\)[\s\S]*atlasReady = true;[\s\S]*atlasReplayQueued = false;[\s\S]*wallMap\.click\(\);/);
 });
 
-test("Atlas readiness is released by load success or failure without breaking the fallback chain", () => {
-  assert.match(runtimeSource, /function atlasLoaded\(\)[\s\S]*finishAtlasReady\(\);[\s\S]*loadSelectionPreview\(\);/);
-  assert.match(runtimeSource, /function atlasFailed\(\)[\s\S]*finishAtlasReady\(\);[\s\S]*loadSelectionPreview\(\);/);
-  assert.match(runtimeSource, /atlas\.onload = atlasLoaded;/);
-  assert.match(runtimeSource, /atlas\.onerror = atlasFailed;/);
-  assert.match(runtimeSource, /existingAtlas\.addEventListener\("error", atlasFailed, \{ once: true \}\);/);
+test("Atlas readiness is released at the existing success/failure loader boundary", () => {
+  assert.match(runtimeSource, /function loadSelectionPreview\(\) \{\s*finishAtlasReady\(\);/);
+  assert.match(runtimeSource, /atlas\.onload = loadSelectionPreview;/);
+  assert.match(runtimeSource, /atlas\.onerror = loadSelectionPreview;/);
+  assert.match(runtimeSource, /existingAtlas\.addEventListener\("load", loadSelectionPreview, \{ once: true \}\);/);
+  assert.match(runtimeSource, /existingAtlas\.addEventListener\("error", loadSelectionPreview, \{ once: true \}\);/);
 });
 
 test("canonical Atlas still owns the replayed wall-map click in capture phase", () => {
