@@ -253,20 +253,25 @@ var audioContext = null;
     loadSelectionPreview();
   }
 
+  function atlasFailed() {
+    finishAtlasReady();
+    loadSelectionPreview();
+  }
+
   function loadAtlas() {
     const existingAtlas = document.querySelector('script[src="src/world-atlas.js"]');
     if (existingAtlas) {
       if (window.CrownlessWorldAtlas) atlasLoaded();
       else {
         existingAtlas.addEventListener("load", atlasLoaded, { once: true });
-        existingAtlas.addEventListener("error", finishAtlasReady, { once: true });
+        existingAtlas.addEventListener("error", atlasFailed, { once: true });
       }
       return;
     }
     const atlas = document.createElement("script");
     atlas.src = "src/world-atlas.js";
     atlas.onload = atlasLoaded;
-    atlas.onerror = finishAtlasReady;
+    atlas.onerror = atlasFailed;
     document.body.appendChild(atlas);
   }
 
