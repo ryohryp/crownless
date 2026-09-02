@@ -62,6 +62,27 @@ test("atlas action hub connects expedition, local event, and merchant facility",
   assert.match(source, /getRegionMissionBoard/);
 });
 
+test("atlas finds the report-to-prepare action without depending on its injury-specific copy", () => {
+  const prepare = {
+    textContent: "負傷者を休ませて次を準備する →",
+    matches(selector) { return selector === "button.expedition-dispatch"; }
+  };
+  const content = {
+    children: [{ matches() { return false; } }, prepare],
+    querySelectorAll() { return []; }
+  };
+  assert.equal(Presentation.findPrepareTransitionButton(content), prepare);
+});
+
+test("atlas keeps a copy-based fallback for older expedition report markup", () => {
+  const prepare = { textContent: "負傷者を休ませて次を準備する →" };
+  const content = {
+    children: [],
+    querySelectorAll(selector) { return selector === "button" ? [prepare] : []; }
+  };
+  assert.equal(Presentation.findPrepareTransitionButton(content), prepare);
+});
+
 test("mobile action sheet remains a manuscript overlay rather than a dashboard", () => {
   assert.match(css, /border-left: 3px solid/);
   assert.match(css, /@media \(max-width: 620px\)/);
