@@ -113,6 +113,31 @@ var audioContext = null;
 // Crownless lore, while #224 turns each selected discovery into an action hub.
 (function loadWorldAtlas() {
   if (typeof document === "undefined") return;
+  const wallMap = document.getElementById("hearth-map-focus");
+  let atlasReady = Boolean(window.CrownlessWorldAtlas);
+  let atlasReplayQueued = false;
+
+  // The atlas is loaded dynamically. On a slow mobile connection, the wall-map
+  // can be tapped before world-atlas.js installs its capture listener; without
+  // this guard the older Hearth click handler opens the legacy discovery view.
+  // Hold that first tap and replay it once the canonical Atlas entry point is
+  // available, matching the readiness guard used by the expedition gate above.
+  if (wallMap) {
+    wallMap.addEventListener("click", function holdWallMapUntilAtlasReady(event) {
+      if (atlasReady) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      atlasReplayQueued = true;
+    }, true);
+  }
+
+  function finishAtlasReady() {
+    atlasReady = true;
+    if (atlasReplayQueued && wallMap) {
+      atlasReplayQueued = false;
+      wallMap.click();
+    }
+  }
 
   function loadActionsPresentation() {
     if (document.querySelector('script[src="src/world-atlas-actions-presentation.js"]')) return;
@@ -207,6 +232,7 @@ var audioContext = null;
   }
 
   function loadSelectionPreview() {
+    finishAtlasReady();
     const existingPreview = document.querySelector('script[src="src/world-atlas-selection-preview.js"]');
     if (existingPreview) {
       if (window.CrownlessWorldAtlasPreview) loadNpcLifeForAtlas();

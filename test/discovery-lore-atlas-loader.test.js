@@ -22,6 +22,8 @@ test("atlas loads deterministic discovery lore and NPC reunion layer before lore
   assert.ok(presentationIndex >= 0);
   assert.match(runtimeSource, /lore\.onload = loadAtlas/);
   assert.match(runtimeSource, /atlas\.onload = loadSelectionPreview/);
+  assert.match(runtimeSource, /atlas\.onerror = loadSelectionPreview/);
+  assert.match(runtimeSource, /function loadSelectionPreview\(\) \{\s*finishAtlasReady\(\);/);
   assert.match(runtimeSource, /preview\.onload = loadNpcLifeForAtlas/);
   assert.match(runtimeSource, /npcLife\.onload = loadReunionEncounter/);
   assert.match(runtimeSource, /encounter\.onload = loadReunionPresentation/);
