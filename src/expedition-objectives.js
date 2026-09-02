@@ -12,6 +12,7 @@
   const OBJECTIVES = Object.freeze({
     explore: Object.freeze({ id: "explore", name: "探索", description: "新しい手掛かりや発見を優先する" }),
     scavenge: Object.freeze({ id: "scavenge", name: "漁り", description: "持ち帰れる戦利品を優先する" }),
+    hunt: Object.freeze({ id: "hunt", name: "狩り", description: "敵対遭遇や標的の痕跡を優先する" }),
   });
 
   function normalizeObjective(value) {
