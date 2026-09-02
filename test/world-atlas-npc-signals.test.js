@@ -47,6 +47,49 @@ test("north-road traveler signal advances in coarse time bands without exposing 
   assert.notDeepEqual([middle.x, middle.y], [late.x, late.y]);
 });
 
+test("traveler signal can be matched to an already-known reunion destination without creating discovery state", () => {
+  const knownRoad = {
+    key: "known-north-road",
+    name: "北の街道・古い関所跡",
+    location: NpcLife.LOCATIONS.ROAD,
+    state: "discovered"
+  };
+  const safe = { worldKnowledge: { discoveries: { [knownRoad.key]: knownRoad } } };
+  const before = JSON.stringify(safe);
+  const root = { CrownlessCore: { loadSafeState: () => safe } };
+  const signal = Signals.travelingSignals(NpcLife, 11)[0];
+
+  const match = Signals.knownDestinationForSignal(root, NpcLife, signal, 11);
+
+  assert.equal(match.candidate.targetId, "marco");
+  assert.equal(match.candidate.discoveryKey, knownRoad.key);
+  assert.equal(match.entry, knownRoad);
+  assert.equal(JSON.stringify(safe), before);
+});
+
+test("traveler signal stays rumor-only when no known destination matches", () => {
+  const root = { CrownlessCore: { loadSafeState: () => ({ worldKnowledge: { discoveries: {} } }) } };
+  const signal = Signals.travelingSignals(NpcLife, 11)[0];
+  assert.equal(Signals.knownDestinationForSignal(root, NpcLife, signal, 11), null);
+});
+
+test("known destination bridge reuses existing atlas detail, actions, and reunion presentations", () => {
+  const calls = [];
+  const root = {
+    CrownlessWorldAtlasPreview: { syncSelection: (_document, _root, entry) => { calls.push(["preview", entry.key]); return true; } },
+    CrownlessWorldAtlasActionsPresentation: { syncActions: (_document, _root, entry) => { calls.push(["actions", entry.key]); return true; } },
+    CrownlessWorldAtlasReunionPresentation: { syncReunion: (_document, _root, entry) => { calls.push(["reunion", entry.key]); return true; } }
+  };
+  const match = { entry: { key: "known-north-road" } };
+
+  assert.equal(Signals.openKnownDestination({}, root, match, 11), true);
+  assert.deepEqual(calls, [
+    ["preview", "known-north-road"],
+    ["actions", "known-north-road"],
+    ["reunion", "known-north-road"]
+  ]);
+});
+
 test("NPC signal model never contains precise coordinates or route persistence fields", () => {
   const signal = Signals.travelingSignals(NpcLife, 11)[0];
   const serialized = JSON.stringify(signal);
@@ -59,6 +102,7 @@ test("presentation marks NPC signal as rumor rather than a confirmed discovery",
   assert.match(source, /まだ確認済み地点ではない/);
   assert.match(source, /正確な位置や経路を示す印ではない/);
   assert.match(source, /時間帯ごとに粗く重ねたもの/);
+  assert.match(source, /既知の探索地点を開く/);
   assert.match(source, /world-atlas-nearby-marker--npc-signal/);
 });
 
