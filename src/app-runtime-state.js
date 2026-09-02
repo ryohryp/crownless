@@ -214,20 +214,37 @@ var audioContext = null;
     document.body.appendChild(encounter);
   }
 
+  function loadNpcSignals() {
+    const existingSignals = document.querySelector('script[src="src/world-atlas-npc-signals.js"]');
+    if (existingSignals) {
+      if (window.CrownlessWorldAtlasNpcSignals) loadReunionEncounter();
+      else {
+        existingSignals.addEventListener("load", loadReunionEncounter, { once: true });
+        existingSignals.addEventListener("error", loadReunionEncounter, { once: true });
+      }
+      return;
+    }
+    const signals = document.createElement("script");
+    signals.src = "src/world-atlas-npc-signals.js";
+    signals.onload = loadReunionEncounter;
+    signals.onerror = loadReunionEncounter;
+    document.body.appendChild(signals);
+  }
+
   function loadNpcLifeForAtlas() {
     const existingNpcLife = document.querySelector('script[src="src/npc-life.js"]');
     if (existingNpcLife) {
-      if (window.CrownlessNpcLife) loadReunionEncounter();
+      if (window.CrownlessNpcLife) loadNpcSignals();
       else {
-        existingNpcLife.addEventListener("load", loadReunionEncounter, { once: true });
-        existingNpcLife.addEventListener("error", loadReunionEncounter, { once: true });
+        existingNpcLife.addEventListener("load", loadNpcSignals, { once: true });
+        existingNpcLife.addEventListener("error", loadNpcSignals, { once: true });
       }
       return;
     }
     const npcLife = document.createElement("script");
     npcLife.src = "src/npc-life.js";
-    npcLife.onload = loadReunionEncounter;
-    npcLife.onerror = loadReunionEncounter;
+    npcLife.onload = loadNpcSignals;
+    npcLife.onerror = loadNpcSignals;
     document.body.appendChild(npcLife);
   }
 
