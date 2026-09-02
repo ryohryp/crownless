@@ -68,7 +68,37 @@
         }),
         leave: "値踏みされる前に通り過ぎた。"
       }),
-      Object.freeze({ title: "傷ついた旅人", hook: "路地脇で旅人が座り込み、荷袋を抱えたまま周囲を警戒している。", investigate: "手当てをすると、近くで見た武装した一団の話を残した。", leave: "危険を感じ、距離を取った。" })
+      Object.freeze({
+        title: "傷ついた旅人",
+        hook: "路地脇で旅人が座り込み、荷袋を抱えたまま周囲を警戒している。",
+        investigate: Object.freeze({
+          result: "傷を洗うと、旅人は街道で赤布を腕に巻いた武装集団に追われたと話した。荷車は捨て、脇道へ逃げ込んだらしい。",
+          followUps: Object.freeze([
+            Object.freeze({
+              id: "ask-red-cloth-band",
+              label: "赤布の武装集団について聞く",
+              result: "連中は荷より先に御者の顔を確かめていたという。旅人は『ただの追い剥ぎじゃない。誰かを探している』と声を落とした。",
+              effect: Object.freeze({
+                kind: "rumor",
+                id: "red-cloth-band",
+                name: "赤布の武装集団の噂",
+                baseTitle: "街道で赤布を腕に巻いた武装集団が、荷より先に御者の顔を確かめている。特定の誰かを探しているらしい。"
+              })
+            }),
+            Object.freeze({
+              id: "check-abandoned-cart",
+              label: "捨てた荷車の場所を確かめる",
+              result: "旅人が示した方角にはまだ見張りがいるかもしれない。ここから追うなら、先に遠征の備えを整えた方がよさそうだ。"
+            }),
+            Object.freeze({
+              id: "leave-traveler-resting",
+              label: "旅人を休ませる",
+              result: "旅人は礼を言い、荷袋を枕にして壁際へ身を寄せた。今はこれ以上、問い詰めない方がよさそうだ。"
+            })
+          ])
+        }),
+        leave: "危険を感じ、距離を取った。"
+      })
     ]),
     default: Object.freeze([
       Object.freeze({ title: "地図にない気配", hook: "この地点には、ただ通り過ぎるには気になる痕跡が残っている。", investigate: "痕跡を辿ると、この土地について小さな手掛かりを得た。", leave: "今は手を出さず、探索録に印だけ残した。" })
