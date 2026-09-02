@@ -232,6 +232,7 @@ var audioContext = null;
   }
 
   function loadSelectionPreview() {
+    finishAtlasReady();
     const existingPreview = document.querySelector('script[src="src/world-atlas-selection-preview.js"]');
     if (existingPreview) {
       if (window.CrownlessWorldAtlasPreview) loadNpcLifeForAtlas();
@@ -248,30 +249,20 @@ var audioContext = null;
     document.body.appendChild(preview);
   }
 
-  function atlasLoaded() {
-    finishAtlasReady();
-    loadSelectionPreview();
-  }
-
-  function atlasFailed() {
-    finishAtlasReady();
-    loadSelectionPreview();
-  }
-
   function loadAtlas() {
     const existingAtlas = document.querySelector('script[src="src/world-atlas.js"]');
     if (existingAtlas) {
-      if (window.CrownlessWorldAtlas) atlasLoaded();
+      if (window.CrownlessWorldAtlas) loadSelectionPreview();
       else {
-        existingAtlas.addEventListener("load", atlasLoaded, { once: true });
-        existingAtlas.addEventListener("error", atlasFailed, { once: true });
+        existingAtlas.addEventListener("load", loadSelectionPreview, { once: true });
+        existingAtlas.addEventListener("error", loadSelectionPreview, { once: true });
       }
       return;
     }
     const atlas = document.createElement("script");
     atlas.src = "src/world-atlas.js";
-    atlas.onload = atlasLoaded;
-    atlas.onerror = atlasFailed;
+    atlas.onload = loadSelectionPreview;
+    atlas.onerror = loadSelectionPreview;
     document.body.appendChild(atlas);
   }
 
