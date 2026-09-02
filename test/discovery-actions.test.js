@@ -34,6 +34,31 @@ test("same discovery identity keeps actions, local event, and merchant stock sta
   assert.deepEqual(Actions.merchantStock(source), Actions.merchantStock({ ...source }));
 });
 
+test("closed-door investigation reveals concrete follow-up actions instead of flavor-only copy", () => {
+  const event = Actions.buildLocalEvent(entry({
+    key: "geo:settlement:1",
+    name: "古い市場跡",
+    contentKind: "unknown",
+    terrain: ["settlement"]
+  }));
+
+  assert.equal(event.title, "閉じた戸口の取引");
+  const investigate = event.choices.find((choice) => choice.id === "investigate");
+  assert.match(investigate.result, /北の古井戸/);
+  assert.match(investigate.result, /黒い石/);
+  assert.ok(Array.isArray(investigate.followUps));
+  assert.ok(investigate.followUps.length >= 2);
+  assert.deepEqual(investigate.followUps.map((choice) => choice.label), ["黒い石について聞く", "商品の包みを見る", "店主の後をつける"]);
+
+  const rumor = investigate.followUps.find((choice) => choice.id === "ask-black-stone");
+  assert.match(rumor.result, /井戸の底ではなく、その脇/);
+  assert.equal(rumor.effect.kind, "rumor");
+  assert.equal(rumor.effect.name, "北の古井戸の噂");
+
+  const merchant = investigate.followUps.find((choice) => choice.id === "inspect-bundle");
+  assert.equal(merchant.effect.kind, "merchant");
+});
+
 test("unknown discovery state cannot expose actions", () => {
   assert.deepEqual(Actions.buildDiscoveryActions(entry({ state: "hinted" })), []);
 });
