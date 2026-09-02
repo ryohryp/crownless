@@ -4,9 +4,15 @@ This repository follows the default deployment pattern for lightweight apps deve
 
 ## Environments
 
-### 1. GitHub Pages — development / playtest
+### 1. GitHub Pages — canonical public / playtest
 
 Use GitHub Pages for the latest tested `main` build while the app is under active development.
+
+Canonical player-facing URL:
+
+- `https://ryohryp.github.io/crownless/`
+
+GitHub Pages is the public source of truth for browser / phone playtests. Documentation, bookmarks, QR codes, repository metadata, and player-facing links should point here rather than to Vercel.
 
 - `.github/workflows/test.yml` validates every relevant branch and `main`.
 - `.github/workflows/pages.yml` runs after the `test` workflow completes on `main` and publishes only when that run succeeded.
@@ -15,7 +21,7 @@ Use GitHub Pages for the latest tested `main` build while the app is under activ
 - Consecutive Pages deployments use a single concurrency group with `cancel-in-progress: true`, so the newest tested `main` commit wins during rapid merges.
 - `workflow_dispatch` remains available as a manual recovery / re-run path without changing the normal automatic flow.
 - Feature branches are validated by CI but do not need a hosted preview for every commit.
-- This is the primary URL for frequent phone and browser playtests.
+- Static CSS / JS references in the Pages artifact are fingerprinted with the deployed commit so normal reloads move clients onto the current tested asset set without requiring a full browser-cache wipe.
 
 #### One-time repository setup
 
@@ -27,16 +33,17 @@ GitHub does not allow the repository `GITHUB_TOKEN` to create the first Pages si
 
 Until Pages is enabled, the deployment workflow exits successfully with a notice instead of turning every `main` build red.
 
-### 2. Vercel — release / stable production
+### 2. Vercel — manual server-side / release verification
 
-Vercel is reserved for deliberate stable releases and server-side APIs that GitHub Pages cannot host.
+Vercel is reserved for deliberate server-side capabilities and stable-release verification that GitHub Pages cannot provide. It is **not** the canonical player-facing game URL.
 
 - Automatic Git deployments remain disabled in `vercel.json` with `git.deploymentEnabled = false`.
 - Do not spend Vercel deployment quota on every branch or incremental commit.
 - Production deploys are started manually from GitHub Actions using `.github/workflows/vercel-production.yml`.
 - The workflow only deploys when invoked from `main`, reruns the test suite, pulls the Vercel Production project settings, builds locally in CI, and deploys the exact prebuilt output with `vercel deploy --prebuilt --prod`.
 - The workflow serializes Production releases so two manual deploys cannot race each other.
-- After deployment it smoke-tests the Production homepage and the `/api/geography` route without depending on a live Overpass success response.
+- After deployment it smoke-tests the Vercel homepage and the `/api/geography` route without depending on a live Overpass success response.
+- The stable Vercel domain `https://crownless-iota.vercel.app` exists for those server-side / release checks, not as the URL players should bookmark for the game.
 
 #### One-time repository setup
 
@@ -49,14 +56,15 @@ Add one GitHub Actions secret before the first workflow run:
 
 The Vercel team ID and Crownless project ID are intentionally fixed in the workflow because they identify this repository's deployment target and are not credentials.
 
-#### Production deployment procedure
+#### Vercel verification procedure
 
 1. Merge the intended release commit to `main`.
 2. Confirm `main` CI and GitHub Pages are healthy.
 3. Open **Actions → deploy-vercel-production → Run workflow**.
 4. Select the `main` branch and run the workflow.
 5. The workflow deploys the exact selected `main` commit and writes the deployment URL and smoke-test result to the job summary.
-6. Use the stable Production domain `https://crownless-iota.vercel.app` for final verification.
+6. Use `https://crownless-iota.vercel.app` only for the server-side / release checks that require Vercel, such as `/api/geography`.
+7. Use `https://ryohryp.github.io/crownless/` for player-facing browser / phone verification.
 
 This flow does not require re-enabling Vercel Git auto-deployment.
 
@@ -77,8 +85,8 @@ Treat these as experiments, not the source of truth. Successful ideas should be 
 For lightweight browser apps, prefer this order unless the architecture requires something else:
 
 1. **GitHub + CI** is the source of truth.
-2. **GitHub Pages** hosts frequent development/playtest builds when the app is static-compatible.
-3. **Vercel** is used for deliberate stable releases or when server-side/platform features are genuinely required.
+2. **GitHub Pages** hosts the canonical public browser build when the app is static-compatible.
+3. **Vercel** is used deliberately for server-side capabilities or release verification, not as a competing canonical browser URL.
 4. **ChatGPT Sites** is used for fast disposable experiments.
 
 Do not introduce production hosting complexity before the app needs it.
@@ -91,22 +99,23 @@ For a new static-compatible app, start with the same minimum controls:
 2. Add a Pages workflow that deploys only after successful `main` CI.
 3. Add `vercel.json` with automatic Git deployments disabled.
 4. Enable GitHub Pages with **GitHub Actions** as the source once per repository.
-5. Use the Pages URL during rapid iteration.
-6. Add a manual Vercel Production workflow only when server-side features or a stable release environment become necessary.
+5. Use the Pages URL as the public browser URL during rapid iteration.
+6. Add a manual Vercel Production workflow only when server-side features or a stable release verification environment become necessary.
 
 The exact build command can vary by framework. The environment separation should stay the same.
 
 ## Release checklist
 
-Before a Vercel production release:
+Before a Vercel verification release:
 
 1. The chosen commit is on `main`.
 2. `main` CI is green.
 3. The GitHub Pages version has been playtested on the target device where applicable.
 4. Known progression/save compatibility issues are understood.
-5. Run `deploy-vercel-production` manually from `main`.
+5. Run `deploy-vercel-production` manually from `main` only when a Vercel-only capability needs verification.
 6. Confirm the workflow's Production smoke tests passed.
-7. Perform the feature-specific Production check, such as Android location discovery through `/api/geography`.
+7. Perform the feature-specific Vercel check, such as Android location discovery through `/api/geography`.
+8. Keep player-facing links pointed at `https://ryohryp.github.io/crownless/`.
 
 ## Guardrail
 
@@ -116,4 +125,7 @@ Before a Vercel production release:
 - GitHub Pages remains gated by successful `main` CI rather than publishing every feature commit.
 - GitHub Pages checks out the exact commit SHA that passed `main` CI.
 - GitHub Pages keeps a manual recovery trigger and latest-deploy-wins concurrency policy.
+- GitHub Pages fingerprints local CSS / JS assets with the deployed commit.
 - Vercel Production deployment remains manual-only, restricted to `main`, and deploys a prebuilt Production artifact.
+
+`test/public-url-policy.test.js` protects the canonical public URL contract so documentation does not drift back toward two competing game URLs.
