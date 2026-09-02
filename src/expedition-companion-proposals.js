@@ -38,15 +38,18 @@
     }
   }
 
-  function applyProposal(form, proposal) {
+  function applyProposal(form, proposal, root) {
     if (!form || !proposal) return false;
     const objective = form.querySelector(`input[name="objective"][value="${proposal.objective}"]`);
     const policy = form.querySelector(`input[name="policy"][value="${proposal.policy}"]`);
     if (!objective || !policy) return false;
     objective.checked = true;
     policy.checked = true;
-    objective.dispatchEvent(new Event("change", { bubbles: true }));
-    policy.dispatchEvent(new Event("change", { bubbles: true }));
+    const EventCtor = root && root.Event || (typeof Event !== "undefined" ? Event : null);
+    if (EventCtor) {
+      objective.dispatchEvent(new EventCtor("change", { bubbles: true }));
+      policy.dispatchEvent(new EventCtor("change", { bubbles: true }));
+    }
     return true;
   }
 
@@ -66,6 +69,12 @@
       return false;
     }
 
+    const currentObjective = selectedValue(form, "objective") || "explore";
+    const currentPolicy = selectedValue(form, "policy") || "standard";
+    const agrees = currentObjective === proposal.objective && currentPolicy === proposal.policy;
+    const signature = [companion.id, proposal.trait, currentObjective, currentPolicy].join(":");
+    if (panel && panel.dataset.proposalSignature === signature) return true;
+
     if (!panel) {
       panel = doc.createElement("aside");
       panel.className = "expedition-form-feedback";
@@ -75,10 +84,7 @@
       if (companionGroup) companionGroup.insertAdjacentElement("afterend", panel);
       else form.prepend(panel);
     }
-
-    const currentObjective = selectedValue(form, "objective") || "explore";
-    const currentPolicy = selectedValue(form, "policy") || "standard";
-    const agrees = currentObjective === proposal.objective && currentPolicy === proposal.policy;
+    panel.dataset.proposalSignature = signature;
     panel.replaceChildren();
 
     const strong = doc.createElement("strong");
@@ -99,7 +105,7 @@
       button.className = "ghost";
       button.textContent = "提案を採用";
       button.addEventListener("click", () => {
-        applyProposal(form, proposal);
+        applyProposal(form, proposal, root);
         renderProposal(root);
       });
       panel.append(button);
