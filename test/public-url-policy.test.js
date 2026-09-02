@@ -20,6 +20,6 @@ test('GitHub Pages stays the canonical player-facing Crownless URL', () => {
 
   assert.ok(deployment.includes(pagesUrl));
   assert.match(deployment, /GitHub Pages — canonical public \/ playtest/);
-  assert.match(deployment, /not the canonical player-facing game URL/);
+  assert.ok(deployment.includes('It is **not** the canonical player-facing game URL.'));
   assert.match(deployment, /player-facing links pointed at/);
 });
