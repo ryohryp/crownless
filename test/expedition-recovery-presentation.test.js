@@ -59,3 +59,20 @@ test("historical reports and already recovering companions cannot reapply recove
   assert.doesNotMatch(eligibility, /condition === "recovering"/);
   assert.doesNotMatch(eligibility, /condition === "healthy"/);
 });
+
+test("periodic recovery refresh keeps the next-expedition preparation screen instead of reopening the previous report", () => {
+  assert.match(presentation, /let preparingNextExpedition = false/);
+
+  const render = functionBody("render", "heading");
+  const prepareBranch = render.indexOf("else if (preparingNextExpedition) renderPrepare(content)");
+  const reportBranch = render.indexOf("else if (lastResolved || state.completedReports.length)");
+  assert.ok(prepareBranch >= 0 && reportBranch > prepareBranch, "prepare mode must win over historical reports");
+
+  const report = functionBody("renderReport");
+  assert.match(report, /preparingNextExpedition = true/);
+
+  const refresh = functionBody("refresh", "updateGateCopy");
+  assert.match(refresh, /if \(advanced\.report\)[\s\S]*preparingNextExpedition = false/);
+
+  assert.match(presentation, /window\.setInterval\([\s\S]*refresh\(Date\.now\(\)\)[\s\S]*render\(\)/);
+});
