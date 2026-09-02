@@ -11,7 +11,8 @@
   const CELL_PADDING = 1;
   const MAX_FRINGE_CELLS = 180;
   const SCAN_COOLDOWN_MS = 30000;
-  const NEARBY_LIMIT = 6;
+  const NEARBY_LIMIT = 3;
+  const NEARBY_DISPLAY_LIMIT = 6;
   const NEARBY_RADIUS_METRES = 650;
   const MARKER_INSET_PERCENT = 8;
   const WORLD_MIN_SPAN_CELLS = 5;
@@ -251,10 +252,11 @@
     return `geo:${sourceRef}:${kind}:${features.length ? features.join("+") : "unknown"}`;
   }
 
-  function nearbyViewModel(runtime, worldKnowledge, projectionApi) {
+  function nearbyViewModel(runtime, worldKnowledge, projectionApi, limit = NEARBY_LIMIT) {
     if (!runtime || runtime.state !== "ready" || !Array.isArray(runtime.discoveries)) return [];
     const knowledge = worldKnowledge && worldKnowledge.discoveries && typeof worldKnowledge.discoveries === "object" ? worldKnowledge.discoveries : {};
-    return runtime.discoveries.slice(0, NEARBY_LIMIT).map((discovery) => {
+    const visibleLimit = Math.max(1, Number(limit) || NEARBY_LIMIT);
+    return runtime.discoveries.slice(0, visibleLimit).map((discovery) => {
       const origin = validCoordinate(discovery && discovery.mapOrigin);
       const point = validCoordinate(discovery && discovery.representativeCoordinate);
       const projected = projectionApi && typeof projectionApi.projectDiscoveryPoint === "function"
@@ -606,7 +608,7 @@
     const currentCell = options.scanResult && options.scanResult.currentCell ? options.scanResult.currentCell : runtimeCurrent;
     const worldModel = atlasViewModel(safe && safe.worldKnowledge, currentCell);
     const runtime = root && root.CrownlessLocationDiscoveryRuntime;
-    const nearbyModel = nearbyViewModel(runtime, safe && safe.worldKnowledge, root && root.CrownlessExplorationMap);
+    const nearbyModel = nearbyViewModel(runtime, safe && safe.worldKnowledge, root && root.CrownlessExplorationMap, NEARBY_DISPLAY_LIMIT);
     let selectedView = initialAtlasView(options.scanResult || lastScanResult, nearbyModel, options.view);
     let viewTouched = Boolean(options.view);
 
@@ -730,6 +732,7 @@
     MAX_FRINGE_CELLS,
     SCAN_COOLDOWN_MS,
     NEARBY_LIMIT,
+    NEARBY_DISPLAY_LIMIT,
     NEARBY_RADIUS_METRES,
     MARKER_INSET_PERCENT,
     WORLD_MIN_SPAN_CELLS,

@@ -89,7 +89,7 @@
 
   function createProxyLocationDiscoveryProvider(options) {
     const settings = options || {};
-    const limit = Math.max(1, Number(settings.limit) || 3);
+    const defaultLimit = Math.max(1, Number(settings.limit) || 3);
     const radius = Math.max(100, Math.min(1500, Number(settings.radius) || 500));
     const timeoutMs = Math.max(1000, Number(settings.timeoutMs) || 22000);
     const proxyEndpoint = settings.endpoint || DEFAULT_PROXY_ENDPOINT;
@@ -141,6 +141,7 @@
         if (!fetchFn) throw new Error("Geographic discovery API is unavailable");
         const location = context && context.location;
         if (!location) throw new Error("Location is required for geographic discovery");
+        const limit = Math.max(1, Number(context && context.limit) || defaultLimit);
 
         const url = new URL(proxyEndpoint);
         url.searchParams.set("lat", String(location.latitude));

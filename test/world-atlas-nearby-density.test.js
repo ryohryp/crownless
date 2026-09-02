@@ -5,6 +5,8 @@ const path = require("node:path");
 const Atlas = require("../src/world-atlas.js");
 
 const runtimeSource = fs.readFileSync(path.join(__dirname, "../src/location-discovery-runtime.js"), "utf8");
+const atlasSource = fs.readFileSync(path.join(__dirname, "../src/world-atlas.js"), "utf8");
+const geographySource = fs.readFileSync(path.join(__dirname, "../src/geography-api-provider.js"), "utf8");
 
 function discovery(index) {
   return {
@@ -29,8 +31,9 @@ test("nearby atlas can present six real-world discoveries without persisting raw
     worldKnowledgeKey(item) { return `geo:${item.sourceRef}`; }
   };
 
-  const model = Atlas.nearbyViewModel(runtime, { discoveries: {} });
-  assert.equal(Atlas.NEARBY_LIMIT, 6);
+  const model = Atlas.nearbyViewModel(runtime, { discoveries: {} }, undefined, Atlas.NEARBY_DISPLAY_LIMIT);
+  assert.equal(Atlas.NEARBY_LIMIT, 3);
+  assert.equal(Atlas.NEARBY_DISPLAY_LIMIT, 6);
   assert.equal(model.length, 6);
   assert.deepEqual(model.map((entry) => entry.name), [
     "周辺候補1", "周辺候補2", "周辺候補3", "周辺候補4", "周辺候補5", "周辺候補6"
@@ -39,8 +42,13 @@ test("nearby atlas can present six real-world discoveries without persisting raw
 });
 
 test("location runtime requests enough geographic discoveries to feed the denser atlas", () => {
-  assert.match(runtimeSource, /createProxyLocationDiscoveryProvider\(\{ limit: 6, radius: 650/);
+  assert.match(runtimeSource, /NEARBY_DISCOVERY_LIMIT = 6/);
+  assert.match(runtimeSource, /createProxyLocationDiscoveryProvider\(\{ limit: 3, radius: 650/);
+  assert.match(runtimeSource, /provider\.discover\(\{ location, limit: NEARBY_DISCOVERY_LIMIT \}\)/);
   assert.match(runtimeSource, /return \[watchtower, \.\.\.source\]\.slice\(0, 6\)/);
+  assert.match(atlasSource, /nearbyViewModel\(runtime, safe && safe\.worldKnowledge, root && root\.CrownlessExplorationMap, NEARBY_DISPLAY_LIMIT\)/);
+  assert.match(geographySource, /const defaultLimit = Math\.max\(1, Number\(settings\.limit\) \|\| 3\)/);
+  assert.match(geographySource, /Number\(context && context\.limit\) \|\| defaultLimit/);
 });
 
 test("known-only rescan copy keeps the surrounding world open-ended", () => {

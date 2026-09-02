@@ -47,7 +47,7 @@ test("pending location discovery presents manuscript ink until real-world discov
   assert.match(runtimeSource, /location-discovery-search/);
   assert.match(runtimeSource, /現実の痕跡を照合中/);
   assert.match(runtimeSource, /const searching = locationState === "loading"/);
-  assert.match(runtimeSource, /const discovered = await provider\.discover\(\{ location \}\)/);
+  assert.match(runtimeSource, /const discovered = await provider\.discover\(\{ location, limit: NEARBY_DISCOVERY_LIMIT \}\)/);
   assert.match(runtimeSource, /geographicDiscoveries = ensureQaWatchtowerDiscoveries\(discovered\)/);
   assert.match(runtimeSource, /locationState = geographicDiscoveries\.length \? "ready" : "failed"/);
   const searchPresentationStart = runtimeSource.indexOf("function ensureSearchPresentation");
@@ -73,7 +73,9 @@ test("loading presentation is painted before geolocation can start", () => {
 });
 
 test("geography runs as background enrichment with client headroom", () => {
-  assert.match(runtimeSource, /limit: 6/);
+  assert.match(runtimeSource, /NEARBY_DISCOVERY_LIMIT = 6/);
+  assert.match(runtimeSource, /limit: 3/);
+  assert.match(runtimeSource, /provider\.discover\(\{ location, limit: NEARBY_DISCOVERY_LIMIT \}\)/);
   assert.match(runtimeSource, /radius: 650/);
   assert.match(runtimeSource, /timeoutMs: 22000/);
   assert.match(runtimeSource, /beginGeographicDiscoveryAfterPaint/);
