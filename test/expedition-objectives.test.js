@@ -101,6 +101,21 @@ test("following a matching trace awards one trophy and resolves the trace on vic
   assert.equal(state.discoveredDestinationIds.includes(trace.id), false);
 });
 
+test("tracked hunt trophy is secured idempotently after wrapped advance decoration", () => {
+  const state = system.initialState();
+  const report = {
+    expeditionId: "exp-track",
+    trackedHuntResolved: true,
+    loot: [{ id: "tracked-trophy-hunt-trace-ashen-wood-wolves", name: "灰狼の群れの討伐証", tags: ["trophy", "tracked-hunt"] }],
+  };
+
+  objectives.persistTrackedHuntReward(state, report);
+  objectives.persistTrackedHuntReward(state, report);
+  const secured = state.securedLoot.filter((item) => item.id === report.loot[0].id);
+  assert.equal(secured.length, 1);
+  assert.equal(secured[0].sourceExpeditionId, "exp-track");
+});
+
 test("failed or wrong-destination tracked hunts keep the trace for another attempt", () => {
   const trace = {
     id: "hunt-trace-ashen-wood-wolves",
