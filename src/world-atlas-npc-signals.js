@@ -13,10 +13,17 @@
     Object.freeze({ x: 24, y: 32, direction: "北西寄り" }),
     Object.freeze({ x: 78, y: 70, direction: "南東寄り" })
   ]);
+  const NORTH_ROUTE_POSITION = Object.freeze({ x: 50, y: 18, direction: "北寄り" });
 
   function cleanText(value, fallback = "") {
     const text = String(value == null ? "" : value).trim();
     return text || fallback;
+  }
+
+  function positionForLead(npcLife, lead, index) {
+    const northRoad = npcLife && npcLife.LOCATIONS ? npcLife.LOCATIONS.ROAD : "north-road";
+    if (lead && lead.location === northRoad) return NORTH_ROUTE_POSITION;
+    return SIGNAL_POSITIONS[index % SIGNAL_POSITIONS.length];
   }
 
   function travelingSignals(npcLife, input = new Date()) {
@@ -24,12 +31,12 @@
     const snapshot = npcLife.snapshotAt(input);
     const travelingState = npcLife.STATES && npcLife.STATES.TRAVELING ? npcLife.STATES.TRAVELING : "traveling";
     const leads = typeof npcLife.explorationLeads === "function" ? npcLife.explorationLeads(snapshot) : [];
-    const rumoredTargets = new Set(leads.map((lead) => cleanText(lead && lead.targetId)).filter(Boolean));
+    const leadByTarget = new Map(leads.map((lead) => [cleanText(lead && lead.targetId), lead]).filter(([targetId]) => targetId));
 
     return snapshot
-      .filter((resident) => resident && resident.state === travelingState && rumoredTargets.has(cleanText(resident.id)))
+      .filter((resident) => resident && resident.state === travelingState && leadByTarget.has(cleanText(resident.id)))
       .map((resident, index) => {
-        const slot = SIGNAL_POSITIONS[index % SIGNAL_POSITIONS.length];
+        const slot = positionForLead(npcLife, leadByTarget.get(cleanText(resident.id)), index);
         return Object.freeze({
           id: `npc-signal:${cleanText(resident.id, String(index + 1))}`,
           residentId: cleanText(resident.id),
@@ -124,6 +131,8 @@
 
   return Object.freeze({
     SIGNAL_POSITIONS,
+    NORTH_ROUTE_POSITION,
+    positionForLead,
     travelingSignals,
     selectedSignalDetail,
     inject,
