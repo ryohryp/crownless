@@ -12,6 +12,7 @@
   const MAX_FRINGE_CELLS = 180;
   const SCAN_COOLDOWN_MS = 30000;
   const NEARBY_LIMIT = 3;
+  const NEARBY_DISPLAY_LIMIT = 6;
   const NEARBY_RADIUS_METRES = 650;
   const MARKER_INSET_PERCENT = 8;
   const WORLD_MIN_SPAN_CELLS = 5;
@@ -251,10 +252,11 @@
     return `geo:${sourceRef}:${kind}:${features.length ? features.join("+") : "unknown"}`;
   }
 
-  function nearbyViewModel(runtime, worldKnowledge, projectionApi) {
+  function nearbyViewModel(runtime, worldKnowledge, projectionApi, limit = NEARBY_LIMIT) {
     if (!runtime || runtime.state !== "ready" || !Array.isArray(runtime.discoveries)) return [];
     const knowledge = worldKnowledge && worldKnowledge.discoveries && typeof worldKnowledge.discoveries === "object" ? worldKnowledge.discoveries : {};
-    return runtime.discoveries.slice(0, NEARBY_LIMIT).map((discovery) => {
+    const visibleLimit = Math.max(1, Number(limit) || NEARBY_LIMIT);
+    return runtime.discoveries.slice(0, visibleLimit).map((discovery) => {
       const origin = validCoordinate(discovery && discovery.mapOrigin);
       const point = validCoordinate(discovery && discovery.representativeCoordinate);
       const projected = projectionApi && typeof projectionApi.projectDiscoveryPoint === "function"
@@ -388,7 +390,7 @@
     if (result.state === "ready") {
       if (!result.foundCount) return "周囲を調べたが、今は遠征候補になる痕跡を見つけられなかった。";
       if (result.newCount) return `周囲から ${result.foundCount} 件を照合。新しく ${result.newCount} 件を探索録へ書き足した。`;
-      return `周囲の ${result.foundCount} 件を照合。すべて既知の探索候補だった。`;
+      return `周囲の ${result.foundCount} 件を照合。既知の地点を地図へ重ねた。時間や世界の動きで、新しい気配が現れることもある。`;
     }
     if (result.state === "denied") return "位置情報を使えない。記憶済みの地図はそのまま閲覧できる。";
     if (result.state === "unavailable") return "周辺調査を利用できない。記憶済みの地図を表示している。";
@@ -606,7 +608,7 @@
     const currentCell = options.scanResult && options.scanResult.currentCell ? options.scanResult.currentCell : runtimeCurrent;
     const worldModel = atlasViewModel(safe && safe.worldKnowledge, currentCell);
     const runtime = root && root.CrownlessLocationDiscoveryRuntime;
-    const nearbyModel = nearbyViewModel(runtime, safe && safe.worldKnowledge, root && root.CrownlessExplorationMap);
+    const nearbyModel = nearbyViewModel(runtime, safe && safe.worldKnowledge, root && root.CrownlessExplorationMap, NEARBY_DISPLAY_LIMIT);
     let selectedView = initialAtlasView(options.scanResult || lastScanResult, nearbyModel, options.view);
     let viewTouched = Boolean(options.view);
 
@@ -730,6 +732,7 @@
     MAX_FRINGE_CELLS,
     SCAN_COOLDOWN_MS,
     NEARBY_LIMIT,
+    NEARBY_DISPLAY_LIMIT,
     NEARBY_RADIUS_METRES,
     MARKER_INSET_PERCENT,
     WORLD_MIN_SPAN_CELLS,
