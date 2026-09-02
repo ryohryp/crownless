@@ -36,7 +36,38 @@
       Object.freeze({ title: "名の消えた祈り", hook: "削られた文字の一部だけが、煤でなぞり直されている。", investigate: "残った文字から、近くの古道に関わる祈りだと分かった。", leave: "読める部分だけを探索録へ写した。" })
     ]),
     settlement: Object.freeze([
-      Object.freeze({ title: "閉じた戸口の取引", hook: "人通りの切れ目に、印だけを出した小さな露店が現れている。", investigate: "露店の主は遠征帰りの噂をひとつだけ教えてくれた。", leave: "値踏みされる前に通り過ぎた。" }),
+      Object.freeze({
+        title: "閉じた戸口の取引",
+        hook: "人通りの切れ目に、印だけを出した小さな露店が現れている。",
+        investigate: Object.freeze({
+          result: "店主は銀貨を受け取らなかった。代わりに、北の古井戸から持ち帰ったという黒い石を見せてきた。",
+          followUps: Object.freeze([
+            Object.freeze({
+              id: "ask-black-stone",
+              label: "黒い石について聞く",
+              result: "北の古井戸では、夜になると荷運び人の灯りが途中で消えるらしい。店主は『井戸の底ではなく、その脇を見ろ』とだけ付け加えた。",
+              effect: Object.freeze({
+                kind: "rumor",
+                id: "old-well",
+                name: "北の古井戸の噂",
+                baseTitle: "北の古井戸では夜になると荷運び人の灯りが消える。井戸の底ではなく、その脇に何かあるらしい。"
+              })
+            }),
+            Object.freeze({
+              id: "inspect-bundle",
+              label: "商品の包みを見る",
+              result: "煤色の包みには、遠征向けの小道具が混じっている。店主は戦利品との交換なら応じると言った。",
+              effect: Object.freeze({ kind: "merchant" })
+            }),
+            Object.freeze({
+              id: "follow-merchant",
+              label: "店主の後をつける",
+              result: "裏路地へ入る直前、屋根の上の見張りと目が合った。これ以上追えば、こちらが獲物になる。今日は退いた方がよさそうだ。"
+            })
+          ])
+        }),
+        leave: "値踏みされる前に通り過ぎた。"
+      }),
       Object.freeze({ title: "傷ついた旅人", hook: "路地脇で旅人が座り込み、荷袋を抱えたまま周囲を警戒している。", investigate: "手当てをすると、近くで見た武装した一団の話を残した。", leave: "危険を感じ、距離を取った。" })
     ]),
     default: Object.freeze([
@@ -117,17 +148,39 @@
     return ["crossing", "road_hub", "water", "sacred", "settlement"].find((item) => terrain.includes(item)) || "default";
   }
 
+  function projectFollowUps(value) {
+    return (Array.isArray(value) ? value : []).map((followUp) => {
+      const projected = {
+        id: cleanText(followUp && followUp.id, "follow-up"),
+        label: cleanText(followUp && followUp.label, "さらに調べる"),
+        result: cleanText(followUp && followUp.result)
+      };
+      if (followUp && followUp.effect && typeof followUp.effect === "object") projected.effect = { ...followUp.effect };
+      return projected;
+    });
+  }
+
   function buildLocalEvent(entry) {
     const family = eventFamily(entry);
     const candidates = EVENT_LIBRARY[family] || EVENT_LIBRARY.default;
     const selected = candidates[stableHash(`${cleanText(entry && entry.key, entry && entry.name)}:event`) % candidates.length];
+    const investigation = selected.investigate && typeof selected.investigate === "object"
+      ? selected.investigate
+      : { result: selected.investigate, followUps: [] };
+    const investigateChoice = {
+      id: "investigate",
+      label: "もう少し調べる",
+      result: cleanText(investigation.result)
+    };
+    const followUps = projectFollowUps(investigation.followUps);
+    if (followUps.length) investigateChoice.followUps = followUps;
     return {
       id: stableId(entry, "event"),
       family,
       title: selected.title,
       hook: selected.hook,
       choices: [
-        { id: "investigate", label: "もう少し調べる", result: selected.investigate },
+        investigateChoice,
         { id: "leave", label: "今は立ち去る", result: selected.leave }
       ]
     };
