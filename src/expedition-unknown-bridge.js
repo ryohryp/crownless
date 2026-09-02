@@ -16,6 +16,7 @@
     api.loadEquipmentOpportunities(root);
     api.loadRescueLoop(root);
     api.loadCompanionProposals(root);
+    api.loadPartySelection(root);
   }
 })(typeof globalThis !== "undefined" ? globalThis : this, function createExpeditionUnknownBridge() {
   "use strict";
@@ -44,6 +45,10 @@
 
   function loadCompanionProposals(root) {
     return loadScript(root, "CrownlessExpeditionCompanionProposals", "src/expedition-companion-proposals.js");
+  }
+
+  function loadPartySelection(root) {
+    return loadScript(root, "CrownlessExpeditionPartySelection", "src/expedition-party-selection.js");
   }
 
   function install(Core, Cells, GeographyApi, runtime, root) {
@@ -135,6 +140,7 @@
     loadEquipmentOpportunities,
     loadRescueLoop,
     loadCompanionProposals,
+    loadPartySelection,
     lastProfile: () => null
   };
 
