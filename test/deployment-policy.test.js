@@ -38,6 +38,21 @@ test('GitHub Pages keeps manual recovery and latest-deploy-wins safeguards', () 
   assert.match(workflow, /actions\/deploy-pages@v4/);
 });
 
+test('GitHub Pages fingerprints local CSS and JS assets with the deployed commit', () => {
+  const workflow = read('.github/workflows/pages.yml');
+
+  assert.match(workflow, /DEPLOY_SHA:/);
+  assert.match(workflow, /github\.event\.workflow_run\.head_sha/);
+  assert.match(workflow, /mkdir -p _site/);
+  assert.match(workflow, /rsync -a --delete/);
+  assert.match(workflow, /sha\.slice\(0, 12\)/);
+  assert.match(workflow, /\(\?:css\|js\)/);
+  assert.match(workflow, /\?v=\$\{version\}/);
+  assert.match(workflow, /touch _site\/\.nojekyll/);
+  assert.match(workflow, /path:\s*_site/);
+  assert.doesNotMatch(workflow, /path:\s*\.\s*$/m);
+});
+
 test('Vercel Production stays manual-only while retaining production smoke checks', () => {
   const workflow = read('.github/workflows/vercel-production.yml');
 

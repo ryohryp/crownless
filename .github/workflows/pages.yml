@@ -53,10 +53,35 @@ jobs:
       - uses: actions/configure-pages@v5
         if: steps.pages.outputs.enabled == 'true'
 
+      - name: Stage Pages artifact with commit-fingerprinted assets
+        if: steps.pages.outputs.enabled == 'true'
+        shell: bash
+        env:
+          DEPLOY_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+        run: |
+          mkdir -p _site
+          rsync -a --delete \
+            --exclude '.git' \
+            --exclude '_site' \
+            ./ _site/
+          DEPLOY_SHA="$DEPLOY_SHA" node <<'NODE'
+          const fs = require('node:fs');
+          const path = '_site/index.html';
+          const sha = String(process.env.DEPLOY_SHA || '').trim();
+          if (!sha) throw new Error('DEPLOY_SHA is required for Pages asset fingerprinting');
+          const version = sha.slice(0, 12);
+          const html = fs.readFileSync(path, 'utf8').replace(
+            /((?:href|src)=["'])(?!https?:|\/\/|#|data:)([^"'?]+\.(?:css|js))(?:\?[^"']*)?(["'])/g,
+            `$1$2?v=${version}$3`
+          );
+          fs.writeFileSync(path, html);
+          NODE
+          touch _site/.nojekyll
+
       - uses: actions/upload-pages-artifact@v3
         if: steps.pages.outputs.enabled == 'true'
         with:
-          path: .
+          path: _site
 
       - name: Deploy to GitHub Pages
         if: steps.pages.outputs.enabled == 'true'
