@@ -21,9 +21,13 @@
 
   function travelingSignals(npcLife, input = new Date()) {
     if (!npcLife || typeof npcLife.snapshotAt !== "function") return [];
+    const snapshot = npcLife.snapshotAt(input);
     const travelingState = npcLife.STATES && npcLife.STATES.TRAVELING ? npcLife.STATES.TRAVELING : "traveling";
-    return npcLife.snapshotAt(input)
-      .filter((resident) => resident && resident.state === travelingState)
+    const leads = typeof npcLife.explorationLeads === "function" ? npcLife.explorationLeads(snapshot) : [];
+    const rumoredTargets = new Set(leads.map((lead) => cleanText(lead && lead.targetId)).filter(Boolean));
+
+    return snapshot
+      .filter((resident) => resident && resident.state === travelingState && rumoredTargets.has(cleanText(resident.id)))
       .map((resident, index) => {
         const slot = SIGNAL_POSITIONS[index % SIGNAL_POSITIONS.length];
         return Object.freeze({
@@ -96,11 +100,20 @@
     return signals.length;
   }
 
+  function addedNearbyMap(record) {
+    return Array.from(record && record.addedNodes || []).some((node) => node && node.nodeType === 1 && (
+      node.matches?.(".world-atlas-map--nearby, #world-atlas-viewer")
+      || node.querySelector?.(".world-atlas-map--nearby")
+    ));
+  }
+
   function install(document, root) {
     if (!document || !root || root.__worldAtlasNpcSignalsInstalled) return false;
     const refresh = () => inject(document, root);
     const observer = typeof root.MutationObserver === "function"
-      ? new root.MutationObserver(() => refresh())
+      ? new root.MutationObserver((records) => {
+        if (records.some(addedNearbyMap)) refresh();
+      })
       : null;
     if (observer && document.body) observer.observe(document.body, { childList: true, subtree: true });
     if (typeof root.addEventListener === "function") root.addEventListener("crownless:world-knowledge-updated", refresh);
@@ -114,6 +127,7 @@
     travelingSignals,
     selectedSignalDetail,
     inject,
+    addedNearbyMap,
     install
   });
 });
