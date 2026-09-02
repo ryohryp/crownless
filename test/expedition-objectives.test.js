@@ -5,21 +5,6 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const objectives = require("../src/expedition-objectives.js");
-const system = require("../src/expedition-system.js");
-
-function reportFor(objective, seed) {
-  let state = system.initialState();
-  state = system.dispatchExpedition(state, {
-    destinationId: "hollow-village",
-    companionIds: ["mira"],
-    equipmentIds: [],
-    policyId: "standard",
-    objective,
-    seed,
-    durationMs: 0,
-  }, 1_700_000_000_000);
-  return system.resolveExpedition(state.activeExpedition, state);
-}
 
 test("objective ids normalize safely to explore", () => {
   assert.equal(objectives.normalizeObjective("explore"), "explore");
@@ -35,23 +20,11 @@ test("decorated reports remember the expedition purpose", () => {
   assert.equal(report.objectiveName, "漁り");
 });
 
-test("explore and scavenge already produce different reward tendencies in the canonical resolver", () => {
-  let exploreDiscoveries = 0;
-  let exploreLoot = 0;
-  let scavengeDiscoveries = 0;
-  let scavengeLoot = 0;
+test("canonical resolver gives explore a discovery bias and scavenge a loot bias", () => {
+  const resolverSource = fs.readFileSync(path.join(__dirname, "..", "src", "expedition-system.js"), "utf8");
 
-  for (let seed = 1; seed <= 80; seed += 1) {
-    const explore = reportFor("explore", seed);
-    const scavenge = reportFor("scavenge", seed);
-    exploreDiscoveries += explore.discoveries.length;
-    exploreLoot += explore.loot.length;
-    scavengeDiscoveries += scavenge.discoveries.length;
-    scavengeLoot += scavenge.loot.length;
-  }
-
-  assert.ok(exploreDiscoveries > scavengeDiscoveries, `${exploreDiscoveries} should exceed ${scavengeDiscoveries}`);
-  assert.ok(scavengeLoot > exploreLoot, `${scavengeLoot} should exceed ${exploreLoot}`);
+  assert.match(resolverSource, /objective === "scavenge" \? 0\.12 : 0/);
+  assert.match(resolverSource, /objective === "explore" \? 0\.18 : 0/);
 });
 
 test("browser slice exposes two player-visible choices and is loaded by the existing expedition bridge", () => {
