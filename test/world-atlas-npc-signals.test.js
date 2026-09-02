@@ -19,7 +19,9 @@ test("traveling NPC becomes a coarse unconfirmed nearby signal only after a rout
   assert.equal(road[0].residentId, "marco");
   assert.equal(road[0].name, "マルコの気配");
   assert.equal(road[0].stateLabel, "未確認 / 噂の足取り");
-  assert.match(road[0].direction, /寄り/);
+  assert.equal(road[0].direction, "北寄り");
+  assert.equal(road[0].x, 50);
+  assert.equal(road[0].y, 18);
   assert.equal(market.length, 0);
 });
 
