@@ -25,6 +25,12 @@
     return text || fallback;
   }
 
+  function safeState(root) {
+    const Core = root && root.CrownlessCore;
+    if (!Core || typeof Core.loadSafeState !== "function") return null;
+    try { return Core.loadSafeState(); } catch (_) { return null; }
+  }
+
   function northRoutePositionForHour(hour) {
     const numeric = Number(hour);
     const normalized = Number.isFinite(numeric) ? ((Math.floor(numeric) % 24) + 24) % 24 : 0;
@@ -65,7 +71,34 @@
       });
   }
 
-  function selectedSignalDetail(document, signal) {
+  function knownDestinationForSignal(root, npcLife, signal, input = new Date()) {
+    if (!signal || !npcLife || typeof npcLife.snapshotAt !== "function" || typeof npcLife.reunionCandidates !== "function") return null;
+    const safe = safeState(root);
+    const discoveries = safe && safe.worldKnowledge && safe.worldKnowledge.discoveries;
+    if (!discoveries || typeof discoveries !== "object" || Array.isArray(discoveries)) return null;
+    const residentId = cleanText(signal.residentId);
+    if (!residentId) return null;
+    const candidate = npcLife.reunionCandidates(npcLife.snapshotAt(input), discoveries)
+      .find((entry) => cleanText(entry && entry.targetId) === residentId);
+    const discoveryKey = cleanText(candidate && candidate.discoveryKey);
+    const entry = discoveryKey ? discoveries[discoveryKey] : null;
+    if (!candidate || !entry || typeof entry !== "object") return null;
+    return Object.freeze({ candidate, entry });
+  }
+
+  function openKnownDestination(document, root, match, input = new Date()) {
+    if (!match || !match.entry) return false;
+    let changed = false;
+    const Preview = root && root.CrownlessWorldAtlasPreview;
+    const Actions = root && root.CrownlessWorldAtlasActionsPresentation;
+    const Reunion = root && root.CrownlessWorldAtlasReunionPresentation;
+    if (Preview && typeof Preview.syncSelection === "function") changed = Preview.syncSelection(document, root, match.entry) || changed;
+    if (Actions && typeof Actions.syncActions === "function") changed = Actions.syncActions(document, root, match.entry) || changed;
+    if (Reunion && typeof Reunion.syncReunion === "function") changed = Reunion.syncReunion(document, root, match.entry, input) || changed;
+    return changed;
+  }
+
+  function selectedSignalDetail(document, signal, match = null, onOpenKnown = null) {
     const fragment = document.createDocumentFragment();
     const kicker = document.createElement("small");
     kicker.textContent = "ROUTE RUMOR / 人の気配";
@@ -76,6 +109,18 @@
     const note = document.createElement("em");
     note.textContent = "炉端で聞いた足取りを時間帯ごとに粗く重ねたもの。正確な位置や経路を示す印ではない。";
     fragment.append(kicker, title, state, note);
+
+    if (match && match.candidate && match.entry) {
+      const known = document.createElement("p");
+      known.className = "world-atlas-npc-signal-match";
+      known.textContent = `探索録の「${cleanText(match.candidate.destinationName, cleanText(match.entry.name, "既知の地点"))}」と足取りが重なる。`;
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "world-atlas-npc-signal-match__open";
+      button.textContent = "既知の探索地点を開く";
+      if (typeof onOpenKnown === "function") button.addEventListener("click", onOpenKnown);
+      fragment.append(known, button);
+    }
     return fragment;
   }
 
@@ -84,7 +129,8 @@
     if (!map) return 0;
 
     Array.from(map.querySelectorAll(".world-atlas-nearby-marker--npc-signal")).forEach((node) => node.remove());
-    const signals = travelingSignals(root && root.CrownlessNpcLife, input);
+    const npcLife = root && root.CrownlessNpcLife;
+    const signals = travelingSignals(npcLife, input);
     if (!signals.length) return 0;
 
     signals.forEach((signal, index) => {
@@ -113,7 +159,12 @@
       marker.addEventListener("click", () => {
         const viewer = document.getElementById("world-atlas-viewer");
         const detail = viewer && viewer.querySelector(".world-atlas-detail");
-        if (detail) detail.replaceChildren(selectedSignalDetail(document, signal));
+        const match = knownDestinationForSignal(root, npcLife, signal, input);
+        if (detail) {
+          detail.replaceChildren(selectedSignalDetail(document, signal, match, () => {
+            openKnownDestination(document, root, match, input);
+          }));
+        }
         Array.from(map.querySelectorAll(".world-atlas-nearby-marker")).forEach((node) => node.classList.toggle("active", node === marker));
       });
       map.appendChild(marker);
@@ -150,6 +201,8 @@
     northRoutePositionForHour,
     positionForLead,
     travelingSignals,
+    knownDestinationForSignal,
+    openKnownDestination,
     selectedSignalDetail,
     inject,
     addedNearbyMap,
