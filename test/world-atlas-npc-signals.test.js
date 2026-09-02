@@ -7,16 +7,34 @@ const Signals = require("../src/world-atlas-npc-signals.js");
 
 const source = fs.readFileSync(path.join(__dirname, "../src/world-atlas-npc-signals.js"), "utf8");
 
-test("traveling NPC becomes a coarse unconfirmed nearby signal only after a route rumor is available", () => {
+test("traveling NPC is visible anonymously before a rumor and upgrades when the route rumor is available", () => {
   const hearth = Signals.travelingSignals(NpcLife, 8);
   const beforeRumor = Signals.travelingSignals(NpcLife, 9);
   const road = Signals.travelingSignals(NpcLife, 11);
   const market = Signals.travelingSignals(NpcLife, 15);
 
   assert.equal(hearth.length, 0);
-  assert.equal(beforeRumor.length, 0);
+  assert.equal(beforeRumor.length, 1);
+  assert.equal(beforeRumor[0].residentId, "marco");
+  assert.equal(beforeRumor[0].hasRumor, false);
+  assert.equal(beforeRumor[0].signalSource, "npc-travel");
+  assert.equal(beforeRumor[0].name, "旅人らしき気配");
+  assert.equal(beforeRumor[0].shortName, "旅人");
+  assert.equal(beforeRumor[0].stateLabel, "未確認 / 人の気配");
+  assert.equal(beforeRumor[0].direction, "北寄り");
+  assert.equal(beforeRumor[0].movementHint, "移動しているらしい");
+  assert.doesNotMatch(JSON.stringify({
+    name: beforeRumor[0].name,
+    shortName: beforeRumor[0].shortName,
+    distanceBand: beforeRumor[0].distanceBand,
+    movementHint: beforeRumor[0].movementHint,
+    stateLabel: beforeRumor[0].stateLabel
+  }), /マルコ|行商人|北の街道|街道/);
+
   assert.equal(road.length, 1);
   assert.equal(road[0].residentId, "marco");
+  assert.equal(road[0].hasRumor, true);
+  assert.equal(road[0].signalSource, "npc-rumor");
   assert.equal(road[0].name, "マルコの気配");
   assert.equal(road[0].stateLabel, "未確認 / 噂の足取り");
   assert.equal(road[0].direction, "北寄り");
@@ -45,6 +63,21 @@ test("north-road traveler signal advances in coarse time bands without exposing 
   );
   assert.notDeepEqual([early.x, early.y], [middle.x, middle.y]);
   assert.notDeepEqual([middle.x, middle.y], [late.x, late.y]);
+});
+
+test("anonymous traveler signal cannot match a known destination until the rumor is available", () => {
+  const knownRoad = {
+    key: "known-north-road",
+    name: "北の街道・古い関所跡",
+    location: NpcLife.LOCATIONS.ROAD,
+    state: "discovered"
+  };
+  const safe = { worldKnowledge: { discoveries: { [knownRoad.key]: knownRoad } } };
+  const root = { CrownlessCore: { loadSafeState: () => safe } };
+  const anonymousSignal = Signals.travelingSignals(NpcLife, 9)[0];
+
+  assert.equal(anonymousSignal.hasRumor, false);
+  assert.equal(Signals.knownDestinationForSignal(root, NpcLife, anonymousSignal, 9), null);
 });
 
 test("traveler signal can be matched to an already-known reunion destination without creating discovery state", () => {
@@ -91,14 +124,21 @@ test("known destination bridge reuses existing atlas detail, actions, and reunio
 });
 
 test("NPC signal model never contains precise coordinates or route persistence fields", () => {
-  const signal = Signals.travelingSignals(NpcLife, 11)[0];
-  const serialized = JSON.stringify(signal);
-  assert.doesNotMatch(serialized, /latitude|longitude|coordinate|mapOrigin|route|locationLabel|north-road/);
+  const anonymousSignal = Signals.travelingSignals(NpcLife, 9)[0];
+  const rumoredSignal = Signals.travelingSignals(NpcLife, 11)[0];
+  for (const signal of [anonymousSignal, rumoredSignal]) {
+    const serialized = JSON.stringify(signal);
+    assert.doesNotMatch(serialized, /latitude|longitude|coordinate|mapOrigin|locationLabel|north-road/);
+  }
   assert.doesNotMatch(source, /localStorage|sessionStorage|saveWorldKnowledge|recordExploredCell/);
+  assert.doesNotMatch(source, /SAVE_VERSION/);
 });
 
-test("presentation marks NPC signal as rumor rather than a confirmed discovery", () => {
-  assert.match(source, /dataset\.atlasSignalSource = "npc-rumor"/);
+test("presentation distinguishes anonymous travel presence from route rumor without confirming discovery", () => {
+  assert.match(source, /signalSource: hasRumor \? "npc-rumor" : "npc-travel"/);
+  assert.match(source, /dataset\.atlasSignalSource = signal\.signalSource/);
+  assert.match(source, /旅人らしき気配/);
+  assert.match(source, /人物や行き先はまだ分からない/);
   assert.match(source, /まだ確認済み地点ではない/);
   assert.match(source, /正確な位置や経路を示す印ではない/);
   assert.match(source, /時間帯ごとに粗く重ねたもの/);
