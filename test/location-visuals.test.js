@@ -99,11 +99,12 @@ test("latest mapped discovery visual is resolved from world knowledge without pe
   assert.equal(worldKnowledge.discoveries.newestTower.assetPath, undefined);
 });
 
-test("location visual runtime and assets publish through the repository-root GitHub Pages artifact", () => {
+test("location visual runtime and assets publish through the staged repository-root GitHub Pages artifact", () => {
   const pagesWorkflow = fs.readFileSync(path.join(__dirname, "..", ".github", "workflows", "pages.yml"), "utf8");
   const vercelWorkflow = fs.readFileSync(path.join(__dirname, "..", ".github", "workflows", "vercel-production.yml"), "utf8");
+  assert.match(pagesWorkflow, /rsync -a --delete[\s\S]*\.\/ _site\//);
   assert.match(pagesWorkflow, /actions\/upload-pages-artifact@v3/);
-  assert.match(pagesWorkflow, /path:\s*\./);
+  assert.match(pagesWorkflow, /path:\s*_site/);
   assert.match(pagesWorkflow, /branches:\s*\[main\]/);
   assert.match(vercelWorkflow, /workflow_dispatch:/);
   assert.doesNotMatch(vercelWorkflow, /\n\s*push:/);
