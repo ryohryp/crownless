@@ -49,51 +49,43 @@ test("north-road traveler signal advances in coarse time bands without exposing 
   const middle = Signals.travelingSignals(NpcLife, 11)[0];
   const late = Signals.travelingSignals(NpcLife, 13)[0];
 
-  assert.deepEqual(
-    [early.x, early.y, early.direction, early.movementHint],
-    [44, 28, "北寄り", "街道へ出たばかり"]
-  );
-  assert.deepEqual(
-    [middle.x, middle.y, middle.direction, middle.movementHint],
-    [50, 19, "北寄り", "街道を進んでいる"]
-  );
-  assert.deepEqual(
-    [late.x, late.y, late.direction, late.movementHint],
-    [56, 13, "北寄り", "さらに北へ進んだ気配"]
-  );
+  assert.deepEqual([early.x, early.y, early.direction, early.movementHint], [44, 28, "北寄り", "街道へ出たばかり"]);
+  assert.deepEqual([middle.x, middle.y, middle.direction, middle.movementHint], [50, 19, "北寄り", "街道を進んでいる"]);
+  assert.deepEqual([late.x, late.y, late.direction, late.movementHint], [56, 13, "北寄り", "さらに北へ進んだ気配"]);
   assert.notDeepEqual([early.x, early.y], [middle.x, middle.y]);
   assert.notDeepEqual([middle.x, middle.y], [late.x, late.y]);
 });
 
+test("roadside anomaly is a deterministic temporary signal and does not reveal the incident", () => {
+  assert.equal(Signals.roadsideEventSignals(11).length, 0);
+  const signal = Signals.roadsideEventSignals(12)[0];
+  assert.ok(signal);
+  assert.equal(signal.id, "event-signal:roadside-disturbance");
+  assert.equal(signal.signalSource, "roadside-disturbance");
+  assert.equal(signal.name, "街道の方から騒がしい気配");
+  assert.equal(signal.stateLabel, "未確認 / 異変の気配");
+  assert.equal(signal.direction, "北東寄り");
+  assert.equal(Signals.roadsideEventSignals(14).length, 1);
+  assert.equal(Signals.roadsideEventSignals(15).length, 0);
+  assert.doesNotMatch(JSON.stringify(signal), /盗賊|襲撃|マルコ|latitude|longitude|coordinate|mapOrigin|locationLabel|north-road/);
+});
+
 test("anonymous traveler signal cannot match a known destination until the rumor is available", () => {
-  const knownRoad = {
-    key: "known-north-road",
-    name: "北の街道・古い関所跡",
-    location: NpcLife.LOCATIONS.ROAD,
-    state: "discovered"
-  };
+  const knownRoad = { key: "known-north-road", name: "北の街道・古い関所跡", location: NpcLife.LOCATIONS.ROAD, state: "discovered" };
   const safe = { worldKnowledge: { discoveries: { [knownRoad.key]: knownRoad } } };
   const root = { CrownlessCore: { loadSafeState: () => safe } };
   const anonymousSignal = Signals.travelingSignals(NpcLife, 9)[0];
-
   assert.equal(anonymousSignal.hasRumor, false);
   assert.equal(Signals.knownDestinationForSignal(root, NpcLife, anonymousSignal, 9), null);
 });
 
 test("traveler signal can be matched to an already-known reunion destination without creating discovery state", () => {
-  const knownRoad = {
-    key: "known-north-road",
-    name: "北の街道・古い関所跡",
-    location: NpcLife.LOCATIONS.ROAD,
-    state: "discovered"
-  };
+  const knownRoad = { key: "known-north-road", name: "北の街道・古い関所跡", location: NpcLife.LOCATIONS.ROAD, state: "discovered" };
   const safe = { worldKnowledge: { discoveries: { [knownRoad.key]: knownRoad } } };
   const before = JSON.stringify(safe);
   const root = { CrownlessCore: { loadSafeState: () => safe } };
   const signal = Signals.travelingSignals(NpcLife, 11)[0];
-
   const match = Signals.knownDestinationForSignal(root, NpcLife, signal, 11);
-
   assert.equal(match.candidate.targetId, "marco");
   assert.equal(match.candidate.discoveryKey, knownRoad.key);
   assert.equal(match.entry, knownRoad);
@@ -114,19 +106,13 @@ test("known destination bridge reuses existing atlas detail, actions, and reunio
     CrownlessWorldAtlasReunionPresentation: { syncReunion: (_document, _root, entry) => { calls.push(["reunion", entry.key]); return true; } }
   };
   const match = { entry: { key: "known-north-road" } };
-
   assert.equal(Signals.openKnownDestination({}, root, match, 11), true);
-  assert.deepEqual(calls, [
-    ["preview", "known-north-road"],
-    ["actions", "known-north-road"],
-    ["reunion", "known-north-road"]
-  ]);
+  assert.deepEqual(calls, [["preview", "known-north-road"], ["actions", "known-north-road"], ["reunion", "known-north-road"]]);
 });
 
-test("NPC signal model never contains precise coordinates or route persistence fields", () => {
-  const anonymousSignal = Signals.travelingSignals(NpcLife, 9)[0];
-  const rumoredSignal = Signals.travelingSignals(NpcLife, 11)[0];
-  for (const signal of [anonymousSignal, rumoredSignal]) {
+test("signal models never contain precise coordinates or persistence fields", () => {
+  const signals = [Signals.travelingSignals(NpcLife, 9)[0], Signals.travelingSignals(NpcLife, 11)[0], Signals.roadsideEventSignals(12)[0]];
+  for (const signal of signals) {
     const serialized = JSON.stringify(signal);
     assert.doesNotMatch(serialized, /latitude|longitude|coordinate|mapOrigin|locationLabel|north-road/);
   }
@@ -134,16 +120,18 @@ test("NPC signal model never contains precise coordinates or route persistence f
   assert.doesNotMatch(source, /SAVE_VERSION/);
 });
 
-test("presentation distinguishes anonymous travel presence from route rumor without confirming discovery", () => {
+test("presentation distinguishes NPC signals and an unidentified roadside anomaly without confirming discovery", () => {
   assert.match(source, /signalSource: hasRumor \? "npc-rumor" : "npc-travel"/);
+  assert.match(source, /signalSource: "roadside-disturbance"/);
   assert.match(source, /dataset\.atlasSignalSource = signal\.signalSource/);
   assert.match(source, /旅人らしき気配/);
-  assert.match(source, /人物や行き先はまだ分からない/);
+  assert.match(source, /街道の方から騒がしい気配/);
+  assert.match(source, /正体はまだ分からない/);
   assert.match(source, /まだ確認済み地点ではない/);
   assert.match(source, /正確な位置や経路を示す印ではない/);
-  assert.match(source, /時間帯ごとに粗く重ねたもの/);
   assert.match(source, /既知の探索地点を開く/);
   assert.match(source, /world-atlas-nearby-marker--npc-signal/);
+  assert.match(source, /world-atlas-nearby-marker--event-signal/);
 });
 
 test("atlas observer only refreshes when a nearby map is added", () => {
