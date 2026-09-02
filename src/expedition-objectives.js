@@ -12,7 +12,7 @@
   const OBJECTIVES = Object.freeze({
     explore: Object.freeze({ id: "explore", name: "探索", description: "新しい手掛かりや発見を優先する" }),
     scavenge: Object.freeze({ id: "scavenge", name: "漁り", description: "持ち帰れる戦利品を優先する" }),
-    hunt: Object.freeze({ id: "hunt", name: "狩り", description: "敵対遭遇や標的の痕跡を優先する" }),
+    hunt: Object.freeze({ id: "hunt", name: "狩り", description: "敵対遭遇から標的の痕跡を探す" }),
   });
 
   function normalizeObjective(value) {
@@ -124,12 +124,54 @@
     return changed;
   }
 
+  function huntTraceForReport(report) {
+    const encounters = report && report.combat && Array.isArray(report.combat.encounters)
+      ? report.combat.encounters
+      : [];
+    const encounter = encounters.find((item) => item && item.encounterId);
+    if (!encounter) return null;
+    return {
+      id: `hunt-trace-${report.destinationId}-${encounter.encounterId}`,
+      name: `${encounter.encounterName || "敵影"}の追跡痕`,
+      sourceDestinationId: report.destinationId,
+      kind: "hunt-trace",
+    };
+  }
+
   function decorateReport(report, objectiveId) {
     if (!report || typeof report !== "object") return report;
     const id = normalizeObjective(objectiveId);
     report.objectiveId = id;
     report.objectiveName = OBJECTIVES[id].name;
+    if (id === "hunt") {
+      const trace = huntTraceForReport(report);
+      if (trace) {
+        if (!Array.isArray(report.discoveries)) report.discoveries = [];
+        if (!report.discoveries.some((item) => item && item.id === trace.id)) report.discoveries.push(trace);
+        if (Array.isArray(report.log) && !report.log.some((item) => item && item.type === "hunt-trace" && item.causes && item.causes.includes(trace.id))) {
+          report.log.push({
+            minute: 105,
+            time: report.log.find((item) => item && item.minute === 104)?.time || "",
+            type: "hunt-trace",
+            text: `${trace.name}を記録した。次に追うべき標的の手掛かりになる。`,
+            causes: [trace.id, "learned value"],
+          });
+          report.log.sort((a, b) => (a.minute || 0) - (b.minute || 0));
+        }
+      }
+    }
     return report;
+  }
+
+  function persistHuntTrace(state, report) {
+    if (!state || !report || report.objectiveId !== "hunt") return state;
+    const trace = Array.isArray(report.discoveries)
+      ? report.discoveries.find((item) => item && item.kind === "hunt-trace")
+      : null;
+    if (!trace) return state;
+    if (!Array.isArray(state.discoveredDestinationIds)) state.discoveredDestinationIds = [];
+    if (!state.discoveredDestinationIds.includes(trace.id)) state.discoveredDestinationIds.push(trace.id);
+    return state;
   }
 
   function installSystemHooks(root) {
@@ -149,6 +191,12 @@
       return decorateReport(report, expedition && expedition.inputs && expedition.inputs.objective);
     };
 
+    const baseApplyReport = system.applyReport.bind(system);
+    system.applyReport = function applyReportWithObjective(state, report) {
+      const decorated = decorateReport(report, report && report.objectiveId);
+      return persistHuntTrace(baseApplyReport(state, decorated), decorated);
+    };
+
     const baseAdvance = system.advance.bind(system);
     system.advance = function advanceWithObjective(state, nowMs) {
       const objectiveId = state && state.activeExpedition && state.activeExpedition.inputs
@@ -157,6 +205,7 @@
       const advanced = baseAdvance(state, nowMs);
       if (advanced && advanced.report) {
         decorateReport(advanced.report, objectiveId);
+        persistHuntTrace(advanced.state, advanced.report);
         const reports = advanced.state && advanced.state.completedReports;
         if (Array.isArray(reports)) {
           const stored = reports.find((item) => item && item.expeditionId === advanced.report.expeditionId);
@@ -193,5 +242,5 @@
     return true;
   }
 
-  return { OBJECTIVES, normalizeObjective, decorateReport, install };
+  return { OBJECTIVES, normalizeObjective, huntTraceForReport, decorateReport, persistHuntTrace, install };
 });
