@@ -53,10 +53,59 @@ test("merchant purchases become expedition equipment while spent loot stays cons
   assert.deepEqual(state.securedLoot.map((item) => item.id), ["coin"]);
 });
 
-test("atlas action hub connects expedition, local event, and merchant facility", () => {
+test("local event rumor is persisted once through the existing world knowledge boundary", () => {
+  let persistedState = {
+    phase: "hub",
+    worldKnowledge: { discoveries: {} }
+  };
+  let saves = 0;
+  const root = {
+    CrownlessCore: {
+      loadSafeState() { return JSON.parse(JSON.stringify(persistedState)); },
+      saveWorldKnowledge(next) {
+        persistedState = JSON.parse(JSON.stringify(next));
+        saves += 1;
+        return true;
+      }
+    }
+  };
+  const entry = {
+    key: "geo:settlement:1",
+    name: "古い市場跡",
+    state: "discovered",
+    contentKind: "unknown",
+    terrain: ["settlement"],
+    areaId: "area:14:14554:6451",
+    latitude: 35.123456,
+    longitude: 139.123456
+  };
+  const event = Actions.buildLocalEvent(entry);
+  const investigate = event.choices.find((choice) => choice.id === "investigate");
+  const followUp = investigate.followUps.find((choice) => choice.id === "ask-black-stone");
+
+  const first = Presentation.recordLocalEventRumor(root, entry, event, followUp.effect);
+  const second = Presentation.recordLocalEventRumor(root, entry, event, followUp.effect);
+
+  assert.equal(first.ok, true);
+  assert.equal(first.changed, true);
+  assert.equal(second.ok, true);
+  assert.equal(second.changed, false);
+  assert.equal(saves, 1);
+  const rumor = persistedState.worldKnowledge.discoveries[first.key];
+  assert.equal(rumor.contentKind, "rumor");
+  assert.equal(rumor.name, "北の古井戸の噂");
+  assert.equal(rumor.areaId, entry.areaId);
+  assert.match(rumor.baseTitle, /夜になると荷運び人の灯りが消える/);
+  assert.doesNotMatch(JSON.stringify(rumor), /latitude|longitude|routeHistory/i);
+});
+
+test("atlas action hub connects expedition, branching local event, and merchant facility", () => {
   assert.match(source, /dataAtlasActionKind|dataset\.atlasActionKind/);
   assert.match(source, /lockAtlasDestination/);
   assert.match(source, /buildLocalEvent/);
+  assert.match(source, /renderChoices\(choice\.followUps\)/);
+  assert.match(source, /recordLocalEventRumor/);
+  assert.match(source, /effect\.kind === "merchant"/);
   assert.match(source, /旅商人の荷車/);
   assert.match(source, /戦利品\$\{item\.priceLoot\}個と交換/);
   assert.match(source, /getRegionMissionBoard/);

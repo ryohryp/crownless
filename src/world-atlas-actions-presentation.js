@@ -288,6 +288,53 @@
     }
   }
 
+  function localRumorKey(eventModel, effect) {
+    return `local-rumor:${cleanText(eventModel && eventModel.id, "event")}:${cleanText(effect && effect.id, "lead")}`;
+  }
+
+  function recordLocalEventRumor(root, entry, eventModel, effect) {
+    const Core = root && root.CrownlessCore;
+    if (!Core || typeof Core.loadSafeState !== "function" || typeof Core.saveWorldKnowledge !== "function") {
+      return { ok: false, changed: false, key: "", message: "噂を聞き取ったが、探索録へ記す準備が整っていない。" };
+    }
+    try {
+      const state = Core.loadSafeState();
+      if (!state || typeof state !== "object") {
+        return { ok: false, changed: false, key: "", message: "噂を聞き取ったが、探索録へ記す準備が整っていない。" };
+      }
+      if (typeof Core.sanitizeWorldKnowledge === "function") state.worldKnowledge = Core.sanitizeWorldKnowledge(state.worldKnowledge);
+      else if (!state.worldKnowledge || typeof state.worldKnowledge !== "object") state.worldKnowledge = { discoveries: {} };
+      if (!state.worldKnowledge.discoveries || typeof state.worldKnowledge.discoveries !== "object" || Array.isArray(state.worldKnowledge.discoveries)) {
+        state.worldKnowledge.discoveries = {};
+      }
+
+      const key = localRumorKey(eventModel, effect);
+      if (state.worldKnowledge.discoveries[key]) {
+        return { ok: true, changed: false, key, message: "この噂はすでに探索録へ記してある。" };
+      }
+
+      const rumor = {
+        key,
+        name: cleanText(effect && effect.name, "土地の噂"),
+        baseTitle: cleanText(effect && effect.baseTitle, "この土地に、まだ確かめていない話が残っている。"),
+        terrain: [],
+        contentKind: "rumor",
+        state: "discovered",
+        firstDiscoveredAt: Date.now(),
+        visits: 1
+      };
+      const areaId = cleanText(entry && entry.areaId);
+      if (/^area:\d{1,2}:\d+:\d+$/.test(areaId)) rumor.areaId = areaId;
+      state.worldKnowledge.discoveries[key] = rumor;
+      if (!Core.saveWorldKnowledge(state)) {
+        return { ok: false, changed: false, key, message: "噂を聞き取ったが、探索録への記録に失敗した。" };
+      }
+      return { ok: true, changed: true, key, message: "噂を探索録へ記した。" };
+    } catch (_) {
+      return { ok: false, changed: false, key: "", message: "噂を聞き取ったが、探索録への記録に失敗した。" };
+    }
+  }
+
   function openEvent(document, root, entry) {
     const actionsApi = root && root.CrownlessDiscoveryActions;
     if (!actionsApi || typeof actionsApi.buildLocalEvent !== "function") return false;
@@ -302,16 +349,32 @@
     const result = document.createElement("p");
     result.className = "world-atlas-event-result";
     result.setAttribute("role", "status");
-    eventModel.choices.forEach((choice) => {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.textContent = choice.label;
-      button.addEventListener("click", () => {
-        result.textContent = choice.result;
-        Array.from(choices.querySelectorAll("button")).forEach((candidate) => { candidate.disabled = true; });
+
+    function renderChoices(items) {
+      choices.replaceChildren();
+      (Array.isArray(items) ? items : []).forEach((choice) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.textContent = choice.label;
+        button.addEventListener("click", () => {
+          result.textContent = cleanText(choice.result);
+          if (Array.isArray(choice.followUps) && choice.followUps.length) {
+            renderChoices(choice.followUps);
+            return;
+          }
+          const effect = choice.effect && typeof choice.effect === "object" ? choice.effect : null;
+          if (effect && effect.kind === "rumor") {
+            const outcome = recordLocalEventRumor(root, entry, eventModel, effect);
+            result.textContent = `${cleanText(choice.result)} ${outcome.message}`.trim();
+          }
+          Array.from(choices.querySelectorAll("button")).forEach((candidate) => { candidate.disabled = true; });
+          if (effect && effect.kind === "merchant") openMerchant(document, root, entry);
+        });
+        choices.appendChild(button);
       });
-      choices.appendChild(button);
-    });
+    }
+
+    renderChoices(eventModel.choices);
     page.append(hook, choices, result);
 
     const mission = relatedRegionMission(root, entry);
@@ -536,6 +599,7 @@
     entryByKey,
     createActionsPanel,
     syncActions,
+    recordLocalEventRumor,
     openEvent,
     openMerchant,
     findPrepareTransitionButton,
