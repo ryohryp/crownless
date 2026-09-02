@@ -207,7 +207,8 @@
 
   function formatAwayResident(resident) {
     const state = resident.state && resident.state !== STATES.NORMAL ? `・${resident.stateLabel || resident.state}` : "";
-    return `${resident.name}（不在${state}）`;
+    const role = resident.role ? `${resident.role}・` : "";
+    return `${resident.name}（${role}不在${state}）`;
   }
 
   function formatHearthStatus(snapshot) {
