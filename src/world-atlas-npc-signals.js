@@ -127,7 +127,18 @@
     return changed;
   }
 
-  function selectedSignalDetail(document, signal, match = null, onOpenKnown = null) {
+  async function rescanNearbyForSignal(document, root) {
+    const Atlas = root && root.CrownlessWorldAtlas;
+    const Core = root && root.CrownlessCore;
+    if (!Atlas || !Core || typeof Atlas.scanNearby !== "function" || typeof Atlas.openAtlas !== "function") {
+      return { state: "unavailable", foundCount: 0, newCount: 0, rememberedCount: 0, currentCell: null, cached: false };
+    }
+    const result = await Atlas.scanNearby(Core, root, { force: true });
+    Atlas.openAtlas(document, Core, root, { autoScan: false, scanResult: result, view: "nearby" });
+    return result;
+  }
+
+  function selectedSignalDetail(document, signal, match = null, onOpenKnown = null, onRescanNearby = null) {
     const fragment = document.createDocumentFragment();
     const hasRumor = Boolean(signal && signal.hasRumor);
     const isRoadsideEvent = signal && signal.signalSource === "roadside-disturbance";
@@ -144,6 +155,18 @@
         ? "炉端で聞いた足取りを時間帯ごとに粗く重ねたもの。正確な位置や経路を示す印ではない。"
         : "誰かが移動しているらしい。人物や行き先はまだ分からない。正確な位置や経路を示す印ではない。";
     fragment.append(kicker, title, state, note);
+
+    if (isRoadsideEvent && typeof onRescanNearby === "function") {
+      const prompt = document.createElement("p");
+      prompt.className = "world-atlas-npc-signal-match";
+      prompt.textContent = "少し歩いてから周辺を調べ直せば、この気配の正体につながる痕跡が見つかるかもしれない。";
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "world-atlas-npc-signal-match__open";
+      button.textContent = "現在地周辺を調べる";
+      button.addEventListener("click", onRescanNearby);
+      fragment.append(prompt, button);
+    }
 
     if (!isRoadsideEvent && hasRumor && match && match.candidate && match.entry) {
       const known = document.createElement("p");
@@ -201,7 +224,9 @@
         if (detail) {
           detail.replaceChildren(selectedSignalDetail(document, signal, match, () => {
             openKnownDestination(document, root, match, input);
-          }));
+          }, kind === "event" ? () => {
+            rescanNearbyForSignal(document, root);
+          } : null));
         }
         Array.from(map.querySelectorAll(".world-atlas-nearby-marker")).forEach((node) => node.classList.toggle("active", node === marker));
       });
@@ -244,6 +269,7 @@
     roadsideEventSignals,
     knownDestinationForSignal,
     openKnownDestination,
+    rescanNearbyForSignal,
     selectedSignalDetail,
     inject,
     addedNearbyMap,
