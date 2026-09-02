@@ -113,6 +113,31 @@ var audioContext = null;
 // Crownless lore, while #224 turns each selected discovery into an action hub.
 (function loadWorldAtlas() {
   if (typeof document === "undefined") return;
+  const wallMap = document.getElementById("hearth-map-focus");
+  let atlasReady = Boolean(window.CrownlessWorldAtlas);
+  let atlasReplayQueued = false;
+
+  // The atlas is loaded dynamically. On a slow mobile connection, the wall-map
+  // can be tapped before world-atlas.js installs its capture listener; without
+  // this guard the older Hearth click handler opens the legacy discovery view.
+  // Hold that first tap and replay it once the canonical Atlas entry point is
+  // available, matching the readiness guard used by the expedition gate above.
+  if (wallMap) {
+    wallMap.addEventListener("click", function holdWallMapUntilAtlasReady(event) {
+      if (atlasReady) return;
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      atlasReplayQueued = true;
+    }, true);
+  }
+
+  function finishAtlasReady() {
+    atlasReady = true;
+    if (atlasReplayQueued && wallMap) {
+      atlasReplayQueued = false;
+      wallMap.click();
+    }
+  }
 
   function loadActionsPresentation() {
     if (document.querySelector('script[src="src/world-atlas-actions-presentation.js"]')) return;
@@ -223,20 +248,25 @@ var audioContext = null;
     document.body.appendChild(preview);
   }
 
+  function atlasLoaded() {
+    finishAtlasReady();
+    loadSelectionPreview();
+  }
+
   function loadAtlas() {
     const existingAtlas = document.querySelector('script[src="src/world-atlas.js"]');
     if (existingAtlas) {
-      if (window.CrownlessWorldAtlas) loadSelectionPreview();
+      if (window.CrownlessWorldAtlas) atlasLoaded();
       else {
-        existingAtlas.addEventListener("load", loadSelectionPreview, { once: true });
-        existingAtlas.addEventListener("error", loadSelectionPreview, { once: true });
+        existingAtlas.addEventListener("load", atlasLoaded, { once: true });
+        existingAtlas.addEventListener("error", finishAtlasReady, { once: true });
       }
       return;
     }
     const atlas = document.createElement("script");
     atlas.src = "src/world-atlas.js";
-    atlas.onload = loadSelectionPreview;
-    atlas.onerror = loadSelectionPreview;
+    atlas.onload = atlasLoaded;
+    atlas.onerror = finishAtlasReady;
     document.body.appendChild(atlas);
   }
 
