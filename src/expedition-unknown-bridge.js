@@ -13,6 +13,7 @@
       root
     );
     api.loadObjectiveChoices(root);
+    api.loadEquipmentOpportunities(root);
   }
 })(typeof globalThis !== "undefined" ? globalThis : this, function createExpeditionUnknownBridge() {
   "use strict";
@@ -20,6 +21,17 @@
   function loadObjectiveChoices(root) {
     if (!root || !root.document || root.CrownlessExpeditionObjectives) return false;
     const src = "src/expedition-objectives.js";
+    if (root.document.querySelector(`script[src="${src}"]`)) return true;
+    const script = root.document.createElement("script");
+    script.src = src;
+    script.defer = true;
+    root.document.head.appendChild(script);
+    return true;
+  }
+
+  function loadEquipmentOpportunities(root) {
+    if (!root || !root.document || root.CrownlessExpeditionEquipmentOpportunities) return false;
+    const src = "src/expedition-equipment-opportunities.js";
     if (root.document.querySelector(`script[src="${src}"]`)) return true;
     const script = root.document.createElement("script");
     script.src = src;
@@ -114,6 +126,7 @@
   const api = {
     install,
     loadObjectiveChoices,
+    loadEquipmentOpportunities,
     lastProfile: () => null
   };
 
