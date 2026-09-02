@@ -41,7 +41,8 @@
 
   function positionForLead(npcLife, lead, index, resident) {
     const northRoad = npcLife && npcLife.LOCATIONS ? npcLife.LOCATIONS.ROAD : "north-road";
-    if (lead && lead.location === northRoad) return northRoutePositionForHour(resident && resident.hour);
+    const routeLocation = cleanText(lead && lead.location, cleanText(resident && resident.location));
+    if (routeLocation === northRoad) return northRoutePositionForHour(resident && resident.hour);
     return SIGNAL_POSITIONS[index % SIGNAL_POSITIONS.length];
   }
 
@@ -53,26 +54,31 @@
     const leadByTarget = new Map(leads.map((lead) => [cleanText(lead && lead.targetId), lead]).filter(([targetId]) => targetId));
 
     return snapshot
-      .filter((resident) => resident && resident.state === travelingState && leadByTarget.has(cleanText(resident.id)))
+      .filter((resident) => resident && resident.state === travelingState)
       .map((resident, index) => {
-        const slot = positionForLead(npcLife, leadByTarget.get(cleanText(resident.id)), index, resident);
+        const residentId = cleanText(resident.id);
+        const lead = leadByTarget.get(residentId) || null;
+        const hasRumor = Boolean(lead);
+        const slot = positionForLead(npcLife, lead, index, resident);
         return Object.freeze({
-          id: `npc-signal:${cleanText(resident.id, String(index + 1))}`,
-          residentId: cleanText(resident.id),
-          name: `${cleanText(resident.name, "旅人")}の気配`,
-          shortName: cleanText(resident.role, "旅人"),
+          id: `npc-signal:${residentId || String(index + 1)}`,
+          residentId,
+          hasRumor,
+          signalSource: hasRumor ? "npc-rumor" : "npc-travel",
+          name: hasRumor ? `${cleanText(resident.name, "旅人")}の気配` : "旅人らしき気配",
+          shortName: hasRumor ? cleanText(resident.role, "旅人") : "旅人",
           x: slot.x,
           y: slot.y,
           direction: slot.direction,
-          distanceBand: "街道筋の気配",
-          movementHint: cleanText(slot.phase, "街道を移動中"),
-          stateLabel: "未確認 / 噂の足取り"
+          distanceBand: hasRumor ? "街道筋の気配" : "遠くの人影らしき気配",
+          movementHint: hasRumor ? cleanText(slot.phase, "街道を移動中") : "移動しているらしい",
+          stateLabel: hasRumor ? "未確認 / 噂の足取り" : "未確認 / 人の気配"
         });
       });
   }
 
   function knownDestinationForSignal(root, npcLife, signal, input = new Date()) {
-    if (!signal || !npcLife || typeof npcLife.snapshotAt !== "function" || typeof npcLife.reunionCandidates !== "function") return null;
+    if (!signal || !signal.hasRumor || !npcLife || typeof npcLife.snapshotAt !== "function" || typeof npcLife.reunionCandidates !== "function") return null;
     const safe = safeState(root);
     const discoveries = safe && safe.worldKnowledge && safe.worldKnowledge.discoveries;
     if (!discoveries || typeof discoveries !== "object" || Array.isArray(discoveries)) return null;
@@ -100,17 +106,20 @@
 
   function selectedSignalDetail(document, signal, match = null, onOpenKnown = null) {
     const fragment = document.createDocumentFragment();
+    const hasRumor = Boolean(signal && signal.hasRumor);
     const kicker = document.createElement("small");
-    kicker.textContent = "ROUTE RUMOR / 人の気配";
+    kicker.textContent = hasRumor ? "ROUTE RUMOR / 人の気配" : "TRAVEL TRACE / 人の気配";
     const title = document.createElement("strong");
     title.textContent = signal.name;
     const state = document.createElement("span");
     state.textContent = `${signal.direction}・${signal.distanceBand}。${signal.movementHint}。まだ確認済み地点ではない。`;
     const note = document.createElement("em");
-    note.textContent = "炉端で聞いた足取りを時間帯ごとに粗く重ねたもの。正確な位置や経路を示す印ではない。";
+    note.textContent = hasRumor
+      ? "炉端で聞いた足取りを時間帯ごとに粗く重ねたもの。正確な位置や経路を示す印ではない。"
+      : "誰かが移動しているらしい。人物や行き先はまだ分からない。正確な位置や経路を示す印ではない。";
     fragment.append(kicker, title, state, note);
 
-    if (match && match.candidate && match.entry) {
+    if (hasRumor && match && match.candidate && match.entry) {
       const known = document.createElement("p");
       known.className = "world-atlas-npc-signal-match";
       known.textContent = `探索録の「${cleanText(match.candidate.destinationName, cleanText(match.entry.name, "既知の地点"))}」と足取りが重なる。`;
@@ -141,7 +150,7 @@
       marker.style.top = `${signal.y}%`;
       marker.dataset.labelHorizontal = signal.x >= 72 ? "inset-right" : signal.x <= 28 ? "inset-left" : "center";
       marker.dataset.labelVertical = signal.y >= 66 ? "above" : "below";
-      marker.dataset.atlasSignalSource = "npc-rumor";
+      marker.dataset.atlasSignalSource = signal.signalSource;
       marker.setAttribute("aria-label", `${signal.name}。${signal.direction}、${signal.distanceBand}。${signal.movementHint}。${signal.stateLabel}。`);
 
       const glyph = document.createElement("i");
