@@ -19,10 +19,17 @@
     Object.freeze({ x: 56, y: 13, direction: "北寄り", phase: "さらに北へ進んだ気配" })
   ]);
   const NORTH_ROUTE_POSITION = NORTH_ROUTE_POSITIONS[1];
+  const ROADSIDE_EVENT_POSITION = Object.freeze({ x: 72, y: 36, direction: "北東寄り" });
 
   function cleanText(value, fallback = "") {
     const text = String(value == null ? "" : value).trim();
     return text || fallback;
+  }
+
+  function normalizedHour(input = new Date()) {
+    if (input instanceof Date) return input.getHours();
+    const numeric = Number(input);
+    return Number.isFinite(numeric) ? ((Math.floor(numeric) % 24) + 24) % 24 : new Date().getHours();
   }
 
   function safeState(root) {
@@ -32,8 +39,7 @@
   }
 
   function northRoutePositionForHour(hour) {
-    const numeric = Number(hour);
-    const normalized = Number.isFinite(numeric) ? ((Math.floor(numeric) % 24) + 24) % 24 : 0;
+    const normalized = normalizedHour(hour);
     if (normalized <= 10) return NORTH_ROUTE_POSITIONS[0];
     if (normalized >= 13) return NORTH_ROUTE_POSITIONS[2];
     return NORTH_ROUTE_POSITIONS[1];
@@ -77,6 +83,23 @@
       });
   }
 
+  function roadsideEventSignals(input = new Date()) {
+    const hour = normalizedHour(input);
+    if (hour < 12 || hour >= 15) return [];
+    return [Object.freeze({
+      id: "event-signal:roadside-disturbance",
+      signalSource: "roadside-disturbance",
+      name: "街道の方から騒がしい気配",
+      shortName: "異変",
+      x: ROADSIDE_EVENT_POSITION.x,
+      y: ROADSIDE_EVENT_POSITION.y,
+      direction: ROADSIDE_EVENT_POSITION.direction,
+      distanceBand: "少し先の気配",
+      movementHint: "断続的な物音が続いている",
+      stateLabel: "未確認 / 異変の気配"
+    })];
+  }
+
   function knownDestinationForSignal(root, npcLife, signal, input = new Date()) {
     if (!signal || !signal.hasRumor || !npcLife || typeof npcLife.snapshotAt !== "function" || typeof npcLife.reunionCandidates !== "function") return null;
     const safe = safeState(root);
@@ -107,19 +130,22 @@
   function selectedSignalDetail(document, signal, match = null, onOpenKnown = null) {
     const fragment = document.createDocumentFragment();
     const hasRumor = Boolean(signal && signal.hasRumor);
+    const isRoadsideEvent = signal && signal.signalSource === "roadside-disturbance";
     const kicker = document.createElement("small");
-    kicker.textContent = hasRumor ? "ROUTE RUMOR / 人の気配" : "TRAVEL TRACE / 人の気配";
+    kicker.textContent = isRoadsideEvent ? "UNCONFIRMED TRACE / 異変の気配" : hasRumor ? "ROUTE RUMOR / 人の気配" : "TRAVEL TRACE / 人の気配";
     const title = document.createElement("strong");
     title.textContent = signal.name;
     const state = document.createElement("span");
     state.textContent = `${signal.direction}・${signal.distanceBand}。${signal.movementHint}。まだ確認済み地点ではない。`;
     const note = document.createElement("em");
-    note.textContent = hasRumor
-      ? "炉端で聞いた足取りを時間帯ごとに粗く重ねたもの。正確な位置や経路を示す印ではない。"
-      : "誰かが移動しているらしい。人物や行き先はまだ分からない。正確な位置や経路を示す印ではない。";
+    note.textContent = isRoadsideEvent
+      ? "周辺で何か起きているらしい。正体はまだ分からない。正確な位置や経路を示す印ではない。"
+      : hasRumor
+        ? "炉端で聞いた足取りを時間帯ごとに粗く重ねたもの。正確な位置や経路を示す印ではない。"
+        : "誰かが移動しているらしい。人物や行き先はまだ分からない。正確な位置や経路を示す印ではない。";
     fragment.append(kicker, title, state, note);
 
-    if (hasRumor && match && match.candidate && match.entry) {
+    if (!isRoadsideEvent && hasRumor && match && match.candidate && match.entry) {
       const known = document.createElement("p");
       known.className = "world-atlas-npc-signal-match";
       known.textContent = `探索録の「${cleanText(match.candidate.destinationName, cleanText(match.entry.name, "既知の地点"))}」と足取りが重なる。`;
@@ -137,15 +163,18 @@
     const map = document && document.querySelector(".world-atlas-map--nearby");
     if (!map) return 0;
 
-    Array.from(map.querySelectorAll(".world-atlas-nearby-marker--npc-signal")).forEach((node) => node.remove());
+    Array.from(map.querySelectorAll(".world-atlas-nearby-marker--npc-signal, .world-atlas-nearby-marker--event-signal")).forEach((node) => node.remove());
     const npcLife = root && root.CrownlessNpcLife;
-    const signals = travelingSignals(npcLife, input);
+    const signals = [
+      ...travelingSignals(npcLife, input).map((signal) => ({ signal, kind: "npc" })),
+      ...roadsideEventSignals(input).map((signal) => ({ signal, kind: "event" }))
+    ];
     if (!signals.length) return 0;
 
-    signals.forEach((signal, index) => {
+    signals.forEach(({ signal, kind }, index) => {
       const marker = document.createElement("button");
       marker.type = "button";
-      marker.className = "world-atlas-nearby-marker world-atlas-nearby-marker--npc-signal";
+      marker.className = `world-atlas-nearby-marker world-atlas-nearby-marker--${kind === "event" ? "event" : "npc"}-signal`;
       marker.style.left = `${signal.x}%`;
       marker.style.top = `${signal.y}%`;
       marker.dataset.labelHorizontal = signal.x >= 72 ? "inset-right" : signal.x <= 28 ? "inset-left" : "center";
@@ -154,9 +183,9 @@
       marker.setAttribute("aria-label", `${signal.name}。${signal.direction}、${signal.distanceBand}。${signal.movementHint}。${signal.stateLabel}。`);
 
       const glyph = document.createElement("i");
-      glyph.textContent = "◌";
+      glyph.textContent = kind === "event" ? "※" : "◌";
       const number = document.createElement("small");
-      number.textContent = `N${index + 1}`;
+      number.textContent = `${kind === "event" ? "E" : "N"}${index + 1}`;
       const label = document.createElement("span");
       const strong = document.createElement("strong");
       strong.textContent = signal.name;
@@ -168,7 +197,7 @@
       marker.addEventListener("click", () => {
         const viewer = document.getElementById("world-atlas-viewer");
         const detail = viewer && viewer.querySelector(".world-atlas-detail");
-        const match = knownDestinationForSignal(root, npcLife, signal, input);
+        const match = kind === "npc" ? knownDestinationForSignal(root, npcLife, signal, input) : null;
         if (detail) {
           detail.replaceChildren(selectedSignalDetail(document, signal, match, () => {
             openKnownDestination(document, root, match, input);
@@ -207,9 +236,12 @@
     SIGNAL_POSITIONS,
     NORTH_ROUTE_POSITIONS,
     NORTH_ROUTE_POSITION,
+    ROADSIDE_EVENT_POSITION,
+    normalizedHour,
     northRoutePositionForHour,
     positionForLead,
     travelingSignals,
+    roadsideEventSignals,
     knownDestinationForSignal,
     openKnownDestination,
     selectedSignalDetail,
