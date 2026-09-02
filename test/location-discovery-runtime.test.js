@@ -73,7 +73,7 @@ test("loading presentation is painted before geolocation can start", () => {
 });
 
 test("geography runs as background enrichment with client headroom", () => {
-  assert.match(runtimeSource, /limit: 3/);
+  assert.match(runtimeSource, /limit: 6/);
   assert.match(runtimeSource, /radius: 650/);
   assert.match(runtimeSource, /timeoutMs: 22000/);
   assert.match(runtimeSource, /beginGeographicDiscoveryAfterPaint/);

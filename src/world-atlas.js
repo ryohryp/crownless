@@ -11,7 +11,7 @@
   const CELL_PADDING = 1;
   const MAX_FRINGE_CELLS = 180;
   const SCAN_COOLDOWN_MS = 30000;
-  const NEARBY_LIMIT = 3;
+  const NEARBY_LIMIT = 6;
   const NEARBY_RADIUS_METRES = 650;
   const MARKER_INSET_PERCENT = 8;
   const WORLD_MIN_SPAN_CELLS = 5;
@@ -388,7 +388,7 @@
     if (result.state === "ready") {
       if (!result.foundCount) return "周囲を調べたが、今は遠征候補になる痕跡を見つけられなかった。";
       if (result.newCount) return `周囲から ${result.foundCount} 件を照合。新しく ${result.newCount} 件を探索録へ書き足した。`;
-      return `周囲の ${result.foundCount} 件を照合。すべて既知の探索候補だった。`;
+      return `周囲の ${result.foundCount} 件を照合。既知の地点を地図へ重ねた。時間や世界の動きで、新しい気配が現れることもある。`;
     }
     if (result.state === "denied") return "位置情報を使えない。記憶済みの地図はそのまま閲覧できる。";
     if (result.state === "unavailable") return "周辺調査を利用できない。記憶済みの地図を表示している。";
