@@ -31,6 +31,7 @@ test("nearby atlas can present six real-world discoveries without persisting raw
     worldKnowledgeKey(item) { return `geo:${item.sourceRef}`; }
   };
 
+  // Keep the helper's compact three-item default for existing callers; the production Atlas opts into six.
   const model = Atlas.nearbyViewModel(runtime, { discoveries: {} }, undefined, Atlas.NEARBY_DISPLAY_LIMIT);
   assert.equal(Atlas.NEARBY_LIMIT, 3);
   assert.equal(Atlas.NEARBY_DISPLAY_LIMIT, 6);
