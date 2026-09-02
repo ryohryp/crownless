@@ -74,7 +74,7 @@
       role: "行商人",
       schedule: Object.freeze([
         Object.freeze({ from: 0, location: LOCATIONS.INN }),
-        Object.freeze({ from: 6, location: LOCATIONS.HEARTH }),
+        Object.freeze({ from: 6, location: LOCATIONS.HEARTH, activity: "荷支度中" }),
         Object.freeze({ from: 9, location: LOCATIONS.ROAD }),
         Object.freeze({ from: 14, location: LOCATIONS.MARKET }),
         Object.freeze({ from: 19, location: LOCATIONS.TAVERN }),
@@ -86,11 +86,11 @@
       name: "ミラ",
       role: "薬師",
       schedule: Object.freeze([
-        Object.freeze({ from: 0, location: LOCATIONS.HEARTH }),
+        Object.freeze({ from: 0, location: LOCATIONS.HEARTH, activity: "火の番" }),
         Object.freeze({ from: 6, location: LOCATIONS.HERB_GARDEN }),
-        Object.freeze({ from: 10, location: LOCATIONS.HEARTH }),
+        Object.freeze({ from: 10, location: LOCATIONS.HEARTH, activity: "薬瓶を整理中" }),
         Object.freeze({ from: 14, location: LOCATIONS.RIVERBANK }),
-        Object.freeze({ from: 18, location: LOCATIONS.HEARTH })
+        Object.freeze({ from: 18, location: LOCATIONS.HEARTH, activity: "薬草を選り分け中" })
       ])
     })
   ]);
@@ -101,14 +101,18 @@
     return ((Math.floor(numeric) % 24) + 24) % 24;
   }
 
-  function locationAtHour(resident, hour) {
+  function scheduleSlotAtHour(resident, hour) {
     const normalized = normalizeHour(hour);
-    let location = resident.schedule[0].location;
-    for (const slot of resident.schedule) {
-      if (normalized < slot.from) break;
-      location = slot.location;
+    let slot = resident.schedule[0];
+    for (const candidate of resident.schedule) {
+      if (normalized < candidate.from) break;
+      slot = candidate;
     }
-    return location;
+    return slot;
+  }
+
+  function locationAtHour(resident, hour) {
+    return scheduleSlotAtHour(resident, hour).location;
   }
 
   function stateAtHour(resident, hour) {
@@ -120,7 +124,8 @@
   function snapshotAt(input = new Date()) {
     const hour = input instanceof Date ? input.getHours() : normalizeHour(input);
     return RESIDENTS.map((resident) => {
-      const location = locationAtHour(resident, hour);
+      const slot = scheduleSlotAtHour(resident, hour);
+      const location = slot.location;
       const state = stateAtHour(resident, hour);
       return Object.freeze({
         id: resident.id,
@@ -130,7 +135,8 @@
         locationLabel: LOCATION_LABELS[location] || location,
         state,
         stateLabel: STATE_LABELS[state] || state,
-        atHearth: location === LOCATIONS.HEARTH
+        atHearth: location === LOCATIONS.HEARTH,
+        activity: location === LOCATIONS.HEARTH ? String(slot.activity || "") : ""
       });
     });
   }
@@ -211,6 +217,11 @@
     return `${resident.name}（${role}不在${state}）`;
   }
 
+  function formatPresentResident(resident) {
+    const activity = resident.activity ? `・${resident.activity}` : "";
+    return `${resident.name}（${resident.role}）${activity}`;
+  }
+
   function formatHearthStatus(snapshot) {
     const residents = Array.isArray(snapshot) ? snapshot : [];
     const lines = relationshipLines(residents);
@@ -223,7 +234,7 @@
       : "";
     const present = residents.filter((resident) => resident.atHearth);
     if (present.length) {
-      const names = present.map((resident) => `${resident.name}（${resident.role}）`).join("、");
+      const names = present.map(formatPresentResident).join("、");
       const away = residents.filter((resident) => !resident.atHearth);
       const absence = away.length
         ? ` / 不在: ${away.map(formatAwayResident).join("、")}`
