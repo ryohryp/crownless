@@ -35,6 +35,7 @@
   let selectedReportExpeditionId = null;
   let reportSceneCursor = 0;
   let reportSceneExpeditionId = null;
+  let preparingNextExpedition = false;
 
   function el(tag, className, text) {
     const node = document.createElement(tag);
@@ -60,6 +61,7 @@
   function open() {
     const shell = ensureShell();
     selectedReportExpeditionId = null;
+    preparingNextExpedition = false;
     refresh(Date.now());
     render();
     shell.classList.add("is-open");
@@ -76,6 +78,7 @@
     if (advanced.report) {
       lastResolved = advanced.report;
       selectedReportExpeditionId = advanced.report.expeditionId;
+      preparingNextExpedition = false;
     }
     save(state);
     updateGateCopy();
@@ -103,7 +106,10 @@
     const content = document.getElementById("expedition-folio-content");
     if (!content) return;
     content.replaceChildren();
-    if (state.activeExpedition) renderActive(content);
+    if (state.activeExpedition) {
+      preparingNextExpedition = false;
+      renderActive(content);
+    } else if (preparingNextExpedition) renderPrepare(content);
     else if (lastResolved || state.completedReports.length) {
       const selectedReport = state.completedReports.find((report) => report.expeditionId === selectedReportExpeditionId);
       const report = lastResolved || selectedReport || state.completedReports[0];
@@ -252,6 +258,7 @@
           objective: "explore",
           durationMs: data.get("instant") ? 0 : undefined,
         }, now);
+        preparingNextExpedition = false;
         selectedReportExpeditionId = null;
         save(state);
         refresh(now);
@@ -557,6 +564,7 @@
       selectedReportExpeditionId = null;
       reportSceneExpeditionId = null;
       reportSceneCursor = 0;
+      preparingNextExpedition = true;
       content.replaceChildren();
       renderPrepare(content);
     });

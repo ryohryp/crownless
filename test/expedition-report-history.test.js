@@ -30,7 +30,7 @@ test("report history defaults to the newest saved report", () => {
 
 test("active expedition keeps precedence over completed report history", () => {
   const renderBody = functionBody("render", "heading");
-  const active = renderBody.indexOf("if (state.activeExpedition) renderActive(content)");
+  const active = renderBody.indexOf("if (state.activeExpedition)");
   const reports = renderBody.indexOf("state.completedReports.length");
   assert.ok(active >= 0 && reports > active);
 });
