@@ -12,9 +12,21 @@
       root.CrownlessLocationDiscoveryRuntime,
       root
     );
+    api.loadObjectiveChoices(root);
   }
 })(typeof globalThis !== "undefined" ? globalThis : this, function createExpeditionUnknownBridge() {
   "use strict";
+
+  function loadObjectiveChoices(root) {
+    if (!root || !root.document || root.CrownlessExpeditionObjectives) return false;
+    const src = "src/expedition-objectives.js";
+    if (root.document.querySelector(`script[src="${src}"]`)) return true;
+    const script = root.document.createElement("script");
+    script.src = src;
+    script.defer = true;
+    root.document.head.appendChild(script);
+    return true;
+  }
 
   function install(Core, Cells, GeographyApi, runtime, root) {
     if (!Core || !Cells || !GeographyApi || !runtime) return false;
@@ -101,6 +113,7 @@
 
   const api = {
     install,
+    loadObjectiveChoices,
     lastProfile: () => null
   };
 
