@@ -13,16 +13,29 @@
     Object.freeze({ x: 24, y: 32, direction: "北西寄り" }),
     Object.freeze({ x: 78, y: 70, direction: "南東寄り" })
   ]);
-  const NORTH_ROUTE_POSITION = Object.freeze({ x: 50, y: 18, direction: "北寄り" });
+  const NORTH_ROUTE_POSITIONS = Object.freeze([
+    Object.freeze({ x: 44, y: 28, direction: "北寄り", phase: "街道へ出たばかり" }),
+    Object.freeze({ x: 50, y: 19, direction: "北寄り", phase: "街道を進んでいる" }),
+    Object.freeze({ x: 56, y: 13, direction: "北寄り", phase: "さらに北へ進んだ気配" })
+  ]);
+  const NORTH_ROUTE_POSITION = NORTH_ROUTE_POSITIONS[1];
 
   function cleanText(value, fallback = "") {
     const text = String(value == null ? "" : value).trim();
     return text || fallback;
   }
 
-  function positionForLead(npcLife, lead, index) {
+  function northRoutePositionForHour(hour) {
+    const numeric = Number(hour);
+    const normalized = Number.isFinite(numeric) ? ((Math.floor(numeric) % 24) + 24) % 24 : 0;
+    if (normalized <= 10) return NORTH_ROUTE_POSITIONS[0];
+    if (normalized >= 13) return NORTH_ROUTE_POSITIONS[2];
+    return NORTH_ROUTE_POSITIONS[1];
+  }
+
+  function positionForLead(npcLife, lead, index, resident) {
     const northRoad = npcLife && npcLife.LOCATIONS ? npcLife.LOCATIONS.ROAD : "north-road";
-    if (lead && lead.location === northRoad) return NORTH_ROUTE_POSITION;
+    if (lead && lead.location === northRoad) return northRoutePositionForHour(resident && resident.hour);
     return SIGNAL_POSITIONS[index % SIGNAL_POSITIONS.length];
   }
 
@@ -36,7 +49,7 @@
     return snapshot
       .filter((resident) => resident && resident.state === travelingState && leadByTarget.has(cleanText(resident.id)))
       .map((resident, index) => {
-        const slot = positionForLead(npcLife, leadByTarget.get(cleanText(resident.id)), index);
+        const slot = positionForLead(npcLife, leadByTarget.get(cleanText(resident.id)), index, resident);
         return Object.freeze({
           id: `npc-signal:${cleanText(resident.id, String(index + 1))}`,
           residentId: cleanText(resident.id),
@@ -46,6 +59,7 @@
           y: slot.y,
           direction: slot.direction,
           distanceBand: "街道筋の気配",
+          movementHint: cleanText(slot.phase, "街道を移動中"),
           stateLabel: "未確認 / 噂の足取り"
         });
       });
@@ -58,9 +72,9 @@
     const title = document.createElement("strong");
     title.textContent = signal.name;
     const state = document.createElement("span");
-    state.textContent = `${signal.direction}・${signal.distanceBand}。まだ確認済み地点ではない。`;
+    state.textContent = `${signal.direction}・${signal.distanceBand}。${signal.movementHint}。まだ確認済み地点ではない。`;
     const note = document.createElement("em");
-    note.textContent = "炉端で聞いた足取りを粗く重ねたもの。正確な位置や経路を示す印ではない。";
+    note.textContent = "炉端で聞いた足取りを時間帯ごとに粗く重ねたもの。正確な位置や経路を示す印ではない。";
     fragment.append(kicker, title, state, note);
     return fragment;
   }
@@ -82,7 +96,7 @@
       marker.dataset.labelHorizontal = signal.x >= 72 ? "inset-right" : signal.x <= 28 ? "inset-left" : "center";
       marker.dataset.labelVertical = signal.y >= 66 ? "above" : "below";
       marker.dataset.atlasSignalSource = "npc-rumor";
-      marker.setAttribute("aria-label", `${signal.name}。${signal.direction}、${signal.distanceBand}。${signal.stateLabel}。`);
+      marker.setAttribute("aria-label", `${signal.name}。${signal.direction}、${signal.distanceBand}。${signal.movementHint}。${signal.stateLabel}。`);
 
       const glyph = document.createElement("i");
       glyph.textContent = "◌";
@@ -92,7 +106,7 @@
       const strong = document.createElement("strong");
       strong.textContent = signal.name;
       const em = document.createElement("em");
-      em.textContent = `${signal.direction} · 未確認`;
+      em.textContent = `${signal.direction} · ${signal.movementHint}`;
       label.append(strong, em);
       marker.append(glyph, number, label);
 
@@ -131,7 +145,9 @@
 
   return Object.freeze({
     SIGNAL_POSITIONS,
+    NORTH_ROUTE_POSITIONS,
     NORTH_ROUTE_POSITION,
+    northRoutePositionForHour,
     positionForLead,
     travelingSignals,
     selectedSignalDetail,
