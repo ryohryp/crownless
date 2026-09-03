@@ -10,6 +10,7 @@
 
   const RESCUE_SALVAGE_ID = "rescue-greedy-salvage";
   const RESCUE_SALVAGE_LOOT_ID = "missing-companion-pack";
+  const RESCUE_SALVAGE_LOOT_NAME = "失踪者の置き荷";
 
   function qualifies(report, expedition) {
     const inputs = expedition && expedition.inputs;
@@ -30,7 +31,7 @@
 
     if (!Array.isArray(report.loot)) report.loot = [];
     if (!report.loot.some((item) => item && item.id === RESCUE_SALVAGE_LOOT_ID)) {
-      report.loot.push({ id: RESCUE_SALVAGE_LOOT_ID, name: "失踪者の置き荷", count: 1 });
+      report.loot.push({ id: RESCUE_SALVAGE_LOOT_ID, name: RESCUE_SALVAGE_LOOT_NAME, count: 1 });
     }
 
     if (!Array.isArray(report.log)) report.log = [];
@@ -51,6 +52,27 @@
     return report;
   }
 
+  function applyState(state, report) {
+    if (!state || !report || report.rescueSalvaged !== true || !report.expeditionId) return state;
+    if (!Array.isArray(state.securedLoot)) state.securedLoot = [];
+    const exists = state.securedLoot.some((item) => item && item.sourceExpeditionId === report.expeditionId && item.id === RESCUE_SALVAGE_LOOT_ID);
+    if (!exists) {
+      state.securedLoot.push({ id: RESCUE_SALVAGE_LOOT_ID, name: RESCUE_SALVAGE_LOOT_NAME, count: 1, sourceExpeditionId: report.expeditionId });
+    }
+    return state;
+  }
+
+  function syncStoredReport(state, report) {
+    if (!state || !report || !Array.isArray(state.completedReports)) return state;
+    const stored = state.completedReports.find((item) => item && item.expeditionId === report.expeditionId);
+    if (!stored || stored === report) return state;
+    stored.rescueSalvaged = report.rescueSalvaged;
+    stored.loot = report.loot;
+    stored.log = report.log;
+    stored.notableEvent = report.notableEvent;
+    return state;
+  }
+
   function installSystemHooks(root) {
     const system = root && root.CrownlessExpeditionSystem;
     if (!system || system.__rescueSalvageInstalled) return Boolean(system);
@@ -61,11 +83,22 @@
       return decorateReport(baseResolve(expedition, state), expedition);
     };
 
+    const baseApplyReport = system.applyReport.bind(system);
+    system.applyReport = function applyReportWithRescueSalvage(state, report) {
+      const applied = baseApplyReport(state, report);
+      applyState(applied, report);
+      return syncStoredReport(applied, report);
+    };
+
     const baseAdvance = system.advance.bind(system);
     system.advance = function advanceWithRescueSalvage(state, nowMs) {
       const expedition = state && state.activeExpedition;
       const advanced = baseAdvance(state, nowMs);
-      if (advanced && advanced.report && expedition) decorateReport(advanced.report, expedition);
+      if (advanced && advanced.report && expedition) {
+        decorateReport(advanced.report, expedition);
+        applyState(advanced.state, advanced.report);
+        syncStoredReport(advanced.state, advanced.report);
+      }
       return advanced;
     };
 
@@ -87,8 +120,11 @@
   return {
     RESCUE_SALVAGE_ID,
     RESCUE_SALVAGE_LOOT_ID,
+    RESCUE_SALVAGE_LOOT_NAME,
     qualifies,
     decorateReport,
+    applyState,
+    syncStoredReport,
     installSystemHooks,
     install,
   };
