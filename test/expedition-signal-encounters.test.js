@@ -46,6 +46,20 @@ function report(outcome = "success") {
   };
 }
 
+function signalState(wrapped) {
+  const state = wrapped.initialState();
+  state.destinations.push({
+    id: encounters.ROADSIDE_DESTINATION_ID,
+    name: "街道の異変",
+    family: "village",
+    dangerTags: ["bandit"],
+    opportunityTags: ["tracks", "rumor"],
+    durationMs: 0
+  });
+  state.discoveredDestinationIds.push(encounters.ROADSIDE_DESTINATION_ID);
+  return state;
+}
+
 test("roadside signal becomes a coarse geographic expedition destination without precise location data", () => {
   const harness = coreHarness();
   const entry = encounters.ensureRoadsideDiscovery({ CrownlessCore: harness.core }, 123456);
@@ -109,19 +123,10 @@ test("failed or unrelated expeditions do not invent a roadside encounter", () =>
 test("installed resolver hook exposes the signal encounter through normal expedition resolution", () => {
   const wrapped = { ...system };
   encounters.installSystemHooks({ CrownlessExpeditionSystem: wrapped });
-  const state = wrapped.initialState();
-  state.destinations.push({
-    id: encounters.ROADSIDE_DESTINATION_ID,
-    name: "街道の異変",
-    family: "village",
-    dangerTags: ["bandit"],
-    opportunityTags: ["tracks", "rumor"],
-    durationMs: 0
-  });
-  state.discoveredDestinationIds.push(encounters.ROADSIDE_DESTINATION_ID);
-
   let selected = null;
+
   for (let seed = 1; seed <= 300 && !selected; seed += 1) {
+    const state = signalState(wrapped);
     const dispatched = wrapped.dispatchExpedition(state, {
       destinationId: encounters.ROADSIDE_DESTINATION_ID,
       companionIds: ["mira"],
