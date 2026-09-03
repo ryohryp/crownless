@@ -16,6 +16,7 @@
     api.loadEquipmentOpportunities(root);
     api.loadPartyOpportunities(root);
     api.loadRescueLoop(root);
+    api.loadRescueStabilization(root);
     api.loadCompanionProposals(root);
     api.loadCompanionInsights(root);
     api.loadPartySelection(root);
@@ -51,6 +52,10 @@
 
   function loadRescueLoop(root) {
     return loadScript(root, "CrownlessExpeditionRescue", "src/expedition-rescue.js");
+  }
+
+  function loadRescueStabilization(root) {
+    return loadScript(root, "CrownlessExpeditionRescueStabilization", "src/expedition-rescue-stabilization.js");
   }
 
   function loadCompanionProposals(root) {
@@ -170,6 +175,7 @@
     loadEquipmentOpportunities,
     loadPartyOpportunities,
     loadRescueLoop,
+    loadRescueStabilization,
     loadCompanionProposals,
     loadCompanionInsights,
     loadPartySelection,
