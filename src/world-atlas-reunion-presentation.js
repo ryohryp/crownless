@@ -165,6 +165,87 @@
     return state.completedReports.find((report) => cleanText(report && report.expeditionId) === expeditionId) || null;
   }
 
+  function npcInteractionApi(root) {
+    if (root && root.CrownlessNpcInteraction) return root.CrownlessNpcInteraction;
+    if (typeof require === "function") {
+      try { return require("./npc-interaction.js"); } catch (_) {}
+    }
+    return null;
+  }
+
+  function createInteractionPanel(document, root, reunion, report) {
+    const Interaction = npcInteractionApi(root);
+    const container = document.createElement("div");
+    container.className = "npc-interaction-panel";
+    container.dataset.npcId = reunion.encounter.npcId;
+
+    if (!Interaction || typeof Interaction.getAvailableActions !== "function") {
+      return container;
+    }
+
+    const completedAt = Number(report && report.completedAt) || Date.now();
+    const context = {
+      npcId: reunion.encounter.npcId,
+      npcName: reunion.encounter.npcName,
+      location: reunion.encounter.location,
+      locationLabel: reunion.encounter.locationLabel,
+      destinationName: reunion.encounter.destinationName,
+      discoveryKey: reunion.encounter.discoveryKey,
+      isHearth: false,
+      hour: new Date(completedAt).getHours(),
+      reunionCount: reunion.record ? 1 : 1
+    };
+
+    const actions = Interaction.getAvailableActions(context);
+    if (!actions || !actions.length) return container;
+
+    const actionRow = document.createElement("div");
+    actionRow.className = "npc-interaction-actions";
+    actionRow.setAttribute("role", "group");
+    actionRow.setAttribute("aria-label", `${reunion.encounter.npcName}との対話`);
+
+    const output = document.createElement("div");
+    output.className = "npc-interaction-output";
+    output.setAttribute("role", "status");
+    output.setAttribute("aria-live", "polite");
+
+    actions.forEach((action) => {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "npc-interaction-btn";
+      btn.dataset.action = action.id;
+      btn.textContent = action.label;
+
+      btn.addEventListener("click", () => {
+        const safe = safeState(root);
+        const outcome = Interaction.resolveAction(action.id, context, safe);
+        output.replaceChildren();
+
+        const block = document.createElement("blockquote");
+        block.className = `npc-interaction-dialogue npc-topic-${outcome.topic || "general"}`;
+        const speaker = document.createElement("strong");
+        speaker.textContent = action.id === "ask-info" ? `${outcome.npcName}（情報）` : outcome.npcName;
+        const speech = document.createElement("span");
+        speech.textContent = `「${outcome.text}」`;
+        block.append(speaker, speech);
+        output.appendChild(block);
+
+        if (outcome.isComplete) {
+          const finished = document.createElement("small");
+          finished.className = "npc-interaction-finished";
+          finished.textContent = "会話を終えた。";
+          output.appendChild(finished);
+          actionRow.querySelectorAll("button").forEach((b) => { b.disabled = true; });
+        }
+      });
+
+      actionRow.appendChild(btn);
+    });
+
+    container.append(actionRow, output);
+    return container;
+  }
+
   function syncExpeditionReunion(document, root) {
     syncLatestExpeditionReunion(root);
     const summary = document && document.querySelector && document.querySelector("#expedition-folio-content [data-expedition-summary]");
@@ -179,14 +260,24 @@
       if (existing) existing.remove();
       return false;
     }
-    const text = `再会 / ${reunion.encounter.message}`;
-    if (existing && existing.dataset.expeditionId === cleanText(report.expeditionId) && existing.textContent === text) return true;
+    if (existing && existing.dataset.expeditionId === cleanText(report.expeditionId)) {
+      return true;
+    }
     if (existing) existing.remove();
-    const note = document.createElement("p");
+
+    const note = document.createElement("section");
     note.className = "expedition-reunion-note";
     note.dataset.expeditionId = cleanText(report.expeditionId);
     note.dataset.npcId = reunion.encounter.npcId;
-    note.textContent = text;
+
+    const message = document.createElement("p");
+    message.className = "expedition-reunion-message";
+    message.textContent = `再会 / ${reunion.encounter.message}`;
+    note.appendChild(message);
+
+    const interactionPanel = createInteractionPanel(document, root, reunion, report);
+    if (interactionPanel) note.appendChild(interactionPanel);
+
     summary.parentNode.insertBefore(note, summary);
     return true;
   }
@@ -233,8 +324,18 @@
     if (!document || document.getElementById("world-atlas-reunion-styles")) return;
     const style = document.createElement("style");
     style.id = "world-atlas-reunion-styles";
-    style.textContent = ".world-atlas-reunion-note{margin:.55rem 0 0;padding:.45rem .55rem;border-left:2px solid currentColor;font-size:.78rem;line-height:1.55;font-style:normal;}.world-atlas-reunion-note>p{margin:0;}.world-atlas-reunion-clue{display:block;margin-top:.3rem!important;opacity:.88;}.world-atlas-reunion-follow{margin-top:.45rem;padding:.4rem .55rem;font:inherit;cursor:pointer;}.expedition-reunion-note{margin:.7rem 0;padding:.55rem .65rem;border-left:2px solid currentColor;font-size:.86rem;line-height:1.55;}";
+    style.textContent = ".world-atlas-reunion-note{margin:.55rem 0 0;padding:.45rem .55rem;border-left:2px solid currentColor;font-size:.78rem;line-height:1.55;font-style:normal;}.world-atlas-reunion-note>p{margin:0;}.world-atlas-reunion-clue{display:block;margin-top:.3rem!important;opacity:.88;}.world-atlas-reunion-follow{margin-top:.45rem;padding:.4rem .55rem;font:inherit;cursor:pointer;}.expedition-reunion-note{margin:.7rem 0;padding:.55rem .65rem;border-left:2px solid currentColor;font-size:.86rem;line-height:1.55;}.expedition-reunion-message{margin:0;}.npc-interaction-panel{margin-top:.45rem;padding-top:.4rem;border-top:1px dashed rgba(160,140,110,.35);}.npc-interaction-actions{display:flex;gap:.4rem;flex-wrap:wrap;margin:0 0 .35rem;}.npc-interaction-btn{padding:.25rem .55rem;font-size:.8rem;font-family:inherit;background:rgba(30,25,20,.08);border:1px solid currentColor;border-radius:2px;cursor:pointer;}.npc-interaction-btn:hover,.npc-interaction-btn:focus-visible{background:rgba(30,25,20,.18);}.npc-interaction-btn:disabled{opacity:.45;cursor:default;}.npc-interaction-dialogue{margin:.35rem 0 0;padding:.35rem .5rem;font-style:normal;border-left:2px solid rgba(160,140,110,.6);background:rgba(0,0,0,.03);}.npc-interaction-dialogue strong{display:block;font-size:.78rem;opacity:.85;margin-bottom:.15rem;}.npc-interaction-finished{display:block;margin-top:.3rem;font-size:.76rem;opacity:.7;}";
     document.head.appendChild(style);
+  }
+
+  function ensureInteractionScript(document, root) {
+    if (root && root.CrownlessNpcInteraction) return;
+    if (!document || typeof document.createElement !== "function" || !document.head) return;
+    if (document.querySelector('script[src*="npc-interaction.js"]')) return;
+    const script = document.createElement("script");
+    script.src = "src/npc-interaction.js";
+    script.defer = true;
+    document.head.appendChild(script);
   }
 
   function entryForTarget(root, target) {
@@ -251,6 +352,7 @@
     if (!document || !root || document.documentElement.dataset.worldAtlasReunionInstalled === "true") return false;
     document.documentElement.dataset.worldAtlasReunionInstalled = "true";
     ensureStyles(document);
+    ensureInteractionScript(document, root);
 
     function syncFromTarget(target) {
       const entry = entryForTarget(root, target);
@@ -295,6 +397,7 @@
     reportForFolio,
     syncExpeditionReunion,
     syncReunion,
+    createInteractionPanel,
     install
   });
 });
