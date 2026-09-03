@@ -11,6 +11,7 @@
   const BANDIT_DESTINATION_ID = "world:geo:signal:bandit-ambush";
   const BANDIT_REPEL_AID_ID = "bandit-repel-aid";
   const BANDIT_SCOUT_ID = "bandit-cautious-scout";
+  const BANDIT_ROUTE_DISCOVERY_ID = "bandit-cautious-scout-route";
 
   function loadCampfireObjectives(root) {
     if (!root || !root.document || root.CrownlessExpeditionCampfireObjectives) return Boolean(root && root.document);
@@ -40,6 +41,21 @@
     return true;
   }
 
+  function addScoutDiscovery(report, sourceDestinationId) {
+    if (!Array.isArray(report.discoveries)) report.discoveries = [];
+    const existing = report.discoveries.find((item) => item && item.id === BANDIT_ROUTE_DISCOVERY_ID);
+    if (existing) return existing;
+    const discovery = {
+      id: BANDIT_ROUTE_DISCOVERY_ID,
+      name: "見張りの薄い迂回路",
+      kind: "route",
+      sourceDestinationId,
+      detail: "盗賊の見張りは街道側へ偏っている。林沿いの薄い見張りを抜ける経路を次の遠征で追える。"
+    };
+    report.discoveries.push(discovery);
+    return discovery;
+  }
+
   function applyBanditPolicy(report, expedition) {
     if (!isCautiousBandit(report, expedition)) return report;
     if (!report.signalEncounter || report.signalEncounter.kind !== "bandit-ambush") return report;
@@ -54,8 +70,9 @@
     }
     if (!report.log.some((entry) => entry && entry.type === "signal-intel" && Array.isArray(entry.causes) && entry.causes.includes(BANDIT_SCOUT_ID))) {
       const minute = Number.isFinite(encounter && encounter.minute) ? encounter.minute + 1 : 91;
-      report.log.push({ minute, time: encounter && encounter.time || "", type: "signal-intel", text: "盗賊は少人数で、街道側に見張りを置いている。次は武装を整えて討伐するか、この危険を避ける判断ができる。", causes: [BANDIT_SCOUT_ID, "bandit-intel", "cautious"] });
+      report.log.push({ minute, time: encounter && encounter.time || "", type: "signal-intel", text: "盗賊は少人数で、街道側に見張りを置いている。林沿いは手薄だ。次は正面討伐か、見張りの薄い迂回路を追うか選べる。", causes: [BANDIT_SCOUT_ID, "bandit-intel", "cautious"] });
     }
+    addScoutDiscovery(report, expedition.inputs.destinationId || report.destinationId);
     const repelIndex = report.log.findIndex((entry) => entry && entry.type === "signal-aid" && Array.isArray(entry.causes) && entry.causes.includes(BANDIT_REPEL_AID_ID));
     if (repelIndex >= 0) report.log.splice(repelIndex, 1);
     report.log.sort((a, b) => (a.minute || 0) - (b.minute || 0));
@@ -88,5 +105,5 @@
     return true;
   }
 
-  return { BANDIT_DESTINATION_ID, BANDIT_REPEL_AID_ID, BANDIT_SCOUT_ID, isCautiousBandit, applyBanditPolicy, loadCampfireObjectives, install };
+  return { BANDIT_DESTINATION_ID, BANDIT_REPEL_AID_ID, BANDIT_SCOUT_ID, BANDIT_ROUTE_DISCOVERY_ID, isCautiousBandit, addScoutDiscovery, applyBanditPolicy, loadCampfireObjectives, install };
 });
