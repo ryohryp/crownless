@@ -127,6 +127,13 @@
     return changed;
   }
 
+  function openSignalExpedition(document, root, signal, match) {
+    if (!signal || !signal.hasRumor || !match || !match.entry) return false;
+    const Actions = root && root.CrownlessWorldAtlasActionsPresentation;
+    if (!Actions || typeof Actions.openExpedition !== "function") return false;
+    return Actions.openExpedition(document, root, match.entry, null) === true;
+  }
+
   async function rescanNearbyForSignal(document, root) {
     const Atlas = root && root.CrownlessWorldAtlas;
     const Core = root && root.CrownlessCore;
@@ -138,7 +145,7 @@
     return result;
   }
 
-  function selectedSignalDetail(document, signal, match = null, onOpenKnown = null, onRescanNearby = null) {
+  function selectedSignalDetail(document, signal, match = null, onOpenKnown = null, onRescanNearby = null, onDispatchSignal = null) {
     const fragment = document.createDocumentFragment();
     const hasRumor = Boolean(signal && signal.hasRumor);
     const isRoadsideEvent = signal && signal.signalSource === "roadside-disturbance";
@@ -172,12 +179,21 @@
       const known = document.createElement("p");
       known.className = "world-atlas-npc-signal-match";
       known.textContent = `探索録の「${cleanText(match.candidate.destinationName, cleanText(match.entry.name, "既知の地点"))}」と足取りが重なる。`;
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "world-atlas-npc-signal-match__open";
-      button.textContent = "既知の探索地点を開く";
-      if (typeof onOpenKnown === "function") button.addEventListener("click", onOpenKnown);
-      fragment.append(known, button);
+      const openButton = document.createElement("button");
+      openButton.type = "button";
+      openButton.className = "world-atlas-npc-signal-match__open";
+      openButton.textContent = "既知の探索地点を開く";
+      if (typeof onOpenKnown === "function") openButton.addEventListener("click", onOpenKnown);
+      fragment.append(known, openButton);
+
+      if (typeof onDispatchSignal === "function") {
+        const dispatchButton = document.createElement("button");
+        dispatchButton.type = "button";
+        dispatchButton.className = "world-atlas-npc-signal-match__open world-atlas-npc-signal-match__dispatch";
+        dispatchButton.textContent = "この気配を追って遠征する";
+        dispatchButton.addEventListener("click", onDispatchSignal);
+        fragment.appendChild(dispatchButton);
+      }
     }
     return fragment;
   }
@@ -226,6 +242,8 @@
             openKnownDestination(document, root, match, input);
           }, kind === "event" ? () => {
             rescanNearbyForSignal(document, root);
+          } : null, kind === "npc" && match ? () => {
+            openSignalExpedition(document, root, signal, match);
           } : null));
         }
         Array.from(map.querySelectorAll(".world-atlas-nearby-marker")).forEach((node) => node.classList.toggle("active", node === marker));
@@ -269,6 +287,7 @@
     roadsideEventSignals,
     knownDestinationForSignal,
     openKnownDestination,
+    openSignalExpedition,
     rescanNearbyForSignal,
     selectedSignalDetail,
     inject,
