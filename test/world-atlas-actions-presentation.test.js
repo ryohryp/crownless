@@ -132,6 +132,38 @@ test("atlas keeps a copy-based fallback for older expedition report markup", () 
   assert.equal(Presentation.findPrepareTransitionButton(content), prepare);
 });
 
+test("opening an expedition closes both discovery overlays before changing screens", () => {
+  const order = [];
+  const root = fakeRoot({}, {});
+  root.CrownlessGeographicExpeditionBridge = {
+    expeditionDestinationId() { return "world:geo:test"; }
+  };
+  root.CrownlessDiscoveryJournal = { close() { order.push("journal"); } };
+  root.CrownlessWorldAtlas = { closeAtlas() { order.push("atlas"); } };
+  const gate = { click() { order.push("gate"); } };
+  const document = {
+    getElementById(id) { return id === "start-expedition" ? gate : null; }
+  };
+
+  assert.equal(Presentation.openExpedition(document, root, { key: "geo:test" }), true);
+  assert.deepEqual(order, ["journal", "atlas", "gate"]);
+});
+
+test("discovery overlay cleanup has a DOM fallback for partially loaded clients", () => {
+  let removed = false;
+  let classRemoved = "";
+  const document = {
+    getElementById(id) {
+      return id === "discovery-journal-browser" ? { remove() { removed = true; } } : null;
+    },
+    body: { classList: { remove(name) { classRemoved = name; } } }
+  };
+
+  Presentation.closeDiscoverySurfaces(document, {});
+  assert.equal(removed, true);
+  assert.equal(classRemoved, "discovery-journal-open");
+});
+
 test("mobile action sheet remains a manuscript overlay rather than a dashboard", () => {
   assert.match(css, /border-left: 3px solid/);
   assert.match(css, /@media \(max-width: 620px\)/);
