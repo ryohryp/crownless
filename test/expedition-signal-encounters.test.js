@@ -129,8 +129,8 @@ test("installed resolver hook exposes the signal encounter through normal expedi
     const state = signalState(wrapped);
     const dispatched = wrapped.dispatchExpedition(state, {
       destinationId: encounters.ROADSIDE_DESTINATION_ID,
-      companionIds: ["mira"],
-      equipmentIds: [],
+      companionIds: ["mira", "ed"],
+      equipmentIds: ["shortbow"],
       policyId: "standard",
       objective: "explore",
       seed,
