@@ -25,6 +25,7 @@
     api.loadSignalEncounters(root);
     api.loadWorldAtlasScouting(root);
     api.loadForcedMarch(root);
+    api.loadFieldCamp(root);
   }
 })(typeof globalThis !== "undefined" ? globalThis : this, function createExpeditionUnknownBridge() {
   "use strict";
@@ -89,6 +90,10 @@
 
   function loadForcedMarch(root) {
     return loadScript(root, "CrownlessExpeditionForcedMarch", "src/expedition-forced-march.js");
+  }
+
+  function loadFieldCamp(root) {
+    return loadScript(root, "CrownlessExpeditionFieldCamp", "src/expedition-field-camp.js");
   }
 
   function install(Core, Cells, GeographyApi, runtime, root) {
@@ -189,6 +194,7 @@
     loadSignalEncounters,
     loadWorldAtlasScouting,
     loadForcedMarch,
+    loadFieldCamp,
     lastProfile: () => null
   };
 
