@@ -23,6 +23,7 @@
     api.loadLeaderOutcomes(root);
     api.loadFollowupDestinations(root);
     api.loadSignalEncounters(root);
+    api.loadBanditPolicy(root);
     api.loadWorldAtlasScouting(root);
     api.loadForcedMarch(root);
     api.loadFieldCamp(root);
@@ -82,6 +83,10 @@
 
   function loadSignalEncounters(root) {
     return loadScript(root, "CrownlessExpeditionSignalEncounters", "src/expedition-signal-encounters.js");
+  }
+
+  function loadBanditPolicy(root) {
+    return loadScript(root, "CrownlessExpeditionBanditPolicy", "src/expedition-bandit-policy.js");
   }
 
   function loadWorldAtlasScouting(root) {
@@ -192,6 +197,7 @@
     loadLeaderOutcomes,
     loadFollowupDestinations,
     loadSignalEncounters,
+    loadBanditPolicy,
     loadWorldAtlasScouting,
     loadForcedMarch,
     loadFieldCamp,
