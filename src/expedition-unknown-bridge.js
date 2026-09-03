@@ -20,6 +20,7 @@
     api.loadPartySelection(root);
     api.loadLeaderOutcomes(root);
     api.loadFollowupDestinations(root);
+    api.loadSignalEncounters(root);
   }
 })(typeof globalThis !== "undefined" ? globalThis : this, function createExpeditionUnknownBridge() {
   "use strict";
@@ -64,6 +65,10 @@
 
   function loadFollowupDestinations(root) {
     return loadScript(root, "CrownlessExpeditionFollowupDestinations", "src/expedition-followup-destinations.js");
+  }
+
+  function loadSignalEncounters(root) {
+    return loadScript(root, "CrownlessExpeditionSignalEncounters", "src/expedition-signal-encounters.js");
   }
 
   function install(Core, Cells, GeographyApi, runtime, root) {
@@ -159,6 +164,7 @@
     loadPartySelection,
     loadLeaderOutcomes,
     loadFollowupDestinations,
+    loadSignalEncounters,
     lastProfile: () => null
   };
 
