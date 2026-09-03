@@ -5,6 +5,7 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 const policy = require("../src/expedition-bandit-policy.js");
+const followups = require("../src/expedition-followup-destinations.js");
 
 function expedition(policyId = "standard") {
   return {
@@ -58,9 +59,40 @@ test("cautious policy scouts the bandits instead of claiming a repelled encounte
   assert.equal(report.signalEncounter.aid, undefined);
   assert.equal(report.loot.some((item) => item.id === "iron-scrap"), false);
   assert.match(report.log.find((entry) => entry.type === "signal-encounter").text, /交戦せず.*人数と見張り位置/);
-  assert.match(report.log.find((entry) => entry.type === "signal-intel").text, /少人数.*見張り/);
+  assert.match(report.log.find((entry) => entry.type === "signal-intel").text, /少人数.*迂回路/);
   assert.equal(report.log.some((entry) => entry.type === "signal-aid"), false);
   assert.equal(report.notableEvent.type, "signal-intel");
+});
+
+test("cautious scouting creates a structured route discovery that unlocks a follow-up expedition", () => {
+  const report = banditReport();
+  policy.applyBanditPolicy(report, expedition("cautious"));
+
+  const discovery = report.discoveries.find((item) => item.id === policy.BANDIT_ROUTE_DISCOVERY_ID);
+  assert.ok(discovery);
+  assert.equal(discovery.kind, "route");
+  assert.equal(discovery.sourceDestinationId, policy.BANDIT_DESTINATION_ID);
+  assert.match(discovery.detail, /見張り.*経路.*次の遠征/);
+
+  const state = {
+    destinations: [
+      {
+        id: policy.BANDIT_DESTINATION_ID,
+        name: "街道の物陰",
+        family: "forest",
+        dangerTags: ["bandits"],
+        opportunityTags: ["road"],
+        durationMs: 180000
+      }
+    ],
+    discoveredDestinationIds: [policy.BANDIT_DESTINATION_ID]
+  };
+  followups.unlockFollowupDestinations(state, report);
+
+  const followupId = followups.followupDestinationId(policy.BANDIT_DESTINATION_ID);
+  assert.ok(state.discoveredDestinationIds.includes(followupId));
+  assert.ok(state.destinations.some((item) => item.id === followupId && item.followupDiscoveryId === policy.BANDIT_ROUTE_DISCOVERY_ID));
+  assert.ok(report.log.some((entry) => entry.type === "followup-unlocked" && entry.causes.includes(followupId)));
 });
 
 test("cautious policy application is idempotent", () => {
@@ -71,6 +103,7 @@ test("cautious policy application is idempotent", () => {
 
   assert.equal(report.log.filter((entry) => entry.type === "signal-intel").length, 1);
   assert.equal(report.loot.filter((item) => item.id === "iron-scrap").length, 0);
+  assert.equal(report.discoveries.filter((item) => item.id === policy.BANDIT_ROUTE_DISCOVERY_ID).length, 1);
 });
 
 test("standard policy preserves the existing bandit combat result", () => {
@@ -81,6 +114,7 @@ test("standard policy preserves the existing bandit combat result", () => {
   assert.equal(JSON.stringify(report), before);
   assert.equal(report.signalEncounter.aid.outcome, "repelled");
   assert.ok(report.loot.some((item) => item.id === "iron-scrap"));
+  assert.equal(Array.isArray(report.discoveries), false);
 });
 
 test("unrelated successful expeditions are untouched", () => {
