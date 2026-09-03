@@ -74,21 +74,21 @@
     return report;
   }
 
-  function baselineCanSpendHerbs(report, expedition, greedyPolicy) {
-    if (!report || !expedition || !expedition.inputs || !greedyPolicy) return false;
+  function baselineCanSpendHerbs(report, expedition) {
+    if (!report || !expedition || !expedition.inputs) return false;
     if (expedition.inputs.policyId !== HERB_PRESS_ON_OPPORTUNITY.policyId) return false;
     if (!hasEquipment(expedition, HERB_PRESS_ON_OPPORTUNITY.equipmentId)) return false;
     if (report.outcome !== "early-return") return false;
     const encounters = report.combat && Array.isArray(report.combat.encounters) ? report.combat.encounters : [];
     if (encounters.length !== 1) return false;
     const combat = encounters[0];
-    if (!combat || combat.result !== "victory" || combat.hpAfter <= 0 || !combat.maxHp) return false;
-    return combat.hpAfter / combat.maxHp <= greedyPolicy.retreatHpRatio;
+    return Boolean(combat && combat.result === "retreat" && combat.hpAfter > 0 && combat.maxHp);
   }
 
   function resolveHerbPressOnOpportunity(baseResolve, report, expedition, state, greedyPolicy) {
-    if (typeof baseResolve !== "function" || !baselineCanSpendHerbs(report, expedition, greedyPolicy)) return report;
+    if (typeof baseResolve !== "function" || !greedyPolicy || !baselineCanSpendHerbs(report, expedition)) return report;
     const firstCombat = report.combat.encounters[0];
+    const baselineRounds = Array.isArray(firstCombat.rounds) ? firstCombat.rounds.length : 0;
     const originalThreshold = greedyPolicy.retreatHpRatio;
     const pressOnThreshold = Math.max(0, firstCombat.hpAfter / firstCombat.maxHp - 0.01);
     let extended;
@@ -102,24 +102,28 @@
     const extendedEncounters = extended && extended.combat && Array.isArray(extended.combat.encounters)
       ? extended.combat.encounters
       : [];
-    if (!extended || extendedEncounters.length <= 1) return report;
+    const extendedFirst = extendedEncounters[0];
+    const extendedRounds = extendedFirst && Array.isArray(extendedFirst.rounds) ? extendedFirst.rounds.length : 0;
+    if (!extended || !extendedFirst || extendedRounds <= baselineRounds) return report;
 
     extended.supplyOpportunity = {
       id: HERB_PRESS_ON_OPPORTUNITY.id,
       equipmentId: HERB_PRESS_ON_OPPORTUNITY.equipmentId,
       policyId: HERB_PRESS_ON_OPPORTUNITY.policyId,
       spent: true,
+      baselineRounds,
+      extendedRounds,
     };
     if (!Array.isArray(extended.log)) extended.log = [];
     if (!extended.log.some((entry) => entry && entry.type === "supply-use" && entry.causes && entry.causes.includes(HERB_PRESS_ON_OPPORTUNITY.id))) {
-      const secondEncounter = extended.log.find((entry) => entry && entry.type === "combat-encounter" && entry.minute >= 73);
-      const minute = secondEncounter ? Math.max(0, secondEncounter.minute - 1) : 72;
-      const time = secondEncounter && secondEncounter.time || "";
+      const combatEntry = extended.log.find((entry) => entry && entry.type === "combat-encounter");
+      const minute = combatEntry ? Math.max(0, combatEntry.minute - 1) : 64;
+      const time = combatEntry && combatEntry.time || "";
       extended.log.push({
         minute,
         time,
         type: "supply-use",
-        text: "薬草包みの残りを使い切って傷を押さえ、撤退せず次の遭遇へ進んだ。",
+        text: "薬草包みの残りを使い切って傷を押さえ、撤退判断を一度だけ先送りした。",
         causes: [HERB_PRESS_ON_OPPORTUNITY.id, "herb-kit", "greedy"],
       });
       extended.log.sort((a, b) => (a.minute || 0) - (b.minute || 0));
