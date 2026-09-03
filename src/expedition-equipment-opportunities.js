@@ -20,6 +20,12 @@
     }),
   });
 
+  const HERB_PRESS_ON_OPPORTUNITY = Object.freeze({
+    id: "herb-press-on",
+    equipmentId: "herb-kit",
+    policyId: "greedy",
+  });
+
   function hasEquipment(expedition, equipmentId) {
     const ids = expedition && expedition.inputs && Array.isArray(expedition.inputs.equipmentIds)
       ? expedition.inputs.equipmentIds
@@ -68,6 +74,61 @@
     return report;
   }
 
+  function baselineCanSpendHerbs(report, expedition, greedyPolicy) {
+    if (!report || !expedition || !expedition.inputs || !greedyPolicy) return false;
+    if (expedition.inputs.policyId !== HERB_PRESS_ON_OPPORTUNITY.policyId) return false;
+    if (!hasEquipment(expedition, HERB_PRESS_ON_OPPORTUNITY.equipmentId)) return false;
+    if (report.outcome !== "early-return") return false;
+    const encounters = report.combat && Array.isArray(report.combat.encounters) ? report.combat.encounters : [];
+    if (encounters.length !== 1) return false;
+    const combat = encounters[0];
+    if (!combat || combat.result !== "victory" || combat.hpAfter <= 0 || !combat.maxHp) return false;
+    return combat.hpAfter / combat.maxHp <= greedyPolicy.retreatHpRatio;
+  }
+
+  function resolveHerbPressOnOpportunity(baseResolve, report, expedition, state, greedyPolicy) {
+    if (typeof baseResolve !== "function" || !baselineCanSpendHerbs(report, expedition, greedyPolicy)) return report;
+    const firstCombat = report.combat.encounters[0];
+    const originalThreshold = greedyPolicy.retreatHpRatio;
+    const pressOnThreshold = Math.max(0, firstCombat.hpAfter / firstCombat.maxHp - 0.01);
+    let extended;
+    try {
+      greedyPolicy.retreatHpRatio = pressOnThreshold;
+      extended = baseResolve(expedition, state);
+    } finally {
+      greedyPolicy.retreatHpRatio = originalThreshold;
+    }
+
+    const extendedEncounters = extended && extended.combat && Array.isArray(extended.combat.encounters)
+      ? extended.combat.encounters
+      : [];
+    if (!extended || extendedEncounters.length <= 1) return report;
+
+    extended.supplyOpportunity = {
+      id: HERB_PRESS_ON_OPPORTUNITY.id,
+      equipmentId: HERB_PRESS_ON_OPPORTUNITY.equipmentId,
+      policyId: HERB_PRESS_ON_OPPORTUNITY.policyId,
+      spent: true,
+    };
+    if (!Array.isArray(extended.log)) extended.log = [];
+    if (!extended.log.some((entry) => entry && entry.type === "supply-use" && entry.causes && entry.causes.includes(HERB_PRESS_ON_OPPORTUNITY.id))) {
+      const secondEncounter = extended.log.find((entry) => entry && entry.type === "combat-encounter" && entry.minute >= 73);
+      const minute = secondEncounter ? Math.max(0, secondEncounter.minute - 1) : 72;
+      const time = secondEncounter && secondEncounter.time || "";
+      extended.log.push({
+        minute,
+        time,
+        type: "supply-use",
+        text: "薬草包みの残りを使い切って傷を押さえ、撤退せず次の遭遇へ進んだ。",
+        causes: [HERB_PRESS_ON_OPPORTUNITY.id, "herb-kit", "greedy"],
+      });
+      extended.log.sort((a, b) => (a.minute || 0) - (b.minute || 0));
+    }
+    const supplyEvent = extended.log.find((entry) => entry && entry.type === "supply-use" && entry.causes && entry.causes.includes(HERB_PRESS_ON_OPPORTUNITY.id));
+    if (supplyEvent) extended.notableEvent = supplyEvent;
+    return extended;
+  }
+
   function persistEquipmentOpportunityReward(state, report) {
     if (!state || !report || !report.equipmentOpportunity || !Array.isArray(report.loot)) return state;
     if (!Array.isArray(state.securedLoot)) state.securedLoot = [];
@@ -86,7 +147,9 @@
 
     const baseResolve = system.resolveExpedition.bind(system);
     system.resolveExpedition = function resolveWithEquipmentOpportunities(expedition, state) {
-      return applyRopeShaftOpportunity(baseResolve(expedition, state), expedition);
+      let report = baseResolve(expedition, state);
+      report = resolveHerbPressOnOpportunity(baseResolve, report, expedition, state, system.policies && system.policies.greedy);
+      return applyRopeShaftOpportunity(report, expedition);
     };
 
     const baseApplyReport = system.applyReport.bind(system);
@@ -98,6 +161,13 @@
     const baseAdvance = system.advance.bind(system);
     system.advance = function advanceWithEquipmentOpportunities(state, nowMs) {
       const expedition = state && state.activeExpedition;
+      const now = Number.isFinite(nowMs) ? nowMs : Date.now();
+      if (expedition && now >= expedition.expectedReturnAt && expedition.inputs && expedition.inputs.policyId === HERB_PRESS_ON_OPPORTUNITY.policyId && hasEquipment(expedition, HERB_PRESS_ON_OPPORTUNITY.equipmentId)) {
+        const report = system.resolveExpedition(expedition, state);
+        if (report && report.supplyOpportunity && report.supplyOpportunity.id === HERB_PRESS_ON_OPPORTUNITY.id) {
+          return { state: system.applyReport(state, report), report, status: "completed" };
+        }
+      }
       const advanced = baseAdvance(state, nowMs);
       if (advanced && advanced.report && expedition) {
         applyRopeShaftOpportunity(advanced.report, expedition);
@@ -123,8 +193,11 @@
 
   return {
     ROPE_SHAFT_OPPORTUNITY,
+    HERB_PRESS_ON_OPPORTUNITY,
     qualifiesForRopeShaft,
     applyRopeShaftOpportunity,
+    baselineCanSpendHerbs,
+    resolveHerbPressOnOpportunity,
     persistEquipmentOpportunityReward,
     installSystemHooks,
     install,
