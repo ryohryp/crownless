@@ -12,10 +12,18 @@
   const ROADSIDE_DISCOVERY_KEY = "geo:signal:roadside-disturbance";
   const ROADSIDE_DESTINATION_ID = `world:${ROADSIDE_DISCOVERY_KEY}`;
   const ROADSIDE_ENCOUNTER_ID = "roadside-injured-traveler";
+  const ROADSIDE_HERB_AID_ID = "roadside-herb-aid";
 
   function cleanText(value, fallback = "") {
     const text = String(value == null ? "" : value).trim();
     return text || fallback;
+  }
+
+  function hasEquipment(expedition, equipmentId) {
+    const ids = expedition && expedition.inputs && Array.isArray(expedition.inputs.equipmentIds)
+      ? expedition.inputs.equipmentIds
+      : [];
+    return ids.includes(equipmentId);
   }
 
   function ensureRoadsideDiscovery(root, nowMs = Date.now()) {
@@ -102,8 +110,28 @@
         text: "物音の正体は、街道脇で動けなくなっていた負傷した旅人だった。遠征隊は居場所を確かめ、帰還報告へ記した。",
         causes: [ROADSIDE_ENCOUNTER_ID, "injured-traveler", "roadside-signal"]
       });
-      report.log.sort((a, b) => (a.minute || 0) - (b.minute || 0));
     }
+
+    if (hasEquipment(expedition, "herb-kit")) {
+      report.signalEncounter.aid = {
+        id: ROADSIDE_HERB_AID_ID,
+        equipmentId: "herb-kit",
+        outcome: "stabilized"
+      };
+      if (!report.log.some((entry) => entry && entry.type === "signal-aid" && Array.isArray(entry.causes) && entry.causes.includes(ROADSIDE_HERB_AID_ID))) {
+        const encounterEntry = report.log.find((entry) => entry && entry.type === "signal-encounter" && Array.isArray(entry.causes) && entry.causes.includes(ROADSIDE_ENCOUNTER_ID));
+        report.log.push({
+          minute: Number.isFinite(encounterEntry && encounterEntry.minute) ? encounterEntry.minute + 1 : 91,
+          time: encounterEntry && encounterEntry.time || "",
+          type: "signal-aid",
+          text: "備えていた薬草包みで旅人を応急手当した。遠征前の備えが、発見だけで終わらず救助につながった。",
+          causes: [ROADSIDE_HERB_AID_ID, "herb-kit", "injured-traveler", "stabilized"]
+        });
+      }
+      report.notableEvent = report.log.find((entry) => entry && entry.type === "signal-aid" && Array.isArray(entry.causes) && entry.causes.includes(ROADSIDE_HERB_AID_ID)) || report.notableEvent;
+    }
+
+    report.log.sort((a, b) => (a.minute || 0) - (b.minute || 0));
     return report;
   }
 
@@ -147,6 +175,7 @@
     ROADSIDE_DISCOVERY_KEY,
     ROADSIDE_DESTINATION_ID,
     ROADSIDE_ENCOUNTER_ID,
+    ROADSIDE_HERB_AID_ID,
     ensureRoadsideDiscovery,
     openRoadsideExpedition,
     ensureRoadsideAction,
