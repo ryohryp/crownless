@@ -19,6 +19,7 @@
     api.loadCompanionProposals(root);
     api.loadPartySelection(root);
     api.loadLeaderOutcomes(root);
+    api.loadFollowupDestinations(root);
   }
 })(typeof globalThis !== "undefined" ? globalThis : this, function createExpeditionUnknownBridge() {
   "use strict";
@@ -59,6 +60,10 @@
 
   function loadLeaderOutcomes(root) {
     return loadScript(root, "CrownlessExpeditionLeader", "src/expedition-leader.js");
+  }
+
+  function loadFollowupDestinations(root) {
+    return loadScript(root, "CrownlessExpeditionFollowupDestinations", "src/expedition-followup-destinations.js");
   }
 
   function install(Core, Cells, GeographyApi, runtime, root) {
@@ -153,6 +158,7 @@
     loadCompanionProposals,
     loadPartySelection,
     loadLeaderOutcomes,
+    loadFollowupDestinations,
     lastProfile: () => null
   };
 
