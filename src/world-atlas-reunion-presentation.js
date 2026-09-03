@@ -200,10 +200,31 @@
     const encounter = reunionForEntry(root, entry, now);
     if (!encounter) return false;
 
-    const note = document.createElement("p");
+    const note = document.createElement("section");
     note.className = "world-atlas-reunion-note";
     note.dataset.npcId = encounter.npcId;
-    note.textContent = `再会候補 / ${encounter.npcName}がこの辺りを旅している。遠征で会えるかもしれない。`;
+    const presence = document.createElement("p");
+    presence.textContent = `再会候補 / ${encounter.npcName}がこの辺りを旅している。遠征で会えるかもしれない。`;
+    note.appendChild(presence);
+
+    const clue = reunionClueForEntry(root, entry, now);
+    if (clue) {
+      const clueText = document.createElement("p");
+      clueText.className = "world-atlas-reunion-clue";
+      clueText.textContent = clue.text;
+      const follow = document.createElement("button");
+      follow.type = "button";
+      follow.className = "world-atlas-reunion-follow";
+      follow.textContent = `${clue.npcName}の話を手掛かりに調べる`;
+      follow.addEventListener("click", () => {
+        const ActionsPresentation = root && root.CrownlessWorldAtlasActionsPresentation;
+        if (ActionsPresentation && typeof ActionsPresentation.openEvent === "function") {
+          ActionsPresentation.openEvent(document, root, entry);
+        }
+      });
+      note.append(clueText, follow);
+    }
+
     detail.appendChild(note);
     return true;
   }
@@ -212,7 +233,7 @@
     if (!document || document.getElementById("world-atlas-reunion-styles")) return;
     const style = document.createElement("style");
     style.id = "world-atlas-reunion-styles";
-    style.textContent = ".world-atlas-reunion-note{margin:.55rem 0 0;padding:.45rem .55rem;border-left:2px solid currentColor;font-size:.78rem;line-height:1.55;font-style:normal;}.world-atlas-reunion-clue{display:block;margin-top:.3rem;opacity:.88;}.expedition-reunion-note{margin:.7rem 0;padding:.55rem .65rem;border-left:2px solid currentColor;font-size:.86rem;line-height:1.55;}";
+    style.textContent = ".world-atlas-reunion-note{margin:.55rem 0 0;padding:.45rem .55rem;border-left:2px solid currentColor;font-size:.78rem;line-height:1.55;font-style:normal;}.world-atlas-reunion-note>p{margin:0;}.world-atlas-reunion-clue{display:block;margin-top:.3rem!important;opacity:.88;}.world-atlas-reunion-follow{margin-top:.45rem;padding:.4rem .55rem;font:inherit;cursor:pointer;}.expedition-reunion-note{margin:.7rem 0;padding:.55rem .65rem;border-left:2px solid currentColor;font-size:.86rem;line-height:1.55;}";
     document.head.appendChild(style);
   }
 
