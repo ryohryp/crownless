@@ -110,6 +110,43 @@ test("known destination bridge reuses existing atlas detail, actions, and reunio
   assert.deepEqual(calls, [["preview", "known-north-road"], ["actions", "known-north-road"], ["reunion", "known-north-road"]]);
 });
 
+test("matched traveler signal can enter the existing expedition preparation flow", () => {
+  const signal = Signals.travelingSignals(NpcLife, 11)[0];
+  const match = { entry: { key: "known-north-road" } };
+  const calls = [];
+  const document = {};
+  const root = {
+    CrownlessWorldAtlasActionsPresentation: {
+      openExpedition: (passedDocument, passedRoot, entry, status) => {
+        calls.push({ passedDocument, passedRoot, entry, status });
+        return true;
+      }
+    }
+  };
+
+  assert.equal(Signals.openSignalExpedition(document, root, signal, match), true);
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].passedDocument, document);
+  assert.equal(calls[0].passedRoot, root);
+  assert.equal(calls[0].entry, match.entry);
+  assert.equal(calls[0].status, null);
+});
+
+test("anonymous or unmatched traveler signal cannot start an expedition", () => {
+  let calls = 0;
+  const root = {
+    CrownlessWorldAtlasActionsPresentation: {
+      openExpedition: () => { calls += 1; return true; }
+    }
+  };
+  const anonymous = Signals.travelingSignals(NpcLife, 9)[0];
+  const rumored = Signals.travelingSignals(NpcLife, 11)[0];
+
+  assert.equal(Signals.openSignalExpedition({}, root, anonymous, { entry: { key: "known-north-road" } }), false);
+  assert.equal(Signals.openSignalExpedition({}, root, rumored, null), false);
+  assert.equal(calls, 0);
+});
+
 test("signal models never contain precise coordinates or persistence fields", () => {
   const signals = [Signals.travelingSignals(NpcLife, 9)[0], Signals.travelingSignals(NpcLife, 11)[0], Signals.roadsideEventSignals(12)[0]];
   for (const signal of signals) {
@@ -130,6 +167,7 @@ test("presentation distinguishes NPC signals and an unidentified roadside anomal
   assert.match(source, /まだ確認済み地点ではない/);
   assert.match(source, /正確な位置や経路を示す印ではない/);
   assert.match(source, /既知の探索地点を開く/);
+  assert.match(source, /この気配を追って遠征する/);
   assert.match(source, /world-atlas-nearby-marker--npc-signal/);
   assert.match(source, /world-atlas-nearby-marker--event-signal/);
 });
