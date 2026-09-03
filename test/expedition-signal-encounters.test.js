@@ -199,3 +199,92 @@ test("browser bridge loads the signal encounter sidecar", () => {
   assert.match(bridgeSource, /src\/expedition-signal-encounters\.js/);
   assert.match(bridgeSource, /loadSignalEncounters/);
 });
+
+test("bandit ambush signal creates a destination and resolves combat encounter", () => {
+  const harness = coreHarness();
+  const entry = encounters.ensureBanditDiscovery({ CrownlessCore: harness.core }, 123456);
+  assert.equal(entry.key, encounters.BANDIT_DISCOVERY_KEY);
+  assert.equal(entry.name, "街道の物陰");
+  assert.equal(entry.contentKind, "signal");
+
+  // With weapon (shortbow)
+  const rep = {
+    expeditionId: "exp-bandit-signal",
+    outcome: "success",
+    destinationId: encounters.BANDIT_DESTINATION_ID,
+    loot: [],
+    log: [{ minute: 80, time: "08:00", type: "return", text: "帰路についた。" }]
+  };
+  const expWithWeapon = {
+    id: "exp-bandit-signal",
+    inputs: {
+      destinationId: encounters.BANDIT_DESTINATION_ID,
+      companionIds: ["mira"],
+      equipmentIds: ["shortbow"],
+      policyId: "standard",
+      objective: "explore"
+    }
+  };
+
+  encounters.applyBanditEncounter(rep, expWithWeapon);
+  assert.equal(rep.signalEncounter.id, encounters.BANDIT_ENCOUNTER_ID);
+  assert.equal(rep.signalEncounter.kind, "bandit-ambush");
+  assert.equal(rep.signalEncounter.aid.id, encounters.BANDIT_REPEL_AID_ID);
+  assert.equal(rep.signalEncounter.aid.outcome, "repelled");
+  assert.ok(rep.log.some((entry) => entry.type === "signal-aid" && /武器と武勇で盗賊を完全に打ち負かした/.test(entry.text)));
+  assert.ok(rep.loot.some((item) => item.id === "iron-scrap"));
+});
+
+test("suspicious campfire signal creates a destination and resolves investigation encounter", () => {
+  const harness = coreHarness();
+  const entry = encounters.ensureCampfireDiscovery({ CrownlessCore: harness.core }, 123456);
+  assert.equal(entry.key, encounters.CAMPFIRE_DISCOVERY_KEY);
+  assert.equal(entry.name, "暗がりの火影");
+  assert.equal(entry.contentKind, "signal");
+
+  const rep = {
+    expeditionId: "exp-campfire-signal",
+    outcome: "success",
+    destinationId: encounters.CAMPFIRE_DESTINATION_ID,
+    loot: [],
+    log: [{ minute: 80, time: "08:00", type: "return", text: "帰路についた。" }]
+  };
+  const exp = {
+    id: "exp-campfire-signal",
+    inputs: {
+      destinationId: encounters.CAMPFIRE_DESTINATION_ID,
+      companionIds: ["mira"],
+      equipmentIds: [],
+      policyId: "standard",
+      objective: "explore"
+    }
+  };
+
+  encounters.applyCampfireEncounter(rep, exp);
+  assert.equal(rep.signalEncounter.id, encounters.CAMPFIRE_ENCOUNTER_ID);
+  assert.equal(rep.signalEncounter.kind, "suspicious-campfire");
+  assert.equal(rep.signalEncounter.aid.id, encounters.CAMPFIRE_INVESTIGATE_AID_ID);
+  assert.ok(rep.log.some((entry) => entry.type === "signal-aid" && /古い石片を回収した/.test(entry.text)));
+  assert.ok(rep.loot.some((item) => item.id === "ancient-stone-fragment"));
+});
+
+test("resolveDirectEncounter marks events resolved in safe state", () => {
+  const harness = coreHarness();
+  const root = { CrownlessCore: harness.core };
+
+  const rescueResult = encounters.resolveDirectEncounter(root, encounters.ROADSIDE_SIGNAL_SOURCE);
+  assert.equal(rescueResult.success, true);
+  assert.equal(rescueResult.outcome, "rescued");
+  assert.equal(harness.state().worldKnowledge.discoveries[encounters.ROADSIDE_DISCOVERY_KEY].resolved, true);
+
+  const banditResult = encounters.resolveDirectEncounter(root, encounters.BANDIT_SIGNAL_SOURCE);
+  assert.equal(banditResult.success, true);
+  assert.equal(banditResult.outcome, "repelled");
+  assert.equal(harness.state().worldKnowledge.discoveries[encounters.BANDIT_DISCOVERY_KEY].resolved, true);
+
+  const campfireResult = encounters.resolveDirectEncounter(root, encounters.CAMPFIRE_SIGNAL_SOURCE);
+  assert.equal(campfireResult.success, true);
+  assert.equal(campfireResult.outcome, "investigated");
+  assert.equal(harness.state().worldKnowledge.discoveries[encounters.CAMPFIRE_DISCOVERY_KEY].resolved, true);
+});
+

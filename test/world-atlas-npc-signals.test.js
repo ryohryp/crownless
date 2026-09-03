@@ -176,3 +176,109 @@ test("atlas observer only refreshes when a nearby map is added", () => {
   assert.match(source, /records\.some\(addedNearbyMap\)/);
   assert.doesNotMatch(source, /MutationObserver\(\(\) => refresh\(\)\)/);
 });
+
+test("dynamic event templates provide at least 3 distinct event types with deterministic active windows", () => {
+  const allEvents = Signals.dynamicEventSignals(null, { all: true });
+  assert.equal(allEvents.length, 3);
+  const sources = allEvents.map((e) => e.signalSource);
+  assert.deepEqual(sources, ["roadside-disturbance", "bandit-ambush", "suspicious-campfire"]);
+
+  // Roadside disturbance (12-14, expires at 15)
+  assert.equal(Signals.dynamicEventSignals(11).length, 0);
+  assert.equal(Signals.dynamicEventSignals(12)[0].signalSource, "roadside-disturbance");
+  assert.equal(Signals.dynamicEventSignals(14)[0].signalSource, "roadside-disturbance");
+  assert.equal(Signals.dynamicEventSignals(15)[0].signalSource, "bandit-ambush");
+
+  // Bandit ambush (15-18, expires at 19)
+  assert.equal(Signals.dynamicEventSignals(16)[0].signalSource, "bandit-ambush");
+  assert.equal(Signals.dynamicEventSignals(18)[0].signalSource, "bandit-ambush");
+  assert.equal(Signals.dynamicEventSignals(19)[0].signalSource, "suspicious-campfire");
+
+  // Suspicious campfire (19-03, expires at 04)
+  assert.equal(Signals.dynamicEventSignals(22)[0].signalSource, "suspicious-campfire");
+  assert.equal(Signals.dynamicEventSignals(2)[0].signalSource, "suspicious-campfire");
+  assert.equal(Signals.dynamicEventSignals(5).length, 0);
+});
+
+test("signals advance through sensed, discovered, and contact stages according to distance", () => {
+  // Event: bandit ambush
+  const far = Signals.banditAmbushSignals(16, { distance: 500 })[0];
+  assert.equal(far.stage, "sensed");
+  assert.equal(far.name, "街道の茂みから不穏な物音");
+  assert.equal(far.stateLabel, "未確認 / 不穏な気配");
+
+  const mid = Signals.banditAmbushSignals(16, { distance: 300 })[0];
+  assert.equal(mid.stage, "discovered");
+  assert.equal(mid.name, "街道を狙う盗賊の待ち伏せ");
+  assert.equal(mid.stateLabel, "確認済み / 盗賊の潜伏");
+
+  const near = Signals.banditAmbushSignals(16, { distance: 120 })[0];
+  assert.equal(near.stage, "contact");
+  assert.equal(near.name, "街道の盗賊団");
+  assert.equal(near.stateLabel, "接触可能 / 盗賊と対峙");
+
+  // NPC: Marco
+  const marcoNear = Signals.travelingSignals(NpcLife, 11, { distance: 100 })[0];
+  assert.equal(marcoNear.stage, "contact");
+  assert.equal(marcoNear.name, "マルコ");
+  assert.equal(marcoNear.stateLabel, "接触可能 / 足を止めている");
+});
+
+test("direct contact actions are provided when stage is contact", () => {
+  function el(tagName) {
+    const children = [];
+    const listeners = {};
+    return {
+      tagName: String(tagName).toUpperCase(),
+      className: "",
+      textContent: "",
+      children,
+      appendChild(c) { children.push(c); return c; },
+      append(...nodes) { nodes.forEach((n) => children.push(n)); },
+      addEventListener(evt, fn) { listeners[evt] = fn; },
+      click() { if (listeners.click) listeners.click(); },
+      querySelector(selector) {
+        if (selector.startsWith(".")) {
+          const cls = selector.slice(1);
+          if (this.className && this.className.includes(cls)) return this;
+          for (const c of children) {
+            const found = c.querySelector(selector);
+            if (found) return found;
+          }
+        }
+        return null;
+      }
+    };
+  }
+  const doc = {
+    createElement: el,
+    createDocumentFragment: () => el("div")
+  };
+
+  const contactSignal = Signals.banditAmbushSignals(16, { distance: 100 })[0];
+  let contactTriggered = false;
+  const fragment = Signals.selectedSignalDetail(doc, contactSignal, null, null, null, null, () => {
+    contactTriggered = true;
+  });
+
+  const btn = fragment.querySelector(".world-atlas-npc-signal-contact__btn");
+  assert.ok(btn, "expected contact button");
+  assert.equal(btn.textContent, "その場で盗賊を撃退する");
+  btn.click();
+  assert.equal(contactTriggered, true);
+});
+
+test("resolved dynamic events are excluded from active signals", () => {
+  const safe = {
+    worldKnowledge: {
+      discoveries: {
+        "geo:signal:roadside-disturbance": { key: "geo:signal:roadside-disturbance", resolved: true }
+      }
+    }
+  };
+  const root = { CrownlessCore: { loadSafeState: () => safe } };
+  const signals = Signals.dynamicEventSignals(12, {}, root);
+  assert.equal(signals.length, 0);
+});
+
+

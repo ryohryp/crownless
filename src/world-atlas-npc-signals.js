@@ -20,6 +20,8 @@
   ]);
   const NORTH_ROUTE_POSITION = NORTH_ROUTE_POSITIONS[1];
   const ROADSIDE_EVENT_POSITION = Object.freeze({ x: 72, y: 36, direction: "北東寄り" });
+  const BANDIT_EVENT_POSITION = Object.freeze({ x: 26, y: 38, direction: "北西寄り" });
+  const CAMPFIRE_EVENT_POSITION = Object.freeze({ x: 70, y: 72, direction: "南東寄り" });
 
   function cleanText(value, fallback = "") {
     const text = String(value == null ? "" : value).trim();
@@ -38,6 +40,39 @@
     try { return Core.loadSafeState(); } catch (_) { return null; }
   }
 
+  function distanceForCoordinates(x, y) {
+    const dx = Number(x) - 50;
+    const dy = Number(y) - 50;
+    return Math.round((Math.hypot(dx, dy) / 34) * 650);
+  }
+
+  function resolveSignalStage(distance, hasRumor = false, options = {}) {
+    if (options && options.stage) return options.stage;
+    const metres = Number(distance);
+    if (Number.isFinite(metres)) {
+      if (metres < 180) return "contact";
+      if (metres < 430) return "discovered";
+    }
+    if (hasRumor) return "discovered";
+    return "sensed";
+  }
+
+  function resolveDistanceBand(distance) {
+    const metres = Number(distance);
+    if (!Number.isFinite(metres)) return "少し先の気配";
+    if (metres < 180) return "近い気配";
+    if (metres < 430) return "少し先の気配";
+    return "探索域の外縁";
+  }
+
+  function isEventResolved(root, signalSource) {
+    const safe = safeState(root);
+    const discoveries = safe && safe.worldKnowledge && safe.worldKnowledge.discoveries;
+    if (!discoveries || typeof discoveries !== "object" || Array.isArray(discoveries)) return false;
+    const key = `geo:signal:${cleanText(signalSource)}`;
+    return Boolean(discoveries[key] && discoveries[key].resolved);
+  }
+
   function northRoutePositionForHour(hour) {
     const normalized = normalizedHour(hour);
     if (normalized <= 10) return NORTH_ROUTE_POSITIONS[0];
@@ -52,7 +87,7 @@
     return SIGNAL_POSITIONS[index % SIGNAL_POSITIONS.length];
   }
 
-  function travelingSignals(npcLife, input = new Date()) {
+  function travelingSignals(npcLife, input = new Date(), options = {}) {
     if (!npcLife || typeof npcLife.snapshotAt !== "function") return [];
     const snapshot = npcLife.snapshotAt(input);
     const travelingState = npcLife.STATES && npcLife.STATES.TRAVELING ? npcLife.STATES.TRAVELING : "traveling";
@@ -66,38 +101,186 @@
         const lead = leadByTarget.get(residentId) || null;
         const hasRumor = Boolean(lead);
         const slot = positionForLead(npcLife, lead, index, resident);
+        const distance = Number.isFinite(Number(options && options.distance))
+          ? Number(options.distance)
+          : distanceForCoordinates(slot.x, slot.y);
+        const stage = resolveSignalStage(distance, hasRumor, options);
+        const distanceBand = hasRumor ? "街道筋の気配" : (stage === "sensed" ? "遠くの人影らしき気配" : resolveDistanceBand(distance));
+
+        let name = "旅人らしき気配";
+        let shortName = "旅人";
+        let stateLabel = "未確認 / 人の気配";
+        let movementHint = "移動しているらしい";
+
+        if (stage === "contact") {
+          name = `${cleanText(resident.name, "行商人マルコ")}`;
+          shortName = cleanText(resident.role, "マルコ");
+          stateLabel = "接触可能 / 足を止めている";
+          movementHint = "荷車を止めて休憩中";
+        } else if (stage === "discovered" || hasRumor) {
+          name = `${cleanText(resident.name, "旅人")}の気配`;
+          shortName = cleanText(resident.role, "旅人");
+          stateLabel = "未確認 / 噂の足取り";
+          movementHint = cleanText(slot.phase, "街道を進んでいる");
+        }
+
         return Object.freeze({
           id: `npc-signal:${residentId || String(index + 1)}`,
           residentId,
           hasRumor,
+          stage,
+          distance,
           signalSource: hasRumor ? "npc-rumor" : "npc-travel",
-          name: hasRumor ? `${cleanText(resident.name, "旅人")}の気配` : "旅人らしき気配",
-          shortName: hasRumor ? cleanText(resident.role, "旅人") : "旅人",
+          name,
+          shortName,
           x: slot.x,
           y: slot.y,
           direction: slot.direction,
-          distanceBand: hasRumor ? "街道筋の気配" : "遠くの人影らしき気配",
-          movementHint: hasRumor ? cleanText(slot.phase, "街道を移動中") : "移動しているらしい",
-          stateLabel: hasRumor ? "未確認 / 噂の足取り" : "未確認 / 人の気配"
+          distanceBand,
+          movementHint,
+          stateLabel
         });
       });
   }
 
-  function roadsideEventSignals(input = new Date()) {
+  function roadsideEventSignals(input = new Date(), options = {}) {
     const hour = normalizedHour(input);
     if (hour < 12 || hour >= 15) return [];
+    const distance = Number.isFinite(Number(options && options.distance))
+      ? Number(options.distance)
+      : distanceForCoordinates(ROADSIDE_EVENT_POSITION.x, ROADSIDE_EVENT_POSITION.y);
+    const stage = resolveSignalStage(distance, false, options);
+
+    let name = "街道の方から騒がしい気配";
+    let shortName = "異変";
+    let stateLabel = "未確認 / 異変の気配";
+    let movementHint = "断続的な物音が続いている";
+
+    if (stage === "contact") {
+      name = "街道脇の負傷した旅人";
+      shortName = "負傷者";
+      stateLabel = "接触可能 / 救助を求めている";
+      movementHint = "目の前で行き倒れている";
+    } else if (stage === "discovered") {
+      name = "街道脇で行き倒れた旅人";
+      shortName = "負傷者";
+      stateLabel = "確認済み / 負傷者の気配";
+      movementHint = "身動きが取れず助けを求めている";
+    }
+
     return [Object.freeze({
       id: "event-signal:roadside-disturbance",
       signalSource: "roadside-disturbance",
-      name: "街道の方から騒がしい気配",
-      shortName: "異変",
+      stage,
+      distance,
+      name,
+      shortName,
       x: ROADSIDE_EVENT_POSITION.x,
       y: ROADSIDE_EVENT_POSITION.y,
       direction: ROADSIDE_EVENT_POSITION.direction,
-      distanceBand: "少し先の気配",
-      movementHint: "断続的な物音が続いている",
-      stateLabel: "未確認 / 異変の気配"
+      distanceBand: resolveDistanceBand(distance),
+      movementHint,
+      stateLabel
     })];
+  }
+
+  function banditAmbushSignals(input = new Date(), options = {}) {
+    const hour = normalizedHour(input);
+    if (hour < 15 || hour >= 19) return [];
+    const distance = Number.isFinite(Number(options && options.distance))
+      ? Number(options.distance)
+      : distanceForCoordinates(BANDIT_EVENT_POSITION.x, BANDIT_EVENT_POSITION.y);
+    const stage = resolveSignalStage(distance, false, options);
+
+    let name = "街道の茂みから不穏な物音";
+    let shortName = "物陰";
+    let stateLabel = "未確認 / 不穏な気配";
+    let movementHint = "茂みの奥で微かな金属音がする";
+
+    if (stage === "contact") {
+      name = "街道の盗賊団";
+      shortName = "盗賊";
+      stateLabel = "接触可能 / 盗賊と対峙";
+      movementHint = "刃を向けてこちらを威嚇している";
+    } else if (stage === "discovered") {
+      name = "街道を狙う盗賊の待ち伏せ";
+      shortName = "盗賊";
+      stateLabel = "確認済み / 盗賊の潜伏";
+      movementHint = "獲物を狙って息を潜めている";
+    }
+
+    return [Object.freeze({
+      id: "event-signal:bandit-ambush",
+      signalSource: "bandit-ambush",
+      stage,
+      distance,
+      name,
+      shortName,
+      x: BANDIT_EVENT_POSITION.x,
+      y: BANDIT_EVENT_POSITION.y,
+      direction: BANDIT_EVENT_POSITION.direction,
+      distanceBand: resolveDistanceBand(distance),
+      movementHint,
+      stateLabel
+    })];
+  }
+
+  function suspiciousCampfireSignals(input = new Date(), options = {}) {
+    const hour = normalizedHour(input);
+    if (hour >= 4 && hour < 19) return [];
+    const distance = Number.isFinite(Number(options && options.distance))
+      ? Number(options.distance)
+      : distanceForCoordinates(CAMPFIRE_EVENT_POSITION.x, CAMPFIRE_EVENT_POSITION.y);
+    const stage = resolveSignalStage(distance, false, options);
+
+    let name = "暗がりに揺れる火影";
+    let shortName = "火影";
+    let stateLabel = "未確認 / 遠くの火影";
+    let movementHint = "夜闇の中に小さな炎が揺れている";
+
+    if (stage === "contact") {
+      name = "遺構の焚き火跡";
+      shortName = "焚き火";
+      stateLabel = "接触可能 / 痕跡を調査可能";
+      movementHint = "燻る灰の周りに足跡が残る";
+    } else if (stage === "discovered") {
+      name = "遺構跡の怪しい焚き火";
+      shortName = "焚き火";
+      stateLabel = "確認済み / 遺構の野営";
+      movementHint = "古い石組みの影に人が立ち去った跡がある";
+    }
+
+    return [Object.freeze({
+      id: "event-signal:suspicious-campfire",
+      signalSource: "suspicious-campfire",
+      stage,
+      distance,
+      name,
+      shortName,
+      x: CAMPFIRE_EVENT_POSITION.x,
+      y: CAMPFIRE_EVENT_POSITION.y,
+      direction: CAMPFIRE_EVENT_POSITION.direction,
+      distanceBand: resolveDistanceBand(distance),
+      movementHint,
+      stateLabel
+    })];
+  }
+
+  function dynamicEventSignals(input = new Date(), options = {}, root = null) {
+    if (options && (options.all || options.includeAll)) {
+      return [
+        ...roadsideEventSignals(12, options),
+        ...banditAmbushSignals(16, options),
+        ...suspiciousCampfireSignals(21, options)
+      ];
+    }
+    const list = [
+      ...roadsideEventSignals(input, options),
+      ...banditAmbushSignals(input, options),
+      ...suspiciousCampfireSignals(input, options)
+    ];
+    if (!root) return list;
+    return list.filter((signal) => !isEventResolved(root, signal && signal.signalSource));
   }
 
   function knownDestinationForSignal(root, npcLife, signal, input = new Date()) {
@@ -134,6 +317,63 @@
     return Actions.openExpedition(document, root, match.entry, null) === true;
   }
 
+  function openDynamicEventExpedition(document, root, signal) {
+    const Encounters = root && root.CrownlessExpeditionSignalEncounters;
+    if (Encounters && typeof Encounters.openSignalExpedition === "function") {
+      return Encounters.openSignalExpedition(document, root, signal && signal.signalSource);
+    }
+    if (Encounters && typeof Encounters.openRoadsideExpedition === "function") {
+      return Encounters.openRoadsideExpedition(document, root);
+    }
+    return false;
+  }
+
+  function triggerDirectContact(document, root, signal, match = null, input = new Date()) {
+    if (!signal) return false;
+    const kind = signal.signalSource === "npc-rumor" || signal.signalSource === "npc-travel" ? "npc" : "event";
+    if (kind === "npc") {
+      const Reunion = root && root.CrownlessWorldAtlasReunionPresentation;
+      if (Reunion && typeof Reunion.createInteractionPanel === "function") {
+        const viewer = document && document.getElementById("world-atlas-viewer");
+        const detail = viewer && viewer.querySelector(".world-atlas-detail");
+        if (detail) {
+          const fakeReunion = {
+            encounter: {
+              npcId: cleanText(signal.residentId, "marco"),
+              npcName: cleanText(signal.name, "マルコ"),
+              location: "north-road",
+              locationLabel: "北の街道",
+              destinationName: "北の街道",
+              discoveryKey: match && match.entry ? match.entry.key : ""
+            }
+          };
+          const panel = Reunion.createInteractionPanel(document, root, fakeReunion, null);
+          detail.appendChild(panel);
+          return true;
+        }
+      }
+      return false;
+    }
+
+    const Encounters = root && root.CrownlessExpeditionSignalEncounters;
+    if (Encounters && typeof Encounters.resolveDirectEncounter === "function") {
+      const result = Encounters.resolveDirectEncounter(root, signal.signalSource);
+      const viewer = document && document.getElementById("world-atlas-viewer");
+      const detail = viewer && viewer.querySelector(".world-atlas-detail");
+      if (detail && result) {
+        const feedback = document.createElement("p");
+        feedback.className = "world-atlas-npc-signal-contact__feedback";
+        feedback.textContent = result.message || (result.success ? "解決した。" : "対処できなかった。");
+        detail.appendChild(feedback);
+        if (result.success) {
+          inject(document, root, input);
+        }
+      }
+      return Boolean(result && result.success);
+    }
+    return false;
+  }
+
   async function rescanNearbyForSignal(document, root) {
     const Atlas = root && root.CrownlessWorldAtlas;
     const Core = root && root.CrownlessCore;
@@ -145,25 +385,71 @@
     return result;
   }
 
-  function selectedSignalDetail(document, signal, match = null, onOpenKnown = null, onRescanNearby = null, onDispatchSignal = null) {
+  function selectedSignalDetail(document, signal, match = null, onOpenKnown = null, onRescanNearby = null, onDispatchSignal = null, onDirectAction = null) {
     const fragment = document.createDocumentFragment();
     const hasRumor = Boolean(signal && signal.hasRumor);
     const isRoadsideEvent = signal && signal.signalSource === "roadside-disturbance";
+    const isBanditEvent = signal && signal.signalSource === "bandit-ambush";
+    const isCampfireEvent = signal && signal.signalSource === "suspicious-campfire";
+    const isDynamicEvent = isRoadsideEvent || isBanditEvent || isCampfireEvent;
+    const stage = signal && signal.stage ? signal.stage : "sensed";
+
     const kicker = document.createElement("small");
-    kicker.textContent = isRoadsideEvent ? "UNCONFIRMED TRACE / 異変の気配" : hasRumor ? "ROUTE RUMOR / 人の気配" : "TRAVEL TRACE / 人の気配";
+    if (stage === "contact") {
+      kicker.textContent = isDynamicEvent ? "NEARBY INCIDENT / 接触可能" : "NEARBY REUNION / 接触可能";
+    } else if (stage === "discovered") {
+      kicker.textContent = isDynamicEvent ? "CONFIRMED TRACE / 発見" : "ROUTE RUMOR / マルコの気配";
+    } else {
+      kicker.textContent = isRoadsideEvent
+        ? "UNCONFIRMED TRACE / 異変の気配"
+        : isBanditEvent
+          ? "UNCONFIRMED TRACE / 不穏な気配"
+          : isCampfireEvent
+            ? "UNCONFIRMED TRACE / 遠くの火影"
+            : hasRumor
+              ? "ROUTE RUMOR / 人の気配"
+              : "TRAVEL TRACE / 人の気配";
+    }
+
     const title = document.createElement("strong");
     title.textContent = signal.name;
+
     const state = document.createElement("span");
-    state.textContent = `${signal.direction}・${signal.distanceBand}。${signal.movementHint}。まだ確認済み地点ではない。`;
+    state.textContent = stage === "contact"
+      ? `${signal.direction}・${signal.distanceBand}。${signal.movementHint}。現地で接触できる。`
+      : `${signal.direction}・${signal.distanceBand}。${signal.movementHint}。まだ確認済み地点ではない。`;
+
     const note = document.createElement("em");
-    note.textContent = isRoadsideEvent
-      ? "周辺で何か起きているらしい。正体はまだ分からない。正確な位置や経路を示す印ではない。"
-      : hasRumor
-        ? "炉端で聞いた足取りを時間帯ごとに粗く重ねたもの。正確な位置や経路を示す印ではない。"
-        : "誰かが移動しているらしい。人物や行き先はまだ分からない。正確な位置や経路を示す印ではない。";
+    if (stage === "contact") {
+      note.textContent = isRoadsideEvent
+        ? "負傷した旅人が街道脇で手当を待っている。"
+        : isBanditEvent
+          ? "盗賊たちが街道を狙って身構えている。"
+          : isCampfireEvent
+            ? "燻る焚き火の周りに古い石組みの痕跡がある。"
+            : "以前Grey Hearthで会ったマルコが荷車を止めている。";
+    } else if (stage === "discovered") {
+      note.textContent = isRoadsideEvent
+        ? "街道脇で旅人が倒れている。怪我をして動けないようだ。"
+        : isBanditEvent
+          ? "街道の旅人を狙う盗賊の小集団だ。何者かが潜んでいる。"
+          : isCampfireEvent
+            ? "古い遺構の陰に焚き火の跡がある。誰かの野営跡らしい。"
+            : "炉端で聞いた足取りを時間帯ごとに粗く重ねたもの。正確な位置や経路を示す印ではない。";
+    } else {
+      note.textContent = isRoadsideEvent
+        ? "周辺で何か起きているらしい。正体はまだ分からない。正確な位置や経路を示す印ではない。"
+        : isBanditEvent
+          ? "街道の茂みから金属音がする。正体はまだ分からない。正確な位置や経路を示す印ではない。"
+          : isCampfireEvent
+            ? "夜陰に紛れて小さな火が揺れている。正体はまだ分からない。正確な位置や経路を示す印ではない。"
+            : hasRumor
+              ? "炉端で聞いた足取りを時間帯ごとに粗く重ねたもの。正確な位置や経路を示す印ではない。"
+              : "誰かが移動しているらしい。人物や行き先はまだ分からない。正確な位置や経路を示す印ではない。";
+    }
     fragment.append(kicker, title, state, note);
 
-    if (isRoadsideEvent && typeof onRescanNearby === "function") {
+    if (isDynamicEvent && stage !== "contact" && typeof onRescanNearby === "function") {
       const prompt = document.createElement("p");
       prompt.className = "world-atlas-npc-signal-match";
       prompt.textContent = "少し歩いてから周辺を調べ直せば、この気配の正体につながる痕跡が見つかるかもしれない。";
@@ -175,7 +461,31 @@
       fragment.append(prompt, button);
     }
 
-    if (!isRoadsideEvent && hasRumor && match && match.candidate && match.entry) {
+    if (stage === "contact" && typeof onDirectAction === "function") {
+      const contactBlock = document.createElement("p");
+      contactBlock.className = "world-atlas-npc-signal-match world-atlas-npc-signal-contact";
+      const contactButton = document.createElement("button");
+      contactButton.type = "button";
+      contactButton.className = "world-atlas-npc-signal-match__open world-atlas-npc-signal-contact__btn";
+      if (isRoadsideEvent) {
+        contactBlock.textContent = "現地に到着した。負傷者を直接手当できる。";
+        contactButton.textContent = "その場で応急手当する";
+      } else if (isBanditEvent) {
+        contactBlock.textContent = "盗賊の潜伏場所へ接近した。直接撃退できる。";
+        contactButton.textContent = "その場で盗賊を撃退する";
+      } else if (isCampfireEvent) {
+        contactBlock.textContent = "怪しい焚き火の跡へ到着した。遺構の痕跡を調査できる。";
+        contactButton.textContent = "その場で焚き火跡を調べる";
+      } else {
+        contactBlock.textContent = "マルコの近くに追いついた。直接会話できる。";
+        contactButton.textContent = "声をかけて話す";
+      }
+      contactButton.addEventListener("click", onDirectAction);
+      contactBlock.appendChild(contactButton);
+      fragment.append(contactBlock);
+    }
+
+    if (!isDynamicEvent && hasRumor && match && match.candidate && match.entry) {
       const known = document.createElement("p");
       known.className = "world-atlas-npc-signal-match";
       known.textContent = `探索録の「${cleanText(match.candidate.destinationName, cleanText(match.entry.name, "既知の地点"))}」と足取りが重なる。`;
@@ -198,15 +508,15 @@
     return fragment;
   }
 
-  function inject(document, root, input = new Date()) {
+  function inject(document, root, input = new Date(), options = {}) {
     const map = document && document.querySelector(".world-atlas-map--nearby");
     if (!map) return 0;
 
     Array.from(map.querySelectorAll(".world-atlas-nearby-marker--npc-signal, .world-atlas-nearby-marker--event-signal")).forEach((node) => node.remove());
     const npcLife = root && root.CrownlessNpcLife;
     const signals = [
-      ...travelingSignals(npcLife, input).map((signal) => ({ signal, kind: "npc" })),
-      ...roadsideEventSignals(input).map((signal) => ({ signal, kind: "event" }))
+      ...travelingSignals(npcLife, input, options).map((signal) => ({ signal, kind: "npc" })),
+      ...dynamicEventSignals(input, options, root).map((signal) => ({ signal, kind: "event" }))
     ];
     if (!signals.length) return 0;
 
@@ -219,6 +529,7 @@
       marker.dataset.labelHorizontal = signal.x >= 72 ? "inset-right" : signal.x <= 28 ? "inset-left" : "center";
       marker.dataset.labelVertical = signal.y >= 66 ? "above" : "below";
       marker.dataset.atlasSignalSource = signal.signalSource;
+      marker.dataset.signalStage = signal.stage || "sensed";
       marker.setAttribute("aria-label", `${signal.name}。${signal.direction}、${signal.distanceBand}。${signal.movementHint}。${signal.stateLabel}。`);
 
       const glyph = document.createElement("i");
@@ -238,13 +549,25 @@
         const detail = viewer && viewer.querySelector(".world-atlas-detail");
         const match = kind === "npc" ? knownDestinationForSignal(root, npcLife, signal, input) : null;
         if (detail) {
-          detail.replaceChildren(selectedSignalDetail(document, signal, match, () => {
-            openKnownDestination(document, root, match, input);
-          }, kind === "event" ? () => {
-            rescanNearbyForSignal(document, root);
-          } : null, kind === "npc" && match ? () => {
-            openSignalExpedition(document, root, signal, match);
-          } : null));
+          detail.replaceChildren(selectedSignalDetail(
+            document,
+            signal,
+            match,
+            () => {
+              openKnownDestination(document, root, match, input);
+            },
+            kind === "event" ? () => {
+              rescanNearbyForSignal(document, root);
+            } : null,
+            kind === "npc" && match ? () => {
+              openSignalExpedition(document, root, signal, match);
+            } : () => {
+              openDynamicEventExpedition(document, root, signal);
+            },
+            () => {
+              triggerDirectContact(document, root, signal, match, input);
+            }
+          ));
         }
         Array.from(map.querySelectorAll(".world-atlas-nearby-marker")).forEach((node) => node.classList.toggle("active", node === marker));
       });
@@ -280,14 +603,25 @@
     NORTH_ROUTE_POSITIONS,
     NORTH_ROUTE_POSITION,
     ROADSIDE_EVENT_POSITION,
+    BANDIT_EVENT_POSITION,
+    CAMPFIRE_EVENT_POSITION,
+    distanceForCoordinates,
+    resolveSignalStage,
+    resolveDistanceBand,
+    isEventResolved,
     normalizedHour,
     northRoutePositionForHour,
     positionForLead,
     travelingSignals,
     roadsideEventSignals,
+    banditAmbushSignals,
+    suspiciousCampfireSignals,
+    dynamicEventSignals,
     knownDestinationForSignal,
     openKnownDestination,
     openSignalExpedition,
+    openDynamicEventExpedition,
+    triggerDirectContact,
     rescanNearbyForSignal,
     selectedSignalDetail,
     inject,
@@ -295,3 +629,4 @@
     install
   });
 });
+
