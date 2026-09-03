@@ -22,6 +22,7 @@
     api.loadLeaderOutcomes(root);
     api.loadFollowupDestinations(root);
     api.loadSignalEncounters(root);
+    api.loadWorldAtlasScouting(root);
   }
 })(typeof globalThis !== "undefined" ? globalThis : this, function createExpeditionUnknownBridge() {
   "use strict";
@@ -74,6 +75,10 @@
 
   function loadSignalEncounters(root) {
     return loadScript(root, "CrownlessExpeditionSignalEncounters", "src/expedition-signal-encounters.js");
+  }
+
+  function loadWorldAtlasScouting(root) {
+    return loadScript(root, "CrownlessWorldAtlasScouting", "src/world-atlas-scouting.js");
   }
 
   function install(Core, Cells, GeographyApi, runtime, root) {
@@ -171,6 +176,7 @@
     loadLeaderOutcomes,
     loadFollowupDestinations,
     loadSignalEncounters,
+    loadWorldAtlasScouting,
     lastProfile: () => null
   };
 
