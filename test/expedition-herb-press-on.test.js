@@ -24,12 +24,16 @@ function dispatch(system, seed, equipmentIds, policyId = "greedy", destinationId
   }, 1_000_000);
 }
 
+function maxRoundsFor(combat) {
+  return Math.min(6, Math.max(3, combat.initialEnemyCount + 1));
+}
+
 function findRetreatSeed(system) {
   const destinations = ["black-mine", "ash-forest", "old-road"];
   const companions = [["mira"], ["ed"], ["sella"]];
   for (const destinationId of destinations) {
     for (const companionIds of companions) {
-      for (let seed = 1; seed <= 10_000; seed += 1) {
+      for (let seed = 1; seed <= 20_000; seed += 1) {
         let state;
         try {
           state = dispatch(system, seed, ["herb-kit"], "greedy", destinationId, companionIds);
@@ -43,7 +47,8 @@ function findRetreatSeed(system) {
           && encounters.length === 1
           && first
           && first.result === "retreat"
-          && first.hpAfter > 0) {
+          && first.hpAfter > 0
+          && first.rounds.length < maxRoundsFor(first)) {
           return { seed, destinationId, companionIds };
         }
       }
@@ -52,15 +57,16 @@ function findRetreatSeed(system) {
   return null;
 }
 
-test("greedy expedition can spend herb-kit once to press past a reachable combat retreat", () => {
+test("greedy expedition can spend herb-kit once to press past a threshold-driven combat retreat", () => {
   const baseline = freshSystem();
   const fixture = findRetreatSeed(baseline);
-  assert.notEqual(fixture, null, "expected a deterministic greedy combat-retreat seed with herb-kit");
+  assert.notEqual(fixture, null, "expected a deterministic greedy threshold-retreat seed with herb-kit");
 
   const baselineState = dispatch(baseline, fixture.seed, ["herb-kit"], "greedy", fixture.destinationId, fixture.companionIds);
   const baselineReport = baseline.resolveExpedition(baselineState.activeExpedition, baselineState);
   const baselineCombat = baselineReport.combat.encounters[0];
   assert.equal(baselineCombat.result, "retreat");
+  assert.ok(baselineCombat.rounds.length < maxRoundsFor(baselineCombat), "fixture must retreat because of HP threshold, not round cap");
 
   const wrapped = freshSystem();
   opportunities.installSystemHooks({ CrownlessExpeditionSystem: wrapped });
