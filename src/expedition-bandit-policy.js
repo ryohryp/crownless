@@ -12,6 +12,8 @@
   const BANDIT_REPEL_AID_ID = "bandit-repel-aid";
   const BANDIT_SCOUT_ID = "bandit-cautious-scout";
   const BANDIT_ROUTE_DISCOVERY_ID = "bandit-cautious-scout-route";
+  const BANDIT_PURSUIT_ID = "bandit-greedy-pursuit";
+  const BANDIT_PURSUIT_LOOT_ID = "bandit-provision-pouch";
 
   function loadCampfireObjectives(root) {
     if (!root || !root.document || root.CrownlessExpeditionCampfireObjectives) return Boolean(root && root.document);
@@ -24,10 +26,18 @@
     return true;
   }
 
-  function isCautiousBandit(report, expedition) {
+  function isSuccessfulBandit(report, expedition, policyId) {
     const inputs = expedition && expedition.inputs;
     const destinationId = inputs && inputs.destinationId || report && report.destinationId;
-    return Boolean(report && report.outcome === "success" && inputs && inputs.policyId === "cautious" && destinationId === BANDIT_DESTINATION_ID);
+    return Boolean(report && report.outcome === "success" && inputs && inputs.policyId === policyId && destinationId === BANDIT_DESTINATION_ID);
+  }
+
+  function isCautiousBandit(report, expedition) {
+    return isSuccessfulBandit(report, expedition, "cautious");
+  }
+
+  function isGreedyBandit(report, expedition) {
+    return isSuccessfulBandit(report, expedition, "greedy");
   }
 
   function removeRepelReward(report) {
@@ -56,7 +66,7 @@
     return discovery;
   }
 
-  function applyBanditPolicy(report, expedition) {
+  function applyCautiousBanditPolicy(report, expedition) {
     if (!isCautiousBandit(report, expedition)) return report;
     if (!report.signalEncounter || report.signalEncounter.kind !== "bandit-ambush") return report;
 
@@ -78,6 +88,41 @@
     report.log.sort((a, b) => (a.minute || 0) - (b.minute || 0));
     report.notableEvent = report.log.find((entry) => entry && entry.type === "signal-intel" && Array.isArray(entry.causes) && entry.causes.includes(BANDIT_SCOUT_ID)) || report.notableEvent;
     return report;
+  }
+
+  function applyGreedyBanditPolicy(report, expedition) {
+    if (!isGreedyBandit(report, expedition)) return report;
+    if (!report.signalEncounter || report.signalEncounter.kind !== "bandit-ambush") return report;
+
+    report.signalEncounter.approach = { id: BANDIT_PURSUIT_ID, policyId: "greedy", outcome: "pursued" };
+    if (!Array.isArray(report.loot)) report.loot = [];
+    if (!report.loot.some((item) => item && item.id === BANDIT_PURSUIT_LOOT_ID)) {
+      report.loot.push({ id: BANDIT_PURSUIT_LOOT_ID, name: "盗賊の補給袋", count: 1 });
+    }
+    if (!Array.isArray(report.log)) report.log = [];
+    const encounter = report.log.find((entry) => entry && entry.type === "signal-encounter" && Array.isArray(entry.causes) && entry.causes.includes("roadside-bandit-ambush"));
+    if (encounter) {
+      encounter.text = "街道の物陰から盗賊が現れた。遠征隊は撃退したが、強欲方針のまま逃げる一人を林際まで追った。";
+      encounter.causes = Array.from(new Set([...(encounter.causes || []), BANDIT_PURSUIT_ID, "greedy"]));
+    }
+    if (!report.log.some((entry) => entry && entry.type === "signal-pursuit" && Array.isArray(entry.causes) && entry.causes.includes(BANDIT_PURSUIT_ID))) {
+      const minute = Number.isFinite(encounter && encounter.minute) ? encounter.minute + 2 : 92;
+      report.log.push({
+        minute,
+        time: encounter && encounter.time || "",
+        type: "signal-pursuit",
+        text: "退路へ踏み込み、盗賊が捨てた補給袋まで回収した。深追いする危険を受け入れたぶん、持ち帰る物が増えた。",
+        causes: [BANDIT_PURSUIT_ID, BANDIT_PURSUIT_LOOT_ID, "greedy"]
+      });
+    }
+    report.log.sort((a, b) => (a.minute || 0) - (b.minute || 0));
+    report.notableEvent = report.log.find((entry) => entry && entry.type === "signal-pursuit" && Array.isArray(entry.causes) && entry.causes.includes(BANDIT_PURSUIT_ID)) || report.notableEvent;
+    return report;
+  }
+
+  function applyBanditPolicy(report, expedition) {
+    applyCautiousBanditPolicy(report, expedition);
+    return applyGreedyBanditPolicy(report, expedition);
   }
 
   function install(root, attempt = 0) {
@@ -105,5 +150,5 @@
     return true;
   }
 
-  return { BANDIT_DESTINATION_ID, BANDIT_REPEL_AID_ID, BANDIT_SCOUT_ID, BANDIT_ROUTE_DISCOVERY_ID, isCautiousBandit, addScoutDiscovery, applyBanditPolicy, loadCampfireObjectives, install };
+  return { BANDIT_DESTINATION_ID, BANDIT_REPEL_AID_ID, BANDIT_SCOUT_ID, BANDIT_ROUTE_DISCOVERY_ID, BANDIT_PURSUIT_ID, BANDIT_PURSUIT_LOOT_ID, isCautiousBandit, isGreedyBandit, addScoutDiscovery, applyCautiousBanditPolicy, applyGreedyBanditPolicy, applyBanditPolicy, loadCampfireObjectives, install };
 });
