@@ -490,6 +490,18 @@
     return true;
   }
 
+  function closeDiscoverySurfaces(document, root) {
+    if (root.CrownlessDiscoveryJournal && typeof root.CrownlessDiscoveryJournal.close === "function") {
+      root.CrownlessDiscoveryJournal.close();
+    } else {
+      document.getElementById("discovery-journal-browser")?.remove();
+      document.body?.classList?.remove("discovery-journal-open");
+    }
+    if (root.CrownlessWorldAtlas && typeof root.CrownlessWorldAtlas.closeAtlas === "function") {
+      root.CrownlessWorldAtlas.closeAtlas(document);
+    }
+  }
+
   function openExpedition(document, root, entry, status) {
     patchExpeditionSystem(root);
     const state = loadExpeditionState(root);
@@ -503,7 +515,7 @@
       if (status) status.textContent = "遠征台帳の準備がまだ整っていない。";
       return false;
     }
-    if (root.CrownlessWorldAtlas && typeof root.CrownlessWorldAtlas.closeAtlas === "function") root.CrownlessWorldAtlas.closeAtlas(document);
+    closeDiscoverySurfaces(document, root);
     gate.click();
     const apply = () => {
       if (lockAtlasDestination(document, root, entry)) return;
@@ -604,6 +616,7 @@
     openMerchant,
     findPrepareTransitionButton,
     lockAtlasDestination,
+    closeDiscoverySurfaces,
     openExpedition,
     install
   };
