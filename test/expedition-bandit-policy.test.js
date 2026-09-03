@@ -106,6 +106,30 @@ test("cautious policy application is idempotent", () => {
   assert.equal(report.discoveries.filter((item) => item.id === policy.BANDIT_ROUTE_DISCOVERY_ID).length, 1);
 });
 
+test("greedy policy pursues fleeing bandits for one extra carried reward", () => {
+  const report = banditReport();
+  policy.applyBanditPolicy(report, expedition("greedy"));
+
+  assert.equal(report.signalEncounter.approach.outcome, "pursued");
+  assert.equal(report.signalEncounter.approach.policyId, "greedy");
+  assert.equal(report.signalEncounter.aid.outcome, "repelled");
+  assert.ok(report.loot.some((item) => item.id === "iron-scrap"));
+  assert.equal(report.loot.filter((item) => item.id === policy.BANDIT_PURSUIT_LOOT_ID).length, 1);
+  assert.match(report.log.find((entry) => entry.type === "signal-encounter").text, /強欲方針.*追った/);
+  assert.match(report.log.find((entry) => entry.type === "signal-pursuit").text, /深追い.*持ち帰る物が増えた/);
+  assert.equal(report.notableEvent.type, "signal-pursuit");
+});
+
+test("greedy pursuit application is idempotent", () => {
+  const report = banditReport();
+  const exp = expedition("greedy");
+  policy.applyBanditPolicy(report, exp);
+  policy.applyBanditPolicy(report, exp);
+
+  assert.equal(report.loot.filter((item) => item.id === policy.BANDIT_PURSUIT_LOOT_ID).length, 1);
+  assert.equal(report.log.filter((entry) => entry.type === "signal-pursuit").length, 1);
+});
+
 test("standard policy preserves the existing bandit combat result", () => {
   const report = banditReport();
   const before = JSON.stringify(report);
