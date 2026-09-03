@@ -27,6 +27,7 @@
     api.loadWorldAtlasScouting(root);
     api.loadForcedMarch(root);
     api.loadFieldCamp(root);
+    api.loadCampSupplyRelief(root);
   }
 })(typeof globalThis !== "undefined" ? globalThis : this, function createExpeditionUnknownBridge() {
   "use strict";
@@ -99,6 +100,10 @@
 
   function loadFieldCamp(root) {
     return loadScript(root, "CrownlessExpeditionFieldCamp", "src/expedition-field-camp.js");
+  }
+
+  function loadCampSupplyRelief(root) {
+    return loadScript(root, "CrownlessExpeditionCampSupplyRelief", "src/expedition-camp-supply-relief.js");
   }
 
   function install(Core, Cells, GeographyApi, runtime, root) {
@@ -201,6 +206,7 @@
     loadWorldAtlasScouting,
     loadForcedMarch,
     loadFieldCamp,
+    loadCampSupplyRelief,
     lastProfile: () => null
   };
 
