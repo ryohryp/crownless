@@ -12,6 +12,17 @@
   const BANDIT_REPEL_AID_ID = "bandit-repel-aid";
   const BANDIT_SCOUT_ID = "bandit-cautious-scout";
 
+  function loadCampfireObjectives(root) {
+    if (!root || !root.document || root.CrownlessExpeditionCampfireObjectives) return Boolean(root && root.document);
+    const src = "src/expedition-campfire-objectives.js";
+    if (root.document.querySelector(`script[src="${src}"]`)) return true;
+    const script = root.document.createElement("script");
+    script.src = src;
+    script.defer = true;
+    root.document.head.appendChild(script);
+    return true;
+  }
+
   function isCautiousBandit(report, expedition) {
     const inputs = expedition && expedition.inputs;
     const destinationId = inputs && inputs.destinationId || report && report.destinationId;
@@ -34,30 +45,17 @@
     if (!report.signalEncounter || report.signalEncounter.kind !== "bandit-ambush") return report;
 
     removeRepelReward(report);
-    report.signalEncounter.approach = {
-      id: BANDIT_SCOUT_ID,
-      policyId: "cautious",
-      outcome: "scouted"
-    };
-
+    report.signalEncounter.approach = { id: BANDIT_SCOUT_ID, policyId: "cautious", outcome: "scouted" };
     if (!Array.isArray(report.log)) report.log = [];
     const encounter = report.log.find((entry) => entry && entry.type === "signal-encounter" && Array.isArray(entry.causes) && entry.causes.includes("roadside-bandit-ambush"));
     if (encounter) {
       encounter.text = "物陰の気配は街道を狙う盗賊だった。慎重方針の遠征隊は正面から交戦せず、人数と見張り位置を確かめて引き返した。";
       encounter.causes = Array.from(new Set([...(encounter.causes || []), BANDIT_SCOUT_ID, "cautious"]));
     }
-
     if (!report.log.some((entry) => entry && entry.type === "signal-intel" && Array.isArray(entry.causes) && entry.causes.includes(BANDIT_SCOUT_ID))) {
       const minute = Number.isFinite(encounter && encounter.minute) ? encounter.minute + 1 : 91;
-      report.log.push({
-        minute,
-        time: encounter && encounter.time || "",
-        type: "signal-intel",
-        text: "盗賊は少人数で、街道側に見張りを置いている。次は武装を整えて討伐するか、この危険を避ける判断ができる。",
-        causes: [BANDIT_SCOUT_ID, "bandit-intel", "cautious"]
-      });
+      report.log.push({ minute, time: encounter && encounter.time || "", type: "signal-intel", text: "盗賊は少人数で、街道側に見張りを置いている。次は武装を整えて討伐するか、この危険を避ける判断ができる。", causes: [BANDIT_SCOUT_ID, "bandit-intel", "cautious"] });
     }
-
     const repelIndex = report.log.findIndex((entry) => entry && entry.type === "signal-aid" && Array.isArray(entry.causes) && entry.causes.includes(BANDIT_REPEL_AID_ID));
     if (repelIndex >= 0) report.log.splice(repelIndex, 1);
     report.log.sort((a, b) => (a.minute || 0) - (b.minute || 0));
@@ -69,18 +67,15 @@
     const system = root && root.CrownlessExpeditionSystem;
     const signals = root && root.CrownlessExpeditionSignalEncounters;
     if (!system || !signals || !system.__signalEncountersInstalled) {
-      if (root && typeof root.setTimeout === "function" && attempt < 20) {
-        root.setTimeout(() => install(root, attempt + 1), 0);
-      }
+      if (root && typeof root.setTimeout === "function" && attempt < 20) root.setTimeout(() => install(root, attempt + 1), 0);
       return false;
     }
-    if (system.__banditPolicyInstalled) return true;
-
+    if (system.__banditPolicyInstalled) {
+      loadCampfireObjectives(root);
+      return true;
+    }
     const baseResolve = system.resolveExpedition.bind(system);
-    system.resolveExpedition = function resolveWithBanditPolicy(expedition, state) {
-      return applyBanditPolicy(baseResolve(expedition, state), expedition);
-    };
-
+    system.resolveExpedition = function resolveWithBanditPolicy(expedition, state) { return applyBanditPolicy(baseResolve(expedition, state), expedition); };
     const baseAdvance = system.advance.bind(system);
     system.advance = function advanceWithBanditPolicy(state, nowMs) {
       const expedition = state && state.activeExpedition;
@@ -88,17 +83,10 @@
       if (advanced && advanced.report && expedition) applyBanditPolicy(advanced.report, expedition);
       return advanced;
     };
-
     system.__banditPolicyInstalled = true;
+    loadCampfireObjectives(root);
     return true;
   }
 
-  return {
-    BANDIT_DESTINATION_ID,
-    BANDIT_REPEL_AID_ID,
-    BANDIT_SCOUT_ID,
-    isCautiousBandit,
-    applyBanditPolicy,
-    install
-  };
+  return { BANDIT_DESTINATION_ID, BANDIT_REPEL_AID_ID, BANDIT_SCOUT_ID, isCautiousBandit, applyBanditPolicy, loadCampfireObjectives, install };
 });
