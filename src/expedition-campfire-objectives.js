@@ -13,6 +13,7 @@
   const STONE_ID = "ancient-stone-fragment";
   const SCAVENGE_ID = "campfire-scavenge-cache";
   const HUNT_ID = "campfire-track-party";
+  const HUNT_DISCOVERY_ID = "campfire-track-party-discovery";
   const SUPPLY_ID = "abandoned-camp-supplies";
 
   function isCampfire(report, expedition) {
@@ -53,6 +54,21 @@
     return entry;
   }
 
+  function addHuntDiscovery(report, sourceDestinationId) {
+    if (!Array.isArray(report.discoveries)) report.discoveries = [];
+    const existing = report.discoveries.find((item) => item && item.id === HUNT_DISCOVERY_ID);
+    if (existing) return existing;
+    const discovery = {
+      id: HUNT_DISCOVERY_ID,
+      name: "北へ続く一団の足跡",
+      kind: "trail",
+      sourceDestinationId,
+      detail: "三、四人ほどの足跡が街道の北側へ続いている。追跡遠征を組める。"
+    };
+    report.discoveries.push(discovery);
+    return discovery;
+  }
+
   function applyCampfireObjective(report, expedition) {
     if (!isCampfire(report, expedition)) return report;
     const objective = expedition.inputs.objective || expedition.inputs.objectiveId || "explore";
@@ -74,6 +90,7 @@
       if (encounter) encounter.text = "暗がりの火影へ着いた遠征隊は、消えかけた焚き火と複数人の足跡を見つけた。獲物を探す目的に従い、物資には触れず足跡を追った。";
       report.signalEncounter.approach = { id: HUNT_ID, objective: "hunt", outcome: "trail-learned" };
       report.notableEvent = addUniqueLog(report, "signal-intel", HUNT_ID, "足跡は三、四人ほど。荷を軽くして街道の北側へ移動した形跡がある。次の遠征では追跡を続けるか避ける判断材料になる。");
+      addHuntDiscovery(report, expedition.inputs.destinationId || report.destinationId);
     }
 
     if (Array.isArray(report.log)) report.log.sort((a, b) => (a.minute || 0) - (b.minute || 0));
@@ -103,5 +120,5 @@
     return true;
   }
 
-  return { CAMPFIRE_DESTINATION_ID, STONE_ID, SCAVENGE_ID, HUNT_ID, SUPPLY_ID, applyCampfireObjective, install };
+  return { CAMPFIRE_DESTINATION_ID, STONE_ID, SCAVENGE_ID, HUNT_ID, HUNT_DISCOVERY_ID, SUPPLY_ID, applyCampfireObjective, addHuntDiscovery, install };
 });
