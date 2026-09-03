@@ -3,18 +3,6 @@
   const api = factory();
   if (typeof module === "object" && module.exports) module.exports = api;
   if (root) root.CrownlessLocationVisuals = api;
-
-  if (root && root.document) {
-    const loadJournalBrowser = () => {
-      if (root.CrownlessDiscoveryJournal || root.document.querySelector('script[src="src/discovery-journal-browser.js"]')) return;
-      const script = root.document.createElement("script");
-      script.src = "src/discovery-journal-browser.js";
-      script.async = false;
-      root.document.body.appendChild(script);
-    };
-    if (root.document.readyState === "loading") root.document.addEventListener("DOMContentLoaded", loadJournalBrowser, { once: true });
-    else loadJournalBrowser();
-  }
 })(typeof globalThis !== "undefined" ? globalThis : this, function createLocationVisuals() {
   "use strict";
 

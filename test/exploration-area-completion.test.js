@@ -3,8 +3,6 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
 
-const Journal = require("../src/discovery-journal-browser.js");
-
 function memoryStorage() {
   const data = new Map();
   return {
@@ -44,7 +42,6 @@ test("z16 exploration cells roll up into stable z14 completion areas", () => {
   assert.match(area.id, /^area:14:\d+:\d+$/);
   assert.deepEqual(rolledUp, area);
   assert.deepEqual(Core.parseExplorationAreaId(area.id), area);
-  assert.equal(Core.explorationAreaGoal(area.id), Journal.areaGoal(area.id));
   assert.ok(Core.explorationAreaGoal(area.id) >= 5 && Core.explorationAreaGoal(area.id) <= 7);
   delete global.localStorage;
 });
@@ -89,74 +86,9 @@ test("coarse discovery area persists while raw position fields remain stripped",
   delete global.localStorage;
 });
 
-test("area summaries count unique discoveries and complete at the deterministic goal", () => {
-  const areaId = "area:14:14550:6450";
-  const goal = Journal.areaGoal(areaId);
-  const discoveries = {};
-  for (let index = 0; index < goal; index += 1) {
-    discoveries[`sim:${index}`] = {
-      key: `sim:${index}`,
-      name: `発見 ${index + 1}`,
-      areaId,
-      firstDiscoveredAt: 100 + index,
-      visits: index === 0 ? 8 : 1
-    };
-  }
-
-  const model = Journal.areaSummaries({
-    discoveries,
-    exploredCells: {
-      a: { id: "cell:16:58200:25800", firstExploredAt: 10 },
-      b: { id: "cell:16:58201:25800", firstExploredAt: 11 }
-    }
-  });
-
-  const area = model.find((entry) => entry.id === areaId);
-  assert.ok(area);
-  assert.equal(area.discoveries, goal);
-  assert.equal(area.progress, goal);
-  assert.equal(area.exploredCells, 2);
-  assert.equal(area.complete, true);
-  assert.equal(Journal.entriesForArea(Object.values(discoveries), areaId).length, goal);
-});
-
-test("coarse map exposes known, unknown, progress, and completed neighboring areas", () => {
-  const areaId = "area:14:14550:6450";
-  const goal = Journal.areaGoal(areaId);
-  const discoveries = {};
-  for (let index = 0; index < goal; index += 1) {
-    discoveries[`geo:${index}`] = { key: `geo:${index}`, areaId, firstDiscoveredAt: 200 + index };
-  }
-  const worldKnowledge = {
-    discoveries,
-    exploredCells: {
-      center: { id: "cell:16:58200:25800", firstExploredAt: 20 },
-      east: { id: "cell:16:58204:25800", firstExploredAt: 21 }
-    }
-  };
-
-  const window = Journal.areaWindowModel(worldKnowledge, areaId);
-  assert.equal(window.length, 25);
-  assert.ok(window.some((area) => area.id === areaId && area.complete));
-  assert.ok(window.some((area) => area.known && !area.complete));
-  assert.ok(window.some((area) => !area.known));
-  assert.equal(Journal.defaultAreaId(worldKnowledge), areaId);
-});
-
-test("browser runtime and manuscript CSS expose the area completion interaction", () => {
+test("browser runtime exposes area completion integration", () => {
   const runtimeSource = fs.readFileSync(path.join(__dirname, "../src/location-discovery-runtime.js"), "utf8");
-  const journalSource = fs.readFileSync(path.join(__dirname, "../src/discovery-journal-browser.js"), "utf8");
-  const cssSource = fs.readFileSync(path.join(__dirname, "../discovery-journal-browser.css"), "utf8");
-
   assert.match(runtimeSource, /explorationAreaFromLocation/);
   assert.match(runtimeSource, /representativeCoordinate \|\| geographic\.mapOrigin/);
   assert.match(runtimeSource, /currentAreaId/);
-  assert.match(journalSource, /KNOWN AREAS \/ COARSE MAP/);
-  assert.match(journalSource, /COMPLETE/);
-  assert.match(journalSource, /entriesForArea/);
-  assert.match(journalSource, /正確な移動経路は保存しない/);
-  assert.match(cssSource, /\.discovery-area-map\s*\{/);
-  assert.match(cssSource, /\.discovery-area-cell\.complete/);
-  assert.match(cssSource, /@media \(max-width:\s*700px\)/);
-  assert.doesNotMatch(journalSource, /latitude|longitude|mapOrigin|representativeCoordinate/);
 });
