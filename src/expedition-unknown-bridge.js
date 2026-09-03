@@ -14,6 +14,7 @@
     );
     api.loadObjectiveChoices(root);
     api.loadEquipmentOpportunities(root);
+    api.loadPartyOpportunities(root);
     api.loadRescueLoop(root);
     api.loadCompanionProposals(root);
     api.loadPartySelection(root);
@@ -37,6 +38,10 @@
 
   function loadEquipmentOpportunities(root) {
     return loadScript(root, "CrownlessExpeditionEquipmentOpportunities", "src/expedition-equipment-opportunities.js");
+  }
+
+  function loadPartyOpportunities(root) {
+    return loadScript(root, "CrownlessExpeditionPartyOpportunities", "src/expedition-party-opportunities.js");
   }
 
   function loadRescueLoop(root) {
@@ -138,6 +143,7 @@
     install,
     loadObjectiveChoices,
     loadEquipmentOpportunities,
+    loadPartyOpportunities,
     loadRescueLoop,
     loadCompanionProposals,
     loadPartySelection,
