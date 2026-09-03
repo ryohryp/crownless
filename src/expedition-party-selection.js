@@ -9,6 +9,7 @@
 
   const MAX_COMPANIONS = 2;
   const COMPANION_LEGEND = "仲間（2人まで）";
+  const COMPANION_NAMES = Object.freeze({ mira: "ミラ", ed: "エド", sella: "セラ" });
 
   function selectedCompanionIds(form) {
     if (!form) return [];
@@ -16,6 +17,72 @@
       .map((input) => input.value)
       .filter(Boolean)
       .slice(0, MAX_COMPANIONS);
+  }
+
+  function selectedLeaderId(form, companionIds) {
+    const ids = Array.isArray(companionIds) ? companionIds : selectedCompanionIds(form);
+    if (!form || ids.length !== MAX_COMPANIONS) return null;
+    const selected = form.querySelector('input[name="leader"]:checked');
+    return selected && ids.includes(selected.value) ? selected.value : ids[0];
+  }
+
+  function createLeaderGroup(doc, companionIds) {
+    const group = doc.createElement("fieldset");
+    group.className = "expedition-choice expedition-leader-choice";
+    group.dataset.partyLeader = companionIds.join("|");
+    const legend = doc.createElement("legend");
+    legend.textContent = "隊長";
+    group.append(legend);
+
+    companionIds.forEach((id, index) => {
+      const label = doc.createElement("label");
+      label.className = "expedition-choice__item";
+      const input = doc.createElement("input");
+      input.type = "radio";
+      input.name = "leader";
+      input.value = id;
+      input.checked = index === 0;
+      const body = doc.createElement("span");
+      const strong = doc.createElement("strong");
+      strong.textContent = COMPANION_NAMES[id] || id;
+      const small = doc.createElement("small");
+      small.textContent = "この仲間に現地判断を任せる";
+      body.append(strong, small);
+      label.append(input, body);
+      group.append(label);
+    });
+    return group;
+  }
+
+  function syncLeaderGroup(root, form, companionIds) {
+    const doc = root.document;
+    const existing = form.querySelector("[data-party-leader]");
+    if (companionIds.length !== MAX_COMPANIONS) {
+      if (!existing) return false;
+      existing.remove();
+      return true;
+    }
+
+    const signature = companionIds.join("|");
+    if (existing && existing.dataset.partyLeader === signature) {
+      const current = selectedLeaderId(form, companionIds);
+      if (current) return false;
+    }
+
+    const previousLeader = existing ? selectedLeaderId(form, companionIds) : null;
+    if (existing) existing.remove();
+    const group = createLeaderGroup(doc, companionIds);
+    const partyGroup = form.querySelector("[data-party-selection]") || form.querySelector('input[name="companion"]')?.closest("fieldset");
+    if (partyGroup && typeof partyGroup.insertAdjacentElement === "function") partyGroup.insertAdjacentElement("afterend", group);
+    else form.append(group);
+
+    if (previousLeader && companionIds.includes(previousLeader)) {
+      const radio = Array.from(group.querySelectorAll('input[name="leader"]')).find((input) => input.value === previousLeader);
+      if (radio) {
+        Array.from(group.querySelectorAll('input[name="leader"]')).forEach((input) => { input.checked = input === radio; });
+      }
+    }
+    return true;
   }
 
   function enhancePrepare(root) {
@@ -32,7 +99,7 @@
       }
     });
 
-    const checked = inputs.filter((input) => input.checked && !input.disabled);
+    let checked = inputs.filter((input) => input.checked && !input.disabled);
     if (!checked.length) {
       const first = inputs.find((input) => !input.disabled);
       if (first && !first.checked) {
@@ -47,6 +114,7 @@
         }
       });
     }
+    checked = inputs.filter((input) => input.checked && !input.disabled).slice(0, MAX_COMPANIONS);
 
     const group = inputs[0].closest("fieldset");
     const legend = group && group.querySelector("legend");
@@ -58,6 +126,8 @@
       group.dataset.partySelection = "true";
       changed = true;
     }
+
+    if (syncLeaderGroup(root, form, checked.map((input) => input.value).filter(Boolean))) changed = true;
     return changed;
   }
 
@@ -78,8 +148,13 @@
     system.dispatchExpedition = function dispatchWithSelectedParty(state, input, nowMs) {
       const form = root.document.querySelector("#expedition-folio form.expedition-prepare");
       const selected = selectedCompanionIds(form);
+      const leaderId = selectedLeaderId(form, selected);
       const nextInput = selected.length ? { ...input, companionIds: selected } : input;
-      return baseDispatch(state, nextInput, nowMs);
+      const nextState = baseDispatch(state, nextInput, nowMs);
+      if (leaderId && nextState && nextState.activeExpedition && nextState.activeExpedition.inputs) {
+        nextState.activeExpedition.inputs.leaderId = leaderId;
+      }
+      return nextState;
     };
     system.__twoCompanionPartyInstalled = true;
     return true;
@@ -93,11 +168,24 @@
     if (!root.__crownlessPartySelectionObserver) {
       const observer = new root.MutationObserver(sync);
       observer.observe(root.document.body, { subtree: true, childList: true });
-      root.document.addEventListener("change", enforceLimit);
+      root.document.addEventListener("change", (event) => {
+        enforceLimit(event);
+        if (event && event.target && event.target.name === "companion") sync();
+      });
       root.__crownlessPartySelectionObserver = observer;
     }
     return true;
   }
 
-  return { MAX_COMPANIONS, selectedCompanionIds, enhancePrepare, installDispatchHook, install };
+  return {
+    MAX_COMPANIONS,
+    COMPANION_NAMES,
+    selectedCompanionIds,
+    selectedLeaderId,
+    createLeaderGroup,
+    syncLeaderGroup,
+    enhancePrepare,
+    installDispatchHook,
+    install,
+  };
 });
