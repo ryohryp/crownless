@@ -17,6 +17,7 @@
     api.loadPartyOpportunities(root);
     api.loadRescueLoop(root);
     api.loadCompanionProposals(root);
+    api.loadCompanionInsights(root);
     api.loadPartySelection(root);
     api.loadLeaderOutcomes(root);
     api.loadFollowupDestinations(root);
@@ -53,6 +54,10 @@
 
   function loadCompanionProposals(root) {
     return loadScript(root, "CrownlessExpeditionCompanionProposals", "src/expedition-companion-proposals.js");
+  }
+
+  function loadCompanionInsights(root) {
+    return loadScript(root, "CrownlessExpeditionCompanionInsights", "src/expedition-companion-insights.js");
   }
 
   function loadPartySelection(root) {
@@ -161,6 +166,7 @@
     loadPartyOpportunities,
     loadRescueLoop,
     loadCompanionProposals,
+    loadCompanionInsights,
     loadPartySelection,
     loadLeaderOutcomes,
     loadFollowupDestinations,
