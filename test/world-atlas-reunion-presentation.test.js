@@ -13,12 +13,14 @@ const knownDestinations = {
     key: "sim:north-road-ford",
     name: "北の街道の古い渡し場",
     location: "north-road",
+    terrain: ["crossing"],
     state: "discovered"
   },
   "sim:old-forest": {
     key: "sim:old-forest",
     name: "古い森",
     location: "forest",
+    terrain: ["sacred"],
     state: "discovered"
   }
 };
@@ -97,7 +99,7 @@ test("selected reunion destination projects Marco into the Atlas candidate model
   assert.equal(reunion.discoveryKey, "sim:north-road-ford");
 });
 
-test("explicit reunion clue helper remains deterministic for a future confirmed encounter surface", () => {
+test("reunion clue is deterministic and projects the current place's local event", () => {
   const root = rootWithKnowledge();
   const entry = knownDestinations["sim:north-road-ford"];
   const now = new Date(2026, 8, 1, 11, 0, 0);
@@ -109,6 +111,20 @@ test("explicit reunion clue helper remains deterministic for a future confirmed 
   assert.deepEqual(first, second);
   assert.equal(first.npcId, "marco");
   assert.equal(first.eventId, localEvent.id);
+  assert.equal(first.eventTitle, localEvent.title);
+  assert.match(first.text, new RegExp(localEvent.hook.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+});
+
+test("regional lead content changes with the discovered place instead of becoming a global NPC line", () => {
+  const root = rootWithKnowledge();
+  const ford = Presentation.reunionClueForEntry(root, knownDestinations["sim:north-road-ford"], new Date(2026, 8, 1, 11));
+  const fordEvent = DiscoveryActions.buildLocalEvent(knownDestinations["sim:north-road-ford"]);
+  const forestEvent = DiscoveryActions.buildLocalEvent(knownDestinations["sim:old-forest"]);
+
+  assert.ok(ford);
+  assert.equal(ford.eventTitle, fordEvent.title);
+  assert.notEqual(fordEvent.family, forestEvent.family);
+  assert.notEqual(fordEvent.hook, forestEvent.hook);
 });
 
 test("another destination and travel-window boundaries do not produce a reunion candidate", () => {
@@ -240,7 +256,7 @@ test("built-in destination report cannot create an NPC reunion", () => {
   assert.equal(root.getSaveCount(), 0);
 });
 
-test("Atlas candidate rendering is read-only and does not imply a confirmed reunion", () => {
+test("Atlas candidate rendering exposes a regional NPC lead without confirming reunion", () => {
   const source = fs.readFileSync(path.join(__dirname, "../src/world-atlas-reunion-presentation.js"), "utf8");
   const syncStart = source.indexOf("function syncReunion");
   const syncEnd = source.indexOf("function ensureStyles");
@@ -248,8 +264,11 @@ test("Atlas candidate rendering is read-only and does not imply a confirmed reun
 
   assert.match(syncBody, /再会候補/);
   assert.match(syncBody, /遠征で会えるかもしれない/);
+  assert.match(syncBody, /reunionClueForEntry\s*\(/);
+  assert.match(syncBody, /話を手掛かりに調べる/);
+  assert.match(syncBody, /CrownlessWorldAtlasActionsPresentation/);
+  assert.match(syncBody, /openEvent\s*\(/);
   assert.doesNotMatch(syncBody, /recordReunion\s*\(/);
-  assert.doesNotMatch(syncBody, /reunionClueForEntry\s*\(/);
   assert.doesNotMatch(syncBody, /以前にもここで会った/);
 });
 
