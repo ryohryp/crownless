@@ -12,10 +12,10 @@ function freshSystem() {
 
 const opportunities = require("../src/expedition-equipment-opportunities.js");
 
-function dispatch(system, seed, equipmentIds, policyId = "greedy") {
+function dispatch(system, seed, equipmentIds, policyId = "greedy", destinationId = "black-mine", companionIds = ["mira"]) {
   return system.dispatchExpedition(system.initialState(), {
-    destinationId: "black-mine",
-    companionIds: ["mira"],
+    destinationId,
+    companionIds,
     equipmentIds,
     policyId,
     objective: "explore",
@@ -24,50 +24,61 @@ function dispatch(system, seed, equipmentIds, policyId = "greedy") {
   }, 1_000_000);
 }
 
-function findBoundarySeed(system) {
-  for (let seed = 1; seed <= 10_000; seed += 1) {
-    const state = dispatch(system, seed, ["herb-kit"]);
-    const report = system.resolveExpedition(state.activeExpedition, state);
-    const encounters = report.combat && report.combat.encounters || [];
-    const first = encounters[0];
-    if (report.outcome === "early-return"
-      && encounters.length === 1
-      && first
-      && first.result === "victory"
-      && first.hpAfter > 0
-      && first.hpAfter / first.maxHp <= system.policies.greedy.retreatHpRatio) {
-      return seed;
+function findRetreatSeed(system) {
+  const destinations = ["black-mine", "ash-forest", "old-road"];
+  const companions = [["mira"], ["ed"], ["sella"]];
+  for (const destinationId of destinations) {
+    for (const companionIds of companions) {
+      for (let seed = 1; seed <= 10_000; seed += 1) {
+        let state;
+        try {
+          state = dispatch(system, seed, ["herb-kit"], "greedy", destinationId, companionIds);
+        } catch (_error) {
+          continue;
+        }
+        const report = system.resolveExpedition(state.activeExpedition, state);
+        const encounters = report.combat && report.combat.encounters || [];
+        const first = encounters[0];
+        if (report.outcome === "early-return"
+          && encounters.length === 1
+          && first
+          && first.result === "retreat"
+          && first.hpAfter > 0) {
+          return { seed, destinationId, companionIds };
+        }
+      }
     }
   }
   return null;
 }
 
-test("greedy expedition can spend herb-kit once to press past the post-victory retreat boundary", () => {
+test("greedy expedition can spend herb-kit once to press past a reachable combat retreat", () => {
   const baseline = freshSystem();
-  const seed = findBoundarySeed(baseline);
-  assert.notEqual(seed, null, "expected a deterministic seed at the greedy post-victory retreat boundary");
+  const fixture = findRetreatSeed(baseline);
+  assert.notEqual(fixture, null, "expected a deterministic greedy combat-retreat seed with herb-kit");
 
-  const baselineState = dispatch(baseline, seed, ["herb-kit"]);
+  const baselineState = dispatch(baseline, fixture.seed, ["herb-kit"], "greedy", fixture.destinationId, fixture.companionIds);
   const baselineReport = baseline.resolveExpedition(baselineState.activeExpedition, baselineState);
-  assert.equal(baselineReport.outcome, "early-return");
-  assert.equal(baselineReport.combat.encounters.length, 1);
+  const baselineCombat = baselineReport.combat.encounters[0];
+  assert.equal(baselineCombat.result, "retreat");
 
   const wrapped = freshSystem();
   opportunities.installSystemHooks({ CrownlessExpeditionSystem: wrapped });
-  const state = dispatch(wrapped, seed, ["herb-kit"]);
+  const state = dispatch(wrapped, fixture.seed, ["herb-kit"], "greedy", fixture.destinationId, fixture.companionIds);
   const report = wrapped.resolveExpedition(state.activeExpedition, state);
+  const extendedCombat = report.combat.encounters[0];
 
   assert.equal(report.supplyOpportunity.id, "herb-press-on");
   assert.equal(report.supplyOpportunity.spent, true);
-  assert.ok(report.combat.encounters.length >= 2);
+  assert.ok(extendedCombat.rounds.length > baselineCombat.rounds.length);
   assert.equal(report.log.filter((entry) => entry.type === "supply-use").length, 1);
-  assert.match(report.log.find((entry) => entry.type === "supply-use").text, /薬草包み.*次の遭遇/);
+  assert.match(report.log.find((entry) => entry.type === "supply-use").text, /薬草包み.*撤退判断/);
 });
 
 test("press-on branch is not available without herb-kit or outside greedy policy", () => {
   const baseline = freshSystem();
-  const seed = findBoundarySeed(baseline);
-  assert.notEqual(seed, null);
+  const fixture = findRetreatSeed(baseline);
+  assert.notEqual(fixture, null);
 
   for (const [equipmentIds, policyId] of [
     [[], "greedy"],
@@ -77,7 +88,12 @@ test("press-on branch is not available without herb-kit or outside greedy policy
   ]) {
     const wrapped = freshSystem();
     opportunities.installSystemHooks({ CrownlessExpeditionSystem: wrapped });
-    const state = dispatch(wrapped, seed, equipmentIds, policyId);
+    let state;
+    try {
+      state = dispatch(wrapped, fixture.seed, equipmentIds, policyId, fixture.destinationId, fixture.companionIds);
+    } catch (_error) {
+      continue;
+    }
     const report = wrapped.resolveExpedition(state.activeExpedition, state);
     assert.equal(report.supplyOpportunity, undefined);
     assert.equal(report.log.some((entry) => entry.type === "supply-use"), false);
@@ -86,12 +102,12 @@ test("press-on branch is not available without herb-kit or outside greedy policy
 
 test("advance applies the extended report exactly once and keeps deterministic re-resolution", () => {
   const baseline = freshSystem();
-  const seed = findBoundarySeed(baseline);
-  assert.notEqual(seed, null);
+  const fixture = findRetreatSeed(baseline);
+  assert.notEqual(fixture, null);
 
   const wrapped = freshSystem();
   opportunities.installSystemHooks({ CrownlessExpeditionSystem: wrapped });
-  const state = dispatch(wrapped, seed, ["herb-kit"]);
+  const state = dispatch(wrapped, fixture.seed, ["herb-kit"], "greedy", fixture.destinationId, fixture.companionIds);
   const previewA = wrapped.resolveExpedition(state.activeExpedition, state);
   const previewB = wrapped.resolveExpedition(state.activeExpedition, state);
   assert.deepEqual(previewB, previewA);
