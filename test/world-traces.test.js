@@ -53,7 +53,7 @@ test("anonymous tracks remain unfollowable even after tracking knowledge is lear
   assert.equal(anonymous.canFollow, false);
 });
 
-test("following a trace records tracking knowledge once in safe world knowledge", () => {
+test("tracking knowledge grows from distinct追跡 experiences instead of the first click", () => {
   const safe = { worldKnowledge: { discoveries: {} } };
   let saves = 0;
   const root = {
@@ -64,17 +64,29 @@ test("following a trace records tracking knowledge once in safe world knowledge"
     }
   };
 
-  const first = WorldTraces.rememberTrackingKnowledge(root, 12345);
-  const second = WorldTraces.rememberTrackingKnowledge(root, 99999);
+  const first = WorldTraces.rememberTrackingKnowledge(root, 12345, "trace:first");
+  const duplicate = WorldTraces.rememberTrackingKnowledge(root, 22345, "trace:first");
+  const second = WorldTraces.rememberTrackingKnowledge(root, 32345, "trace:second");
   const learned = safe.worldKnowledge.discoveries[WorldTraces.TRACKING_KNOWLEDGE_KEY];
+  const practice = safe.worldKnowledge.discoveries[WorldTraces.TRACKING_PRACTICE_KEY];
 
-  assert.deepEqual(first, { changed: true, known: true });
-  assert.deepEqual(second, { changed: false, known: true });
-  assert.equal(saves, 1);
+  assert.deepEqual(first, { changed: true, known: false, practiceCount: 1 });
+  assert.deepEqual(duplicate, { changed: false, known: false, practiceCount: 1 });
+  assert.deepEqual(second, { changed: true, known: true, practiceCount: 2 });
+  assert.equal(saves, 2);
+  assert.equal(practice.practiceCount, 2);
+  assert.deepEqual(practice.lessonIds, ["trace:first", "trace:second"]);
   assert.equal(learned.name, "《轍読み》");
   assert.equal(learned.contentKind, "knowledge");
-  assert.equal(learned.firstDiscoveredAt, 12345);
+  assert.equal(learned.firstDiscoveredAt, 32345);
   assert.equal(WorldTraces.trackingKnowledgeKnown(root), true);
+  assert.equal(WorldTraces.trackingPracticeCount(root), 2);
+});
+
+test("trace lesson identity prevents reload from counting the same observed trace twice", () => {
+  const trace = WorldTraces.traceFromSignalSource("npc-rumor", 11);
+  assert.equal(WorldTraces.lessonIdForTrace(trace, 11), WorldTraces.lessonIdForTrace(trace, 11));
+  assert.notEqual(WorldTraces.lessonIdForTrace(trace, 11), WorldTraces.lessonIdForTrace(trace, 12));
 });
 
 test("investigation copy makes freshness, experience, and followability player-readable", () => {
@@ -91,13 +103,21 @@ test("trace model does not expose or persist precise real-world location data", 
   assert.doesNotMatch(source, /navigator\.geolocation|watchPosition|localStorage|sessionStorage/);
 });
 
+test("trace UI exposes partial experience before the learned knowledge changes later decisions", () => {
+  assert.match(source, /前にも見た荷車の轍が残っている/);
+  assert.match(source, /一度この手の轍を追った/);
+  assert.match(source, /古い痕跡を読むにはまだ経験が足りない/);
+  assert.match(source, /TRACKING_REQUIRED_PRACTICES = 2/);
+  assert.match(source, /lessonIdForTrace\(result, input\)/);
+});
+
 test("trace UI gates the existing expedition action behind investigate / follow or leave", () => {
   assert.match(source, /轍を詳しく調べる/);
   assert.match(source, /触らず立ち去る/);
   assert.match(source, /痕跡を追って遠征する/);
   assert.match(source, /setDispatchState\(dispatch, trace, false\)/);
   assert.match(source, /trace\.canFollow/);
-  assert.match(source, /bindTrackingLesson\(dispatch, root\)/);
+  assert.match(source, /bindTrackingLesson\(dispatch, root, lessonIdForTrace\(result, input\)\)/);
   assert.match(source, /《轍読み》で詳しく調べる/);
 });
 
