@@ -11,8 +11,7 @@ const source = fs.readFileSync(path.join(__dirname, "../src/expedition-companion
 test("companion proposal panel keeps long copy in a single readable column", () => {
   assert.match(source, /data\.companionProposal = "true"/);
   assert.match(css, /\.expedition-form-feedback\[data-companion-proposal\]\{[^}]*display:grid;[^}]*grid-template-columns:minmax\(0,1fr\)/);
-  assert.match(css, /\.expedition-form-feedback\[data-companion-proposal\]>span[^}]*overflow-wrap:anywhere/);
-  assert.match(css, /\.expedition-form-feedback\[data-companion-proposal\]>small[^}]*overflow-wrap:anywhere/);
+  assert.match(css, /\.expedition-form-feedback\[data-companion-proposal\]>span,\.expedition-form-feedback\[data-companion-proposal\]>small\{[^}]*min-width:0;[^}]*overflow-wrap:anywhere/);
 });
 
 test("companion proposal actions stay tappable without horizontal overflow from 360 to 700px", () => {
