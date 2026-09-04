@@ -17,6 +17,8 @@
     ed: "エドの見立てを信じて狩りへ踏み込んだ。正面から確かめるという判断が、遠征の流れを決めた。",
     sella: "セラの見立てを信じて価値ある物を探し切った。もう一歩漁るという判断が、帰還報告に残った。",
   });
+  const LOCAL_HAULER_COMPANION_ID = "ed";
+  const LOCAL_HAULER_ROUTE_PREFIX = "local-hauler-route";
 
   function cleanPolicy(inputs) {
     return inputs && (inputs.policyId || inputs.policy) || "standard";
@@ -45,8 +47,78 @@
       });
   }
 
+  function destinationFor(expedition, state) {
+    const destinationId = expedition && expedition.inputs && expedition.inputs.destinationId;
+    if (!destinationId || !state || !Array.isArray(state.destinations)) return null;
+    return state.destinations.find((item) => item && item.id === destinationId) || null;
+  }
+
+  function destinationTags(destination) {
+    if (!destination) return [];
+    const values = [];
+    for (const key of ["features", "dangerTags", "opportunityTags"]) {
+      if (Array.isArray(destination[key])) values.push(...destination[key]);
+    }
+    if (destination.palette) values.push(destination.palette);
+    return [...new Set(values.map((value) => String(value || "").toLowerCase()))];
+  }
+
+  function localHaulerKnowledge(expedition, state) {
+    if (!companionIds(expedition).includes(LOCAL_HAULER_COMPANION_ID)) return null;
+    if (!state || !Array.isArray(state.companions)) return null;
+    const companion = state.companions.find((item) => item && item.id === LOCAL_HAULER_COMPANION_ID);
+    if (!companion || !String(companion.origin || "").includes("灰炉近く")) return null;
+    const destination = destinationFor(expedition, state);
+    if (!destination || destination.geographic !== true || !destinationTags(destination).includes("water")) return null;
+    return { companion, destination };
+  }
+
+  function applyGeographicCompanionKnowledge(report, expedition, state) {
+    if (!report || !["success", "early-return"].includes(report.outcome)) return report;
+    const context = localHaulerKnowledge(expedition, state);
+    if (!context) return report;
+
+    const { companion, destination } = context;
+    const discoveryId = `${LOCAL_HAULER_ROUTE_PREFIX}:${destination.id}`;
+    if (!Array.isArray(report.discoveries)) report.discoveries = [];
+    if (!report.discoveries.some((item) => item && item.id === discoveryId)) {
+      report.discoveries.push({
+        id: discoveryId,
+        name: "荷運びの脇渡り",
+        kind: "route",
+        sourceDestinationId: destination.id,
+        detail: "エドが灰炉近くで荷を運んでいた頃の勘から、水位の癖と荷車跡を読み、重い荷でも抜けられる脇渡りを見つけた。次の遠征で追える。",
+      });
+    }
+
+    report.geographicCompanionKnowledge = {
+      companionId: companion.id,
+      companionName: companion.name,
+      destinationId: destination.id,
+      scope: "nearby-water-hauling",
+      effect: "reveal-local-hauler-route",
+      discoveryId,
+    };
+
+    if (!Array.isArray(report.log)) report.log = [];
+    const cause = `geographic-companion:${companion.id}`;
+    if (!report.log.some((item) => item && item.type === "geographic-companion" && Array.isArray(item.causes) && item.causes.includes(discoveryId))) {
+      const arrival = report.log.find((item) => item && item.type === "arrival");
+      report.log.push({
+        minute: 41,
+        time: arrival && arrival.time || "",
+        type: "geographic-companion",
+        text: `${companion.name}が水際の荷車跡を見て足を止めた。灰炉近くで荷を運んだ経験から、普通の旅人なら見落とす「荷運びの脇渡り」を読み取った。`,
+        causes: [cause, "local-knowledge", "water", discoveryId],
+      });
+      report.log.sort((a, b) => (Number(a && a.minute) || 0) - (Number(b && b.minute) || 0));
+    }
+    return report;
+  }
+
   function applyCompanionInsights(report, expedition, state) {
     if (!report || !["success", "early-return"].includes(report.outcome)) return report;
+    applyGeographicCompanionKnowledge(report, expedition, state);
     const companions = alignedCompanions(expedition, state);
     if (!companions.length) return report;
     if (!Array.isArray(report.log)) report.log = [];
@@ -107,5 +179,17 @@
     return true;
   }
 
-  return { companionIds, alignedCompanions, applyCompanionInsights, installSystemHooks, install };
+  return {
+    LOCAL_HAULER_COMPANION_ID,
+    LOCAL_HAULER_ROUTE_PREFIX,
+    companionIds,
+    alignedCompanions,
+    destinationFor,
+    destinationTags,
+    localHaulerKnowledge,
+    applyGeographicCompanionKnowledge,
+    applyCompanionInsights,
+    installSystemHooks,
+    install,
+  };
 });
