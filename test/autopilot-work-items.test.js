@@ -10,8 +10,8 @@ const {
 test("collectWorkItems queries four read-only categories and normalizes them", () => {
   const calls = [];
   const responses = [
-    [{ number: 10, title: "Open issue", body: "issue body", url: "https://example.test/issues/10", state: "OPEN" }],
-    [{ number: 11, title: "Open PR", body: "pr body", url: "https://example.test/pull/11", state: "OPEN" }],
+    [{ number: 10, title: "Open issue", body: "issue body", url: "https://example.test/issues/10", state: "OPEN", labels: [{ name: "playtest-pending" }, { name: "agent-ready" }] }],
+    [{ number: 11, title: "Open PR", body: "pr body", url: "https://example.test/pull/11", state: "OPEN", labels: [] }],
     [{ number: 8, title: "Closed issue", body: null, url: "https://example.test/issues/8", state: "CLOSED" }],
     [{ number: 9, title: "Merged PR", body: "done", url: "https://example.test/pull/9", state: "MERGED" }],
   ];
@@ -33,6 +33,7 @@ test("collectWorkItems queries four read-only categories and normalizes them", (
     assert.equal(args.includes("--repo"), true);
     assert.equal(args.includes("ryohryp/crownless"), true);
     assert.equal(args.some((value) => ["create", "edit", "close", "merge"].includes(value)), false);
+    assert.equal(args.includes("number,title,body,url,state,labels"), true);
   }
   assert.equal(calls[2].includes("12"), true);
   assert.equal(calls[3].includes("12"), true);
@@ -53,8 +54,10 @@ test("collectWorkItems queries four read-only categories and normalizes them", (
     title: "Open issue",
     body: "issue body",
     url: "https://example.test/issues/10",
+    labels: ["playtest-pending", "agent-ready"],
   });
   assert.equal(snapshot.items[2].body, "");
+  assert.deepEqual(snapshot.items[2].labels, []);
   assert.equal(snapshot.items[3].type, "pull_request");
   assert.equal(snapshot.items[3].state, "merged");
   assert.match(snapshot.collectedAt, /^\d{4}-\d{2}-\d{2}T/);
