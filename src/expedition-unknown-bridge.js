@@ -26,6 +26,7 @@
     api.loadSignalEncounters(root);
     api.loadBanditPolicy(root);
     api.loadWorldAtlasScouting(root);
+    api.loadWorldTraces(root);
     api.loadForcedMarch(root);
     api.loadFieldCamp(root);
     api.loadCampSupplyRelief(root);
@@ -97,6 +98,10 @@
 
   function loadWorldAtlasScouting(root) {
     return loadScript(root, "CrownlessWorldAtlasScouting", "src/world-atlas-scouting.js");
+  }
+
+  function loadWorldTraces(root) {
+    return loadScript(root, "CrownlessWorldTraces", "src/world-traces.js");
   }
 
   function loadForcedMarch(root) {
@@ -210,6 +215,7 @@
     loadSignalEncounters,
     loadBanditPolicy,
     loadWorldAtlasScouting,
+    loadWorldTraces,
     loadForcedMarch,
     loadFieldCamp,
     loadCampSupplyRelief,
