@@ -34,6 +34,7 @@
     api.loadPlayerCache(root);
     api.loadLostLootRecovery(root);
     api.loadLootAppraisal(root);
+    api.loadBanditCaptive(root);
   }
 })(typeof globalThis !== "undefined" ? globalThis : this, function createExpeditionUnknownBridge() {
   "use strict";
@@ -70,6 +71,7 @@
   function loadPlayerCache(root) { return loadScript(root, "CrownlessExpeditionPlayerCache", "src/expedition-player-cache.js"); }
   function loadLostLootRecovery(root) { return loadScript(root, "CrownlessExpeditionLostLootRecovery", "src/expedition-lost-loot-recovery.js"); }
   function loadLootAppraisal(root) { return loadScript(root, "CrownlessExpeditionLootAppraisal", "src/expedition-loot-appraisal.js"); }
+  function loadBanditCaptive(root) { return loadScript(root, "CrownlessExpeditionBanditCaptive", "src/expedition-bandit-captive.js"); }
 
   function install(Core, Cells, GeographyApi, runtime, root) {
     if (!Core || !Cells || !GeographyApi || !runtime) return false;
@@ -157,7 +159,7 @@
     loadRescueLoop, loadRescueStabilization, loadRescueSalvage, loadCompanionProposals,
     loadCompanionInsights, loadPartySelection, loadLeaderOutcomes, loadFollowupDestinations,
     loadSignalEncounters, loadBanditPolicy, loadWorldAtlasScouting, loadWorldTraces,
-    loadForcedMarch, loadFieldCamp, loadCampSupplyRelief, loadPlayerCache, loadLostLootRecovery, loadLootAppraisal,
+    loadForcedMarch, loadFieldCamp, loadCampSupplyRelief, loadPlayerCache, loadLostLootRecovery, loadLootAppraisal, loadBanditCaptive,
     lastProfile: () => null
   };
 
