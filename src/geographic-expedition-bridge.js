@@ -25,6 +25,11 @@
     return key ? `${WORLD_DESTINATION_PREFIX}${key}` : "";
   }
 
+  function discoveryKeyFromDestinationId(value) {
+    const id = cleanText(value);
+    return id.startsWith(WORLD_DESTINATION_PREFIX) ? id.slice(WORLD_DESTINATION_PREFIX.length) : "";
+  }
+
   function destinationFamily(entry) {
     const terrain = terrainSet(entry);
     if (entry && entry.contentKind === "dungeon") return "cave";
@@ -100,7 +105,65 @@
     };
   }
 
-  function patchSystem(system, Core) {
+  function geographicProgressForReport(report, entry) {
+    if (!report || !entry) return null;
+    const previousState = cleanText(entry.state, "discovered");
+    const visits = Math.max(1, Math.floor(Number(entry.visits) || 1)) + 1;
+    if (report.outcome === "failed" || report.outcome === "early-return") {
+      return { state: previousState, visits, changed: false, summary: `${entry.name}の調査はまだ終わっていない。再び向かう理由が残った。` };
+    }
+    const hasDiscovery = Array.isArray(report.discoveries) && report.discoveries.length > 0;
+    const nextState = previousState === "cleared" ? "cleared" : hasDiscovery ? "cleared" : "investigated";
+    return {
+      state: nextState,
+      visits,
+      changed: nextState !== previousState,
+      summary: nextState === "cleared"
+        ? `${entry.name}を踏破し、痕跡の先まで確かめた。`
+        : `${entry.name}を調査し、火影の正体へ一歩近づいた。`
+    };
+  }
+
+  function appendProgressToReport(report, progress) {
+    if (!report || !progress || !progress.summary) return report;
+    if (!Array.isArray(report.log)) report.log = [];
+    if (!report.log.some((item) => item && item.type === "world-knowledge" && item.text === progress.summary)) {
+      report.log.push({ minute: 111, type: "world-knowledge", text: progress.summary, tags: ["atlas", progress.state] });
+    }
+    report.worldKnowledgeProgress = { state: progress.state, summary: progress.summary };
+    return report;
+  }
+
+  function dispatchWorldKnowledgeUpdated(root, detail) {
+    if (!root || typeof root.dispatchEvent !== "function") return false;
+    try {
+      const EventCtor = root.CustomEvent || (typeof CustomEvent === "function" ? CustomEvent : null);
+      if (EventCtor) root.dispatchEvent(new EventCtor("crownless:world-knowledge-updated", { detail }));
+      else root.dispatchEvent({ type: "crownless:world-knowledge-updated", detail });
+      return true;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function applyGeographicReport(Core, report, root) {
+    const key = discoveryKeyFromDestinationId(report && report.destinationId);
+    if (!key.startsWith("geo:") || !Core || typeof Core.loadSafeState !== "function" || typeof Core.saveWorldKnowledge !== "function") return null;
+    const safe = Core.loadSafeState();
+    const discoveries = safe && safe.worldKnowledge && safe.worldKnowledge.discoveries;
+    const entry = discoveries && discoveries[key];
+    if (!entry) return null;
+    const progress = geographicProgressForReport(report, entry);
+    if (!progress) return null;
+    entry.state = progress.state;
+    entry.visits = progress.visits;
+    const persisted = Core.saveWorldKnowledge(safe);
+    appendProgressToReport(report, progress);
+    if (persisted) dispatchWorldKnowledgeUpdated(root, { discoveryKey: key, state: progress.state, outcome: report.outcome });
+    return { ...progress, discoveryKey: key, persisted };
+  }
+
+  function patchSystem(system, Core, root) {
     if (!system || system.__geographicExpeditionBridgePatched || typeof system.dispatchExpedition !== "function") return false;
     const originalDispatch = system.dispatchExpedition.bind(system);
     system.dispatchExpedition = function dispatchWithGeographicDestination(stateInput, input, nowMs) {
@@ -108,6 +171,14 @@
       const nextState = augmentStateWithGeographicDestination(system, Core, stateInput, destinationId);
       return originalDispatch(nextState, input, nowMs);
     };
+    if (typeof system.advance === "function") {
+      const originalAdvance = system.advance.bind(system);
+      system.advance = function advanceWithGeographicProgress(stateInput, nowMs) {
+        const advanced = originalAdvance(stateInput, nowMs);
+        if (advanced && advanced.report) applyGeographicReport(Core, advanced.report, root);
+        return advanced;
+      };
+    }
     system.__geographicExpeditionBridgePatched = true;
     return true;
   }
@@ -151,7 +222,7 @@
 
   function install(document, Core, system, root) {
     if (!document || !Core || !system || system.__geographicExpeditionBridgeInstalled) return false;
-    patchSystem(system, Core);
+    patchSystem(system, Core, root);
     let scheduled = false;
     function schedule() {
       if (scheduled) return;
@@ -173,6 +244,7 @@
     WORLD_DESTINATION_PREFIX,
     DEFAULT_DURATION_MS,
     expeditionDestinationId,
+    discoveryKeyFromDestinationId,
     destinationFamily,
     destinationDangerTags,
     destinationOpportunityTags,
@@ -180,6 +252,9 @@
     geographicKnowledgeEntries,
     geographicDestinations,
     augmentStateWithGeographicDestination,
+    geographicProgressForReport,
+    appendProgressToReport,
+    applyGeographicReport,
     patchSystem,
     destinationDescription,
     injectDestinationChoices,
