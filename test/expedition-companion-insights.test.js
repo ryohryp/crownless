@@ -12,7 +12,7 @@ function expedition(companionIds, objective, policyId, destinationId = "ashen-wo
 }
 
 function report(outcome = "success", destinationId = "ashen-wood") {
-  return { expeditionId: "exp-test", destinationId, outcome, discoveries: [], log: [] };
+  return { expeditionId: "exp-test", destinationId, outcome, discoveries: [], injuries: [], log: [] };
 }
 
 function addWaterDestination(state) {
@@ -120,6 +120,67 @@ test("local hauling route decoration is idempotent", () => {
 
   assert.equal(result.discoveries.filter((item) => item.name === "荷運びの脇渡り").length, 1);
   assert.equal(result.log.filter((item) => item.type === "geographic-companion").length, 1);
+});
+
+test("an injured survivor records one danger-specific scar memory", () => {
+  const state = system.initialState();
+  const exp = expedition(["mira"], "explore", "standard", "hollow-village");
+  const result = report("success", "hollow-village");
+  result.injuries = ["mira"];
+
+  insights.applyInjuryScar(result, exp, state);
+  insights.applyInjuryScar(result, exp, state);
+  insights.persistScarMemories(state, result);
+  insights.persistScarMemories(state, result);
+
+  const trait = insights.scarTrait("bandit");
+  const mira = state.companions.find((item) => item.id === "mira");
+  assert.equal(result.scarMemories.length, 1);
+  assert.equal(result.scarMemories[0].trait, trait);
+  assert.equal(result.log.filter((item) => item.type === "scar-earned").length, 1);
+  assert.equal(mira.traits.filter((item) => item === trait).length, 1);
+  assert.match(mira.history, /banditの危地で負った傷を覚えた/);
+});
+
+test("returning cautiously with a scarred companion reveals a retreat route", () => {
+  const state = system.initialState();
+  const mira = state.companions.find((item) => item.id === "mira");
+  mira.traits.push(insights.scarTrait("bandit"));
+  const exp = expedition(["mira"], "explore", "cautious", "hollow-village");
+  const result = report("success", "hollow-village");
+
+  insights.applyCompanionInsights(result, exp, state);
+  insights.applyCompanionInsights(result, exp, state);
+
+  assert.equal(result.scarRouteKnowledge.companionId, "mira");
+  assert.equal(result.scarRouteKnowledge.effect, "reveal-retreat-route");
+  assert.equal(result.discoveries.filter((item) => item.name === "古傷が覚えた退避路").length, 1);
+  assert.equal(result.log.filter((item) => item.type === "scar-route").length, 1);
+});
+
+test("scar memory changes a real party and policy choice rather than granting a universal bonus", () => {
+  const state = system.initialState();
+  state.companions.find((item) => item.id === "mira").traits.push(insights.scarTrait("bandit"));
+
+  const standard = insights.applyCompanionInsights(
+    report("success", "hollow-village"),
+    expedition(["mira"], "explore", "standard", "hollow-village"),
+    state
+  );
+  const wrongCompanion = insights.applyCompanionInsights(
+    report("success", "hollow-village"),
+    expedition(["ed"], "explore", "cautious", "hollow-village"),
+    state
+  );
+  const wrongDanger = insights.applyCompanionInsights(
+    report("success", "ashen-wood"),
+    expedition(["mira"], "explore", "cautious", "ashen-wood"),
+    state
+  );
+
+  assert.equal(standard.scarRouteKnowledge, undefined);
+  assert.equal(wrongCompanion.scarRouteKnowledge, undefined);
+  assert.equal(wrongDanger.scarRouteKnowledge, undefined);
 });
 
 test("browser bridge loads the companion insight slice after proposal UI", () => {
