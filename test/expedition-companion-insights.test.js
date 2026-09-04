@@ -7,12 +7,25 @@ const path = require("node:path");
 const insights = require("../src/expedition-companion-insights.js");
 const system = require("../src/expedition-system.js");
 
-function expedition(companionIds, objective, policyId) {
-  return { id: "exp-test", inputs: { companionIds, objective, policyId } };
+function expedition(companionIds, objective, policyId, destinationId = "ashen-wood") {
+  return { id: "exp-test", inputs: { companionIds, objective, policyId, destinationId } };
 }
 
-function report(outcome = "success") {
-  return { expeditionId: "exp-test", destinationId: "ashen-wood", outcome, log: [] };
+function report(outcome = "success", destinationId = "ashen-wood") {
+  return { expeditionId: "exp-test", destinationId, outcome, discoveries: [], log: [] };
+}
+
+function addWaterDestination(state) {
+  state.destinations.push({
+    id: "world:river-crossing",
+    name: "川沿いの古い渡し場",
+    family: "village",
+    dangerTags: ["wet-ground"],
+    opportunityTags: ["water", "passage"],
+    durationMs: 60_000,
+    geographic: true,
+  });
+  return state;
 }
 
 test("following Mira's proposal leaves a companion insight in the returned report", () => {
@@ -59,6 +72,54 @@ test("decorating the same report repeatedly is idempotent", () => {
 
   assert.equal(result.companionInsights.length, 1);
   assert.equal(result.log.filter((item) => item.type === "companion-insight").length, 1);
+});
+
+test("Ed's nearby hauling background reveals a water-only follow-up route", () => {
+  const state = addWaterDestination(system.initialState());
+  const exp = expedition(["ed"], "explore", "cautious", "world:river-crossing");
+  const result = report("success", "world:river-crossing");
+
+  insights.applyCompanionInsights(result, exp, state);
+
+  assert.equal(result.geographicCompanionKnowledge.companionId, "ed");
+  assert.equal(result.geographicCompanionKnowledge.effect, "reveal-local-hauler-route");
+  assert.equal(result.discoveries.length, 1);
+  assert.equal(result.discoveries[0].name, "荷運びの脇渡り");
+  assert.equal(result.discoveries[0].sourceDestinationId, "world:river-crossing");
+  assert.match(result.discoveries[0].detail, /エド/);
+  assert.equal(result.log.filter((item) => item.type === "geographic-companion").length, 1);
+  assert.equal(result.companionInsights, undefined, "local knowledge must not require agreeing with Ed's hunt proposal");
+});
+
+test("local hauling knowledge is a party choice, not a universal water bonus", () => {
+  const state = addWaterDestination(system.initialState());
+  const withMira = insights.applyCompanionInsights(
+    report("success", "world:river-crossing"),
+    expedition(["mira"], "explore", "standard", "world:river-crossing"),
+    state
+  );
+  const dry = insights.applyCompanionInsights(
+    report("success", "ashen-wood"),
+    expedition(["ed"], "explore", "standard", "ashen-wood"),
+    state
+  );
+
+  assert.equal(withMira.geographicCompanionKnowledge, undefined);
+  assert.equal(withMira.discoveries.length, 0);
+  assert.equal(dry.geographicCompanionKnowledge, undefined);
+  assert.equal(dry.discoveries.length, 0);
+});
+
+test("local hauling route decoration is idempotent", () => {
+  const state = addWaterDestination(system.initialState());
+  const exp = expedition(["ed"], "explore", "standard", "world:river-crossing");
+  const result = report("early-return", "world:river-crossing");
+
+  insights.applyCompanionInsights(result, exp, state);
+  insights.applyCompanionInsights(result, exp, state);
+
+  assert.equal(result.discoveries.filter((item) => item.name === "荷運びの脇渡り").length, 1);
+  assert.equal(result.log.filter((item) => item.type === "geographic-companion").length, 1);
 });
 
 test("browser bridge loads the companion insight slice after proposal UI", () => {
