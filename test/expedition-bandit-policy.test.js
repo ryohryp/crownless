@@ -210,7 +210,7 @@ test("the alerted bandit state is a dispatchable destination in the existing exp
   const failed = { expeditionId: "exp-bandit-failed", destinationId: policy.BANDIT_DESTINATION_ID, outcome: "failed", log: [] };
   policy.applyBanditWorldResponse(state, failed);
 
-  system.dispatchExpedition(state, {
+  const dispatched = system.dispatchExpedition(state, {
     id: "exp-counter-bandit",
     destinationId: policy.BANDIT_ALERT_DESTINATION_ID,
     companionIds: ["mira"],
@@ -221,8 +221,8 @@ test("the alerted bandit state is a dispatchable destination in the existing exp
     seed: 44
   }, 1000);
 
-  assert.equal(state.activeExpedition.id, "exp-counter-bandit");
-  assert.equal(state.activeExpedition.inputs.destinationId, policy.BANDIT_ALERT_DESTINATION_ID);
+  assert.equal(dispatched.activeExpedition.id, "exp-counter-bandit");
+  assert.equal(dispatched.activeExpedition.inputs.destinationId, policy.BANDIT_ALERT_DESTINATION_ID);
 });
 
 test("cautious success against alerted bandits retires the alert and opens a blind-route expedition", () => {
