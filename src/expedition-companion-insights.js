@@ -19,6 +19,8 @@
   });
   const LOCAL_HAULER_COMPANION_ID = "ed";
   const LOCAL_HAULER_ROUTE_PREFIX = "local-hauler-route";
+  const SCAR_MEMORY_PREFIX = "scar-memory";
+  const SCAR_ROUTE_PREFIX = "scar-route";
 
   function cleanPolicy(inputs) {
     return inputs && (inputs.policyId || inputs.policy) || "standard";
@@ -61,6 +63,119 @@
     }
     if (destination.palette) values.push(destination.palette);
     return [...new Set(values.map((value) => String(value || "").toLowerCase()))];
+  }
+
+  function primaryDanger(destination) {
+    if (!destination || !Array.isArray(destination.dangerTags)) return null;
+    const value = destination.dangerTags.find(Boolean);
+    return value ? String(value).toLowerCase() : null;
+  }
+
+  function scarTrait(dangerTag) {
+    return dangerTag ? `${SCAR_MEMORY_PREFIX}:${String(dangerTag).toLowerCase()}` : null;
+  }
+
+  function applyInjuryScar(report, expedition, state) {
+    if (!report || !Array.isArray(report.injuries) || !report.injuries.length) return report;
+    const destination = destinationFor(expedition, state);
+    const dangerTag = primaryDanger(destination);
+    const trait = scarTrait(dangerTag);
+    if (!destination || !trait) return report;
+    if (!Array.isArray(report.scarMemories)) report.scarMemories = [];
+    if (!Array.isArray(report.log)) report.log = [];
+
+    for (const companionId of report.injuries) {
+      const companion = state && Array.isArray(state.companions)
+        ? state.companions.find((item) => item && item.id === companionId)
+        : null;
+      if (!companion || report.scarMemories.some((item) => item && item.companionId === companionId && item.trait === trait)) continue;
+      report.scarMemories.push({
+        companionId,
+        companionName: companion.name,
+        trait,
+        dangerTag,
+        sourceDestinationId: destination.id,
+      });
+      const cause = `scar-earned:${companionId}:${dangerTag}`;
+      if (!report.log.some((item) => item && item.type === "scar-earned" && Array.isArray(item.causes) && item.causes.includes(cause))) {
+        const nearby = report.log.findLast ? report.log.findLast((item) => item && item.type === "injury") : report.log.slice().reverse().find((item) => item && item.type === "injury");
+        report.log.push({
+          minute: Number.isFinite(nearby && nearby.minute) ? nearby.minute + 1 : 99,
+          time: nearby && nearby.time || "",
+          type: "scar-earned",
+          text: `${companion.name}はこの危地で負った傷とともに、${destination.name}の危険な兆しを身体で覚えた。`,
+          causes: [cause, trait, destination.id],
+        });
+      }
+    }
+    report.log.sort((a, b) => (Number(a && a.minute) || 0) - (Number(b && b.minute) || 0));
+    return report;
+  }
+
+  function persistScarMemories(state, report) {
+    if (!state || !report || !Array.isArray(report.scarMemories) || !Array.isArray(state.companions)) return state;
+    for (const memory of report.scarMemories) {
+      const companion = state.companions.find((item) => item && item.id === memory.companionId);
+      if (!companion || !memory.trait) continue;
+      if (!Array.isArray(companion.traits)) companion.traits = [];
+      if (!companion.traits.includes(memory.trait)) companion.traits.push(memory.trait);
+      const historyEntry = `${memory.dangerTag}の危地で負った傷を覚えた`;
+      const history = String(companion.history || "");
+      if (!history.includes(historyEntry)) companion.history = history ? `${history} / ${historyEntry}` : historyEntry;
+    }
+    return state;
+  }
+
+  function scarredRouteContext(expedition, state) {
+    if (!expedition || cleanPolicy(expedition.inputs) !== "cautious") return null;
+    const destination = destinationFor(expedition, state);
+    const dangerTag = primaryDanger(destination);
+    const trait = scarTrait(dangerTag);
+    if (!destination || !trait || !state || !Array.isArray(state.companions)) return null;
+    const companion = companionIds(expedition)
+      .map((id) => state.companions.find((item) => item && item.id === id))
+      .find((item) => item && Array.isArray(item.traits) && item.traits.includes(trait));
+    return companion ? { companion, destination, dangerTag, trait } : null;
+  }
+
+  function applyScarredRouteKnowledge(report, expedition, state) {
+    if (!report || !["success", "early-return"].includes(report.outcome)) return report;
+    const context = scarredRouteContext(expedition, state);
+    if (!context) return report;
+    const { companion, destination, dangerTag, trait } = context;
+    const discoveryId = `${SCAR_ROUTE_PREFIX}:${destination.id}:${dangerTag}`;
+    if (!Array.isArray(report.discoveries)) report.discoveries = [];
+    if (!report.discoveries.some((item) => item && item.id === discoveryId)) {
+      report.discoveries.push({
+        id: discoveryId,
+        name: "古傷が覚えた退避路",
+        kind: "route",
+        sourceDestinationId: destination.id,
+        detail: `${companion.name}が以前ここで負った傷の記憶から、危険が高まる前に抜けられる退避路を見つけた。次の遠征で追える。`,
+      });
+    }
+    report.scarRouteKnowledge = {
+      companionId: companion.id,
+      companionName: companion.name,
+      dangerTag,
+      trait,
+      destinationId: destination.id,
+      discoveryId,
+      effect: "reveal-retreat-route",
+    };
+    if (!Array.isArray(report.log)) report.log = [];
+    if (!report.log.some((item) => item && item.type === "scar-route" && Array.isArray(item.causes) && item.causes.includes(discoveryId))) {
+      const arrival = report.log.find((item) => item && item.type === "arrival");
+      report.log.push({
+        minute: 39,
+        time: arrival && arrival.time || "",
+        type: "scar-route",
+        text: `${companion.name}が古傷に手を当てた。前に痛い目を見た地形を覚えており、慎重に進むための退避路を先に見つけた。`,
+        causes: [trait, "cautious", discoveryId],
+      });
+      report.log.sort((a, b) => (Number(a && a.minute) || 0) - (Number(b && b.minute) || 0));
+    }
+    return report;
   }
 
   function localHaulerKnowledge(expedition, state) {
@@ -118,6 +233,7 @@
 
   function applyCompanionInsights(report, expedition, state) {
     if (!report || !["success", "early-return"].includes(report.outcome)) return report;
+    applyScarredRouteKnowledge(report, expedition, state);
     applyGeographicCompanionKnowledge(report, expedition, state);
     const companions = alignedCompanions(expedition, state);
     if (!companions.length) return report;
@@ -153,14 +269,24 @@
 
     const baseResolve = system.resolveExpedition.bind(system);
     system.resolveExpedition = function resolveWithCompanionInsights(expedition, state) {
-      return applyCompanionInsights(baseResolve(expedition, state), expedition, state);
+      const report = applyInjuryScar(baseResolve(expedition, state), expedition, state);
+      return applyCompanionInsights(report, expedition, state);
+    };
+
+    const baseApplyReport = system.applyReport.bind(system);
+    system.applyReport = function applyReportWithCompanionGrowth(state, report) {
+      return persistScarMemories(baseApplyReport(state, report), report);
     };
 
     const baseAdvance = system.advance.bind(system);
     system.advance = function advanceWithCompanionInsights(state, nowMs) {
       const expedition = state && state.activeExpedition;
       const advanced = baseAdvance(state, nowMs);
-      if (advanced && advanced.report && expedition) applyCompanionInsights(advanced.report, expedition, state);
+      if (advanced && advanced.report && expedition) {
+        applyInjuryScar(advanced.report, expedition, state);
+        applyCompanionInsights(advanced.report, expedition, state);
+        persistScarMemories(advanced.state, advanced.report);
+      }
       return advanced;
     };
 
@@ -182,10 +308,18 @@
   return {
     LOCAL_HAULER_COMPANION_ID,
     LOCAL_HAULER_ROUTE_PREFIX,
+    SCAR_MEMORY_PREFIX,
+    SCAR_ROUTE_PREFIX,
     companionIds,
     alignedCompanions,
     destinationFor,
     destinationTags,
+    primaryDanger,
+    scarTrait,
+    applyInjuryScar,
+    persistScarMemories,
+    scarredRouteContext,
+    applyScarredRouteKnowledge,
     localHaulerKnowledge,
     applyGeographicCompanionKnowledge,
     applyCompanionInsights,
