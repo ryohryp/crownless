@@ -165,6 +165,8 @@ Prefer short playable loops over long speculative design phases:
 
 When choosing between architectural novelty and something that tests whether the expedition loop is fun, choose the playable improvement unless the simpler option creates a clear blocker.
 
+For autonomous task selection, follow the **Gameplay Gate** in `docs/autonomous-development-policy.md`. A gameplay innovation must add a meaningful player decision, contribute to the canonical core loop, and be playable end-to-end as a smallest vertical slice; **CI green means Implemented, not fun**. Record gameplay work as **Playtest pending → Keep / Change / Kill** after human playtest. Keep this judgment in the Planner/policy layer rather than complicating the executor's simple `agent-ready` selection.
+
 ## Before changing code
 
 1. Read this file.
