@@ -14,6 +14,10 @@
   const BANDIT_ROUTE_DISCOVERY_ID = "bandit-cautious-scout-route";
   const BANDIT_PURSUIT_ID = "bandit-greedy-pursuit";
   const BANDIT_PURSUIT_LOOT_ID = "bandit-provision-pouch";
+  const BANDIT_ALERT_DESTINATION_ID = `${BANDIT_DESTINATION_ID}:alerted`;
+  const BANDIT_ALERT_CAUSE_ID = "bandit-alerted-after-retreat";
+  const BANDIT_ALERT_CAUTIOUS_DESTINATION_ID = `${BANDIT_ALERT_DESTINATION_ID}:blind-route`;
+  const BANDIT_ALERT_GREEDY_DESTINATION_ID = `${BANDIT_ALERT_DESTINATION_ID}:supply-trail`;
 
   function loadCampfireObjectives(root) {
     if (!root || !root.document || root.CrownlessExpeditionCampfireObjectives) return Boolean(root && root.document);
@@ -120,6 +124,137 @@
     return report;
   }
 
+  function copyDestination(state, sourceId, id, name, dangerTags, opportunityTags) {
+    if (!state || !Array.isArray(state.destinations)) return null;
+    const existing = state.destinations.find((item) => item && item.id === id);
+    if (existing) return existing;
+    const source = state.destinations.find((item) => item && item.id === sourceId) || {};
+    const destination = {
+      id,
+      name,
+      family: source.family || "forest",
+      dangerTags: Array.from(new Set([...(Array.isArray(source.dangerTags) ? source.dangerTags : ["bandit"]), ...dangerTags])),
+      opportunityTags: Array.from(new Set([...(Array.isArray(source.opportunityTags) ? source.opportunityTags : ["road"]), ...opportunityTags])),
+      durationMs: Math.max(0, Number(source.durationMs) || 180000),
+      banditWorldState: id === BANDIT_ALERT_DESTINATION_ID ? "alerted" : "aftermath"
+    };
+    state.destinations.push(destination);
+    return destination;
+  }
+
+  function discoverDestination(state, destination) {
+    if (!state || !destination) return;
+    if (!Array.isArray(state.discoveredDestinationIds)) state.discoveredDestinationIds = [];
+    if (!state.discoveredDestinationIds.includes(destination.id)) state.discoveredDestinationIds.push(destination.id);
+  }
+
+  function retireDestination(state, destinationId) {
+    if (!state) return;
+    if (Array.isArray(state.destinations)) state.destinations = state.destinations.filter((item) => item && item.id !== destinationId);
+    if (Array.isArray(state.discoveredDestinationIds)) state.discoveredDestinationIds = state.discoveredDestinationIds.filter((id) => id !== destinationId);
+  }
+
+  function addWorldChange(report, id, text, destination, stateName) {
+    if (!report) return null;
+    if (!Array.isArray(report.worldChanges)) report.worldChanges = [];
+    let change = report.worldChanges.find((item) => item && item.id === id);
+    if (!change) {
+      change = { id, state: stateName, destinationId: destination && destination.id || "", destinationName: destination && destination.name || "" };
+      report.worldChanges.push(change);
+    }
+    if (!Array.isArray(report.log)) report.log = [];
+    let entry = report.log.find((item) => item && item.type === "world-shift" && Array.isArray(item.causes) && item.causes.includes(id));
+    if (!entry) {
+      const nearby = report.log.at(-1);
+      entry = {
+        minute: Number.isFinite(nearby && nearby.minute) ? nearby.minute + 1 : 111,
+        time: nearby && nearby.time || "",
+        type: "world-shift",
+        text,
+        causes: [id, destination && destination.id || "bandit-world"]
+      };
+      report.log.push(entry);
+      report.log.sort((a, b) => (Number(a && a.minute) || 0) - (Number(b && b.minute) || 0));
+    }
+    report.notableEvent = entry;
+    return change;
+  }
+
+  function applyBanditWorldResponse(state, report) {
+    if (!state || !report) return state;
+    const destinationId = report.destinationId;
+    const outcome = report.outcome;
+
+    if (destinationId === BANDIT_DESTINATION_ID && (outcome === "early-return" || outcome === "failed")) {
+      const destination = copyDestination(
+        state,
+        BANDIT_DESTINATION_ID,
+        BANDIT_ALERT_DESTINATION_ID,
+        "警戒を固めた盗賊の街道",
+        ["bandit", "alerted"],
+        ["lookouts", "tracks"]
+      );
+      discoverDestination(state, destination);
+      addWorldChange(
+        report,
+        BANDIT_ALERT_CAUSE_ID,
+        "撤退を見た盗賊は街道の見張りを増やした。「警戒を固めた盗賊の街道」が次の遠征先として残った。",
+        destination,
+        "alerted"
+      );
+      return state;
+    }
+
+    if (destinationId !== BANDIT_ALERT_DESTINATION_ID || outcome !== "success") return state;
+
+    const policyId = report.policyId || "standard";
+    retireDestination(state, BANDIT_ALERT_DESTINATION_ID);
+    if (policyId === "cautious") {
+      const destination = copyDestination(
+        state,
+        BANDIT_DESTINATION_ID,
+        BANDIT_ALERT_CAUTIOUS_DESTINATION_ID,
+        "見張りの死角へ続く脇道",
+        ["bandit", "thin-watch"],
+        ["route", "intel"]
+      );
+      discoverDestination(state, destination);
+      addWorldChange(
+        report,
+        "bandit-alert-cautious-branch",
+        "見張りの交代を読んで正面衝突を避け、死角へ続く脇道を割り出した。次はこの経路を遠征先として追える。",
+        destination,
+        "branched"
+      );
+    } else if (policyId === "greedy") {
+      const destination = copyDestination(
+        state,
+        BANDIT_DESTINATION_ID,
+        BANDIT_ALERT_GREEDY_DESTINATION_ID,
+        "移動前の盗賊の荷車跡",
+        ["bandit", "moving"],
+        ["salvage", "tracks"]
+      );
+      discoverDestination(state, destination);
+      addWorldChange(
+        report,
+        "bandit-alert-greedy-branch",
+        "警戒が解ける前に盗賊の荷車を追い、移動途中の荷へ続く跡を掴んだ。次は危険を承知で戦利品を追える。",
+        destination,
+        "branched"
+      );
+    } else {
+      addWorldChange(
+        report,
+        "bandit-alert-standard-resolved",
+        "警戒線へ正面から踏み込み、街道を押さえていた盗賊を退かせた。警戒中の遠征先は解消された。",
+        null,
+        "resolved"
+      );
+    }
+    return state;
+  }
+
   function applyBanditPolicy(report, expedition) {
     applyCautiousBanditPolicy(report, expedition);
     return applyGreedyBanditPolicy(report, expedition);
@@ -138,11 +273,19 @@
     }
     const baseResolve = system.resolveExpedition.bind(system);
     system.resolveExpedition = function resolveWithBanditPolicy(expedition, state) { return applyBanditPolicy(baseResolve(expedition, state), expedition); };
+    const baseApplyReport = system.applyReport.bind(system);
+    system.applyReport = function applyReportWithBanditWorldResponse(state, report) {
+      const applied = baseApplyReport(state, report);
+      return applyBanditWorldResponse(applied, report);
+    };
     const baseAdvance = system.advance.bind(system);
     system.advance = function advanceWithBanditPolicy(state, nowMs) {
       const expedition = state && state.activeExpedition;
       const advanced = baseAdvance(state, nowMs);
-      if (advanced && advanced.report && expedition) applyBanditPolicy(advanced.report, expedition);
+      if (advanced && advanced.report && expedition) {
+        applyBanditPolicy(advanced.report, expedition);
+        applyBanditWorldResponse(advanced.state, advanced.report);
+      }
       return advanced;
     };
     system.__banditPolicyInstalled = true;
@@ -150,5 +293,25 @@
     return true;
   }
 
-  return { BANDIT_DESTINATION_ID, BANDIT_REPEL_AID_ID, BANDIT_SCOUT_ID, BANDIT_ROUTE_DISCOVERY_ID, BANDIT_PURSUIT_ID, BANDIT_PURSUIT_LOOT_ID, isCautiousBandit, isGreedyBandit, addScoutDiscovery, applyCautiousBanditPolicy, applyGreedyBanditPolicy, applyBanditPolicy, loadCampfireObjectives, install };
+  return {
+    BANDIT_DESTINATION_ID,
+    BANDIT_REPEL_AID_ID,
+    BANDIT_SCOUT_ID,
+    BANDIT_ROUTE_DISCOVERY_ID,
+    BANDIT_PURSUIT_ID,
+    BANDIT_PURSUIT_LOOT_ID,
+    BANDIT_ALERT_DESTINATION_ID,
+    BANDIT_ALERT_CAUSE_ID,
+    BANDIT_ALERT_CAUTIOUS_DESTINATION_ID,
+    BANDIT_ALERT_GREEDY_DESTINATION_ID,
+    isCautiousBandit,
+    isGreedyBandit,
+    addScoutDiscovery,
+    applyCautiousBanditPolicy,
+    applyGreedyBanditPolicy,
+    applyBanditWorldResponse,
+    applyBanditPolicy,
+    loadCampfireObjectives,
+    install
+  };
 });
