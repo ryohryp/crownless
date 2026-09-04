@@ -59,42 +59,42 @@ jobs:
             export GEOGRAPHY_FAILURE_RESPONSE="/tmp/geography-response-attempt-2.json"
             export GEOGRAPHY_FAILURE_STATUS="$last_status"
             node <<'NODE'
-            const fs = require("node:fs");
-            const responsePath = process.env.GEOGRAPHY_FAILURE_RESPONSE;
-            const lines = [
-              "## Geography Production failure", "",
-              `- Final HTTP status: ${process.env.GEOGRAPHY_FAILURE_STATUS || "unknown"}`,
-              "- Health-check attempts: 2/2",
-              "- Gameplay impact: simulated discovery remains available"
-            ];
+          const fs = require("node:fs");
+          const responsePath = process.env.GEOGRAPHY_FAILURE_RESPONSE;
+          const lines = [
+            "## Geography Production failure", "",
+            `- Final HTTP status: ${process.env.GEOGRAPHY_FAILURE_STATUS || "unknown"}`,
+            "- Health-check attempts: 2/2",
+            "- Gameplay impact: simulated discovery remains available"
+          ];
 
-            if (!responsePath || !fs.existsSync(responsePath)) {
-              lines.push("- Structured upstream diagnostics: unavailable (no response body)");
-            } else {
-              try {
-                const payload = JSON.parse(fs.readFileSync(responsePath, "utf8"));
-                if (payload.error) lines.push(`- API error: ${payload.error}`);
-                if (payload.timeoutMs) lines.push(`- Timeout per upstream: ${payload.timeoutMs} ms`);
-                if (Array.isArray(payload.attempts) && payload.attempts.length) {
-                  lines.push(`- Recorded attempts: ${payload.attempts.length}/${payload.total || payload.attempts.length}`);
-                  for (const attempt of payload.attempts) {
-                    const status = attempt && attempt.httpStatus == null ? "-" : attempt.httpStatus;
-                    const duration = attempt && attempt.durationMs == null ? "-" : `${attempt.durationMs}ms`;
-                    const kind = attempt && attempt.failureKind ? attempt.failureKind : "-";
-                    const state = attempt && attempt.state ? attempt.state : "unknown";
-                    const endpoint = attempt && attempt.endpoint ? attempt.endpoint : "unknown";
-                    lines.push(`- ${state}: \`${endpoint}\` — HTTP ${status}, ${duration}, ${kind}`);
-                  }
-                } else {
-                  lines.push("- Structured upstream diagnostics: unavailable (attempt history missing)");
+          if (!responsePath || !fs.existsSync(responsePath)) {
+            lines.push("- Structured upstream diagnostics: unavailable (no response body)");
+          } else {
+            try {
+              const payload = JSON.parse(fs.readFileSync(responsePath, "utf8"));
+              if (payload.error) lines.push(`- API error: ${payload.error}`);
+              if (payload.timeoutMs) lines.push(`- Timeout per upstream: ${payload.timeoutMs} ms`);
+              if (Array.isArray(payload.attempts) && payload.attempts.length) {
+                lines.push(`- Recorded attempts: ${payload.attempts.length}/${payload.total || payload.attempts.length}`);
+                for (const attempt of payload.attempts) {
+                  const status = attempt && attempt.httpStatus == null ? "-" : attempt.httpStatus;
+                  const duration = attempt && attempt.durationMs == null ? "-" : `${attempt.durationMs}ms`;
+                  const kind = attempt && attempt.failureKind ? attempt.failureKind : "-";
+                  const state = attempt && attempt.state ? attempt.state : "unknown";
+                  const endpoint = attempt && attempt.endpoint ? attempt.endpoint : "unknown";
+                  lines.push(`- ${state}: \`${endpoint}\` — HTTP ${status}, ${duration}, ${kind}`);
                 }
-              } catch (error) {
-                lines.push(`- Structured upstream diagnostics: unavailable (${error.message})`);
+              } else {
+                lines.push("- Structured upstream diagnostics: unavailable (attempt history missing)");
               }
+            } catch (error) {
+              lines.push(`- Structured upstream diagnostics: unavailable (${error.message})`);
             }
+          }
 
-            fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${lines.join("\n")}\n`);
-            NODE
+          fs.appendFileSync(process.env.GITHUB_STEP_SUMMARY, `${lines.join("\n")}\n`);
+          NODE
             echo "Expected HTTP 200 from Production geography API within two 18-second attempts, last status $last_status" >&2
             exit 1
           fi
