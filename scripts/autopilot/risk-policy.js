@@ -42,7 +42,10 @@ function assessPlannerProposal(proposal) {
   const reasons = [];
   if (proposal.humanGate) reasons.push("planner_human_gate");
   if (proposal.risk !== "low") reasons.push(`risk_${proposal.risk}`);
-  if (proposal.playtestRequired) reasons.push("playtest_required");
+
+  // playtestRequired is intentionally NOT a pre-implementation blocker.
+  // It means implementation can proceed when otherwise safe, while gameplay
+  // success remains Playtest pending until a human records Keep / Change / Kill.
 
   // Non-goals describe excluded work (for example, "No save migration").
   // Treating those words as requested intent would create systematic false gates.

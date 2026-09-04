@@ -2,6 +2,106 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://crownless.local/schemas/autopilot-planner-proposal.schema.json",
   "title": "Crownless Autopilot Planner Proposal",
+  "$defs": {
+    "gateScore": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["applicable", "score", "rationale"],
+      "properties": {
+        "applicable": { "type": "boolean" },
+        "score": { "type": "integer", "minimum": 0, "maximum": 3 },
+        "rationale": { "type": "string", "minLength": 1 }
+      }
+    },
+    "gameplayGate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "playerVisible",
+        "decision",
+        "riskReward",
+        "coreLoop",
+        "replayability",
+        "fantasy",
+        "geography",
+        "canon"
+      ],
+      "properties": {
+        "playerVisible": { "$ref": "#/$defs/gateScore" },
+        "decision": { "$ref": "#/$defs/gateScore" },
+        "riskReward": { "$ref": "#/$defs/gateScore" },
+        "coreLoop": { "$ref": "#/$defs/gateScore" },
+        "replayability": { "$ref": "#/$defs/gateScore" },
+        "fantasy": { "$ref": "#/$defs/gateScore" },
+        "geography": { "$ref": "#/$defs/gateScore" },
+        "canon": { "$ref": "#/$defs/gateScore" }
+      }
+    },
+    "candidate": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["title", "kind", "locationRelated", "gameplayGate", "reason", "selected"],
+      "properties": {
+        "title": { "type": "string", "minLength": 1 },
+        "kind": { "enum": ["gameplay", "bug", "friction", "maintenance"] },
+        "locationRelated": { "type": "boolean" },
+        "gameplayGate": { "$ref": "#/$defs/gameplayGate" },
+        "reason": { "type": "string", "minLength": 1 },
+        "selected": { "type": "boolean" }
+      }
+    },
+    "recentCycleReview": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["cyclesReviewed", "newPlayAdded", "maintenanceHeavy", "summary"],
+      "properties": {
+        "cyclesReviewed": { "type": "integer", "minimum": 3, "maximum": 5 },
+        "newPlayAdded": { "type": "boolean" },
+        "maintenanceHeavy": { "type": "boolean" },
+        "summary": { "type": "string", "minLength": 1 }
+      }
+    },
+    "mda": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["mechanic", "dynamic", "desiredExperience"],
+      "properties": {
+        "mechanic": { "type": "string", "minLength": 1 },
+        "dynamic": { "type": "string", "minLength": 1 },
+        "desiredExperience": { "type": "string", "minLength": 1 }
+      }
+    },
+    "verticalSlice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "discoveryOrInformation",
+        "decision",
+        "action",
+        "resultOrDanger",
+        "rewardOrLoss",
+        "persistentChange"
+      ],
+      "properties": {
+        "discoveryOrInformation": { "type": "string", "minLength": 1 },
+        "decision": { "type": "string", "minLength": 1 },
+        "action": { "type": "string", "minLength": 1 },
+        "resultOrDanger": { "type": "string", "minLength": 1 },
+        "rewardOrLoss": { "type": "string", "minLength": 1 },
+        "persistentChange": { "type": "string", "minLength": 1 }
+      }
+    },
+    "gameplayHypothesis": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["interestingDecision", "mda", "verticalSlice"],
+      "properties": {
+        "interestingDecision": { "type": "string", "minLength": 1 },
+        "mda": { "$ref": "#/$defs/mda" },
+        "verticalSlice": { "$ref": "#/$defs/verticalSlice" }
+      }
+    }
+  },
   "oneOf": [
     {
       "type": "object",
@@ -15,7 +115,11 @@
         "nonGoals",
         "risk",
         "humanGate",
-        "playtestRequired"
+        "playtestRequired",
+        "proposalType",
+        "recentCycleReview",
+        "candidates",
+        "gameplayHypothesis"
       ],
       "properties": {
         "action": { "const": "create_issue" },
@@ -33,7 +137,21 @@
         },
         "risk": { "enum": ["low", "medium", "high"] },
         "humanGate": { "type": "boolean" },
-        "playtestRequired": { "type": "boolean" }
+        "playtestRequired": { "type": "boolean" },
+        "proposalType": { "enum": ["gameplay", "bug", "friction", "maintenance"] },
+        "recentCycleReview": { "$ref": "#/$defs/recentCycleReview" },
+        "candidates": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 3,
+          "items": { "$ref": "#/$defs/candidate" }
+        },
+        "gameplayHypothesis": {
+          "oneOf": [
+            { "$ref": "#/$defs/gameplayHypothesis" },
+            { "type": "null" }
+          ]
+        }
       }
     },
     {
