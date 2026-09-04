@@ -36,6 +36,8 @@ function buildPlannerPrompt() {
     "Repository Canon overrides memory, assumptions, and historical design documents.",
     "Read AGENTS.md first, then docs/game-system-design.md, docs/autonomous-development-policy.md, and relevant canonical subsystem specs.",
     "Also inspect open Issues, open PRs, recent merged work, current source, tests, and CI evidence available in the repository/tooling.",
+    "Treat issue lifecycle labels as authoritative planning signals: future = intentionally deferred and not executable now; decision-log = ongoing record, never an implementation candidate; playtest-pending = implementation already exists and awaits human Keep/Change/Kill, so do not select it for more implementation unless explicit new evidence requires a change.",
+    "Do not equate open with unimplemented. For broad Epic Issues, inspect current code, merged PRs, comments, and remaining Acceptance Criteria before proposing more slices. Prefer finishing a bounded remaining AC over endlessly feeding unrelated scope into an old Epic.",
     "Before choosing work, review the most recent 3-5 development cycles: state whether new play was added and whether recent work became maintenance-heavy.",
     "A P0 or clear player-facing bug may be selected immediately. Otherwise compare exactly three candidates, normally new gameplay hypotheses, and explain why each was or was not selected.",
     "Evaluate every candidate with the Gameplay Gate: Player-visible, Decision, Risk/Reward when applicable, Core Loop, Replayability, Fantasy, Geography when location-related, and Canon.",

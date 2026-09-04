@@ -22,6 +22,8 @@ test("prompt requires Canon-first read-only planning and Gameplay Gate evidence"
   assert.match(prompt, /most recent 3-5 development cycles/); assert.match(prompt, /exactly three candidates/); assert.match(prompt, /Gameplay Gate/);
   assert.match(prompt, /Decision=0 or Core Loop=0/); assert.match(prompt, /Interesting Decision/); assert.match(prompt, /Mechanic, Dynamic, Desired Experience/);
   assert.match(prompt, /Playtest pending/); assert.match(prompt, /Keep, Change, or Kill/);
+  assert.match(prompt, /future = intentionally deferred/); assert.match(prompt, /decision-log = ongoing record/); assert.match(prompt, /playtest-pending = implementation already exists/);
+  assert.match(prompt, /Do not equate open with unimplemented/); assert.match(prompt, /remaining Acceptance Criteria/);
 });
 
 test("invocation pins Codex to read-only ephemeral no-approval mode and schema", () => {
