@@ -9,7 +9,7 @@ const css = fs.readFileSync(path.join(__dirname, "../expedition.css"), "utf8");
 const source = fs.readFileSync(path.join(__dirname, "../src/expedition-companion-proposals.js"), "utf8");
 
 test("companion proposal panel keeps long copy in a single readable column", () => {
-  assert.match(source, /data\.companionProposal = "true"/);
+  assert.match(source, /dataset\.companionProposal = "true"/);
   assert.match(css, /\.expedition-form-feedback\[data-companion-proposal\]\{[^}]*display:grid;[^}]*grid-template-columns:minmax\(0,1fr\)/);
   assert.match(css, /\.expedition-form-feedback\[data-companion-proposal\]>span,\.expedition-form-feedback\[data-companion-proposal\]>small\{[^}]*min-width:0;[^}]*overflow-wrap:anywhere/);
 });
