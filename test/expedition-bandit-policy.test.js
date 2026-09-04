@@ -4,6 +4,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const path = require("node:path");
+const system = require("../src/expedition-system.js");
 const policy = require("../src/expedition-bandit-policy.js");
 const followups = require("../src/expedition-followup-destinations.js");
 
@@ -48,6 +49,36 @@ function banditReport() {
         causes: [policy.BANDIT_REPEL_AID_ID, "bandit-repelled"]
       }
     ]
+  };
+}
+
+function banditState() {
+  const state = system.initialState();
+  state.destinations.push({
+    id: policy.BANDIT_DESTINATION_ID,
+    name: "街道の物陰",
+    family: "forest",
+    dangerTags: ["bandit"],
+    opportunityTags: ["road"],
+    durationMs: 180000
+  });
+  state.discoveredDestinationIds.push(policy.BANDIT_DESTINATION_ID);
+  return state;
+}
+
+function alertReport(policyId = "standard") {
+  return {
+    expeditionId: `exp-alert-${policyId}`,
+    destinationId: policy.BANDIT_ALERT_DESTINATION_ID,
+    destinationName: "警戒を固めた盗賊の街道",
+    companionIds: ["mira"],
+    policyId,
+    policyName: policyId,
+    outcome: "success",
+    loot: [],
+    injuries: [],
+    discoveries: [],
+    log: [{ minute: 110, type: "return", text: "灰炉へ帰還した。", causes: ["returned"] }]
   };
 }
 
@@ -148,6 +179,106 @@ test("unrelated successful expeditions are untouched", () => {
   const before = JSON.stringify(report);
   policy.applyBanditPolicy(report, exp);
   assert.equal(JSON.stringify(report), before);
+});
+
+test("retreating from the bandit signal makes the bandits alert and leaves a real retry destination", () => {
+  const state = banditState();
+  const report = {
+    expeditionId: "exp-bandit-retreat",
+    destinationId: policy.BANDIT_DESTINATION_ID,
+    destinationName: "街道の物陰",
+    policyId: "cautious",
+    outcome: "early-return",
+    log: [{ minute: 110, type: "return", text: "予定より早く灰炉へ戻った。", causes: ["early return"] }]
+  };
+
+  policy.applyBanditWorldResponse(state, report);
+  policy.applyBanditWorldResponse(state, report);
+
+  const alert = state.destinations.find((item) => item.id === policy.BANDIT_ALERT_DESTINATION_ID);
+  assert.ok(alert);
+  assert.equal(alert.banditWorldState, "alerted");
+  assert.ok(alert.dangerTags.includes("alerted"));
+  assert.ok(state.discoveredDestinationIds.includes(alert.id));
+  assert.equal(report.worldChanges.filter((item) => item.id === policy.BANDIT_ALERT_CAUSE_ID).length, 1);
+  assert.equal(report.log.filter((entry) => entry.type === "world-shift" && entry.causes.includes(policy.BANDIT_ALERT_CAUSE_ID)).length, 1);
+  assert.match(report.notableEvent.text, /撤退を見た盗賊.*見張り/);
+});
+
+test("the alerted bandit state is a dispatchable destination in the existing expedition loop", () => {
+  const state = banditState();
+  const failed = { expeditionId: "exp-bandit-failed", destinationId: policy.BANDIT_DESTINATION_ID, outcome: "failed", log: [] };
+  policy.applyBanditWorldResponse(state, failed);
+
+  const dispatched = system.dispatchExpedition(state, {
+    id: "exp-counter-bandit",
+    destinationId: policy.BANDIT_ALERT_DESTINATION_ID,
+    companionIds: ["mira"],
+    equipmentIds: [],
+    policyId: "cautious",
+    objective: "explore",
+    durationMs: 0,
+    seed: 44
+  }, 1000);
+
+  assert.equal(dispatched.activeExpedition.id, "exp-counter-bandit");
+  assert.equal(dispatched.activeExpedition.inputs.destinationId, policy.BANDIT_ALERT_DESTINATION_ID);
+});
+
+test("cautious success against alerted bandits retires the alert and opens a blind-route expedition", () => {
+  const state = banditState();
+  policy.applyBanditWorldResponse(state, { expeditionId: "failed", destinationId: policy.BANDIT_DESTINATION_ID, outcome: "failed", log: [] });
+  const report = alertReport("cautious");
+
+  policy.applyBanditWorldResponse(state, report);
+  policy.applyBanditWorldResponse(state, report);
+
+  assert.equal(state.destinations.some((item) => item.id === policy.BANDIT_ALERT_DESTINATION_ID), false);
+  const branch = state.destinations.find((item) => item.id === policy.BANDIT_ALERT_CAUTIOUS_DESTINATION_ID);
+  assert.ok(branch);
+  assert.ok(branch.opportunityTags.includes("intel"));
+  assert.ok(state.discoveredDestinationIds.includes(branch.id));
+  assert.equal(report.log.filter((entry) => entry.type === "world-shift" && entry.causes.includes("bandit-alert-cautious-branch")).length, 1);
+  assert.match(report.notableEvent.text, /見張りの交代.*脇道/);
+});
+
+test("greedy success against alerted bandits opens the moving supply trail instead", () => {
+  const state = banditState();
+  policy.applyBanditWorldResponse(state, { expeditionId: "failed", destinationId: policy.BANDIT_DESTINATION_ID, outcome: "failed", log: [] });
+  const report = alertReport("greedy");
+
+  policy.applyBanditWorldResponse(state, report);
+
+  assert.equal(state.destinations.some((item) => item.id === policy.BANDIT_ALERT_DESTINATION_ID), false);
+  const branch = state.destinations.find((item) => item.id === policy.BANDIT_ALERT_GREEDY_DESTINATION_ID);
+  assert.ok(branch);
+  assert.ok(branch.opportunityTags.includes("salvage"));
+  assert.equal(state.destinations.some((item) => item.id === policy.BANDIT_ALERT_CAUTIOUS_DESTINATION_ID), false);
+  assert.match(report.notableEvent.text, /荷車.*戦利品/);
+});
+
+test("standard success clears the alerted bandit state without creating a side lead", () => {
+  const state = banditState();
+  policy.applyBanditWorldResponse(state, { expeditionId: "failed", destinationId: policy.BANDIT_DESTINATION_ID, outcome: "early-return", log: [] });
+  const report = alertReport("standard");
+
+  policy.applyBanditWorldResponse(state, report);
+
+  assert.equal(state.destinations.some((item) => item.id === policy.BANDIT_ALERT_DESTINATION_ID), false);
+  assert.equal(state.destinations.some((item) => item.id === policy.BANDIT_ALERT_CAUTIOUS_DESTINATION_ID), false);
+  assert.equal(state.destinations.some((item) => item.id === policy.BANDIT_ALERT_GREEDY_DESTINATION_ID), false);
+  assert.match(report.notableEvent.text, /盗賊を退かせた.*解消/);
+});
+
+test("non-bandit failures do not create an alerted bandit world state", () => {
+  const state = banditState();
+  const report = { expeditionId: "exp-other", destinationId: "ashen-wood", outcome: "failed", log: [] };
+  const before = JSON.stringify(state);
+
+  policy.applyBanditWorldResponse(state, report);
+
+  assert.equal(JSON.stringify(state), before);
+  assert.equal(report.worldChanges, undefined);
 });
 
 test("browser bridge loads the bandit policy sidecar after signal encounters", () => {
