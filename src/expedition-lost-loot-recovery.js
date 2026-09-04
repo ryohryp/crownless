@@ -27,23 +27,16 @@
   }
 
   function lossEligible(report, expedition) {
-    return Boolean(
-      report
-      && expedition
-      && expedition.inputs
+    return Boolean(report && expedition && expedition.inputs
       && !isRecoveryDestinationId(expedition.inputs.destinationId)
       && ["early-return", "failed"].includes(report.outcome)
-      && Array.isArray(report.loot)
-      && report.loot.length > 0
-      && !report.lostLoot
-    );
+      && Array.isArray(report.loot) && report.loot.length > 0 && !report.lostLoot);
   }
 
   function decorateLoss(report, expedition) {
     if (!lossEligible(report, expedition)) return report;
     const item = report.loot.pop();
     if (!item) return report;
-
     const recoveryId = recoveryDestinationId(report.expeditionId);
     report.lostLoot = {
       ...item,
@@ -51,7 +44,6 @@
       sourceDestinationId: report.destinationId,
       recoveryDestinationId: recoveryId,
     };
-
     if (!Array.isArray(report.log)) report.log = [];
     let entry = report.log.find((event) => event && event.type === "loot-lost" && Array.isArray(event.causes) && event.causes.includes(recoveryId));
     if (!entry) {
@@ -73,9 +65,7 @@
   function buildRecoveryDestination(state, report) {
     const lost = report && report.lostLoot;
     if (!state || !lost || !lost.recoveryDestinationId) return null;
-    const source = Array.isArray(state.destinations)
-      ? state.destinations.find((item) => item && item.id === lost.sourceDestinationId)
-      : null;
+    const source = Array.isArray(state.destinations) ? state.destinations.find((item) => item && item.id === lost.sourceDestinationId) : null;
     if (!source) return null;
     return {
       id: lost.recoveryDestinationId,
@@ -90,7 +80,7 @@
         id: clean(lost.id, "lost-item"),
         name: clean(lost.name, "失った戦利品"),
         tags: Array.isArray(lost.tags) ? [...lost.tags] : [],
-        count: Number.isFinite(lost.count) ? lost.count : undefined,
+        ...(Number.isFinite(lost.count) ? { count: lost.count } : {}),
       },
     };
   }
@@ -99,20 +89,13 @@
     if (!state || !report || !report.lostLoot) return state;
     if (!Array.isArray(state.destinations)) state.destinations = [];
     if (!Array.isArray(state.discoveredDestinationIds)) state.discoveredDestinationIds = [];
-
     const candidate = buildRecoveryDestination(state, report);
     if (!candidate) return state;
     if (!state.destinations.some((item) => item && item.id === candidate.id)) state.destinations.push(candidate);
     if (!state.discoveredDestinationIds.includes(candidate.id)) state.discoveredDestinationIds.push(candidate.id);
-
     if (!Array.isArray(report.recoveryDestinations)) report.recoveryDestinations = [];
     if (!report.recoveryDestinations.some((item) => item && item.id === candidate.id)) {
-      report.recoveryDestinations.push({
-        id: candidate.id,
-        name: candidate.name,
-        itemId: candidate.recoveryItem.id,
-        itemName: candidate.recoveryItem.name,
-      });
+      report.recoveryDestinations.push({ id: candidate.id, name: candidate.name, itemId: candidate.recoveryItem.id, itemName: candidate.recoveryItem.name });
     }
     return state;
   }
@@ -132,11 +115,8 @@
     report.recoveryItem = { ...destination.recoveryItem };
     report.recoverySucceeded = report.outcome === "success";
     if (!report.recoverySucceeded) return report;
-
     if (!Array.isArray(report.loot)) report.loot = [];
-    if (!report.loot.some((item) => item && item.id === destination.recoveryItem.id)) {
-      report.loot.push({ ...destination.recoveryItem });
-    }
+    if (!report.loot.some((item) => item && item.id === destination.recoveryItem.id)) report.loot.push({ ...destination.recoveryItem });
     if (!Array.isArray(report.log)) report.log = [];
     let entry = report.log.find((event) => event && event.type === "loot-recovered" && Array.isArray(event.causes) && event.causes.includes(destination.id));
     if (!entry) {
@@ -155,14 +135,23 @@
     return report;
   }
 
+  function reconcileSecuredLoot(state, report) {
+    if (!state || !report) return state;
+    if (!Array.isArray(state.securedLoot)) state.securedLoot = [];
+    if (report.lostLoot && report.expeditionId) {
+      state.securedLoot = state.securedLoot.filter((item) => !(item && item.sourceExpeditionId === report.expeditionId && item.id === report.lostLoot.id));
+    }
+    if (report.recoverySucceeded === true && report.recoveryItem && report.expeditionId) {
+      const exists = state.securedLoot.some((item) => item && item.sourceExpeditionId === report.expeditionId && item.id === report.recoveryItem.id);
+      if (!exists) state.securedLoot.push({ ...report.recoveryItem, sourceExpeditionId: report.expeditionId });
+    }
+    return state;
+  }
+
   function cleanupRecoveredDestination(state, report) {
     if (!state || !report || report.recoverySucceeded !== true || !report.recoveryDestinationId) return state;
-    if (Array.isArray(state.destinations)) {
-      state.destinations = state.destinations.filter((item) => !item || item.id !== report.recoveryDestinationId);
-    }
-    if (Array.isArray(state.discoveredDestinationIds)) {
-      state.discoveredDestinationIds = state.discoveredDestinationIds.filter((id) => id !== report.recoveryDestinationId);
-    }
+    if (Array.isArray(state.destinations)) state.destinations = state.destinations.filter((item) => !item || item.id !== report.recoveryDestinationId);
+    if (Array.isArray(state.discoveredDestinationIds)) state.discoveredDestinationIds = state.discoveredDestinationIds.filter((id) => id !== report.recoveryDestinationId);
     return state;
   }
 
@@ -185,10 +174,17 @@
     return state;
   }
 
+  function applySideEffects(state, report) {
+    registerRecovery(state, report);
+    reconcileSecuredLoot(state, report);
+    cleanupRecoveredDestination(state, report);
+    syncStoredReport(state, report);
+    return state;
+  }
+
   function installSystemHooks(root) {
     const system = root && root.CrownlessExpeditionSystem;
     if (!system || system.__lostLootRecoveryInstalled) return Boolean(system);
-
     const baseResolve = system.resolveExpedition.bind(system);
     system.resolveExpedition = function resolveWithLostLootRecovery(expedition, state) {
       const report = baseResolve(expedition, state);
@@ -196,15 +192,10 @@
       decorateLoss(report, expedition);
       return report;
     };
-
     const baseApplyReport = system.applyReport.bind(system);
     system.applyReport = function applyReportWithLostLootRecovery(state, report) {
-      const applied = baseApplyReport(state, report);
-      registerRecovery(applied, report);
-      cleanupRecoveredDestination(applied, report);
-      return syncStoredReport(applied, report);
+      return applySideEffects(baseApplyReport(state, report), report);
     };
-
     const baseAdvance = system.advance.bind(system);
     system.advance = function advanceWithLostLootRecovery(state, nowMs) {
       const expedition = state && state.activeExpedition;
@@ -212,13 +203,10 @@
       if (advanced && advanced.report && expedition) {
         decorateRecovery(advanced.report, expedition, state);
         decorateLoss(advanced.report, expedition);
-        registerRecovery(advanced.state, advanced.report);
-        cleanupRecoveredDestination(advanced.state, advanced.report);
-        syncStoredReport(advanced.state, advanced.report);
+        applySideEffects(advanced.state, advanced.report);
       }
       return advanced;
     };
-
     system.__lostLootRecoveryInstalled = true;
     return true;
   }
@@ -235,20 +223,10 @@
   }
 
   return {
-    RECOVERY_PREFIX,
-    LOSS_CAUSE,
-    RECOVERY_CAUSE,
-    recoveryDestinationId,
-    isRecoveryDestinationId,
-    lossEligible,
-    decorateLoss,
-    buildRecoveryDestination,
-    registerRecovery,
-    recoveryDestination,
-    decorateRecovery,
-    cleanupRecoveredDestination,
-    syncStoredReport,
-    installSystemHooks,
-    install,
+    RECOVERY_PREFIX, LOSS_CAUSE, RECOVERY_CAUSE,
+    recoveryDestinationId, isRecoveryDestinationId, lossEligible, decorateLoss,
+    buildRecoveryDestination, registerRecovery, recoveryDestination, decorateRecovery,
+    reconcileSecuredLoot, cleanupRecoveredDestination, syncStoredReport, applySideEffects,
+    installSystemHooks, install,
   };
 });
