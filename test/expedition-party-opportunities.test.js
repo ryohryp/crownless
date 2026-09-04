@@ -27,6 +27,7 @@ function successfulReport(overrides = {}) {
     outcome: "success",
     destinationId: "ashen-wood",
     loot: [],
+    discoveries: [],
     log: [
       { minute: 80, time: "08:00", type: "combat-encounter", text: "灰狼の群れと遭遇した。", causes: [] },
       { minute: 90, time: "08:10", type: "combat-victory", text: "灰狼の群れを退けた。", causes: [] },
@@ -79,6 +80,62 @@ test("party opportunity reward is secured idempotently", () => {
   assert.equal(secured[0].sourceExpeditionId, report.expeditionId);
 });
 
+test("Mira has two-layer origin that survives save/load shaped data", () => {
+  const state = system.initialState();
+  opportunities.ensureGeographicOrigins(state);
+  const saved = JSON.parse(JSON.stringify(state));
+  opportunities.ensureGeographicOrigins(saved);
+  const mira = saved.companions.find((item) => item.id === "mira");
+
+  assert.deepEqual(mira.geographicOrigin, { region: "灰炉北辺", localArea: "灰の森" });
+  assert.deepEqual(mira.geographicFamiliarity, {});
+});
+
+test("Mira local affinity reveals a route that a non-local companion does not", () => {
+  assert.equal(opportunities.geographicAffinity("mira", "ashen-wood"), "local");
+  assert.equal(opportunities.geographicAffinity("mira", "hollow-village"), "region");
+  assert.equal(opportunities.geographicAffinity("mira", "black-mine"), "none");
+
+  const localReport = successfulReport();
+  opportunities.applyGeographicCompanion(localReport, expedition({ companionIds: ["mira"], objective: "explore" }));
+  assert.equal(localReport.geographicCompanionEffect.affinity, "local");
+  assert.ok(localReport.discoveries.some((item) => item.id === opportunities.MIRA_LOCAL_ROUTE.id));
+  assert.match(localReport.log.find((entry) => entry.type === "geographic-companion").text, /鹿道/);
+
+  const outsider = successfulReport();
+  opportunities.applyGeographicCompanion(outsider, expedition({ companionIds: ["ed"], objective: "explore" }));
+  assert.equal(outsider.geographicCompanionEffect, undefined);
+  assert.equal(outsider.discoveries.some((item) => item.id === opportunities.MIRA_LOCAL_ROUTE.id), false);
+});
+
+test("regional affinity adds knowledge but does not grant the stronger local route", () => {
+  const value = successfulReport({ destinationId: "hollow-village" });
+  opportunities.applyGeographicCompanion(value, expedition({ destinationId: "hollow-village", companionIds: ["mira"], objective: "explore" }));
+
+  assert.equal(value.geographicCompanionEffect.affinity, "region");
+  assert.equal(value.discoveries.some((item) => item.id === opportunities.MIRA_LOCAL_ROUTE.id), false);
+  assert.match(value.log.find((entry) => entry.type === "geographic-companion").text, /灰炉北辺/);
+});
+
+test("local geographic route unlock is idempotent and preserves origin on state", () => {
+  const state = system.initialState();
+  const value = successfulReport();
+  opportunities.applyGeographicCompanion(value, expedition({ companionIds: ["mira"], objective: "explore" }));
+  opportunities.unlockGeographicCompanionRoute(state, value);
+  opportunities.unlockGeographicCompanionRoute(state, value);
+
+  assert.equal(state.destinations.filter((item) => item.id === opportunities.MIRA_LOCAL_ROUTE.id).length, 1);
+  assert.equal(state.discoveredDestinationIds.filter((id) => id === opportunities.MIRA_LOCAL_ROUTE.id).length, 1);
+  assert.deepEqual(state.companions.find((item) => item.id === "mira").geographicOrigin, { region: "灰炉北辺", localArea: "灰の森" });
+});
+
+test("prepare hint makes local and regional party value visible before dispatch", () => {
+  assert.match(opportunities.geographicPartyHint("mira", "ashen-wood"), /鹿道の抜け道/);
+  assert.match(opportunities.geographicPartyHint("mira", "hollow-village"), /広域の土地勘/);
+  assert.equal(opportunities.geographicPartyHint("mira", "black-mine"), "");
+  assert.equal(opportunities.geographicPartyHint("ed", "ashen-wood"), "");
+});
+
 test("installed hook exposes a real coordinated hunt through report and secured loot", () => {
   const wrapped = { ...system };
   opportunities.installSystemHooks({ CrownlessExpeditionSystem: wrapped });
@@ -102,6 +159,7 @@ test("installed hook exposes a real coordinated hunt through report and secured 
   assert.ok(selected, "expected at least one successful coordinated hunt");
   assert.equal(selected.report.partyOpportunity.id, "mira-ed-coordinated-hunt");
   assert.ok(selected.report.loot.some((item) => item.id === "coordinated-hunt-alpha-hide"));
+  assert.equal(selected.state.companions.find((item) => item.id === "mira").geographicOrigin.localArea, "灰の森");
 
   const once = wrapped.applyReport(selected.state, selected.report);
   const twice = wrapped.applyReport(once, selected.report);
