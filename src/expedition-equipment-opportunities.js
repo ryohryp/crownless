@@ -26,11 +26,130 @@
     policyId: "greedy",
   });
 
+  const REGIONAL_ROAD_CLOAK = Object.freeze({
+    id: "regional-road-scout-cloak",
+    name: "街道猟師の外套",
+    affinity: "road-bandit",
+    tags: Object.freeze(["regional-gear", "road-affinity"]),
+  });
+
   function hasEquipment(expedition, equipmentId) {
     const ids = expedition && expedition.inputs && Array.isArray(expedition.inputs.equipmentIds)
       ? expedition.inputs.equipmentIds
       : [];
     return ids.includes(equipmentId);
+  }
+
+  function destinationFor(state, expedition) {
+    if (!state || !expedition || !expedition.inputs || !Array.isArray(state.destinations)) return null;
+    return state.destinations.find((item) => item && item.id === expedition.inputs.destinationId) || null;
+  }
+
+  function isRoadAffinityDestination(destination) {
+    return Boolean(destination
+      && destination.geographic === true
+      && Array.isArray(destination.dangerTags)
+      && destination.dangerTags.includes("bandit"));
+  }
+
+  function selectedRegionalRoadGear(expedition, state) {
+    if (!expedition || !expedition.inputs || !state || !Array.isArray(state.equipment)) return null;
+    const selected = new Set(Array.isArray(expedition.inputs.equipmentIds) ? expedition.inputs.equipmentIds : []);
+    return state.equipment.find((item) => item && selected.has(item.id) && item.affinity === REGIONAL_ROAD_CLOAK.affinity) || null;
+  }
+
+  function stateWithRegionalRoadCapability(expedition, state) {
+    const destination = destinationFor(state, expedition);
+    const gear = selectedRegionalRoadGear(expedition, state);
+    if (!isRoadAffinityDestination(destination) || !gear) return state;
+    return {
+      ...state,
+      equipment: state.equipment.map((item) => item && item.id === gear.id
+        ? { ...item, tags: [...new Set([...(Array.isArray(item.tags) ? item.tags : []), "conceal"])] }
+        : item),
+    };
+  }
+
+  function applyRegionalRoadLoot(report, expedition, state) {
+    if (!report || report.outcome !== "success") return report;
+    const destination = destinationFor(state, expedition);
+    if (!isRoadAffinityDestination(destination)) return report;
+    const alreadyOwned = Boolean(state && (
+      Array.isArray(state.equipment) && state.equipment.some((item) => item && item.id === REGIONAL_ROAD_CLOAK.id)
+      || Array.isArray(state.securedLoot) && state.securedLoot.some((item) => item && item.id === REGIONAL_ROAD_CLOAK.id)
+    ));
+    if (alreadyOwned) return report;
+
+    if (!Array.isArray(report.loot)) report.loot = [];
+    if (!report.loot.some((item) => item && item.id === REGIONAL_ROAD_CLOAK.id)) {
+      report.loot.push({
+        id: REGIONAL_ROAD_CLOAK.id,
+        name: REGIONAL_ROAD_CLOAK.name,
+        affinity: REGIONAL_ROAD_CLOAK.affinity,
+        originDestinationId: destination.id,
+        originName: destination.name,
+        tags: Array.from(REGIONAL_ROAD_CLOAK.tags),
+      });
+    }
+    report.regionalLoot = {
+      id: REGIONAL_ROAD_CLOAK.id,
+      affinity: REGIONAL_ROAD_CLOAK.affinity,
+      originDestinationId: destination.id,
+    };
+    if (!Array.isArray(report.log)) report.log = [];
+    if (!report.log.some((entry) => entry && entry.type === "regional-loot" && entry.causes && entry.causes.includes(REGIONAL_ROAD_CLOAK.id))) {
+      report.log.push({
+        minute: 106,
+        time: report.log.find((entry) => entry && entry.minute === 104)?.time || "",
+        type: "regional-loot",
+        text: `${destination.name}の猟師が使っていた外套を回収した。この土地の街道で待ち伏せを読む助けになりそうだ。`,
+        causes: [REGIONAL_ROAD_CLOAK.id, REGIONAL_ROAD_CLOAK.affinity, "geographic-loot"],
+      });
+      report.log.sort((a, b) => (a.minute || 0) - (b.minute || 0));
+    }
+    return report;
+  }
+
+  function annotateRegionalRoadEffect(report, expedition, state) {
+    if (!report) return report;
+    const destination = destinationFor(state, expedition);
+    const gear = selectedRegionalRoadGear(expedition, state);
+    if (!isRoadAffinityDestination(destination) || !gear) return report;
+    report.geographicEquipmentEffect = {
+      equipmentId: gear.id,
+      affinity: REGIONAL_ROAD_CLOAK.affinity,
+      destinationId: destination.id,
+      effect: "ambush-sense",
+    };
+    if (!Array.isArray(report.log)) report.log = [];
+    if (!report.log.some((entry) => entry && entry.type === "regional-gear" && entry.causes && entry.causes.includes(gear.id))) {
+      const arrival = report.log.find((entry) => entry && entry.type === "arrival");
+      report.log.push({
+        minute: 40,
+        time: arrival && arrival.time || "",
+        type: "regional-gear",
+        text: `${gear.name}に残る街道歩きの工夫を使い、待ち伏せの気配を接敵前に読んだ。`,
+        causes: [gear.id, REGIONAL_ROAD_CLOAK.affinity, "ambush-sense"],
+      });
+      report.log.sort((a, b) => (a.minute || 0) - (b.minute || 0));
+    }
+    return report;
+  }
+
+  function persistRegionalGear(state, report) {
+    if (!state || !report || !Array.isArray(report.loot)) return state;
+    if (!Array.isArray(state.securedLoot)) state.securedLoot = [];
+    if (!Array.isArray(state.equipment)) state.equipment = [];
+    const regional = report.loot.filter((item) => item && Array.isArray(item.tags) && item.tags.includes("regional-gear"));
+    for (const item of regional) {
+      if (!state.securedLoot.some((existing) => existing && existing.sourceExpeditionId === report.expeditionId && existing.id === item.id)) {
+        state.securedLoot.push({ ...item, sourceExpeditionId: report.expeditionId });
+      }
+      if (!state.equipment.some((existing) => existing && existing.id === item.id)) {
+        state.equipment.push({ ...item });
+      }
+    }
+    return state;
   }
 
   function qualifiesForRopeShaft(report, expedition) {
@@ -151,24 +270,33 @@
 
     const baseResolve = system.resolveExpedition.bind(system);
     system.resolveExpedition = function resolveWithEquipmentOpportunities(expedition, state) {
-      let report = baseResolve(expedition, state);
-      report = resolveHerbPressOnOpportunity(baseResolve, report, expedition, state, system.policies && system.policies.greedy);
-      return applyRopeShaftOpportunity(report, expedition);
+      const affinityState = stateWithRegionalRoadCapability(expedition, state);
+      const affinityResolve = (nextExpedition, nextState) => baseResolve(nextExpedition, stateWithRegionalRoadCapability(nextExpedition, nextState));
+      let report = baseResolve(expedition, affinityState);
+      report = resolveHerbPressOnOpportunity(affinityResolve, report, expedition, state, system.policies && system.policies.greedy);
+      report = applyRopeShaftOpportunity(report, expedition);
+      report = applyRegionalRoadLoot(report, expedition, state);
+      return annotateRegionalRoadEffect(report, expedition, state);
     };
 
     const baseApplyReport = system.applyReport.bind(system);
     system.applyReport = function applyReportWithEquipmentOpportunities(state, report) {
       const applied = baseApplyReport(state, report);
-      return persistEquipmentOpportunityReward(applied, report);
+      persistEquipmentOpportunityReward(applied, report);
+      return persistRegionalGear(applied, report);
     };
 
     const baseAdvance = system.advance.bind(system);
     system.advance = function advanceWithEquipmentOpportunities(state, nowMs) {
       const expedition = state && state.activeExpedition;
       const now = Number.isFinite(nowMs) ? nowMs : Date.now();
-      if (expedition && now >= expedition.expectedReturnAt && expedition.inputs && expedition.inputs.policyId === HERB_PRESS_ON_OPPORTUNITY.policyId && hasEquipment(expedition, HERB_PRESS_ON_OPPORTUNITY.equipmentId)) {
+      const regionalPrepared = Boolean(expedition && selectedRegionalRoadGear(expedition, state) && isRoadAffinityDestination(destinationFor(state, expedition)));
+      if (expedition && now >= expedition.expectedReturnAt && (
+        regionalPrepared
+        || expedition.inputs && expedition.inputs.policyId === HERB_PRESS_ON_OPPORTUNITY.policyId && hasEquipment(expedition, HERB_PRESS_ON_OPPORTUNITY.equipmentId)
+      )) {
         const report = system.resolveExpedition(expedition, state);
-        if (report && report.supplyOpportunity && report.supplyOpportunity.id === HERB_PRESS_ON_OPPORTUNITY.id) {
+        if (regionalPrepared || report && report.supplyOpportunity && report.supplyOpportunity.id === HERB_PRESS_ON_OPPORTUNITY.id) {
           return { state: system.applyReport(state, report), report, status: "completed" };
         }
       }
@@ -176,6 +304,9 @@
       if (advanced && advanced.report && expedition) {
         applyRopeShaftOpportunity(advanced.report, expedition);
         persistEquipmentOpportunityReward(advanced.state, advanced.report);
+        applyRegionalRoadLoot(advanced.report, expedition, state);
+        annotateRegionalRoadEffect(advanced.report, expedition, state);
+        persistRegionalGear(advanced.state, advanced.report);
       }
       return advanced;
     };
@@ -198,6 +329,15 @@
   return {
     ROPE_SHAFT_OPPORTUNITY,
     HERB_PRESS_ON_OPPORTUNITY,
+    REGIONAL_ROAD_CLOAK,
+    hasEquipment,
+    destinationFor,
+    isRoadAffinityDestination,
+    selectedRegionalRoadGear,
+    stateWithRegionalRoadCapability,
+    applyRegionalRoadLoot,
+    annotateRegionalRoadEffect,
+    persistRegionalGear,
     qualifiesForRopeShaft,
     applyRopeShaftOpportunity,
     baselineCanSpendHerbs,
