@@ -32,6 +32,7 @@
     api.loadFieldCamp(root);
     api.loadCampSupplyRelief(root);
     api.loadLostLootRecovery(root);
+    api.loadLootAppraisal(root);
   }
 })(typeof globalThis !== "undefined" ? globalThis : this, function createExpeditionUnknownBridge() {
   "use strict";
@@ -66,6 +67,7 @@
   function loadFieldCamp(root) { return loadScript(root, "CrownlessExpeditionFieldCamp", "src/expedition-field-camp.js"); }
   function loadCampSupplyRelief(root) { return loadScript(root, "CrownlessExpeditionCampSupplyRelief", "src/expedition-camp-supply-relief.js"); }
   function loadLostLootRecovery(root) { return loadScript(root, "CrownlessExpeditionLostLootRecovery", "src/expedition-lost-loot-recovery.js"); }
+  function loadLootAppraisal(root) { return loadScript(root, "CrownlessExpeditionLootAppraisal", "src/expedition-loot-appraisal.js"); }
 
   function install(Core, Cells, GeographyApi, runtime, root) {
     if (!Core || !Cells || !GeographyApi || !runtime) return false;
@@ -153,7 +155,7 @@
     loadRescueLoop, loadRescueStabilization, loadRescueSalvage, loadCompanionProposals,
     loadCompanionInsights, loadPartySelection, loadLeaderOutcomes, loadFollowupDestinations,
     loadSignalEncounters, loadBanditPolicy, loadWorldAtlasScouting, loadWorldTraces,
-    loadForcedMarch, loadFieldCamp, loadCampSupplyRelief, loadLostLootRecovery,
+    loadForcedMarch, loadFieldCamp, loadCampSupplyRelief, loadLostLootRecovery, loadLootAppraisal,
     lastProfile: () => null
   };
 
