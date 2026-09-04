@@ -14,6 +14,7 @@
     );
     api.loadObjectiveChoices(root);
     api.loadEquipmentOpportunities(root);
+    api.loadWaterAffinity(root);
     api.loadPartyOpportunities(root);
     api.loadRescueLoop(root);
     api.loadRescueStabilization(root);
@@ -50,6 +51,10 @@
 
   function loadEquipmentOpportunities(root) {
     return loadScript(root, "CrownlessExpeditionEquipmentOpportunities", "src/expedition-equipment-opportunities.js");
+  }
+
+  function loadWaterAffinity(root) {
+    return loadScript(root, "CrownlessExpeditionWaterAffinity", "src/expedition-water-affinity.js");
   }
 
   function loadPartyOpportunities(root) {
@@ -203,6 +208,7 @@
     install,
     loadObjectiveChoices,
     loadEquipmentOpportunities,
+    loadWaterAffinity,
     loadPartyOpportunities,
     loadRescueLoop,
     loadRescueStabilization,
