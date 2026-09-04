@@ -31,6 +31,7 @@
     api.loadForcedMarch(root);
     api.loadFieldCamp(root);
     api.loadCampSupplyRelief(root);
+    api.loadLostLootRecovery(root);
   }
 })(typeof globalThis !== "undefined" ? globalThis : this, function createExpeditionUnknownBridge() {
   "use strict";
@@ -45,81 +46,26 @@
     return true;
   }
 
-  function loadObjectiveChoices(root) {
-    return loadScript(root, "CrownlessExpeditionObjectives", "src/expedition-objectives.js");
-  }
-
-  function loadEquipmentOpportunities(root) {
-    return loadScript(root, "CrownlessExpeditionEquipmentOpportunities", "src/expedition-equipment-opportunities.js");
-  }
-
-  function loadWaterAffinity(root) {
-    return loadScript(root, "CrownlessExpeditionWaterAffinity", "src/expedition-water-affinity.js");
-  }
-
-  function loadPartyOpportunities(root) {
-    return loadScript(root, "CrownlessExpeditionPartyOpportunities", "src/expedition-party-opportunities.js");
-  }
-
-  function loadRescueLoop(root) {
-    return loadScript(root, "CrownlessExpeditionRescue", "src/expedition-rescue.js");
-  }
-
-  function loadRescueStabilization(root) {
-    return loadScript(root, "CrownlessExpeditionRescueStabilization", "src/expedition-rescue-stabilization.js");
-  }
-
-  function loadRescueSalvage(root) {
-    return loadScript(root, "CrownlessExpeditionRescueSalvage", "src/expedition-rescue-salvage.js");
-  }
-
-  function loadCompanionProposals(root) {
-    return loadScript(root, "CrownlessExpeditionCompanionProposals", "src/expedition-companion-proposals.js");
-  }
-
-  function loadCompanionInsights(root) {
-    return loadScript(root, "CrownlessExpeditionCompanionInsights", "src/expedition-companion-insights.js");
-  }
-
-  function loadPartySelection(root) {
-    return loadScript(root, "CrownlessExpeditionPartySelection", "src/expedition-party-selection.js");
-  }
-
-  function loadLeaderOutcomes(root) {
-    return loadScript(root, "CrownlessExpeditionLeader", "src/expedition-leader.js");
-  }
-
-  function loadFollowupDestinations(root) {
-    return loadScript(root, "CrownlessExpeditionFollowupDestinations", "src/expedition-followup-destinations.js");
-  }
-
-  function loadSignalEncounters(root) {
-    return loadScript(root, "CrownlessExpeditionSignalEncounters", "src/expedition-signal-encounters.js");
-  }
-
-  function loadBanditPolicy(root) {
-    return loadScript(root, "CrownlessExpeditionBanditPolicy", "src/expedition-bandit-policy.js");
-  }
-
-  function loadWorldAtlasScouting(root) {
-    return loadScript(root, "CrownlessWorldAtlasScouting", "src/world-atlas-scouting.js");
-  }
-
-  function loadWorldTraces(root) {
-    return loadScript(root, "CrownlessWorldTraces", "src/world-traces.js");
-  }
-
-  function loadForcedMarch(root) {
-    return loadScript(root, "CrownlessExpeditionForcedMarch", "src/expedition-forced-march.js");
-  }
-
-  function loadFieldCamp(root) {
-    return loadScript(root, "CrownlessExpeditionFieldCamp", "src/expedition-field-camp.js");
-  }
-
-  function loadCampSupplyRelief(root) {
-    return loadScript(root, "CrownlessExpeditionCampSupplyRelief", "src/expedition-camp-supply-relief.js");
-  }
+  function loadObjectiveChoices(root) { return loadScript(root, "CrownlessExpeditionObjectives", "src/expedition-objectives.js"); }
+  function loadEquipmentOpportunities(root) { return loadScript(root, "CrownlessExpeditionEquipmentOpportunities", "src/expedition-equipment-opportunities.js"); }
+  function loadWaterAffinity(root) { return loadScript(root, "CrownlessExpeditionWaterAffinity", "src/expedition-water-affinity.js"); }
+  function loadPartyOpportunities(root) { return loadScript(root, "CrownlessExpeditionPartyOpportunities", "src/expedition-party-opportunities.js"); }
+  function loadRescueLoop(root) { return loadScript(root, "CrownlessExpeditionRescue", "src/expedition-rescue.js"); }
+  function loadRescueStabilization(root) { return loadScript(root, "CrownlessExpeditionRescueStabilization", "src/expedition-rescue-stabilization.js"); }
+  function loadRescueSalvage(root) { return loadScript(root, "CrownlessExpeditionRescueSalvage", "src/expedition-rescue-salvage.js"); }
+  function loadCompanionProposals(root) { return loadScript(root, "CrownlessExpeditionCompanionProposals", "src/expedition-companion-proposals.js"); }
+  function loadCompanionInsights(root) { return loadScript(root, "CrownlessExpeditionCompanionInsights", "src/expedition-companion-insights.js"); }
+  function loadPartySelection(root) { return loadScript(root, "CrownlessExpeditionPartySelection", "src/expedition-party-selection.js"); }
+  function loadLeaderOutcomes(root) { return loadScript(root, "CrownlessExpeditionLeader", "src/expedition-leader.js"); }
+  function loadFollowupDestinations(root) { return loadScript(root, "CrownlessExpeditionFollowupDestinations", "src/expedition-followup-destinations.js"); }
+  function loadSignalEncounters(root) { return loadScript(root, "CrownlessExpeditionSignalEncounters", "src/expedition-signal-encounters.js"); }
+  function loadBanditPolicy(root) { return loadScript(root, "CrownlessExpeditionBanditPolicy", "src/expedition-bandit-policy.js"); }
+  function loadWorldAtlasScouting(root) { return loadScript(root, "CrownlessWorldAtlasScouting", "src/world-atlas-scouting.js"); }
+  function loadWorldTraces(root) { return loadScript(root, "CrownlessWorldTraces", "src/world-traces.js"); }
+  function loadForcedMarch(root) { return loadScript(root, "CrownlessExpeditionForcedMarch", "src/expedition-forced-march.js"); }
+  function loadFieldCamp(root) { return loadScript(root, "CrownlessExpeditionFieldCamp", "src/expedition-field-camp.js"); }
+  function loadCampSupplyRelief(root) { return loadScript(root, "CrownlessExpeditionCampSupplyRelief", "src/expedition-camp-supply-relief.js"); }
+  function loadLostLootRecovery(root) { return loadScript(root, "CrownlessExpeditionLostLootRecovery", "src/expedition-lost-loot-recovery.js"); }
 
   function install(Core, Cells, GeographyApi, runtime, root) {
     if (!Core || !Cells || !GeographyApi || !runtime) return false;
@@ -150,7 +96,6 @@
       provider.discover = async function discoverWithExpeditionUnknowns(input) {
         const discovered = await originalDiscover(input);
         if (runtime.qaMode) return discovered;
-
         const location = input && input.location;
         const cell = Core.explorationCellFromLocation(location);
         lastProfile = Cells.expeditionProfile(cell, knownCellIds());
@@ -173,13 +118,11 @@
         const wasMystery = Boolean(visible && visible.mysteryIdentity);
         const expeditionTier = visible && visible.expeditionTier || "";
         const expeditionLabel = visible && visible.expeditionLabel || "";
-
         if (wasMystery) {
           const resolved = Cells.resolveDiscovery(visible);
           Object.keys(visible).forEach((key) => { delete visible[key]; });
           Object.assign(visible, resolved);
         }
-
         const next = originalDiscoverLocation(state, choiceId);
         const last = next && next.expedition && next.expedition.lastDiscovery;
         if (wasMystery && last) {
@@ -206,25 +149,11 @@
 
   const api = {
     install,
-    loadObjectiveChoices,
-    loadEquipmentOpportunities,
-    loadWaterAffinity,
-    loadPartyOpportunities,
-    loadRescueLoop,
-    loadRescueStabilization,
-    loadRescueSalvage,
-    loadCompanionProposals,
-    loadCompanionInsights,
-    loadPartySelection,
-    loadLeaderOutcomes,
-    loadFollowupDestinations,
-    loadSignalEncounters,
-    loadBanditPolicy,
-    loadWorldAtlasScouting,
-    loadWorldTraces,
-    loadForcedMarch,
-    loadFieldCamp,
-    loadCampSupplyRelief,
+    loadObjectiveChoices, loadEquipmentOpportunities, loadWaterAffinity, loadPartyOpportunities,
+    loadRescueLoop, loadRescueStabilization, loadRescueSalvage, loadCompanionProposals,
+    loadCompanionInsights, loadPartySelection, loadLeaderOutcomes, loadFollowupDestinations,
+    loadSignalEncounters, loadBanditPolicy, loadWorldAtlasScouting, loadWorldTraces,
+    loadForcedMarch, loadFieldCamp, loadCampSupplyRelief, loadLostLootRecovery,
     lastProfile: () => null
   };
 
