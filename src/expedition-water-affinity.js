@@ -34,7 +34,7 @@
   function isWaterAffinityDestination(destination) {
     if (!destination || destination.geographic !== true) return false;
     const tags = affinityTags(destination);
-    return tags.includes("water") || tags.includes("crossing");
+    return tags.includes("water");
   }
 
   function selectedWaterGear(expedition, state) {
