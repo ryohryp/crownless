@@ -3,7 +3,7 @@ const { execFileSync } = require("node:child_process");
 const DEFAULT_RECENT_LIMIT = 20;
 const MAX_RECENT_LIMIT = 50;
 const OPEN_LIMIT = 100;
-const JSON_FIELDS = "number,title,body,url,state";
+const JSON_FIELDS = "number,title,body,url,state,labels";
 
 function defaultRunner(args) {
   return execFileSync("gh", args, {
@@ -33,6 +33,14 @@ function parseList(raw, label) {
   return parsed;
 }
 
+function normalizeLabels(labels) {
+  if (!Array.isArray(labels)) return [];
+  return labels
+    .map((label) => typeof label === "string" ? label : label?.name)
+    .filter((label) => typeof label === "string" && label.trim())
+    .map((label) => label.trim());
+}
+
 function normalizeItem(item, type) {
   if (!item || typeof item !== "object") {
     throw new Error(`Invalid ${type} work item`);
@@ -49,6 +57,7 @@ function normalizeItem(item, type) {
     title: item.title,
     body: typeof item.body === "string" ? item.body : "",
     url: typeof item.url === "string" ? item.url : null,
+    labels: normalizeLabels(item.labels),
   };
 }
 
@@ -135,6 +144,7 @@ module.exports = {
   MAX_RECENT_LIMIT,
   collectWorkItems,
   normalizeItem,
+  normalizeLabels,
   normalizeRecentLimit,
   parseList,
 };
