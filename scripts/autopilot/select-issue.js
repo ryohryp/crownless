@@ -1,12 +1,28 @@
 const AGENT_READY_LABEL = "agent-ready";
 const AGENT_RUNNING_LABEL = "agent-running";
+const NON_EXECUTABLE_LABELS = new Set([
+  "playtest-pending",
+  "future",
+  "decision-log",
+]);
 
 function labelNames(issue) {
   return new Set((issue?.labels || []).map((label) => typeof label === "string" ? label : label?.name).filter(Boolean));
 }
 
+function blockedLifecycleLabel(issue) {
+  const labels = labelNames(issue);
+  for (const label of NON_EXECUTABLE_LABELS) {
+    if (labels.has(label)) return label;
+  }
+  return null;
+}
+
 function isEligibleIssue(issue) {
-  return String(issue?.state || "").toUpperCase() === "OPEN" && labelNames(issue).has(AGENT_READY_LABEL);
+  if (String(issue?.state || "").toUpperCase() !== "OPEN") return false;
+  const labels = labelNames(issue);
+  if (!labels.has(AGENT_READY_LABEL)) return false;
+  return blockedLifecycleLabel(issue) === null;
 }
 
 function selectIssue(issues) {
@@ -20,6 +36,10 @@ function assertEligibleIssue(issue) {
   }
   if (!labelNames(issue).has(AGENT_READY_LABEL)) {
     throw new Error(`Issue #${issue.number} is not explicitly marked ${AGENT_READY_LABEL}.`);
+  }
+  const lifecycleLabel = blockedLifecycleLabel(issue);
+  if (lifecycleLabel) {
+    throw new Error(`Issue #${issue.number} is classified ${lifecycleLabel} and is not executable by Autopilot.`);
   }
 }
 
@@ -51,7 +71,9 @@ function findBlockers({ issue, issueNumber = issue?.number, openPullRequests = [
 module.exports = {
   AGENT_READY_LABEL,
   AGENT_RUNNING_LABEL,
+  NON_EXECUTABLE_LABELS,
   assertEligibleIssue,
+  blockedLifecycleLabel,
   findBlockers,
   isEligibleIssue,
   issueReferenceMatches,
