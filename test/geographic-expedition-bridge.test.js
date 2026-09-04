@@ -79,6 +79,65 @@ test("only geographic world knowledge is exposed as GPS expedition choices", () 
   assert.equal(destinations[0].name, "物見台");
 });
 
+test("successful geographic expedition advances atlas knowledge and emits a redraw event", () => {
+  const key = "geo:node:8:encounter:road_hub";
+  const safe = { worldKnowledge: { discoveries: { [key]: { key, name: "暗がりに揺れる火影", state: "discovered", visits: 1 } } } };
+  let saved = null;
+  const events = [];
+  const Core = {
+    loadSafeState() { return JSON.parse(JSON.stringify(safe)); },
+    saveWorldKnowledge(next) { saved = JSON.parse(JSON.stringify(next)); return true; }
+  };
+  class FakeCustomEvent {
+    constructor(type, options) { this.type = type; this.detail = options.detail; }
+  }
+  const root = { CustomEvent: FakeCustomEvent, dispatchEvent(event) { events.push(event); } };
+  const report = { destinationId: `world:${key}`, outcome: "success", discoveries: [], log: [] };
+
+  const progress = Bridge.applyGeographicReport(Core, report, root);
+  assert.equal(progress.state, "investigated");
+  assert.equal(saved.worldKnowledge.discoveries[key].state, "investigated");
+  assert.equal(saved.worldKnowledge.discoveries[key].visits, 2);
+  assert.match(report.worldKnowledgeProgress.summary, /一歩近づいた/);
+  assert.equal(report.log.at(-1).type, "world-knowledge");
+  assert.equal(events[0].type, "crownless:world-knowledge-updated");
+  assert.equal(events[0].detail.discoveryKey, key);
+});
+
+test("geographic expedition with a new discovery can clear the atlas trace", () => {
+  const progress = Bridge.geographicProgressForReport(
+    { outcome: "success", discoveries: [{ id: "follow-up" }] },
+    { name: "暗がりに揺れる火影", state: "discovered", visits: 1 }
+  );
+  assert.equal(progress.state, "cleared");
+  assert.equal(progress.visits, 2);
+});
+
+test("failed geographic expedition records another visit without granting progress", () => {
+  const key = "geo:node:9:encounter:woods";
+  const safe = { worldKnowledge: { discoveries: { [key]: { key, name: "森の気配", state: "discovered", visits: 2 } } } };
+  let saved = null;
+  const Core = {
+    loadSafeState() { return JSON.parse(JSON.stringify(safe)); },
+    saveWorldKnowledge(next) { saved = JSON.parse(JSON.stringify(next)); return true; }
+  };
+  const report = { destinationId: `world:${key}`, outcome: "failed", discoveries: [], log: [] };
+  const progress = Bridge.applyGeographicReport(Core, report, null);
+  assert.equal(progress.state, "discovered");
+  assert.equal(saved.worldKnowledge.discoveries[key].visits, 3);
+  assert.match(report.worldKnowledgeProgress.summary, /まだ終わっていない/);
+});
+
+test("non-geographic expedition reports never change atlas knowledge", () => {
+  let saved = false;
+  const Core = {
+    loadSafeState() { return { worldKnowledge: { discoveries: {} } }; },
+    saveWorldKnowledge() { saved = true; return true; }
+  };
+  assert.equal(Bridge.applyGeographicReport(Core, { destinationId: "forest-edge", outcome: "success" }, null), null);
+  assert.equal(saved, false);
+});
+
 test("runtime bootstrap loads the bridge after expedition presentation", () => {
   assert.match(runtimeSource, /src\/geographic-expedition-bridge\.js/);
   assert.match(runtimeSource, /presentation\.onload = loadGeographicExpeditionBridge/);
