@@ -31,7 +31,33 @@ test("unknown or missing traits do not invent a proposal", () => {
   assert.equal(proposals.proposalFor({ traits: ["unknown"] }), null);
 });
 
-test("adopting advice changes only existing objective and policy controls", () => {
+test("two selected companions expose a real disagreement when their plans differ", () => {
+  const state = system.initialState();
+  const companions = ["mira", "ed"].map((id) => state.companions.find((item) => item.id === id));
+  const entries = proposals.proposalEntries(companions);
+  assert.equal(entries.length, 2);
+  assert.equal(proposals.proposalsDisagree(entries), true);
+  assert.deepEqual(entries.map(({ companion, proposal }) => [companion.id, proposal.objective, proposal.policy]), [
+    ["mira", "explore", "cautious"],
+    ["ed", "hunt", "standard"],
+  ]);
+});
+
+test("adopting a companion plan changes existing objective/policy and makes that companion leader when available", () => {
+  const controls = {
+    'input[name="objective"][value="hunt"]': { checked: false, dispatchEvent() {} },
+    'input[name="policy"][value="standard"]': { checked: false, dispatchEvent() {} },
+    'input[name="leader"][value="ed"]': { checked: false },
+  };
+  const form = { querySelector(selector) { return controls[selector] || null; } };
+  const applied = proposals.applyProposal(form, { objective: "hunt", policy: "standard" }, { Event: class { constructor(type) { this.type = type; } } }, "ed");
+  assert.equal(applied, true);
+  assert.equal(controls['input[name="objective"][value="hunt"]'].checked, true);
+  assert.equal(controls['input[name="policy"][value="standard"]'].checked, true);
+  assert.equal(controls['input[name="leader"][value="ed"]'].checked, true);
+});
+
+test("adopting advice remains compatible with one-companion preparation", () => {
   const controls = {
     'input[name="objective"][value="hunt"]': { checked: false, dispatchEvent() {} },
     'input[name="policy"][value="standard"]': { checked: false, dispatchEvent() {} },
