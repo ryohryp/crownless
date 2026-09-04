@@ -32,6 +32,7 @@
     api.loadFieldCamp(root);
     api.loadCampSupplyRelief(root);
     api.loadPlayerCache(root);
+    api.loadNightWatch(root);
     api.loadLostLootRecovery(root);
     api.loadLootAppraisal(root);
     api.loadBanditCaptive(root);
@@ -70,6 +71,7 @@
   function loadFieldCamp(root) { return loadScript(root, "CrownlessExpeditionFieldCamp", "src/expedition-field-camp.js"); }
   function loadCampSupplyRelief(root) { return loadScript(root, "CrownlessExpeditionCampSupplyRelief", "src/expedition-camp-supply-relief.js"); }
   function loadPlayerCache(root) { return loadScript(root, "CrownlessExpeditionPlayerCache", "src/expedition-player-cache.js"); }
+  function loadNightWatch(root) { return loadScript(root, "CrownlessExpeditionNightWatch", "src/expedition-night-watch.js"); }
   function loadLostLootRecovery(root) { return loadScript(root, "CrownlessExpeditionLostLootRecovery", "src/expedition-lost-loot-recovery.js"); }
   function loadLootAppraisal(root) { return loadScript(root, "CrownlessExpeditionLootAppraisal", "src/expedition-loot-appraisal.js"); }
   function loadBanditCaptive(root) { return loadScript(root, "CrownlessExpeditionBanditCaptive", "src/expedition-bandit-captive.js"); }
@@ -161,7 +163,7 @@
     loadRescueLoop, loadRescueStabilization, loadRescueSalvage, loadCompanionProposals,
     loadCompanionInsights, loadPartySelection, loadLeaderOutcomes, loadFollowupDestinations,
     loadSignalEncounters, loadBanditPolicy, loadWorldAtlasScouting, loadWorldTraces,
-    loadForcedMarch, loadFieldCamp, loadCampSupplyRelief, loadPlayerCache, loadLostLootRecovery, loadLootAppraisal, loadBanditCaptive,
+    loadForcedMarch, loadFieldCamp, loadCampSupplyRelief, loadPlayerCache, loadNightWatch, loadLostLootRecovery, loadLootAppraisal, loadBanditCaptive,
     loadSignalRescanFeedback,
     lastProfile: () => null
   };
