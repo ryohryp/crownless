@@ -31,6 +31,7 @@
     api.loadForcedMarch(root);
     api.loadFieldCamp(root);
     api.loadCampSupplyRelief(root);
+    api.loadPlayerCache(root);
     api.loadLostLootRecovery(root);
     api.loadLootAppraisal(root);
   }
@@ -66,6 +67,7 @@
   function loadForcedMarch(root) { return loadScript(root, "CrownlessExpeditionForcedMarch", "src/expedition-forced-march.js"); }
   function loadFieldCamp(root) { return loadScript(root, "CrownlessExpeditionFieldCamp", "src/expedition-field-camp.js"); }
   function loadCampSupplyRelief(root) { return loadScript(root, "CrownlessExpeditionCampSupplyRelief", "src/expedition-camp-supply-relief.js"); }
+  function loadPlayerCache(root) { return loadScript(root, "CrownlessExpeditionPlayerCache", "src/expedition-player-cache.js"); }
   function loadLostLootRecovery(root) { return loadScript(root, "CrownlessExpeditionLostLootRecovery", "src/expedition-lost-loot-recovery.js"); }
   function loadLootAppraisal(root) { return loadScript(root, "CrownlessExpeditionLootAppraisal", "src/expedition-loot-appraisal.js"); }
 
@@ -155,7 +157,7 @@
     loadRescueLoop, loadRescueStabilization, loadRescueSalvage, loadCompanionProposals,
     loadCompanionInsights, loadPartySelection, loadLeaderOutcomes, loadFollowupDestinations,
     loadSignalEncounters, loadBanditPolicy, loadWorldAtlasScouting, loadWorldTraces,
-    loadForcedMarch, loadFieldCamp, loadCampSupplyRelief, loadLostLootRecovery, loadLootAppraisal,
+    loadForcedMarch, loadFieldCamp, loadCampSupplyRelief, loadPlayerCache, loadLostLootRecovery, loadLootAppraisal,
     lastProfile: () => null
   };
 
