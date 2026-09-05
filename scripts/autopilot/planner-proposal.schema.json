@@ -40,14 +40,36 @@
     "candidate": {
       "type": "object",
       "additionalProperties": false,
-      "required": ["title", "kind", "locationRelated", "gameplayGate", "reason", "selected"],
+      "required": [
+        "title",
+        "kind",
+        "locationRelated",
+        "gameplayGate",
+        "reason",
+        "selected",
+        "learningSources",
+        "revisitsKilledHypothesis",
+        "killRevisitEvidence"
+      ],
       "properties": {
         "title": { "type": "string", "minLength": 1 },
         "kind": { "enum": ["gameplay", "bug", "friction", "maintenance"] },
         "locationRelated": { "type": "boolean" },
         "gameplayGate": { "$ref": "#/$defs/gameplayGate" },
         "reason": { "type": "string", "minLength": 1 },
-        "selected": { "type": "boolean" }
+        "selected": { "type": "boolean" },
+        "learningSources": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "revisitsKilledHypothesis": { "type": "boolean" },
+        "killRevisitEvidence": {
+          "oneOf": [
+            { "type": "string", "minLength": 1 },
+            { "type": "null" }
+          ]
+        }
       }
     },
     "recentCycleReview": {
@@ -58,6 +80,56 @@
         "cyclesReviewed": { "type": "integer", "minimum": 3, "maximum": 5 },
         "newPlayAdded": { "type": "boolean" },
         "maintenanceHeavy": { "type": "boolean" },
+        "summary": { "type": "string", "minLength": 1 }
+      }
+    },
+    "playtestLearningEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "status", "observation", "plannerImplication"],
+      "properties": {
+        "source": { "type": "string", "minLength": 1 },
+        "status": { "enum": ["Keep", "Change", "Kill"] },
+        "observation": { "type": "string", "minLength": 1 },
+        "plannerImplication": { "type": "string", "minLength": 1 }
+      }
+    },
+    "recentPlaytestLearning": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["entries", "summary"],
+      "properties": {
+        "entries": {
+          "type": "array",
+          "maxItems": 5,
+          "items": { "$ref": "#/$defs/playtestLearningEntry" }
+        },
+        "summary": { "type": "string", "minLength": 1 }
+      }
+    },
+    "ignoredLearning": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source", "reason"],
+      "properties": {
+        "source": { "type": "string", "minLength": 1 },
+        "reason": { "type": "string", "minLength": 1 }
+      }
+    },
+    "learningApplication": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["appliedSources", "ignoredSources", "summary"],
+      "properties": {
+        "appliedSources": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "ignoredSources": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ignoredLearning" }
+        },
         "summary": { "type": "string", "minLength": 1 }
       }
     },
@@ -118,6 +190,8 @@
         "playtestRequired",
         "proposalType",
         "recentCycleReview",
+        "recentPlaytestLearning",
+        "learningApplication",
         "candidates",
         "gameplayHypothesis"
       ],
@@ -140,6 +214,8 @@
         "playtestRequired": { "type": "boolean" },
         "proposalType": { "enum": ["gameplay", "bug", "friction", "maintenance"] },
         "recentCycleReview": { "$ref": "#/$defs/recentCycleReview" },
+        "recentPlaytestLearning": { "$ref": "#/$defs/recentPlaytestLearning" },
+        "learningApplication": { "$ref": "#/$defs/learningApplication" },
         "candidates": {
           "type": "array",
           "minItems": 1,

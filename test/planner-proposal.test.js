@@ -18,11 +18,25 @@ function gate(overrides = {}) {
   };
 }
 
+function candidate(title, kind, reason, selected) {
+  return {
+    title,
+    kind,
+    locationRelated: false,
+    gameplayGate: gate(),
+    reason,
+    selected,
+    learningSources: [],
+    revisitsKilledHypothesis: false,
+    killRevisitEvidence: null,
+  };
+}
+
 function candidates(title, kind = "friction") {
   return [
-    { title, kind, locationRelated: false, gameplayGate: gate(), reason: "best next step", selected: true },
-    { title: "Alternative A", kind: "gameplay", locationRelated: false, gameplayGate: gate(), reason: "lower value now", selected: false },
-    { title: "Alternative B", kind: "gameplay", locationRelated: false, gameplayGate: gate(), reason: "larger scope", selected: false },
+    candidate(title, kind, "best next step", true),
+    candidate("Alternative A", "gameplay", "lower value now", false),
+    candidate("Alternative B", "gameplay", "larger scope", false),
   ];
 }
 
@@ -65,6 +79,15 @@ function validCreateIssue(overrides = {}) {
       maintenanceHeavy: false,
       summary: "Recent cycles improved reliability but added little new play",
     },
+    recentPlaytestLearning: {
+      entries: [],
+      summary: "No human-confirmed Keep, Change, or Kill learning found",
+    },
+    learningApplication: {
+      appliedSources: [],
+      ignoredSources: [],
+      summary: "No playtest learning needs to be applied this cycle",
+    },
     candidates: candidates(title, proposalType),
     gameplayHypothesis: proposalType === "gameplay" ? hypothesis() : null,
     ...overrides,
@@ -97,6 +120,25 @@ test("requires recent-cycle evidence and exactly one matching selected candidate
   const mismatched = validCreateIssue();
   mismatched.candidates[0] = { ...mismatched.candidates[0], title: "Different title" };
   assert.match(validatePlannerProposal(mismatched).error, /title must match/);
+});
+
+test("requires structured playtest learning and explicit application", () => {
+  const missingLearning = validCreateIssue();
+  delete missingLearning.recentPlaytestLearning;
+  assert.match(validatePlannerProposal(missingLearning).error, /recentPlaytestLearning/);
+
+  const value = validCreateIssue();
+  value.recentPlaytestLearning = {
+    entries: [{ source: "#368", status: "Change", observation: "Outcome difference is too subtle", plannerImplication: "Strengthen consequence differences" }],
+    summary: "One Change learning",
+  };
+  value.learningApplication = {
+    appliedSources: ["#368"],
+    ignoredSources: [],
+    summary: "Carry the Change into candidate generation",
+  };
+  value.candidates[0].learningSources = ["#368"];
+  assert.equal(validatePlannerProposal(value).ok, true);
 });
 
 test("gameplay proposals require Interesting Decision, MDA, and a complete vertical slice", () => {

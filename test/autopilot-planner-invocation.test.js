@@ -1,29 +1,58 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { buildPlannerPrompt, invokePlanner } = require("../scripts/autopilot/planner-invocation.js");
+const plannerSchema = require("../scripts/autopilot/planner-proposal.schema.json");
 
 function score(value = 2, applicable = true) { return { applicable, score: value, rationale: "test rationale" }; }
 function gate() { return { playerVisible: score(), decision: score(), riskReward: score(0, false), coreLoop: score(), replayability: score(), fantasy: score(), geography: score(0, false), canon: score(3) }; }
+function candidate(title, kind, reason, selected) {
+  return {
+    title,
+    kind,
+    locationRelated: false,
+    gameplayGate: gate(),
+    reason,
+    selected,
+    learningSources: [],
+    revisitsKilledHypothesis: false,
+    killRevisitEvidence: null,
+  };
+}
 const validProposal = {
   action: "create_issue", title: "帰還報告の状態表示を改善する", whyNow: "Report から Adapt への導線を改善するため", scope: "既存報告に状態表示を追加する",
   acceptanceCriteria: ["帰還状態が読める"], nonGoals: ["save schemaは変更しない"], risk: "low", humanGate: false, playtestRequired: false,
   proposalType: "friction", recentCycleReview: { cyclesReviewed: 5, newPlayAdded: false, maintenanceHeavy: false, summary: "直近5サイクルを確認" },
+  recentPlaytestLearning: { entries: [], summary: "人間確認済みのKeep/Change/Killは見つからなかった" },
+  learningApplication: { appliedSources: [], ignoredSources: [], summary: "今回反映すべきplaytest learningなし" },
   candidates: [
-    { title: "帰還報告の状態表示を改善する", kind: "friction", locationRelated: false, gameplayGate: gate(), reason: "clear friction", selected: true },
-    { title: "新しい遠征判断A", kind: "gameplay", locationRelated: false, gameplayGate: gate(), reason: "larger scope", selected: false },
-    { title: "新しい遠征判断B", kind: "gameplay", locationRelated: false, gameplayGate: gate(), reason: "lower value", selected: false },
+    candidate("帰還報告の状態表示を改善する", "friction", "clear friction", true),
+    candidate("新しい遠征判断A", "gameplay", "larger scope", false),
+    candidate("新しい遠征判断B", "gameplay", "lower value", false),
   ], gameplayHypothesis: null,
 };
 
-test("prompt requires Canon-first read-only planning and Gameplay Gate evidence", () => {
+test("prompt requires Canon-first read-only planning, Gameplay Gate evidence, and playtest learning", () => {
   const prompt = buildPlannerPrompt();
   assert.match(prompt, /AGENTS\.md/); assert.match(prompt, /docs\/game-system-design\.md/); assert.match(prompt, /docs\/autonomous-development-policy\.md/);
   assert.match(prompt, /Repository Canon overrides/); assert.match(prompt, /Do not modify files/); assert.match(prompt, /at most one/);
   assert.match(prompt, /most recent 3-5 development cycles/); assert.match(prompt, /exactly three candidates/); assert.match(prompt, /Gameplay Gate/);
   assert.match(prompt, /Decision=0 or Core Loop=0/); assert.match(prompt, /Interesting Decision/); assert.match(prompt, /Mechanic, Dynamic, Desired Experience/);
   assert.match(prompt, /Playtest pending/); assert.match(prompt, /Keep, Change, or Kill/);
+  assert.match(prompt, /decision log #367/); assert.match(prompt, /recentPlaytestLearning/); assert.match(prompt, /learningApplication/);
+  assert.match(prompt, /Every Change learning must be applied/); assert.match(prompt, /revisitsKilledHypothesis=true/); assert.match(prompt, /killRevisitEvidence/);
+  assert.match(prompt, /Never infer Keep, Change, or Kill from tests, CI/);
   assert.match(prompt, /future = intentionally deferred/); assert.match(prompt, /decision-log = ongoing record/); assert.match(prompt, /playtest-pending = implementation already exists/);
   assert.match(prompt, /Do not equate open with unimplemented/); assert.match(prompt, /remaining Acceptance Criteria/);
+});
+
+test("planner output schema requires structured playtest learning and candidate learning evidence", () => {
+  const createIssueSchema = plannerSchema.oneOf[0];
+  assert.ok(createIssueSchema.required.includes("recentPlaytestLearning"));
+  assert.ok(createIssueSchema.required.includes("learningApplication"));
+  assert.deepEqual(plannerSchema.$defs.playtestLearningEntry.properties.status.enum, ["Keep", "Change", "Kill"]);
+  assert.ok(plannerSchema.$defs.candidate.required.includes("learningSources"));
+  assert.ok(plannerSchema.$defs.candidate.required.includes("revisitsKilledHypothesis"));
+  assert.ok(plannerSchema.$defs.candidate.required.includes("killRevisitEvidence"));
 });
 
 test("invocation pins Codex to read-only ephemeral no-approval mode and schema", () => {

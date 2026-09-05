@@ -1,5 +1,6 @@
 const PROPOSAL_TYPES = new Set(["gameplay", "bug", "friction", "maintenance"]);
 const RISKS = new Set(["low", "medium", "high"]);
+const PLAYTEST_STATUSES = new Set(["Keep", "Change", "Kill"]);
 const GATE_DIMENSIONS = [
   "playerVisible",
   "decision",
@@ -23,12 +24,28 @@ const CREATE_ISSUE_FIELDS = new Set([
   "playtestRequired",
   "proposalType",
   "recentCycleReview",
+  "recentPlaytestLearning",
+  "learningApplication",
   "candidates",
   "gameplayHypothesis",
 ]);
 const NO_ACTION_FIELDS = new Set(["action", "reason"]);
 const RECENT_CYCLE_FIELDS = new Set(["cyclesReviewed", "newPlayAdded", "maintenanceHeavy", "summary"]);
-const CANDIDATE_FIELDS = new Set(["title", "kind", "locationRelated", "gameplayGate", "reason", "selected"]);
+const PLAYTEST_LEARNING_FIELDS = new Set(["entries", "summary"]);
+const PLAYTEST_LEARNING_ENTRY_FIELDS = new Set(["source", "status", "observation", "plannerImplication"]);
+const LEARNING_APPLICATION_FIELDS = new Set(["appliedSources", "ignoredSources", "summary"]);
+const IGNORED_LEARNING_FIELDS = new Set(["source", "reason"]);
+const CANDIDATE_FIELDS = new Set([
+  "title",
+  "kind",
+  "locationRelated",
+  "gameplayGate",
+  "reason",
+  "selected",
+  "learningSources",
+  "revisitsKilledHypothesis",
+  "killRevisitEvidence",
+]);
 const GATE_SCORE_FIELDS = new Set(["applicable", "score", "rationale"]);
 const HYPOTHESIS_FIELDS = new Set(["interestingDecision", "mda", "verticalSlice"]);
 const MDA_FIELDS = new Set(["mechanic", "dynamic", "desiredExperience"]);
@@ -75,6 +92,69 @@ function validateRecentCycleReview(value) {
   return null;
 }
 
+function validateRecentPlaytestLearning(value) {
+  const objectError = validateExactObject("recentPlaytestLearning", value, PLAYTEST_LEARNING_FIELDS);
+  if (objectError) return objectError;
+  if (!Array.isArray(value.entries)) return "recentPlaytestLearning.entries must be an array";
+  if (value.entries.length > 5) return "recentPlaytestLearning.entries must contain at most 5 items";
+  if (!isNonEmptyString(value.summary)) return "recentPlaytestLearning.summary must be a non-empty string";
+
+  const sources = new Set();
+  for (const [index, entry] of value.entries.entries()) {
+    const name = `recentPlaytestLearning.entries[${index}]`;
+    const entryError = validateExactObject(name, entry, PLAYTEST_LEARNING_ENTRY_FIELDS);
+    if (entryError) return entryError;
+    if (!isNonEmptyString(entry.source)) return `${name}.source must be a non-empty string`;
+    if (sources.has(entry.source)) return `recentPlaytestLearning.entries source must be unique: ${entry.source}`;
+    sources.add(entry.source);
+    if (!PLAYTEST_STATUSES.has(entry.status)) return `${name}.status must be Keep, Change, or Kill`;
+    if (!isNonEmptyString(entry.observation)) return `${name}.observation must be a non-empty string`;
+    if (!isNonEmptyString(entry.plannerImplication)) return `${name}.plannerImplication must be a non-empty string`;
+  }
+  return null;
+}
+
+function validateLearningApplication(value, learningEntries) {
+  const objectError = validateExactObject("learningApplication", value, LEARNING_APPLICATION_FIELDS);
+  if (objectError) return objectError;
+  const appliedError = validateStringArray("learningApplication.appliedSources", value.appliedSources);
+  if (appliedError) return appliedError;
+  if (!Array.isArray(value.ignoredSources)) return "learningApplication.ignoredSources must be an array";
+  if (!isNonEmptyString(value.summary)) return "learningApplication.summary must be a non-empty string";
+
+  const knownSources = new Set(learningEntries.map((entry) => entry.source));
+  const accounted = new Set();
+  for (const source of value.appliedSources) {
+    if (!knownSources.has(source)) return `learningApplication.appliedSources contains unknown source: ${source}`;
+    if (accounted.has(source)) return `learningApplication contains duplicate source: ${source}`;
+    accounted.add(source);
+  }
+
+  for (const [index, ignored] of value.ignoredSources.entries()) {
+    const name = `learningApplication.ignoredSources[${index}]`;
+    const ignoredError = validateExactObject(name, ignored, IGNORED_LEARNING_FIELDS);
+    if (ignoredError) return ignoredError;
+    if (!isNonEmptyString(ignored.source)) return `${name}.source must be a non-empty string`;
+    if (!knownSources.has(ignored.source)) return `${name}.source is unknown: ${ignored.source}`;
+    if (accounted.has(ignored.source)) return `learningApplication contains duplicate source: ${ignored.source}`;
+    if (!isNonEmptyString(ignored.reason)) return `${name}.reason must be a non-empty string`;
+    accounted.add(ignored.source);
+  }
+
+  if (accounted.size !== knownSources.size) {
+    const missing = [...knownSources].filter((source) => !accounted.has(source));
+    return `learningApplication must apply or explicitly ignore every learning source: ${missing.join(", ")}`;
+  }
+
+  const applied = new Set(value.appliedSources);
+  for (const entry of learningEntries) {
+    if (entry.status === "Change" && !applied.has(entry.source)) {
+      return `Change learning must be applied to candidate generation: ${entry.source}`;
+    }
+  }
+  return null;
+}
+
 function validateGateScore(name, value) {
   const objectError = validateExactObject(name, value, GATE_SCORE_FIELDS);
   if (objectError) return objectError;
@@ -102,7 +182,11 @@ function validateCandidates(value, proposal) {
   if (!Array.isArray(value)) return "candidates must be an array";
   if (value.length < 1 || value.length > 3) return "candidates must contain 1 to 3 items";
 
+  const learningBySource = new Map(proposal.recentPlaytestLearning.entries.map((entry) => [entry.source, entry]));
+  const appliedSources = new Set(proposal.learningApplication.appliedSources);
+  const changeSourcesUsed = new Set();
   let selectedCount = 0;
+
   for (const [index, candidate] of value.entries()) {
     const name = `candidates[${index}]`;
     const objectError = validateExactObject(name, candidate, CANDIDATE_FIELDS);
@@ -114,7 +198,37 @@ function validateCandidates(value, proposal) {
     if (gateError) return gateError;
     if (!isNonEmptyString(candidate.reason)) return `${name}.reason must be a non-empty string`;
     if (typeof candidate.selected !== "boolean") return `${name}.selected must be boolean`;
+
+    const learningError = validateStringArray(`${name}.learningSources`, candidate.learningSources);
+    if (learningError) return learningError;
+    const uniqueLearningSources = new Set(candidate.learningSources);
+    if (uniqueLearningSources.size !== candidate.learningSources.length) return `${name}.learningSources must be unique`;
+    for (const source of candidate.learningSources) {
+      if (!learningBySource.has(source)) return `${name}.learningSources contains unknown source: ${source}`;
+      if (!appliedSources.has(source)) return `${name}.learningSources must reference an applied learning source: ${source}`;
+      if (learningBySource.get(source).status === "Change") changeSourcesUsed.add(source);
+    }
+
+    if (typeof candidate.revisitsKilledHypothesis !== "boolean") {
+      return `${name}.revisitsKilledHypothesis must be boolean`;
+    }
+    if (candidate.revisitsKilledHypothesis) {
+      const referencesKill = candidate.learningSources.some((source) => learningBySource.get(source)?.status === "Kill");
+      if (!referencesKill) return `${name}.revisitsKilledHypothesis requires a referenced Kill learning source`;
+      if (!isNonEmptyString(candidate.killRevisitEvidence)) {
+        return `${name}.killRevisitEvidence must explain new evidence or changed conditions`;
+      }
+    } else if (candidate.killRevisitEvidence !== null) {
+      return `${name}.killRevisitEvidence must be null when revisitsKilledHypothesis is false`;
+    }
+
     if (candidate.selected) selectedCount += 1;
+  }
+
+  for (const entry of proposal.recentPlaytestLearning.entries) {
+    if (entry.status === "Change" && !changeSourcesUsed.has(entry.source)) {
+      return `Change learning must influence at least one candidate: ${entry.source}`;
+    }
   }
 
   if (selectedCount !== 1) return "candidates must contain exactly one selected item";
@@ -179,6 +293,13 @@ function validateCreateIssue(proposal) {
 
   const recentError = validateRecentCycleReview(proposal.recentCycleReview);
   if (recentError) return { ok: false, error: recentError };
+  const learningError = validateRecentPlaytestLearning(proposal.recentPlaytestLearning);
+  if (learningError) return { ok: false, error: learningError };
+  const applicationError = validateLearningApplication(
+    proposal.learningApplication,
+    proposal.recentPlaytestLearning.entries,
+  );
+  if (applicationError) return { ok: false, error: applicationError };
   const candidateError = validateCandidates(proposal.candidates, proposal);
   if (candidateError) return { ok: false, error: candidateError };
   const hypothesisError = validateGameplayHypothesis(proposal.gameplayHypothesis, proposal.proposalType);
@@ -215,6 +336,7 @@ function parsePlannerProposal(text) {
 
 module.exports = {
   GATE_DIMENSIONS,
+  PLAYTEST_STATUSES,
   PROPOSAL_TYPES,
   parsePlannerProposal,
   validatePlannerProposal,
