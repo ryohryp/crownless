@@ -5,6 +5,7 @@
   const hubGrid = document.querySelector("#hub-screen .hub-grid");
   const inventory = hubGrid?.querySelector(".inventory-panel");
   const chronicle = hubGrid?.querySelector(".chronicle");
+  const lootShelf = document.getElementById("hearth-loot-focus");
   if (!scene || !hubGrid || !inventory || !chronicle) return;
 
   let returnFocus = null;
@@ -62,11 +63,9 @@
   const body = document.createElement("div");
   body.className = "hearth-folio__body";
 
-  inventory.id = inventory.id || "hearth-folio-loot";
   inventory.id = "hearth-folio-loot";
   inventory.classList.add("hearth-folio__pane");
   inventory.setAttribute("role", "tabpanel");
-  inventory.setAttribute("aria-labelledby", "");
 
   chronicle.id = "hearth-folio-record";
   chronicle.classList.add("hearth-folio__pane");
@@ -124,6 +123,7 @@
   lootTab.addEventListener("click", () => select("loot"));
   recordTab.addEventListener("click", () => select("record"));
   journal.addEventListener("click", () => open("record", journal));
+  lootShelf?.addEventListener("click", () => open("loot", lootShelf));
 
   folio.addEventListener("click", (event) => {
     if (event.target === folio) closeFolio();
@@ -151,10 +151,6 @@
       event.preventDefault();
       first.focus();
     }
-  });
-
-  document.addEventListener("crownless:screen-change", (event) => {
-    if (event.detail?.screen !== "hub") closeFolio({ restoreFocus: false });
   });
 
   select("loot");
