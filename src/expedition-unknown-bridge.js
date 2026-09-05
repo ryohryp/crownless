@@ -59,6 +59,7 @@
     await api.loadBanditCaptive(root);
     await api.loadFleetingLeads(root);
     await api.loadSignalRescanFeedback(root);
+    await api.loadIssue352RoadsideRescue(root);
   }
 
   function loadObjectiveChoices(root) { return loadScript(root, "CrownlessExpeditionObjectives", "src/expedition-objectives.js"); }
@@ -90,6 +91,7 @@
   function loadBanditCaptive(root) { return loadScript(root, "CrownlessExpeditionBanditCaptive", "src/expedition-bandit-captive.js"); }
   function loadFleetingLeads(root) { return loadScript(root, "CrownlessExpeditionFleetingLeads", "src/expedition-fleeting-leads.js"); }
   function loadSignalRescanFeedback(root) { return loadScript(root, "CrownlessWorldAtlasSignalRescanFeedback", "src/world-atlas-signal-rescan-feedback.js"); }
+  function loadIssue352RoadsideRescue(root) { return loadScript(root, "CrownlessIssue352RoadsideRescue", "src/issue352-roadside-rescue.js"); }
 
   function install(Core, Cells, GeographyApi, runtime, root) {
     if (!Core || !Cells || !GeographyApi || !runtime) return false;
@@ -178,7 +180,7 @@
     loadCompanionInsights, loadPartySelection, loadLeaderOutcomes, loadFollowupDestinations,
     loadSignalEncounters, loadBanditPolicy, loadWorldAtlasScouting, loadWorldTraces,
     loadForcedMarch, loadFieldCamp, loadCampSupplyRelief, loadPlayerCache, loadNightWatch, loadVillageBell, loadMineApproach, loadForestApproach, loadLostLootRecovery, loadLootAppraisal, loadBanditCaptive,
-    loadFleetingLeads, loadSignalRescanFeedback,
+    loadFleetingLeads, loadSignalRescanFeedback, loadIssue352RoadsideRescue,
     lastProfile: () => null
   };
 
