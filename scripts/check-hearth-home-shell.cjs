@@ -37,7 +37,15 @@ async function assertBoundedHome(page) {
   const geometry = await page.evaluate(() => {
     const scene = document.querySelector("#hub-screen .hearth-scene").getBoundingClientRect();
     const main = document.querySelector("main").getBoundingClientRect();
+    const shelf = document.querySelector("#hearth-loot-focus").getBoundingClientRect();
+    const shelfLabel = document.querySelector("#hearth-loot-focus .object-label").getBoundingClientRect();
+    const journal = document.querySelector("#hearth-chronicle-focus").getBoundingClientRect();
+    const gate = document.querySelector("#start-expedition").getBoundingClientRect();
+    const atlasEntryNode = document.querySelector(".world-atlas-home-entry");
+    const atlasEntry = atlasEntryNode ? atlasEntryNode.getBoundingClientRect() : null;
+    const shelfStyle = getComputedStyle(document.querySelector("#hearth-loot-focus .object-label"));
     return {
+      viewportWidth: innerWidth,
       viewportHeight: innerHeight,
       sceneTop: scene.top,
       sceneBottom: scene.bottom,
@@ -45,7 +53,12 @@ async function assertBoundedHome(page) {
       scrollY,
       hubGrid: document.querySelectorAll("#hub-screen .hub-grid").length,
       lootInsideFolio: Boolean(document.querySelector("#hearth-folio #secured-loot")),
-      recordInsideFolio: Boolean(document.querySelector("#hearth-folio #stat-runs"))
+      recordInsideFolio: Boolean(document.querySelector("#hearth-folio #stat-runs")),
+      shelf: { left: shelf.left, right: shelf.right, top: shelf.top, bottom: shelf.bottom, width: shelf.width, height: shelf.height },
+      shelfLabel: { left: shelfLabel.left, right: shelfLabel.right, top: shelfLabel.top, bottom: shelfLabel.bottom, opacity: Number(shelfStyle.opacity), visibility: shelfStyle.visibility },
+      journal: { left: journal.left, right: journal.right, top: journal.top, bottom: journal.bottom },
+      gate: { left: gate.left, right: gate.right, top: gate.top, bottom: gate.bottom },
+      atlasEntry: atlasEntry ? { left: atlasEntry.left, right: atlasEntry.right, top: atlasEntry.top, bottom: atlasEntry.bottom, width: atlasEntry.width } : null
     };
   });
 
@@ -55,6 +68,18 @@ async function assertBoundedHome(page) {
   assert.ok(geometry.sceneBottom <= geometry.viewportHeight + 1, JSON.stringify(geometry));
   assert.ok(geometry.mainBottom <= geometry.viewportHeight + 1, JSON.stringify(geometry));
   assert.equal(geometry.scrollY, 0, JSON.stringify(geometry));
+
+  if (geometry.viewportWidth <= 700) {
+    for (const [name, rect] of [["loot shelf", geometry.shelf], ["journal", geometry.journal], ["gate", geometry.gate]]) {
+      assert.ok(rect.left >= 0 && rect.right <= geometry.viewportWidth + 1, `${name} outside horizontal viewport: ${JSON.stringify(geometry)}`);
+      assert.ok(rect.top >= geometry.sceneTop - 1 && rect.bottom <= geometry.viewportHeight + 1, `${name} outside vertical viewport: ${JSON.stringify(geometry)}`);
+    }
+    assert.ok(geometry.shelfLabel.opacity >= 0.99 && geometry.shelfLabel.visibility === "visible", `loot shelf affordance must be visible without hover: ${JSON.stringify(geometry)}`);
+    assert.ok(geometry.shelfLabel.right <= geometry.viewportWidth + 1 && geometry.shelfLabel.bottom <= geometry.viewportHeight + 1, `loot shelf label clipped: ${JSON.stringify(geometry)}`);
+    assert.ok(geometry.atlasEntry && geometry.atlasEntry.width <= 150, `Atlas entry must stay compact on the Hearth: ${JSON.stringify(geometry)}`);
+    const overlapsShelf = !(geometry.atlasEntry.right <= geometry.shelf.left || geometry.atlasEntry.left >= geometry.shelf.right || geometry.atlasEntry.bottom <= geometry.shelf.top || geometry.atlasEntry.top >= geometry.shelf.bottom);
+    assert.equal(overlapsShelf, false, `Atlas entry must not cover the loot shelf: ${JSON.stringify(geometry)}`);
+  }
 
   await page.mouse.move(5, Math.min(300, geometry.viewportHeight / 2));
   await page.mouse.wheel(0, 700);
@@ -97,6 +122,7 @@ async function checkRecord(page) {
 
   try {
     for (const viewport of [
+      { width: 412, height: 720 },
       { width: 390, height: 844 },
       { width: 320, height: 568 },
       { width: 1366, height: 900 }
