@@ -1,0 +1,103 @@
+name: Apply Issue 491 viewport QA update
+
+on:
+  push:
+    branches:
+      - fix/491-instant-atlas-return
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: fix/491-instant-atlas-return
+          fetch-depth: 0
+
+      - name: Update viewport regression for instant Atlas return
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          path = Path("scripts/check-atlas-viewport.cjs")
+          text = path.read_text()
+
+          old = '''    window.CrownlessLocationDiscoveryRuntime = {
+      state: "ready", discoveries,
+      worldKnowledgeKey: d => `geo:${d.sourceRef}:${d.contentKind}:${d.features.join("+")}`,
+      reload: async () => discoveries
+    };'''
+          new = '''    window.__atlasReloadCount = 0;
+    window.CrownlessLocationDiscoveryRuntime = {
+      state: "ready", discoveries,
+      worldKnowledgeKey: d => `geo:${d.sourceRef}:${d.contentKind}:${d.features.join("+")}`,
+      reload: async () => {
+        window.__atlasReloadCount += 1;
+        return discoveries;
+      }
+    };'''
+          if text.count(old) != 1:
+              raise SystemExit("seedLocation contract not found exactly once")
+          text = text.replace(old, new, 1)
+
+          old = '''      if (compact) {
+        assert.ok(await page.locator(".world-atlas-home-entry").isVisible());
+        assert.equal(await page.evaluate(() => scrollY), 0);
+        await screenshot(page, `home-${viewport.width}`);
+        await page.locator(".world-atlas-home-entry").click();
+      } else await page.locator("#hearth-map-focus").click();
+      await page.waitForSelector(".world-atlas-map--nearby");
+      await bounded(page);
+      await screenshot(page, `map-${viewport.width}`);'''
+          new = '''      const openAtlasFromHearth = async () => {
+        if (compact) await page.locator(".world-atlas-home-entry").click();
+        else await page.locator("#hearth-map-focus").click();
+      };
+      if (compact) {
+        assert.ok(await page.locator(".world-atlas-home-entry").isVisible());
+        assert.equal(await page.evaluate(() => scrollY), 0);
+        await screenshot(page, `home-${viewport.width}`);
+      }
+
+      // Opening the Atlas is now a pure view action: it must render immediately
+      // from known/runtime state without forcing another GPS/provider reload.
+      await openAtlasFromHearth();
+      await page.waitForSelector(".world-atlas-map--world");
+      assert.equal(await page.evaluate(() => window.__atlasReloadCount), 0, "Opening Atlas must not auto-rescan GPS");
+      assert.equal(await page.locator(".world-atlas-scan.scanning").count(), 0);
+      await bounded(page);
+
+      // Discovery refresh is explicit. After one rescan, closing and reopening
+      // must reuse the known map immediately rather than paying the GPS wait again.
+      await page.getByRole("button", { name: "周辺を再調査", exact: true }).click();
+      await page.waitForFunction(() => !document.querySelector(".world-atlas-scan.scanning"));
+      assert.equal(await page.evaluate(() => window.__atlasReloadCount), 1);
+      await page.locator(".world-atlas-close").click();
+      await openAtlasFromHearth();
+      await page.waitForSelector(".world-atlas-map--nearby");
+      assert.equal(await page.evaluate(() => window.__atlasReloadCount), 1, "Returning to Atlas must reuse the last scan");
+      await bounded(page);
+      await screenshot(page, `map-${viewport.width}`);'''
+          if text.count(old) != 1:
+              raise SystemExit("initial Atlas QA flow not found exactly once")
+          text = text.replace(old, new, 1)
+
+          path.write_text(text)
+          PY
+
+      - name: Validate QA syntax
+        run: |
+          node --check scripts/check-atlas-viewport.cjs
+          git diff --check
+
+      - name: Remove temporary workflow and commit
+        run: |
+          rm .github/workflows/issue-491-qa-apply.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/check-atlas-viewport.cjs .github/workflows/issue-491-qa-apply.yml
+          git commit -m "test: verify instant Atlas return and explicit rescan (#491)"
+          git push origin HEAD:fix/491-instant-atlas-return
