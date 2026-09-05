@@ -73,12 +73,35 @@
   }
 
   function isBanditReport(report) {
-    return Boolean(report && report.destinationId === BANDIT_DESTINATION_ID && report.signalEncounter && report.signalEncounter.kind === "bandit-ambush");
+    return Boolean(report && report.destinationId === BANDIT_DESTINATION_ID);
   }
 
   function wasRescued(report) {
-    const aid = report && report.signalEncounter && report.signalEncounter.aid;
-    return Boolean(isBanditReport(report) && report.outcome === "success" && aid && aid.id === "bandit-repel-aid");
+    const encounter = report && report.signalEncounter;
+    const aid = encounter && encounter.aid;
+    return Boolean(
+      isBanditReport(report)
+      && report.outcome === "success"
+      && encounter && encounter.kind === "bandit-ambush"
+      && aid && aid.id === "bandit-repel-aid"
+    );
+  }
+
+  function addNpcWorldChange(report, rescued) {
+    if (!Array.isArray(report.worldChanges)) report.worldChanges = [];
+    let change = report.worldChanges.find((item) => item && typeof item === "object" && item.id === RESCUE_CAUSE);
+    if (!change) {
+      change = {
+        id: RESCUE_CAUSE,
+        state: rescued ? "rescued" : "unresolved",
+        npcId: MARCO_ID,
+        npcName: "マルコ"
+      };
+      report.worldChanges.push(change);
+    } else {
+      change.state = rescued ? "rescued" : "unresolved";
+    }
+    return change;
   }
 
   function decorateReport(report) {
@@ -104,11 +127,7 @@
       });
       report.log.sort((a, b) => (Number(a && a.minute) || 0) - (Number(b && b.minute) || 0));
     }
-    if (!Array.isArray(report.worldChanges)) report.worldChanges = [];
-    const change = rescued
-      ? "マルコを街道から救出した。灰炉で再会できる。"
-      : "マルコは行方不明のまま。街道の異変はまだ終わっていない。";
-    if (!report.worldChanges.includes(change)) report.worldChanges.push(change);
+    addNpcWorldChange(report, rescued);
     return report;
   }
 
@@ -180,9 +199,7 @@
     root.CrownlessNpcLife = Object.freeze({
       ...base,
       STATES: states,
-      snapshotAt(input) {
-        return overlaySnapshot(originalSnapshotAt(input), readState(root));
-      }
+      snapshotAt(input) { return overlaySnapshot(originalSnapshotAt(input), readState(root)); }
     });
     root.__issue352NpcOverlayInstalled = true;
     return true;
@@ -191,26 +208,22 @@
   function installSystemHooks(root) {
     const system = root && root.CrownlessExpeditionSystem;
     if (!system || system.__issue352RoadsideRescueInstalled) return Boolean(system);
-
     const baseResolve = system.resolveExpedition.bind(system);
     system.resolveExpedition = function resolveWithMarcoRescue(expedition, state) {
       return decorateReport(baseResolve(expedition, state));
     };
-
     const baseApplyReport = system.applyReport.bind(system);
     system.applyReport = function applyReportWithMarcoRescue(state, report) {
       const applied = baseApplyReport(state, report);
       applyMarcoOutcome(applied, report);
       return applied;
     };
-
     const baseAdvance = system.advance.bind(system);
     system.advance = function advanceWithMarcoRescue(state, nowMs) {
       const advanced = baseAdvance(state, nowMs);
       if (advanced && advanced.report && advanced.state) applyMarcoOutcome(advanced.state, advanced.report);
       return advanced;
     };
-
     system.__issue352RoadsideRescueInstalled = true;
     return true;
   }
@@ -223,14 +236,13 @@
   function syncBanditDetail(root) {
     const document = root && root.document;
     if (!document) return;
-    const state = readState(root);
-    const stage = effectiveStage(state, BANDIT_SIGNAL_SOURCE, "sensed");
+    const stage = effectiveStage(readState(root), BANDIT_SIGNAL_SOURCE, "sensed");
     const marker = document.querySelector('.world-atlas-nearby-marker--event-signal[data-atlas-signal-source="bandit-ambush"]');
     if (marker && marker.dataset) marker.dataset.signalStage = stage;
     const prompt = document.querySelector("[data-bandit-signal-expedition]");
     if (prompt && stage === "sensed") prompt.remove();
-    if (prompt && stage !== "sensed") {
-      prompt.firstChild && (prompt.firstChild.textContent = "痕跡を追って、街道を狙う盗賊の待ち伏せだと分かった。マルコの荷車も途切れている。");
+    if (prompt && stage !== "sensed" && prompt.firstChild) {
+      prompt.firstChild.textContent = "痕跡を追って、街道を狙う盗賊の待ち伏せだと分かった。マルコの荷車も途切れている。";
     }
   }
 
@@ -241,8 +253,7 @@
       if (!detail || detail.source !== "atlas-scan" || detail.state !== "ready") return;
       const source = activeSignalSource(root.document);
       if (source !== BANDIT_SIGNAL_SOURCE) return;
-      const current = readState(root);
-      if (!current) return;
+      const current = readState(root) || {};
       const next = recordScanProgress(current, source, detail.currentCell);
       if (writeState(root, next)) Promise.resolve().then(() => syncBanditDetail(root));
     });
@@ -289,25 +300,9 @@
   }
 
   return Object.freeze({
-    STORAGE_KEY,
-    INCIDENT_KEY,
-    BANDIT_SIGNAL_SOURCE,
-    BANDIT_DESTINATION_ID,
-    MARCO_ID,
-    RESCUE_CAUSE,
-    coarseCellId,
-    incidentFrom,
-    ensureIncident,
-    recordScanProgress,
-    effectiveStage,
-    isBanditReport,
-    wasRescued,
-    decorateReport,
-    applyMarcoOutcome,
-    overlaySnapshot,
-    installNpcOverlay,
-    installSystemHooks,
-    installLocationProgress,
-    install
+    STORAGE_KEY, INCIDENT_KEY, BANDIT_SIGNAL_SOURCE, BANDIT_DESTINATION_ID, MARCO_ID, RESCUE_CAUSE,
+    coarseCellId, incidentFrom, ensureIncident, recordScanProgress, effectiveStage,
+    isBanditReport, wasRescued, addNpcWorldChange, decorateReport, applyMarcoOutcome, overlaySnapshot,
+    installNpcOverlay, installSystemHooks, installLocationProgress, install
   });
 });
