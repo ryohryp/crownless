@@ -112,7 +112,7 @@
     folio.hidden = false;
     folio.setAttribute("aria-hidden", "false");
     document.body.classList.add("hearth-folio-open");
-    requestAnimationFrame(() => close.focus());
+    close.focus();
     return true;
   }
 
