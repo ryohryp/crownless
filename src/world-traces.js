@@ -12,6 +12,8 @@
   const TRACKING_KNOWLEDGE_KEY = "knowledge:tracking:rut-reading";
   const TRACKING_PRACTICE_KEY = "knowledge:tracking:practice";
   const TRACKING_REQUIRED_PRACTICES = 2;
+  const TRACKING_DESTINATION_KEY = "geo:trace:npc:marco:north-route";
+  const TRACKING_DESTINATION_LOCATION = "north-road";
 
   function cleanText(value, fallback = "") {
     const text = String(value == null ? "" : value).trim();
@@ -187,6 +189,54 @@
       : "轍は古い。誰のものかも、どこへ続くかも確かめられない。";
   }
 
+  function ensureTrackingDestination(root, trace, now = Date.now()) {
+    if (!trace || !trace.identified) return null;
+    const Core = root && root.CrownlessCore;
+    if (!Core || typeof Core.loadSafeState !== "function" || typeof Core.saveWorldKnowledge !== "function") return null;
+    try {
+      const safe = Core.loadSafeState();
+      if (!safe || typeof safe !== "object") return null;
+      if (typeof Core.sanitizeWorldKnowledge === "function") safe.worldKnowledge = Core.sanitizeWorldKnowledge(safe.worldKnowledge);
+      if (!safe.worldKnowledge || typeof safe.worldKnowledge !== "object") safe.worldKnowledge = { discoveries: {} };
+      if (!safe.worldKnowledge.discoveries || typeof safe.worldKnowledge.discoveries !== "object" || Array.isArray(safe.worldKnowledge.discoveries)) {
+        safe.worldKnowledge.discoveries = {};
+      }
+      const discoveries = safe.worldKnowledge.discoveries;
+      const existing = discoveries[TRACKING_DESTINATION_KEY];
+      if (existing && typeof existing === "object") return existing;
+
+      const timestamp = Number(now instanceof Date ? now.getTime() : now);
+      const entry = {
+        key: TRACKING_DESTINATION_KEY,
+        name: "北の街道・マルコの轍の先",
+        baseTitle: "マルコらしい荷車の轍が北へ続いている。追うなら、この足取りを遠征先として辿れる。",
+        terrain: ["road_hub"],
+        contentKind: "trace",
+        state: "discovered",
+        firstDiscoveredAt: Number.isFinite(timestamp) && timestamp > 0 ? timestamp : Date.now(),
+        visits: 1,
+        location: TRACKING_DESTINATION_LOCATION
+      };
+      discoveries[TRACKING_DESTINATION_KEY] = entry;
+      if (Core.saveWorldKnowledge(safe) === false) {
+        delete discoveries[TRACKING_DESTINATION_KEY];
+        return null;
+      }
+      return entry;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  function openTrackingExpedition(document, root, trace, input = new Date()) {
+    if (!trace || !trace.canFollow) return false;
+    const Actions = root && root.CrownlessWorldAtlasActionsPresentation;
+    if (!Actions || typeof Actions.openExpedition !== "function") return false;
+    const entry = ensureTrackingDestination(root, trace, input);
+    if (!entry) return false;
+    return Actions.openExpedition(document, root, entry, null) === true;
+  }
+
   function activeNpcMarker(document) {
     return document && document.querySelector
       ? document.querySelector(".world-atlas-nearby-marker--npc-signal.active")
@@ -200,6 +250,27 @@
 
   function existingDispatch(detail) {
     return detail && detail.querySelector ? detail.querySelector(".world-atlas-npc-signal-match__dispatch") : null;
+  }
+
+  function ensureTraceDispatch(document, detail, trace, input = new Date(), root = null) {
+    const existing = existingDispatch(detail);
+    if (existing) return { button: existing, created: false };
+    if (!document || !detail || !trace || !trace.identified || !document.createElement) return { button: null, created: false };
+
+    const button = document.createElement("button");
+    button.type = "button";
+    button.className = "world-atlas-npc-signal-match__open world-atlas-npc-signal-match__dispatch world-trace-investigation__dispatch";
+    button.textContent = "痕跡を追って遠征する";
+    button.hidden = true;
+    button.disabled = true;
+    button.addEventListener("click", () => {
+      const current = applyTrackingKnowledge(
+        traceFromSignalSource("npc-rumor", input),
+        trackingKnowledgeKnown(root)
+      );
+      openTrackingExpedition(document, root, current, input);
+    });
+    return { button, created: true };
   }
 
   function setDispatchState(dispatch, trace, investigated, declined = false) {
@@ -226,7 +297,8 @@
     const trace = applyTrackingKnowledge(traceFromSignalSource(marker.dataset && marker.dataset.atlasSignalSource, input), known);
     if (!trace) return false;
 
-    const dispatch = existingDispatch(detail);
+    const dispatchResult = ensureTraceDispatch(document, detail, trace, input, root);
+    const dispatch = dispatchResult.button;
     setDispatchState(dispatch, trace, false);
 
     const panel = document.createElement("section");
@@ -284,7 +356,9 @@
       panel.dataset.traceState = "left";
     });
 
-    panel.append(heading, copy, investigate, leave);
+    panel.append(heading, copy, investigate);
+    if (dispatchResult.created && dispatch) panel.appendChild(dispatch);
+    panel.appendChild(leave);
     detail.appendChild(panel);
     return true;
   }
@@ -314,6 +388,8 @@
     TRACKING_KNOWLEDGE_KEY,
     TRACKING_PRACTICE_KEY,
     TRACKING_REQUIRED_PRACTICES,
+    TRACKING_DESTINATION_KEY,
+    TRACKING_DESTINATION_LOCATION,
     normalizedHour,
     freshnessForHour,
     traceFromSignalSource,
@@ -323,6 +399,9 @@
     lessonIdForTrace,
     rememberTrackingKnowledge,
     investigationCopy,
+    ensureTrackingDestination,
+    openTrackingExpedition,
+    ensureTraceDispatch,
     setDispatchState,
     bindTrackingLesson,
     appendTracePanel,
