@@ -1,0 +1,37 @@
+name: Apply Issue 361 Phase 2 CI fix
+
+on:
+  push:
+    branches:
+      - feat/361-atlas-next-actions
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/361-atlas-next-actions
+          fetch-depth: 0
+
+      - name: Fix browser regression placement
+        run: python scripts/fix-issue-361-phase2-ci.py
+
+      - name: Validate focused slice
+        run: |
+          node --check scripts/check-atlas-viewport.cjs
+          node --test test/world-atlas-npc-signals.test.js
+          git diff --check
+
+      - name: Commit fix and remove helpers
+        run: |
+          rm scripts/fix-issue-361-phase2-ci.py
+          rm .github/workflows/issue-361-phase2-ci-fix.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add scripts/check-atlas-viewport.cjs scripts/fix-issue-361-phase2-ci.py .github/workflows/issue-361-phase2-ci-fix.yml
+          git commit -m "test: verify next moves on nearby Atlas (#361)"
+          git push origin HEAD:feat/361-atlas-next-actions
