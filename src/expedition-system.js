@@ -218,8 +218,9 @@
       defeatedThisRound = Math.max(0, Math.min(remainingEnemyCount, defeatedThisRound));
 
       const pressureAfterAttack = Math.max(0, remainingEnemyCount - defeatedThisRound);
-      let damage = pressureAfterAttack === 0 ? Math.round(2 + rng() * 5) : Math.round(
-        4 + enemyPressure * 1.35 + pressureAfterAttack * 2.2 + Math.max(0, -margin) * 3.3 - defenseScore * 2.1 + rng() * 5
+      const damageRoll = rng();
+      let damage = pressureAfterAttack === 0 ? 0 : Math.round(
+        4 + enemyPressure * 1.35 + pressureAfterAttack * 2.2 + Math.max(0, -margin) * 3.3 - defenseScore * 2.1 + damageRoll * 5
       );
       damage = Math.max(0, Math.min(currentHp, damage));
       currentHp = Math.max(0, currentHp - damage);
