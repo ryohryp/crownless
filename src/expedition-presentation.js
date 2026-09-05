@@ -36,6 +36,7 @@
   let reportSceneCursor = 0;
   let reportSceneExpeditionId = null;
   let preparingNextExpedition = false;
+  let prepareDestinationId = null;
 
   function el(tag, className, text) {
     const node = document.createElement(tag);
@@ -62,6 +63,7 @@
     const shell = ensureShell();
     selectedReportExpeditionId = null;
     preparingNextExpedition = false;
+    prepareDestinationId = null;
     refresh(Date.now());
     render();
     shell.classList.add("is-open");
@@ -79,6 +81,7 @@
       lastResolved = advanced.report;
       selectedReportExpeditionId = advanced.report.expeditionId;
       preparingNextExpedition = false;
+      prepareDestinationId = null;
     }
     save(state);
     updateGateCopy();
@@ -166,13 +169,17 @@
   function renderPrepare(content) {
     state = system.reconcileRecoveries(state, Date.now());
     save(state);
-    content.append(heading("GREY HEARTH / PREPARE", "誰を、どこへ送り出す？", "選ぶのは少しだけ。結果はあとで報告として返ってくる。"));
+    const preferredDestination = state.destinations.find((destination) => destination.id === prepareDestinationId) || null;
+    const selectedDestinationId = preferredDestination ? preferredDestination.id : state.destinations[0]?.id;
+    content.append(heading("GREY HEARTH / PREPARE", "誰を、どこへ送り出す？", preferredDestination
+      ? `${preferredDestination.name}へもう一度向かう。前回と同じ場所でも、仲間・道具・方針を変えれば次の結果は変わりうる。`
+      : "選ぶのは少しだけ。結果はあとで報告として返ってくる。"));
     const form = el("form", "expedition-prepare");
     const availableCompanions = state.companions.filter(companionAvailable);
     const injuredCompanions = state.companions.filter((companion) => companion.condition === "injured");
     const recoveringCompanions = state.companions.filter((companion) => companion.condition === "recovering");
     form.append(
-      choiceGroup("遠征先", "destination", state.destinations, state.destinations[0].id, (d) => `危険: ${d.dangerTags.join("・")} / 約${Math.round(d.durationMs / 60000)}分`),
+      choiceGroup("遠征先", "destination", state.destinations, selectedDestinationId, (d) => `危険: ${d.dangerTags.join("・")} / 約${Math.round(d.durationMs / 60000)}分`),
       choiceGroup("仲間", "companion", state.companions, availableCompanions[0]?.id, (c) => `${c.origin} / ${c.traits.join("・")} / ${recoveryLabel(c)}`),
       choiceGroup("方針", "policy", Object.values(system.policies), "standard", (p) => p.id === "cautious" ? "負傷や危険で早めに引く" : p.id === "greedy" ? "成果のため危険を受け入れる" : "生還と成果の中間")
     );
@@ -235,6 +242,7 @@
     form.append(actions);
     form.addEventListener("change", (event) => {
       feedback.textContent = "";
+      if (event.target.name === "destination") prepareDestinationId = event.target.value;
       if (event.target.name === "equipment") {
         const checked = form.querySelectorAll('input[name="equipment"]:checked');
         if (checked.length > 2) event.target.checked = false;
@@ -259,6 +267,7 @@
           durationMs: data.get("instant") ? 0 : undefined,
         }, now);
         preparingNextExpedition = false;
+        prepareDestinationId = null;
         selectedReportExpeditionId = null;
         save(state);
         refresh(now);
@@ -525,6 +534,28 @@
     return state.companions.filter((companion) => injuredIds.has(companion.id) && companion.condition === "injured");
   }
 
+  function adaptCopy(report) {
+    if (report.outcome === "failed") return "踏破できなかった。装備や方針を変えて同じ場所へ戻るか、別の手掛かりを追うかを決める。";
+    if (report.outcome === "early-return") return "早めに引き返したことで、まだ先が残っている。同じ場所へ備え直すか、別の道を選べる。";
+    if (Array.isArray(report.discoveries) && report.discoveries.length) return "新しい痕跡を持ち帰った。この土地をさらに掘るか、別の場所へ判断を切り替える。";
+    return "帰還で状況は変わった。同じ場所を深掘りするか、別の場所へ向かうかを決める。";
+  }
+
+  function beginNextPreparation(content, report, recoverableCompanions, destinationId) {
+    if (recoverableCompanions.length) {
+      state = system.startRecovery(state, recoverableCompanions.map((companion) => companion.id), Date.now());
+      save(state);
+    }
+    lastResolved = null;
+    selectedReportExpeditionId = null;
+    reportSceneExpeditionId = null;
+    reportSceneCursor = 0;
+    preparingNextExpedition = true;
+    prepareDestinationId = destinationId || null;
+    content.replaceChildren();
+    renderPrepare(content);
+  }
+
   function renderReport(content, report) {
     renderReportHistory(content, report);
     const outcomeLabel = { success: "生還", "early-return": "早期撤退", failed: "失敗" }[report.outcome] || report.outcome;
@@ -554,22 +585,23 @@
     content.append(details);
 
     const recoverableCompanions = reportRecoverableCompanions(report);
-    const again = el("button", "expedition-dispatch", recoverableCompanions.length ? "負傷者を休ませて次を準備する →" : "次の遠征を準備する →");
-    again.type = "button";
-    again.addEventListener("click", () => {
-      if (recoverableCompanions.length) {
-        state = system.startRecovery(state, recoverableCompanions.map((companion) => companion.id), Date.now());
-        save(state);
-      }
-      lastResolved = null;
-      selectedReportExpeditionId = null;
-      reportSceneExpeditionId = null;
-      reportSceneCursor = 0;
-      preparingNextExpedition = true;
-      content.replaceChildren();
-      renderPrepare(content);
-    });
-    content.append(again);
+    const adapt = el("section", "expedition-report-adapt");
+    adapt.setAttribute("aria-label", "帰還後の次の判断");
+    adapt.append(
+      el("small", "expedition-folio__eyebrow", "ADAPT / 次の判断"),
+      el("p", "", adaptCopy(report))
+    );
+    if (recoverableCompanions.length) {
+      adapt.append(el("p", "expedition-form-feedback", `負傷した${recoverableCompanions.map((companion) => companion.name).join("、")}は、次を決めると同時に灰炉で休養を始める。`));
+    }
+    const retry = el("button", "expedition-dispatch", `${report.destinationName}へ備え直す →`);
+    retry.type = "button";
+    retry.addEventListener("click", () => beginNextPreparation(content, report, recoverableCompanions, report.destinationId));
+    const elsewhere = el("button", "expedition-secondary", "別の遠征先を選ぶ →");
+    elsewhere.type = "button";
+    elsewhere.addEventListener("click", () => beginNextPreparation(content, report, recoverableCompanions, null));
+    adapt.append(retry, elsewhere);
+    content.append(adapt);
   }
 
   document.addEventListener("click", (event) => {
