@@ -42,6 +42,7 @@
   let requestedDestinationId = null;
   let returnFocus = null;
   let prepareObserver = null;
+  let prepareUiState = null;
 
   function el(tag, className, text) {
     const node = document.createElement(tag);
@@ -75,6 +76,7 @@
     requestedDestinationId = options.destinationId || null;
     selectedReportExpeditionId = null;
     lastResolved = null;
+    prepareUiState = null;
     refresh(Date.now(), false);
     preparingNextExpedition = options.view === "prepare";
     const shell = ensureShell();
@@ -148,9 +150,45 @@
     }
   }
 
+  function capturePrepareUiState(form, stepOverride) {
+    if (!form) return;
+    const values = {};
+    for (const control of form.querySelectorAll("input[name], select[name], textarea[name]")) {
+      if (!control.name || control.disabled) continue;
+      if ((control.type === "radio" || control.type === "checkbox") && !control.checked) continue;
+      if (control.tagName === "SELECT" && control.multiple) {
+        const selected = [...control.selectedOptions].map((option) => option.value);
+        if (selected.length) values[control.name] = selected;
+        continue;
+      }
+      (values[control.name] ||= []).push(control.value);
+    }
+    const datasetStep = Number(form.dataset.journeyStep);
+    const step = Number.isInteger(stepOverride) ? stepOverride : (Number.isFinite(datasetStep) ? datasetStep : 0);
+    prepareUiState = { step: Math.max(0, Math.min(3, step)), values };
+  }
+
+  function restorePrepareUiState(form) {
+    if (!form || !prepareUiState || !prepareUiState.values) return;
+    for (const control of form.querySelectorAll("input[name], select[name], textarea[name]")) {
+      if (!control.name || control.disabled) continue;
+      const selected = prepareUiState.values[control.name];
+      if (!selected) continue;
+      if (control.type === "radio" || control.type === "checkbox") {
+        control.checked = selected.includes(control.value);
+      } else if (control.tagName === "SELECT" && control.multiple) {
+        for (const option of control.options) option.selected = selected.includes(option.value);
+      } else {
+        control.value = selected[0];
+      }
+    }
+  }
+
   function render() {
     const content = document.getElementById("expedition-folio-content");
     if (!content) return;
+    const prepareForm = content.querySelector("form.expedition-prepare");
+    if (prepareForm) capturePrepareUiState(prepareForm);
     prepareObserver?.disconnect();
     content.replaceChildren();
     const page = content.closest(".expedition-folio__page");
@@ -218,7 +256,7 @@
 
   function prepareJourney(form, content) {
     form.noValidate = true;
-    let step = 0;
+    let step = Math.max(0, Math.min(3, Number(prepareUiState?.step) || 0));
     let signature = "";
     const titles = ["行き先", "仲間と道具", "方針", "出発確認"];
     const nav = el("nav", "expedition-journey-nav");
@@ -252,6 +290,8 @@
       return label?.querySelector("strong")?.textContent || label?.querySelector("span")?.textContent || input.value;
     }).join(" / ");
     function sync() {
+      form.dataset.journeyStep = String(step);
+      restorePrepareUiState(form);
       for (const group of groups()) {
         group.hidden = stageFor(group) !== step || !relevant(group);
         const name = group.querySelector("input[name]")?.name;
@@ -302,7 +342,9 @@
     function go(target) {
       const bad = target > step ? invalid(step) : null;
       if (bad) { bad.focus(); bad.reportValidity(); return; }
-      step = target; sync();
+      step = target;
+      capturePrepareUiState(form, step);
+      sync();
       content.closest(".expedition-folio__page").scrollTop = 0;
       nav.querySelector('[aria-current="step"]')?.focus({ preventScroll: true });
     }
@@ -314,7 +356,10 @@
       if (step !== 3) { go(Math.min(3, step + 1)); return false; }
       return true;
     };
-    form.addEventListener("change", () => queueMicrotask(sync));
+    form.addEventListener("change", () => {
+      capturePrepareUiState(form, step);
+      queueMicrotask(sync);
+    });
     prepareObserver?.disconnect();
     prepareObserver = new MutationObserver(sync);
     prepareObserver.observe(form, { childList: true, subtree: true });
@@ -408,6 +453,7 @@
       recover.addEventListener("click", () => {
         state = system.startRecovery(state, injuredCompanions.map((companion) => companion.id), Date.now());
         save(state);
+        capturePrepareUiState(form);
         content.replaceChildren();
         renderPrepare(content);
       });
@@ -451,6 +497,7 @@
         }, now);
         preparingNextExpedition = false;
         selectedReportExpeditionId = null;
+        prepareUiState = null;
         save(state);
         refresh(now);
         render();
@@ -768,6 +815,7 @@
       reportSceneExpeditionId = null;
       reportSceneCursor = 0;
       preparingNextExpedition = true;
+      prepareUiState = null;
       content.replaceChildren();
       renderPrepare(content);
     });
