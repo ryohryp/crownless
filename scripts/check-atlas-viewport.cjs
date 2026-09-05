@@ -30,10 +30,14 @@ async function seedLocation(page) {
       mapOrigin: { latitude: 35.68, longitude: 139.77 },
       representativeCoordinate: { latitude: 35.68 + Math.cos(i * Math.PI / 3) * .003, longitude: 139.77 + Math.sin(i * Math.PI / 3) * .004 }
     }));
+    window.__atlasReloadCount = 0;
     window.CrownlessLocationDiscoveryRuntime = {
       state: "ready", discoveries,
       worldKnowledgeKey: d => `geo:${d.sourceRef}:${d.contentKind}:${d.features.join("+")}`,
-      reload: async () => discoveries
+      reload: async () => {
+        window.__atlasReloadCount += 1;
+        return discoveries;
+      }
     };
   });
 }
@@ -77,13 +81,33 @@ async function screenshot(page, name) {
       await page.waitForFunction(() => window.CrownlessWorldAtlasActionsPresentation && window.CrownlessWorldAtlasScouting && window.CrownlessExpeditionPresentation?.isReady());
       await seedLocation(page);
       const compact = viewport.width <= 700 || (viewport.width <= 1000 && viewport.height <= 500);
+      const openAtlasFromHearth = async () => {
+        if (compact) await page.locator(".world-atlas-home-entry").click();
+        else await page.locator("#hearth-map-focus").click();
+      };
       if (compact) {
         assert.ok(await page.locator(".world-atlas-home-entry").isVisible());
         assert.equal(await page.evaluate(() => scrollY), 0);
         await screenshot(page, `home-${viewport.width}`);
-        await page.locator(".world-atlas-home-entry").click();
-      } else await page.locator("#hearth-map-focus").click();
+      }
+
+      // Opening the Atlas is now a pure view action: it must render immediately
+      // from known/runtime state without forcing another GPS/provider reload.
+      await openAtlasFromHearth();
+      await page.waitForSelector(".world-atlas-map--world");
+      assert.equal(await page.evaluate(() => window.__atlasReloadCount), 0, "Opening Atlas must not auto-rescan GPS");
+      assert.equal(await page.locator(".world-atlas-scan.scanning").count(), 0);
+      await bounded(page);
+
+      // Discovery refresh is explicit. After one rescan, closing and reopening
+      // must reuse the known map immediately rather than paying the GPS wait again.
+      await page.getByRole("button", { name: "周辺を再調査", exact: true }).click();
+      await page.waitForFunction(() => !document.querySelector(".world-atlas-scan.scanning"));
+      assert.equal(await page.evaluate(() => window.__atlasReloadCount), 1);
+      await page.locator(".world-atlas-close").click();
+      await openAtlasFromHearth();
       await page.waitForSelector(".world-atlas-map--nearby");
+      assert.equal(await page.evaluate(() => window.__atlasReloadCount), 1, "Returning to Atlas must reuse the last scan");
       await bounded(page);
       await screenshot(page, `map-${viewport.width}`);
       await page.getByRole("button", { name: "世界Atlas", exact: true }).click();
@@ -166,7 +190,7 @@ async function screenshot(page, name) {
       await page.evaluate(() => CrownlessExpeditionPresentation.open());
       assert.equal(await page.evaluate(() => localStorage.getItem("crownless.expedition-poc.v1")), state, "Reopening a report must not apply rewards twice");
       assert.deepEqual(errors, []);
-      console.log(`PASS ${viewport.width}x${viewport.height}: scan/repeat, selection, event/result, keyboard, dispatch/report/reload`);
+      console.log(`PASS ${viewport.width}x${viewport.height}: instant Atlas return, explicit scan/repeat, selection, event/result, keyboard, dispatch/report/reload`);
       await page.close();
     }
 
