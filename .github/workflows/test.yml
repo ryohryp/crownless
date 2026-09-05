@@ -50,7 +50,11 @@ jobs:
         run: |
           npm install --no-save --package-lock=false playwright@1.62.1
           npx playwright install --with-deps chromium
-      - name: Hearth mobile and desktop home shell
-        run: node scripts/check-hearth-home-shell.cjs
+      - name: Hearth shell initializes and stays bounded
+        run: node scripts/check-hearth-home-shell.cjs load
+      - name: Hearth loot shelf folio
+        run: node scripts/check-hearth-home-shell.cjs loot
+      - name: Hearth expedition record folio
+        run: node scripts/check-hearth-home-shell.cjs record
       - name: Atlas mobile and desktop loop
         run: node scripts/check-atlas-viewport.cjs
