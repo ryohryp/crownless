@@ -22,31 +22,23 @@ jobs:
 
           p = Path('src/expedition-presentation.js')
           s = p.read_text()
-          needle = '''  document.addEventListener("keydown", (event) => {
-            if (event.key === "Escape") close();
-          });
-
-          refresh(Date.now());'''
-          repl = '''  document.addEventListener("keydown", (event) => {
-            if (event.key === "Escape") close();
-          });
-
-          window.CrownlessExpeditionPresentation = Object.freeze({
+          anchor = '  refresh(Date.now());\n  updateGateCopy();'
+          if anchor not in s:
+              raise SystemExit('presentation refresh anchor not found')
+          api = '''  window.CrownlessExpeditionPresentation = Object.freeze({
             open,
             close,
             isReady() { return true; }
           });
 
-          refresh(Date.now());'''
-          if needle not in s:
-              raise SystemExit('expedition presentation marker not found')
-          p.write_text(s.replace(needle, repl, 1))
+          '''
+          p.write_text(s.replace(anchor, api + anchor, 1))
 
           p = Path('src/world-atlas-actions-presentation.js')
           s = p.read_text()
           start = s.index('  function openExpedition(document, root, entry, status) {')
           end = s.index('\n\n  function ensureStylesheet(document)', start)
-          repl = '''  function openExpedition(document, root, entry, status) {
+          replacement = '''  function openExpedition(document, root, entry, status) {
             patchExpeditionSystem(root);
             const state = loadExpeditionState(root);
             if (state && state.activeExpedition) {
@@ -79,7 +71,7 @@ jobs:
             Promise.resolve().then(apply);
             return true;
           }'''
-          p.write_text(s[:start] + repl + s[end:])
+          p.write_text(s[:start] + replacement + s[end:])
 
           p = Path('test/expedition-entrypoint.test.js')
           s = p.read_text()
@@ -94,7 +86,7 @@ jobs:
           s = p.read_text()
           start = s.index('test("opening an expedition closes both discovery overlays before changing screens"')
           end = s.index('\n\ntest("discovery overlay cleanup', start)
-          repl = '''test("opening an Atlas expedition uses the explicit presentation entrypoint instead of the legacy gate", () => {
+          replacement = '''test("opening an Atlas expedition uses the explicit presentation entrypoint instead of the legacy gate", () => {
             const order = [];
             const root = fakeRoot({}, {});
             root.CrownlessGeographicExpeditionBridge = {
@@ -123,7 +115,7 @@ jobs:
             assert.equal(Presentation.openExpedition(document, root, { key: "geo:test" }, status), false);
             assert.match(status.textContent, /再試行/);
           });'''
-          p.write_text(s[:start] + repl + s[end:])
+          p.write_text(s[:start] + replacement + s[end:])
           PY
       - name: Focused tests
         run: node --test test/expedition-entrypoint.test.js test/world-atlas-actions-presentation.test.js test/app-runtime-state.test.js
