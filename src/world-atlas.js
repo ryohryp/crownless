@@ -386,7 +386,7 @@
 
   function scanResultText(result, scanning) {
     if (scanning) return "現在地を読み取り、周囲の地形と施設を照合している…";
-    if (!result) return "地図を開くと現在地の周囲を調べ、新しい遠征候補を探索録へ残す。";
+    if (!result) return "記憶済みの地図を表示している。新しい周辺情報が必要なら「周辺を再調査」できる。";
     if (result.state === "ready") {
       if (!result.foundCount) return "周囲を調べたが、今は遠征候補になる痕跡を見つけられなかった。";
       if (result.newCount) return `周囲から ${result.foundCount} 件を照合。新しく ${result.newCount} 件を探索録へ書き足した。`;
@@ -791,7 +791,7 @@
     const scanKicker = document.createElement("small");
     scanKicker.textContent = "READING THE NEARBY WORLD / GPS";
     const scanText = document.createElement("span");
-    scanText.textContent = scanResultText(options.scanResult, Boolean(options.scanning));
+    scanText.textContent = scanResultText(options.scanResult || lastScanResult, Boolean(options.scanning));
     scanCopy.append(scanKicker, scanText);
     const rescan = document.createElement("button");
     rescan.type = "button";
@@ -881,7 +881,8 @@
     }
 
     rescan.addEventListener("click", () => runScan(true));
-    if (options.autoScan !== false && !options.scanning) runScan(false);
+    const shouldPrimeEmptyAtlas = !lastScanResult && nearbyModel.length === 0 && worldModel.discoveryCount === 0;
+    if (!options.scanning && (options.autoScan === true || (options.autoScan !== false && shouldPrimeEmptyAtlas))) runScan(false);
     return true;
   }
 
@@ -890,7 +891,7 @@
     const wallMap = document.getElementById("hearth-map-focus");
     if (!wallMap) return false;
     ensureStylesheet(document);
-    wallMap.setAttribute("aria-label", "現在地周辺を調べ、これまで歩いて書いた世界地図を開く");
+    wallMap.setAttribute("aria-label", "これまで歩いて書いた世界地図を開く");
     wallMap.addEventListener("click", (event) => {
       event.preventDefault();
       event.stopImmediatePropagation();
@@ -899,7 +900,7 @@
     const entry = document.createElement("button");
     entry.type = "button";
     entry.className = "world-atlas-home-entry";
-    entry.textContent = "世界地図を開く・周辺を調べる →";
+    entry.textContent = "世界地図を開く →";
     entry.addEventListener("click", () => openAtlas(document, Core, root));
     document.body.appendChild(entry);
     Core.__worldAtlasInstalled = true;
