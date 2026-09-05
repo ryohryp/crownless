@@ -7,24 +7,22 @@ const path = require("node:path");
 const Feature = require("../src/issue352-roadside-rescue.js");
 
 function baseState() {
-  return {
-    destinations: [],
-    discoveredDestinationIds: [],
-    completedReports: []
-  };
+  return { destinations: [], discoveredDestinationIds: [], completedReports: [] };
 }
 
-function banditReport({ outcome = "success", repelled = true } = {}) {
+function banditReport({ outcome = "success", repelled = true, encounter = true } = {}) {
   return {
     expeditionId: "exp-352",
     destinationId: Feature.BANDIT_DESTINATION_ID,
     outcome,
-    signalEncounter: {
-      id: "roadside-bandit-ambush",
-      kind: "bandit-ambush",
-      signalSource: Feature.BANDIT_SIGNAL_SOURCE,
-      ...(repelled ? { aid: { id: "bandit-repel-aid", outcome: "repelled" } } : {})
-    },
+    ...(encounter ? {
+      signalEncounter: {
+        id: "roadside-bandit-ambush",
+        kind: "bandit-ambush",
+        signalSource: Feature.BANDIT_SIGNAL_SOURCE,
+        ...(repelled ? { aid: { id: "bandit-repel-aid", outcome: "repelled" } } : {})
+      }
+    } : {}),
     log: []
   };
 }
@@ -51,7 +49,7 @@ test("bandit signal stays sensed in the same coarse cell and becomes discovered 
   assert.doesNotMatch(JSON.stringify(moved[Feature.INCIDENT_KEY]), /latitude|longitude|35|139/);
 });
 
-test("repelling the bandits rescues Marco and writes an idempotent report consequence", () => {
+test("repelling the bandits rescues Marco and writes an idempotent structured world change", () => {
   const state = Feature.recordScanProgress(
     Feature.recordScanProgress(baseState(), Feature.BANDIT_SIGNAL_SOURCE, { id: "cell:a" }, 100),
     Feature.BANDIT_SIGNAL_SOURCE,
@@ -67,10 +65,11 @@ test("repelling the bandits rescues Marco and writes an idempotent report conseq
   assert.equal(state[Feature.INCIDENT_KEY].resolved, true);
   assert.equal(report.npcOutcome.outcome, "rescued");
   assert.equal(report.log.filter((entry) => entry.type === "npc-outcome").length, 1);
-  assert.equal(report.worldChanges.filter((entry) => /マルコを街道から救出/.test(entry)).length, 1);
+  assert.equal(report.worldChanges.filter((entry) => entry.id === Feature.RESCUE_CAUSE).length, 1);
+  assert.equal(report.worldChanges.find((entry) => entry.id === Feature.RESCUE_CAUSE).state, "rescued");
 });
 
-test("scouting or unresolved bandit contact leaves Marco missing instead of auto-success", () => {
+test("scouting leaves Marco missing instead of auto-success", () => {
   const state = Feature.recordScanProgress(
     Feature.recordScanProgress(baseState(), Feature.BANDIT_SIGNAL_SOURCE, { id: "cell:a" }, 100),
     Feature.BANDIT_SIGNAL_SOURCE,
@@ -84,7 +83,20 @@ test("scouting or unresolved bandit contact leaves Marco missing instead of auto
   assert.equal(state[Feature.INCIDENT_KEY].marcoStatus, "missing");
   assert.equal(state[Feature.INCIDENT_KEY].resolved, false);
   assert.equal(report.npcOutcome.outcome, "missing");
-  assert.match(report.worldChanges[0], /行方不明のまま/);
+  assert.equal(report.worldChanges[0].state, "unresolved");
+});
+
+test("failed or early-return bandit reports also retain the unresolved Marco consequence", () => {
+  for (const outcome of ["failed", "early-return"]) {
+    const state = baseState();
+    state[Feature.INCIDENT_KEY] = { stage: "discovered", marcoStatus: "missing", resolved: false };
+    const report = banditReport({ outcome, repelled: false, encounter: false });
+    Feature.applyMarcoOutcome(state, report);
+    assert.equal(state[Feature.INCIDENT_KEY].marcoStatus, "missing");
+    assert.equal(state[Feature.INCIDENT_KEY].resolved, false);
+    assert.equal(report.npcOutcome.outcome, "missing");
+    assert.equal(report.worldChanges[0].state, "unresolved");
+  }
 });
 
 test("NPC snapshot overlay removes missing Marco from Hearth and returns him after rescue", () => {
