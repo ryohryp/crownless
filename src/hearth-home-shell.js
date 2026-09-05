@@ -8,6 +8,10 @@
   const lootShelf = document.getElementById("hearth-loot-focus");
   if (!scene || !hubGrid || !inventory || !chronicle) return;
 
+  // The compact room composition lets the shelf overlap the gate hit region.
+  // Keep the shelf in front so the visible physical object remains tappable.
+  if (lootShelf) lootShelf.style.zIndex = "18";
+
   let returnFocus = null;
 
   const journal = document.createElement("button");
