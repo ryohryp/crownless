@@ -7,6 +7,7 @@
     "start": "npx --yes serve . -l 4173",
     "test": "node --test",
     "autopilot": "node scripts/autopilot/run-next.js",
+    "autopilot:plan": "node scripts/autopilot/planner-cycle.js",
     "autopilot:preflight": "node scripts/autopilot/preflight.js"
   }
 }
