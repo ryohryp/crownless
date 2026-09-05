@@ -444,62 +444,6 @@
     return true;
   }
 
-  function findPrepareTransitionButton(content) {
-    if (!content) return null;
-    const direct = Array.from(content.children || []).find((node) => (
-      node && typeof node.matches === "function" && node.matches("button.expedition-dispatch")
-    ));
-    if (direct) return direct;
-    const buttons = typeof content.querySelectorAll === "function" ? Array.from(content.querySelectorAll("button")) : [];
-    return buttons.find((button) => /(?:次の遠征を準備|次を準備)/.test(button.textContent || "")) || null;
-  }
-
-  function lockAtlasDestination(document, root, entry) {
-    const bridge = root && root.CrownlessGeographicExpeditionBridge;
-    if (!bridge || typeof bridge.expeditionDestinationId !== "function" || typeof bridge.injectDestinationChoices !== "function") return false;
-    const destinationId = bridge.expeditionDestinationId(entry);
-    if (!destinationId) return false;
-
-    const content = document.getElementById("expedition-folio-content");
-    if (!content) return false;
-    let form = content.querySelector("form.expedition-prepare");
-    if (!form) {
-      const prepare = findPrepareTransitionButton(content);
-      if (prepare) prepare.click();
-      form = content.querySelector("form.expedition-prepare");
-    }
-    if (!form) return false;
-    bridge.injectDestinationChoices(document, root.CrownlessCore);
-    injectPurchasedEquipmentChoices(document, root);
-    const input = form.querySelector(`input[name="destination"][value="${destinationId}"]`);
-    if (!input) return false;
-    input.checked = true;
-    const group = input.closest("fieldset");
-    if (group) {
-      group.classList.add("expedition-choice--atlas-locked");
-      const legend = group.querySelector("legend");
-      if (legend) legend.textContent = "遠征先（地図から選択）";
-      Array.from(group.querySelectorAll(".expedition-choice__item")).forEach((label) => {
-        label.classList.toggle("is-atlas-selected", Boolean(label.contains(input)));
-      });
-      if (!group.querySelector(".expedition-atlas-return")) {
-        const back = document.createElement("button");
-        back.type = "button";
-        back.className = "expedition-atlas-return";
-        back.textContent = "← 地図へ戻る";
-        back.addEventListener("click", () => {
-          const folio = document.getElementById("expedition-folio");
-          folio && folio.querySelector("[data-expedition-close]")?.click();
-          if (root.CrownlessWorldAtlas && typeof root.CrownlessWorldAtlas.openAtlas === "function") {
-            root.CrownlessWorldAtlas.openAtlas(document, root.CrownlessCore, root, { autoScan: false, view: "world" });
-          }
-        });
-        group.appendChild(back);
-      }
-    }
-    return true;
-  }
-
   function closeDiscoverySurfaces(document, root) {
     if (root.CrownlessDiscoveryJournal && typeof root.CrownlessDiscoveryJournal.close === "function") {
       root.CrownlessDiscoveryJournal.close();
@@ -524,25 +468,18 @@
     const presentationReady = presentation
       && typeof presentation.open === "function"
       && (typeof presentation.isReady !== "function" || presentation.isReady());
+    if (!presentationReady) root.CrownlessExpeditionRuntime?.retry();
     if (!presentationReady || !bridge || typeof bridge.expeditionDestinationId !== "function") {
       if (status) status.textContent = "遠征台帳の準備がまだ整っていない。もう一度「遠征隊を送る」を押すと再試行できる。";
       return false;
     }
     try {
-      presentation.open();
+      if (presentation.open({ view: "prepare", destinationId: bridge.expeditionDestinationId(entry) }) === false) throw new Error("destination unavailable");
     } catch (_) {
       if (status) status.textContent = "遠征台帳を開けなかった。もう一度「遠征隊を送る」を押して再試行できる。";
       return false;
     }
     closeDiscoverySurfaces(document, root);
-    const apply = () => {
-      if (lockAtlasDestination(document, root, entry)) return;
-      if (typeof presentation.close === "function") presentation.close();
-      if (root.CrownlessWorldAtlas && typeof root.CrownlessWorldAtlas.openAtlas === "function") {
-        root.CrownlessWorldAtlas.openAtlas(document, root.CrownlessCore, root, { autoScan: false, view: "world" });
-      }
-    };
-    Promise.resolve().then(apply);
     return true;
   }
 
@@ -633,8 +570,6 @@
     recordLocalEventRumor,
     openEvent,
     openMerchant,
-    findPrepareTransitionButton,
-    lockAtlasDestination,
     closeDiscoverySurfaces,
     openExpedition,
     install

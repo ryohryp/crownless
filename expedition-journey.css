@@ -1,0 +1,42 @@
+/* A folio within the same room: local scroll, fixed decisions, ink annotations. */
+body.expedition-open { overflow: hidden; }
+html:has(body.expedition-open) { overflow: hidden; }
+.expedition-folio p, .expedition-folio h3 { color: #352c20; }
+.expedition-folio { height: 100dvh; box-sizing: border-box; }
+.expedition-folio [hidden] { display: none !important; }
+.expedition-folio__page { box-sizing: border-box; overscroll-behavior: contain; max-height: calc(100dvh - 32px); padding-bottom: max(24px, env(safe-area-inset-bottom)); }
+.expedition-folio__close { z-index: 5; min-width: 44px; min-height: 44px; background: #d7c7a3; }
+.expedition-journey-nav { position: sticky; top: -28px; z-index: 3; display: flex; padding: 10px 0; background: #d7c7a3; border-bottom: 1px solid #594d3b; gap: 4px; }
+.expedition-journey-nav button { flex: 1; min-width: 0; min-height: 44px; padding: 4px; color: #352c20; background: transparent; border: 0; font: inherit; font-size: .8rem; }
+.expedition-journey-nav [aria-current=step] { border-bottom: 3px solid #6d2f23; font-weight: bold; }
+.expedition-briefing { padding: 0 0 14px; border-bottom: 1px dashed #594d3b; }
+.expedition-choice--atlas-locked .expedition-choice__item:not(.is-atlas-selected) { display: none; }
+.expedition-briefing h3, .expedition-adapt h3 { margin: 0; }
+.expedition-briefing p, .expedition-review p, .expedition-adapt p { line-height: 1.5; overflow-wrap: anywhere; }
+.expedition-journey-dock { position: sticky; bottom: -24px; background: #d7c7a3; padding: 12px 0 max(12px, env(safe-area-inset-bottom)); display: flex; justify-content: space-between; gap: 8px; z-index: 2; }
+.expedition-journey-dock:has(button:not([hidden])) { border-top: 1px solid #594d3b; }
+.expedition-journey-dock > .expedition-dispatch { margin-left: auto; }
+.expedition-optional:not(.is-expanded) > :not(legend) { display: none; }
+.expedition-optional-toggle { display: block; padding: 8px 0; min-height: 44px; color: #352c20; background: none; border: 0; text-align: left; font: inherit; font-weight: normal; }
+.expedition-adapt { border-left: 3px solid #5b766a; padding: 8px 12px; margin: 16px 0; display: grid; gap: 8px; }
+.expedition-adapt p { margin: 0; }
+.expedition-report-summary { margin: 12px 0; }
+.expedition-report-summary > div { padding: 8px; }
+.hearth-journey-note { position: absolute; z-index: 12; left: 6%; top: 26%; max-width: 310px; width: 40%; white-space: pre-line; text-align: left; background: rgba(25,23,18,.91); color: #d7c7a3; border: 0; border-left: 2px solid #997b46; padding: 12px; font: 600 .88rem/1.7 serif; cursor: pointer; }
+.hearth-journey-note:focus-visible, .expedition-folio :focus-visible { outline: 2px solid #8a4c36; outline-offset: 3px; }
+@media (max-width: 600px) {
+  body:has(#hub-screen.active) { height: 100dvh; overflow: hidden; }
+  body:has(#hub-screen.active) .app-shell { height: 100dvh; min-height: 0; display: flex; flex-direction: column; overflow: hidden; }
+  body:has(#hub-screen.active) main { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+  #hub-screen .hearth-scene { height: calc(100dvh - 64px); min-height: 0; }
+  .expedition-folio__page { height: 100dvh; max-height: 100dvh; padding: max(18px, env(safe-area-inset-top)) 16px max(24px, env(safe-area-inset-bottom)); }
+  .expedition-journey-nav { top: -18px; }
+  .expedition-folio__heading h2 { font-size: 1.45rem; }
+  .expedition-folio__heading { padding-bottom: 10px; }
+  .expedition-prepare { gap: 14px; margin-top: 14px; }
+  .expedition-report-summary { grid-template-columns: 1fr; gap: 3px; }
+  .expedition-report-summary > div { display: grid; grid-template-columns: 56px 1fr; gap: 8px; border: 0; border-bottom: 1px solid #b5a280; }
+  .expedition-report-summary small { margin: 0; }
+  .hearth-journey-note { left: 7%; top: 26%; width: 78%; max-width: 310px; padding: 10px 12px; font-size: .82rem; }
+}
+@media (max-height: 500px) { .hearth-journey-note { top: 18%; left: 34%; width: 40%; font-size: .72rem; padding: 5px 10px; } }

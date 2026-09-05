@@ -769,6 +769,11 @@
     title.textContent = "歩いて書いた世界";
     const summary = document.createElement("span");
     summary.textContent = `既知領域 ${worldModel.exploredCount} · 探索録 ${worldModel.discoveryCount}`;
+    const expedition = root.CrownlessExpeditionPresentation;
+    const expeditionState = expedition?.getState?.();
+    const lastReport = expeditionState?.completedReports[0];
+    const aftermath = lastReport && root.CrownlessExpeditionJourney?.aftermath(lastReport, expeditionState);
+    if (aftermath) summary.textContent += ` · ${lastReport.destinationName}：${root.CrownlessExpeditionJourney.outcomeLabel(lastReport.outcome)}${aftermath.destinations.length ? ` / 次の印 ${aftermath.destinations.length}` : ""}`;
     heading.append(eyebrow, title, summary);
     const close = document.createElement("button");
     close.type = "button";
@@ -826,6 +831,29 @@
       shell?.setDetails(false);
       const side = body.querySelector(".world-atlas-side");
       if (side) side.appendChild(note);
+      if (side && aftermath) {
+        const trail = document.createElement("section");
+        trail.className = "world-atlas-return-trail";
+        const label = document.createElement("strong");
+        label.textContent = "遠征隊が地図に残した印";
+        trail.append(label);
+        const change = document.createElement("p");
+        change.textContent = lastReport.worldKnowledgeProgress?.summary || aftermath.changes.at(-1);
+        trail.append(change);
+        const destinations = aftermath.destinations.length ? aftermath.destinations : expeditionState.destinations.filter(d => d.id === lastReport.destinationId);
+        destinations.slice(0, 2).forEach(destination => {
+          const action = document.createElement("button");
+          action.type = "button";
+          action.className = "world-atlas-action";
+          action.textContent = `${destination.name}へ備える →`;
+          action.disabled = Boolean(expeditionState.activeExpedition);
+          action.addEventListener("click", () => {
+            if (expedition.open({ view: "prepare", destinationId: destination.id })) closeAtlas(document);
+          });
+          trail.append(action);
+        });
+        side.append(trail);
+      }
     }
     nearbyTab.addEventListener("click", () => { viewTouched = true; selectedView = "nearby"; renderSelectedView(); });
     worldTab.addEventListener("click", () => { viewTouched = true; selectedView = "world"; renderSelectedView(); });

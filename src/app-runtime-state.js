@@ -20,92 +20,53 @@ var audioContext = null;
   if (typeof document === "undefined") return;
   const head = document.head || document.documentElement;
   const gate = document.getElementById("start-expedition");
-  let presentationReady = false;
-  let replayQueued = false;
-
-  // app.js still owns the transition-era click handler. The expedition slice
-  // is loaded dynamically, so a fast click can otherwise reach that old
-  // handler before expedition-presentation.js has installed its capture
-  // listener. Hold the click until the new entry point is ready.
-  if (gate) {
-    gate.addEventListener("click", function holdGateUntilExpeditionReady(event) {
-      if (presentationReady) return;
-      event.preventDefault();
-      event.stopImmediatePropagation();
-      replayQueued = true;
-    }, true);
-  }
-
-  ["expedition.css", "expedition-kamishibai.css", "expedition-kamishibai-battle.css"].forEach((href) => {
-    if (document.querySelector(`link[href="${href}"]`)) return;
+  let loading = false;
+  let queued = false;
+  // This capture handler always owns the gate; no click can reach old combat.
+  if (gate) gate.addEventListener("click", function holdGateUntilExpeditionReady(event) {
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    if (window.CrownlessExpeditionPresentation?.isReady()) {
+      window.CrownlessExpeditionPresentation.open();
+    } else { queued = true; load(); }
+  }, true);
+  ["expedition.css", "expedition-kamishibai.css", "expedition-kamishibai-battle.css", "expedition-journey.css"].forEach(href => {
     const css = document.createElement("link");
-    css.rel = "stylesheet";
-    css.href = href;
-    head.appendChild(css);
+    css.rel = "stylesheet"; css.href = href; head.appendChild(css);
   });
-
-  function finishExpeditionPresentationReady() {
-    presentationReady = true;
-    if (replayQueued && gate) {
-      replayQueued = false;
-      gate.click();
-    }
+  function script(src, globalName) {
+    if (window[globalName]) return Promise.resolve();
+    return new Promise((resolve, reject) => {
+      const node = document.createElement("script");
+      node.src = src;
+      node.onload = () => window[globalName] ? resolve() : reject(new Error(src));
+      node.onerror = () => { node.remove(); reject(new Error(src)); };
+      document.body.appendChild(node);
+    });
   }
-
-  function loadGeographicExpeditionBridge() {
-    if (document.querySelector('script[src="src/geographic-expedition-bridge.js"]')) {
-      finishExpeditionPresentationReady();
-      return;
-    }
-    const bridge = document.createElement("script");
-    bridge.src = "src/geographic-expedition-bridge.js";
-    bridge.onload = finishExpeditionPresentationReady;
-    bridge.onerror = finishExpeditionPresentationReady;
-    document.body.appendChild(bridge);
+  async function load() {
+    if (loading) return;
+    loading = true;
+    try {
+      await script("src/expedition-system.js", "CrownlessExpeditionSystem");
+      await script("src/expedition-unknown-bridge.js", "CrownlessExpeditionUnknownBridge");
+      await window.CrownlessExpeditionUnknownBridge.loadRuntime(window);
+      await script("src/geographic-expedition-bridge.js", "CrownlessGeographicExpeditionBridge");
+      await script("src/expedition-journey.js", "CrownlessExpeditionJourney");
+      await script("src/expedition-narrative.js", "CrownlessExpeditionNarrative").catch(() => {});
+      await script("src/expedition-scenes.js", "CrownlessExpeditionScenes").catch(() => {});
+      await script("src/expedition-visual-composition.js", "CrownlessExpeditionVisualComposition").catch(() => {});
+      await script("src/expedition-presentation.js", "CrownlessExpeditionPresentation");
+      if (queued) { queued = false; window.CrownlessExpeditionPresentation.open(); }
+    } catch (_) {
+      const copy = gate?.querySelector(".object-label strong");
+      if (copy) copy.textContent = "遠征台帳を再読込 →";
+      const detail = gate?.querySelector(".object-label span:last-child");
+      if (detail) detail.textContent = "準備を読み込めなかった。もう一度押すと再試行する。";
+    } finally { loading = false; }
   }
-
-  function loadExpeditionDomain() {
-    const domain = document.createElement("script");
-    domain.src = "src/expedition-system.js";
-    domain.onload = function loadExpeditionPresentation() {
-      const presentation = document.createElement("script");
-      presentation.src = "src/expedition-presentation.js";
-      presentation.onload = loadGeographicExpeditionBridge;
-      document.body.appendChild(presentation);
-    };
-    document.body.appendChild(domain);
-  }
-
-  // Issue #211: battle compositions remain a pure optional presentation layer.
-  // A missing helper must never block deterministic expedition resolution or
-  // the existing single-asset kamishibai fallback.
-  function loadExpeditionComposition() {
-    const composition = document.createElement("script");
-    composition.src = "src/expedition-visual-composition.js";
-    composition.onload = loadExpeditionDomain;
-    composition.onerror = loadExpeditionDomain;
-    document.body.appendChild(composition);
-  }
-
-  // Issue #203: representative paper-theatre scenes are another pure
-  // projection of a completed report. Keep this optional so a scene-layer
-  // loading failure never blocks the deterministic expedition resolver.
-  function loadExpeditionScenes() {
-    const scenes = document.createElement("script");
-    scenes.src = "src/expedition-scenes.js";
-    scenes.onload = loadExpeditionComposition;
-    scenes.onerror = loadExpeditionComposition;
-    document.body.appendChild(scenes);
-  }
-
-  // Issue #200: narrative generation is a separate deterministic projection of
-  // raw combat state. Load it independently so resolver rules never depend on
-  // prose generation, while the report presentation can opt into the layer.
-  const narrative = document.createElement("script");
-  narrative.src = "src/expedition-narrative.js";
-  narrative.onload = loadExpeditionScenes;
-  narrative.onerror = loadExpeditionScenes;
-  document.body.appendChild(narrative);
+  window.CrownlessExpeditionRuntime = { retry: load };
+  load();
 })();
 
 // Issue #216: the Grey Hearth wall map opens a manuscript-style atlas built
@@ -157,7 +118,7 @@ var audioContext = null;
     atlasLoadFailed = false;
     if (atlasReplayQueued && wallMap) {
       atlasReplayQueued = false;
-      wallMap.click();
+      window.CrownlessWorldAtlas.openAtlas(document, window.CrownlessCore, window);
     }
   }
 

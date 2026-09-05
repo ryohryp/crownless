@@ -12,8 +12,9 @@ const presentation = fs.readFileSync(path.join(root, "src", "expedition-presenta
 test("expedition gate holds fast clicks until the async presentation is ready", () => {
   assert.match(runtime, /holdGateUntilExpeditionReady/);
   assert.match(runtime, /event\.stopImmediatePropagation\(\)/);
-  assert.match(runtime, /presentation\.onload/);
-  assert.match(runtime, /gate\.click\(\)/);
+  assert.match(runtime, /await window\.CrownlessExpeditionUnknownBridge\.loadRuntime\(window\)/);
+  assert.doesNotMatch(runtime, /gate\.click\(\)/);
+  assert.match(runtime, /CrownlessExpeditionPresentation\.open\(\)/);
 });
 
 test("dispatch form reports validation failures instead of failing silently", () => {

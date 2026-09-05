@@ -138,7 +138,7 @@ test("non-geographic expedition reports never change atlas knowledge", () => {
   assert.equal(saved, false);
 });
 
-test("runtime bootstrap loads the bridge after expedition presentation", () => {
+test("runtime bootstrap loads the bridge before expedition presentation can resolve a saved expedition", () => {
   assert.match(runtimeSource, /src\/geographic-expedition-bridge\.js/);
-  assert.match(runtimeSource, /presentation\.onload = loadGeographicExpeditionBridge/);
+  assert.ok(runtimeSource.indexOf('await script("src/geographic-expedition-bridge.js"') < runtimeSource.indexOf('await script("src/expedition-presentation.js"'));
 });

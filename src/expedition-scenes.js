@@ -374,9 +374,9 @@
   function endingScene(report, entries, expeditionNarrative) {
     const returned = firstByType(entries, ["return"]);
     const outcome = report.outcome || "success";
-    const headline = outcome === "failed" ? "それでも灰炉へ" : outcome === "early-return" ? "早い帰還" : "灰炉の灯り";
+    const headline = outcome === "missing" ? "空いたままの席" : outcome === "failed" ? "それでも灰炉へ" : outcome === "early-return" ? "早い帰還" : "灰炉の灯り";
     const fallback = outcome === "failed" ? "傷ついた隊が、どうにか灰炉へ運び戻された。" : "遠征隊は灰炉へ帰還した。";
-    const endingNarrative = narrativeEndingLine(expeditionNarrative, outcome);
+    const endingNarrative = outcome === "missing" ? null : narrativeEndingLine(expeditionNarrative, outcome);
     return makeScene(report, {
       kind: "return",
       phase: "ending",
@@ -408,13 +408,13 @@
     return indexes.length ? Math.min(...indexes) : Number.MAX_SAFE_INTEGER;
   }
 
-  function selectMiddleScenes(battleScenes, consequenceScenes, entries) {
+  function selectMiddleScenes(battleScenes, consequenceScenes, entries, openingCount = 0) {
     const battles = dedupeCandidates(battleScenes)
       .sort((a, b) => b.priority - a.priority || a.sceneId.localeCompare(b.sceneId));
     const pool = dedupeCandidates([...consequenceScenes, ...battles])
       .sort((a, b) => b.priority - a.priority || a.sceneId.localeCompare(b.sceneId));
     const selected = [];
-    const middleLimit = MAX_SCENES - 1;
+    const middleLimit = MAX_SCENES - 1 - openingCount;
 
     // Combat is the reason to spend paper-theatre frames: if a battle happened,
     // guarantee at least one battle beat before considering other highlights.
@@ -449,8 +449,24 @@
     const entries = indexedLog(report);
     const battles = battleCandidates(report, entries, input.narrative);
     const consequences = consequenceCandidates(report, entries, input.narrative);
+    const choiceTypes = /^(policy|forest-approach|mine-approach|village-bell|night-watch|field-camp|.*opportunity|.*affinity|.*signal.*|followup-unlocked|lost-loot-recovery)$/;
+    entries.filter(({ entry }) => choiceTypes.test(entry.type) && entry.text).forEach(({ entry, id }) => {
+      consequences.push(makeScene(report, {
+        kind: "decision", phase: "middle", headline: "あの判断の先で", caption: entry.text,
+        actorIds: report.companionIds, visualKey: "discovery.knowledge", priority: 106,
+        sourceEventIds: [id],
+      }));
+    });
+    const departure = firstByType(entries, ["departure"]);
+    const opening = departure && report.dispatchSummary ? makeScene(report, {
+      kind: "departure", phase: "opening", headline: `${report.destinationName}へ託した支度`,
+      caption: `${departure.entry.text} ${report.dispatchSummary.policy}方針。道具：${report.dispatchSummary.equipment.join("、") || "なし"}。`,
+      actorIds: report.companionIds, visualKey: "hearth.departure", priority: 100,
+      sourceEventIds: [departure.id],
+    }) : null;
     const ending = endingScene(report, entries, input.narrative);
-    const scenes = selectMiddleScenes(battles, consequences, entries);
+    const scenes = selectMiddleScenes(battles, consequences, entries, opening ? 1 : 0);
+    if (opening) scenes.unshift(opening);
     scenes.push(ending);
 
     return {

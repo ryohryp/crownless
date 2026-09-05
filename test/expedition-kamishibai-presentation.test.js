@@ -16,13 +16,11 @@ test("runtime loads scene projection, battle composition, and kamishibai styles 
   assert.match(runtime, /expedition-kamishibai-battle\.css/);
   assert.match(runtime, /src\/expedition-scenes\.js/);
   assert.match(runtime, /src\/expedition-visual-composition\.js/);
-  assert.match(runtime, /scenes\.onload = loadExpeditionComposition/);
-  assert.match(runtime, /scenes\.onerror = loadExpeditionComposition/);
-  assert.match(runtime, /composition\.onload = loadExpeditionDomain/);
-  assert.match(runtime, /composition\.onerror = loadExpeditionDomain/);
+  assert.ok(runtime.indexOf('await script("src/expedition-scenes.js"') < runtime.indexOf('await script("src/expedition-presentation.js"'));
+  assert.match(runtime, /"CrownlessExpeditionVisualComposition"\)\.catch/);
 });
 
-test("completed report reads as kamishibai then result summary then details", () => {
+test("completed report reads as result and adaptation before the optional scene deck and details", () => {
   const reportStart = presentation.indexOf("function renderReport");
   const reportEnd = presentation.indexOf("document.addEventListener", reportStart);
   assert.ok(reportStart >= 0 && reportEnd > reportStart);
@@ -31,7 +29,8 @@ test("completed report reads as kamishibai then result summary then details", ()
   const summaryCall = reportBody.indexOf('const summary = el("section", "expedition-report-summary")');
   const detailsCall = reportBody.indexOf("details.dataset.expeditionDetails");
   assert.ok(sceneCall >= 0, "kamishibai should exist");
-  assert.ok(summaryCall > sceneCall, "result summary should follow the kamishibai");
+  assert.ok(summaryCall < sceneCall, "result summary should precede the kamishibai");
+  assert.ok(reportBody.indexOf("renderAdapt(content, report)") < sceneCall);
   assert.ok(detailsCall > summaryCall, "raw details should follow the result summary");
   assert.match(presentation, /成果へ ↓/);
   assert.match(presentation, /成果を見る ↓/);

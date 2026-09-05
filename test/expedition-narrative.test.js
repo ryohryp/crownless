@@ -123,14 +123,11 @@ test("report UI uses narrative through the scroll only and keeps raw chronology 
   const runtime = fs.readFileSync(path.join(root, "src", "app-runtime-state.js"), "utf8");
   const presentation = fs.readFileSync(path.join(root, "src", "expedition-presentation.js"), "utf8");
   const css = fs.readFileSync(path.join(root, "expedition.css"), "utf8");
-  const narrativeLoad = runtime.indexOf('narrative.src = "src/expedition-narrative.js"');
-  const sceneLoad = runtime.indexOf('scenes.src = "src/expedition-scenes.js"');
-  const compositionLoad = runtime.indexOf('composition.src = "src/expedition-visual-composition.js"');
-  const domainLoad = runtime.indexOf('domain.src = "src/expedition-system.js"');
-  assert.ok(narrativeLoad >= 0 && sceneLoad >= 0 && compositionLoad >= 0 && domainLoad >= 0);
-  assert.match(runtime, /narrative\.onload = loadExpeditionScenes/);
-  assert.match(runtime, /scenes\.onload = loadExpeditionComposition/);
-  assert.match(runtime, /composition\.onload = loadExpeditionDomain/);
+  const narrativeLoad = runtime.indexOf('await script("src/expedition-narrative.js"');
+  const sceneLoad = runtime.indexOf('await script("src/expedition-scenes.js"');
+  const compositionLoad = runtime.indexOf('await script("src/expedition-visual-composition.js"');
+  const presentationLoad = runtime.indexOf('await script("src/expedition-presentation.js"');
+  assert.ok(narrativeLoad >= 0 && sceneLoad > narrativeLoad && compositionLoad > sceneLoad && presentationLoad > compositionLoad);
   assert.match(presentation, /buildExpeditionNarrative/);
   assert.match(presentation, /renderKamishibai\(content, report, generatedNarrative\)/);
   assert.match(presentation, /EXPEDITION SCENES/);
@@ -150,7 +147,7 @@ test("report UI uses narrative through the scroll only and keeps raw chronology 
   const scrollPosition = reportBody.indexOf("renderKamishibai(content, report, generatedNarrative)");
   const summaryPosition = reportBody.indexOf("content.append(summary)");
   const detailsPosition = reportBody.indexOf("details.dataset.expeditionDetails");
-  assert.ok(scrollPosition >= 0 && summaryPosition > scrollPosition && detailsPosition > summaryPosition, "report should read as scroll → summary → details");
+  assert.ok(summaryPosition >= 0 && scrollPosition > summaryPosition && detailsPosition > scrollPosition, "report should read as summary → adaptation → scroll → details");
   assert.match(reportBody, /details\.open = false/);
   assert.doesNotMatch(reportBody, /details\.open = true/);
 });

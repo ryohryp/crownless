@@ -384,6 +384,14 @@
     return {
       expeditionId: expedition.id, outcome, destinationId: destination.id, destinationName: destination.name,
       companionIds: expedition.inputs.companionIds.slice(), policyId: policy.id, policyName: policy.name,
+      // Optional report-only snapshot: old saves remain readable without migration.
+      // Select game-facing names explicitly; never copy arbitrary input/location data.
+      dispatchSummary: {
+        party: party.map(item => item.name),
+        equipment: (expedition.inputs.equipmentIds || []).map(id => state.equipment.find(item => item.id === id)?.name).filter(Boolean),
+        policy: policy.name,
+        objective: expedition.inputs.objective,
+      },
       startedAt: expedition.startedAt, completedAt: expedition.expectedReturnAt,
       durationMs: expedition.expectedReturnAt - expedition.startedAt,
       loot, injuries, discoveries,

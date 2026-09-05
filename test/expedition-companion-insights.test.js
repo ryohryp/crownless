@@ -185,6 +185,6 @@ test("scar memory changes a real party and policy choice rather than granting a 
 
 test("browser bridge loads the companion insight slice after proposal UI", () => {
   const bridge = fs.readFileSync(path.join(__dirname, "../src/expedition-unknown-bridge.js"), "utf8");
-  assert.match(bridge, /loadCompanionProposals\(root\);\s*api\.loadCompanionInsights\(root\)/);
+  assert.match(bridge, /loadCompanionProposals\(root\);\s*await api\.loadCompanionInsights\(root\)/);
   assert.match(bridge, /src\/expedition-companion-insights\.js/);
 });

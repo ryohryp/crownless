@@ -1,3 +1,4 @@
 # Local image-generation intermediates and package caches
 tmp/imagegen/
 tmp/uv-cache/
+.qa/

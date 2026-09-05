@@ -109,7 +109,7 @@
     if (!report || !entry) return null;
     const previousState = cleanText(entry.state, "discovered");
     const visits = Math.max(1, Math.floor(Number(entry.visits) || 1)) + 1;
-    if (report.outcome === "failed" || report.outcome === "early-return") {
+    if (report.outcome !== "success") {
       return { state: previousState, visits, changed: false, summary: `${entry.name}の調査はまだ終わっていない。再び向かう理由が残った。` };
     }
     const hasDiscovery = Array.isArray(report.discoveries) && report.discoveries.length > 0;
@@ -175,7 +175,14 @@
       const originalAdvance = system.advance.bind(system);
       system.advance = function advanceWithGeographicProgress(stateInput, nowMs) {
         const advanced = originalAdvance(stateInput, nowMs);
-        if (advanced && advanced.report) applyGeographicReport(Core, advanced.report, root);
+        if (advanced && advanced.report) {
+          applyGeographicReport(Core, advanced.report, root);
+          // Earlier decorators may have cloned the report into history. Commit
+          // the final geographic projection there too, so reopen tells the same story.
+          const reports = advanced.state && advanced.state.completedReports;
+          const index = Array.isArray(reports) ? reports.findIndex(r => r.expeditionId === advanced.report.expeditionId) : -1;
+          if (index >= 0) reports[index] = JSON.parse(JSON.stringify(advanced.report));
+        }
         return advanced;
       };
     }

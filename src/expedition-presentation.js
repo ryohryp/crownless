@@ -3,10 +3,13 @@
 (function expeditionPresentation() {
   const STORAGE_KEY = "crownless.expedition-poc.v1";
   const system = window.CrownlessExpeditionSystem;
+  const journey = window.CrownlessExpeditionJourney;
   const narrative = window.CrownlessExpeditionNarrative;
   const sceneProjection = window.CrownlessExpeditionScenes;
   const visualComposition = window.CrownlessExpeditionVisualComposition;
   const SCENE_PHASE_LABELS = Object.freeze({
+    departure: "託した支度",
+    decision: "判断と結果",
     "combat-opening": "遭遇",
     "combat-climax": "戦闘",
     injury: "負傷",
@@ -36,6 +39,9 @@
   let reportSceneCursor = 0;
   let reportSceneExpeditionId = null;
   let preparingNextExpedition = false;
+  let requestedDestinationId = null;
+  let returnFocus = null;
+  let prepareObserver = null;
 
   function el(tag, className, text) {
     const node = document.createElement(tag);
@@ -58,21 +64,60 @@
     return shell;
   }
 
-  function open() {
-    const shell = ensureShell();
+  function open(options = {}) {
+    state = load();
+    const bridge = window.CrownlessGeographicExpeditionBridge;
+    if (options.destinationId) {
+      state = bridge.augmentStateWithGeographicDestination(system, window.CrownlessCore, state, options.destinationId);
+      if (state.activeExpedition || !state.destinations.some(d => d.id === options.destinationId)) return false;
+    }
+    returnFocus = document.activeElement;
+    requestedDestinationId = options.destinationId || null;
     selectedReportExpeditionId = null;
-    preparingNextExpedition = false;
-    refresh(Date.now());
+    lastResolved = null;
+    refresh(Date.now(), false);
+    preparingNextExpedition = options.view === "prepare";
+    const shell = ensureShell();
     render();
     shell.classList.add("is-open");
+    document.body.classList.add("expedition-open");
+    document.querySelector("main").inert = true;
+    shell.querySelector(".expedition-folio__close").focus({ preventScroll: true });
+    return true;
   }
 
   function close() {
     const shell = document.getElementById("expedition-folio");
     if (shell) shell.classList.remove("is-open");
+    document.body.classList.remove("expedition-open");
+    document.querySelector("main").inert = false;
+    if (returnFocus?.isConnected) returnFocus.focus({ preventScroll: true });
+    updateHearth();
   }
 
-  function refresh(now) {
+  function openMap() {
+    const atlas = window.CrownlessWorldAtlas;
+    if (!atlas) return false;
+    close();
+    atlas.openAtlas(document, window.CrownlessCore, window, { autoScan: false, view: "world" });
+    return true;
+  }
+
+  function updateHearth() {
+    const room = document.querySelector(".hearth-room");
+    if (!room) return;
+    let note = room.querySelector(".hearth-journey-note");
+    if (!note) { note = el("button", "hearth-journey-note"); note.type = "button"; note.addEventListener("click", () => open()); room.append(note); }
+    const active = state.activeExpedition;
+    const report = state.completedReports[0];
+    const title = active ? `${state.destinations.find(d => d.id === active.inputs.destinationId)?.name || "遠征先"}へ派遣中` : report ? `${report.destinationName}からの報告` : "まだ見ぬ土地へ";
+    const copy = active ? `${active.inputs.companionIds.map(id => state.companions.find(c => c.id === id)?.name || id).join("、")}の帰りを待つ。${formatLiveClock(active.expectedReturnAt)} 帰還予定` : report ? journey.aftermath(report, state).changes[0] : "歩いて地図に記し、安全な場所から仲間を送り出そう。";
+    const text = [title, copy, active ? "遠征の様子を見る →" : report ? "報告と次の一手を見る →" : "旅支度を開く →"].join("\n");
+    if (note.textContent !== text) note.textContent = text;
+  }
+
+  function refresh(now, reloadState = true) {
+    if (reloadState) state = load();
     const advanced = system.advance(state, now);
     state = advanced.state;
     if (advanced.report) {
@@ -82,6 +127,7 @@
     }
     save(state);
     updateGateCopy();
+    updateHearth();
   }
 
   function updateGateCopy() {
@@ -105,7 +151,10 @@
   function render() {
     const content = document.getElementById("expedition-folio-content");
     if (!content) return;
+    prepareObserver?.disconnect();
     content.replaceChildren();
+    const page = content.closest(".expedition-folio__page");
+    if (page) page.scrollTop = 0;
     if (state.activeExpedition) {
       preparingNextExpedition = false;
       renderActive(content);
@@ -163,6 +212,139 @@
     return group;
   }
 
+  function developmentMode() {
+    return ["localhost", "127.0.0.1", "[::1]"].includes(location.hostname);
+  }
+
+  function prepareJourney(form, content) {
+    form.noValidate = true;
+    let step = 0;
+    let signature = "";
+    const titles = ["行き先", "仲間と道具", "方針", "出発確認"];
+    const nav = el("nav", "expedition-journey-nav");
+    nav.setAttribute("aria-label", "旅支度の段階");
+    const briefing = el("section", "expedition-briefing");
+    const review = el("section", "expedition-review");
+    review.tabIndex = -1;
+    const dock = el("div", "expedition-journey-dock");
+    const back = el("button", "expedition-secondary", "← 戻る");
+    const next = el("button", "expedition-dispatch", "仲間と道具へ →");
+    const map = el("button", "expedition-secondary", "地図で選び直す");
+    [back, next, map].forEach(b => b.type = "button");
+    map.addEventListener("click", openMap);
+    const dispatch = form.querySelector("button[type=submit]");
+    dock.append(back, next);
+    if (dispatch) dock.append(dispatch);
+    content.insertBefore(nav, form);
+    form.prepend(briefing);
+    form.insertBefore(review, form.querySelector(".expedition-actions"));
+    form.append(dock);
+    const stageFor = node => {
+      const name = node.querySelector("input[name]")?.name;
+      if (["destination", "rescueTarget", "forest-approach", "mine-approach", "village-approach"].includes(name)) return 0;
+      if (["companion", "equipment", "leader", "fieldCareReserve"].includes(name) || node.hasAttribute("data-geographic-companion-hint")) return 1;
+      return 2;
+    };
+    const groups = () => [...form.children].filter(n => ![briefing, review, dock].includes(n) && !n.classList.contains("expedition-actions") && !n.matches("p.expedition-form-feedback"));
+    const relevant = node => node.querySelector("input[name]")?.name !== "camp-focus" || form.querySelector('input[name="stay-plan"]:checked')?.value === "field-camp";
+    const chosenCopy = group => [...group.querySelectorAll("input:checked")].map(input => {
+      const label = input.closest("label");
+      return label?.querySelector("strong")?.textContent || label?.querySelector("span")?.textContent || input.value;
+    }).join(" / ");
+    function sync() {
+      for (const group of groups()) {
+        group.hidden = stageFor(group) !== step || !relevant(group);
+        const name = group.querySelector("input[name]")?.name;
+        // Optional refinements keep their visible selected value. Required
+        // destination/night-watch judgments are never silently collapsed.
+        if (["march-pace", "stay-plan"].includes(name)) {
+          group.classList.add("expedition-optional");
+          const legend = group.querySelector("legend");
+          let toggle = legend?.querySelector("button");
+          if (legend && !toggle) {
+            toggle = el("button", "expedition-optional-toggle"); toggle.type = "button";
+            toggle.addEventListener("click", () => { const expanded = group.classList.toggle("is-expanded"); toggle.setAttribute("aria-expanded", String(expanded)); });
+            toggle.setAttribute("aria-expanded", "false"); legend.append(toggle);
+          }
+          const text = `${chosenCopy(group)} · 変更`;
+          if (toggle && toggle.textContent !== text) toggle.textContent = text;
+        }
+      }
+      briefing.hidden = step !== 0;
+      review.hidden = step !== 3;
+      form.querySelector(".expedition-actions").hidden = step !== 3;
+      next.hidden = step === 3;
+      if (dispatch) dispatch.hidden = step !== 3;
+      back.hidden = step === 0;
+      const id = form.querySelector('input[name="destination"]:checked')?.value;
+      const bridge = window.CrownlessGeographicExpeditionBridge;
+      const destination = state.destinations.find(d => d.id === id) || bridge.geographicDestinations(window.CrownlessCore).find(d => d.id === id);
+      const brief = journey.briefing(destination, state);
+      const selections = groups().filter(n => n.tagName === "FIELDSET" && relevant(n)).map(n => [n.querySelector("legend")?.firstChild?.textContent || "判断", chosenCopy(n) || "選択なし"]);
+      const newSignature = JSON.stringify([step, brief, selections]);
+      if (signature === newSignature) return;
+      signature = newSignature;
+      nav.replaceChildren(...titles.map((title, index) => {
+        const button = el("button", "", `${index + 1} ${title}`); button.type = "button";
+        button.setAttribute("aria-current", index === step ? "step" : "false");
+        button.addEventListener("click", () => go(index)); return button;
+      }));
+      next.textContent = `${titles[step + 1] || "出発確認"}へ →`;
+      if (brief) {
+        briefing.replaceChildren(el("h3", "", brief.name), el("p", "", brief.known), el("p", "", `警戒：${brief.danger} ／ 狙い：${brief.opportunity}`), el("p", "", brief.question), map);
+      }
+      review.replaceChildren(el("h3", "", "この支度で送り出す"), el("p", "", "帰還までアプリを閉じていても、遠征は進む。判断を変えるなら各段階へ戻れる。"));
+      selections.forEach(([label, value]) => { const line = el("p", ""); line.append(el("strong", "", `${label}：`), document.createTextNode(value)); review.append(line); });
+    }
+    function invalid(stage) {
+      return groups().filter(n => relevant(n) && (stage == null || stageFor(n) === stage)).flatMap(n => [...n.querySelectorAll("input")]).find(n => !n.disabled && !n.checkValidity());
+    }
+    function go(target) {
+      const bad = target > step ? invalid(step) : null;
+      if (bad) { bad.focus(); bad.reportValidity(); return; }
+      step = target; sync();
+      content.closest(".expedition-folio__page").scrollTop = 0;
+      nav.querySelector('[aria-current="step"]')?.focus({ preventScroll: true });
+    }
+    back.addEventListener("click", () => go(Math.max(0, step - 1)));
+    next.addEventListener("click", () => go(Math.min(3, step + 1)));
+    form.journeyCanDispatch = () => {
+      const bad = invalid();
+      if (bad) { go(stageFor(bad.closest("fieldset"))); bad.focus(); bad.reportValidity(); return false; }
+      if (step !== 3) { go(Math.min(3, step + 1)); return false; }
+      return true;
+    };
+    form.addEventListener("change", () => queueMicrotask(sync));
+    prepareObserver?.disconnect();
+    prepareObserver = new MutationObserver(sync);
+    prepareObserver.observe(form, { childList: true, subtree: true });
+    sync();
+  }
+
+  function renderAdapt(content, report) {
+    const result = journey.aftermath(report, state);
+    const panel = el("section", "expedition-adapt");
+    panel.setAttribute("aria-label", "帰還後の変化と次の一手");
+    panel.append(el("h3", "", "灰炉に残ったもの"));
+    result.changes.forEach(text => panel.append(el("p", "", text)));
+    result.destinations.forEach(destination => {
+      const action = el("button", "expedition-secondary", `${destination.name}を調べる →`);
+      action.type = "button";
+      action.addEventListener("click", () => open({ view: "prepare", destinationId: destination.id }));
+      panel.append(action);
+    });
+    if (!result.destinations.length && report.outcome !== "success") {
+      panel.append(el("p", "", "人選や道具を変えて再調査するか、別の土地を選ぼう。"));
+      requestedDestinationId = report.destinationId;
+    }
+    const map = el("button", "expedition-secondary", "変わった地図を見る →");
+    map.type = "button"; map.addEventListener("click", openMap);
+    const home = el("button", "expedition-secondary", "灰炉へ戻る →");
+    home.type = "button"; home.addEventListener("click", close);
+    panel.append(map, home);
+    content.append(panel);
+  }
+
   function renderPrepare(content) {
     state = system.reconcileRecoveries(state, Date.now());
     save(state);
@@ -171,9 +353,14 @@
     const availableCompanions = state.companions.filter(companionAvailable);
     const injuredCompanions = state.companions.filter((companion) => companion.condition === "injured");
     const recoveringCompanions = state.companions.filter((companion) => companion.condition === "recovering");
+    const destinationChoices = choiceGroup("遠征先", "destination", state.destinations, requestedDestinationId || state.destinations[0].id, (d) => `危険: ${journey.words(d.dangerTags)} / 約${Math.round(d.durationMs / 60000)}分`);
+    if (requestedDestinationId) {
+      destinationChoices.classList.add("expedition-choice--atlas-locked");
+      destinationChoices.querySelector('input:checked')?.closest("label").classList.add("is-atlas-selected");
+    }
     form.append(
-      choiceGroup("遠征先", "destination", state.destinations, state.destinations[0].id, (d) => `危険: ${d.dangerTags.join("・")} / 約${Math.round(d.durationMs / 60000)}分`),
-      choiceGroup("仲間", "companion", state.companions, availableCompanions[0]?.id, (c) => `${c.origin} / ${c.traits.join("・")} / ${recoveryLabel(c)}`),
+      destinationChoices,
+      choiceGroup("仲間", "companion", state.companions, availableCompanions[0]?.id, (c) => `${c.origin} / ${journey.words(c.traits)} / ${recoveryLabel(c)}`),
       choiceGroup("方針", "policy", Object.values(system.policies), "standard", (p) => p.id === "cautious" ? "負傷や危険で早めに引く" : p.id === "greedy" ? "成果のため危険を受け入れる" : "生還と成果の中間")
     );
 
@@ -185,7 +372,7 @@
       input.type = "checkbox";
       input.name = "equipment";
       input.value = item.id;
-      label.append(input, el("span", "", `${item.name} — ${item.tags.join("・")}`));
+      label.append(input, el("span", "", `${item.name} — ${journey.words(item.tags)}`));
       gear.append(label);
     });
     form.append(gear);
@@ -200,6 +387,7 @@
     dispatch.type = "submit";
     const instant = el("label", "expedition-dev-toggle");
     instant.innerHTML = '<input type="checkbox" name="instant"> 開発用: 即時帰還';
+    instant.hidden = !developmentMode();
     actions.append(instant);
 
     if (!availableCompanions.length) {
@@ -242,6 +430,7 @@
     });
     form.addEventListener("submit", (event) => {
       event.preventDefault();
+      if (!form.journeyCanDispatch()) return;
       const data = new FormData(form);
       const companionId = data.get("companion");
       if (!companionId) {
@@ -250,6 +439,8 @@
       }
       const now = Date.now();
       try {
+        // Optional appraisal/market surfaces may have updated this same save.
+        state = load();
         state = system.dispatchExpedition(state, {
           destinationId: data.get("destination"),
           companionIds: [companionId],
@@ -268,6 +459,7 @@
       }
     });
     content.append(form);
+    prepareJourney(form, content);
   }
 
   function formatLiveClock(timestamp) {
@@ -319,9 +511,13 @@
     const check = el("button", "expedition-dispatch", "最新の記録を確認する");
     check.type = "button";
     check.addEventListener("click", () => { refresh(Date.now()); render(); });
+    const home = el("button", "expedition-secondary", "灰炉で帰りを待つ →");
+    home.type = "button"; home.addEventListener("click", close);
+    status.append(home);
     const finish = el("button", "expedition-secondary", "開発用: 時間を進める");
     finish.type = "button";
     finish.addEventListener("click", () => { refresh(exp.expectedReturnAt); render(); });
+    finish.hidden = !developmentMode();
     status.append(check, finish);
     content.append(status);
     renderActiveLog(content, exp, now);
@@ -526,18 +722,23 @@
   }
 
   function renderReport(content, report) {
-    renderReportHistory(content, report);
-    const outcomeLabel = { success: "生還", "early-return": "早期撤退", failed: "失敗" }[report.outcome] || report.outcome;
-    content.append(heading("RETURN REPORT", `${report.destinationName} — ${outcomeLabel}`, `${report.policyName}方針。帰ってきた遠征隊の話を辿る。`));
+
+    const outcomeLabel = journey.outcomeLabel(report.outcome);
+    content.append(heading("RETURN REPORT", `${report.destinationName} — ${outcomeLabel}`, `${report.policyName}方針。${report.notableEvent?.text || "遠征隊の記録が届いた。"}`));
     const generatedNarrative = buildBattleNarrative(report);
 
-    renderKamishibai(content, report, generatedNarrative);
+
 
     const summary = el("section", "expedition-report-summary");
     summary.dataset.expeditionSummary = "";
     summary.setAttribute("aria-label", "遠征成果");
-    summary.innerHTML = `<div><small>戦利品</small><strong>${report.loot.length ? report.loot.map((x) => x.name).join("、") : "なし"}</strong></div><div><small>負傷</small><strong>${report.injuries.length ? report.injuries.map((id) => state.companions.find((c) => c.id === id)?.name || id).join("、") : "なし"}</strong></div><div><small>新発見</small><strong>${report.discoveries.length ? report.discoveries.map((x) => x.name).join("、") : "なし"}</strong></div>`;
+    [["戦利品", report.loot.map(x => x.name)], ["負傷", report.injuries.map(id => state.companions.find(c => c.id === id)?.name || id)], ["新発見", report.discoveries.map(x => x.name)]].forEach(([label, values]) => {
+      const cell = el("div", ""); cell.append(el("small", "", label), el("strong", "", values.join("、") || "なし")); summary.append(cell);
+    });
     content.append(summary);
+    renderAdapt(content, report);
+    renderKamishibai(content, report, generatedNarrative);
+    renderReportHistory(content, report);
 
     const details = el("details", "expedition-log");
     details.dataset.expeditionDetails = "";
@@ -547,7 +748,8 @@
     report.log.forEach((entry) => {
       const li = el("li", "");
       const causes = Array.isArray(entry.causes) ? entry.causes : [];
-      li.innerHTML = `<time>${entry.time}</time><span>${entry.text}</span>${causes.length ? `<small>${causes.join(" / ")}</small>` : ""}`;
+      li.append(el("time", "", entry.time), el("span", "", entry.text));
+      if (causes.length) li.append(el("small", "", journey.words(causes)));
       list.append(li);
     });
     details.append(list);
@@ -569,7 +771,7 @@
       content.replaceChildren();
       renderPrepare(content);
     });
-    content.append(again);
+    content.querySelector(".expedition-adapt").append(again);
   }
 
   document.addEventListener("click", (event) => {
@@ -580,12 +782,21 @@
   }, true);
 
   document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape") close();
+    const shell = document.querySelector(".expedition-folio.is-open");
+    if (!shell) return;
+    if (event.key === "Escape") { event.stopImmediatePropagation(); close(); }
+    if (event.key === "Tab") {
+      const items = [...shell.querySelectorAll("button, input, select, summary, [tabindex='0']")].filter(n => !n.disabled && n.getClientRects().length);
+      const first = items[0], last = items.at(-1);
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
+    }
   });
 
   window.CrownlessExpeditionPresentation = Object.freeze({
     open,
     close,
+    getState() { return structuredClone(state); },
     isReady() { return true; }
   });
 

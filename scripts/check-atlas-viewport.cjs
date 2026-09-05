@@ -143,9 +143,12 @@ async function screenshot(page, name) {
       await page.keyboard.press("Enter");
       await page.waitForSelector("form.expedition-prepare");
       assert.equal(await page.locator("#world-atlas-viewer").count(), 0);
+      await page.getByRole("button", { name: "仲間と道具へ →", exact: true }).click();
       await page.locator('input[name="companion"]').first().check();
+      await page.getByRole("button", { name: "方針へ →", exact: true }).click();
+      await page.getByRole("button", { name: "出発確認へ →", exact: true }).click();
       if (viewport.width !== 390) await page.locator('input[name="instant"]').check();
-      await page.locator(".expedition-dispatch").click();
+      await page.locator("form button[type=submit]").click();
       if (viewport.width === 390) {
         const active = await page.evaluate(() => JSON.parse(localStorage.getItem("crownless.expedition-poc.v1")).activeExpedition);
         assert.ok(active);

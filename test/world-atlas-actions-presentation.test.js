@@ -101,7 +101,7 @@ test("local event rumor is persisted once through the existing world knowledge b
 
 test("atlas action hub connects expedition, branching local event, and merchant facility", () => {
   assert.match(source, /dataAtlasActionKind|dataset\.atlasActionKind/);
-  assert.match(source, /lockAtlasDestination/);
+  assert.match(source, /presentation.open\(\{ view: "prepare", destinationId:/);
   assert.match(source, /buildLocalEvent/);
   assert.match(source, /renderChoices\(choice\.followUps\)/);
   assert.match(source, /recordLocalEventRumor/);
@@ -111,25 +111,8 @@ test("atlas action hub connects expedition, branching local event, and merchant 
   assert.match(source, /getRegionMissionBoard/);
 });
 
-test("atlas finds the report-to-prepare action without depending on its injury-specific copy", () => {
-  const prepare = {
-    textContent: "負傷者を休ませて次を準備する →",
-    matches(selector) { return selector === "button.expedition-dispatch"; }
-  };
-  const content = {
-    children: [{ matches() { return false; } }, prepare],
-    querySelectorAll() { return []; }
-  };
-  assert.equal(Presentation.findPrepareTransitionButton(content), prepare);
-});
-
-test("atlas keeps a copy-based fallback for older expedition report markup", () => {
-  const prepare = { textContent: "負傷者を休ませて次を準備する →" };
-  const content = {
-    children: [],
-    querySelectorAll(selector) { return selector === "button" ? [prepare] : []; }
-  };
-  assert.equal(Presentation.findPrepareTransitionButton(content), prepare);
+test("Atlas has no synthetic report/close transitions or text-dependent fallback", () => {
+  assert.doesNotMatch(source, /\.click\(\)|findPrepareTransitionButton|lockAtlasDestination/);
 });
 
 test("opening an Atlas expedition uses the explicit presentation entrypoint instead of the legacy gate", () => {
@@ -140,7 +123,7 @@ test("opening an Atlas expedition uses the explicit presentation entrypoint inst
   };
   root.CrownlessExpeditionPresentation = {
     isReady() { return true; },
-    open() { order.push("presentation"); },
+    open(options) { assert.deepEqual(options, { view: "prepare", destinationId: "world:geo:test" }); order.push("presentation"); return true; },
     close() { order.push("presentation-close"); }
   };
   root.CrownlessDiscoveryJournal = { close() { order.push("journal"); } };

@@ -12,47 +12,53 @@
       root.CrownlessLocationDiscoveryRuntime,
       root
     );
-    api.loadObjectiveChoices(root);
-    api.loadEquipmentOpportunities(root);
-    api.loadWaterAffinity(root);
-    api.loadPartyOpportunities(root);
-    api.loadRescueLoop(root);
-    api.loadRescueStabilization(root);
-    api.loadRescueSalvage(root);
-    api.loadCompanionProposals(root);
-    api.loadCompanionInsights(root);
-    api.loadPartySelection(root);
-    api.loadLeaderOutcomes(root);
-    api.loadFollowupDestinations(root);
-    api.loadSignalEncounters(root);
-    api.loadBanditPolicy(root);
-    api.loadWorldAtlasScouting(root);
-    api.loadWorldTraces(root);
-    api.loadForcedMarch(root);
-    api.loadFieldCamp(root);
-    api.loadCampSupplyRelief(root);
-    api.loadPlayerCache(root);
-    api.loadNightWatch(root);
-    api.loadVillageBell(root);
-    api.loadMineApproach(root);
-    api.loadForestApproach(root);
-    api.loadLostLootRecovery(root);
-    api.loadLootAppraisal(root);
-    api.loadBanditCaptive(root);
-    api.loadFleetingLeads(root);
-    api.loadSignalRescanFeedback(root);
+
   }
 })(typeof globalThis !== "undefined" ? globalThis : this, function createExpeditionUnknownBridge() {
   "use strict";
 
   function loadScript(root, globalName, src) {
-    if (!root || !root.document || root[globalName]) return Boolean(root && root.document);
-    if (root.document.querySelector(`script[src="${src}"]`)) return true;
+    if (root[globalName]) return Promise.resolve();
     const script = root.document.createElement("script");
     script.src = src;
-    script.defer = true;
-    root.document.head.appendChild(script);
-    return true;
+    return new Promise((resolve, reject) => {
+      script.onload = () => root[globalName] ? resolve() : reject(new Error(src));
+      script.onerror = () => { script.remove(); reject(new Error(src)); };
+      root.document.head.appendChild(script);
+    });
+  }
+
+  // Install rule hooks in a stable order before loading/advancing saved expeditions.
+  async function loadRuntime(root) {
+    await api.loadObjectiveChoices(root);
+    await api.loadEquipmentOpportunities(root);
+    await api.loadWaterAffinity(root);
+    await api.loadPartyOpportunities(root);
+    await api.loadRescueLoop(root);
+    await api.loadRescueStabilization(root);
+    await api.loadRescueSalvage(root);
+    await api.loadCompanionProposals(root);
+    await api.loadCompanionInsights(root);
+    await api.loadPartySelection(root);
+    await api.loadLeaderOutcomes(root);
+    await api.loadFollowupDestinations(root);
+    await api.loadSignalEncounters(root);
+    await api.loadBanditPolicy(root);
+    await api.loadWorldAtlasScouting(root);
+    await api.loadWorldTraces(root);
+    await api.loadForcedMarch(root);
+    await api.loadFieldCamp(root);
+    await api.loadCampSupplyRelief(root);
+    await api.loadPlayerCache(root);
+    await api.loadNightWatch(root);
+    await api.loadVillageBell(root);
+    await api.loadMineApproach(root);
+    await api.loadForestApproach(root);
+    await api.loadLostLootRecovery(root);
+    await api.loadLootAppraisal(root);
+    await api.loadBanditCaptive(root);
+    await api.loadFleetingLeads(root);
+    await api.loadSignalRescanFeedback(root);
   }
 
   function loadObjectiveChoices(root) { return loadScript(root, "CrownlessExpeditionObjectives", "src/expedition-objectives.js"); }
@@ -166,7 +172,7 @@
   }
 
   const api = {
-    install,
+    install, loadRuntime,
     loadObjectiveChoices, loadEquipmentOpportunities, loadWaterAffinity, loadPartyOpportunities,
     loadRescueLoop, loadRescueStabilization, loadRescueSalvage, loadCompanionProposals,
     loadCompanionInsights, loadPartySelection, loadLeaderOutcomes, loadFollowupDestinations,
