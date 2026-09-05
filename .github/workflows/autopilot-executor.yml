@@ -1,0 +1,61 @@
+name: Crownless Autopilot Executor
+
+on:
+  issues:
+    types: [opened, labeled]
+  workflow_dispatch:
+    inputs:
+      issue_number:
+        description: "agent-ready Issue number to execute"
+        required: true
+        type: number
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  execute:
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      (github.event.issue.state == 'open' && contains(github.event.issue.labels.*.name, 'agent-ready'))
+    runs-on: [self-hosted, crownless-autopilot]
+    timeout-minutes: 60
+    concurrency:
+      group: crownless-autopilot-${{ github.event.issue.number || inputs.issue_number }}
+      cancel-in-progress: false
+    env:
+      GH_TOKEN: ${{ github.token }}
+      ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Verify runner dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --version
+          git --version
+          gh --version
+          codex --version
+          gh auth status
+
+      - name: Verify Issue is executable
+        shell: bash
+        run: |
+          set -euo pipefail
+          state="$(gh issue view "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --json state --jq '.state')"
+          labels="$(gh issue view "$ISSUE_NUMBER" --repo "$GITHUB_REPOSITORY" --json labels --jq '[.labels[].name] | join("\n")')"
+          test "$state" = "OPEN"
+          printf '%s\n' "$labels" | grep -Fxq 'agent-ready'
+
+      - name: Run Autopilot executor
+        shell: bash
+        run: |
+          set -euo pipefail
+          node scripts/autopilot/run-next.js --issue "$ISSUE_NUMBER"
