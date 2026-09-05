@@ -379,7 +379,7 @@
       panel.append(action);
     });
     if (!result.destinations.length && report.outcome !== "success") {
-      panel.append(el("p", "", "人選や道具を変えて再調査するか、別の場所を選ぼう。"));
+      panel.append(el("p", "", "人選や道具を変えて再調査するか、別の土地を選ぼう。"));
       requestedDestinationId = report.destinationId;
     }
     const map = el("button", "expedition-secondary", "変わった地図を見る →");
@@ -836,8 +836,8 @@
     if (event.key === "Tab") {
       const items = [...shell.querySelectorAll("button, input, select, summary, [tabindex='0']")].filter(n => !n.disabled && n.getClientRects().length);
       const first = items[0], last = items.at(-1);
-      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus({ preventScroll: true }); }
-      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus({ preventScroll: true }); }
+      if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); }
+      else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); }
     }
   });
 
