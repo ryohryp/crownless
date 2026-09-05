@@ -56,3 +56,11 @@ test("known-only rescan copy keeps the surrounding world open-ended", () => {
   assert.match(copy, /時間や世界の動き/);
   assert.doesNotMatch(copy, /すべて既知/);
 });
+
+test("returning to an already known Atlas does not automatically restart GPS discovery", () => {
+  assert.match(atlasSource, /const shouldPrimeEmptyAtlas = !lastScanResult && nearbyModel\.length === 0 && worldModel\.discoveryCount === 0/);
+  assert.match(atlasSource, /options\.autoScan === true \|\| \(options\.autoScan !== false && shouldPrimeEmptyAtlas\)/);
+  assert.doesNotMatch(atlasSource, /if \(options\.autoScan !== false && !options\.scanning\) runScan\(false\)/);
+  assert.match(atlasSource, /entry\.textContent = "世界地図を開く →"/);
+  assert.match(Atlas.scanResultText(null, false), /周辺を再調査/);
+});
