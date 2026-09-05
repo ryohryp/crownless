@@ -1,0 +1,265 @@
+const path = require("node:path");
+const { spawnSync } = require("node:child_process");
+
+const { invokePlanner } = require("./planner-invocation.js");
+const { collectWorkItems } = require("./work-items.js");
+const { detectDuplicateProposal } = require("./duplicate-detection.js");
+const { AGENT_RUNNING_LABEL } = require("./select-issue.js");
+
+const AGENT_READY_LABEL = "agent-ready";
+const AGENT_PROPOSED_LABEL = "agent-proposed";
+
+function stop(reason, extra = {}) {
+  return { ok: false, decision: "stop", reason, ...extra };
+}
+
+function checkedSpawn(command, args, options = {}) {
+  const result = spawnSync(command, args, {
+    cwd: options.cwd,
+    input: options.input,
+    encoding: "utf8",
+    shell: false,
+    windowsHide: true,
+  });
+  if (result.status !== 0) {
+    const detail = [result.stdout, result.stderr, result.error?.message].filter(Boolean).join("\n").trim();
+    throw new Error(detail || `${command} ${args.join(" ")} failed`);
+  }
+  return result;
+}
+
+function defaultCreateIssue({ repo, title, body, label, cwd = process.cwd() }) {
+  const result = checkedSpawn("gh", [
+    "issue", "create",
+    "--repo", repo,
+    "--title", title,
+    "--body", body,
+    "--label", label,
+  ], { cwd });
+  const url = String(result.stdout || "").trim();
+  const match = url.match(/\/issues\/(\d+)(?:\s|$)/);
+  if (!match) throw new Error(`Could not parse created Issue number from gh output: ${url}`);
+  return { number: Number(match[1]), url };
+}
+
+function defaultExecute({ issueNumber, cwd = process.cwd() }) {
+  const script = path.join(cwd, "scripts", "autopilot", "run-next.js");
+  const result = checkedSpawn(process.execPath, [script, "--issue", String(issueNumber)], { cwd });
+  return { status: result.status, stdout: result.stdout || "", stderr: result.stderr || "" };
+}
+
+function labelSet(item) {
+  return new Set((item?.labels || []).map((label) => typeof label === "string" ? label : label?.name).filter(Boolean));
+}
+
+function hasActiveExecution(snapshot) {
+  return snapshot.items.some((item) => item.type === "issue" && item.state === "open" && labelSet(item).has(AGENT_RUNNING_LABEL));
+}
+
+function hasPendingAutopilotPullRequest(snapshot) {
+  return snapshot.items.some((item) => {
+    if (item.type !== "pull_request" || item.state !== "open") return false;
+    return /autopilot/i.test(`${item.title || ""}\n${item.body || ""}`);
+  });
+}
+
+function gateLine(name, value) {
+  if (!value) return `- ${name}: n/a`;
+  const score = value.applicable === false ? "n/a" : value.score;
+  return `- ${name}: ${score} — ${value.rationale}`;
+}
+
+function buildIssueBody(proposal) {
+  const selected = Array.isArray(proposal.candidates)
+    ? proposal.candidates.find((candidate) => candidate.selected)
+    : null;
+  const lines = [
+    "## 背景 / なぜ今か",
+    proposal.whyNow,
+    "",
+    "## ゴール",
+    proposal.title,
+    "",
+    "## MVP / 最小scope",
+    proposal.scope,
+    "",
+    "## Acceptance Criteria",
+    ...proposal.acceptanceCriteria.map((criterion) => `- [ ] ${criterion}`),
+    "",
+    "## Non-goals",
+    ...(proposal.nonGoals.length ? proposal.nonGoals.map((item) => `- ${item}`) : ["- なし"]),
+    "",
+    "## Canon / 関連",
+    "- `AGENTS.md`",
+    "- `docs/game-system-design.md`",
+    "- `docs/autonomous-development-policy.md`",
+    "- Related: #228",
+    "",
+    "## Planner判定",
+    `- Type: ${proposal.proposalType}`,
+    `- Risk: ${proposal.risk}`,
+    `- Human gate: ${proposal.humanGate}`,
+    `- Playtest required: ${proposal.playtestRequired}`,
+    `- Recent cycle review: ${proposal.recentCycleReview.summary}`,
+  ];
+
+  if (selected?.gameplayGate) {
+    const gate = selected.gameplayGate;
+    lines.push(
+      "",
+      "## Gameplay Gate",
+      gateLine("Player-visible", gate.playerVisible),
+      gateLine("Decision", gate.decision),
+      gateLine("Risk / Reward", gate.riskReward),
+      gateLine("Core Loop", gate.coreLoop),
+      gateLine("Replayability", gate.replayability),
+      gateLine("Fantasy", gate.fantasy),
+      gateLine("Geography", gate.geography),
+      gateLine("Canon", gate.canon),
+      `- Selection reason: ${selected.reason}`,
+    );
+  }
+
+  if (proposal.gameplayHypothesis) {
+    const hypothesis = proposal.gameplayHypothesis;
+    const mda = hypothesis.mda;
+    const vertical = hypothesis.verticalSlice;
+    lines.push(
+      "",
+      "## Gameplay Hypothesis",
+      `**Interesting Decision:** ${hypothesis.interestingDecision}`,
+      "",
+      `- Mechanic: ${mda.mechanic}`,
+      `- Dynamic: ${mda.dynamic}`,
+      `- Desired Experience: ${mda.desiredExperience}`,
+      "",
+      "### Smallest vertical slice",
+      `1. Discovery / information: ${vertical.discoveryOrInformation}`,
+      `2. Decision: ${vertical.decision}`,
+      `3. Action: ${vertical.action}`,
+      `4. Result / danger: ${vertical.resultOrDanger}`,
+      `5. Reward / loss: ${vertical.rewardOrLoss}`,
+      `6. Persistent change: ${vertical.persistentChange}`,
+    );
+  }
+
+  lines.push("", "---", "Generated by Crownless Autopilot Planner Phase 2.");
+  return lines.join("\n");
+}
+
+function runPlannerCycle(
+  { repo, cwd = process.cwd(), codexBin } = {},
+  {
+    invoke = invokePlanner,
+    collect = collectWorkItems,
+    detectDuplicate = detectDuplicateProposal,
+    createIssue = defaultCreateIssue,
+    execute = defaultExecute,
+  } = {},
+) {
+  if (typeof repo !== "string" || !repo.trim()) return stop("invalid_repo", { error: "repo is required in owner/name form" });
+
+  let planner;
+  try {
+    planner = invoke({ repo, cwd, codexBin });
+  } catch (error) {
+    return stop("planner_invocation_failed", { error: error instanceof Error ? error.message : String(error) });
+  }
+
+  if (!planner || typeof planner !== "object") return stop("invalid_planner_result");
+  if (!planner.ok || planner.decision === "stop") return { ...planner, ok: false, decision: "stop" };
+  if (planner.decision === "no_action") return planner;
+  if (![AGENT_READY_LABEL, AGENT_PROPOSED_LABEL].includes(planner.decision)) {
+    return stop("invalid_planner_decision", { plannerDecision: planner.decision });
+  }
+  if (!planner.proposal || planner.proposal.action !== "create_issue") {
+    return stop("missing_create_issue_proposal");
+  }
+
+  let snapshot;
+  try {
+    snapshot = collect({ repo });
+  } catch (error) {
+    return stop("fresh_work_item_collection_failed", { error: error instanceof Error ? error.message : String(error) });
+  }
+  if (!snapshot || !Array.isArray(snapshot.items)) return stop("invalid_fresh_work_item_snapshot");
+  if (hasActiveExecution(snapshot)) return stop("active_execution");
+  if (hasPendingAutopilotPullRequest(snapshot)) return stop("pending_autopilot_pr");
+
+  const duplicate = detectDuplicate(planner.proposal, snapshot.items);
+  if (!duplicate || duplicate.ok !== true) return stop("duplicate_detection_failed", { duplicate: duplicate || null });
+  if (duplicate.decision !== "continue") return stop("duplicate_or_overlapping_work", { duplicate });
+
+  const label = planner.decision;
+  const body = buildIssueBody(planner.proposal);
+  let issue;
+  try {
+    issue = createIssue({ repo, title: planner.proposal.title, body, label, cwd });
+  } catch (error) {
+    return stop("issue_mutation_failed", { error: error instanceof Error ? error.message : String(error) });
+  }
+  if (!issue || !Number.isInteger(Number(issue.number)) || Number(issue.number) < 1) {
+    return stop("invalid_created_issue", { issue: issue || null });
+  }
+
+  const normalizedIssue = { ...issue, number: Number(issue.number) };
+  if (planner.decision === AGENT_PROPOSED_LABEL) {
+    return { ok: true, decision: AGENT_PROPOSED_LABEL, issue: normalizedIssue, executor: null };
+  }
+
+  let executor;
+  try {
+    executor = execute({ repo, issueNumber: normalizedIssue.number, cwd });
+  } catch (error) {
+    return stop("executor_failed", {
+      issue: normalizedIssue,
+      error: error instanceof Error ? error.message : String(error),
+    });
+  }
+
+  return {
+    ok: true,
+    decision: AGENT_READY_LABEL,
+    issue: normalizedIssue,
+    executor: executor || null,
+  };
+}
+
+function parseArgs(argv) {
+  const options = {};
+  for (let index = 0; index < argv.length; index += 1) {
+    const argument = argv[index];
+    if (argument === "--repo") {
+      options.repo = argv[++index];
+      if (!options.repo) throw new Error("--repo requires owner/name");
+    } else {
+      throw new Error(`Unknown option: ${argument}`);
+    }
+  }
+  return options;
+}
+
+if (require.main === module) {
+  try {
+    const options = parseArgs(process.argv.slice(2));
+    const repo = options.repo || process.env.GITHUB_REPOSITORY || process.env.AUTOPILOT_REPOSITORY;
+    const result = runPlannerCycle({ repo, cwd: process.cwd() });
+    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    if (!result.ok && result.decision === "stop") process.exitCode = 1;
+  } catch (error) {
+    process.stderr.write(`${error instanceof Error ? error.stack : String(error)}\n`);
+    process.exitCode = 1;
+  }
+}
+
+module.exports = {
+  AGENT_PROPOSED_LABEL,
+  AGENT_READY_LABEL,
+  buildIssueBody,
+  defaultCreateIssue,
+  defaultExecute,
+  hasActiveExecution,
+  hasPendingAutopilotPullRequest,
+  parseArgs,
+  runPlannerCycle,
+};
