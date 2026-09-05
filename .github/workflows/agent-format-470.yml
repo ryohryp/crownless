@@ -22,16 +22,8 @@ jobs:
 
           p = Path('src/expedition-presentation.js')
           s = p.read_text()
-          old = '''  window.CrownlessExpeditionPresentation = Object.freeze({
-          open,
-          close,
-          isReady() { return true; }
-        });'''
-          new = '''  window.CrownlessExpeditionPresentation = Object.freeze({
-            open,
-            close,
-            isReady() { return true; }
-          });'''
+          old = '  window.CrownlessExpeditionPresentation = Object.freeze({\n  open,\n  close,\n  isReady() { return true; }\n});'
+          new = '  window.CrownlessExpeditionPresentation = Object.freeze({\n    open,\n    close,\n    isReady() { return true; }\n  });'
           if old not in s:
               raise SystemExit('presentation formatting block not found')
           p.write_text(s.replace(old, new, 1))
@@ -40,12 +32,8 @@ jobs:
           s = p.read_text()
           start = s.index('  function openExpedition(document, root, entry, status) {')
           end = s.index('\n\n  function ensureStylesheet(document)', start)
-          block = s[start:end]
-          lines = block.splitlines()
-          formatted = [lines[0]]
-          for line in lines[1:-1]:
-              formatted.append('  ' + line)
-          formatted.append(lines[-1])
+          lines = s[start:end].splitlines()
+          formatted = [lines[0]] + ['  ' + line for line in lines[1:]]
           p.write_text(s[:start] + '\n'.join(formatted) + s[end:])
           PY
       - name: Focused tests
