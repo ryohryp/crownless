@@ -132,21 +132,34 @@ test("atlas keeps a copy-based fallback for older expedition report markup", () 
   assert.equal(Presentation.findPrepareTransitionButton(content), prepare);
 });
 
-test("opening an expedition closes both discovery overlays before changing screens", () => {
+test("opening an Atlas expedition uses the explicit presentation entrypoint instead of the legacy gate", () => {
   const order = [];
   const root = fakeRoot({}, {});
   root.CrownlessGeographicExpeditionBridge = {
     expeditionDestinationId() { return "world:geo:test"; }
   };
+  root.CrownlessExpeditionPresentation = {
+    isReady() { return true; },
+    open() { order.push("presentation"); },
+    close() { order.push("presentation-close"); }
+  };
   root.CrownlessDiscoveryJournal = { close() { order.push("journal"); } };
   root.CrownlessWorldAtlas = { closeAtlas() { order.push("atlas"); } };
-  const gate = { click() { order.push("gate"); } };
-  const document = {
-    getElementById(id) { return id === "start-expedition" ? gate : null; }
-  };
+  const document = { getElementById() { return null; } };
 
   assert.equal(Presentation.openExpedition(document, root, { key: "geo:test" }), true);
-  assert.deepEqual(order, ["journal", "atlas", "gate"]);
+  assert.deepEqual(order, ["presentation", "journal", "atlas"]);
+  assert.doesNotMatch(source, /gate\.click\(\)/);
+});
+
+test("Atlas expedition entrypoint fails closed with retry feedback while presentation is unavailable", () => {
+  const root = fakeRoot({}, {});
+  root.CrownlessGeographicExpeditionBridge = { expeditionDestinationId() { return "world:geo:test"; } };
+  const status = { textContent: "" };
+  const document = { getElementById() { return null; } };
+
+  assert.equal(Presentation.openExpedition(document, root, { key: "geo:test" }, status), false);
+  assert.match(status.textContent, /再試行/);
 });
 
 test("discovery overlay cleanup has a DOM fallback for partially loaded clients", () => {

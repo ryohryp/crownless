@@ -503,30 +503,38 @@
   }
 
   function openExpedition(document, root, entry, status) {
-    patchExpeditionSystem(root);
-    const state = loadExpeditionState(root);
-    if (state && state.activeExpedition) {
-      if (status) status.textContent = "別の遠征隊が派遣中。帰還後にこの地点を選べる。";
-      return false;
-    }
-    const gate = document.getElementById("start-expedition");
-    const bridge = root && root.CrownlessGeographicExpeditionBridge;
-    if (!gate || !bridge || typeof bridge.expeditionDestinationId !== "function") {
-      if (status) status.textContent = "遠征台帳の準備がまだ整っていない。";
-      return false;
-    }
-    closeDiscoverySurfaces(document, root);
-    gate.click();
-    const apply = () => {
-      if (lockAtlasDestination(document, root, entry)) return;
-      if (root.CrownlessWorldAtlas && typeof root.CrownlessWorldAtlas.openAtlas === "function") {
-        document.getElementById("expedition-folio")?.querySelector("[data-expedition-close]")?.click();
-        root.CrownlessWorldAtlas.openAtlas(document, root.CrownlessCore, root, { autoScan: false, view: "world" });
-      }
-    };
-    Promise.resolve().then(apply);
-    return true;
+  patchExpeditionSystem(root);
+  const state = loadExpeditionState(root);
+  if (state && state.activeExpedition) {
+    if (status) status.textContent = "別の遠征隊が派遣中。帰還後にこの地点を選べる。";
+    return false;
   }
+  const presentation = root && root.CrownlessExpeditionPresentation;
+  const bridge = root && root.CrownlessGeographicExpeditionBridge;
+  const presentationReady = presentation
+    && typeof presentation.open === "function"
+    && (typeof presentation.isReady !== "function" || presentation.isReady());
+  if (!presentationReady || !bridge || typeof bridge.expeditionDestinationId !== "function") {
+    if (status) status.textContent = "遠征台帳の準備がまだ整っていない。もう一度「遠征隊を送る」を押すと再試行できる。";
+    return false;
+  }
+  try {
+    presentation.open();
+  } catch (_) {
+    if (status) status.textContent = "遠征台帳を開けなかった。もう一度「遠征隊を送る」を押して再試行できる。";
+    return false;
+  }
+  closeDiscoverySurfaces(document, root);
+  const apply = () => {
+    if (lockAtlasDestination(document, root, entry)) return;
+    if (typeof presentation.close === "function") presentation.close();
+    if (root.CrownlessWorldAtlas && typeof root.CrownlessWorldAtlas.openAtlas === "function") {
+      root.CrownlessWorldAtlas.openAtlas(document, root.CrownlessCore, root, { autoScan: false, view: "world" });
+    }
+  };
+  Promise.resolve().then(apply);
+  return true;
+}
 
   function ensureStylesheet(document) {
     if (!document || document.querySelector('link[href="world-atlas-actions.css"]')) return;
