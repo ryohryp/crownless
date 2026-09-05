@@ -76,3 +76,24 @@ test("periodic recovery refresh keeps the next-expedition preparation screen ins
 
   assert.match(presentation, /window\.setInterval\([\s\S]*refresh\(Date\.now\(\)\)[\s\S]*render\(\)/);
 });
+
+test("periodic recovery refresh preserves Prepare wizard step and selections across full render", () => {
+  const capture = functionBody("capturePrepareUiState", "restorePrepareUiState");
+  assert.match(capture, /form\.dataset\.journeyStep/);
+  assert.match(capture, /input\[name\], select\[name\], textarea\[name\]/);
+  assert.match(capture, /control\.type === "radio" \|\| control\.type === "checkbox"/);
+
+  const restore = functionBody("restorePrepareUiState", "render");
+  assert.match(restore, /control\.checked = selected\.includes\(control\.value\)/);
+
+  const render = functionBody("render", "heading");
+  const snapshot = render.indexOf("capturePrepareUiState(prepareForm)");
+  const replace = render.indexOf("content.replaceChildren()");
+  assert.ok(snapshot >= 0 && replace > snapshot, "Prepare state must be captured before periodic full render clears the form");
+
+  const journey = functionBody("prepareJourney", "renderAdapt");
+  assert.match(journey, /prepareUiState\?\.step/);
+  assert.match(journey, /form\.dataset\.journeyStep = String\(step\)/);
+  assert.match(journey, /restorePrepareUiState\(form\)/);
+  assert.match(journey, /capturePrepareUiState\(form, step\)/);
+});
