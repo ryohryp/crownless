@@ -25,7 +25,9 @@
 
   ensureStylesheet("hearth-viewport.css");
   ensureStylesheet("hearth-location-visual.css");
+  ensureStylesheet("hearth-home-shell.css");
   ensureScript("src/npc-life.js", scheduleRefresh);
+  ensureScript("src/hearth-home-shell.js");
 
   const Core = window.CrownlessCore;
   const LocationVisuals = window.CrownlessLocationVisuals;
@@ -154,7 +156,7 @@
     const Atlas = window.CrownlessWorldAtlas;
     if (!Atlas || typeof Atlas.openAtlas !== "function") return false;
     const safe = Core && typeof Core.loadSafeState === "function" ? Core.loadSafeState() : null;
-    const discoveries = safe && safe.worldKnowledge && safe.worldKnowledge.discoveries;
+    const discoveries = safe && safe.worldKnowledge ? safe.worldKnowledge.discoveries : null;
     const remembered = discoveries && candidate.discoveryKey ? discoveries[candidate.discoveryKey] : null;
     const name = String(remembered && remembered.name || candidate.destinationName || "");
     const opened = Atlas.openAtlas(document, Core, window, { view: "world", autoScan: false });
