@@ -4,6 +4,10 @@ const { readFile } = require("node:fs/promises");
 const { resolve, extname, sep } = require("node:path");
 const { chromium } = require("playwright");
 
+const phase = process.argv[2] || "full";
+const validPhases = new Set(["load", "loot", "record", "full"]);
+if (!validPhases.has(phase)) throw new Error(`Unknown Hearth check phase: ${phase}`);
+
 const root = resolve(__dirname, "..");
 const types = {
   ".js": "text/javascript",
@@ -29,7 +33,7 @@ const server = createServer(async (req, res) => {
 });
 
 async function assertBoundedHome(page) {
-  await page.waitForFunction(() => window.CrownlessHearthHomeShell?.isOpen() === false);
+  await page.waitForFunction(() => window.CrownlessHearthHomeShell?.isOpen() === false, null, { timeout: 5000 });
   const geometry = await page.evaluate(() => {
     const scene = document.querySelector("#hub-screen .hearth-scene").getBoundingClientRect();
     const main = document.querySelector("main").getBoundingClientRect();
@@ -57,6 +61,33 @@ async function assertBoundedHome(page) {
   assert.equal(await page.evaluate(() => scrollY), 0, "Grey Hearth must not scroll the browser page");
 }
 
+async function checkLoot(page) {
+  const shelf = page.locator("#hearth-loot-focus");
+  await shelf.click({ timeout: 5000 });
+  await page.waitForSelector("#hearth-folio:not([hidden])", { timeout: 5000 });
+  assert.equal(await page.locator("#hearth-folio").getAttribute("aria-hidden"), "false");
+  assert.ok(await page.locator("#hearth-folio-loot").isVisible());
+  assert.equal(await page.locator("#hearth-folio-record").isVisible(), false);
+  assert.ok(await page.locator(".hearth-folio__close").evaluate((node) => node === document.activeElement));
+  assert.equal(await page.evaluate(() => scrollY), 0);
+
+  await page.getByRole("tab", { name: "遠征記録" }).click({ timeout: 5000 });
+  assert.equal(await page.locator("#hearth-folio-loot").isVisible(), false);
+  assert.ok(await page.locator("#hearth-folio-record").isVisible());
+  await page.keyboard.press("Escape");
+  assert.equal(await page.locator("#hearth-folio:not([hidden])").count(), 0);
+  assert.ok(await shelf.evaluate((node) => node === document.activeElement));
+}
+
+async function checkRecord(page) {
+  const journal = page.locator("#hearth-chronicle-focus");
+  await journal.click({ timeout: 5000 });
+  assert.ok(await page.locator("#hearth-folio-record").isVisible());
+  assert.equal(await page.locator("#hearth-folio-title").innerText(), "遠征記録");
+  await page.keyboard.press("Escape");
+  assert.ok(await journal.evaluate((node) => node === document.activeElement));
+}
+
 (async () => {
   await new Promise((done) => server.listen(0, "127.0.0.1", done));
   const browser = await chromium.launch({
@@ -71,37 +102,18 @@ async function assertBoundedHome(page) {
       { width: 1366, height: 900 }
     ]) {
       const page = await browser.newPage({ viewport, timezoneId: "Asia/Tokyo" });
+      page.setDefaultTimeout(5000);
       const errors = [];
       page.on("pageerror", (error) => errors.push(error.message));
       await page.goto(`http://127.0.0.1:${server.address().port}`);
       await assertBoundedHome(page);
 
-      const shelf = page.locator("#hearth-loot-focus");
-      await shelf.click();
-      await page.waitForSelector("#hearth-folio:not([hidden])");
-      assert.equal(await page.locator("#hearth-folio").getAttribute("aria-hidden"), "false");
-      assert.ok(await page.locator("#hearth-folio-loot").isVisible());
-      assert.equal(await page.locator("#hearth-folio-record").isVisible(), false);
-      assert.ok(await page.locator(".hearth-folio__close").evaluate((node) => node === document.activeElement));
-      assert.equal(await page.evaluate(() => scrollY), 0);
-
-      await page.getByRole("tab", { name: "遠征記録" }).click();
-      assert.equal(await page.locator("#hearth-folio-loot").isVisible(), false);
-      assert.ok(await page.locator("#hearth-folio-record").isVisible());
-      await page.keyboard.press("Escape");
-      assert.equal(await page.locator("#hearth-folio:not([hidden])").count(), 0);
-      assert.ok(await shelf.evaluate((node) => node === document.activeElement));
-
-      const journal = page.locator("#hearth-chronicle-focus");
-      await journal.click();
-      assert.ok(await page.locator("#hearth-folio-record").isVisible());
-      assert.equal(await page.locator("#hearth-folio-title").innerText(), "遠征記録");
-      await page.keyboard.press("Escape");
-      assert.ok(await journal.evaluate((node) => node === document.activeElement));
+      if (phase === "loot" || phase === "full") await checkLoot(page);
+      if (phase === "record" || phase === "full") await checkRecord(page);
 
       await assertBoundedHome(page);
       assert.deepEqual(errors, []);
-      console.log(`PASS ${viewport.width}x${viewport.height}: bounded Hearth, loot folio, record folio, focus restore`);
+      console.log(`PASS ${phase} ${viewport.width}x${viewport.height}`);
       await page.close();
     }
   } finally {
