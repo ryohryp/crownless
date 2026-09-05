@@ -92,6 +92,8 @@
     const record = kind === "record";
     inventory.hidden = record;
     chronicle.hidden = !record;
+    inventory.style.display = record ? "none" : "";
+    chronicle.style.display = record ? "" : "none";
     lootTab.setAttribute("aria-selected", String(!record));
     recordTab.setAttribute("aria-selected", String(record));
     lootTab.tabIndex = record ? -1 : 0;
