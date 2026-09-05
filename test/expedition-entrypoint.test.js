@@ -32,7 +32,6 @@ test("all-injured parties can start timed recovery without deadlocking the heart
   assert.doesNotMatch(presentation, /companion\.condition = "healthy"/);
 });
 
-
 test("expedition presentation exposes an explicit runtime entrypoint", () => {
   assert.match(presentation, /CrownlessExpeditionPresentation/);
   assert.match(presentation, /Object\.freeze\(\{[\s\S]*open,[\s\S]*close,[\s\S]*isReady/);
