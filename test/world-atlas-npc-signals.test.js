@@ -4,6 +4,7 @@ const fs = require("node:fs");
 const path = require("node:path");
 const NpcLife = require("../src/npc-life.js");
 const Signals = require("../src/world-atlas-npc-signals.js");
+const DiscoveryActions = require("../src/discovery-actions.js");
 
 const source = fs.readFileSync(path.join(__dirname, "../src/world-atlas-npc-signals.js"), "utf8");
 
@@ -282,3 +283,45 @@ test("resolved dynamic events are excluded from active signals", () => {
 });
 
 
+
+
+test("Phase 2 next actions keep one transient lead beside one stable-place decision", () => {
+  const dungeon = { key: "geo:test-fort:dungeon:woods", name: "森の古砦", state: "discovered", contentKind: "dungeon", terrain: ["woods"] };
+  const event = { key: "geo:test-village:event:settlement", name: "空鐘の廃村", state: "discovered", contentKind: "event", terrain: ["settlement"] };
+  const stable = [
+    Signals.stableOpportunity(dungeon, DiscoveryActions),
+    Signals.stableOpportunity(event, DiscoveryActions)
+  ];
+  const transient = [Signals.signalOpportunity(Signals.banditAmbushSignals(16)[0], "event")];
+  const choices = Signals.chooseNextActionOpportunities(transient, stable, 2);
+
+  assert.equal(choices.length, 2);
+  assert.deepEqual(choices.map((choice) => choice.source), ["signal", "place"]);
+  assert.match(choices[0].title, /気配を追う|異変を確かめる/);
+  assert.match(choices[1].title, /遠征隊を送る/);
+  assert.match(choices[1].title, /森の古砦/);
+  assert.doesNotMatch(JSON.stringify(choices), /latitude|longitude|coordinate|mapOrigin|representativeCoordinate/);
+});
+
+test("Phase 2 next actions still expose two decisions when no transient signal is active", () => {
+  const dungeon = { key: "geo:test-fort:dungeon:woods", name: "森の古砦", state: "discovered", contentKind: "dungeon", terrain: ["woods"] };
+  const event = { key: "geo:test-village:event:settlement", name: "空鐘の廃村", state: "discovered", contentKind: "event", terrain: ["settlement"] };
+  const stable = [
+    Signals.stableOpportunity(dungeon, DiscoveryActions),
+    Signals.stableOpportunity(event, DiscoveryActions)
+  ];
+  const choices = Signals.chooseNextActionOpportunities([], stable, 2);
+
+  assert.equal(choices.length, 2);
+  assert.deepEqual(choices.map((choice) => choice.source), ["place", "place"]);
+  assert.match(choices[0].title, /遠征隊を送る/);
+  assert.match(choices[1].title, /この地の事件を調べる/);
+});
+
+test("Phase 2 presentation renders at most two manuscript-level next-action shortcuts", () => {
+  assert.match(source, /className = "world-atlas-next-actions"/);
+  assert.match(source, /className = "world-atlas-next-action"/);
+  assert.match(source, /dataset\.nextActionSource = choice\.source/);
+  assert.match(source, /chooseNextActionOpportunities\(transientRecords, stableRecords, 2\)/);
+  assert.match(source, /choice\.marker\.click\(\)/);
+});
