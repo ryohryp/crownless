@@ -186,7 +186,12 @@ function runPlannerCycle(
   if (hasActiveExecution(snapshot)) return stop("active_execution");
   if (hasPendingAutopilotPullRequest(snapshot)) return stop("pending_autopilot_pr");
 
-  const duplicate = detectDuplicate(planner.proposal, snapshot.items);
+  let duplicate;
+  try {
+    duplicate = detectDuplicate(planner.proposal, snapshot.items);
+  } catch (error) {
+    return stop("duplicate_detection_failed", { error: error instanceof Error ? error.message : String(error) });
+  }
   if (!duplicate || duplicate.ok !== true) return stop("duplicate_detection_failed", { duplicate: duplicate || null });
   if (duplicate.decision !== "continue") return stop("duplicate_or_overlapping_work", { duplicate });
 
