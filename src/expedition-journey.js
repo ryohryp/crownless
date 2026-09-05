@@ -19,9 +19,12 @@
   function briefing(destination, state) {
     if (!destination) return null;
     const previous = (state.completedReports || []).find(r => r.destinationId === destination.id);
+    const firstVisitKnown = destination.geographic
+      ? `現実を歩いて見つけ、地図に記した場所。${destination.name}の現地の奥は、まだ確かめていない。`
+      : "地図に記した場所。現地の奥は、まだ確かめていない。";
     return {
       name: destination.name,
-      known: previous ? `前回は${outcomeLabel(previous.outcome)}。${previous.notableEvent?.text || "記録をもとに、備え直せる。"}` : "地図に記した場所。現地の奥は、まだ確かめていない。",
+      known: previous ? `前回は${outcomeLabel(previous.outcome)}。${previous.notableEvent?.text || "記録をもとに、備え直せる。"}` : firstVisitKnown,
       danger: words(destination.dangerTags) || "未調査",
       opportunity: words(destination.opportunityTags) || "土地の手掛かり",
       question: previous && previous.outcome !== "success" ? "人選と道具を変えて再調査するか、別の場所を選ぶか。" : "手掛かりを持ち帰るか、危険を受け入れて奥まで調べるか。",
