@@ -1,6 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
 const { buildPlannerPrompt, invokePlanner } = require("../scripts/autopilot/planner-invocation.js");
+const plannerSchema = require("../scripts/autopilot/planner-proposal.schema.json");
 
 function score(value = 2, applicable = true) { return { applicable, score: value, rationale: "test rationale" }; }
 function gate() { return { playerVisible: score(), decision: score(), riskReward: score(0, false), coreLoop: score(), replayability: score(), fantasy: score(), geography: score(0, false), canon: score(3) }; }
@@ -42,6 +43,16 @@ test("prompt requires Canon-first read-only planning, Gameplay Gate evidence, an
   assert.match(prompt, /Never infer Keep, Change, or Kill from tests, CI/);
   assert.match(prompt, /future = intentionally deferred/); assert.match(prompt, /decision-log = ongoing record/); assert.match(prompt, /playtest-pending = implementation already exists/);
   assert.match(prompt, /Do not equate open with unimplemented/); assert.match(prompt, /remaining Acceptance Criteria/);
+});
+
+test("planner output schema requires structured playtest learning and candidate learning evidence", () => {
+  const createIssueSchema = plannerSchema.oneOf[0];
+  assert.ok(createIssueSchema.required.includes("recentPlaytestLearning"));
+  assert.ok(createIssueSchema.required.includes("learningApplication"));
+  assert.deepEqual(plannerSchema.$defs.playtestLearningEntry.properties.status.enum, ["Keep", "Change", "Kill"]);
+  assert.ok(plannerSchema.$defs.candidate.required.includes("learningSources"));
+  assert.ok(plannerSchema.$defs.candidate.required.includes("revisitsKilledHypothesis"));
+  assert.ok(plannerSchema.$defs.candidate.required.includes("killRevisitEvidence"));
 });
 
 test("invocation pins Codex to read-only ephemeral no-approval mode and schema", () => {
