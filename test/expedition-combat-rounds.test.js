@@ -43,6 +43,32 @@ test("remaining enemy count falls through rounds and lowers damage pressure", ()
   if (early && late) assert.ok(late.damage <= early.damage + 8, "fewer enemies should not create sharply higher pressure");
 });
 
+test("defeating the final enemy prevents retaliation damage and report log", () => {
+  const report = resolve({
+    seed: 11,
+    policyId: "standard",
+    destinationId: "ashen-wood",
+    companionIds: ["mira", "ed", "sella"],
+  });
+  const encounter = report.combat.encounters[0];
+  const finalRoundIndex = encounter.rounds.length - 1;
+  const finalRound = encounter.rounds[finalRoundIndex];
+
+  assert.equal(encounter.result, "victory");
+  assert.ok(encounter.rounds[0].remainingEnemyCount > 0);
+  assert.ok(encounter.rounds[0].damage > 0, "enemies that remain should still deal retaliation damage");
+  assert.equal(finalRound.remainingEnemyCount, 0);
+  assert.equal(finalRound.damage, 0);
+  assert.equal(finalRound.hpAfter, finalRound.hpBefore);
+
+  const finalDamageMinute = 43 + 1 + finalRoundIndex * 2 + 1;
+  assert.equal(
+    report.log.some((entry) => entry.type === "combat-damage" && entry.minute === finalDamageMinute),
+    false,
+    "no retaliation log should be emitted after the final enemy falls",
+  );
+});
+
 test("traits and equipment appear as readable round events", () => {
   const ranged = resolve({ seed: 31, companionIds: ["mira"], equipmentIds: ["shortbow"], destinationId: "ashen-wood" });
   const first = ranged.combat.encounters[0].rounds[0];
