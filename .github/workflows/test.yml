@@ -30,5 +30,23 @@ jobs:
           node --check src/exploration-map-presentation.js
           node --check src/hearth-presentation.js
           node --check src/desktop-input.js
+          node --check src/world-atlas.js
+          node --check src/world-atlas-actions-presentation.js
+          node --check src/expedition-presentation.js
+          node --check scripts/check-atlas-viewport.cjs
       - name: Unit tests
         run: npm test
+
+  atlas-viewport:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install browser QA tools
+        run: |
+          npm install --no-save --package-lock=false playwright@1.62.1
+          npx playwright install --with-deps chromium
+      - name: Atlas mobile and desktop loop
+        run: node scripts/check-atlas-viewport.cjs

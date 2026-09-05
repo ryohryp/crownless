@@ -546,7 +546,8 @@
     const list = el("ol", "");
     report.log.forEach((entry) => {
       const li = el("li", "");
-      li.innerHTML = `<time>${entry.time}</time><span>${entry.text}</span>${entry.causes.length ? `<small>${entry.causes.join(" / ")}</small>` : ""}`;
+      const causes = Array.isArray(entry.causes) ? entry.causes : [];
+      li.innerHTML = `<time>${entry.time}</time><span>${entry.text}</span>${causes.length ? `<small>${causes.join(" / ")}</small>` : ""}`;
       list.append(li);
     });
     details.append(list);

@@ -216,6 +216,9 @@
 
   window.addEventListener("keydown", (event) => {
     if (!desktopQuery.matches || event.altKey || event.ctrlKey || event.metaKey) return;
+    // Atlas owns native controls and modal focus; hub shortcuts must not steal
+    // arrows / Enter from its map, place picker or action sheets.
+    if (document.getElementById("world-atlas-viewer")) return;
 
     const overlay = activeOverlay();
     const screen = activeScreen();

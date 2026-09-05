@@ -407,8 +407,143 @@
 
   function closeAtlas(document) {
     const viewer = document && document.getElementById("world-atlas-viewer");
+    if (viewer && viewer.releaseShell) viewer.releaseShell();
     if (viewer) viewer.remove();
     if (document && document.body) document.body.classList.remove("world-atlas-open");
+    if (viewer?.atlasOpener?.isConnected && !document.querySelector("#expedition-folio.is-open")) {
+      viewer.atlasOpener.focus({ preventScroll: true });
+    }
+  }
+
+  // Own only presentation state. Discovery, action and save contracts stay with
+  // their existing modules, including the dynamically inserted signal panels.
+  function installViewportShell(document, root, viewer, body, dock) {
+    const compact = root.matchMedia("(max-width: 700px), (max-width: 1000px) and (max-height: 500px)");
+    let detailsOpen = false;
+    let returnTarget = null;
+    const toggle = document.createElement("button");
+    toggle.type = "button";
+    toggle.className = "world-atlas-details-toggle";
+    toggle.textContent = "地点の行動・記録";
+    toggle.setAttribute("aria-controls", "world-atlas-details");
+    dock.appendChild(toggle);
+
+    function sync() {
+      const side = body.querySelector(".world-atlas-side");
+      const map = body.querySelector(".world-atlas-map");
+      if (!side || !map) return;
+      side.id = "world-atlas-details";
+      side.setAttribute("aria-label", "選択地点の行動と記録");
+      if (!side.querySelector(".world-atlas-details-close")) {
+        const close = document.createElement("button");
+        close.type = "button";
+        close.className = "world-atlas-details-close";
+        close.textContent = "地図へ戻る ↓";
+        close.addEventListener("click", () => setDetails(false));
+        side.prepend(close);
+      }
+      // Dense / coincident map marks remain selectable without pixel hunting.
+      let chooser = side.querySelector(".world-atlas-place-picker");
+      if (!chooser) {
+        chooser = document.createElement("select");
+        chooser.className = "world-atlas-place-picker";
+        chooser.setAttribute("aria-label", "地点を一覧から選ぶ");
+        chooser.addEventListener("change", () => {
+          const markers = body.querySelectorAll(".world-atlas-nearby-marker, .world-atlas-marker, .world-atlas-unplaced button");
+          markers[Number(chooser.value)]?.click();
+        });
+        side.querySelector(".world-atlas-details-close").after(chooser);
+      }
+      const markers = Array.from(body.querySelectorAll(".world-atlas-nearby-marker, .world-atlas-marker, .world-atlas-unplaced button"));
+      chooser.replaceChildren(...markers.map((marker, index) => {
+        const option = document.createElement("option");
+        option.value = String(index);
+        option.textContent = (marker.getAttribute("aria-label") || marker.textContent).split("。")[0];
+        option.selected = marker.classList.contains("active");
+        return option;
+      }));
+      chooser.hidden = !markers.length;
+      body.classList.toggle("world-atlas-body--details", detailsOpen);
+      side.inert = compact.matches && !detailsOpen;
+      map.inert = compact.matches && detailsOpen;
+      toggle.setAttribute("aria-expanded", String(!compact.matches || detailsOpen));
+      toggle.textContent = detailsOpen && compact.matches ? "地図へ戻る" : "地点の行動・記録";
+    }
+
+    function setDetails(open, target) {
+      const wasOpen = detailsOpen;
+      detailsOpen = open;
+      if (open) returnTarget = target || document.activeElement;
+      sync();
+      if (!compact.matches) return;
+      const side = body.querySelector(".world-atlas-side");
+      if (open) {
+        side.scrollTop = 0;
+        side.querySelector(".world-atlas-details-close").focus({ preventScroll: true });
+      } else if (wasOpen) {
+        (returnTarget && returnTarget.isConnected ? returnTarget : toggle).focus({ preventScroll: true });
+      }
+    }
+    toggle.addEventListener("click", () => setDetails(!detailsOpen));
+    body.addEventListener("click", (event) => {
+      if (event.target.closest(".world-atlas-nearby-marker, .world-atlas-marker")) {
+        setDetails(true, event.target.closest("button"));
+      }
+    });
+
+    // dvh follows browser chrome; VisualViewport also follows the on-screen
+    // keyboard on browsers that resize only the visual viewport.
+    const viewport = root.visualViewport;
+    function resize() {
+      if (viewport) {
+        viewer.style.height = `${viewport.height}px`;
+        viewer.style.top = `${viewport.offsetTop}px`;
+      }
+      sync();
+      const side = body.querySelector(".world-atlas-side");
+      if (side?.inert && side.contains(document.activeElement)) toggle.focus({ preventScroll: true });
+      if (!compact.matches && document.activeElement?.matches(".world-atlas-details-close")) {
+        side.querySelector(".world-atlas-place-picker")?.focus({ preventScroll: true });
+      }
+    }
+    viewport?.addEventListener("resize", resize);
+    viewport?.addEventListener("scroll", resize);
+    compact.addEventListener("change", resize);
+    function onKeydown(event) {
+      if (document.getElementById("world-atlas-viewer") !== viewer) return;
+      const sheet = viewer.querySelector(".world-atlas-action-sheet");
+      if (event.key === "Escape") {
+        event.preventDefault();
+        if (sheet) {
+          const actions = root.CrownlessWorldAtlasActionsPresentation;
+          if (actions?.closeActionSheet) actions.closeActionSheet(document);
+          else sheet.remove();
+        } else if (compact.matches && detailsOpen) setDetails(false);
+        else closeAtlas(document);
+        return;
+      }
+      if (event.key !== "Tab") return;
+      const scope = sheet || viewer;
+      const focusable = Array.from(scope.querySelectorAll("button, a[href], input, select, textarea, summary, [tabindex]"))
+        .filter((node) => !node.disabled && node.tabIndex >= 0 && !node.closest("[inert]") && node.getClientRects().length);
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      if (!first) return;
+      if (event.shiftKey && (document.activeElement === first || !scope.contains(document.activeElement))) {
+        event.preventDefault(); last.focus();
+      } else if (!event.shiftKey && (document.activeElement === last || !scope.contains(document.activeElement))) {
+        event.preventDefault(); first.focus();
+      }
+    }
+    document.addEventListener("keydown", onKeydown);
+    viewer.releaseShell = () => {
+      viewport?.removeEventListener("resize", resize);
+      viewport?.removeEventListener("scroll", resize);
+      compact.removeEventListener("change", resize);
+      document.removeEventListener("keydown", onKeydown);
+    };
+    resize();
+    return { sync, setDetails };
   }
 
   function createDetail(document, entry) {
@@ -600,6 +735,8 @@
 
   function openAtlas(document, Core, root, options = {}) {
     if (!document || !Core || typeof Core.loadSafeState !== "function") return false;
+    const previous = document.getElementById("world-atlas-viewer");
+    const opener = previous?.atlasOpener || document.activeElement;
     closeAtlas(document);
     ensureStylesheet(document);
 
@@ -615,6 +752,7 @@
     const viewer = document.createElement("div");
     viewer.id = "world-atlas-viewer";
     viewer.className = "world-atlas-viewer";
+    viewer.atlasOpener = opener;
     viewer.setAttribute("role", "dialog");
     viewer.setAttribute("aria-modal", "true");
     viewer.setAttribute("aria-label", "Crownless 世界地図");
@@ -654,7 +792,11 @@
     rescan.type = "button";
     rescan.textContent = "周辺を再調査";
     rescan.disabled = Boolean(options.scanning);
-    scan.append(scanCopy, rescan);
+    scan.append(scanCopy);
+    const dock = document.createElement("nav");
+    dock.className = "world-atlas-dock";
+    dock.setAttribute("aria-label", "探索の行動");
+    dock.appendChild(rescan);
 
     const toggle = document.createElement("div");
     toggle.className = "world-atlas-view-toggle";
@@ -671,6 +813,7 @@
 
     const body = document.createElement("div");
     body.className = "world-atlas-body";
+    let shell;
     function renderSelectedView() {
       const nearby = selectedView === "nearby" && nearbyModel.length > 0;
       selectedView = nearby ? "nearby" : "world";
@@ -680,20 +823,22 @@
       worldTab.setAttribute("aria-selected", String(selectedView === "world"));
       if (selectedView === "nearby") renderNearbySurface(document, body, nearbyModel, root, safe && safe.worldKnowledge);
       else renderWorldSurface(document, body, worldModel, root, safe && safe.worldKnowledge);
+      shell?.setDetails(false);
+      const side = body.querySelector(".world-atlas-side");
+      if (side) side.appendChild(note);
     }
     nearbyTab.addEventListener("click", () => { viewTouched = true; selectedView = "nearby"; renderSelectedView(); });
     worldTab.addEventListener("click", () => { viewTouched = true; selectedView = "world"; renderSelectedView(); });
-    renderSelectedView();
-
     const note = document.createElement("p");
     note.className = "world-atlas-note";
     note.textContent = "正確な道路図ではない。GPSは周囲の痕跡を見つけるためだけに使い、保存するのは粗い領域と探索録だけだ。";
-    folio.append(header, scan, toggle, body, note);
+    renderSelectedView();
+    folio.append(header, toggle, body, scan, dock);
     viewer.appendChild(folio);
     viewer.addEventListener("click", (event) => { if (event.target === viewer) closeAtlas(document); });
-    viewer.addEventListener("keydown", (event) => { if (event.key === "Escape") closeAtlas(document); });
     document.body.appendChild(viewer);
     document.body.classList.add("world-atlas-open");
+    shell = installViewportShell(document, root, viewer, body, dock);
     close.focus();
 
     function runScan(force) {
@@ -723,6 +868,12 @@
       event.stopImmediatePropagation();
       openAtlas(document, Core, root);
     }, true);
+    const entry = document.createElement("button");
+    entry.type = "button";
+    entry.className = "world-atlas-home-entry";
+    entry.textContent = "世界地図を開く・周辺を調べる →";
+    entry.addEventListener("click", () => openAtlas(document, Core, root));
+    document.body.appendChild(entry);
     Core.__worldAtlasInstalled = true;
     return true;
   }

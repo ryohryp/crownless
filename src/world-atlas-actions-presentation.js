@@ -237,7 +237,12 @@
 
   function closeActionSheet(document) {
     const sheet = document && document.querySelector(".world-atlas-action-sheet");
-    if (sheet) sheet.remove();
+    if (sheet) {
+      sheet.remove();
+      const folio = document.querySelector(".world-atlas-folio");
+      if (folio) folio.inert = false;
+      if (sheet.atlasReturnTarget?.isConnected) sheet.atlasReturnTarget.focus({ preventScroll: true });
+    }
   }
 
   function actionSheet(document, title, kicker) {
@@ -246,15 +251,17 @@
     if (!viewer) return null;
     const shell = document.createElement("div");
     shell.className = "world-atlas-action-sheet";
+    shell.atlasReturnTarget = document.activeElement;
     const veil = document.createElement("button");
     veil.type = "button";
     veil.className = "world-atlas-action-sheet__veil";
     veil.setAttribute("aria-label", "閉じる");
-    veil.addEventListener("click", () => shell.remove());
+    veil.addEventListener("click", () => closeActionSheet(document));
     const page = document.createElement("section");
     page.className = "world-atlas-action-sheet__page";
     page.setAttribute("role", "dialog");
     page.setAttribute("aria-modal", "true");
+    page.setAttribute("aria-label", title);
     const head = document.createElement("header");
     const small = document.createElement("small");
     small.textContent = kicker;
@@ -264,10 +271,12 @@
     close.type = "button";
     close.className = "world-atlas-action-sheet__close";
     close.textContent = "閉じる ×";
-    close.addEventListener("click", () => shell.remove());
+    close.addEventListener("click", () => closeActionSheet(document));
     head.append(small, heading, close);
     page.appendChild(head);
     shell.append(veil, page);
+    const folio = viewer.querySelector(".world-atlas-folio");
+    if (folio) folio.inert = true;
     viewer.appendChild(shell);
     close.focus();
     return page;
@@ -360,6 +369,7 @@
           result.textContent = cleanText(choice.result);
           if (Array.isArray(choice.followUps) && choice.followUps.length) {
             renderChoices(choice.followUps);
+            choices.querySelector("button")?.focus({ preventScroll: true });
             return;
           }
           const effect = choice.effect && typeof choice.effect === "object" ? choice.effect : null;
@@ -619,6 +629,7 @@
     entryByKey,
     createActionsPanel,
     syncActions,
+    closeActionSheet,
     recordLocalEventRumor,
     openEvent,
     openMerchant,

@@ -178,3 +178,15 @@ test("atlas remains manuscript UI rather than a navigation map and has phone rul
   assert.match(css, /prefers-reduced-motion:reduce/);
   assert.match(runtimeSource, /src\/world-atlas\.js/);
 });
+
+test("atlas mobile viewport shell bounds layout to 1 viewport and provides dock navigation", () => {
+  assert.match(source, /installViewportShell/);
+  assert.match(source, /world-atlas-dock/);
+  assert.match(source, /world-atlas-home-entry/);
+  assert.match(source, /world-atlas-details-toggle/);
+  assert.match(css, /100dvh/);
+  assert.match(css, /world-atlas-dock/);
+  assert.match(css, /world-atlas-home-entry/);
+  assert.match(css, /world-atlas-side/);
+  assert.match(css, /world-atlas-details-close/);
+});
