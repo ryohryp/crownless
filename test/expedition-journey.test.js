@@ -87,3 +87,16 @@ test("a geography decorator commits the same final report when inner rules clone
   assert.deepEqual(result.state.completedReports[0], result.report);
   assert.equal(result.report.worldKnowledgeProgress.state, "investigated");
 });
+
+test("first Prepare briefing keeps the GPS discovery motivation visible", () => {
+  const destination = Bridge.destinationFromKnowledge({
+    key: "geo:way:482:woods",
+    name: "霧の森",
+    terrain: ["woods"],
+    contentKind: "event"
+  });
+  const brief = Journey.briefing(destination, System.initialState());
+  assert.match(brief.known, /現実を歩いて見つけ/);
+  assert.match(brief.known, /霧の森/);
+  assert.match(brief.question, /手掛かり|危険/);
+});
