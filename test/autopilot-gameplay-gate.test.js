@@ -12,6 +12,9 @@ function gate(overrides = {}) {
     replayability: score(), fantasy: score(), geography: score(0, false), canon: score(3), ...overrides,
   };
 }
+function candidate(title, kind, locationRelated, gameplayGate, reason, selected) {
+  return { title, kind, locationRelated, gameplayGate, reason, selected, learningSources: [], revisitsKilledHypothesis: false, killRevisitEvidence: null };
+}
 function hypothesis() {
   return {
     interestingDecision: "Do I risk the wounded party for the unknown cache?",
@@ -33,10 +36,12 @@ function proposal(overrides = {}) {
     acceptanceCriteria: ["The choice can be experienced once end-to-end"], nonGoals: ["No economy rebalance"],
     risk: "low", humanGate: false, playtestRequired: proposalType === "gameplay", proposalType,
     recentCycleReview: { cyclesReviewed: 5, newPlayAdded: false, maintenanceHeavy: false, summary: "Mostly maintenance recently" },
+    recentPlaytestLearning: { entries: [], summary: "No human-confirmed playtest learning found" },
+    learningApplication: { appliedSources: [], ignoredSources: [], summary: "No playtest learning to apply" },
     candidates: [
-      { title, kind: proposalType, locationRelated, gameplayGate: selectedGate, reason: "Adds the strongest new decision", selected: true },
-      { title: "Alternative A", kind: "gameplay", locationRelated: false, gameplayGate: gate(), reason: "Less replayable", selected: false },
-      { title: "Alternative B", kind: "gameplay", locationRelated: false, gameplayGate: gate(), reason: "Larger slice", selected: false },
+      candidate(title, proposalType, locationRelated, selectedGate, "Adds the strongest new decision", true),
+      candidate("Alternative A", "gameplay", false, gate(), "Less replayable", false),
+      candidate("Alternative B", "gameplay", false, gate(), "Larger slice", false),
     ],
     gameplayHypothesis: proposalType === "gameplay" ? hypothesis() : null,
     ...proposalOverrides,

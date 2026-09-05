@@ -4,10 +4,11 @@ const { assessPlannerProposal } = require("../scripts/autopilot/risk-policy.js")
 
 function score(value = 2, applicable = true) { return { applicable, score: value, rationale: "test rationale" }; }
 function gate() { return { playerVisible: score(), decision: score(), riskReward: score(0, false), coreLoop: score(), replayability: score(), fantasy: score(), geography: score(0, false), canon: score(3) }; }
+function candidate(title, kind, reason, selected) { return { title, kind, locationRelated: false, gameplayGate: gate(), reason, selected, learningSources: [], revisitsKilledHypothesis: false, killRevisitEvidence: null }; }
 function candidates(title, kind) { return [
-  { title, kind, locationRelated: false, gameplayGate: gate(), reason: "selected", selected: true },
-  { title: "A", kind: "gameplay", locationRelated: false, gameplayGate: gate(), reason: "not now", selected: false },
-  { title: "B", kind: "gameplay", locationRelated: false, gameplayGate: gate(), reason: "not now", selected: false },
+  candidate(title, kind, "selected", true),
+  candidate("A", "gameplay", "not now", false),
+  candidate("B", "gameplay", "not now", false),
 ]; }
 function hypothesis() { return { interestingDecision: "Press on or return?", mda: { mechanic: "Choose", dynamic: "Trade risk", desiredExperience: "Tension" }, verticalSlice: { discoveryOrInformation: "Info", decision: "Choose", action: "Act", resultOrDanger: "Danger", rewardOrLoss: "Reward", persistentChange: "Next choice" } }; }
 function proposal(overrides = {}) {
@@ -18,6 +19,8 @@ function proposal(overrides = {}) {
     acceptanceCriteria: ["The existing companion detail opens from the report"], nonGoals: ["No new companion mechanics"], risk: "low", humanGate: false,
     playtestRequired: proposalType === "gameplay", proposalType,
     recentCycleReview: { cyclesReviewed: 5, newPlayAdded: false, maintenanceHeavy: false, summary: "Recent cycles reviewed" },
+    recentPlaytestLearning: { entries: [], summary: "No human-confirmed playtest learning found" },
+    learningApplication: { appliedSources: [], ignoredSources: [], summary: "No playtest learning to apply" },
     candidates: candidates(title, proposalType), gameplayHypothesis: proposalType === "gameplay" ? hypothesis() : null, ...overrides,
   };
 }
