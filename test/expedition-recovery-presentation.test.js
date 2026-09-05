@@ -40,20 +40,24 @@ test("prepare reconciles elapsed recovery before deriving available companions",
 });
 
 test("latest return report offers direct timed recovery only for currently injured companions", () => {
-  const eligibility = functionBody("reportRecoverableCompanions", "renderReport");
+  const eligibility = functionBody("reportRecoverableCompanions", "adaptCopy");
   assert.match(eligibility, /const latestReport = state\.completedReports\[0\]/);
   assert.match(eligibility, /latestReport\.expeditionId !== report\.expeditionId/);
   assert.match(eligibility, /injuredIds\.has\(companion\.id\) && companion\.condition === "injured"/);
 
+  const nextPreparation = functionBody("beginNextPreparation", "renderReport");
+  assert.match(nextPreparation, /system\.startRecovery\(state, recoverableCompanions\.map\(\(companion\) => companion\.id\), Date\.now\(\)\)/);
+  assert.match(nextPreparation, /save\(state\)/);
+  assert.match(nextPreparation, /renderPrepare\(content\)/);
+
   const report = functionBody("renderReport");
-  assert.match(report, /負傷者を休ませて次を準備する/);
-  assert.match(report, /system\.startRecovery\(state, recoverableCompanions\.map\(\(companion\) => companion\.id\), Date\.now\(\)\)/);
-  assert.match(report, /save\(state\)/);
-  assert.match(report, /renderPrepare\(content\)/);
+  assert.match(report, /reportRecoverableCompanions\(report\)/);
+  assert.match(report, /負傷した/);
+  assert.match(report, /beginNextPreparation\(content, report, recoverableCompanions/);
 });
 
 test("historical reports and already recovering companions cannot reapply recovery", () => {
-  const eligibility = functionBody("reportRecoverableCompanions", "renderReport");
+  const eligibility = functionBody("reportRecoverableCompanions", "adaptCopy");
   assert.match(eligibility, /if \(!latestReport \|\| latestReport\.expeditionId !== report\.expeditionId\) return \[\]/);
   assert.match(eligibility, /companion\.condition === "injured"/);
   assert.doesNotMatch(eligibility, /condition === "recovering"/);
@@ -68,8 +72,8 @@ test("periodic recovery refresh keeps the next-expedition preparation screen ins
   const reportBranch = render.indexOf("else if (lastResolved || state.completedReports.length)");
   assert.ok(prepareBranch >= 0 && reportBranch > prepareBranch, "prepare mode must win over historical reports");
 
-  const report = functionBody("renderReport");
-  assert.match(report, /preparingNextExpedition = true/);
+  const nextPreparation = functionBody("beginNextPreparation", "renderReport");
+  assert.match(nextPreparation, /preparingNextExpedition = true/);
 
   const refresh = functionBody("refresh", "updateGateCopy");
   assert.match(refresh, /if \(advanced\.report\)[\s\S]*preparingNextExpedition = false/);
