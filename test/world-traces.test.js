@@ -7,6 +7,64 @@ const WorldTraces = require("../src/world-traces.js");
 const source = fs.readFileSync(path.join(__dirname, "../src/world-traces.js"), "utf8");
 const bridgeSource = fs.readFileSync(path.join(__dirname, "../src/expedition-unknown-bridge.js"), "utf8");
 
+function fakeElement(tagName) {
+  const children = [];
+  const listeners = new Map();
+  return {
+    tagName: String(tagName || "div").toUpperCase(),
+    className: "",
+    textContent: "",
+    type: "",
+    hidden: false,
+    disabled: false,
+    dataset: {},
+    children,
+    appendChild(child) {
+      children.push(child);
+      return child;
+    },
+    append(...nodes) {
+      nodes.forEach((node) => children.push(node));
+    },
+    addEventListener(type, handler, options = {}) {
+      const handlers = listeners.get(type) || [];
+      handlers.push({ handler, once: Boolean(options && options.once) });
+      listeners.set(type, handlers);
+    },
+    click() {
+      if (this.disabled) return;
+      const handlers = [...(listeners.get("click") || [])];
+      handlers.forEach(({ handler, once }) => {
+        handler({ target: this });
+        if (once) {
+          const remaining = (listeners.get("click") || []).filter((entry) => entry.handler !== handler);
+          listeners.set("click", remaining);
+        }
+      });
+    },
+    querySelector(selector) {
+      if (selector && selector.startsWith(".")) {
+        const wanted = selector.slice(1);
+        const ownClasses = String(this.className || "").split(/\s+/).filter(Boolean);
+        if (ownClasses.includes(wanted)) return this;
+      }
+      for (const child of children) {
+        if (child && typeof child.querySelector === "function") {
+          const found = child.querySelector(selector);
+          if (found) return found;
+        }
+      }
+      return null;
+    }
+  };
+}
+
+function fakeDocument() {
+  return {
+    createElement: fakeElement
+  };
+}
+
 test("NPC tracks age through fresh, fading, and stale coarse time bands", () => {
   assert.equal(WorldTraces.freshnessForHour(10), "fresh");
   assert.equal(WorldTraces.freshnessForHour(11), "fresh");
@@ -119,6 +177,99 @@ test("trace UI gates the existing expedition action behind investigate / follow 
   assert.match(source, /trace\.canFollow/);
   assert.match(source, /bindTrackingLesson\(dispatch, root, lessonIdForTrace\(result, input\)\)/);
   assert.match(source, /《轍読み》で詳しく調べる/);
+});
+
+test("fresh unmatched Marco trace creates a follow action and materializes a geographic target only after follow", () => {
+  const document = fakeDocument();
+  const detail = fakeElement("div");
+  const marker = { dataset: { atlasSignalSource: "npc-rumor" } };
+  const safe = { worldKnowledge: { discoveries: {} } };
+  const opened = [];
+  const root = {
+    CrownlessCore: {
+      loadSafeState: () => safe,
+      sanitizeWorldKnowledge: (value) => value,
+      saveWorldKnowledge: () => true
+    },
+    CrownlessWorldAtlasActionsPresentation: {
+      openExpedition: (passedDocument, passedRoot, entry, status) => {
+        opened.push({ passedDocument, passedRoot, entry, status });
+        return true;
+      }
+    }
+  };
+
+  assert.equal(WorldTraces.appendTracePanel(document, detail, marker, 11, root), true);
+  const inspect = detail.querySelector(".world-trace-investigation__inspect");
+  const dispatch = detail.querySelector(".world-trace-investigation__dispatch");
+  const leave = detail.querySelector(".world-trace-investigation__leave");
+
+  assert.ok(inspect);
+  assert.ok(dispatch);
+  assert.ok(leave);
+  assert.equal(dispatch.hidden, true);
+  assert.equal(dispatch.disabled, true);
+  assert.equal(safe.worldKnowledge.discoveries[WorldTraces.TRACKING_DESTINATION_KEY], undefined);
+
+  inspect.click();
+
+  assert.equal(dispatch.hidden, false);
+  assert.equal(dispatch.disabled, false);
+  assert.equal(dispatch.textContent, "痕跡を追って遠征する");
+  assert.equal(leave.textContent, "今回は追わない");
+  assert.equal(safe.worldKnowledge.discoveries[WorldTraces.TRACKING_DESTINATION_KEY], undefined);
+
+  dispatch.click();
+
+  const target = safe.worldKnowledge.discoveries[WorldTraces.TRACKING_DESTINATION_KEY];
+  assert.ok(target);
+  assert.equal(target.key, WorldTraces.TRACKING_DESTINATION_KEY);
+  assert.equal(target.location, WorldTraces.TRACKING_DESTINATION_LOCATION);
+  assert.equal(target.state, "discovered");
+  assert.equal(target.contentKind, "trace");
+  assert.doesNotMatch(JSON.stringify(target), /latitude|longitude|coordinate|mapOrigin/);
+  assert.equal(opened.length, 1);
+  assert.equal(opened[0].entry, target);
+  assert.equal(opened[0].status, null);
+});
+
+test("stale unmatched Marco trace keeps the generated follow action hidden without tracking knowledge", () => {
+  const document = fakeDocument();
+  const detail = fakeElement("div");
+  const marker = { dataset: { atlasSignalSource: "npc-rumor" } };
+  const root = {
+    CrownlessCore: {
+      loadSafeState: () => ({ worldKnowledge: { discoveries: {} } }),
+      sanitizeWorldKnowledge: (value) => value,
+      saveWorldKnowledge: () => true
+    }
+  };
+
+  assert.equal(WorldTraces.appendTracePanel(document, detail, marker, 14, root), true);
+  const inspect = detail.querySelector(".world-trace-investigation__inspect");
+  const dispatch = detail.querySelector(".world-trace-investigation__dispatch");
+  const leave = detail.querySelector(".world-trace-investigation__leave");
+
+  inspect.click();
+
+  assert.equal(dispatch.hidden, true);
+  assert.equal(dispatch.disabled, true);
+  assert.equal(leave.textContent, "痕跡を記憶して立ち去る");
+});
+
+test("existing known-destination dispatch is reused instead of creating a second trace action", () => {
+  const document = fakeDocument();
+  const detail = fakeElement("div");
+  const existing = fakeElement("button");
+  existing.className = "world-atlas-npc-signal-match__open world-atlas-npc-signal-match__dispatch";
+  detail.appendChild(existing);
+  const trace = WorldTraces.traceFromSignalSource("npc-rumor", 11);
+
+  const resolved = WorldTraces.ensureTraceDispatch(document, detail, trace, 11, {});
+
+  assert.equal(resolved.button, existing);
+  assert.equal(resolved.created, false);
+  assert.equal(detail.querySelector(".world-trace-investigation__dispatch"), null);
 });
 
 test("runtime bridge loads world traces without adding a second application bootstrap", () => {
