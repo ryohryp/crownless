@@ -148,7 +148,7 @@ function buildIssueBody(proposal) {
 }
 
 function runPlannerCycle(
-  { repo, cwd = process.cwd(), codexBin } = {},
+  { repo, cwd = process.cwd(), codexBin, deferExecution = false } = {},
   {
     invoke = invokePlanner,
     collect = collectWorkItems,
@@ -212,6 +212,15 @@ function runPlannerCycle(
     return { ok: true, decision: AGENT_PROPOSED_LABEL, issue: normalizedIssue, executor: null };
   }
 
+  if (deferExecution) {
+    return {
+      ok: true,
+      decision: AGENT_READY_LABEL,
+      issue: normalizedIssue,
+      executor: { deferred: true },
+    };
+  }
+
   let executor;
   try {
     executor = execute({ repo, issueNumber: normalizedIssue.number, cwd });
@@ -231,12 +240,14 @@ function runPlannerCycle(
 }
 
 function parseArgs(argv) {
-  const options = {};
+  const options = { deferExecution: false };
   for (let index = 0; index < argv.length; index += 1) {
     const argument = argv[index];
     if (argument === "--repo") {
       options.repo = argv[++index];
       if (!options.repo) throw new Error("--repo requires owner/name");
+    } else if (argument === "--defer-execution") {
+      options.deferExecution = true;
     } else {
       throw new Error(`Unknown option: ${argument}`);
     }
@@ -248,7 +259,7 @@ if (require.main === module) {
   try {
     const options = parseArgs(process.argv.slice(2));
     const repo = options.repo || process.env.GITHUB_REPOSITORY || process.env.AUTOPILOT_REPOSITORY;
-    const result = runPlannerCycle({ repo, cwd: process.cwd() });
+    const result = runPlannerCycle({ repo, cwd: process.cwd(), deferExecution: options.deferExecution });
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
     if (!result.ok && result.decision === "stop") process.exitCode = 1;
   } catch (error) {
