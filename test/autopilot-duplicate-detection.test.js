@@ -4,6 +4,9 @@ const { detectDuplicateProposal, diceSimilarity } = require("../scripts/autopilo
 
 function score(value = 2, applicable = true) { return { applicable, score: value, rationale: "test rationale" }; }
 function gate() { return { playerVisible: score(), decision: score(), riskReward: score(0, false), coreLoop: score(), replayability: score(), fantasy: score(), geography: score(0, false), canon: score(3) }; }
+function candidate(title, kind, reason, selected) {
+  return { title, kind, locationRelated: false, gameplayGate: gate(), reason, selected, learningSources: [], revisitsKilledHypothesis: false, killRevisitEvidence: null };
+}
 function proposal(overrides = {}) {
   const title = overrides.title || "遠征報告から負傷した仲間へ直接移動できるようにする";
   const scope = overrides.scope || "report summary から既存 companion detail を開く導線のみ";
@@ -11,10 +14,12 @@ function proposal(overrides = {}) {
     action: "create_issue", title, whyNow: "Report → Adapt の導線が途切れている", scope,
     acceptanceCriteria: ["負傷した仲間の詳細を報告から開ける"], nonGoals: ["No new companion mechanics"], risk: "low", humanGate: false, playtestRequired: false,
     proposalType: "friction", recentCycleReview: { cyclesReviewed: 5, newPlayAdded: false, maintenanceHeavy: false, summary: "Recent cycles reviewed" },
+    recentPlaytestLearning: { entries: [], summary: "No human-confirmed playtest learning found" },
+    learningApplication: { appliedSources: [], ignoredSources: [], summary: "No playtest learning to apply" },
     candidates: [
-      { title, kind: "friction", locationRelated: false, gameplayGate: gate(), reason: "clear friction", selected: true },
-      { title: "Alternative A", kind: "gameplay", locationRelated: false, gameplayGate: gate(), reason: "not now", selected: false },
-      { title: "Alternative B", kind: "gameplay", locationRelated: false, gameplayGate: gate(), reason: "not now", selected: false },
+      candidate(title, "friction", "clear friction", true),
+      candidate("Alternative A", "gameplay", "not now", false),
+      candidate("Alternative B", "gameplay", "not now", false),
     ], gameplayHypothesis: null,
     ...overrides, title, scope,
   };
