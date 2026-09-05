@@ -7,11 +7,24 @@ function score(value = 2, applicable = true) { return { applicable, score: value
 function gate(overrides = {}) {
   return { playerVisible: score(), decision: score(), riskReward: score(0, false), coreLoop: score(), replayability: score(), fantasy: score(), geography: score(0, false), canon: score(3), ...overrides };
 }
+function candidate(title, kind, reason, selected) {
+  return {
+    title,
+    kind,
+    locationRelated: false,
+    gameplayGate: gate(),
+    reason,
+    selected,
+    learningSources: [],
+    revisitsKilledHypothesis: false,
+    killRevisitEvidence: null,
+  };
+}
 function candidates(title, kind = "friction") {
   return [
-    { title, kind, locationRelated: false, gameplayGate: gate(), reason: "best next step", selected: true },
-    { title: "Alternative A", kind: "gameplay", locationRelated: false, gameplayGate: gate(), reason: "less valuable", selected: false },
-    { title: "Alternative B", kind: "gameplay", locationRelated: false, gameplayGate: gate(), reason: "larger scope", selected: false },
+    candidate(title, kind, "best next step", true),
+    candidate("Alternative A", "gameplay", "less valuable", false),
+    candidate("Alternative B", "gameplay", "larger scope", false),
   ];
 }
 function hypothesis() {
@@ -39,6 +52,8 @@ function proposal(overrides = {}) {
     playtestRequired: proposalType === "gameplay",
     proposalType,
     recentCycleReview: { cyclesReviewed: 5, newPlayAdded: false, maintenanceHeavy: false, summary: "直近は導線改善が中心" },
+    recentPlaytestLearning: { entries: [], summary: "人間確認済みのplaytest learningなし" },
+    learningApplication: { appliedSources: [], ignoredSources: [], summary: "今回反映すべきlearningなし" },
     candidates: candidates(title, proposalType),
     gameplayHypothesis: proposalType === "gameplay" ? hypothesis() : null,
     ...overrides,
@@ -67,6 +82,80 @@ test("gameplay gate stops a Decision=0 proposal before duplicate collection", ()
   const result = evaluatePlannerProposal(value, { repo: "ryohryp/crownless", collect: () => { collected = true; return snapshot(); } });
   assert.equal(result.ok, true); assert.equal(result.decision, "stop"); assert.equal(result.reason, "gameplay_gate");
   assert.ok(result.gameplay.reasons.includes("decision_zero")); assert.equal(collected, false);
+});
+
+test("Change learning must be applied before proposal evaluation continues", () => {
+  let collected = false;
+  const value = proposal();
+  value.recentPlaytestLearning = {
+    entries: [{ source: "#368", status: "Change", observation: "目的差が体感しにくい", plannerImplication: "結果差を強める" }],
+    summary: "直近Changeを確認",
+  };
+  value.learningApplication = {
+    appliedSources: [],
+    ignoredSources: [{ source: "#368", reason: "今回は別件を優先" }],
+    summary: "Changeを今回は使わない",
+  };
+  const result = evaluatePlannerProposal(value, { repo: "ryohryp/crownless", collect: () => { collected = true; return snapshot(); } });
+  assert.equal(result.reason, "invalid_proposal");
+  assert.match(result.error, /Change learning must be applied/);
+  assert.equal(collected, false);
+});
+
+test("applied Change learning must influence at least one candidate", () => {
+  const value = proposal();
+  value.recentPlaytestLearning = {
+    entries: [{ source: "#368", status: "Change", observation: "目的差が体感しにくい", plannerImplication: "結果差を強める" }],
+    summary: "直近Changeを確認",
+  };
+  value.learningApplication = { appliedSources: ["#368"], ignoredSources: [], summary: "結果差強化を候補生成へ反映" };
+  const result = evaluatePlannerProposal(value, { repo: "ryohryp/crownless", collect: () => snapshot() });
+  assert.equal(result.reason, "invalid_proposal");
+  assert.match(result.error, /Change learning must influence at least one candidate/);
+});
+
+test("Change learning can explicitly steer candidate generation", () => {
+  const value = proposal();
+  value.recentPlaytestLearning = {
+    entries: [{ source: "#368", status: "Change", observation: "目的差が体感しにくい", plannerImplication: "結果差を強める" }],
+    summary: "直近Changeを確認",
+  };
+  value.learningApplication = { appliedSources: ["#368"], ignoredSources: [], summary: "結果差強化を候補生成へ反映" };
+  value.candidates[0].learningSources = ["#368"];
+  const result = evaluatePlannerProposal(value, { repo: "ryohryp/crownless", collect: () => snapshot() });
+  assert.equal(result.ok, true);
+  assert.equal(result.decision, "agent-ready");
+});
+
+test("revisiting a killed hypothesis requires new evidence or changed conditions", () => {
+  const value = proposal();
+  value.recentPlaytestLearning = {
+    entries: [{ source: "#400", status: "Kill", observation: "選択が増えただけで迷いが生まれない", plannerImplication: "同じ三択追加を避ける" }],
+    summary: "直近Killを確認",
+  };
+  value.learningApplication = { appliedSources: ["#400"], ignoredSources: [], summary: "Kill理由を候補比較へ反映" };
+  value.candidates[0].learningSources = ["#400"];
+  value.candidates[0].revisitsKilledHypothesis = true;
+  value.candidates[0].killRevisitEvidence = null;
+  const rejected = evaluatePlannerProposal(value, { repo: "ryohryp/crownless", collect: () => snapshot() });
+  assert.equal(rejected.reason, "invalid_proposal");
+  assert.match(rejected.error, /new evidence or changed conditions/);
+
+  value.candidates[0].killRevisitEvidence = "新しい遠征報告差分が実装され、選択が結果へ影響する条件が変わった";
+  const accepted = evaluatePlannerProposal(value, { repo: "ryohryp/crownless", collect: () => snapshot() });
+  assert.equal(accepted.ok, true);
+  assert.equal(accepted.decision, "agent-ready");
+});
+
+test("learning application must account for every reviewed source", () => {
+  const value = proposal();
+  value.recentPlaytestLearning = {
+    entries: [{ source: "#410", status: "Keep", observation: "報告から次の判断へ進みやすい", plannerImplication: "短いAdapt導線を維持する" }],
+    summary: "直近Keepを確認",
+  };
+  const result = evaluatePlannerProposal(value, { repo: "ryohryp/crownless", collect: () => snapshot() });
+  assert.equal(result.reason, "invalid_proposal");
+  assert.match(result.error, /apply or explicitly ignore every learning source/);
 });
 
 test("create_issue passes collected snapshot to duplicate detection", () => {
