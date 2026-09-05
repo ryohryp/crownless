@@ -20,6 +20,7 @@
   const folio = document.createElement("div");
   folio.id = "hearth-folio";
   folio.className = "hearth-folio";
+  folio.style.zIndex = "120";
   folio.hidden = true;
   folio.setAttribute("aria-hidden", "true");
 
