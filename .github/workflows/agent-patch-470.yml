@@ -20,151 +20,110 @@ jobs:
           python3 - <<'PY'
           from pathlib import Path
 
-          presentation_path = Path('src/expedition-presentation.js')
-          presentation = presentation_path.read_text()
-          marker = '''  document.addEventListener("keydown", (event) => {
-              if (event.key === "Escape") close();
-            });
+          p = Path('src/expedition-presentation.js')
+          s = p.read_text()
+          needle = '''  document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") close();
+          });
 
-            refresh(Date.now());'''.replace('            ', '  ')
-          replacement = '''  document.addEventListener("keydown", (event) => {
-              if (event.key === "Escape") close();
-            });
+          refresh(Date.now());'''
+          repl = '''  document.addEventListener("keydown", (event) => {
+            if (event.key === "Escape") close();
+          });
 
-            window.CrownlessExpeditionPresentation = Object.freeze({
-              open,
-              close,
-              isReady() { return true; }
-            });
+          window.CrownlessExpeditionPresentation = Object.freeze({
+            open,
+            close,
+            isReady() { return true; }
+          });
 
-            refresh(Date.now());'''.replace('            ', '  ')
-          if marker not in presentation:
+          refresh(Date.now());'''
+          if needle not in s:
               raise SystemExit('expedition presentation marker not found')
-          presentation_path.write_text(presentation.replace(marker, replacement, 1))
+          p.write_text(s.replace(needle, repl, 1))
 
-          atlas_path = Path('src/world-atlas-actions-presentation.js')
-          atlas = atlas_path.read_text()
-          old = '''  function openExpedition(document, root, entry, status) {
-              patchExpeditionSystem(root);
-              const state = loadExpeditionState(root);
-              if (state && state.activeExpedition) {
-                if (status) status.textContent = "別の遠征隊が派遣中。帰還後にこの地点を選べる。";
-                return false;
+          p = Path('src/world-atlas-actions-presentation.js')
+          s = p.read_text()
+          start = s.index('  function openExpedition(document, root, entry, status) {')
+          end = s.index('\n\n  function ensureStylesheet(document)', start)
+          repl = '''  function openExpedition(document, root, entry, status) {
+            patchExpeditionSystem(root);
+            const state = loadExpeditionState(root);
+            if (state && state.activeExpedition) {
+              if (status) status.textContent = "別の遠征隊が派遣中。帰還後にこの地点を選べる。";
+              return false;
+            }
+            const presentation = root && root.CrownlessExpeditionPresentation;
+            const bridge = root && root.CrownlessGeographicExpeditionBridge;
+            const presentationReady = presentation
+              && typeof presentation.open === "function"
+              && (typeof presentation.isReady !== "function" || presentation.isReady());
+            if (!presentationReady || !bridge || typeof bridge.expeditionDestinationId !== "function") {
+              if (status) status.textContent = "遠征台帳の準備がまだ整っていない。もう一度「遠征隊を送る」を押すと再試行できる。";
+              return false;
+            }
+            try {
+              presentation.open();
+            } catch (_) {
+              if (status) status.textContent = "遠征台帳を開けなかった。もう一度「遠征隊を送る」を押して再試行できる。";
+              return false;
+            }
+            closeDiscoverySurfaces(document, root);
+            const apply = () => {
+              if (lockAtlasDestination(document, root, entry)) return;
+              if (typeof presentation.close === "function") presentation.close();
+              if (root.CrownlessWorldAtlas && typeof root.CrownlessWorldAtlas.openAtlas === "function") {
+                root.CrownlessWorldAtlas.openAtlas(document, root.CrownlessCore, root, { autoScan: false, view: "world" });
               }
-              const gate = document.getElementById("start-expedition");
-              const bridge = root && root.CrownlessGeographicExpeditionBridge;
-              if (!gate || !bridge || typeof bridge.expeditionDestinationId !== "function") {
-                if (status) status.textContent = "遠征台帳の準備がまだ整っていない。";
-                return false;
-              }
-              closeDiscoverySurfaces(document, root);
-              gate.click();
-              const apply = () => {
-                if (lockAtlasDestination(document, root, entry)) return;
-                if (root.CrownlessWorldAtlas && typeof root.CrownlessWorldAtlas.openAtlas === "function") {
-                  document.getElementById("expedition-folio")?.querySelector("[data-expedition-close]")?.click();
-                  root.CrownlessWorldAtlas.openAtlas(document, root.CrownlessCore, root, { autoScan: false, view: "world" });
-                }
-              };
-              Promise.resolve().then(apply);
-              return true;
-            }'''.replace('            ', '  ')
-          new = '''  function openExpedition(document, root, entry, status) {
-              patchExpeditionSystem(root);
-              const state = loadExpeditionState(root);
-              if (state && state.activeExpedition) {
-                if (status) status.textContent = "別の遠征隊が派遣中。帰還後にこの地点を選べる。";
-                return false;
-              }
-              const presentation = root && root.CrownlessExpeditionPresentation;
-              const bridge = root && root.CrownlessGeographicExpeditionBridge;
-              const presentationReady = presentation
-                && typeof presentation.open === "function"
-                && (typeof presentation.isReady !== "function" || presentation.isReady());
-              if (!presentationReady || !bridge || typeof bridge.expeditionDestinationId !== "function") {
-                if (status) status.textContent = "遠征台帳の準備がまだ整っていない。もう一度「遠征隊を送る」を押すと再試行できる。";
-                return false;
-              }
-              try {
-                presentation.open();
-              } catch (_) {
-                if (status) status.textContent = "遠征台帳を開けなかった。もう一度「遠征隊を送る」を押して再試行できる。";
-                return false;
-              }
-              closeDiscoverySurfaces(document, root);
-              const apply = () => {
-                if (lockAtlasDestination(document, root, entry)) return;
-                if (typeof presentation.close === "function") presentation.close();
-                if (root.CrownlessWorldAtlas && typeof root.CrownlessWorldAtlas.openAtlas === "function") {
-                  root.CrownlessWorldAtlas.openAtlas(document, root.CrownlessCore, root, { autoScan: false, view: "world" });
-                }
-              };
-              Promise.resolve().then(apply);
-              return true;
-            }'''.replace('            ', '  ')
-          if old not in atlas:
-              raise SystemExit('atlas openExpedition marker not found')
-          atlas_path.write_text(atlas.replace(old, new, 1))
+            };
+            Promise.resolve().then(apply);
+            return true;
+          }'''
+          p.write_text(s[:start] + repl + s[end:])
 
-          entry_test_path = Path('test/expedition-entrypoint.test.js')
-          entry_test = entry_test_path.read_text()
-          addition = '''\n\ntest("expedition presentation exposes an explicit runtime entrypoint", () => {
+          p = Path('test/expedition-entrypoint.test.js')
+          s = p.read_text()
+          if 'explicit runtime entrypoint' not in s:
+              s += '''\n\ntest("expedition presentation exposes an explicit runtime entrypoint", () => {
             assert.match(presentation, /CrownlessExpeditionPresentation/);
             assert.match(presentation, /Object\\.freeze\\(\\{[\\s\\S]*open,[\\s\\S]*close,[\\s\\S]*isReady/);
-          });\n'''.replace('          ', '')
-          if 'explicit runtime entrypoint' not in entry_test:
-              entry_test_path.write_text(entry_test + addition)
+          });\n'''
+              p.write_text(s)
 
-          atlas_test_path = Path('test/world-atlas-actions-presentation.test.js')
-          atlas_test = atlas_test_path.read_text()
-          old_test = '''test("opening an expedition closes both discovery overlays before changing screens", () => {
-              const order = [];
-              const root = fakeRoot({}, {});
-              root.CrownlessGeographicExpeditionBridge = {
-                expeditionDestinationId() { return "world:geo:test"; }
-              };
-              root.CrownlessDiscoveryJournal = { close() { order.push("journal"); } };
-              root.CrownlessWorldAtlas = { closeAtlas() { order.push("atlas"); } };
-              const gate = { click() { order.push("gate"); } };
-              const document = {
-                getElementById(id) { return id === "start-expedition" ? gate : null; }
-              };
+          p = Path('test/world-atlas-actions-presentation.test.js')
+          s = p.read_text()
+          start = s.index('test("opening an expedition closes both discovery overlays before changing screens"')
+          end = s.index('\n\ntest("discovery overlay cleanup', start)
+          repl = '''test("opening an Atlas expedition uses the explicit presentation entrypoint instead of the legacy gate", () => {
+            const order = [];
+            const root = fakeRoot({}, {});
+            root.CrownlessGeographicExpeditionBridge = {
+              expeditionDestinationId() { return "world:geo:test"; }
+            };
+            root.CrownlessExpeditionPresentation = {
+              isReady() { return true; },
+              open() { order.push("presentation"); },
+              close() { order.push("presentation-close"); }
+            };
+            root.CrownlessDiscoveryJournal = { close() { order.push("journal"); } };
+            root.CrownlessWorldAtlas = { closeAtlas() { order.push("atlas"); } };
+            const document = { getElementById() { return null; } };
 
-              assert.equal(Presentation.openExpedition(document, root, { key: "geo:test" }), true);
-              assert.deepEqual(order, ["journal", "atlas", "gate"]);
-            });'''.replace('            ', '')
-          new_test = '''test("opening an Atlas expedition uses the explicit presentation entrypoint instead of the legacy gate", () => {
-              const order = [];
-              const root = fakeRoot({}, {});
-              root.CrownlessGeographicExpeditionBridge = {
-                expeditionDestinationId() { return "world:geo:test"; }
-              };
-              root.CrownlessExpeditionPresentation = {
-                isReady() { return true; },
-                open() { order.push("presentation"); },
-                close() { order.push("presentation-close"); }
-              };
-              root.CrownlessDiscoveryJournal = { close() { order.push("journal"); } };
-              root.CrownlessWorldAtlas = { closeAtlas() { order.push("atlas"); } };
-              const document = { getElementById() { return null; } };
+            assert.equal(Presentation.openExpedition(document, root, { key: "geo:test" }), true);
+            assert.deepEqual(order, ["presentation", "journal", "atlas"]);
+            assert.doesNotMatch(source, /gate\\.click\\(\\)/);
+          });
 
-              assert.equal(Presentation.openExpedition(document, root, { key: "geo:test" }), true);
-              assert.deepEqual(order, ["presentation", "journal", "atlas"]);
-              assert.doesNotMatch(source, /gate\\.click\\(\\)/);
-            });
+          test("Atlas expedition entrypoint fails closed with retry feedback while presentation is unavailable", () => {
+            const root = fakeRoot({}, {});
+            root.CrownlessGeographicExpeditionBridge = { expeditionDestinationId() { return "world:geo:test"; } };
+            const status = { textContent: "" };
+            const document = { getElementById() { return null; } };
 
-            test("Atlas expedition entrypoint fails closed with retry feedback while presentation is unavailable", () => {
-              const root = fakeRoot({}, {});
-              root.CrownlessGeographicExpeditionBridge = { expeditionDestinationId() { return "world:geo:test"; } };
-              const status = { textContent: "" };
-              const document = { getElementById() { return null; } };
-
-              assert.equal(Presentation.openExpedition(document, root, { key: "geo:test" }, status), false);
-              assert.match(status.textContent, /再試行/);
-            });'''.replace('            ', '')
-          if old_test not in atlas_test:
-              raise SystemExit('atlas test marker not found')
-          atlas_test_path.write_text(atlas_test.replace(old_test, new_test, 1))
+            assert.equal(Presentation.openExpedition(document, root, { key: "geo:test" }, status), false);
+            assert.match(status.textContent, /再試行/);
+          });'''
+          p.write_text(s[:start] + repl + s[end:])
           PY
       - name: Focused tests
         run: node --test test/expedition-entrypoint.test.js test/world-atlas-actions-presentation.test.js test/app-runtime-state.test.js
