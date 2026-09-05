@@ -582,6 +582,12 @@
     if (event.key === "Escape") close();
   });
 
+  window.CrownlessExpeditionPresentation = Object.freeze({
+    open,
+    close,
+    isReady() { return true; }
+  });
+
   refresh(Date.now());
   updateGateCopy();
   window.setInterval(() => {
