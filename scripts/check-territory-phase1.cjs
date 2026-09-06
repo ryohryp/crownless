@@ -45,7 +45,7 @@ async function openFreshNearbyAtlas(page) {
   await page.locator(".world-atlas-close").click();
   await page.locator(".world-atlas-home-entry").click();
   await page.waitForSelector(".world-atlas-map--nearby");
-  await page.waitForSelector('[data-territory-key][data-territory-owner="npc"]');
+  await page.waitForSelector('[data-territory-key][data-territory-owner="npc"], [data-territory-key][data-territory-owner="player"]');
 }
 
 async function selectNearbyPlace(page, name) {
@@ -123,9 +123,10 @@ async function selectNearbyPlace(page, name) {
     assert.deepEqual(territoryStateAfterReload.controlledKeys, territoryStateBeforeReload.controlledKeys);
     await page.locator(".expedition-folio__close").click();
 
-    // Atlas is the reward surface: the foothold is visibly ours and points to the next target.
-    await page.locator(".world-atlas-home-entry").click();
-    await page.waitForSelector(".world-atlas-map--nearby");
+    // The mocked nearby runtime is page-local and disappears on reload, so
+    // restore the same coarse discovery set before evaluating the Atlas reward surface.
+    await seedLocation(page);
+    await openFreshNearbyAtlas(page);
     await page.waitForSelector('[data-territory-owner="player"]');
     assert.equal(await page.locator('[data-territory-owner="player"]').count(), 1);
     await selectNearbyPlace(page, "丘の物見台");
