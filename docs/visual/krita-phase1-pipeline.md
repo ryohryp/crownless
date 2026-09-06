@@ -6,7 +6,7 @@ Issue: #504
 
 Prove one bounded production path without building a general art platform:
 
-`existing generated base -> Krita edit -> .kra source -> runtime PNG -> mobile Hearth QA -> Krita recipe adjustment`
+`existing generated base -> Krita edit -> .kra source -> runtime PNG -> actual mobile World Atlas QA -> Krita recipe adjustment`
 
 The representative asset is `assets/locations/ruined-watchtower.png`.
 
@@ -27,32 +27,57 @@ The representative asset is `assets/locations/ruined-watchtower.png`.
 | Recipe | `tools/krita/recipes/ruined-watchtower-phase1.json` | reviewable source of the local correction |
 | QA evidence | `qa-output/krita-504/*` | workflow artifact only |
 
-The first run copies the current runtime PNG to the base-snapshot path before Krita touches the runtime export. Later runs always reopen that frozen base, so recipe changes are reproducible instead of stacking edits on edits.
+The first successful production run copies the current runtime PNG to the base-snapshot path before Krita touches the runtime export. Later runs always reopen that frozen base, so recipe changes are reproducible instead of stacking edits on edits.
 
 ## What Krita actually does
 
 The `crownless_recipe` Python extension is enabled only in an isolated temporary Krita profile. It:
 
-1. opens the base snapshot;
+1. opens the frozen base snapshot on Krita's GUI thread after application startup;
 2. selects/renames/locks its bitmap layer;
 3. imports the base as an external file layer for provenance and keeps it hidden;
-4. creates a vector correction layer;
-5. toggles visibility, changes opacity, and moves the layer into the lower part of the image;
-6. applies a restrained parchment wash as a local phone-readability correction;
-7. saves a `.kra` editable source;
-8. exports the composite to the existing runtime PNG path.
+4. creates an editable RGBA/U8 paint correction layer above the opaque base;
+5. writes the local wash through Krita paint-device channels and reads the pixels back before trusting the edit;
+6. toggles visibility, changes layer opacity, and moves the correction into the lower part of the image;
+7. refreshes the document projection and saves a `.kra` editable source;
+8. starts a fresh Krita process with the recipe plugin disabled and exports the KRA composite to the runtime PNG path.
 
-If Krita or Xvfb is unavailable, the runner fails closed. It does not substitute ImageMagick, Pillow, Canvas, or another renderer.
+The paint-layer route is intentional. On Krita 5.2.2, an earlier vector-layer prototype could persist the SVG in the KRA before that vector content participated in the saved merged projection. The paint layer keeps the correction editable while giving the KRA-to-PNG exporter deterministic pixel content.
+
+If Krita or Xvfb is unavailable, the runner fails closed. It does not substitute another image editor or renderer for the production edit/export path.
+
+## Pixel-level gate
+
+`check-krita-pixels.py` compares the frozen base and Krita runtime export as decoded RGBA pixels. It requires:
+
+- identical dimensions;
+- a real RGB/alpha pixel difference, not merely different PNG encoding bytes;
+- the changed bounding box to remain inside the intended foreground band;
+- enough changed pixels to prove the edit survived KRA reopen/export;
+- a bounded mean RGB delta so a local correction cannot silently become a destructive repaint.
+
+For Pillow 10+, the gate explicitly asks `getbbox(alpha_only=False)`. The runtime image stays fully opaque, so the default RGBA alpha-only bounding-box behavior would otherwise report a real RGB edit as identical.
 
 ## Real-screen QA
 
-`check-krita-mobile-qa.cjs` starts from the normal game page at a 412x915 mobile viewport. It overrides only the in-memory `loadSafeState()` result inside the browser to expose a known discovered watchtower, then lets the existing Hearth presentation resolve the normal `location-visuals.js` mapping. The script opens the real Hearth map viewer, confirms that the runtime PNG loads, records rendered dimensions, and captures a screenshot.
+`check-krita-mobile-qa.cjs` starts from the normal game page at a 412x915 mobile viewport. It overrides only the in-memory `loadSafeState()` result inside the browser to expose a known discovered watchtower, then exercises the current production route:
 
-No QA-only UI is added to production code.
+`Grey Hearth wall map -> World Atlas -> mobile location details -> latest visual`
 
-## Iteration rule
+The script confirms that `assets/locations/ruined-watchtower.png` loads through the normal `location-visuals.js` mapping, checks its natural and rendered dimensions, verifies the watchtower caption, and captures the actual Atlas screenshot. It uses a real pointer click for the Hearth wall map, so mobile overlays and hit-testing regressions are visible to the QA instead of being bypassed with DOM-only clicks.
 
-Phase 1 is complete only after at least two successful Krita runs. Inspect the first mobile screenshot, adjust only the recipe (for example wash opacity/coverage), rerun the workflow, and retain the second screenshot as the reviewed result. This is the required `actual screen -> Krita -> actual screen` loop.
+No QA-only screen is added to production code.
+
+## Closed-loop result
+
+The required `actual screen -> Krita -> actual screen` loop was completed with two successful visual passes against the same frozen base.
+
+| Pass | Recipe | Pixel evidence | Mobile evidence |
+| --- | --- | --- | --- |
+| First accepted edit | lower 24%, layer opacity 72, fill opacity 0.42 | changed bbox `y=550..720`, 20.54% changed pixels, mean RGB delta 0.569 | 1280x720 runtime rendered at 363x190 in the 412x915 Atlas |
+| QA-driven refinement | lower 18%, layer opacity 60, fill opacity 0.36 | changed bbox `y=593..720`, 14.08% changed pixels, mean RGB delta 0.344 | same production Atlas path and dimensions, with more lower-terrain line detail retained |
+
+The second pass is the reviewed Phase-1 recipe. It narrows and weakens the foreground wash after inspecting the first actual mobile Atlas screenshot instead of accumulating a second edit on the first PNG.
 
 ## Local execution
 
@@ -61,6 +86,7 @@ On Linux with Krita and Xvfb installed:
 ```bash
 ./tools/krita/run-recipe.sh . tools/krita/recipes/ruined-watchtower-phase1.json
 node scripts/check-krita-phase1.cjs
+python3 scripts/check-krita-pixels.py
 ```
 
 The GitHub Actions workflow additionally runs the phone-scale Playwright QA and the repository test suite.
