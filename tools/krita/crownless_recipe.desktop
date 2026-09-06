@@ -1,0 +1,7 @@
+[Desktop Entry]
+Type=Service
+ServiceTypes=Krita/PythonPlugin
+X-KDE-Library=crownless_recipe
+X-Python-2-Compatible=false
+Name=Crownless Recipe Runner
+Comment=Runs a bounded Crownless visual-edit recipe for CI.
