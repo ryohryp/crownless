@@ -33,8 +33,6 @@ jobs:
       GH_TOKEN: ${{ github.token }}
       ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
       REQUESTED_FOCUSED_TEST: ${{ inputs.focused_test }}
-      CODEX_AUTH_JSON: ${{ secrets.CODEX_AUTH_JSON }}
-      OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
     steps:
       - name: Checkout main
         uses: actions/checkout@v4
@@ -53,6 +51,9 @@ jobs:
 
       - name: Configure Codex authentication
         shell: bash
+        env:
+          CODEX_AUTH_JSON: ${{ secrets.CODEX_AUTH_JSON }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
         run: |
           set -euo pipefail
           if [[ -n "${CODEX_AUTH_JSON:-}" ]]; then
@@ -60,12 +61,10 @@ jobs:
             printf '%s' "$CODEX_AUTH_JSON" > "$HOME/.codex/auth.json"
             chmod 600 "$HOME/.codex/auth.json"
             unset OPENAI_API_KEY CODEX_AUTH_JSON
-            echo "OPENAI_API_KEY=" >> "$GITHUB_ENV"
-            echo "CODEX_AUTH_JSON=" >> "$GITHUB_ENV"
             codex login status
           elif [[ -n "${OPENAI_API_KEY:-}" ]]; then
+            printf 'OPENAI_API_KEY=%s\n' "$OPENAI_API_KEY" >> "$GITHUB_ENV"
             echo "Using OPENAI_API_KEY for Codex CLI authentication."
-            echo "CODEX_AUTH_JSON=" >> "$GITHUB_ENV"
           else
             echo "::error::Configure repository secret CODEX_AUTH_JSON or OPENAI_API_KEY before running Crownless Autopilot."
             exit 1
