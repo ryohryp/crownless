@@ -10,6 +10,7 @@
 
   const MOBILE_MAX = 700;
   const MIN_GAP = 24;
+  const SVG_NS = "http://www.w3.org/2000/svg";
   const CANDIDATE_OFFSETS = Object.freeze([
     Object.freeze({ x: 0, y: 0 }),
     Object.freeze({ x: -24, y: -14 }),
@@ -47,6 +48,18 @@
     const style = document.createElement("style");
     style.id = "territory-mobile-declutter-styles";
     style.textContent = `
+      #world-atlas-viewer .territory-route-ink[data-territory-directional="true"] > path {
+        stroke-linecap:round;
+        stroke-linejoin:round;
+      }
+      #world-atlas-viewer .territory-route-ink .territory-route-arrowhead {
+        fill:none !important;
+        stroke:rgba(202,168,93,.82) !important;
+        stroke-width:1.35 !important;
+        stroke-dasharray:none !important;
+        stroke-linecap:round;
+        stroke-linejoin:round;
+      }
       @media (max-width:${MOBILE_MAX}px) {
         #world-atlas-viewer .world-atlas-map--nearby [data-territory-declutter="true"] {
           translate: var(--territory-declutter-x,0px) var(--territory-declutter-y,0px);
@@ -68,17 +81,62 @@
         #world-atlas-viewer .territory-atlas-summary {
           top:6px !important;
           right:6px !important;
-          width:142px !important;
+          width:116px !important;
           padding:5px 7px !important;
           background:rgba(12,11,9,.82) !important;
         }
-        #world-atlas-viewer .territory-atlas-summary small { display:none !important; }
-        #world-atlas-viewer .territory-atlas-summary strong { margin-top:0 !important; font-size:10px !important; }
-        #world-atlas-viewer .territory-atlas-summary span { margin-top:2px !important; font-size:7px !important; line-height:1.25 !important; }
+        #world-atlas-viewer .territory-atlas-summary small,
+        #world-atlas-viewer .territory-atlas-summary span { display:none !important; }
+        #world-atlas-viewer .territory-atlas-summary strong {
+          margin-top:0 !important;
+          font-size:9px !important;
+          line-height:1.25 !important;
+          white-space:nowrap !important;
+        }
       }
     `;
     document.head.appendChild(style);
     return true;
+  }
+
+  function decorateCausalRoutes(document) {
+    if (!document || typeof document.createElementNS !== "function") return 0;
+    const routes = Array.from(document.querySelectorAll("#world-atlas-viewer .territory-route-ink"));
+    let decorated = 0;
+    routes.forEach((svg, index) => {
+      let defs = Array.from(svg.children || []).find((child) => String(child.tagName).toLowerCase() === "defs" && child.getAttribute?.("data-territory-route-defs") === "true");
+      let markerId = defs?.getAttribute?.("data-territory-route-marker-id") || "";
+      if (!defs) {
+        markerId = `territory-route-arrow-${index}`;
+        defs = document.createElementNS(SVG_NS, "defs");
+        defs.setAttribute("data-territory-route-defs", "true");
+        defs.setAttribute("data-territory-route-marker-id", markerId);
+        const marker = document.createElementNS(SVG_NS, "marker");
+        marker.setAttribute("id", markerId);
+        marker.setAttribute("viewBox", "0 0 9 8");
+        marker.setAttribute("refX", "8");
+        marker.setAttribute("refY", "4");
+        marker.setAttribute("markerWidth", "8");
+        marker.setAttribute("markerHeight", "8");
+        marker.setAttribute("orient", "auto");
+        marker.setAttribute("markerUnits", "strokeWidth");
+        const arrow = document.createElementNS(SVG_NS, "path");
+        arrow.setAttribute("class", "territory-route-arrowhead");
+        arrow.setAttribute("d", "M 1 1 L 8 4 L 1 7");
+        arrow.setAttribute("vector-effect", "non-scaling-stroke");
+        marker.appendChild(arrow);
+        defs.appendChild(marker);
+        svg.prepend(defs);
+      }
+
+      const paths = Array.from(svg.children || []).filter((child) => String(child.tagName).toLowerCase() === "path");
+      paths.forEach((path) => path.setAttribute("marker-end", `url(#${markerId})`));
+      if (paths.length) {
+        svg.setAttribute("data-territory-directional", "true");
+        decorated += 1;
+      }
+    });
+    return decorated;
   }
 
   function resetMarkers(markers) {
@@ -91,6 +149,7 @@
 
   function apply(document, root) {
     if (!document || !root) return 0;
+    decorateCausalRoutes(document);
     const map = document.querySelector("#world-atlas-viewer .world-atlas-map--nearby");
     if (!map) return 0;
     const markers = Array.from(map.querySelectorAll("[data-territory-key]"));
@@ -149,7 +208,7 @@
     if (typeof root.MutationObserver === "function" && document.body) {
       const observer = new root.MutationObserver((records) => {
         const relevant = records.some((record) => Array.from(record.addedNodes || []).some((node) => node?.nodeType === 1 && (
-          node.matches?.(".world-atlas-map--nearby, [data-territory-key]") || node.querySelector?.(".world-atlas-map--nearby, [data-territory-key]")
+          node.matches?.(".world-atlas-map--nearby, [data-territory-key], .territory-route-ink") || node.querySelector?.(".world-atlas-map--nearby, [data-territory-key], .territory-route-ink")
         )));
         if (relevant) schedule(document, root);
       });
@@ -159,5 +218,5 @@
     return true;
   }
 
-  return Object.freeze({ MOBILE_MAX, MIN_GAP, CANDIDATE_OFFSETS, distance, layoutOffsets, apply, schedule, install });
+  return Object.freeze({ MOBILE_MAX, MIN_GAP, CANDIDATE_OFFSETS, distance, layoutOffsets, decorateCausalRoutes, apply, schedule, install });
 });
