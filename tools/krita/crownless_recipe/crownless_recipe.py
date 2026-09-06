@@ -5,6 +5,14 @@ from pathlib import Path
 
 from krita import Extension, InfoObject, Krita
 from PyQt5.QtCore import QTimer
+from PyQt5.QtWidgets import QApplication
+
+
+_IMPORT_MARKER = os.environ.get("CROWNLESS_KRITA_IMPORT_MARKER", "")
+if _IMPORT_MARKER:
+    marker_path = Path(_IMPORT_MARKER)
+    marker_path.parent.mkdir(parents=True, exist_ok=True)
+    marker_path.write_text("loaded\n", encoding="utf-8")
 
 
 class CrownlessRecipeExtension(Extension):
@@ -161,4 +169,6 @@ class CrownlessRecipeExtension(Extension):
                 report_path = fallback_root / "qa-output/krita-504/krita-run-report.json"
             self._write_report(report_path, report)
         finally:
-            QTimer.singleShot(0, Krita.instance().quit)
+            qt_app = QApplication.instance()
+            if qt_app is not None:
+                QTimer.singleShot(0, qt_app.quit)
