@@ -90,7 +90,6 @@ def _write_rgba_u8_channels(node, width, height, fill, fill_opacity):
         channel.setPixelData(payload, rect)
         written.append(key)
 
-    # Verify the paint device really received data before trusting save/export.
     readback = node.pixelData(0, 0, width, height)
     expected_size = width * height * 4
     if readback.size() != expected_size:
@@ -179,13 +178,12 @@ def run_recipe():
         start_y = max(0, min(height - 1, round(height * start_ratio)))
         band_height = max(1, min(height - start_y, round(height * height_ratio)))
 
-        # A paint layer is persisted and projected as ordinary bitmap content.
-        # Channel-level writes avoid Krita 5.2.2's Node.setPixelData false return
-        # observed on a freshly-created paint device, and readback below verifies
-        # that actual pixel content exists before the KRA is trusted.
         overlay = doc.createNode(str(correction.get("name", "foreground-calm-wash")), "paintlayer")
-        if overlay is None or not root.addChildNode(overlay, None):
-            raise RuntimeError("could not create correction paint layer")
+        # childNodes() is bottom-up. Explicitly place the correction above the
+        # opaque generated base so its persisted paint pixels participate in the
+        # merged projection instead of being completely hidden underneath it.
+        if overlay is None or not root.addChildNode(overlay, base_layer):
+            raise RuntimeError("could not create correction paint layer above base")
         doc.setActiveNode(overlay)
         channel_layout, written_channels = _write_rgba_u8_channels(
             overlay, width, band_height, fill, fill_opacity
@@ -207,6 +205,10 @@ def run_recipe():
             doc.waitForDone()
         QApplication.processEvents()
 
+        layer_order = [node.name() for node in root.childNodes()]
+        if layer_order.index(overlay.name()) <= layer_order.index(base_layer.name()):
+            raise RuntimeError(f"correction layer is not above base: {layer_order}")
+
         _stage("before-save")
         if not doc.saveAs(str(editable_path)):
             raise RuntimeError(f"Krita failed to save editable source: {editable_path}")
@@ -221,6 +223,7 @@ def run_recipe():
             "baseSnapshot": str(base_path.relative_to(repo_root)),
             "editableSource": str(editable_path.relative_to(repo_root)),
             "runtimeExport": str(export_path.relative_to(repo_root)),
+            "layerOrderBottomUp": layer_order,
             "correction": {
                 "mode": "paintlayer-channel-pixels",
                 "startY": start_y,
@@ -247,8 +250,6 @@ def run_recipe():
 
 
 class CrownlessRecipeExtension(Extension):
-    """Interactive no-op shell so the resource remains a normal Krita plugin."""
-
     def setup(self):
         return
 
@@ -257,8 +258,6 @@ class CrownlessRecipeExtension(Extension):
 
 
 class _QueuedAutorun(QObject):
-    """Move the headless recipe onto Krita's GUI thread after startup."""
-
     requested = pyqtSignal()
 
     def __init__(self):
