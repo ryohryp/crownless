@@ -1,319 +1,87 @@
 ---
 name: crownless-visual-design
-description: Apply Crownless's canonical living-medieval-manuscript visual language to concept art, image generation, UI, HUD, maps, combat presentation, Grey Hearth presentation, items, icons, effects, characters, enemies, and visual reviews. Use whenever a task creates, edits, implements, or evaluates Crownless visuals.
+description: Create, implement, or review Crownless visuals using its living medieval manuscript and woodcut Canon. Use for expedition preparation and reports, companions, Grey Hearth, discovery maps, equipment, UI, and game assets.
 ---
 
 # Crownless Visual Design
 
-## Mandatory sources
+## Scope and authority
 
-Before any Crownless visual task, read in this order:
+Support **Location × Expedition RPG** and the loop **Walk → Discover → Prepare → Dispatch → Wait → Report → Adapt**. Presentation should make the player care who returns and understand the next expedition decision.
 
-1. `../../docs/visual-design-guide-v0.2.md` — canonical visual rules
-2. inspect `../../docs/assets/crownless-visual-design-reference-v0.1.jpg` — global line / palette / material calibration
-3. inspect `../../assets/combat/minimal-v0.1/actors/` when combat characters appear — current character proportion / silhouette / combat-view authority
-4. `../../docs/game-system-design.md` — gameplay contract
-5. relevant subsystem spec:
-   - exploration / maps: `../../docs/exploration-location-spec.md`
-   - combat: `../../docs/combat-presentation-spec.md`
-   - Grey Hearth: `../../docs/hearth-presentation-spec.md`
-6. for named combat subject generation, also read `../../docs/visual/CHARACTER_VISUAL_CANON.md`
-7. before invoking an image generator for a production asset, read `../../docs/visual/IMAGE_GENERATION_HANDOFF.md`
+Read [AGENTS.md](../../AGENTS.md) and [current gameplay Canon](../../docs/game-system-design.md), then [the visual guide](../../docs/visual-design-guide-v0.2.md). Inspect [the global calibration image](../../docs/assets/crownless-visual-design-reference-v0.1.jpg) and the accepted character examples in `../../assets/combat/minimal-v0.1/actors/` for proportion and silhouette where useful. Do not reload sources already inspected in this task unless they changed.
 
-Older v0.1 boards remain authoritative for linework, palette, materials, map/UI grammar, and physical ink effects. The accepted combat actor set supersedes older 4–5-head proportion guidance and controls the current combat-character viewpoint.
+**Authority is scoped:** the visual guide governs linework, material, palette, and character proportions. Current gameplay and subsystem specs govern behavior, camera needs, controls, and screen purpose. Under [ADR 0002](../../docs/adr/0002-idle-expedition-pivot.md), real-time combat passages in older visual documents are historical context. They do not authorize Technique, Evade, combat HUD, or a battlefield for the current expedition loop.
 
-Gameplay specs remain authoritative for controls and behavior.
+Read the subsystem relevant to the requested work:
 
-## North star
+- Preparation, companions, equipment effects, waiting, outcomes, or reports: [expedition specification](../../docs/expedition-system-spec.md).
+- Discovery, maps, locations, or regional visuals: [exploration and location specification](../../docs/exploration-location-spec.md).
+- Room composition, safe-state interaction, recovery, or dispatch from the Hearth: [Hearth presentation specification](../../docs/hearth-presentation-spec.md).
+- Named character identity or asset selection: [Character Visual Canon](../../docs/visual/CHARACTER_VISUAL_CANON.md). Resolve the current Approved Anchor there; runtime atlases and historical pose sheets have different roles.
+- Explicitly authorized maintenance or repurposing of existing actor rendering: [legacy actor presentation](references/legacy-actor-presentation.md). Read only the applicable checks. Do not apply battlefield viewpoint or enemy-HUD rules to unrelated Hearth scenes or reports.
 
-> **Crownless is a playable medieval manuscript: rough hand-inked figures and places, woodcut texture, a world that gains knowledge and restrained color, and action expressed through physical ink.**
+Keep the requested scope. A visual review does not authorize generating replacement art, promoting Candidates, or changing gameplay.
 
-## Character lock
+## Visual lock
 
-Match the accepted actor set at `../../assets/combat/minimal-v0.1/actors/`.
+Crownless is a playable medieval manuscript: rough hand-inked figures and places, woodcut texture, parchment negative space, and a world that gains knowledge and restrained color.
 
-Characters are:
+- Use irregular ink contours, crosshatched shadows, muted flat or lightly textured color, imperfect geometry, and physical ink marks.
+- Humanoids are compact **3–3.5-head-tall folk-doll figures** with short limbs, tiny symbolic faces, restrained expressions, and weathered asymmetric equipment. Preserve silhouette and equipment identity before scene detail. Do not correct them toward realistic anatomy.
+- Accepted actor proportions supersede the older calibration board's 4–5-head figures. Its linework, materials, palette, and manuscript grammar remain useful. An old battle illustration does not set the composition of a new report or Hearth scene.
+- Match viewpoint to the requested scene and current asset contract. The oblique battlefield camera applies only to assets actually intended for that view.
+- UI should feel written, stamped, scratched, or attached to the manuscript: ink rules, seals, ledger entries, restrained folios, and short annotations.
 
-- approximately **3–3.5 heads tall**
-- strongly deformed, compact **folk-doll figures**
-- large-headed with short limbs and simplified torso, hands, and feet
-- tiny symbolic faces and restrained expression
-- rough folk-art / medieval-manuscript anatomy and contour
-- readable primarily through silhouette, stance, and equipment
-- irregular black ink with restrained interior detail
+Semantic color:
 
-This deformation is intentional. **Do not correct actors toward realistic anatomy.**
+- Ink black / charcoal: structure and unknown areas.
+- Bone / parchment: readable neutral field.
+- Ash grey: uncertainty, fog, and stone.
+- Muted vermilion: danger and wounds.
+- Ember orange: Hearth, safety, and secured progress.
+- Faded blue-green: discovered land and knowledge.
+- Dull ochre: earned significance.
 
-### Combat viewpoint lock
+Reject realistic or semi-realistic fantasy, painterly concept art, glossy chibi or cute mascots, anime-gacha, clean vector cartoons, uncanny modeled faces, generic Diablo styling, neon spectacle, and glossy mobile-RPG chrome. Do not introduce blue/purple/orange rarity-card framing. Strong deformation does not mean greater cuteness.
 
-When the asset is a combat actor, also match the gameplay camera in the source art:
+## Current gameplay surfaces
 
-- oblique top-down / three-quarter view
-- slightly visible upper planes of head / shoulders / equipment where appropriate
-- grounded foot placement
-- reduced straight-on portrait information
-- role action readable on the diagonal battlefield
+Apply only the guidance for the surface being changed. Present implemented state; future-compatible ideas in the specs are not claims that those systems already exist.
 
-Do not generate a front-facing standing portrait and expect implementation to skew it into the combat view later.
+**Preparation and waiting:** make destination, companions, equipment/supplies, objective, and risk policy understandable. The final dispatch view shows known danger, important carried tools, policy, and expected return. Waiting communicates destination, party, and actual underway/overdue/resolved state without fake precision, a live tactical view, or required tapping.
 
-### Face lock
+**Reports:** show outcome, duration, injuries, important loot, discoveries, and one notable event first; offer an optional chronological log underneath. Use the resolved structured events as truth. Make the connection to prior choices legible, and expose the relevant next action, such as recovery, equipment changes, investigating a discovery, or rescue where implemented. Do not invent a success, secured reward, or revealed outcome for visual effect. A report is news from absent people, not a debug dashboard.
 
-- tiny simple eyes / brows
-- little or no mouth detail
-- no realistic skin texture
-- no anatomical facial modeling
-- no horror-like eyes or uncanny expression
+**Companions and equipment:** communicate traits, condition, history, and meaningful expedition effects. Distinguish injured, dispatched, and missing people without gacha rarity or a hero-card lineup. Treat equipment as a field ledger / relic catalogue; use maker marks, provenance, and worn silhouettes rather than rarity color as its identity. Distinguish secured inventory from value still carried outside.
 
-Target rough, primitive, and readable rather than realistic or glossy-cute.
+**Discovery:** show knowledge being added to a manuscript through terrain lines, routes, symbols, names, notes, and restrained blue-green color. Distinguish unknown, hinted, discovered, and expedition-available states only as supported by actual data. Discovered places can be used later from safety. Avoid step-reward framing, navigation chrome, exact-coordinate displays, and prolonged phone attention while walking.
 
-### Reject character drift immediately
+**Grey Hearth:** preserve one physical room before detailed folios. Use the wall map for destinations, a table or ledger for reports, people and empty places for condition/absence, shelves for secured gear, and fire/beds for recovery. State changes should make the refuge feel inhabited. Keep return → report → prepare → dispatch reachable without a permanent dashboard or required chores.
 
-Reject and redo if characters become:
+## Image generation — only when requested or needed
 
-- realistic 7–8-head fantasy concept art
-- semi-realistic / anatomically corrected humans
-- painterly fantasy illustration
-- uncanny realistic faces
-- glossy modern chibi / cute SD mascots
-- anime-gacha
-- clean vector cartoons
-- front-facing portrait sprites for oblique combat
+Before production generation, read [IMAGE_GENERATION_HANDOFF.md](../../docs/visual/IMAGE_GENERATION_HANDOFF.md) and complete its mandatory preflight. Resolve the current asset contract / Generation Package, subject, reference permissions, and Approved Anchor before calling a generator. Use the available Visual Director workflow when required by that contract; do not invent a missing anchor or promote a Candidate to satisfy it.
 
-**Strong deformation is correct. Glossy cuteness and human realism are not.**
+Build an **asset-only handoff** containing asset identity, framing, required scene facts, style lock, semantic palette, allowed/forbidden changes, and only permitted reference images. Preserve the applicable `must_use_approved_anchor`, `must_not_chain_from_candidate`, and `must_review_after_generation` constraints. If `source_reference_required` is false, do not fabricate a reference dependency.
 
-## Enemy role silhouettes
+Keep Issue/PR metadata, progress, tool output, review checklists, and validation reports outside the generation request. A requested in-game expedition report can contain its specified game content; development reports cannot become scene content. For subjectless location backgrounds, omit people, creatures, labels, and UI unless explicitly requested.
 
-- **Rusher:** forward lean, aggressive compact mass, fast melee weapon
-- **Guard:** wide planted block, shield-dominant silhouette
-- **Skirmisher:** narrower mobile shape, bow / ranged-read silhouette
+Use the shared visual lock, then add only asset-relevant constraints: a background does not need a character pose, and a standalone sprite does not need a playable-screen or UI prompt. Mechanically restrict image bindings to the permitted references or explicit empty set. If the host cannot enforce that boundary, stop generation and report the specific limitation.
 
-Role identity must read without labels at phone size.
+Review the output against Canon and the asset contract. Reject character drift or **meta-output** immediately. A progress dashboard, validation card, or project-management screen is not a Candidate, parent, crop source, or runtime asset. Rebuild a contaminated handoff from Canon before retrying; if the same wrong-reference or meta-output class repeats twice, stop generation and report the handoff/host-binding defect.
 
-## Rendering grammar
+Keep Candidate, Approved Anchor, and runtime roles explicit. Generation or successful validation alone does not authorize anchor promotion or runtime adoption; follow the current contract and the user's existing authorization without asking again for a step already authorized.
 
-- stylized 2D / 2.5D
-- irregular hand-inked contours
-- parchment negative space
-- woodcut / crosshatched shadows
-- flat or lightly textured muted color planes
-- imperfect geometry
-- physical marks rather than glossy effects
+## Implementation and review
 
-Avoid photorealism, realistic AAA 3D, PBR materials, painterly concept art, smooth vector-cartoon treatment, and excessive bloom.
+1. Inspect the current screen, state source, asset roles, and references before changing presentation. Preserve gameplay, location, persistence, and stable IDs; do not create a separate presentation truth.
+2. Use the smallest reusable technique that serves the requested surface: existing tokens, CSS, SVG/Canvas ink marks, masks, or illustrated layers. Correct composition, silhouette, and readability before adding texture or filters.
+3. For sprites, inspect the source and transform chain. Keep uniform X/Y scale and use visible alpha bounds; preserve a ground pivot where the scene needs one. Verify actual decode and meaningful alpha coverage, not compressed byte size. For transparent assets, check for baked checkerboards; for animation, inspect temporal frames as well as pose consistency. Use the conditional legacy reference for oblique depth/HUD details.
+4. For UI changes, inspect the actual implementation at phone size and desktop size. Check readable labels, reachable dispatch/report actions, no horizontal overflow, scrolling folios, keyboard focus, touch, and reduced motion where applicable. Check only the states affected by the change, including relevant injury/absence or unresolved/resolved states.
+5. Run checks appropriate to changed behavior. If gameplay or persistence changes, include its relevant deterministic tests. For documentation-only work, validate skill structure and links rather than claiming browser verification.
+6. Report evidence and limitations separately: source-art review, rendered screenshots, automated checks, and human playtest are different outcomes. For gameplay changes, follow [the autonomous development policy](../../docs/autonomous-development-policy.md): passing CI is Implemented; enjoyment remains Playtest pending until human Keep / Change / Kill judgment.
 
-## Semantic palette
+Before accepting the result, verify that it preserves the actual gameplay contract, reads at phone size, uses the manuscript/woodcut illustration family and semantic palette, and matches applicable character proportions and asset constraints. A source image alone cannot establish runtime quality; parchment colors alone cannot establish visual fidelity.
 
-- ink black / charcoal — line, structure, unknown
-- bone / parchment — neutral readable field
-- ash grey — fog, stone, uncertainty
-- muted vermilion — danger, wounds, enemy telegraphs
-- ember orange — Grey Hearth, safety, secured progress
-- faded blue-green — discovered land / knowledge
-- dull ochre — earned significance
-
-Color is information, not decoration.
-
-## Combat rules
-
-Combat uses the fixed oblique top-down battlefield and accepted compact actor set.
-
-Combat expression:
-
-- normal trails = short strong black ink strokes
-- heavy / Technique = wider brush stroke, ink splash, broken hatch
-- impact = ink scatter + body displacement + hit stop
-- danger = hand-drawn vermilion arcs / circles / scratches
-- perfect evade may break or scatter the warning mark
-
-Phone controls remain drag movement, stop to auto-strike, **技**, and **回避**. Never add joystick, light-attack button, large skill cluster, combat minimap, or permanent hotbar by convention.
-
-## Actor integration lock
-
-When implementing or reviewing illustrated actor sprites:
-
-- project the actor's **foot / ground position** into the arena
-- render the body above that point in screen / billboard space
-- use one uniform scale for X and Y
-- never apply arena floor skew / squash / non-uniform projection to the body
-- calculate size from visible / alpha content bounds, not raw square PNG dimensions
-- transparent padding must not make a sprite smaller, thinner, or offset
-- use an authored pivot when available; otherwise bottom-center of visible content bounds
-- keep foot pivot, logical combat position, and shadow aligned
-- preserve role-specific visible width: Guard broad, Skirmisher narrow, Rusher compact
-- if bounds are poor, trim / alpha-crop; never compensate with X-only or Y-only stretch
-
-If accepted source art looks tall/thin, squat/wide, skewed, compressed, or otherwise differently proportioned in-game, classify it as a rendering defect.
-
-## Oblique overlap lock
-
-For ground-bound combatants in the oblique view:
-
-- depth-sort by projected **foot / ground Y**
-- draw farther / smaller Y first and nearer / larger Y later
-- use a stable tie-breaker to prevent flicker
-- do not mutate simulation update order merely to change visual overlap
-- include still-visible dead / falling actors in the same presentation ordering
-
-## Crowded enemy HUD lock
-
-When enemies cluster:
-
-- preserve silhouettes before labels
-- priority threat / nearest enemy and bosses may show name + HP
-- ordinary non-priority enemies should prefer compact HP only
-- treat HUDs as rectangles with width / height
-- avoid other HUD rectangles and nearby actor silhouette regions
-- resolve with small vertical lanes first, then restrained horizontal nudges
-- keep HP background and fill on one resolved placement
-- reset HUD occupancy each frame
-- do not push combatants apart in simulation just to make labels fit
-
-Review at least one three-enemy cluster before approving a HUD or overlap change.
-
-## Combat asset integrity lock
-
-A runtime visual glitch may come from the PNG, not renderer math.
-
-For every new or replaced combat actor PNG:
-
-1. confirm the file is a decodable PNG
-2. confirm supported bit depth / color format for the current pipeline when applicable
-3. inspect non-transparent pixel coverage
-4. inspect visible alpha bounds for unexpectedly empty / narrow / short silhouettes
-5. do **not** use compressed file byte size as the validity criterion
-6. if runtime shows colored garbage, missing body, or only shadow / label, inspect the asset before changing transforms
-7. add or extend automated integrity coverage for the changed actor where practical
-
-Do not hide a corrupt sprite with renderer hacks.
-
-## Exploration rules
-
-The map is the game surface and should look like a manuscript gaining knowledge.
-
-Unknown = ink / ash / blank parchment / unfinished routes.
-
-Discovery visibly adds terrain lines, routes, POI symbols, names / notes, and restrained faded blue-green color.
-
-Do not make themed Google Maps.
-
-## Grey Hearth rules
-
-The Hearth is a sparse safe page that becomes inhabited because the player survived.
-
-Secured progress should add physical illustration: fire, map marks, shelf contents, recovery cache, tools, forge, and signs of repeated use.
-
-Do not turn it into a generic management dashboard or luxury tavern.
-
-## UI rules
-
-UI should feel written, stamped, scratched, or attached to the manuscript.
-
-Prefer parchment / dark ink fields, thin irregular rules, stamps, seals, manuscript glyphs, and restrained distressed edges.
-
-Avoid glossy rounded cards, beveled metal, jewel chrome, giant gold borders, and generic mobile-RPG dashboards.
-
-## Image-generation workflow
-
-1. Read the v0.2 guide.
-2. Inspect the global visual reference.
-3. If characters appear, inspect accepted actors.
-4. If combat characters appear, explicitly lock the oblique top-down / 3/4 source-art viewpoint.
-5. Identify the exact reference governing each requested element.
-6. Preserve 3–3.5-head folk-doll deformation before scene detail.
-7. Preserve actual gameplay composition and controls.
-8. Add semantic palette rules and explicit negatives.
-9. Build the **asset-only handoff** required by `../../docs/visual/IMAGE_GENERATION_HANDOFF.md`.
-10. Generate.
-11. Compare back to Canon / accepted actors and reject drift or meta-output.
-
-### Asset-only handoff and meta-output guard
-
-Immediately before production image generation, strip development metadata from the generation request. Keep only the requested asset identity, composition, Canon/style lock, required scene facts, allowed/forbidden changes, and reference assets that the current Canon package actually permits.
-
-Do not feed Issue numbers, PR metadata, progress summaries, PASS/FAIL reports, dashboard descriptions, acceptance-checklist UI, tool output, or commit information into the image request unless the production asset itself explicitly requires those elements.
-
-If the result is a GitHub/project-management screen, progress dashboard, validation card, review report, or other **meta-output** instead of the requested game asset, reject immediately. It is not a Candidate and must not become a source reference, parent, crop source, or runtime asset.
-
-After meta-output, do not blindly retry the same request. Rebuild the handoff from repository Canon and the asset contract in a clean valid reference context. If the same wrong-reference or meta-output class repeats twice, stop generation and treat the handoff/host binding as defective.
-
-### Prompt anchor
-
-Use wording equivalent to:
-
-> **A playable medieval-fantasy game in Crownless's canonical visual grammar: rough medieval manuscript and woodcut linework, parchment negative space, restrained muted color, strongly deformed 3–3.5-head-tall folk-doll figures with large heads and short limbs, tiny symbolic faces, weathered asymmetric equipment, readable silhouettes, physical black-ink action marks, and sparse annotation-like UI. Combat figures are drawn for a diagonal oblique top-down three-quarter battlefield view, not as front-facing portraits.**
-
-### Negative anchor
-
-Always include the substance of:
-
-- not photorealistic
-- not realistic or semi-realistic fantasy concept art
-- not anatomically corrected human proportions
-- not painterly
-- no uncanny realistic faces or skin detail
-- not glossy modern chibi / cute mascot style
-- not anime-gacha
-- not clean vector cartoon
-- not generic Diablo imitation
-- not glossy mobile RPG UI
-- no neon magic by default
-- no front-facing portrait pose for oblique combat actors
-
-## Implementation workflow
-
-1. Preserve gameplay logic.
-2. Compare implementation against canonical references.
-3. Fix silhouette / deformation / viewpoint / drawing grammar before surface filters.
-4. For sprites, inspect actual runtime transform chain before changing art.
-5. Project actor position into arena; keep body in screen space with uniform scale.
-6. Use visible / alpha bounds and stable foot pivot.
-7. Depth-sort overlapping actors by projected foot Y.
-8. Keep crowded HUD collision-aware and simplify non-priority labels.
-9. Validate changed actor PNG integrity before blaming renderer transforms.
-10. Check an actual phone-size viewport.
-11. Include a crowded multi-enemy case when combat overlap or HUD changed.
-12. Remove decoration that competes with gameplay.
-
-Do not claim a screen matches the guide merely because it has parchment colors or a paper filter while silhouettes, viewpoint, overlap, or runtime geometry remain wrong.
-
-## Phone-size actor review
-
-Verify:
-
-- source and rendered head/body proportion match
-- combat source art matches oblique viewpoint
-- no vertical stretching or horizontal squeezing
-- no non-uniform X/Y scaling
-- role silhouette width remains intact
-- feet and shadow meet logical ground point
-- near/far overlap follows foot-Y depth
-- priority HP/name labels clear the actor silhouette
-- non-priority labels stay quiet in clusters
-- effects do not obscure role-defining shape
-- actor PNG is intact and visibly non-empty
-- apparent size is readable without consuming the arena
-
-A source PNG looking correct is not sufficient. Runtime composition is the acceptance target.
-
-## Acceptance gate
-
-A visual is accepted only when all critical checks pass:
-
-- playable game screen when gameplay is requested
-- humanoids match 3–3.5-head folk-doll proportions
-- combat figures use the correct oblique source-art viewpoint
-- faces are tiny and symbolic
-- silhouettes read at phone size
-- runtime proportions match source without X/Y stretching or floor distortion
-- feet / shadows align with logical ground position
-- overlapping actors depth-sort naturally
-- crowded HUD does not hide the fight
-- linework belongs to the hand-inked / woodcut family
-- color has semantic purpose
-- physical ink effects replace generic glow where appropriate
-- actor assets are decodable and visibly intact
-- actual gameplay contract is preserved
-- result visibly belongs beside accepted actors
-- it remains recognizable as Crownless without the logo
-
-If character style, viewpoint, runtime proportion, grounding, overlap, asset integrity, illustration family, or meta-output contamination fails, **reject before polishing**.
+If the same visual could serve another dark-fantasy RPG by swapping the logo, reject it. When a critical check fails, fix or reject before polishing and state exactly which acceptance remains unverified.
