@@ -2,14 +2,18 @@ const assert = require("node:assert/strict");
 const fs = require("node:fs");
 const { chromium } = require("playwright");
 
+let browser;
+
 (async () => {
-  const browser = await chromium.launch({ headless: true });
+  browser = await chromium.launch({ headless: true });
   const page = await browser.newPage({
     viewport: { width: 412, height: 915 },
     deviceScaleFactor: 1,
     isMobile: true,
     hasTouch: true
   });
+  page.setDefaultTimeout(15000);
+  page.setDefaultNavigationTimeout(15000);
 
   const consoleErrors = [];
   page.on("console", (message) => {
@@ -17,7 +21,10 @@ const { chromium } = require("playwright");
   });
   page.on("pageerror", (error) => consoleErrors.push(error.message));
 
-  await page.goto("http://127.0.0.1:4173/", { waitUntil: "networkidle" });
+  // The app is static; waiting for DOMContentLoaded plus the real Crownless
+  // globals is both sufficient and more deterministic than networkidle, which
+  // can be held open by unrelated page activity.
+  await page.goto("http://127.0.0.1:4173/", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => window.CrownlessCore && window.CrownlessLocationVisuals);
 
   await page.evaluate(() => {
@@ -88,8 +95,13 @@ const { chromium } = require("playwright");
   );
 
   await browser.close();
+  browser = undefined;
   console.log(`Mobile Hearth QA OK: ${imageInfo.renderedWidth}x${imageInfo.renderedHeight}`);
-})().catch((error) => {
+})().catch(async (error) => {
   console.error(error);
+  if (browser) {
+    await browser.close().catch(() => {});
+    browser = undefined;
+  }
   process.exitCode = 1;
 });
