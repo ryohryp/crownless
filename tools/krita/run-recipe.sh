@@ -37,7 +37,15 @@ if [[ ! -f "$BASE_SNAPSHOT" ]]; then
 fi
 
 TMP_HOME="$(mktemp -d)"
-trap 'rm -rf "$TMP_HOME"' EXIT
+KRITA_WRAPPER_PID=""
+cleanup() {
+  if [[ -n "$KRITA_WRAPPER_PID" ]] && kill -0 "$KRITA_WRAPPER_PID" 2>/dev/null; then
+    kill "$KRITA_WRAPPER_PID" 2>/dev/null || true
+  fi
+  rm -rf "$TMP_HOME"
+}
+trap cleanup EXIT
+
 export HOME="$TMP_HOME"
 export XDG_DATA_HOME="$TMP_HOME/.local/share"
 export XDG_CONFIG_HOME="$TMP_HOME/.config"
@@ -60,12 +68,28 @@ export CROWNLESS_KRITA_RECIPE="$RECIPE"
 export CROWNLESS_REPO_ROOT="$REPO_ROOT"
 export CROWNLESS_KRITA_IMPORT_MARKER="$IMPORT_MARKER"
 
-# Opening the immutable base on startup forces Krita to create a real document
-# window. The plugin's Extension.createActions() callback is then dispatched on
-# the GUI thread, where the recipe can safely use Qt timers and Krita's API.
+# Opening the immutable base on startup forces a real document window. Keep the
+# process under a hard timeout, but stop it as soon as the plugin writes its
+# deterministic report; the shell owns process lifetime rather than relying on
+# Krita's GUI shutdown path.
 set +e
-timeout 120s xvfb-run -a krita --nosplash -platform xcb "$BASE_SNAPSHOT" >"$REPO_ROOT/qa-output/krita-504/krita.log" 2>&1
+timeout 120s xvfb-run -a krita --nosplash -platform xcb "$BASE_SNAPSHOT" >"$REPO_ROOT/qa-output/krita-504/krita.log" 2>&1 &
+KRITA_WRAPPER_PID=$!
+for _ in $(seq 1 1200); do
+  if [[ -f "$REPORT" ]]; then
+    break
+  fi
+  if ! kill -0 "$KRITA_WRAPPER_PID" 2>/dev/null; then
+    break
+  fi
+  sleep 0.1
+done
+if [[ -f "$REPORT" ]] && kill -0 "$KRITA_WRAPPER_PID" 2>/dev/null; then
+  kill "$KRITA_WRAPPER_PID" 2>/dev/null || true
+fi
+wait "$KRITA_WRAPPER_PID"
 KRITA_STATUS=$?
+KRITA_WRAPPER_PID=""
 set -e
 
 if [[ ! -f "$REPORT" ]]; then
@@ -87,5 +111,5 @@ report = json.load(open(sys.argv[1], encoding="utf-8"))
 if not report.get("ok"):
     print(report.get("traceback") or report.get("error") or "unknown Krita recipe error", file=sys.stderr)
     raise SystemExit(68)
-print(f"Krita {report.get('kritaVersion', '?')} exported {report.get('runtimeExport')} ({report.get('width')}x{report.get('height')})")
+print(f"Krita {report.get('kritaVersion', '?')} exported {report.get('runtimeExport')} ({report.get('width')}x{report.get('height')}, launch={report.get('launchReason', '?')})")
 PY
