@@ -35,6 +35,19 @@ test("the same discovered place and seed give different persistent decisions wit
   assert.match(Journey.briefing(results[1].state.destinations.at(-1), results[1].state).question, /備え|人選/);
 });
 
+test("first Prepare briefing keeps the GPS discovery motivation visible", () => {
+  const destination = Bridge.destinationFromKnowledge({
+    key: "geo:way:482:woods",
+    name: "霧の森",
+    terrain: ["woods"],
+    contentKind: "event"
+  });
+  const brief = Journey.briefing(destination, System.initialState());
+  assert.match(brief.known, /現実を歩いて見つけ/);
+  assert.match(brief.known, /霧の森/);
+  assert.match(brief.question, /手掛かり|危険/);
+});
+
 test("chosen forest judgment, real encounter and consequences survive report projection and reload", () => {
   const system = { ...System };
   Forest.installSystemHooks({ CrownlessExpeditionSystem: system });
