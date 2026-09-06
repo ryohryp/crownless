@@ -21,11 +21,11 @@ test("Atlas dynamic assets inherit the Pages deploy fingerprint", () => {
   assert.match(runtimeSource, /preview\.src = atlasAsset\("src\/world-atlas-selection-preview\.js"\);/);
 });
 
-test("Atlas waits for viewport gestures before replaying the captured wall-map tap", () => {
-  assert.match(runtimeSource, /function loadViewportGestures\(event\)[\s\S]*world-atlas-viewport-gestures\.js[\s\S]*gestures\.onload = loadSelectionPreview;[\s\S]*gestures\.onerror = loadSelectionPreview;/);
-  assert.match(runtimeSource, /if \(window\.CrownlessWorldAtlas\) loadViewportGestures\(\);/);
-  assert.match(runtimeSource, /atlas\.onload = loadViewportGestures;/);
-  assert.match(runtimeSource, /function loadSelectionPreview\(event\)[\s\S]*finishAtlasReady\(\);/);
+test("viewport gestures load without changing the Atlas replay contract", () => {
+  assert.match(runtimeSource, /function loadSelectionPreview\(event\)[\s\S]*finishAtlasReady\(\);[\s\S]*loadViewportGestures\(\);/);
+  assert.match(runtimeSource, /if \(window\.CrownlessWorldAtlas\) loadSelectionPreview\(\);/);
+  assert.match(runtimeSource, /atlas\.onload = loadSelectionPreview;/);
+  assert.match(runtimeSource, /function loadViewportGestures\(\)[\s\S]*world-atlas-viewport-gestures\.js[\s\S]*document\.body\.appendChild\(gestures\);/);
 });
 
 test("Atlas load failure never replays the wall-map click into the legacy discovery UI", () => {
