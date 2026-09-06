@@ -137,6 +137,14 @@
       map.dataset.atlasScale = transform.scale.toFixed(2);
     }
 
+    function capturePointer(pointerId) {
+      try { map.setPointerCapture(pointerId); } catch (_) {}
+    }
+
+    function captureActivePointers() {
+      pointers.forEach((_, pointerId) => capturePointer(pointerId));
+    }
+
     function firstTwoPointers() {
       return Array.from(pointers.values()).slice(0, 2);
     }
@@ -162,6 +170,7 @@
         y: transform.y
       };
       gestureMoved = true;
+      captureActivePointers();
       map.classList.add("is-interacting");
     }
 
@@ -169,7 +178,6 @@
       if (destroyed || (event.pointerType === "mouse" && event.button !== 0)) return;
       const point = mapPoint(map, event);
       pointers.set(event.pointerId, point);
-      try { map.setPointerCapture(event.pointerId); } catch (_) {}
       if (pointers.size >= 2) beginPinch();
       else beginPan(point);
     }
@@ -195,6 +203,7 @@
       if (!gesture || gesture.type !== "pan") beginPan(point);
       const dx = point.x - gesture.startPoint.x;
       const dy = point.y - gesture.startPoint.y;
+      const dragDistance = Math.hypot(dx, dy);
       const next = clampTransform({
         scale: transform.scale,
         x: gesture.x + dx,
@@ -203,7 +212,10 @@
       const changed = Math.abs(next.x - transform.x) > 0.1 || Math.abs(next.y - transform.y) > 0.1;
       transform = next;
       if (changed) {
-        if (Math.hypot(dx, dy) >= DRAG_THRESHOLD_PX) gestureMoved = true;
+        if (dragDistance >= DRAG_THRESHOLD_PX) {
+          gestureMoved = true;
+          capturePointer(event.pointerId);
+        }
         map.classList.add("is-interacting");
         event.preventDefault();
         render();
