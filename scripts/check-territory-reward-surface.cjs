@@ -1,4 +1,4 @@
-// Mobile browser regression for #512 Territory reward surface + Territory Build MVP.
+// Mobile browser regression for #512 Territory reward surface + Territory Build MVP + Phase C World Trace.
 const assert = require("node:assert/strict");
 const { createServer } = require("node:http");
 const { readFile } = require("node:fs/promises");
@@ -87,7 +87,7 @@ async function contestSelectedPlace(page) {
   try {
     await page.clock.setFixedTime(new Date("2026-09-06T12:00:00Z"));
     await page.goto(`http://127.0.0.1:${server.address().port}`);
-    await page.waitForFunction(() => window.CrownlessTerritoryPhase1 && window.CrownlessTerritoryRewardSurface && window.CrownlessExpeditionPresentation?.isReady());
+    await page.waitForFunction(() => window.CrownlessTerritoryPhase1 && window.CrownlessTerritoryRewardSurface && window.CrownlessTerritoryWorldTrace && window.CrownlessExpeditionPresentation?.isReady());
     await seedLocation(page);
     await openFreshNearbyAtlas(page);
 
@@ -125,6 +125,16 @@ async function contestSelectedPlace(page) {
     assert.match(await page.locator(".territory-development").innerText(), /通常比約55%短くなる/);
     assert.ok(await page.locator('.territory-development-badge').count() >= 1, "the chosen use must remain written on the Atlas marker");
 
+    // Phase C: the selected role changes what can be discovered in the controlled land.
+    const territoryTrace = page.locator(".world-trace-investigation--territory");
+    await territoryTrace.waitFor();
+    assert.match(await territoryTrace.innerText(), /WORLD TRACE \/ 支配地の気配/);
+    assert.match(await territoryTrace.innerText(), /灰炉の荷車の轍が残っている/);
+    await territoryTrace.getByRole("button", { name: "補給の轍を調べる", exact: true }).click();
+    await page.waitForFunction(() => document.querySelector(".world-trace-investigation--territory")?.dataset.traceState === "investigated");
+    assert.match(await territoryTrace.innerText(), /補給路が前線へ伸びている/);
+    assert.match(await territoryTrace.innerText(), /街道の露店.*通常比約55%短くなる/);
+
     const nextButton = page.locator(".territory-panel").getByRole("button", { name: "次は「街道の露店」を狙う →", exact: true });
     await nextButton.click();
     await page.waitForFunction(() => document.querySelector(".territory-panel")?.textContent.includes("所要時間が35%短くなる"));
@@ -152,7 +162,7 @@ async function contestSelectedPlace(page) {
     assert.equal(liveEffect.next, Math.round(liveEffect.base * 0.7), "supply post must alter the real dispatch-state destination, not only copy text");
 
     assert.deepEqual(errors, []);
-    console.log("PASS 412x915: NPC control → capture → Atlas reward → build choice → changed next preparation");
+    console.log("PASS 412x915: capture → Atlas reward → build choice → role-reactive World Trace → changed next preparation");
   } finally {
     await page.close();
     await browser.close();

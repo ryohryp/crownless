@@ -35,6 +35,7 @@ jobs:
           node --check src/world-atlas-actions-presentation.js
           node --check src/territory-phase1.js
           node --check src/territory-reward-surface.js
+          node --check src/territory-world-trace.js
           node --check src/expedition-presentation.js
           node --check scripts/check-atlas-viewport.cjs
           node --check scripts/check-territory-phase1.cjs
@@ -64,5 +65,5 @@ jobs:
         run: node scripts/check-atlas-viewport.cjs
       - name: Territory Phase 1 mobile golden slice
         run: node scripts/check-territory-phase1.cjs
-      - name: Territory reward surface and build choice
+      - name: Territory reward surface, build choice, and World Trace
         run: node scripts/check-territory-reward-surface.cjs
