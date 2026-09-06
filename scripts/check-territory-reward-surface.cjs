@@ -129,6 +129,13 @@ async function contestSelectedPlace(page) {
     await nextButton.click();
     await page.waitForFunction(() => document.querySelector(".territory-panel")?.textContent.includes("所要時間が35%短くなる"));
     await page.locator(".territory-panel").getByRole("button", { name: "偵察せず攻略の準備へ →", exact: true }).click();
+    await page.waitForSelector(".territory-development-effect", { state: "attached" });
+    assert.match(await page.locator(".territory-development-effect").textContent(), /補給所.*通常比約55%短縮/);
+
+    // Territory notes are part of the existing staged preparation UI and are visible
+    // on the policy stage, where the player weighs the expedition's risk posture.
+    await page.getByRole("button", { name: "仲間と道具へ →", exact: true }).click();
+    await page.getByRole("button", { name: "方針へ →", exact: true }).click();
     await page.waitForSelector(".territory-development-effect");
     assert.match(await page.locator(".territory-development-effect").innerText(), /補給所.*通常比約55%短縮/);
 
