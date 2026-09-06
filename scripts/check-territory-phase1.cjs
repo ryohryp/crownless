@@ -78,16 +78,18 @@ async function selectNearbyPlace(page, name) {
 
     // Terrain affinity makes the height dungeon the deterministic foothold.
     await selectNearbyPlace(page, "丘の物見台");
-    assert.match(await page.locator(".territory-panel").innerText(), /NPC支配.*足場/);
-    assert.match(await page.locator(".territory-panel").innerText(), /未偵察/);
-    assert.ok(await page.getByRole("button", { name: /偵察する/ }).isVisible());
-    assert.ok(await page.getByRole("button", { name: /偵察せず攻略の準備へ/ }).isVisible());
+    let territoryPanel = page.locator(".territory-panel");
+    assert.match(await territoryPanel.innerText(), /NPC支配.*足場/);
+    assert.match(await territoryPanel.innerText(), /未偵察/);
+    assert.ok(await territoryPanel.getByRole("button", { name: "偵察する — 守りと危険を知る", exact: true }).isVisible());
+    assert.ok(await territoryPanel.getByRole("button", { name: "偵察せず攻略の準備へ →", exact: true }).isVisible());
 
-    await page.getByRole("button", { name: /偵察する/ }).click();
+    await territoryPanel.getByRole("button", { name: "偵察する — 守りと危険を知る", exact: true }).click();
     await page.waitForFunction(() => document.querySelector(".territory-panel")?.textContent.includes("偵察済み"));
-    assert.match(await page.locator(".territory-panel").innerText(), /崩|collapse|足場/);
+    territoryPanel = page.locator(".territory-panel");
+    assert.match(await territoryPanel.innerText(), /崩|collapse|足場/);
 
-    await page.getByRole("button", { name: /攻略の準備へ/ }).click();
+    await territoryPanel.getByRole("button", { name: "攻略の準備へ →", exact: true }).click();
     await page.waitForSelector("form.expedition-prepare");
     assert.match(await page.locator(".territory-prepare-note").innerText(), /攻略目標: 丘の物見台/);
     assert.match(await page.locator(".territory-prepare-note").innerText(), /成功した帰還だけが支配を変える/);
@@ -127,13 +129,16 @@ async function selectNearbyPlace(page, name) {
     await page.waitForSelector('[data-territory-owner="player"]');
     assert.equal(await page.locator('[data-territory-owner="player"]').count(), 1);
     await selectNearbyPlace(page, "丘の物見台");
-    assert.match(await page.locator(".territory-panel").innerText(), /灰炉支配/);
-    assert.ok(await page.getByRole("button", { name: /次は「街道の露店」を狙う/ }).isVisible());
-    await page.getByRole("button", { name: /次は「街道の露店」を狙う/ }).click();
+    territoryPanel = page.locator(".territory-panel");
+    assert.match(await territoryPanel.innerText(), /灰炉支配/);
+    const nextButton = territoryPanel.getByRole("button", { name: "次は「街道の露店」を狙う →", exact: true });
+    assert.ok(await nextButton.isVisible());
+    await nextButton.click();
     await page.waitForFunction(() => document.querySelector(".territory-panel")?.textContent.includes("街道攻略の所要時間が35%短くなる"));
-    assert.match(await page.locator(".territory-panel").innerText(), /35%短くなる/);
+    territoryPanel = page.locator(".territory-panel");
+    assert.match(await territoryPanel.innerText(), /35%短くなる/);
 
-    await page.getByRole("button", { name: /偵察せず攻略の準備へ/ }).click();
+    await territoryPanel.getByRole("button", { name: "偵察せず攻略の準備へ →", exact: true }).click();
     await page.waitForSelector("form.expedition-prepare");
     assert.match(await page.locator(".territory-prepare-note").innerText(), /所要時間 -35%/);
 
