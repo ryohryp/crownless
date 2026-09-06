@@ -262,19 +262,40 @@ var audioContext = null;
     document.body.appendChild(preview);
   }
 
+  function loadViewportGestures(event) {
+    if (!window.CrownlessWorldAtlas) {
+      failAtlasLoad(event);
+      return;
+    }
+    const existingGestures = findAtlasScript("src/world-atlas-viewport-gestures.js");
+    if (existingGestures) {
+      if (window.CrownlessWorldAtlasViewportGestures) loadSelectionPreview();
+      else {
+        existingGestures.addEventListener("load", loadSelectionPreview, { once: true });
+        existingGestures.addEventListener("error", loadSelectionPreview, { once: true });
+      }
+      return;
+    }
+    const gestures = document.createElement("script");
+    gestures.src = atlasAsset("src/world-atlas-viewport-gestures.js");
+    gestures.onload = loadSelectionPreview;
+    gestures.onerror = loadSelectionPreview;
+    document.body.appendChild(gestures);
+  }
+
   function loadAtlas() {
     const existingAtlas = findAtlasScript("src/world-atlas.js");
     if (existingAtlas) {
-      if (window.CrownlessWorldAtlas) loadSelectionPreview();
+      if (window.CrownlessWorldAtlas) loadViewportGestures();
       else {
-        existingAtlas.addEventListener("load", loadSelectionPreview, { once: true });
+        existingAtlas.addEventListener("load", loadViewportGestures, { once: true });
         existingAtlas.addEventListener("error", failAtlasLoad, { once: true });
       }
       return;
     }
     const atlas = document.createElement("script");
     atlas.src = atlasAsset("src/world-atlas.js");
-    atlas.onload = loadSelectionPreview;
+    atlas.onload = loadViewportGestures;
     atlas.onerror = failAtlasLoad;
     document.body.appendChild(atlas);
   }
