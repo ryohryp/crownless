@@ -18,6 +18,54 @@
     Object.freeze({ id: "merchant-smoke-cloak", name: "煤染めの旅外套", tags: Object.freeze(["conceal", "light"]), priceLoot: 1, note: "目立たず動くための軽い外套。" })
   ]);
 
+  const EXPEDITION_MOTIVATIONS = Object.freeze({
+    height: Object.freeze({
+      label: "物見台の奥を調べる",
+      opportunity: "崩れた高所の奥に残る手掛かりや古い道具を探す。",
+      risk: "崩れた足場と暗がりに備える。"
+    }),
+    woods: Object.freeze({
+      label: "森の痕跡を追う",
+      opportunity: "足跡や薬草、隠れた道を探す。",
+      risk: "茂みからの不意打ちに備える。"
+    }),
+    water: Object.freeze({
+      label: "水辺の手掛かりを探す",
+      opportunity: "流れ着いた品や古い渡り跡を調べる。",
+      risk: "増水とぬかるみに備える。"
+    }),
+    crossing: Object.freeze({
+      label: "街道の痕跡を追う",
+      opportunity: "途切れた轍や荷の跡を辿り、行方の手掛かりを探す。",
+      risk: "待ち伏せや崩れた渡り道に備える。"
+    }),
+    road_hub: Object.freeze({
+      label: "街道の痕跡を追う",
+      opportunity: "逸れた轍や荷の跡を辿り、行方の手掛かりを探す。",
+      risk: "街道荒らしの待ち伏せに備える。"
+    }),
+    sacred: Object.freeze({
+      label: "祈り跡の由来を探る",
+      opportunity: "残された印や護符の由来を確かめる。",
+      risk: "誰かが今も出入りしている可能性に備える。"
+    }),
+    settlement: Object.freeze({
+      label: "人の残した手掛かりを探す",
+      opportunity: "置き去りの品や噂の出所を確かめる。",
+      risk: "見張りや争いに備える。"
+    }),
+    coast: Object.freeze({
+      label: "海辺の痕跡を探す",
+      opportunity: "漂着物や人の出入りの跡から手掛かりを探す。",
+      risk: "潮と崩れやすい足場に備える。"
+    }),
+    default: Object.freeze({
+      label: "この地の奥を調べる",
+      opportunity: "未調査の奥から持ち帰れる手掛かりを探す。",
+      risk: "まだ正体の分からない危険に備える。"
+    })
+  });
+
   const EVENT_LIBRARY = Object.freeze({
     crossing: Object.freeze([
       Object.freeze({ title: "渡し賃のない渡し守", hook: "誰もいないはずの渡し場に、古びた銭受けだけが置かれている。", investigate: "銭受けの底から、別の道へ続く刻印を見つけた。", leave: "水音だけを背にして、その場を離れた。" }),
@@ -158,11 +206,32 @@
     return hasTerrain(terrainOf(entry), FACILITY_TERRAINS);
   }
 
+  function expeditionMotivation(entry) {
+    const terrain = terrainOf(entry);
+    const family = ["height", "woods", "water", "crossing", "road_hub", "sacred", "settlement", "coast"]
+      .find((item) => terrain.includes(item)) || "default";
+    const motivation = EXPEDITION_MOTIVATIONS[family] || EXPEDITION_MOTIVATIONS.default;
+    return {
+      family,
+      label: motivation.label,
+      opportunity: motivation.opportunity,
+      risk: motivation.risk,
+      note: `${motivation.opportunity} ${motivation.risk}`
+    };
+  }
+
   function buildDiscoveryActions(entry) {
     if (!isUsable(entry)) return [];
     const actions = [];
     if (canExpedition(entry)) {
-      actions.push({ kind: "expedition", id: stableId(entry, "expedition"), label: "遠征隊を送る", note: "仲間・道具・方針を決めて送り出す。" });
+      const motivation = expeditionMotivation(entry);
+      actions.push({
+        kind: "expedition",
+        id: stableId(entry, "expedition"),
+        label: motivation.label,
+        note: motivation.note,
+        motivation: { family: motivation.family, opportunity: motivation.opportunity, risk: motivation.risk }
+      });
     }
     if (canEvent(entry)) {
       actions.push({ kind: "event", id: stableId(entry, "event"), label: "この地の事件を調べる", note: "土地に残る出来事や噂へ踏み込む。" });
@@ -235,6 +304,7 @@
     canExpedition,
     canEvent,
     canFacility,
+    expeditionMotivation,
     buildDiscoveryActions,
     buildLocalEvent,
     merchantStock
