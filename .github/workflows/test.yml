@@ -36,10 +36,12 @@ jobs:
           node --check src/territory-phase1.js
           node --check src/territory-reward-surface.js
           node --check src/territory-world-trace.js
+          node --check src/territory-mobile-declutter.js
           node --check src/expedition-presentation.js
           node --check scripts/check-atlas-viewport.cjs
           node --check scripts/check-territory-phase1.cjs
           node --check scripts/check-territory-reward-surface.cjs
+          node --check scripts/check-territory-mobile-declutter.cjs
           node --check scripts/check-hearth-home-shell.cjs
       - name: Unit tests
         run: npm test
@@ -67,3 +69,5 @@ jobs:
         run: node scripts/check-territory-phase1.cjs
       - name: Territory reward surface, build choice, and World Trace
         run: node scripts/check-territory-reward-surface.cjs
+      - name: Territory mobile declutter
+        run: node scripts/check-territory-mobile-declutter.cjs
