@@ -105,7 +105,8 @@ test("territory World Trace is interactive but does not create a second progress
   inspect.click();
   assert.equal(panel.dataset.traceState, "investigated");
   assert.equal(inspect.hidden, true);
-  assert.match(detail.children.map((child) => child.textContent).join(" "), /補給路が前線へ伸びている|通常比約55%/);
+  assert.match(panel.children.map((child) => child.textContent).join(" "), /補給路が前線へ伸びている/);
+  assert.match(panel.children.map((child) => child.textContent).join(" "), /通常比約55%/);
 });
 
 test("Phase C stays bounded: role-reactive traces add no resources, timers, levels, GPS, or generic simulation", () => {
