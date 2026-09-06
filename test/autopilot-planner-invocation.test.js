@@ -31,9 +31,14 @@ const validProposal = {
   ], gameplayHypothesis: null,
 };
 
-test("prompt requires Canon-first read-only planning, Gameplay Gate evidence, and playtest learning", () => {
+test("prompt requires Canon-first read-only planning, Territory North Star, Gameplay Gate evidence, and playtest learning", () => {
   const prompt = buildPlannerPrompt();
   assert.match(prompt, /AGENTS\.md/); assert.match(prompt, /docs\/game-system-design\.md/); assert.match(prompt, /docs\/autonomous-development-policy\.md/);
+  assert.match(prompt, /docs\/adr\/0004-territory-driven-reforge\.md/); assert.match(prompt, /Issue #503/);
+  assert.match(prompt, /Location × Territory RPG/); assert.match(prompt, /次の地点を取りたくなるか/);
+  assert.match(prompt, /Scout\/Learn/); assert.match(prompt, /Contest\/Expedition/); assert.match(prompt, /Control/); assert.match(prompt, /Next place/);
+  assert.match(prompt, /location-specific binary choice/); assert.match(prompt, /Report wording\/content addition/); assert.match(prompt, /isolated expedition-result optimization/);
+  assert.match(prompt, /Territory is not XP/); assert.match(prompt, /generic territory scripting engine/); assert.match(prompt, /raw GPS\/exact route-history persistence/);
   assert.match(prompt, /Repository Canon overrides/); assert.match(prompt, /Do not modify files/); assert.match(prompt, /at most one/);
   assert.match(prompt, /most recent 3-5 development cycles/); assert.match(prompt, /exactly three candidates/); assert.match(prompt, /Gameplay Gate/);
   assert.match(prompt, /Decision=0 or Core Loop=0/); assert.match(prompt, /Interesting Decision/); assert.match(prompt, /Mechanic, Dynamic, Desired Experience/);
