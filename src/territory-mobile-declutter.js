@@ -9,7 +9,7 @@
   "use strict";
 
   const MOBILE_MAX = 700;
-  const MIN_GAP = 42;
+  const MIN_GAP = 24;
   const CANDIDATE_OFFSETS = Object.freeze([
     Object.freeze({ x: 0, y: 0 }),
     Object.freeze({ x: -24, y: -14 }),
