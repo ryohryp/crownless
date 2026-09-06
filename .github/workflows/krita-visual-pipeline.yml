@@ -1,0 +1,94 @@
+name: Krita visual pipeline
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - feat/504-krita-visual-pipeline
+    paths:
+      - .github/workflows/krita-visual-pipeline.yml
+      - tools/krita/**
+      - scripts/check-krita-phase1.cjs
+      - scripts/check-krita-pixels.py
+      - scripts/check-krita-mobile-qa.cjs
+      - docs/visual/krita-phase1-pipeline.md
+      - expedition-journey.css
+      - hearth*.css
+      - src/hearth*.js
+      - src/expedition-presentation.js
+      - src/location-visuals.js
+
+permissions:
+  contents: write
+
+jobs:
+  phase1:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Krita and Xvfb
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y krita xvfb python3-pil
+          xvfb-run -a krita --version
+
+      - name: Run real Krita recipe
+        run: |
+          chmod +x tools/krita/run-recipe.sh
+          ./tools/krita/run-recipe.sh . tools/krita/recipes/ruined-watchtower-phase1.json
+
+      - name: Verify Krita outputs
+        run: |
+          node scripts/check-krita-phase1.cjs
+          python3 scripts/check-krita-pixels.py
+
+      - name: Install Playwright Chromium
+        run: |
+          npm install --no-save --package-lock=false playwright@1.55.0
+          npx playwright install --with-deps chromium
+
+      - name: Mobile Hearth QA
+        run: |
+          python3 -m http.server 4173 >qa-output/krita-504/http.log 2>&1 &
+          SERVER_PID=$!
+          trap 'kill $SERVER_PID || true' EXIT
+          node scripts/check-krita-mobile-qa.cjs
+
+      - name: Run repository tests
+        run: node --test
+
+      - name: Upload visual QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue-504-krita-visual-qa-${{ github.run_number }}
+          if-no-files-found: warn
+          path: |
+            art-source/locations/ruined-watchtower/generated-base.png
+            art-source/locations/ruined-watchtower/ruined-watchtower.kra
+            assets/locations/ruined-watchtower.png
+            qa-output/krita-504/**
+
+      - name: Commit Krita-produced source and runtime asset
+        if: success()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            art-source/locations/ruined-watchtower/generated-base.png \
+            art-source/locations/ruined-watchtower/ruined-watchtower.kra \
+            assets/locations/ruined-watchtower.png
+          if git diff --cached --quiet; then
+            echo "No generated asset changes to commit."
+            exit 0
+          fi
+          git commit -m "Generate Krita phase-1 watchtower assets (#504)"
+          git push origin HEAD:feat/504-krita-visual-pipeline

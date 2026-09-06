@@ -1,0 +1,16 @@
+{
+  "id": "issue-504-ruined-watchtower-phase1",
+  "sourceRuntime": "assets/locations/ruined-watchtower.png",
+  "baseSnapshot": "art-source/locations/ruined-watchtower/generated-base.png",
+  "editableSource": "art-source/locations/ruined-watchtower/ruined-watchtower.kra",
+  "runtimeExport": "assets/locations/ruined-watchtower.png",
+  "report": "qa-output/krita-504/krita-run-report.json",
+  "correction": {
+    "name": "foreground-calm-wash",
+    "startYRatio": 0.82,
+    "heightRatio": 0.18,
+    "opacity": 60,
+    "fill": "#d5c6a4",
+    "fillOpacity": 0.36
+  }
+}
