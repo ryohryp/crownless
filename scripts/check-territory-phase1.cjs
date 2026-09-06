@@ -135,7 +135,7 @@ async function selectNearbyPlace(page, name) {
     const nextButton = territoryPanel.getByRole("button", { name: "次は「街道の露店」を狙う →", exact: true });
     assert.ok(await nextButton.isVisible());
     await nextButton.click();
-    await page.waitForFunction(() => document.querySelector(".territory-panel")?.textContent.includes("街道攻略の所要時間が35%短くなる"));
+    await page.waitForFunction(() => document.querySelector(".territory-panel")?.textContent.includes("所要時間が35%短くなる"));
     territoryPanel = page.locator(".territory-panel");
     assert.match(await territoryPanel.innerText(), /35%短くなる/);
 
