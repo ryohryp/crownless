@@ -63,15 +63,17 @@ enable_crownless_recipe=true
 EOF
 
 IMPORT_MARKER="$REPO_ROOT/qa-output/krita-504/plugin-imported.txt"
-rm -f "$REPORT" "$IMPORT_MARKER"
+STAGE_MARKER="$REPO_ROOT/qa-output/krita-504/krita-stage.txt"
+rm -f "$REPORT" "$IMPORT_MARKER" "$STAGE_MARKER"
 export CROWNLESS_KRITA_RECIPE="$RECIPE"
 export CROWNLESS_REPO_ROOT="$REPO_ROOT"
 export CROWNLESS_KRITA_IMPORT_MARKER="$IMPORT_MARKER"
+export CROWNLESS_KRITA_STAGE_MARKER="$STAGE_MARKER"
+export CROWNLESS_KRITA_AUTORUN=1
 
-# Opening the immutable base on startup forces a real document window. Keep the
-# process under a hard timeout, but stop it as soon as the plugin writes its
-# deterministic report; the shell owns process lifetime rather than relying on
-# Krita's GUI shutdown path.
+# The plugin executes the gated recipe synchronously from its proven import path.
+# The shell owns process lifetime and terminates Krita as soon as the deterministic
+# report appears, so CI does not depend on GUI shutdown behavior.
 set +e
 timeout 120s xvfb-run -a krita --nosplash -platform xcb "$BASE_SNAPSHOT" >"$REPO_ROOT/qa-output/krita-504/krita.log" 2>&1 &
 KRITA_WRAPPER_PID=$!
@@ -94,6 +96,9 @@ set -e
 
 if [[ ! -f "$REPORT" ]]; then
   cat "$REPO_ROOT/qa-output/krita-504/krita.log" >&2 || true
+  if [[ -f "$STAGE_MARKER" ]]; then
+    echo "Last Krita recipe stage: $(cat "$STAGE_MARKER")" >&2
+  fi
   if [[ -f "$IMPORT_MARKER" ]]; then
     echo "Krita imported the Crownless plugin but no recipe report was produced (status $KRITA_STATUS)." >&2
   else
