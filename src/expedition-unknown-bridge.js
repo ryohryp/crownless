@@ -63,6 +63,7 @@
     await api.loadTerritoryPhase1(root);
     await api.loadTerritoryRewardSurface(root);
     await api.loadTerritoryWorldTrace(root);
+    await api.loadTerritoryMobileDeclutter(root);
   }
 
   function loadObjectiveChoices(root) { return loadScript(root, "CrownlessExpeditionObjectives", "src/expedition-objectives.js"); }
@@ -98,6 +99,7 @@
   function loadTerritoryPhase1(root) { return loadScript(root, "CrownlessTerritoryPhase1", "src/territory-phase1.js"); }
   function loadTerritoryRewardSurface(root) { return loadScript(root, "CrownlessTerritoryRewardSurface", "src/territory-reward-surface.js"); }
   function loadTerritoryWorldTrace(root) { return loadScript(root, "CrownlessTerritoryWorldTrace", "src/territory-world-trace.js"); }
+  function loadTerritoryMobileDeclutter(root) { return loadScript(root, "CrownlessTerritoryMobileDeclutter", "src/territory-mobile-declutter.js"); }
 
   function install(Core, Cells, GeographyApi, runtime, root) {
     if (!Core || !Cells || !GeographyApi || !runtime) return false;
@@ -186,7 +188,7 @@
     loadCompanionInsights, loadPartySelection, loadLeaderOutcomes, loadFollowupDestinations,
     loadSignalEncounters, loadBanditPolicy, loadWorldAtlasScouting, loadWorldTraces,
     loadForcedMarch, loadFieldCamp, loadCampSupplyRelief, loadPlayerCache, loadNightWatch, loadVillageBell, loadMineApproach, loadForestApproach, loadLostLootRecovery, loadLootAppraisal, loadBanditCaptive,
-    loadFleetingLeads, loadSignalRescanFeedback, loadIssue352RoadsideRescue, loadTerritoryPhase1, loadTerritoryRewardSurface, loadTerritoryWorldTrace,
+    loadFleetingLeads, loadSignalRescanFeedback, loadIssue352RoadsideRescue, loadTerritoryPhase1, loadTerritoryRewardSurface, loadTerritoryWorldTrace, loadTerritoryMobileDeclutter,
     lastProfile: () => null
   };
 
