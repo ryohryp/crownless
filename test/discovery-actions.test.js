@@ -27,6 +27,33 @@ test("different discovery terrain produces different action sets", () => {
   assert.deepEqual(sacred.map((action) => action.kind), ["expedition", "event"]);
 });
 
+test("Atlas expedition CTA explains a concrete objective, opportunity, and risk", () => {
+  const actions = Actions.buildDiscoveryActions(entry({
+    key: "geo:node/482:dungeon:height",
+    name: "セブン-イレブンの崩れた物見台",
+    contentKind: "dungeon",
+    terrain: ["height"]
+  }));
+  const expedition = actions.find((action) => action.kind === "expedition");
+
+  assert.equal(expedition.label, "物見台の奥を調べる");
+  assert.match(expedition.note, /手掛かり|古い道具/);
+  assert.match(expedition.note, /足場|暗がり/);
+  assert.equal(expedition.motivation.family, "height");
+  assert.match(expedition.motivation.opportunity, /探す/);
+  assert.match(expedition.motivation.risk, /備える/);
+});
+
+test("different terrain gives the expedition a different reason to go", () => {
+  const height = Actions.buildDiscoveryActions(entry({ key: "geo:height", terrain: ["height"], contentKind: "dungeon" }))[0];
+  const woods = Actions.buildDiscoveryActions(entry({ key: "geo:woods", terrain: ["woods"], contentKind: "dungeon" }))[0];
+  const water = Actions.buildDiscoveryActions(entry({ key: "geo:water", terrain: ["water"], contentKind: "dungeon" }))[0];
+
+  assert.notEqual(height.label, woods.label);
+  assert.notEqual(woods.label, water.label);
+  assert.notEqual(height.note, water.note);
+});
+
 test("same discovery identity keeps actions, local event, and merchant stock stable", () => {
   const source = entry({ contentKind: "unknown" });
   assert.deepEqual(Actions.buildDiscoveryActions(source), Actions.buildDiscoveryActions({ ...source }));
