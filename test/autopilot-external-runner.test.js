@@ -81,11 +81,31 @@ test("planner CLI accepts --defer-execution while preserving default false", () 
   });
 });
 
-test("external executor workflow is self-hosted, gated by agent-ready, and supports manual dispatch", () => {
+test("executor workflow uses GitHub-hosted Runner, installs Codex, and preserves manual dispatch", () => {
   const workflow = fs.readFileSync(path.join(__dirname, "..", ".github", "workflows", "autopilot-executor.yml"), "utf8");
   assert.match(workflow, /workflow_dispatch:/);
-  assert.match(workflow, /runs-on: \[self-hosted, crownless-autopilot\]/);
+  assert.match(workflow, /runs-on: ubuntu-latest/);
+  assert.doesNotMatch(workflow, /self-hosted/);
+  assert.match(workflow, /actions\/setup-node@v4/);
+  assert.match(workflow, /npm install -g @openai\/codex@latest/);
+  assert.match(workflow, /CODEX_AUTH_JSON/);
+  assert.match(workflow, /OPENAI_API_KEY/);
   assert.match(workflow, /contains\(github\.event\.issue\.labels\.\*\.name, 'agent-ready'\)/);
-  assert.match(workflow, /node scripts\/autopilot\/run-next\.js --issue "\$ISSUE_NUMBER"/);
+  assert.match(workflow, /focused_test="test\/autopilot-issue-\$\{ISSUE_NUMBER\}\.test\.js"/);
+  assert.match(workflow, /--focused-test "\$focused_test"/);
   assert.match(workflow, /concurrency:/);
+});
+
+test("planner workflow runs hourly on GitHub-hosted Runner and explicitly dispatches Executor", () => {
+  const workflow = fs.readFileSync(path.join(__dirname, "..", ".github", "workflows", "autopilot-planner.yml"), "utf8");
+  assert.match(workflow, /schedule:/);
+  assert.match(workflow, /cron: "17 \* \* \* \*"/);
+  assert.match(workflow, /workflow_dispatch:/);
+  assert.match(workflow, /actions: write/);
+  assert.match(workflow, /runs-on: ubuntu-latest/);
+  assert.match(workflow, /npm install -g @openai\/codex@latest/);
+  assert.match(workflow, /planner-cycle\.js --repo "\$GITHUB_REPOSITORY" --defer-execution/);
+  assert.match(workflow, /gh workflow run autopilot-executor\.yml/);
+  assert.match(workflow, /-f issue_number="\$ISSUE_NUMBER"/);
+  assert.match(workflow, /group: crownless-autopilot-planner/);
 });
