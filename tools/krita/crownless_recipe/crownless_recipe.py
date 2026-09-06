@@ -4,7 +4,7 @@ import traceback
 from pathlib import Path
 
 from krita import Extension, InfoObject, Krita
-from PyQt5.QtCore import QTimer
+from PyQt5.QtCore import QMetaObject, Qt, pyqtSlot
 from PyQt5.QtWidgets import QApplication
 
 
@@ -19,18 +19,32 @@ class CrownlessRecipeExtension(Extension):
     def __init__(self, parent):
         super().__init__(parent)
         self._started = False
+        self._launch_reason = "unknown"
 
     def setup(self):
-        # Krita may invoke setup() while Python plugins are still being initialized
-        # outside the GUI thread. Starting a Qt timer here can therefore stall in
-        # headless CI. createActions() is called for a real Krita window on the GUI
-        # thread, so use that as the deterministic launch point instead.
-        return
+        # Queue onto this Extension's Qt thread instead of creating a QTimer from
+        # whichever thread Krita happens to use while loading Python plugins.
+        # Notifier hooks are retained as fallbacks for slow/atypical startups.
+        notifier = Krita.instance().notifier()
+        notifier.setActive(True)
+        notifier.windowCreated.connect(self._on_window_ready)
+        notifier.imageCreated.connect(self._on_image_ready)
+        self._queue_run("setup-queued")
 
     def createActions(self, window):
+        self._queue_run("create-actions")
+
+    def _on_window_ready(self):
+        self._queue_run("window-created")
+
+    def _on_image_ready(self, document):
+        self._queue_run("image-created")
+
+    def _queue_run(self, reason):
         if self._started:
             return
-        QTimer.singleShot(0, self._run_once)
+        self._launch_reason = reason
+        QMetaObject.invokeMethod(self, "_run_once", Qt.QueuedConnection)
 
     def _resolve(self, repo_root, value):
         path = Path(value)
@@ -42,6 +56,7 @@ class CrownlessRecipeExtension(Extension):
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
+    @pyqtSlot()
     def _run_once(self):
         if self._started:
             return
@@ -50,7 +65,7 @@ class CrownlessRecipeExtension(Extension):
         recipe_env = os.environ.get("CROWNLESS_KRITA_RECIPE", "")
         repo_env = os.environ.get("CROWNLESS_REPO_ROOT", "")
         report_path = None
-        report = {"ok": False, "operations": []}
+        report = {"ok": False, "operations": [], "launchReason": self._launch_reason}
 
         try:
             if not recipe_env or not repo_env:
@@ -176,4 +191,4 @@ class CrownlessRecipeExtension(Extension):
         finally:
             qt_app = QApplication.instance()
             if qt_app is not None:
-                QTimer.singleShot(0, qt_app.quit)
+                qt_app.quit()
