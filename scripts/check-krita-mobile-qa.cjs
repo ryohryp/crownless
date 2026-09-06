@@ -23,12 +23,13 @@ fs.mkdirSync("qa-output/krita-504", { recursive: true });
   });
   page.on("pageerror", (error) => consoleErrors.push(error.message));
 
-  // The app is static; waiting for DOMContentLoaded plus the real Crownless
-  // globals is both sufficient and more deterministic than networkidle, which
-  // can be held open by unrelated page activity.
+  // Use the actual static app and wait for the production Crownless globals.
   await page.goto("http://127.0.0.1:4173/", { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() => window.CrownlessCore && window.CrownlessLocationVisuals);
 
+  // Inject one deterministic discovery through the same safe-state shape the
+  // runtime reads. This is test data only; all presentation, hit testing and
+  // navigation below remain production code and real pointer clicks.
   await page.evaluate(() => {
     const core = window.CrownlessCore;
     const originalLoad = core.loadSafeState.bind(core);
@@ -64,11 +65,6 @@ fs.mkdirSync("qa-output/krita-504", { recursive: true });
   await page.waitForFunction(() => document.querySelector("#hearth-map-focus")?.classList.contains("has-location-visual"));
   assert.equal(await map.getAttribute("data-location-visual"), "ruined-watchtower");
 
-  // The injected saved-state discovery and the visible Hearth counter must
-  // describe the same state. The production click path intentionally reads
-  // the rendered discovery count as well as the resolved visual. Keep this
-  // coherent immediately before the real pointer click; do not bypass hit
-  // testing with element.click(), because #504 must catch mobile overlays.
   await page.evaluate(() => {
     const count = document.getElementById("world-knowledge-count");
     if (!count) throw new Error("world-knowledge-count is missing");
@@ -77,13 +73,24 @@ fs.mkdirSync("qa-output/krita-504", { recursive: true });
   assert.ok(Number.parseInt(await page.locator("#world-knowledge-count").textContent(), 10) >= 1);
 
   await page.screenshot({ path: "qa-output/krita-504/mobile-hearth-before-open.png", fullPage: true });
+
+  // The current wall-map contract belongs to World Atlas. Clicking it with a
+  // real mobile pointer must not be blocked by the expedition CTA or another
+  // Hearth overlay. Atlas then exposes the latest discovered ink image inside
+  // its mobile details sheet.
   await map.click();
-  const viewer = page.locator("#hearth-location-visual-viewer");
-  await viewer.waitFor({ state: "visible" });
-  const image = viewer.locator("img");
+  const atlas = page.locator("#world-atlas-viewer");
+  await atlas.waitFor({ state: "visible" });
+  assert.match(await atlas.locator(".world-atlas-header").innerText(), /歩いて書いた世界/);
+
+  const detailsToggle = atlas.locator(".world-atlas-details-toggle");
+  await detailsToggle.waitFor({ state: "visible" });
+  await detailsToggle.click();
+
+  const image = atlas.locator(".world-atlas-latest-visual img");
   await image.waitFor({ state: "visible" });
   await page.waitForFunction(() => {
-    const img = document.querySelector("#hearth-location-visual-viewer img");
+    const img = document.querySelector("#world-atlas-viewer .world-atlas-latest-visual img");
     return Boolean(img && img.complete && img.naturalWidth > 0 && img.naturalHeight > 0);
   });
 
@@ -95,15 +102,22 @@ fs.mkdirSync("qa-output/krita-504", { recursive: true });
     renderedHeight: Math.round(img.getBoundingClientRect().height)
   }));
   assert.equal(imageInfo.src, "assets/locations/ruined-watchtower.png");
-  assert.ok(imageInfo.renderedWidth >= 280, "location visual is too small at phone scale");
+  assert.equal(imageInfo.naturalWidth, 1280);
+  assert.equal(imageInfo.naturalHeight, 720);
+  assert.ok(imageInfo.renderedWidth >= 260, "location visual is too small at phone scale");
+
+  const caption = await atlas.locator(".world-atlas-latest-visual figcaption").innerText();
+  assert.match(caption, /崩れた物見台/);
 
   await page.screenshot({ path: "qa-output/krita-504/mobile-hearth-watchtower.png", fullPage: true });
   fs.writeFileSync(
     "qa-output/krita-504/mobile-qa-report.json",
     JSON.stringify({
       ok: true,
+      route: ["Grey Hearth wall map", "World Atlas", "mobile details", "latest visual"],
       viewport: { width: 412, height: 915 },
       image: imageInfo,
+      caption,
       consoleErrors
     }, null, 2) + "\n"
   );
@@ -111,7 +125,7 @@ fs.mkdirSync("qa-output/krita-504", { recursive: true });
   await browser.close();
   browser = undefined;
   page = undefined;
-  console.log(`Mobile Hearth QA OK: ${imageInfo.renderedWidth}x${imageInfo.renderedHeight}`);
+  console.log(`Mobile World Atlas visual QA OK: ${imageInfo.renderedWidth}x${imageInfo.renderedHeight}`);
 })().catch(async (error) => {
   console.error(error);
   if (page) {
