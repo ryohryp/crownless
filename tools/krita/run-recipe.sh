@@ -38,28 +38,43 @@ fi
 
 TMP_HOME="$(mktemp -d)"
 trap 'rm -rf "$TMP_HOME"' EXIT
-PLUGIN_ROOT="$TMP_HOME/.local/share/krita/pykrita"
-mkdir -p "$PLUGIN_ROOT" "$TMP_HOME/.config"
+export HOME="$TMP_HOME"
+export XDG_DATA_HOME="$TMP_HOME/.local/share"
+export XDG_CONFIG_HOME="$TMP_HOME/.config"
+export XDG_CACHE_HOME="$TMP_HOME/.cache"
+export TMPDIR="$TMP_HOME/tmp"
+mkdir -p "$XDG_DATA_HOME" "$XDG_CONFIG_HOME" "$XDG_CACHE_HOME" "$TMPDIR"
+
+PLUGIN_ROOT="$XDG_DATA_HOME/krita/pykrita"
+mkdir -p "$PLUGIN_ROOT"
 cp "$REPO_ROOT/tools/krita/crownless_recipe.desktop" "$PLUGIN_ROOT/"
 cp -R "$REPO_ROOT/tools/krita/crownless_recipe" "$PLUGIN_ROOT/"
-cat > "$TMP_HOME/.config/kritarc" <<'EOF'
+cat > "$XDG_CONFIG_HOME/kritarc" <<'EOF'
 [python]
 enable_crownless_recipe=true
 EOF
 
-rm -f "$REPORT"
-export HOME="$TMP_HOME"
+IMPORT_MARKER="$REPO_ROOT/qa-output/krita-504/plugin-imported.txt"
+rm -f "$REPORT" "$IMPORT_MARKER"
 export CROWNLESS_KRITA_RECIPE="$RECIPE"
 export CROWNLESS_REPO_ROOT="$REPO_ROOT"
+export CROWNLESS_KRITA_IMPORT_MARKER="$IMPORT_MARKER"
 
 set +e
-timeout 120s xvfb-run -a krita --nosplash >"$REPO_ROOT/qa-output/krita-504/krita.log" 2>&1
+timeout 60s xvfb-run -a krita --nosplash -platform xcb >"$REPO_ROOT/qa-output/krita-504/krita.log" 2>&1
 KRITA_STATUS=$?
 set -e
 
 if [[ ! -f "$REPORT" ]]; then
   cat "$REPO_ROOT/qa-output/krita-504/krita.log" >&2 || true
-  echo "Krita exited without a recipe report (status $KRITA_STATUS)." >&2
+  if [[ -f "$IMPORT_MARKER" ]]; then
+    echo "Krita imported the Crownless plugin but no recipe report was produced (status $KRITA_STATUS)." >&2
+  else
+    echo "Krita did not import the Crownless plugin (status $KRITA_STATUS)." >&2
+    echo "Plugin root: $PLUGIN_ROOT" >&2
+    echo "kritarc:" >&2
+    cat "$XDG_CONFIG_HOME/kritarc" >&2 || true
+  fi
   exit 67
 fi
 
