@@ -60,8 +60,11 @@ export CROWNLESS_KRITA_RECIPE="$RECIPE"
 export CROWNLESS_REPO_ROOT="$REPO_ROOT"
 export CROWNLESS_KRITA_IMPORT_MARKER="$IMPORT_MARKER"
 
+# Opening the immutable base on startup forces Krita to create a real document
+# window. The plugin's Extension.createActions() callback is then dispatched on
+# the GUI thread, where the recipe can safely use Qt timers and Krita's API.
 set +e
-timeout 60s xvfb-run -a krita --nosplash -platform xcb >"$REPO_ROOT/qa-output/krita-504/krita.log" 2>&1
+timeout 120s xvfb-run -a krita --nosplash -platform xcb "$BASE_SNAPSHOT" >"$REPO_ROOT/qa-output/krita-504/krita.log" 2>&1
 KRITA_STATUS=$?
 set -e
 
