@@ -4,7 +4,7 @@ import traceback
 from pathlib import Path
 
 from krita import Extension, Krita
-from PyQt5.QtCore import QObject, Qt, QTimer, pyqtSignal, pyqtSlot
+from PyQt5.QtCore import QByteArray, QObject, Qt, QTimer, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QApplication
 
 
@@ -31,6 +31,29 @@ def _write_report(path, payload):
 
 def _stage(name):
     _marker("CROWNLESS_KRITA_STAGE_MARKER", name)
+
+
+def _parse_rgb(value):
+    text = value.strip().lstrip("#")
+    if len(text) != 6:
+        raise ValueError(f"fill must be #RRGGBB, got {value!r}")
+    return tuple(int(text[index:index + 2], 16) for index in (0, 2, 4))
+
+
+def _calm_wash_pixels(width, height, fill, fill_opacity):
+    """Return Krita RGBA/U8 pixel bytes (BGRA byte order) for the local wash."""
+    red, green, blue = _parse_rgb(fill)
+    pixels = bytearray()
+    for y in range(height):
+        t = 1.0 if height <= 1 else y / (height - 1)
+        if t <= 0.38:
+            strength = 0.45 * (t / 0.38)
+        else:
+            strength = 0.45 + 0.55 * ((t - 0.38) / 0.62)
+        alpha = max(0, min(255, round(255 * fill_opacity * strength)))
+        # Krita RGBA/U8 setPixelData uses BGRA byte order.
+        pixels.extend(bytes((blue, green, red, alpha)) * width)
+    return QByteArray(bytes(pixels))
 
 
 def run_recipe():
@@ -114,35 +137,31 @@ def run_recipe():
         start_y = max(0, min(height - 1, round(height * start_ratio)))
         band_height = max(1, min(height - start_y, round(height * height_ratio)))
 
-        overlay = doc.createVectorLayer(str(correction.get("name", "foreground-calm-wash")))
-        if overlay is None or not root.addChildNode(overlay, imported):
-            raise RuntimeError("could not create correction vector layer")
-
-        svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{width}" height="{band_height}" viewBox="0 0 {width} {band_height}">
-  <defs>
-    <linearGradient id="calm" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="{fill}" stop-opacity="0"/>
-      <stop offset="0.38" stop-color="{fill}" stop-opacity="{fill_opacity * 0.45:.4f}"/>
-      <stop offset="1" stop-color="{fill}" stop-opacity="{fill_opacity:.4f}"/>
-    </linearGradient>
-  </defs>
-  <rect x="0" y="0" width="{width}" height="{band_height}" fill="url(#calm)"/>
-</svg>'''
-        shapes = overlay.addShapesFromSvg(svg)
-        if not shapes:
-            raise RuntimeError("Krita did not create the correction shape")
+        # Use a real paint layer rather than a vector layer. Krita 5.2.2 can save
+        # vector shapes into a KRA before their merged projection is ready, which
+        # made CLI export reproduce the base pixels. setPixelData writes the local
+        # correction into an editable paint layer that participates in projection
+        # and KRA -> PNG export deterministically.
+        overlay = doc.createNode(str(correction.get("name", "foreground-calm-wash")), "paintlayer")
+        if overlay is None or not root.addChildNode(overlay, None):
+            raise RuntimeError("could not create correction paint layer")
+        if not overlay.setPixelData(_calm_wash_pixels(width, band_height, fill, fill_opacity), 0, 0, width, band_height):
+            raise RuntimeError("Krita could not write correction pixels")
         overlay.setOpacity(layer_opacity)
         overlay.setVisible(False)
         overlay.setVisible(True)
         overlay.move(0, start_y)
         report["operations"].append("create-correction-layer")
+        report["operations"].append("write-correction-pixels")
         report["operations"].append("transform-layer")
         report["operations"].append("local-correction")
         _stage("after-local-correction")
 
         doc.refreshProjection()
+        QApplication.processEvents()
         if hasattr(doc, "waitForDone"):
             doc.waitForDone()
+        QApplication.processEvents()
 
         _stage("before-save")
         if not doc.saveAs(str(editable_path)):
@@ -150,8 +169,7 @@ def run_recipe():
         report["operations"].append("save-editable-source")
 
         # Export is deliberately performed by a fresh Krita CLI process in the
-        # shell runner. Krita 5.2 can block exportImage() during plugin startup;
-        # the saved KRA is therefore the handoff boundary between edit/export.
+        # shell runner. The saved KRA is the handoff boundary between edit/export.
         report.update({
             "ok": True,
             "phase": "editable-saved",
@@ -162,6 +180,7 @@ def run_recipe():
             "editableSource": str(editable_path.relative_to(repo_root)),
             "runtimeExport": str(export_path.relative_to(repo_root)),
             "correction": {
+                "mode": "paintlayer-pixels",
                 "startY": start_y,
                 "height": band_height,
                 "layerOpacity": layer_opacity,
