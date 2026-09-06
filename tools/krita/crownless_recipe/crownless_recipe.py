@@ -3,7 +3,7 @@ import os
 import traceback
 from pathlib import Path
 
-from krita import Extension, InfoObject, Krita
+from krita import Extension, Krita
 
 
 def _marker(env_name, text):
@@ -35,7 +35,7 @@ def run_recipe():
     recipe_env = os.environ.get("CROWNLESS_KRITA_RECIPE", "")
     repo_env = os.environ.get("CROWNLESS_REPO_ROOT", "")
     report_path = None
-    report = {"ok": False, "operations": [], "launchReason": "plugin-import"}
+    report = {"ok": False, "phase": "editing", "operations": [], "launchReason": "plugin-import"}
 
     try:
         _stage("autorun-entered")
@@ -61,9 +61,8 @@ def run_recipe():
         _stage("before-open-document")
 
         # Reuse the startup document if Krita has already opened it; otherwise
-        # open the immutable snapshot explicitly. The import-time autorun is
-        # intentionally gated by an environment variable, so normal interactive
-        # Krita sessions never execute this recipe automatically.
+        # open the immutable snapshot explicitly. Import-time autorun is gated by
+        # CROWNLESS_KRITA_AUTORUN, so interactive Krita sessions never execute it.
         doc = None
         for candidate in app.documents():
             try:
@@ -147,16 +146,13 @@ def run_recipe():
             raise RuntimeError(f"Krita failed to save editable source: {editable_path}")
         report["operations"].append("save-editable-source")
 
-        doc.refreshProjection()
-        if hasattr(doc, "waitForDone"):
-            doc.waitForDone()
-        _stage("before-export")
-        if not doc.exportImage(str(export_path), InfoObject()):
-            raise RuntimeError(f"Krita failed to export runtime image: {export_path}")
-        report["operations"].append("export-runtime-asset")
-
+        # Export is deliberately performed by a fresh Krita CLI process in the
+        # shell runner. Krita 5.2 can block exportImage() while Python plugins are
+        # still being imported, whereas its documented KRA -> PNG CLI exporter
+        # runs after normal application initialization and exits deterministically.
         report.update({
             "ok": True,
+            "phase": "editable-saved",
             "kritaVersion": app.version(),
             "width": width,
             "height": height,
@@ -172,7 +168,7 @@ def run_recipe():
             },
         })
         _write_report(report_path, report)
-        _stage("complete")
+        _stage("editable-saved")
     except Exception as exc:
         report["error"] = str(exc)
         report["traceback"] = traceback.format_exc()
