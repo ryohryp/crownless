@@ -9,6 +9,10 @@ on:
         description: "agent-ready Issue number to execute"
         required: true
         type: number
+      focused_test:
+        description: "Optional repository-relative focused test path"
+        required: false
+        type: string
 
 permissions:
   contents: write
@@ -20,7 +24,7 @@ jobs:
     if: >-
       github.event_name == 'workflow_dispatch' ||
       (github.event.issue.state == 'open' && contains(github.event.issue.labels.*.name, 'agent-ready'))
-    runs-on: [self-hosted, crownless-autopilot]
+    runs-on: ubuntu-latest
     timeout-minutes: 60
     concurrency:
       group: crownless-autopilot-${{ github.event.issue.number || inputs.issue_number }}
@@ -28,12 +32,43 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
       ISSUE_NUMBER: ${{ github.event.issue.number || inputs.issue_number }}
+      REQUESTED_FOCUSED_TEST: ${{ inputs.focused_test }}
     steps:
       - name: Checkout main
         uses: actions/checkout@v4
         with:
           ref: main
           fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Codex CLI
+        shell: bash
+        run: npm install -g @openai/codex@latest
+
+      - name: Configure Codex authentication
+        shell: bash
+        env:
+          CODEX_AUTH_JSON: ${{ secrets.CODEX_AUTH_JSON }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [[ -n "${CODEX_AUTH_JSON:-}" ]]; then
+            mkdir -p "$HOME/.codex"
+            printf '%s' "$CODEX_AUTH_JSON" > "$HOME/.codex/auth.json"
+            chmod 600 "$HOME/.codex/auth.json"
+            unset OPENAI_API_KEY CODEX_AUTH_JSON
+            codex login status
+          elif [[ -n "${OPENAI_API_KEY:-}" ]]; then
+            printf 'OPENAI_API_KEY=%s\n' "$OPENAI_API_KEY" >> "$GITHUB_ENV"
+            echo "Using OPENAI_API_KEY for Codex CLI authentication."
+          else
+            echo "::error::Configure repository secret CODEX_AUTH_JSON or OPENAI_API_KEY before running Crownless Autopilot."
+            exit 1
+          fi
 
       - name: Verify runner dependencies
         shell: bash
@@ -44,6 +79,13 @@ jobs:
           gh --version
           codex --version
           gh auth status
+
+      - name: Configure Git identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
       - name: Verify Issue is executable
         shell: bash
@@ -58,4 +100,8 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          node scripts/autopilot/run-next.js --issue "$ISSUE_NUMBER"
+          focused_test="${REQUESTED_FOCUSED_TEST:-}"
+          if [[ -z "$focused_test" ]]; then
+            focused_test="test/autopilot-issue-${ISSUE_NUMBER}.test.js"
+          fi
+          node scripts/autopilot/run-next.js --issue "$ISSUE_NUMBER" --focused-test "$focused_test"

@@ -1,0 +1,117 @@
+name: Crownless Autopilot Planner
+
+on:
+  schedule:
+    - cron: "17 * * * *"
+  workflow_dispatch:
+
+permissions:
+  actions: write
+  contents: read
+  issues: write
+  pull-requests: read
+
+concurrency:
+  group: crownless-autopilot-planner
+  cancel-in-progress: false
+
+jobs:
+  plan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v4
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install Codex CLI
+        shell: bash
+        run: npm install -g @openai/codex@latest
+
+      - name: Configure Codex authentication
+        shell: bash
+        env:
+          CODEX_AUTH_JSON: ${{ secrets.CODEX_AUTH_JSON }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          set -euo pipefail
+          if [[ -n "${CODEX_AUTH_JSON:-}" ]]; then
+            mkdir -p "$HOME/.codex"
+            printf '%s' "$CODEX_AUTH_JSON" > "$HOME/.codex/auth.json"
+            chmod 600 "$HOME/.codex/auth.json"
+            unset OPENAI_API_KEY CODEX_AUTH_JSON
+            codex login status
+          elif [[ -n "${OPENAI_API_KEY:-}" ]]; then
+            printf 'OPENAI_API_KEY=%s\n' "$OPENAI_API_KEY" >> "$GITHUB_ENV"
+            echo "Using OPENAI_API_KEY for Codex CLI authentication."
+          else
+            echo "::error::Configure repository secret CODEX_AUTH_JSON or OPENAI_API_KEY before running Crownless Autopilot."
+            exit 1
+          fi
+
+      - name: Verify runner dependencies
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --version
+          git --version
+          gh --version
+          codex --version
+          gh auth status
+
+      - name: Run Planner without local execution
+        id: plan
+        shell: bash
+        run: |
+          set -euo pipefail
+          result_file="$(mktemp)"
+          set +e
+          node scripts/autopilot/planner-cycle.js --repo "$GITHUB_REPOSITORY" --defer-execution > "$result_file"
+          planner_status=$?
+          set -e
+
+          cat "$result_file"
+          if ! jq -e . "$result_file" > /dev/null; then
+            echo "::error::Planner did not return valid JSON."
+            exit "${planner_status:-1}"
+          fi
+
+          decision="$(jq -r '.decision // empty' "$result_file")"
+          reason="$(jq -r '.reason // empty' "$result_file")"
+          issue_number="$(jq -r '.issue.number // empty' "$result_file")"
+          echo "decision=$decision" >> "$GITHUB_OUTPUT"
+          echo "reason=$reason" >> "$GITHUB_OUTPUT"
+          echo "issue_number=$issue_number" >> "$GITHUB_OUTPUT"
+
+          if [[ "$planner_status" -ne 0 ]]; then
+            case "$reason" in
+              active_execution|pending_autopilot_pr|duplicate_or_overlapping_work)
+                echo "Planner stopped cleanly because another Autopilot unit owns the next action: $reason"
+                ;;
+              *)
+                exit "$planner_status"
+                ;;
+            esac
+          fi
+
+      - name: Dispatch Executor for new agent-ready Issue
+        if: ${{ steps.plan.outputs.decision == 'agent-ready' }}
+        shell: bash
+        env:
+          ISSUE_NUMBER: ${{ steps.plan.outputs.issue_number }}
+        run: |
+          set -euo pipefail
+          test -n "$ISSUE_NUMBER"
+          gh workflow run autopilot-executor.yml \
+            --repo "$GITHUB_REPOSITORY" \
+            --ref main \
+            -f issue_number="$ISSUE_NUMBER"
