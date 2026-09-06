@@ -11,6 +11,11 @@ on:
       - scripts/check-krita-phase1.cjs
       - scripts/check-krita-mobile-qa.cjs
       - docs/visual/krita-phase1-pipeline.md
+      - expedition-journey.css
+      - hearth*.css
+      - src/hearth*.js
+      - src/expedition-presentation.js
+      - src/location-visuals.js
 
 permissions:
   contents: write
