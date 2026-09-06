@@ -1,7 +1,7 @@
 # Crownless Autonomous Development Policy
 
 > **Status:** active policy for Planner + Codex-assisted autonomous development  
-> **Product Canon:** `AGENTS.md`, `docs/game-system-design.md`, `docs/adr/0002-idle-expedition-pivot.md`
+> **Product Canon:** `AGENTS.md`, `docs/game-system-design.md`, `docs/adr/0004-territory-driven-reforge.md`
 
 ## Purpose
 
@@ -19,17 +19,37 @@ Autonomy exists to shorten this loop:
 
 Implementation success and game-design success are intentionally separate. Passing Acceptance Criteria, tests, review, and CI makes a change **Implemented**. It does not prove that the change is fun.
 
-This policy refines the Phase 2 Planner design in #228 and the experiment log format in #367.
+This policy refines the Phase 2 Planner design in #228, the experiment log format in #367, and the human-approved Territory-driven Reforge in #503.
 
 ## Product boundary
 
-The current product direction is **Location × Expedition RPG**.
+The current product direction is **Location × Territory RPG**.
 
-Autonomous work must preserve the canonical core loop:
+Autonomous work must preserve the canonical product loop:
 
-> **Walk → Discover → Prepare → Dispatch → Wait → Report → Adapt**
+> **Walk → Discover → Scout / Learn → Prepare → Contest / Expedition → Control → Exploit / Defend / Expand → Next place**
 
-Real-time player-controlled action combat is not current Canon. Location gameplay must not collapse into step-count rewards.
+The current North Star is:
+
+> **自分の行動で勢力圏が広がった地図を見たとき、次の地点を取りたくなるか？**
+
+Expeditions remain a principal way to act on places, but are no longer the product goal. The former expedition-result North Star may be used as a subsystem-quality question, not as the default selector for product innovation.
+
+Real-time player-controlled action combat is not current Canon. Location gameplay must not collapse into step-count rewards. Territory must not collapse into a renamed XP bar or repeatable chore loop.
+
+## #503 transition gate
+
+Issue #503 is a human-approved Canon change.
+
+Before ADR 0004 and the associated current-Canon documents are merged to `main`:
+
+- do not use the normal Planner to generate unrelated gameplay features optimized for the old expedition-result North Star
+- do not manufacture additional old-Canon location-specific binary choices, Report copy/content, or isolated expedition-result optimizations as product innovation
+- work should be limited to #503 Canon changes, work directly required to make #503 executable, or a genuine P0/P1 / data-loss / startup / exploration / fatal CI/production blocker
+
+After the Territory Canon is merged to `main`, normal Planner operation may resume using the new North Star and Gameplay Gate in this document.
+
+The first gameplay target after Canon merge is the bounded three-place #503 Phase 1 vertical slice. Do not create a generalized territory engine first.
 
 ## Planner and executor boundary
 
@@ -45,7 +65,7 @@ The executor remains deliberately simple:
 6. create one PR
 7. stop
 
-`scripts/autopilot/run-next.js` remains the implementation executor. It does not decide whether a gameplay idea is interesting and it does not auto-merge.
+`scripts/autopilot/run-next.js` remains the implementation executor. It does not decide whether a gameplay idea is interesting and it does not convert CI success into a playtest judgment.
 
 The Planner is responsible for deciding **what should become an Issue next**. Its output is validated by `scripts/autopilot/planner-proposal.js`, `planner-proposal.schema.json`, `gameplay-gate.js`, duplicate detection, and the existing risk policy.
 
@@ -53,8 +73,9 @@ The Planner is responsible for deciding **what should become an Issue next**. It
 
 Before choosing an existing task or proposing a new one, the Planner must review the most recent **3–5 development cycles** and record:
 
-- whether those cycles added a player-visible new kind of play
+- whether those cycles added a player-visible new kind of play or meaningful territorial consequence
 - whether the sequence has become maintenance-heavy
+- whether it has become trapped in old-Canon micro-improvements such as another location binary choice, Report addition, or expedition-result polish with no map/control consequence
 - the main evidence for that judgment
 
 A P0 or clear player-facing bug may short-circuit ideation and be selected directly.
@@ -67,6 +88,7 @@ A qualifying gameplay innovation may outrank older backlog work when:
 - no active execution blocks it
 - it stays inside current Canon and risk boundaries
 - it can be implemented as a small playable vertical slice
+- it improves the player's ability or desire to discover, understand, contest, control, use, defend, or expand places
 
 Backlog age, architecture cleanliness, or ease of implementation alone must not defeat a stronger playable improvement.
 
@@ -78,14 +100,14 @@ Gameplay candidates are evaluated on eight dimensions. Scores are evidence for c
 
 | Dimension | Question |
 | --- | --- |
-| **Player-visible** | Will the player clearly notice a change while playing? |
-| **Decision** | What new judgment, trade-off, or choice appears? |
-| **Risk / Reward** | When naturally applicable, does the player choose a risk in exchange for a possible benefit? |
-| **Core Loop** | Which part of Walk → Discover → Prepare → Dispatch → Wait → Report → Adapt becomes richer or better connected? |
-| **Replayability** | Does the change create different outcomes, routes, builds, or future decisions across plays? |
-| **Fantasy** | Does it strengthen the medieval expedition / survival / discovery fantasy? |
-| **Geography** | If location-related, what exists because the player physically went there? |
-| **Canon** | Is the proposal consistent with current canonical documents and explicit decisions? |
+| **Player-visible** | Will the player clearly notice a world, map, option, or consequence change while playing? |
+| **Decision** | What new judgment, trade-off, or choice appears? What will the player hesitate over? |
+| **Risk / Reward** | When naturally applicable, does the player choose uncertainty/risk in exchange for a meaningful benefit? |
+| **Core Loop** | Which part of Walk → Discover → Scout/Learn → Prepare → Contest/Expedition → Control → Exploit/Defend/Expand → Next place becomes richer or better connected? |
+| **Replayability** | Does the change create different target priorities, approaches, builds, routes, outcomes, or future decisions? |
+| **Fantasy** | Does it strengthen the medieval discovery / expedition / territorial-expansion fantasy? |
+| **Geography** | If location-related, what exists because the player physically went there, and how can that place matter later? |
+| **Canon** | Is the proposal consistent with ADR 0004, current canonical documents, #503 scope, and explicit decisions? |
 
 ### Hard gates
 
@@ -94,15 +116,18 @@ For a proposal classified as **gameplay innovation**:
 - **Decision = 0 → reject** as innovation
 - **Core Loop = 0 → reject** as innovation
 - location-related gameplay with no meaningful Geography contribution → reject as location innovation
+- a candidate whose only novelty is text, another isolated binary interaction, or an expedition-result improvement with no meaningful territorial/next-decision consequence → reject as current product innovation
 - `playtestRequired` must be true; gameplay cannot be declared validated by CI alone
 
 A clear bug, P0, or necessary player-friction fix may still be selected without satisfying the innovation hard gates. It must be classified honestly as bug/friction rather than disguised as innovation.
 
-The key question for Decision is:
+The key questions for Decision are:
 
 > **What will the player now hesitate over?**
+>
+> **After the outcome, what becomes different about the next place or next plan?**
 
-If the answer is effectively “nothing,” the change is not a gameplay innovation even if it adds UI, content, code, tests, or data.
+If the answers are effectively “nothing,” the change is not a gameplay innovation even if it adds UI, content, code, tests, or data.
 
 ## Interesting Decision and MDA
 
@@ -112,42 +137,86 @@ Every selected gameplay hypothesis must record an **Interesting Decision** plus 
 - **Dynamic:** the behavior or trade-off that emerges when the player interacts with it
 - **Desired Experience:** the feeling or kind of judgment the change is intended to create
 
+For Territory-driven work, the Desired Experience should normally connect to agency over the map: curiosity about a place, uncertainty before committing, satisfaction from visible control, or desire for the next target.
+
 MDA is a design aid, not a mandate to redesign the whole game or to force every feature into a universal theory.
 
 ## Smallest playable vertical slice
 
 A gameplay proposal must be playable end-to-end at least once in the same slice. The Planner proposal records this causal chain explicitly:
 
-> **Discovery / information → Decision → Action → Result / danger → Reward or loss → Persistent change that affects the next decision**
+> **Discovery / information → Decision → Preparation / action → Result / danger → Persistent world/control change or meaningful failure → Changed next decision**
 
-The slice may reuse existing UI, deterministic resolution, placeholder text, or existing content. It should not grow into a generalized engine merely to make the architecture elegant.
+For #503 Phase 1, the preferred proof is:
 
-## Risk / Reward principle
+```text
+Discover one of three authored places
+  ↓
+see NPC control + value + uncertainty in Atlas
+  ↓
+scout or deliberately accept incomplete information
+  ↓
+choose companion / equipment / approach
+  ↓
+resolve contest through existing deterministic expedition machinery where practical
+  ↓
+success: NPC → player control / failure or retreat: no capture
+  ↓
+reload-safe, idempotent state
+  ↓
+Atlas changes visibly
+  ↓
+one other place now has a changed approach / risk / duration / resource / information condition
+  ↓
+player can naturally choose the next target
+```
 
-Risk/reward is useful when it creates a player-chosen trade-off. Prefer choices such as:
+The slice may reuse existing UI, deterministic resolution, placeholder text, or authored data. It must not grow into a generalized territory engine merely to make the architecture elegant.
 
-- safer route vs richer unknown route
-- return now vs press farther while injured
-- protect carried loot vs pursue a rare opportunity
-- consume a scarce supply now vs save it for later
+## Territory anti-grind principle
 
-Do **not** manufacture a three-choice menu everywhere, and do not treat extra RNG by itself as meaningful risk/reward.
+Territory progression must come mainly from judgment and preparation.
+
+Prefer decisions such as:
+
+- scout first vs attack with incomplete information
+- take a safer foothold vs a more valuable but harder place
+- send a local/geographically suited companion vs preserve them for another target
+- choose a route or approach made possible by controlled territory
+- use equipment that opens an authored solution rather than merely adding power
+- take a crossing/road/resource location because it changes a later target
+
+Do **not** use as the main control loop:
+
+- a control XP/progress bar
+- killing N disposable enemies to fill control
+- daily / stamina / energy chores
+- meaningless repetition of the same solved contest
+- tiny invisible percentage bonuses as the primary reward for owning a place
+
+Do not manufacture a three-choice menu everywhere, and do not treat extra RNG by itself as meaningful risk/reward.
 
 ## Loot, companions, traits, and builds
 
-Equipment, companions, and traits should change **decisions, available options, routes, objectives, or consequences**, not only numeric power.
+Equipment, companions, and traits should change **decisions, available options, routes, approaches, objectives, information, or consequences**, not only numeric power.
 
-A loot/build proposal that only increments stats should not outrank one that changes what the player can attempt, avoid, discover, or risk.
+A loot/build proposal that only increments stats should not outrank one that changes what the player can scout, attempt, avoid, contest, control, or unlock next.
+
+Geographic traits/items are especially useful when they create different good preparations across places without forcing disposable replacement of prior progress.
 
 ## Geography principle
 
 Location is not a pedometer reward system.
 
-When a candidate is location-related, its Geography rationale must explain what discovery, development, unlock, local advantage, persistent knowledge, or future expedition possibility exists **because the player went there**.
+When a candidate is location-related, its Geography rationale must explain what discovery, knowledge, target, route, strategic role, local advantage, persistent control state, or future possibility exists **because the player went there**.
 
-Examples of useful geography include discovering a route, revealing a local faction/contact, unlocking a destination, learning a place-specific hazard, or creating persistent regional knowledge. Merely granting currency for distance or steps is not sufficient.
+Examples of useful geography include discovering a route, revealing a local contact, unlocking a contestable place, learning a place-specific hazard, creating persistent regional knowledge, or establishing a foothold that changes another place.
 
-## Maintenance-bias guard
+Merely granting currency for distance or steps is not sufficient.
+
+Raw GPS coordinates and exact route history are outside game-facing territory state.
+
+## Maintenance-bias and old-Canon-bias guard
 
 The Planner must not repeatedly select cycles consisting only of:
 
@@ -156,35 +225,41 @@ The Planner must not repeatedly select cycles consisting only of:
 - tiny cosmetic UI adjustments
 - refactor-only cleanup
 - speculative architecture work
+- another location-specific binary choice with no territory consequence
+- another Report-only event/story addition with no changed game state or next decision
+- another isolated expedition-result optimization merely intended to make returning to the Report more interesting
 
-When the recent 3–5 cycle review is maintenance-heavy, another maintenance-class proposal is blocked unless it is reclassified with evidence as a clear bug/friction issue or a higher-priority safety/reliability need.
+When the recent 3–5 cycle review is maintenance-heavy or old-Canon-microfeature-heavy, another proposal of the same class is blocked unless it is reclassified with evidence as a clear bug/friction issue or a higher-priority safety/reliability need.
 
-This rule does not forbid maintenance. It prevents maintenance from becoming the default product strategy.
+This rule does not forbid maintenance or supporting expedition work. It prevents them from becoming the default product strategy.
 
 ## Planner proposal contract
 
 A `create_issue` proposal must contain the existing implementation/risk fields plus:
 
 - `proposalType`: `gameplay`, `bug`, `friction`, or `maintenance`
-- `recentCycleReview`: 3–5 cycles, whether new play was added, maintenance bias, and evidence summary
+- `recentCycleReview`: 3–5 cycles, whether new play/territorial consequence was added, maintenance/old-Canon bias, and evidence summary
 - `candidates`: 1 candidate for a clear bug, otherwise 3 compared candidates
 - for every candidate: title, kind, location relevance, all Gameplay Gate dimensions with rationale, selection flag, and selection/rejection reason
-- for selected gameplay: `gameplayHypothesis` with Interesting Decision, MDA, and the six-step vertical-slice chain
+- for selected gameplay: `gameplayHypothesis` with Interesting Decision, MDA, and the vertical-slice causal chain
 
 Malformed or internally inconsistent proposals fail closed before duplicate/risk evaluation.
 
-`no_action` remains valid when active/overlapping work means no mutation should occur.
+`no_action` remains valid when active/overlapping work, unresolved Canon, human gate, or another blocker means no mutation should occur.
 
 ## Duplicate and active-work guard
 
-Before creating an Issue, the Planner must continue to inspect:
+Before creating an Issue, the Planner must inspect:
 
 - open Issues
 - open PRs
 - recent closed Issues
 - recent merged PRs
+- current code for older Epics whose open state may not reflect implementation
 
-Do not create a new Issue for the same behavior, a contained subset, or work already implemented. One Planner run creates at most one Issue.
+Do not create a new Issue for the same behavior, a contained subset, work already implemented, `future` work intentionally deferred, `decision-log` records, or `playtest-pending` work waiting on human Keep / Change / Kill.
+
+One Planner run creates at most one Issue.
 
 ## Eligibility and human gate
 
@@ -195,16 +270,18 @@ Human gating remains required for product decisions such as:
 - changing gameplay Canon or the core loop itself
 - major balance/economy changes requiring taste judgment
 - GPS/privacy/location-data boundaries
-- save compatibility or irreversible player-state migration
+- save compatibility or large/irreversible player-state migration
 - visual direction / production asset approval
-- major architecture or hosting strategy
+- major architecture/backend/hosting strategy
 - public deployment policy
-- security / credential boundaries
+- security / credential / auth / IAM boundaries
 - substantial legacy deletion without explicit approval
 - monetization
 - ambiguous major game-design decisions with multiple plausible directions
 
-`playtestRequired=true` is **not by itself a pre-implementation blocker**. A low-risk gameplay vertical slice may be implemented autonomously, but it remains **Playtest pending** after implementation. If a design decision is required *before* implementation, set `humanGate=true`.
+#503 is already human-approved as a Canon direction, but the Canon/core-loop PR itself remains human-merge gated. Do not auto-merge it.
+
+`playtestRequired=true` is **not by itself a pre-implementation blocker**. A low-risk gameplay vertical slice may be implemented autonomously after current Canon is on `main`, but it remains **Playtest pending** after implementation. If a design decision is required *before* implementation, set `humanGate=true`.
 
 ## Playtest truth states
 
@@ -216,7 +293,13 @@ For gameplay work, use these distinct statuses in the decision log:
 4. **Change** — the hypothesis has value but needs revision; record what should change
 5. **Kill** — the hypothesis did not improve the game enough; removal/reversal is valid learning
 
-`Kill` is not an Autopilot failure. Shipping code that teaches us a hypothesis is weak can still be a useful development cycle.
+For #503 Phase 1:
+
+- **Keep:** one captured place makes the player look at the map and want another
+- **Change:** territory/control is promising but contest, place value, or decisions are weak
+- **Kill:** capturing places does not create desire for the next one, becomes checklist play, or converges on grinding
+
+`Kill` is not an Autopilot failure.
 
 Never write `Keep`, `Change`, or `Kill` from tests or static code review alone.
 
@@ -225,27 +308,29 @@ Never write `Keep`, `Change`, or `Kill` from tests or static code review alone.
 Each autonomous cycle recorded in #367 should include, at minimum:
 
 - cycle timestamp / trigger / main SHA when available
-- review of the most recent 3–5 cycles: new play added? maintenance-heavy?
-- candidate list and all Gameplay Gate dimensions/reasons
-- selected candidate and `whyNow`
-- rejected-candidate reasons
-- selected gameplay hypothesis's Interesting Decision
-- MDA: Mechanic / Dynamic / Desired Experience
-- smallest playable vertical slice causal chain
-- classification: bug / friction / maintenance / gameplay innovation
+- current #503 stage: Canon ADR / Canon PR / Territory slice / Playtest pending / later stage
+- review of the most recent relevant cycles and current repository state
+- candidate list and Gameplay Gate dimensions/reasons when normal Planner ideation is active
+- selected work and `whyNow`
+- rejected-candidate reasons when applicable
+- selected gameplay hypothesis's Interesting Decision and MDA when applicable
+- smallest playable vertical slice causal chain when applicable
+- classification: bug / friction / maintenance / gameplay innovation / Canon work
 - implementation evidence: Issue, PR/commit, focused/full tests, CI
+- local validation versus GitHub Actions fallback
+- merge/close result
 - **Implemented** status separately from gameplay validation
-- gameplay status: **Playtest pending / Keep / Change / Kill**
+- gameplay status: **Playtest pending / Keep / Change / Kill** where applicable
 - confirmed human intervention since the previous cycle, or `なし / 確認できず`
-- next observation or hypothesis
+- Outcome and next observation/human gate
 
-Do not rewrite history to make a cycle look successful. `no_action`, failed proposals, rejected hypotheses, reversions, and human corrections are useful experiment data.
+Do not rewrite history to make a cycle look successful. `no_action`, failed proposals, rejected hypotheses, reversions, executor failures, and human corrections are useful experiment data.
 
 ## Executor flow
 
-Autopilot may execute only an Issue explicitly marked `agent-ready` by the repository workflow. `agent-running` remains the short-lived GitHub lock.
+Autopilot may execute only an Issue explicitly marked `agent-ready` by the repository workflow or by confirmed human approval consistent with current policy. `agent-running` remains the short-lived GitHub lock.
 
-Use `npm run autopilot -- --dry-run` to inspect the next executable Issue without changing GitHub or the filesystem. A live run uses an isolated worktree, invokes Codex with [`docs/autopilot-execution-contract.md`](autopilot-execution-contract.md), runs at least one Issue-relevant focused test supplied with `--focused-test test/path.test.js`, required validation and structured self-review, then creates one PR. It never merges.
+Use `npm run autopilot -- --dry-run` to inspect the next executable Issue without changing GitHub or the filesystem. A live run uses an isolated worktree, invokes Codex with [`docs/autopilot-execution-contract.md`](autopilot-execution-contract.md), runs at least one Issue-relevant focused test supplied with `--focused-test test/path.test.js`, required validation and structured self-review, then creates one PR. It never turns CI success into fun validation.
 
 ```text
 Planner hypothesis / bug / friction
@@ -280,37 +365,57 @@ Before opening a PR, the executor must:
 3. inspect the final diff for accidental scope expansion
 4. verify Acceptance Criteria individually
 5. confirm Canon documents were not contradicted
-6. confirm no raw GPS coordinates, route history, credentials, or paid provider keys were introduced
+6. confirm no raw GPS coordinates, exact route history, credentials, or paid provider keys were introduced
 7. for UI work, validate a phone-size viewport when repository tooling supports it
-8. report anything that could not be validated instead of guessing
+8. for territory state changes, validate success capture, failure/retreat non-capture, reload/Report idempotency, and the intended captured-place effect
+9. report anything that could not be validated instead of guessing
 
 A failing check is not permission to weaken/delete the check unless the Issue explicitly establishes that the check is obsolete.
+
+For documentation-only Canon work created through GitHub fallback because a local checkout is unavailable, record that local validation was not run and use current-head GitHub Actions as the validation substitute. Canon/core-loop PRs still stop at PR+CI for human merge judgment.
 
 ## Work isolation and scope discipline
 
 Every autonomous implementation uses its own branch/worktree or equivalent isolated checkout. Multiple agents must not share a mutable working directory.
 
-Prefer the smallest implementation that satisfies the Issue. Do not create generalized platforms, plugin frameworks, event engines, backend services, or AI orchestration layers merely because they might be useful later.
+Prefer the smallest implementation that satisfies the Issue. Do not create generalized territory platforms, plugin frameworks, event engines, backend services, or AI orchestration layers merely because they might be useful later.
+
+For #503 Phase 1, three authored places are a feature, not technical debt. Generalize only after playtesting proves repeated content needs a shared abstraction.
 
 If completing the Issue reveals a separate useful improvement, record it rather than silently expanding scope.
 
 ## Merge policy
 
-The current executor stops at PR creation unless a separate, explicit repository policy later enables a narrow auto-merge class.
+Follow `docs/adr/0003-autopilot-conditional-auto-merge.md` for any class that may be auto-merged.
 
-Gameplay proposals requiring human playtest must never be treated as game-design-successful merely because CI is green. No future auto-merge policy may silently turn **Playtest pending** into **Keep**.
+Never auto-merge:
+
+- Canon/core-loop changes
+- large balance/economy changes
+- GPS/privacy changes
+- save migrations that cross the human gate
+- security/auth/IAM changes
+- major architecture/backend/hosting changes
+- substantial legacy deletion
+- monetization
+- production visual asset approval
+- `human-gate` / `agent-proposed` work
+
+Gameplay proposals requiring human playtest must never be treated as game-design-successful merely because CI is green. A low-risk slice may be eligible for merge under the separate merge ADR, but merge only moves it to **Implemented / Playtest pending**.
 
 ## Failure behavior
 
 Stop and surface the blocker rather than improvising when:
 
 - Canon or authoritative documents conflict materially
+- #503 Canon is not yet on `main` and the proposed work is unrelated old-Canon gameplay innovation
 - a proposal cannot clear the Gameplay Gate and is not a legitimate bug/friction exception
 - an Issue cannot be satisfied without a larger product decision
 - required credentials or protected external systems are unavailable
 - tests reveal unrelated repository breakage that cannot safely be separated
 - another open Issue/PR already implements overlapping behavior
 - the change would weaken a safety/privacy boundary
+- Phase 1 would require a large save migration, new backend, exact GPS-history persistence, or other explicitly deferred scope
 
 ## Success criterion
 
@@ -318,4 +423,8 @@ The Autopilot succeeds when it shortens the real product-learning loop, not when
 
 > **The Planner forms a small, evidence-backed gameplay hypothesis; the executor implements one playable vertical slice; a human can then play it and record Keep / Change / Kill; the next cycle learns from that outcome.**
 
-A healthy autonomous cycle should make it easier to answer whether the player wants to return for the expedition result — not merely leave the repository cleaner.
+For the current Reforge, a healthy autonomous cycle should make it easier to answer:
+
+> **自分の行動で勢力圏が広がった地図を見たとき、次の地点を取りたくなるか？**
+
+Repository cleanliness, Report volume, or expedition polish alone are not substitutes for that product learning.

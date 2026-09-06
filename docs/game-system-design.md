@@ -1,79 +1,90 @@
 # Crownless — Game System Design
 
 > **Status:** current canonical gameplay design  
-> **Updated:** 2026-08-27  
-> **Decision:** [`adr/0002-idle-expedition-pivot.md`](adr/0002-idle-expedition-pivot.md)  
+> **Updated:** 2026-09-06  
+> **Decision:** [`adr/0004-territory-driven-reforge.md`](adr/0004-territory-driven-reforge.md)  
+> **Historical pivot:** [`adr/0002-idle-expedition-pivot.md`](adr/0002-idle-expedition-pivot.md)  
 > **Expedition subsystem:** [`expedition-system-spec.md`](expedition-system-spec.md)
 
 ## 1. Vision
 
-Crownless is a **location-discovery expedition RPG** set in a medieval fantasy world.
+Crownless is a **location-discovery territory-expansion RPG** set in a medieval fantasy world.
 
-The player walks through the real world to reveal unknown parts of Crownless, returns to a safe place, chooses who to send into those places, equips them, decides how much risk they may take, and later reads what happened.
+The player walks through the real world to reveal unknown parts of Crownless, learns what matters about discovered places, chooses how to approach them, prepares companions and equipment, contests NPC-held locations, and sees persistent control of the world change as a result.
 
 The defining fantasy is:
 
-> **I found this place. I sent them there. Now I need to know whether they came back.**
+> **I found this place, learned how to take it, changed the map, and now I can see where I want to go next.**
 
-Crownless is not a walking-reward app, and it is no longer designed around real-time action combat.
+Crownless is not a walking-reward app, a territory XP grinder, or a real-time action-combat game.
+
+Expeditions remain an important system. They are now a principal way to act on places rather than the final purpose of play.
 
 ## 2. Core loop
 
-The canonical loop is:
+The canonical product loop is:
 
-> **Walk → Discover → Prepare → Dispatch → Wait → Report → Adapt**
+> **Walk → Discover → Scout / Learn → Prepare → Contest / Expedition → Control → Exploit / Defend / Expand → Next place**
 
 In Japanese:
 
-> **歩く → 発見する → 準備する → 送り出す → 待つ → 報告を読む → 次を判断する**
+> **歩く → 発見する → 偵察する → 攻略を準備する → 地点を争う → 支配する → 利用する／守る／広げる → 次の地点へ**
 
-Each major feature should strengthen at least one of these stages.
+Each major gameplay feature should strengthen at least one relationship in this loop and should normally leave the player with a changed world state or a changed next decision.
 
 ### Walk
 
-Real movement exposes different geography and therefore different Crownless world seeds.
+Real movement exposes different geography and therefore different Crownless world seeds. Walking expands what can be discovered; it does not refill energy.
 
 ### Discover
 
-The player reveals a place, clue, route, region, danger, or rumor. Discovery becomes persistent world knowledge.
+Reveal a place, clue, route, strategic feature, danger, or rumor. Legitimate discovery becomes persistent world knowledge with stable game-facing identity.
+
+### Scout / Learn
+
+Decide whether to spend time/opportunity to reduce uncertainty before contesting a place. Scouting should reveal useful danger, opportunity, approach, route, faction, or strategic-effect information. It must not be a disguised control-progress action.
 
 ### Prepare
 
-At the Grey Hearth, choose companions, equipment, supplies, destination, objective, and risk policy.
+Choose the companions, equipment, supplies, objective/policy where relevant, and an approach suitable for the target. Preparation should create understandable consequences rather than only hidden percentage bonuses.
 
-### Dispatch
+### Contest / Expedition
 
-Commit the expedition. Dispatch choices become immutable inputs to its resolution.
+Act on the place. Reuse the existing deterministic expedition/event resolver wherever practical. A contest may include travel, scouting, hostile encounters, hazards, retreat, injury, or other structured events.
 
-### Wait
+### Control
 
-Time passes. The prototype may resolve lazily when reopened; it does not need a continuously running backend.
+On a legitimate success, a place may persistently move from NPC control to player control. Failure or retreat does not grant control. The transition and its effects must be idempotent across reload and Report reapplication.
 
-### Report
+### Exploit / Defend / Expand
 
-The game reveals what happened: discoveries, choices, combat, loot, injury, delay, disappearance, retreat, or return.
+A controlled place must do more than show a badge. It should make at least one later decision different — for example by changing an approach, risk, duration, available resource, scouting information, route, or another strategic condition.
 
-### Adapt
+Phase 1 does not require a full defense simulation. `Defend` is part of the long-term loop, while the first slice may prove only immediate use/expansion consequences.
 
-Treat injuries, change the party, equip recovered items, attempt rescue, choose another destination, or walk somewhere new to expand the world.
+### Next place
+
+After taking a place, the Atlas should make another meaningful target naturally visible. The player should be deciding **where/why/how next**, not merely filling a checklist.
 
 ## 3. Product validation target
 
-The first question is no longer whether combat feels satisfying.
+The current North Star is:
 
-It is:
+> **自分の行動で勢力圏が広がった地図を見たとき、次の地点を取りたくなるか？**
 
-> **After dispatching an expedition, does the player want to reopen the game to see what happened?**
-
-Everything in the first PoC should help answer this question.
+Everything in the #503 Phase 1 slice should help answer this question.
 
 Secondary signals:
 
-- does the player care who was sent?
-- does the player understand why a result happened?
-- does risk policy create regret or satisfaction?
-- does a report create a story worth remembering?
-- does walking somewhere new create a destination worth using later?
+- does the player hesitate over which place to take next?
+- does the player want to scout before committing, or deliberately accept uncertainty?
+- does a companion, item, or approach create a reason to prepare differently?
+- can the player understand why a contest succeeded, failed, or caused injury?
+- does control visibly alter the Atlas?
+- does taking one place change another place's conditions or options?
+- is the desire to expand driven by strategy and curiosity rather than a progress bar?
+
+The former question — whether the player reopens the game primarily to read an expedition result — remains a useful expedition-quality signal, but it is no longer the product North Star.
 
 ## 4. Player fantasy
 
@@ -84,14 +95,16 @@ They do not begin as a king, legendary hero, or powerful guild master. The initi
 The player's power comes from accumulated relationships with the world:
 
 - known land
+- places scouted and understood
+- places brought under control
+- strategic routes and footholds
 - trusted companions
 - recovered tools and weapons
+- local knowledge
 - rumors
-- routes
-- favors and faction knowledge later
 - a growing place to return to
 
-Progression should feel like **having more options and more history**, not only increasing a level number.
+Progression should feel like **having more options, more history, and more influence on the map**, not only increasing a level number.
 
 ## 5. Real-world movement and discovery
 
@@ -112,43 +125,100 @@ Real-world movement may reveal:
 - crossings
 - regional clues
 - dangerous locations
+- strategically useful places
 
 These are Crownless translations of coarse geography, not literal copies of private homes or individual businesses.
 
-Once a destination is legitimately discovered, it can normally be used later as an expedition target from a safe stationary context. The player should not need to physically stand at the destination while an expedition is resolved.
+Once a place is legitimately discovered, it can normally be remembered and acted on later from a safe stationary context. The player should not need to physically stand at the destination while a contest/expedition is resolved.
+
+Do not persist raw latitude/longitude, exact route history, or exact movement tracks as territory state.
 
 See [`exploration-location-spec.md`](exploration-location-spec.md).
 
-## 6. The Grey Hearth
+## 6. World Atlas and territory
+
+The World Atlas is a primary reward surface for the Territory-driven Reforge.
+
+At minimum, a place should be able to expose game-facing concepts such as:
+
+- stable place identity
+- discovery/knowledge state
+- controlling owner kind (`npc` / `player` for Phase 1)
+- strategic role/value
+- known danger and unknown information
+- control effect
+- whether it is a meaningful next target
+
+Phase 1 may use an authored three-place slice. Do **not** create a generalized territory graph, scripting engine, or nationwide simulation merely to prove this loop.
+
+The minimum control state needed by Phase 1 is conceptually:
+
+```text
+unknown
+known
+controlled_by_npc
+controlled_by_player
+```
+
+Add `contested` only if the slice genuinely needs it.
+
+Control must be visually legible in the current living-manuscript / woodcut Visual Canon. Avoid a generic modern strategy-map treatment.
+
+## 7. Territory is not XP
+
+Do not implement the central territory loop as:
+
+```text
+control 4,280 / 10,000
+kill enemy +20
+```
+
+That is a level/XP grind with renamed labels.
+
+The main sources of advantage should be decisions and preparation:
+
+- scout before attacking or accept incomplete information
+- use local/geographic companion knowledge
+- choose suitable equipment
+- select a route or approach
+- take a crossing/road/foothold before a harder target
+- use a controlled place's strategic effect
+
+Do not add dailies, stamina, energy, or repeated chores to make territory last longer. Do not require arbitrary repetition of a solved contest. Do not make a tiny invisible `+N%` modifier the primary reward for control.
+
+## 8. The Grey Hearth
 
 The Grey Hearth is the player's safe anchor.
 
 It is where the player can:
 
-- review discovered places
+- review discovered and controlled places
 - review returned or missing expeditions
 - choose companions
 - equip gear and tools
 - treat or wait for injured companions
-- dispatch new expeditions
+- prepare scouting/contest actions
 - inspect secured loot
-- follow rumors, rescue opportunities, hunts, and future regional events
+- understand newly available routes, targets, and consequences
 
 It should feel like a place people return to, not a modern management dashboard.
 
 The Hearth may visibly improve over time, but it must not become a separate chores/economy game.
 
-## 7. Expeditions
+## 9. Expeditions
 
-Expeditions are the primary gameplay system.
+Expeditions remain a major gameplay subsystem and one of the main ways to act on a place.
 
-The player makes a small number of high-value decisions before dispatch:
+They are **not** the product's ultimate purpose under ADR 0004.
+
+The player can make a small number of high-value decisions before dispatch/contest:
 
 - destination
 - companions
 - equipment / supplies
 - objective
-- policy
+- risk policy
+- scouting/approach when relevant
 
 The expedition then resolves through deterministic or seeded events.
 
@@ -156,6 +226,7 @@ Events can include:
 
 - travel
 - clues
+- scouting information
 - hazards
 - hostile encounters
 - discoveries
@@ -165,24 +236,28 @@ Events can include:
 - retreat
 - delay
 - disappearance
+- control success/failure where the destination supports it
 - return
 
-The detailed contract lives in [`expedition-system-spec.md`](expedition-system-spec.md).
+The detailed resolver contract lives in [`expedition-system-spec.md`](expedition-system-spec.md). Where that older subsystem spec says expeditions themselves are “the gameplay center,” ADR 0004 and this document supersede that product-level wording while keeping the deterministic rules reusable.
 
-## 8. Combat is an expedition event
+## 10. Combat is an expedition/contest event
 
-Combat still exists in the fiction, but it is no longer a real-time action-game requirement.
+Combat still exists in the fiction, but it is not a real-time action-game requirement.
 
 A hostile encounter can resolve from:
 
 - who was sent
 - what they carried
-- their traits
+- their traits / geographic knowledge
 - terrain and surprise
 - enemy profile
 - current injuries
 - objective
-- expedition policy
+- policy
+- scouting knowledge
+- approach
+- strategic effects of already-controlled places where explicitly authored
 
 Interesting outcomes are broader than win/lose:
 
@@ -197,208 +272,183 @@ Interesting outcomes are broader than win/lose:
 - lose an item
 - become delayed
 - become missing
+- fail to take control
 - rare death
 
 The result should be legible enough that the player can connect it back to earlier choices.
 
 Existing real-time combat code and specifications are transition-era legacy implementation unless explicitly repurposed.
 
-## 9. Companions
+## 11. Companions
 
-Companions should become the emotional center of repeated expeditions.
+Companions are persistent people and should become memorable through place, history, traits, injuries, rescues, and repeated survival.
 
-They are persistent people with:
+They may have:
 
 - name
 - origin / role
 - traits
+- geographic knowledge/affinity where implemented
 - strengths and weaknesses
 - current condition
 - expedition history
-- notable rescues / relationships / scars when implemented
+- notable rescues / relationships / scars
 
-A companion should eventually become memorable because of what happened to them, not because a card says `SSR`.
+The Territory-driven question is not merely “who has the largest bonus?” but:
 
-Long-term states may include:
+> **Who helps us understand or take this place, and what do we give up by choosing them?**
 
-- ready
-- tired
-- injured
-- unavailable
-- missing
-- captured
-- dead
+Do not use gacha rarity as the primary identity.
 
-The first PoC only needs enough state to make assignment and return meaningful.
+## 12. Risk, return, control, and value
 
-## 10. Risk, return, and value
-
-Crownless keeps the distinction between **carried value** and **learned value**.
+Crownless keeps the distinction between **carried value**, **learned value**, and now **changed world state**.
 
 ### Carried value
 
-Loot, tools, valuables, and other physical rewards remain at risk until the expedition safely returns.
+Loot, tools, valuables, and other physical rewards remain at risk until safely returned/secured.
 
 ### Learned value
 
-A legitimately discovered place, route, clue, or regional fact can become persistent knowledge when learned.
+A legitimately discovered place, route, clue, enemy tendency, or regional fact can become persistent knowledge when learned.
 
-The fundamental contract remains:
+### Changed world state
 
-> **What returned home is owned. What was truly learned remains known. What was still being carried outside was not secure.**
+A valid successful contest can persistently change control and unlock a strategic effect. That effect must not be duplicated by reload or Report reapplication.
 
-### Failure
+The fundamental contract becomes:
 
-Failure must create consequences without making the game miserable.
+> **What returned home is owned. What was truly learned remains known. What was legitimately taken changes the map. What failed or retreated was not captured.**
 
-Prefer a ladder of consequences:
+Failure should create consequences without making the game miserable. Prefer tired, injured, early return, lost loot/tool, delayed, missing/captured, and rare death over invisible grind penalties.
 
-- tired
-- injured
-- early return
-- lost loot
-- damaged / lost tool
-- delayed
-- missing
-- captured
-- rare death
+## 13. Equipment and loot
 
-Missing companions are especially valuable because they create rescue expeditions and continuing stories.
+Loot remains important, but equipment should create situational reasons to choose it.
 
-## 11. Equipment and loot
-
-Loot remains important, but the design target changes.
-
-Items should not mainly be judged by how they alter real-time attack rhythm. Prefer items that change expedition possibilities.
+Prefer items that alter information, approaches, routes, contest options, or consequences rather than only linear power.
 
 Examples:
 
-- rope → safer ruin / cliff branches
-- miner's pick → additional cave / mine choices
-- royal cloak → changes patrol / checkpoint events
-- old map → improves exploration branches
-- dagger → improves ambush / escape outcomes
+- rope → safer ruin/cliff or alternate approach
+- miner's pick → mine/cave route option
+- local cloak → changes detection or local knowledge
+- old map → improves scouting / reveals a route
+- marked weapon → interacts with a faction/place
 
-Linear combat or survival stats may exist, but memorable equipment should affect decisions.
+Geographic loot is especially compatible with Territory play when new places make different loadouts useful without making old places/items obsolete.
 
-Conceptually distinguish:
+## 14. Reports are causal evidence, not the destination
 
-- ordinary equipment — repeatable expedition loot
-- named equipment — authored items tied to places / people / events
-- relics — rare rewards from important hunts, dungeons, factions, or stories
+Reports remain important because they explain what happened.
 
-## 12. Reports are a reward surface
-
-The report is a core piece of game content.
-
-The top layer should be quickly readable:
+The top layer should quickly communicate relevant facts such as:
 
 - returned / delayed / missing / failed
 - duration
 - injuries
-- important loot
-- discoveries
+- important loot/knowledge
 - notable event
+- scouting/approach consequence
+- whether control changed
+- what strategic effect is now available
+- what next target or unresolved problem follows
 
-A second layer can show a chronological expedition log.
+A second layer can show a chronological structured log.
 
-The log should be generated from structured events and remain deterministic. The first implementation does not need an LLM call per expedition.
+The report should be deterministic and must not invent events. The first implementation does not require an LLM call per expedition.
 
-A good report creates a sentence the player might naturally retell:
+Do not treat Report wording/content alone as sufficient gameplay innovation. The important question is what game state/decision the Report explains.
 
-> **I sent Ed and Mira to the forest on Greedy, Ed got hurt, but they found an old military sword before barely making it home.**
+## 15. Phase 1 three-place golden slice
 
-## 13. World systems after the PoC
+The #503 Phase 1 test is deliberately bounded to three representative discovered places.
 
-The following remain compatible with the new direction but are not first-slice requirements:
+The target flow is:
 
-### Named Hunts
+```text
+1. real or simulated location reveals three places
+2. Atlas shows NPC control, uncertainty, and strategic value
+3. player chooses a first target
+4. player scouts or accepts incomplete information
+5. player chooses companion/equipment/approach
+6. existing deterministic expedition resolver resolves the contest where practical
+7. success changes NPC control → player control; failure/retreat does not
+8. Atlas visibly changes
+9. the captured place changes at least one condition/option for another target
+10. the UI makes “which place next?” the natural decision
+```
 
-Rumors can become expedition targets. Traces gathered across expeditions can reveal a lair or named enemy.
+Useful authored roles include:
 
-### Dungeons
+- foothold / small fort
+- road/crossing
+- resource/special site
 
-Dungeons can become multi-stage expeditions where a policy controls how deep the party dares to continue.
+They do not need to become generic system types in Phase 1.
 
-### Regional events
+## 16. Persistence
 
-A region can change over hours or days: bandits block a road, refugees appear, a village is raided, a mine collapses.
+The prototype should persist only game-facing state required by the loop, such as:
 
-### Factions and war
-
-The world can later change without waiting for the player. Territory and faction state can alter expedition routes, encounters, prices, rumors, and available opportunities.
-
-Do not implement this simulation until the base dispatch/report loop is fun.
-
-## 14. Persistence
-
-The prototype should persist:
-
-- discovered game-facing places
-- coarse explored areas
+- discovered places / coarse explored areas
+- relevant place knowledge
+- place control state
+- strategic effects that are active because of valid control
 - companion state
 - secured inventory
-- active expedition dispatch inputs
+- active expedition/contest immutable inputs
 - expedition timing
-- resolved expedition reports
+- resolved reports
 - safe Grey Hearth state
 
-It should not persist raw movement history or expose exact coordinates as game collection state.
+It should not persist raw movement history or expose exact coordinates as game collection/territory state.
 
-Active expedition resolution must be idempotent. Reloading or reopening must not duplicate rewards or consequences.
+Active expedition resolution and territory application must be idempotent. Reloading/reopening must not duplicate rewards, control, or consequences.
 
-## 15. Technical simplicity rule
+If Phase 1 requires a large save migration or irreversible data transformation, stop for human review rather than forcing the slice through.
 
-Do not overbuild idle infrastructure.
+## 17. Technical simplicity rule
 
-The first implementation may store `startedAt`, `expectedReturnAt`, a deterministic seed, and immutable dispatch inputs. When the app is reopened, resolve elapsed events locally/deterministically.
+Do not overbuild territory or idle infrastructure.
 
-No always-on server is required unless later playtesting proves one is necessary.
+Reuse current stable discovery identity, World Atlas, world knowledge, simulated location, companions, equipment, deterministic expedition resolution, Report/event data, and existing privacy boundary wherever practical.
+
+No always-on faction server is required for Phase 1. No generic territory scripting engine is required. No mandatory cloud account is required.
 
 Keep location access behind providers and keep game rules testable without live GPS or network services.
 
-## 16. First PoC scope
-
-Target roughly:
-
-- 3 companions
-- 3–5 discovered destinations
-- 3 destination families: forest / abandoned village / cave
-- 3 expedition policies: cautious / standard / greedy
-- around 15 pieces of equipment / supplies
-- a small event library
-- injury
-- loot
-- new discovery
-- policy-driven retreat
-- report summary + chronology
-- accelerated / instant test mode
-
-If this is too much, reduce content breadth before adding infrastructure.
-
-## 17. Explicitly deferred
+## 18. Explicitly deferred / prohibited in Phase 1
 
 - real-time action combat
-- party battle controls
-- large skill trees
-- crafting systems
+- PvP territory contests
+- clans / guild war
+- rankings
+- seasons / resets
+- always-on faction simulation
+- cloud accounts as a requirement
+- new backend solely for territory
+- large economy simulation
+- settlement-management game
+- generic territory scripting platform
+- large save migration without human gate
+- raw GPS / exact route-history persistence
 - gacha
 - stamina / energy loops
 - dailies / weekly chores
-- PvP
-- clans
-- large faction-war simulation
-- cloud accounts
-- always-on world server
 - large LLM-generated content pipeline
 - monetization design
 
-## 18. Development priority
+## 19. Development priority
 
 Continue to work in short cycles:
 
 > **Design → smallest implementation → play → improve**
 
-The next implementation should not begin by deleting every old combat file. It should first build the smallest dispatch → elapsed time → report loop that can be playtested.
+The next implementation after this Canon is merged should not begin with a generalized territory engine or mass deletion of expedition code. It should build the smallest authored three-place slice that proves:
 
-If the new loop is not compelling, fix the loop before expanding GPS infrastructure, world simulation, art production, or content volume.
+> **taking one place changes the map and makes another place desirable.**
+
+If that slice is not compelling, fix or kill the hypothesis before expanding territory content, faction simulation, infrastructure, or production assets.
+
+After implementation and CI, gameplay remains **Implemented / Playtest pending**. Human playtest decides Keep / Change / Kill.
