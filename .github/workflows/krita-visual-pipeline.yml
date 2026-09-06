@@ -9,6 +9,7 @@ on:
       - .github/workflows/krita-visual-pipeline.yml
       - tools/krita/**
       - scripts/check-krita-phase1.cjs
+      - scripts/check-krita-pixels.py
       - scripts/check-krita-mobile-qa.cjs
       - docs/visual/krita-phase1-pipeline.md
       - expedition-journey.css
@@ -36,7 +37,7 @@ jobs:
       - name: Install Krita and Xvfb
         run: |
           sudo apt-get update
-          sudo apt-get install -y krita xvfb
+          sudo apt-get install -y krita xvfb python3-pil
           xvfb-run -a krita --version
 
       - name: Run real Krita recipe
@@ -45,7 +46,9 @@ jobs:
           ./tools/krita/run-recipe.sh . tools/krita/recipes/ruined-watchtower-phase1.json
 
       - name: Verify Krita outputs
-        run: node scripts/check-krita-phase1.cjs
+        run: |
+          node scripts/check-krita-phase1.cjs
+          python3 scripts/check-krita-pixels.py
 
       - name: Install Playwright Chromium
         run: |
