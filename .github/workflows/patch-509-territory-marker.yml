@@ -1,0 +1,36 @@
+name: Apply #509 territory marker fix
+
+on:
+  push:
+    branches: [feat/509-territory-phase1]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: feat/509-territory-phase1
+      - name: Exclude transient signals from territory place markers
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('src/territory-phase1.js')
+          text = path.read_text()
+          old = '''      delete marker.dataset.territoryKey;\n      delete marker.dataset.territoryOwner;\n      const entry = entryForMarker(root, marker);'''
+          new = '''      delete marker.dataset.territoryKey;\n      delete marker.dataset.territoryOwner;\n      if (marker.matches?.(".world-atlas-nearby-marker--npc-signal, .world-atlas-nearby-marker--event-signal")) return;\n      const entry = entryForMarker(root, marker);'''
+          if old not in text:
+              raise SystemExit('expected territory marker block not found')
+          path.write_text(text.replace(old, new, 1))
+          PY
+      - name: Commit fix and remove helper
+        run: |
+          rm .github/workflows/patch-509-territory-marker.yml
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/territory-phase1.js .github/workflows/patch-509-territory-marker.yml
+          git commit -m "fix: keep transient signals outside territory assignment (#509)"
+          git push origin HEAD:feat/509-territory-phase1
