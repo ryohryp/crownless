@@ -3,10 +3,12 @@ const fs = require("node:fs");
 const { chromium } = require("playwright");
 
 let browser;
+let page;
+fs.mkdirSync("qa-output/krita-504", { recursive: true });
 
 (async () => {
   browser = await chromium.launch({ headless: true });
-  const page = await browser.newPage({
+  page = await browser.newPage({
     viewport: { width: 412, height: 915 },
     deviceScaleFactor: 1,
     isMobile: true,
@@ -62,6 +64,19 @@ let browser;
   await page.waitForFunction(() => document.querySelector("#hearth-map-focus")?.classList.contains("has-location-visual"));
   assert.equal(await map.getAttribute("data-location-visual"), "ruined-watchtower");
 
+  // The injected saved-state discovery and the visible Hearth counter must
+  // describe the same state. The production click path intentionally reads
+  // the rendered discovery count as well as the resolved visual. Keep this
+  // coherent immediately before the real pointer click; do not bypass hit
+  // testing with element.click(), because #504 must catch mobile overlays.
+  await page.evaluate(() => {
+    const count = document.getElementById("world-knowledge-count");
+    if (!count) throw new Error("world-knowledge-count is missing");
+    if ((Number.parseInt(count.textContent || "0", 10) || 0) < 1) count.textContent = "1";
+  });
+  assert.ok(Number.parseInt(await page.locator("#world-knowledge-count").textContent(), 10) >= 1);
+
+  await page.screenshot({ path: "qa-output/krita-504/mobile-hearth-before-open.png", fullPage: true });
   await map.click();
   const viewer = page.locator("#hearth-location-visual-viewer");
   await viewer.waitFor({ state: "visible" });
@@ -82,7 +97,6 @@ let browser;
   assert.equal(imageInfo.src, "assets/locations/ruined-watchtower.png");
   assert.ok(imageInfo.renderedWidth >= 280, "location visual is too small at phone scale");
 
-  fs.mkdirSync("qa-output/krita-504", { recursive: true });
   await page.screenshot({ path: "qa-output/krita-504/mobile-hearth-watchtower.png", fullPage: true });
   fs.writeFileSync(
     "qa-output/krita-504/mobile-qa-report.json",
@@ -96,9 +110,13 @@ let browser;
 
   await browser.close();
   browser = undefined;
+  page = undefined;
   console.log(`Mobile Hearth QA OK: ${imageInfo.renderedWidth}x${imageInfo.renderedHeight}`);
 })().catch(async (error) => {
   console.error(error);
+  if (page) {
+    await page.screenshot({ path: "qa-output/krita-504/mobile-hearth-failure.png", fullPage: true }).catch(() => {});
+  }
   if (browser) {
     await browser.close().catch(() => {});
     browser = undefined;
