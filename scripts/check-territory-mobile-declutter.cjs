@@ -1,4 +1,4 @@
-// Mobile browser regression for #515 Atlas mobile declutter.
+// Mobile browser regression for #515 / #520 Atlas readability.
 const assert = require("node:assert/strict");
 const { createServer } = require("node:http");
 const { readFile } = require("node:fs/promises");
@@ -91,8 +91,10 @@ async function openFreshNearbyAtlas(page) {
       await page.waitForFunction((territoryKey) => document.querySelector('.territory-panel')?.dataset.territoryKey === territoryKey, key);
     }
     assert.match(await page.locator(".territory-atlas-summary").innerText(), /支配 0\/3 · 前線 3/);
+    const mobileNextDisplay = await page.locator(".territory-atlas-summary span").evaluate((node) => getComputedStyle(node).display);
+    assert.equal(mobileNextDisplay, "none", "mobile Atlas summary should stay status-only; next-target meaning belongs to frontier/detail");
     assert.deepEqual(errors, []);
-    console.log("PASS 412x915: clustered 3-territory Atlas stays distinct, selectable, and label-light");
+    console.log("PASS 412x915: clustered Atlas stays selectable, label-light, and status-only");
   } finally {
     await page.close();
     await browser.close();
