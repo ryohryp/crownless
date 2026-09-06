@@ -240,12 +240,20 @@ var audioContext = null;
     document.body.appendChild(npcLife);
   }
 
+  function loadViewportGestures() {
+    if (window.CrownlessWorldAtlasViewportGestures || findAtlasScript("src/world-atlas-viewport-gestures.js")) return;
+    const gestures = document.createElement("script");
+    gestures.src = atlasAsset("src/world-atlas-viewport-gestures.js");
+    document.body.appendChild(gestures);
+  }
+
   function loadSelectionPreview(event) {
     if (!window.CrownlessWorldAtlas) {
       failAtlasLoad(event);
       return;
     }
     finishAtlasReady();
+    loadViewportGestures();
     const existingPreview = findAtlasScript("src/world-atlas-selection-preview.js");
     if (existingPreview) {
       if (window.CrownlessWorldAtlasPreview) loadNpcLifeForAtlas();
@@ -262,40 +270,19 @@ var audioContext = null;
     document.body.appendChild(preview);
   }
 
-  function loadViewportGestures(event) {
-    if (!window.CrownlessWorldAtlas) {
-      failAtlasLoad(event);
-      return;
-    }
-    const existingGestures = findAtlasScript("src/world-atlas-viewport-gestures.js");
-    if (existingGestures) {
-      if (window.CrownlessWorldAtlasViewportGestures) loadSelectionPreview();
-      else {
-        existingGestures.addEventListener("load", loadSelectionPreview, { once: true });
-        existingGestures.addEventListener("error", loadSelectionPreview, { once: true });
-      }
-      return;
-    }
-    const gestures = document.createElement("script");
-    gestures.src = atlasAsset("src/world-atlas-viewport-gestures.js");
-    gestures.onload = loadSelectionPreview;
-    gestures.onerror = loadSelectionPreview;
-    document.body.appendChild(gestures);
-  }
-
   function loadAtlas() {
     const existingAtlas = findAtlasScript("src/world-atlas.js");
     if (existingAtlas) {
-      if (window.CrownlessWorldAtlas) loadViewportGestures();
+      if (window.CrownlessWorldAtlas) loadSelectionPreview();
       else {
-        existingAtlas.addEventListener("load", loadViewportGestures, { once: true });
+        existingAtlas.addEventListener("load", loadSelectionPreview, { once: true });
         existingAtlas.addEventListener("error", failAtlasLoad, { once: true });
       }
       return;
     }
     const atlas = document.createElement("script");
     atlas.src = atlasAsset("src/world-atlas.js");
-    atlas.onload = loadViewportGestures;
+    atlas.onload = loadSelectionPreview;
     atlas.onerror = failAtlasLoad;
     document.body.appendChild(atlas);
   }
