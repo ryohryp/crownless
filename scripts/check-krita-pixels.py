@@ -17,9 +17,16 @@ if base.size != runtime.size:
     raise SystemExit(f"pixel QA failed: size changed {base.size} -> {runtime.size}")
 
 diff = ImageChops.difference(base, runtime)
-bbox = diff.getbbox()
+# Pillow 10+ defaults getbbox(alpha_only=True) for RGBA images. Crownless's
+# restrained wash intentionally preserves the fully-opaque runtime alpha, so
+# checking only that band incorrectly reports a real RGB edit as identical.
+# Force all channels into the bounding-box calculation.
+try:
+    bbox = diff.getbbox(alpha_only=False)
+except TypeError:
+    bbox = diff.convert("RGB").getbbox()
 if bbox is None:
-    raise SystemExit("pixel QA failed: runtime pixels are identical to the frozen base")
+    raise SystemExit("pixel QA failed: runtime visible pixels are identical to the frozen base")
 
 start_y = int(report.get("correction", {}).get("startY", 0))
 left, top, right, bottom = bbox
