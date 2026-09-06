@@ -21,10 +21,16 @@ class CrownlessRecipeExtension(Extension):
         self._started = False
 
     def setup(self):
-        QTimer.singleShot(100, self._run_once)
+        # Krita may invoke setup() while Python plugins are still being initialized
+        # outside the GUI thread. Starting a Qt timer here can therefore stall in
+        # headless CI. createActions() is called for a real Krita window on the GUI
+        # thread, so use that as the deterministic launch point instead.
+        return
 
     def createActions(self, window):
-        return
+        if self._started:
+            return
+        QTimer.singleShot(0, self._run_once)
 
     def _resolve(self, repo_root, value):
         path = Path(value)
@@ -59,9 +65,8 @@ class CrownlessRecipeExtension(Extension):
             export_path = self._resolve(repo_root, recipe["runtimeExport"])
             report_path = self._resolve(repo_root, recipe["report"])
 
-            for path in (base_path,):
-                if not path.is_file():
-                    raise RuntimeError(f"required input is missing: {path}")
+            if not base_path.is_file():
+                raise RuntimeError(f"required input is missing: {base_path}")
             editable_path.parent.mkdir(parents=True, exist_ok=True)
             export_path.parent.mkdir(parents=True, exist_ok=True)
 
