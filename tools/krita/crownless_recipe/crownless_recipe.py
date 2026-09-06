@@ -4,7 +4,7 @@ import traceback
 from pathlib import Path
 
 from krita import Extension, Krita
-from PyQt5.QtCore import QByteArray, QObject, Qt, QTimer, pyqtSignal, pyqtSlot
+from PyQt5.QtCore import QByteArray, QObject, QRect, Qt, QTimer, pyqtSignal, pyqtSlot
 from PyQt5.QtWidgets import QApplication
 
 
@@ -40,20 +40,66 @@ def _parse_rgb(value):
     return tuple(int(text[index:index + 2], 16) for index in (0, 2, 4))
 
 
-def _calm_wash_pixels(width, height, fill, fill_opacity):
-    """Return Krita RGBA/U8 pixel bytes (BGRA byte order) for the local wash."""
+def _calm_wash_channels(width, height, fill, fill_opacity):
     red, green, blue = _parse_rgb(fill)
-    pixels = bytearray()
+    alpha_rows = []
     for y in range(height):
         t = 1.0 if height <= 1 else y / (height - 1)
         if t <= 0.38:
             strength = 0.45 * (t / 0.38)
         else:
             strength = 0.45 + 0.55 * ((t - 0.38) / 0.62)
-        alpha = max(0, min(255, round(255 * fill_opacity * strength)))
-        # Krita RGBA/U8 setPixelData uses BGRA byte order.
-        pixels.extend(bytes((blue, green, red, alpha)) * width)
-    return QByteArray(bytes(pixels))
+        alpha_rows.append(max(0, min(255, round(255 * fill_opacity * strength))))
+    pixel_count = width * height
+    return {
+        "blue": bytes((blue,)) * pixel_count,
+        "green": bytes((green,)) * pixel_count,
+        "red": bytes((red,)) * pixel_count,
+        "alpha": b"".join(bytes((alpha,)) * width for alpha in alpha_rows),
+    }
+
+
+def _write_rgba_u8_channels(node, width, height, fill, fill_opacity):
+    if node.colorModel() != "RGBA" or node.colorDepth() != "U8":
+        raise RuntimeError(
+            f"correction paint layer must be RGBA/U8, got {node.colorModel()}/{node.colorDepth()}"
+        )
+
+    channels = list(node.channels())
+    diagnostics = [
+        {"name": channel.name(), "position": int(channel.position()), "size": int(channel.channelSize())}
+        for channel in channels
+    ]
+    if len(channels) != 4 or any(item["size"] != 1 for item in diagnostics):
+        raise RuntimeError(f"unexpected RGBA/U8 channel layout: {diagnostics}")
+
+    values = _calm_wash_channels(width, height, fill, fill_opacity)
+    fallback_by_position = {0: "blue", 1: "green", 2: "red", 3: "alpha"}
+    rect = QRect(0, 0, width, height)
+    written = []
+    for channel in channels:
+        lower_name = str(channel.name()).lower()
+        key = next((candidate for candidate in values if candidate in lower_name), None)
+        if key is None:
+            key = fallback_by_position.get(int(channel.position()))
+        if key is None:
+            raise RuntimeError(f"cannot map Krita channel {channel.name()!r} at position {channel.position()}")
+        payload = QByteArray.fromRawData(values[key])
+        if payload.size() != width * height:
+            raise RuntimeError(f"invalid {key} channel payload size: {payload.size()}")
+        channel.setPixelData(payload, rect)
+        written.append(key)
+
+    # Verify the paint device really received data before trusting save/export.
+    readback = node.pixelData(0, 0, width, height)
+    expected_size = width * height * 4
+    if readback.size() != expected_size:
+        raise RuntimeError(
+            f"correction pixel readback size mismatch: {readback.size()} != {expected_size}; channels={diagnostics}"
+        )
+    if not any(bytearray(readback)):
+        raise RuntimeError(f"correction pixel readback is empty; channels={diagnostics}")
+    return diagnostics, written
 
 
 def run_recipe():
@@ -85,10 +131,6 @@ def run_recipe():
         app.setBatchmode(True)
         _stage("before-open-document")
 
-        # Prefer the document Krita opened from the runner command line. At this
-        # point the queued Qt callback is executing on the GUI thread, after the
-        # application event loop has started, so layer/projection updates are no
-        # longer racing Krita's startup node initialization.
         doc = None
         for candidate in app.documents():
             try:
@@ -137,22 +179,24 @@ def run_recipe():
         start_y = max(0, min(height - 1, round(height * start_ratio)))
         band_height = max(1, min(height - start_y, round(height * height_ratio)))
 
-        # Use a real paint layer rather than a vector layer. Krita 5.2.2 can save
-        # vector shapes into a KRA before their merged projection is ready, which
-        # made CLI export reproduce the base pixels. setPixelData writes the local
-        # correction into an editable paint layer that participates in projection
-        # and KRA -> PNG export deterministically.
+        # A paint layer is persisted and projected as ordinary bitmap content.
+        # Channel-level writes avoid Krita 5.2.2's Node.setPixelData false return
+        # observed on a freshly-created paint device, and readback below verifies
+        # that actual pixel content exists before the KRA is trusted.
         overlay = doc.createNode(str(correction.get("name", "foreground-calm-wash")), "paintlayer")
         if overlay is None or not root.addChildNode(overlay, None):
             raise RuntimeError("could not create correction paint layer")
-        if not overlay.setPixelData(_calm_wash_pixels(width, band_height, fill, fill_opacity), 0, 0, width, band_height):
-            raise RuntimeError("Krita could not write correction pixels")
+        doc.setActiveNode(overlay)
+        channel_layout, written_channels = _write_rgba_u8_channels(
+            overlay, width, band_height, fill, fill_opacity
+        )
         overlay.setOpacity(layer_opacity)
         overlay.setVisible(False)
         overlay.setVisible(True)
         overlay.move(0, start_y)
         report["operations"].append("create-correction-layer")
         report["operations"].append("write-correction-pixels")
+        report["operations"].append("verify-correction-readback")
         report["operations"].append("transform-layer")
         report["operations"].append("local-correction")
         _stage("after-local-correction")
@@ -168,8 +212,6 @@ def run_recipe():
             raise RuntimeError(f"Krita failed to save editable source: {editable_path}")
         report["operations"].append("save-editable-source")
 
-        # Export is deliberately performed by a fresh Krita CLI process in the
-        # shell runner. The saved KRA is the handoff boundary between edit/export.
         report.update({
             "ok": True,
             "phase": "editable-saved",
@@ -180,12 +222,16 @@ def run_recipe():
             "editableSource": str(editable_path.relative_to(repo_root)),
             "runtimeExport": str(export_path.relative_to(repo_root)),
             "correction": {
-                "mode": "paintlayer-pixels",
+                "mode": "paintlayer-channel-pixels",
                 "startY": start_y,
                 "height": band_height,
                 "layerOpacity": layer_opacity,
                 "fill": fill,
                 "fillOpacity": fill_opacity,
+                "colorModel": overlay.colorModel(),
+                "colorDepth": overlay.colorDepth(),
+                "channelLayout": channel_layout,
+                "writtenChannels": written_channels,
             },
         })
         _write_report(report_path, report)
@@ -226,8 +272,6 @@ class _QueuedAutorun(QObject):
     @pyqtSlot()
     def _schedule(self):
         _stage("gui-thread-ready")
-        # One short event-loop turn lets the command-line startup document finish
-        # attaching its node model before the recipe mutates the stack.
         QTimer.singleShot(250, run_recipe)
 
 
