@@ -461,6 +461,7 @@
       marker.querySelector?.(".territory-marker-badge")?.remove();
       delete marker.dataset.territoryKey;
       delete marker.dataset.territoryOwner;
+      if (marker.matches?.(".world-atlas-nearby-marker--npc-signal, .world-atlas-nearby-marker--event-signal")) return;
       const entry = entryForMarker(root, marker);
       const territory = entry ? byKey.get(cleanText(entry.key)) : null;
       if (!territory) return;
