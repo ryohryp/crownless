@@ -33,8 +33,10 @@ jobs:
           node --check src/desktop-input.js
           node --check src/world-atlas.js
           node --check src/world-atlas-actions-presentation.js
+          node --check src/territory-phase1.js
           node --check src/expedition-presentation.js
           node --check scripts/check-atlas-viewport.cjs
+          node --check scripts/check-territory-phase1.cjs
           node --check scripts/check-hearth-home-shell.cjs
       - name: Unit tests
         run: npm test
@@ -58,3 +60,5 @@ jobs:
         run: node scripts/check-hearth-home-shell.cjs record
       - name: Atlas mobile and desktop loop
         run: node scripts/check-atlas-viewport.cjs
+      - name: Territory Phase 1 mobile golden slice
+        run: node scripts/check-territory-phase1.cjs
