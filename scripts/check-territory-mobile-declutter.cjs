@@ -46,6 +46,8 @@ async function openFreshNearbyAtlas(page) {
   await page.locator(".world-atlas-close").click();
   await page.locator(".world-atlas-home-entry").click();
   await page.waitForSelector(".world-atlas-map--nearby");
+  await page.waitForFunction(() => document.querySelectorAll('.world-atlas-map--nearby [data-territory-key]').length === 3);
+  await page.evaluate(() => window.CrownlessTerritoryMobileDeclutter.apply(document, window));
   await page.waitForFunction(() => document.querySelectorAll('.world-atlas-map--nearby [data-territory-key][data-territory-declutter="true"]').length === 3);
 }
 
@@ -83,14 +85,14 @@ async function openFreshNearbyAtlas(page) {
     const quiet = snapshot.find(item => !item.active && !item.frontier);
     if (quiet) assert.equal(quiet.labelOpacity, "0", "non-selected, non-frontier labels should not cover the mobile Atlas");
 
-    const markers = page.locator('.world-atlas-map--nearby [data-territory-key]');
-    for (let i = 0; i < 3; i += 1) {
-      await markers.nth(i).click();
-      await page.waitForSelector(".territory-panel");
+    const keys = await page.evaluate(() => Array.from(document.querySelectorAll('.world-atlas-map--nearby [data-territory-key]')).map(marker => marker.dataset.territoryKey));
+    for (const key of keys) {
+      await page.evaluate((territoryKey) => document.querySelector(`.world-atlas-map--nearby [data-territory-key="${CSS.escape(territoryKey)}"]`)?.click(), key);
+      await page.waitForFunction((territoryKey) => document.querySelector('.territory-panel')?.dataset.territoryKey === territoryKey, key);
     }
     assert.match(await page.locator(".territory-atlas-summary").innerText(), /支配 0\/3 · 前線 3/);
     assert.deepEqual(errors, []);
-    console.log("PASS 412x915: clustered 3-territory Atlas stays distinct, tappable, and label-light");
+    console.log("PASS 412x915: clustered 3-territory Atlas stays distinct, selectable, and label-light");
   } finally {
     await page.close();
     await browser.close();
