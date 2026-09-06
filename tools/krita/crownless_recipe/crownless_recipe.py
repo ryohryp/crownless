@@ -4,6 +4,8 @@ import traceback
 from pathlib import Path
 
 from krita import Extension, Krita
+from PyQt5.QtCore import QObject, Qt, QTimer, pyqtSignal, pyqtSlot
+from PyQt5.QtWidgets import QApplication
 
 
 def _marker(env_name, text):
@@ -35,7 +37,7 @@ def run_recipe():
     recipe_env = os.environ.get("CROWNLESS_KRITA_RECIPE", "")
     repo_env = os.environ.get("CROWNLESS_REPO_ROOT", "")
     report_path = None
-    report = {"ok": False, "phase": "editing", "operations": [], "launchReason": "plugin-import"}
+    report = {"ok": False, "phase": "editing", "operations": [], "launchReason": "qt-main-thread"}
 
     try:
         _stage("autorun-entered")
@@ -60,9 +62,10 @@ def run_recipe():
         app.setBatchmode(True)
         _stage("before-open-document")
 
-        # Reuse the startup document if Krita has already opened it; otherwise
-        # open the immutable snapshot explicitly. Import-time autorun is gated by
-        # CROWNLESS_KRITA_AUTORUN, so interactive Krita sessions never execute it.
+        # Prefer the document Krita opened from the runner command line. At this
+        # point the queued Qt callback is executing on the GUI thread, after the
+        # application event loop has started, so layer/projection updates are no
+        # longer racing Krita's startup node initialization.
         doc = None
         for candidate in app.documents():
             try:
@@ -147,9 +150,8 @@ def run_recipe():
         report["operations"].append("save-editable-source")
 
         # Export is deliberately performed by a fresh Krita CLI process in the
-        # shell runner. Krita 5.2 can block exportImage() while Python plugins are
-        # still being imported, whereas its documented KRA -> PNG CLI exporter
-        # runs after normal application initialization and exits deterministically.
+        # shell runner. Krita 5.2 can block exportImage() during plugin startup;
+        # the saved KRA is therefore the handoff boundary between edit/export.
         report.update({
             "ok": True,
             "phase": "editable-saved",
@@ -189,6 +191,29 @@ class CrownlessRecipeExtension(Extension):
         return
 
 
+class _QueuedAutorun(QObject):
+    """Move the headless recipe onto Krita's GUI thread after startup."""
+
+    requested = pyqtSignal()
+
+    def __init__(self):
+        super().__init__()
+        application = QApplication.instance()
+        if application is None:
+            raise RuntimeError("Krita QApplication is not available")
+        self.moveToThread(application.thread())
+        self.requested.connect(self._schedule, Qt.QueuedConnection)
+
+    @pyqtSlot()
+    def _schedule(self):
+        _stage("gui-thread-ready")
+        # One short event-loop turn lets the command-line startup document finish
+        # attaching its node model before the recipe mutates the stack.
+        QTimer.singleShot(250, run_recipe)
+
+
 _marker("CROWNLESS_KRITA_IMPORT_MARKER", "loaded")
+_AUTORUN = None
 if os.environ.get("CROWNLESS_KRITA_AUTORUN") == "1":
-    run_recipe()
+    _AUTORUN = _QueuedAutorun()
+    _AUTORUN.requested.emit()
