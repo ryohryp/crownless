@@ -172,6 +172,7 @@ body:has(#hub-screen.active) #hub-screen .hearth-scene {
     opacity: 1;
     visibility: visible;
     transform: none;
+    transition: none;
   }
   #hub-screen .hearth-scene--empty-room .hearth-loot-shelf .object-label small { font-size: 7px; }
   #hub-screen .hearth-scene--empty-room .hearth-loot-shelf .object-label strong { font-size: 13px; }
