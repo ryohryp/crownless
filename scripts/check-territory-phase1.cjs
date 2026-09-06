@@ -56,7 +56,7 @@ async function selectNearbyPlace(page, name) {
     await page.locator(".world-atlas-details-toggle").click();
     await page.getByRole("combobox", { name: "地点を一覧から選ぶ" }).selectOption({ label: name });
   }
-  await page.waitForSelector(`.territory-panel`);
+  await page.waitForSelector(".territory-panel");
 }
 
 (async () => {
@@ -73,8 +73,8 @@ async function selectNearbyPlace(page, name) {
     await seedLocation(page);
     await openFreshNearbyAtlas(page);
 
-    assert.equal(await page.locator("[data-territory-key]").count(), 3, "Phase 1 must stay bounded to exactly three territory locations");
-    assert.ok(await page.locator('[data-territory-owner="npc"]').count() >= 2, "at least two territory locations begin under NPC control");
+    assert.equal(await page.locator(".world-atlas-nearby-marker[data-territory-key]").count(), 3, "Phase 1 must stay bounded to exactly three territory locations");
+    assert.ok(await page.locator('.world-atlas-nearby-marker[data-territory-owner="npc"]').count() >= 2, "at least two territory locations begin under NPC control");
 
     // Terrain affinity makes the height dungeon the deterministic foothold.
     await selectNearbyPlace(page, "丘の物見台");
