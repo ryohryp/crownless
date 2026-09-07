@@ -1,0 +1,70 @@
+/* Reboot Prototype Phase 4 — the first destination is itself a world choice. */
+.phase4-travel-actions {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(69, 55, 38, .34);
+}
+.phase4-travel-actions > .eyebrow { margin-bottom: 8px; }
+.phase4-travel-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.travel-card {
+  display: grid;
+  gap: 7px;
+  min-height: 104px;
+  padding: 13px;
+  text-align: left;
+  color: var(--ink);
+  border: 1px solid #5f503b;
+  background: rgba(240, 224, 188, .30);
+  cursor: pointer;
+}
+.travel-card:hover { background: rgba(246, 232, 199, .5); }
+.travel-card strong { font-size: 1rem; }
+.travel-card small { color: var(--ink-soft); line-height: 1.5; }
+
+.phase4-mark,
+.phase4-visit-route { display: none; }
+.phase4-visit-route {
+  fill: none;
+  stroke: var(--known) !important;
+  stroke-width: 4 !important;
+  stroke-dasharray: none;
+}
+.phase4-mark path,
+.phase4-mark circle,
+.phase4-mark ellipse {
+  stroke: var(--vermilion) !important;
+  stroke-width: 1.6 !important;
+  fill: none;
+}
+
+.living-map[data-first-visit='salt_chapel'] .visit-chapel,
+.living-map[data-first-visit='ruined_gate'] .visit-gate,
+.living-map[data-chapel-state^='discovered_'] .chapel-visited,
+.living-map[data-gate-state^='discovered_'] .gate-visited,
+.living-map[data-chapel-state='sealed_without_you'] .chapel-sealed,
+.living-map[data-chapel-state='crowded_without_you'] .chapel-crowded,
+.living-map[data-gate-state='barricaded_without_you'] .gate-barricaded,
+.living-map[data-gate-state='passed_without_you'] .gate-passed { display: block; }
+
+.living-map[data-chapel-state='sealed_without_you'] .chapel-note,
+.living-map[data-gate-state='barricaded_without_you'] .gate-note { fill: var(--ochre); }
+.living-map[data-chapel-state='crowded_without_you'] .chapel-note,
+.living-map[data-gate-state='passed_without_you'] .gate-note { fill: var(--vermilion); }
+
+@media (max-width: 700px) {
+  .phase4-travel-grid { grid-template-columns: 1fr; }
+  .travel-card { min-height: 0; }
+}
+
+@media (min-width: 900px) and (max-width: 1199px) {
+  .story-panel .phase4-travel-grid { grid-template-columns: 1fr; }
+  .story-panel .travel-card { min-height: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phase4-visit-route { animation: none !important; }
+}
