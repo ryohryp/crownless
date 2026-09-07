@@ -198,7 +198,18 @@
     return models.find((item) => item && item.key === key) || null;
   }
 
-  function developmentContext(root, territory, modelsInput) {
+  function historicalSupplyEffect(Reward, territory) {
+    if (!Reward || !territory) return null;
+    const supplyMultiplier = Number(Reward.SUPPLY_MULTIPLIER);
+    if (!Number.isFinite(supplyMultiplier)) return null;
+    const territoryMultiplier = Number(territory.meta && territory.meta.supportMultiplier);
+    const combinedMultiplier = (Number.isFinite(territoryMultiplier) ? territoryMultiplier : 1) * supplyMultiplier;
+    return {
+      combinedPercent: Math.round((1 - combinedMultiplier) * 100)
+    };
+  }
+
+  function developmentContext(root, territory, modelsInput, optionsInput = {}) {
     const Reward = root && root.CrownlessTerritoryRewardSurface;
     if (!Reward || !territory || typeof Reward.loadState !== "function" || typeof Reward.developmentFor !== "function") return null;
     const models = Array.isArray(modelsInput) ? modelsInput : territoryModels(root);
@@ -210,7 +221,10 @@
     const meta = Reward.DEVELOPMENT_META && Reward.DEVELOPMENT_META[role];
     if (territory.role !== "route") return null;
     if (role === "supply" && typeof Reward.supplyEffect === "function") {
-      const effect = Reward.supplyEffect(root, territory.key);
+      let effect = Reward.supplyEffect(root, territory.key);
+      if (!effect && optionsInput.allowResolvedSupply && territory.owner === "player") {
+        effect = historicalSupplyEffect(Reward, territory);
+      }
       if (!effect) return null;
       return {
         role,
@@ -310,7 +324,12 @@
     const territory = territoryForDestination(root, report.destinationId, models);
     if (!territory) return [];
     const effects = [];
-    const context = developmentContext(root, territory, models);
+    const resolvedOwnControl = Boolean(
+      report.territoryOutcome.controlled
+      && cleanText(report.territoryOutcome.discoveryKey) === cleanText(territory.key)
+      && territory.owner === "player"
+    );
+    const context = developmentContext(root, territory, models, { allowResolvedSupply: resolvedOwnControl });
     if (context) effects.push(`${context.label} → ${context.copy}。`);
     else if (territory.scouted) {
       const Territory = root.CrownlessTerritoryPhase1;
