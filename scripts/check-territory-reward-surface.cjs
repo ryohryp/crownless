@@ -1,4 +1,4 @@
-// Mobile browser regression for #512 Territory reward surface + Territory Build MVP + Phase C World Trace.
+// Mobile browser regression for #512 Territory reward surface + Territory Build MVP + Phase C World Trace + #522 conquest payoff.
 const assert = require("node:assert/strict");
 const { createServer } = require("node:http");
 const { readFile } = require("node:fs/promises");
@@ -111,6 +111,15 @@ async function contestSelectedPlace(page) {
     assert.equal(await page.locator('[data-territory-owner="player"]').count(), 1);
     assert.ok(await page.locator('[data-territory-frontier="true"]').count() >= 1);
 
+    // #522: the capture, support-line write, and one reason to want the next target
+    // must read as one bounded conquest payoff rather than a completion badge.
+    await page.waitForSelector('.territory-route-ink > path[data-territory-conquest-payoff="true"]');
+    const temptation = page.locator('[data-territory-frontier="true"] .territory-conquest-temptation');
+    await temptation.waitFor();
+    assert.match(await temptation.innerText(), /取れば、資源地攻略の所要時間を25%短縮/);
+    assert.equal(await page.locator('[data-territory-frontier="true"][data-territory-conquest-temptation="true"]').count(), 1);
+    assert.doesNotMatch(`${captureCopy} ${await temptation.innerText()}`, /支配度|制圧率|征服率|完了率/);
+
     const ownershipStyles = await page.evaluate(() => {
       const player = document.querySelector('.world-atlas-nearby-marker[data-territory-owner="player"] > i, .world-atlas-marker[data-territory-owner="player"] i');
       const npc = document.querySelector('.world-atlas-nearby-marker[data-territory-owner="npc"] > i, .world-atlas-marker[data-territory-owner="npc"] i');
@@ -166,7 +175,7 @@ async function contestSelectedPlace(page) {
     assert.equal(liveEffect.next, Math.round(liveEffect.base * 0.7), "supply post must alter the real dispatch-state destination, not only copy text");
 
     assert.deepEqual(errors, []);
-    console.log("PASS 412x915: capture → directional Atlas consequence → build choice → role-reactive World Trace → changed next preparation");
+    console.log("PASS 412x915: capture payoff → directional Atlas consequence → build choice → role-reactive World Trace → changed next preparation");
   } finally {
     await page.close();
     await browser.close();
