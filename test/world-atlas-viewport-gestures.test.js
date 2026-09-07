@@ -1,7 +1,10 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
+const fs = require("node:fs");
+const path = require("node:path");
 
 const Gestures = require("../src/world-atlas-viewport-gestures.js");
+const source = fs.readFileSync(path.join(__dirname, "../src/world-atlas-viewport-gestures.js"), "utf8");
 
 test("Atlas pan stays bounded so the parchment keeps covering the viewport", () => {
   assert.deepEqual(
@@ -40,4 +43,10 @@ test("Atlas pinch zoom is limited to the supported 1x through 4x range", () => {
 
   assert.equal(zoomedOut.scale, 1);
   assert.equal(zoomedIn.scale, 4);
+});
+
+test("territory status and conquest reward overlays stay fixed while map content pans and zooms", () => {
+  assert.match(source, /\.territory-atlas-summary/);
+  assert.match(source, /\.territory-capture-toast/);
+  assert.match(source, /isFixedOverlay\(node\)/);
 });
