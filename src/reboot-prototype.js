@@ -74,8 +74,10 @@
     dialogue.hidden = true;
     choices.hidden = true;
     sceneContinue.hidden = true;
-    startLive.hidden = false;
-    startSim.hidden = false;
+    startLive.textContent = '現在地から始める';
+    startSim.textContent = '模擬探索で試す';
+    startLive.hidden = mode !== null;
+    startSim.hidden = mode !== null;
     checkLocation.hidden = mode === null;
     mapTowerLabel.textContent = '名のない気配';
     mapCrossingHook.textContent = '';
@@ -110,9 +112,12 @@
     if (!outcome) return;
     document.body.dataset.phase = 'consequence';
     contextRevealed = true;
-    startLive.hidden = true;
-    startSim.hidden = true;
-    checkLocation.hidden = false;
+    const needsLocationRestart = mode === null;
+    startLive.hidden = !needsLocationRestart;
+    startSim.hidden = !needsLocationRestart;
+    startLive.textContent = '現在地から続きを歩く';
+    startSim.textContent = '模擬位置で続きを見る';
+    checkLocation.hidden = needsLocationRestart;
     checkLocation.textContent = mode === 'simulated' ? '模擬位置を確かめる' : '安全な場所で現在地を確かめる';
     sceneContinue.hidden = true;
     dialogue.hidden = true;
@@ -138,7 +143,9 @@
     map.dataset.proximity = result.proximity;
 
     if (result.status === 'anchored') {
-      setLocationStatus('ここを起点として刻んだ。画面を閉じ、安全に歩ける道へ進もう。', 'quiet');
+      setLocationStatus(state.choices[api.BELL_TOWER]
+        ? 'ここから先の歩みだけを一時的に見る。安全な道を選び、立ち止まってまた確かめよう。'
+        : 'ここを起点として刻んだ。画面を閉じ、安全に歩ける道へ進もう。', 'quiet');
       checkLocation.hidden = false;
       return;
     }
@@ -185,6 +192,8 @@
   function startLiveMode() {
     mode = 'live';
     session = api.createLocationSession();
+    startLive.hidden = true;
+    startSim.hidden = true;
     checkLocation.textContent = '安全な場所で現在地を確かめる';
     requestLiveLocation();
   }
@@ -200,6 +209,8 @@
     mode = 'simulated';
     simStep = 0;
     session = api.createLocationSession();
+    startLive.hidden = true;
+    startSim.hidden = true;
     checkLocation.textContent = '模擬位置を確かめる';
     handlePosition(simulatedCoordinates());
     simStep += 1;
@@ -215,7 +226,7 @@
       requestLiveLocation();
       return;
     }
-    setLocationStatus('先に「現在地から始める」か「模擬探索」を選ぶ。', 'quiet');
+    setLocationStatus('位置セッションを再開してから、安全な場所で確かめる。', 'quiet');
   }
 
   startLive.addEventListener('click', startLiveMode);
