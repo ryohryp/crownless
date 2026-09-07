@@ -62,6 +62,7 @@
     await api.loadIssue352RoadsideRescue(root);
     await api.loadTerritoryPhase1(root);
     await api.loadTerritoryRewardSurface(root);
+    await api.loadTerritoryFrontierFork(root);
     await api.loadTerritoryWorldTrace(root);
     await api.loadTerritoryMobileDeclutter(root);
   }
@@ -98,6 +99,7 @@
   function loadIssue352RoadsideRescue(root) { return loadScript(root, "CrownlessIssue352RoadsideRescue", "src/issue352-roadside-rescue.js"); }
   function loadTerritoryPhase1(root) { return loadScript(root, "CrownlessTerritoryPhase1", "src/territory-phase1.js"); }
   function loadTerritoryRewardSurface(root) { return loadScript(root, "CrownlessTerritoryRewardSurface", "src/territory-reward-surface.js"); }
+  function loadTerritoryFrontierFork(root) { return loadScript(root, "CrownlessTerritoryFrontierFork", "src/territory-frontier-fork.js"); }
   function loadTerritoryWorldTrace(root) { return loadScript(root, "CrownlessTerritoryWorldTrace", "src/territory-world-trace.js"); }
   function loadTerritoryMobileDeclutter(root) { return loadScript(root, "CrownlessTerritoryMobileDeclutter", "src/territory-mobile-declutter.js"); }
 
@@ -188,7 +190,7 @@
     loadCompanionInsights, loadPartySelection, loadLeaderOutcomes, loadFollowupDestinations,
     loadSignalEncounters, loadBanditPolicy, loadWorldAtlasScouting, loadWorldTraces,
     loadForcedMarch, loadFieldCamp, loadCampSupplyRelief, loadPlayerCache, loadNightWatch, loadVillageBell, loadMineApproach, loadForestApproach, loadLostLootRecovery, loadLootAppraisal, loadBanditCaptive,
-    loadFleetingLeads, loadSignalRescanFeedback, loadIssue352RoadsideRescue, loadTerritoryPhase1, loadTerritoryRewardSurface, loadTerritoryWorldTrace, loadTerritoryMobileDeclutter,
+    loadFleetingLeads, loadSignalRescanFeedback, loadIssue352RoadsideRescue, loadTerritoryPhase1, loadTerritoryRewardSurface, loadTerritoryFrontierFork, loadTerritoryWorldTrace, loadTerritoryMobileDeclutter,
     lastProfile: () => null
   };
 
