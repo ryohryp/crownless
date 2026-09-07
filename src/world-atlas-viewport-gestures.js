@@ -12,7 +12,7 @@
   const MAX_SCALE = 4;
   const DRAG_THRESHOLD_PX = 5;
   const CLICK_SUPPRESS_MS = 320;
-  const OVERLAY_SELECTOR = ".world-atlas-nearby-caption, .world-atlas-next-actions";
+  const OVERLAY_SELECTOR = ".world-atlas-nearby-caption, .world-atlas-next-actions, .territory-atlas-summary, .territory-capture-toast";
 
   function clamp(value, min, max) {
     const result = Math.max(min, Math.min(max, Number(value) || 0));
