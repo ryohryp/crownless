@@ -8,11 +8,8 @@
     const confirmed = window.confirm('Reboot Prototypeの世界状態だけを消して、最初からやり直しますか？');
     if (!confirmed) return;
 
-    try {
-      window.localStorage.removeItem(base.STORAGE_KEY);
-      window.localStorage.removeItem('crownless_reboot_phase9_world_v1');
-    } finally {
-      window.location.reload();
-    }
+    window.localStorage.removeItem('crownless_reboot_phase9_world_v1');
+    window.localStorage.removeItem(base.STORAGE_KEY);
+    window.location.reload();
   });
 })();
