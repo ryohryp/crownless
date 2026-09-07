@@ -4,7 +4,7 @@
   const p4 = window.CrownlessRebootPhase4State;
   const locationModel = window.CrownlessRebootPhase6Location;
   const fieldModel = window.CrownlessRebootPhase7Exploration;
-  if (!p3 || !p4 || !locationModel || !fieldModel) throw new Error('Reboot Phase 7 exploration model is required');
+  if (!p3 || !p4 || !locationModel || !fieldModel) throw new Error('Reboot Phase 8 exploration model is required');
 
   const $ = (selector) => document.querySelector(selector);
   const map = $('#reboot-map');
@@ -30,8 +30,15 @@
   let session = locationModel.createSession('simulated');
   let previousSession = null;
   let clueMemory = fieldModel.createClueMemory();
+  let threadMemory = fieldModel.createThreadMemory();
   let liveOrigin = null;
+  let phase8Response = null;
+  let phase8Title = null;
+  let phase8Stage = null;
+  let phase8Copy = null;
+  let phase8Memory = null;
 
+  injectPhase8Surface();
   injectMapLayer();
   refresh();
 
@@ -45,6 +52,51 @@
       world.choices[p3.BLACK_RAVEN_HILL]
       && !world.choices[p4.FORK_FIRST_VISIT]
     );
+  }
+
+  function injectPhase8Surface() {
+    if (!navigation) return;
+    const eyebrow = navigation.querySelector('.eyebrow');
+    const lead = navigation.querySelector('.phase6-lead');
+    if (eyebrow) eyebrow.textContent = 'PHASE 8 / WALK INTO THE UNKNOWN';
+    if (lead) lead.textContent = '安全に歩ける方向そのものを選ぶ。どちらへ進んでも世界は応答し、踏み込むほど気配が痕跡や出来事へ変わる。';
+
+    if (!$('#phase8-response')) {
+      const anchor = lead || navigation.firstElementChild;
+      anchor.insertAdjacentHTML('afterend', `
+        <article id="phase8-response" class="phase8-response-card" data-stage="unseen">
+          <header><strong id="phase8-title">まだ書かれていない方角</strong><b id="phase8-stage">未接触</b></header>
+          <p id="phase8-copy">安全に歩ける方向へ踏み出すと、その方向にあった世界の筋が見えてくる。</p>
+          <div class="phase8-thread-memory">
+            <span>この探索で触れた方向</span>
+            <ul id="phase8-memory"><li data-empty="true">まだない</li></ul>
+          </div>
+        </article>`);
+    }
+
+    const pad = navigation.querySelector('.phase6-direction-pad');
+    if (pad) {
+      const diagonals = [
+        ['north_west', '北西へ'],
+        ['north_east', '北東へ'],
+        ['south_west', '南西へ'],
+        ['south_east', '南東へ']
+      ];
+      for (const [direction, label] of diagonals) {
+        if (pad.querySelector(`[data-move="${direction}"]`)) continue;
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.dataset.move = direction;
+        button.textContent = label;
+        pad.appendChild(button);
+      }
+    }
+
+    phase8Response = $('#phase8-response');
+    phase8Title = $('#phase8-title');
+    phase8Stage = $('#phase8-stage');
+    phase8Copy = $('#phase8-copy');
+    phase8Memory = $('#phase8-memory');
   }
 
   function injectMapLayer() {
@@ -89,6 +141,7 @@
     const road = senseByCue(senses, 'road');
     map.dataset.valleyStrength = valley ? valley.strength : 'far';
     map.dataset.roadStrength = road ? road.strength : 'far';
+    map.dataset.phase8Sector = fieldModel.sectorForPosition(session) || 'origin';
 
     const point = mapPoint(session);
     const mark = $('#phase6-session-mark');
@@ -115,9 +168,50 @@
     })[char]);
   }
 
+  function renderThreadMemory(entries) {
+    if (!phase8Memory) return;
+    if (!entries.length) {
+      phase8Memory.innerHTML = '<li data-empty="true">まだない</li>';
+      return;
+    }
+    phase8Memory.innerHTML = entries.map((entry) => (
+      `<li><b>${escapeHtml(entry.direction)}</b> ${escapeHtml(entry.title)} <small>${escapeHtml(entry.stageLabel)}</small></li>`
+    )).join('');
+  }
+
+  function renderPhase8Observation(observation) {
+    if (!phase8Response || !observation) return;
+    renderThreadMemory(observation.entries || []);
+    const response = observation.response;
+    if (!response) {
+      phase8Response.dataset.stage = 'unseen';
+      phase8Title.textContent = 'まだ書かれていない方角';
+      phase8Stage.textContent = '未接触';
+      phase8Copy.textContent = '安全に歩ける方向へ踏み出すと、その方向にあった世界の筋が見えてくる。';
+      return;
+    }
+
+    phase8Response.dataset.stage = response.stage;
+    phase8Response.dataset.sector = response.sector;
+    phase8Title.textContent = `${response.direction} / ${response.title}`;
+    phase8Stage.textContent = response.stageLabel;
+    phase8Copy.textContent = response.text;
+
+    if (response.stage === 'encounter') {
+      status.textContent = `PHASE 8: ${response.direction}で「${response.title}」に出会った。別方向にも別の世界が残っている。`;
+      status.dataset.tone = 'found';
+    } else {
+      status.textContent = `PHASE 8: ${response.direction}へ歩いたことで「${response.title}」の${response.stageLabel}が立ち上がった。`;
+      status.dataset.tone = 'trace';
+    }
+  }
+
   function renderSession() {
+    const world = loadWorld();
     const observation = fieldModel.observe(previousSession, session, clueMemory);
     clueMemory = observation.memory;
+    const threadObservation = fieldModel.observeFieldThreads(session, threadMemory, world);
+    threadMemory = threadObservation.memory;
     const senses = observation.senses;
     const valley = senseByCue(senses, 'valley');
     const road = senseByCue(senses, 'road');
@@ -142,11 +236,13 @@
       }
       renderClueList(roadClues, clueMemory[road.placeId] || []);
     }
-    if (fieldNote) fieldNote.textContent = observation.note;
+
+    renderPhase8Observation(threadObservation);
+    if (fieldNote) fieldNote.textContent = threadObservation.note;
 
     modeLabel.textContent = session.mode === 'live'
       ? 'LIVE LOCATION / 現在地は確認ボタンを押した瞬間だけ読む'
-      : 'SIMULATED LOCATION / 方角だけを動かして気配を読む';
+      : 'SIMULATED LOCATION / 8方向すべてに別の世界の筋がある';
     renderMap(senses);
     previousSession = session;
 
@@ -165,32 +261,35 @@
     button.click();
     navigation.hidden = true;
     document.body.dataset.phase6Navigation = 'resolved';
+    document.body.dataset.phase8 = 'resolved';
     if (map) map.dataset.phase6 = 'resolved';
 
     queueMicrotask(() => {
       const world = loadWorld();
       const chosen = world.choices[p4.FORK_FIRST_VISIT];
       if (!chosen) return;
-      status.textContent = 'PHASE 7: 寄り道で手掛かりを集め、最後に踏み込んだ方向が最初の訪問先を決めた。';
+      status.textContent = 'PHASE 8: 歩いた方向の世界を読み、そのまま既存の不可逆な地点訪問へ踏み込んだ。';
       status.dataset.tone = 'found';
-      persistenceNote.textContent = '世界の変化だけを保存した。位置・移動履歴・途中で拾った手掛かりは端末に残していない。';
+      persistenceNote.textContent = '世界の変化だけを保存した。位置・移動履歴・途中で触れた方向の手掛かりは端末に残していない。';
     });
   }
 
   function renderReady() {
     document.body.dataset.phase6Navigation = 'enabled';
+    document.body.dataset.phase8 = 'enabled';
     navigation.hidden = false;
     phase4Actions.hidden = true;
     if (forkSummary) forkSummary.hidden = true;
-    status.textContent = 'PHASE 7: 少し寄って気配を読み、必要なら引き返して別方向も確かめる。';
+    status.textContent = 'PHASE 8: 安全に歩ける方向なら、どちらへ進んでも何かが起きる。';
     status.dataset.tone = 'trace';
-    persistenceNote.textContent = '探索中の位置・前回位置・拾った手掛かりはセッション内だけ。localStorageには世界状態しか残さない。';
+    persistenceNote.textContent = '探索中の位置・方向・拾った手掛かりはセッション内だけ。localStorageには世界状態しか残さない。';
     renderSession();
   }
 
   function renderInactive() {
     navigation.hidden = true;
     document.body.dataset.phase6Navigation = 'inactive';
+    document.body.dataset.phase8 = 'inactive';
     if (map) map.dataset.phase6 = 'inactive';
   }
 
@@ -234,6 +333,7 @@
         session = locationModel.createSession('simulated');
         previousSession = null;
         clueMemory = fieldModel.createClueMemory();
+        threadMemory = fieldModel.createThreadMemory();
       }
       session = locationModel.moveSession(session, moveButton.dataset.move);
       renderSession();
@@ -249,9 +349,10 @@
       session = locationModel.createSession('live');
       previousSession = null;
       clueMemory = fieldModel.createClueMemory();
+      threadMemory = fieldModel.createThreadMemory();
       liveCheck.hidden = false;
       renderSession();
-      status.textContent = '現在地を一時的な原点にした。移動後、安全な場所でだけ現在地を再確認する。';
+      status.textContent = '現在地を一時的な原点にした。安全に歩ける好きな方向へ移動し、立ち止まって再確認する。';
       status.dataset.tone = 'trace';
     });
   });
