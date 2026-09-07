@@ -240,12 +240,20 @@ var audioContext = null;
     document.body.appendChild(npcLife);
   }
 
+  function loadViewportGestures() {
+    if (window.CrownlessWorldAtlasViewportGestures || findAtlasScript("src/world-atlas-viewport-gestures.js")) return;
+    const gestures = document.createElement("script");
+    gestures.src = atlasAsset("src/world-atlas-viewport-gestures.js");
+    document.body.appendChild(gestures);
+  }
+
   function loadSelectionPreview(event) {
     if (!window.CrownlessWorldAtlas) {
       failAtlasLoad(event);
       return;
     }
     finishAtlasReady();
+    loadViewportGestures();
     const existingPreview = findAtlasScript("src/world-atlas-selection-preview.js");
     if (existingPreview) {
       if (window.CrownlessWorldAtlasPreview) loadNpcLifeForAtlas();

@@ -17,7 +17,15 @@ test("Atlas dynamic assets inherit the Pages deploy fingerprint", () => {
   assert.match(runtimeSource, /searchParams\.get\("v"\)/);
   assert.match(runtimeSource, /const atlasAsset = \(path\) => runtimeVersion \? `\$\{path\}\?v=\$\{encodeURIComponent\(runtimeVersion\)\}` : path;/);
   assert.match(runtimeSource, /atlas\.src = atlasAsset\("src\/world-atlas\.js"\);/);
+  assert.match(runtimeSource, /gestures\.src = atlasAsset\("src\/world-atlas-viewport-gestures\.js"\);/);
   assert.match(runtimeSource, /preview\.src = atlasAsset\("src\/world-atlas-selection-preview\.js"\);/);
+});
+
+test("viewport gestures load without changing the Atlas replay contract", () => {
+  assert.match(runtimeSource, /function loadSelectionPreview\(event\)[\s\S]*finishAtlasReady\(\);[\s\S]*loadViewportGestures\(\);/);
+  assert.match(runtimeSource, /if \(window\.CrownlessWorldAtlas\) loadSelectionPreview\(\);/);
+  assert.match(runtimeSource, /atlas\.onload = loadSelectionPreview;/);
+  assert.match(runtimeSource, /function loadViewportGestures\(\)[\s\S]*world-atlas-viewport-gestures\.js[\s\S]*document\.body\.appendChild\(gestures\);/);
 });
 
 test("Atlas load failure never replays the wall-map click into the legacy discovery UI", () => {
