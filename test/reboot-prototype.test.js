@@ -106,5 +106,6 @@ test('visual layer includes branch-specific marks and reduced-motion handling', 
   const css = fs.readFileSync(path.join(__dirname, '..', 'reboot-prototype.css'), 'utf8');
   assert.match(css, /data-outcome='king'/);
   assert.match(css, /data-outcome='free'/);
+  assert.match(css, /\[hidden\]\s*\{\s*display:\s*none\s*!important/);
   assert.match(css, /prefers-reduced-motion/);
 });
