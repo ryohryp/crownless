@@ -4,20 +4,21 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#2b251b" />
-  <title>Crownless — Reboot Prototype #529–#543</title>
+  <title>Crownless — Reboot Prototype #529–#547</title>
   <link rel="stylesheet" href="reboot-prototype.css" />
   <link rel="stylesheet" href="reboot-phase2.css" />
   <link rel="stylesheet" href="reboot-phase3.css" />
   <link rel="stylesheet" href="reboot-phase4.css" />
   <link rel="stylesheet" href="reboot-phase5.css" />
   <link rel="stylesheet" href="reboot-phase6.css" />
+  <link rel="stylesheet" href="reboot-phase7.css" />
 </head>
 <body data-phase="unknown">
   <div class="paper-grain" aria-hidden="true"></div>
   <main class="reboot-shell">
     <header class="reboot-header">
       <div>
-        <p class="eyebrow">CROWNLESS / REBOOT PROTOTYPE #529–#543</p>
+        <p class="eyebrow">CROWNLESS / REBOOT PROTOTYPE #529–#547</p>
         <h1>世界に、<span>自分の選択の痕</span>を残す。</h1>
       </div>
       <p class="safety-copy">歩きながら画面を見続けない。安全に立ち止まれる場所でだけ、現在地を確かめる。</p>
@@ -188,28 +189,40 @@
         </div>
       </section>
 
-      <section id="phase6-navigation" class="phase6-navigation" hidden aria-label="歩いた方向で未知の気配を発見する">
-        <p class="eyebrow">PHASE 6 / WALKING IS THE CHOICE</p>
-        <p class="phase6-lead">地点名を押して選ばない。安全に歩いた方向によって、近づいた気配だけが少しずつ具体的になる。</p>
+      <section id="phase6-navigation" class="phase6-navigation" hidden aria-label="歩いた方向から未知の気配を読み取る">
+        <p class="eyebrow">PHASE 7 / READ THE LAND</p>
+        <p class="phase6-lead">少し寄って手掛かりを拾い、必要なら引き返して別方向も確かめる。最後に踏み込んだ方向が世界への選択になる。</p>
 
         <div class="phase6-trace-grid">
           <article class="phase6-trace-card" data-trace="valley">
             <header><strong>谷側の気配</strong><b id="phase6-valley-strength">遠い</b></header>
             <p id="phase6-valley-copy">谷側に、風とは違うかすかな響きがある。</p>
+            <p id="phase7-valley-trend" class="phase7-trend" data-trend="unknown">まだ比べられない</p>
+            <div class="phase7-clues">
+              <span>拾った手掛かり</span>
+              <ul id="phase7-valley-clues"><li data-empty="true">まだ拾っていない</li></ul>
+            </div>
           </article>
           <article class="phase6-trace-card" data-trace="road">
             <header><strong>街道側の気配</strong><b id="phase6-road-strength">遠い</b></header>
             <p id="phase6-road-copy">街道側に、薄い土煙が見える。</p>
+            <p id="phase7-road-trend" class="phase7-trend" data-trend="unknown">まだ比べられない</p>
+            <div class="phase7-clues">
+              <span>拾った手掛かり</span>
+              <ul id="phase7-road-clues"><li data-empty="true">まだ拾っていない</li></ul>
+            </div>
           </article>
         </div>
 
+        <p id="phase7-field-note" class="phase7-field-note">少し動いて、二つの気配がどう変わるか確かめる。</p>
+
         <div class="phase6-sim-block">
-          <p id="phase6-mode" class="phase6-mode">SIMULATED LOCATION / 方角だけを40mずつ動かす</p>
+          <p id="phase6-mode" class="phase6-mode">SIMULATED LOCATION / 方角だけを動かして気配を読む</p>
           <div class="phase6-direction-pad" aria-label="仮想現在地を方角へ動かす">
-            <button type="button" data-move="north">北へ40m</button>
-            <button type="button" data-move="west">西へ40m</button>
-            <button type="button" data-move="east">東へ40m</button>
-            <button type="button" data-move="south">南へ40m</button>
+            <button type="button" data-move="north">北へ</button>
+            <button type="button" data-move="west">西へ</button>
+            <button type="button" data-move="east">東へ</button>
+            <button type="button" data-move="south">南へ</button>
           </div>
         </div>
 
@@ -252,6 +265,7 @@
   <script src="src/reboot-phase5-state.js"></script>
   <script src="src/reboot-phase5-controller.js"></script>
   <script src="src/reboot-phase6-location.js"></script>
+  <script src="src/reboot-phase7-exploration.js"></script>
   <script src="src/reboot-phase6-controller.js"></script>
   <script src="src/reboot-dev-tools.js"></script>
 </body>
