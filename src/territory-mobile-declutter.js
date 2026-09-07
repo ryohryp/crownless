@@ -10,6 +10,7 @@
 
   const MOBILE_MAX = 700;
   const MIN_GAP = 24;
+  const PAYOFF_MS = 3200;
   const SVG_NS = "http://www.w3.org/2000/svg";
   const CANDIDATE_OFFSETS = Object.freeze([
     Object.freeze({ x: 0, y: 0 }),
@@ -19,6 +20,11 @@
     Object.freeze({ x: 18, y: -22 }),
     Object.freeze({ x: 0, y: 28 }),
   ]);
+
+  function cleanText(value, fallback = "") {
+    const text = String(value == null ? "" : value).trim();
+    return text || fallback;
+  }
 
   function distance(a, b) {
     return Math.hypot(Number(a.x) - Number(b.x), Number(a.y) - Number(b.y));
@@ -43,6 +49,29 @@
     });
   }
 
+  function conquestPayoffTarget(root) {
+    const Territory = root && root.CrownlessTerritoryPhase1;
+    if (!Territory || typeof Territory.territories !== "function") return null;
+    let models = [];
+    try { models = Territory.territories(root); } catch (_) { return null; }
+    const next = (Array.isArray(models) ? models : []).find((item) => item && item.owner !== "player");
+    if (!next) return null;
+    const key = cleanText(next.key);
+    if (!key) return null;
+    const effect = cleanText(next.meta && next.meta.effect);
+    const value = cleanText(next.meta && next.meta.value);
+    const reason = effect && !/Phase\s*1/i.test(effect)
+      ? `取れば、${effect.replace(/[。.]+$/, "")}。`
+      : value
+        ? `取れば、${value.replace(/[。.]+$/, "")}。`
+        : "取れば、次の攻略条件が変わる。";
+    return {
+      key,
+      name: cleanText(next.entry && next.entry.name, "次の地点"),
+      reason,
+    };
+  }
+
   function ensureStyles(document) {
     if (!document || document.getElementById("territory-mobile-declutter-styles")) return false;
     const style = document.createElement("style");
@@ -59,6 +88,35 @@
         stroke-dasharray:none !important;
         stroke-linecap:round;
         stroke-linejoin:round;
+      }
+      #world-atlas-viewer .territory-route-ink > path[data-territory-conquest-payoff="true"] {
+        animation:territory-support-write 1.35s cubic-bezier(.2,.75,.25,1) both;
+      }
+      #world-atlas-viewer [data-territory-conquest-temptation="true"] > i {
+        animation:territory-frontier-stamp 1.45s ease-out both;
+      }
+      #world-atlas-viewer .territory-conquest-temptation {
+        display:block;
+        max-width:126px;
+        margin-top:4px;
+        padding:3px 4px 3px 6px;
+        border-left:1px solid rgba(202,168,93,.72);
+        background:repeating-linear-gradient(135deg,rgba(202,168,93,.055) 0 2px,transparent 2px 7px),rgba(15,13,10,.88);
+        color:#d9c98f;
+        font:700 7px/1.35 ui-monospace,monospace;
+        letter-spacing:.025em;
+        white-space:normal;
+        transform:rotate(-.7deg);
+      }
+      @keyframes territory-support-write {
+        0% { opacity:.18; stroke-dashoffset:42; }
+        55% { opacity:1; }
+        100% { opacity:1; stroke-dashoffset:0; }
+      }
+      @keyframes territory-frontier-stamp {
+        0% { outline:0 solid rgba(202,168,93,0); outline-offset:10px; }
+        34% { outline:2px solid rgba(202,168,93,.7); outline-offset:5px; }
+        100% { outline:1px solid rgba(202,168,93,0); outline-offset:2px; }
       }
       @media (max-width:${MOBILE_MAX}px) {
         #world-atlas-viewer .world-atlas-map--nearby [data-territory-declutter="true"] {
@@ -78,6 +136,11 @@
           font-size:6px !important;
           letter-spacing:.03em !important;
         }
+        #world-atlas-viewer .world-atlas-map--nearby .territory-conquest-temptation {
+          max-width:112px;
+          font-size:6px;
+          line-height:1.3;
+        }
         #world-atlas-viewer .territory-atlas-summary {
           top:6px !important;
           right:6px !important;
@@ -92,6 +155,12 @@
           font-size:9px !important;
           line-height:1.25 !important;
           white-space:nowrap !important;
+        }
+      }
+      @media (prefers-reduced-motion:reduce) {
+        #world-atlas-viewer .territory-route-ink > path[data-territory-conquest-payoff="true"],
+        #world-atlas-viewer [data-territory-conquest-temptation="true"] > i {
+          animation:none !important;
         }
       }
     `;
@@ -139,6 +208,44 @@
     return decorated;
   }
 
+  function markerForTarget(map, keyInput) {
+    const key = cleanText(keyInput);
+    return Array.from(map && map.querySelectorAll ? map.querySelectorAll("[data-territory-key]") : [])
+      .find((marker) => cleanText(marker.dataset && marker.dataset.territoryKey) === key) || null;
+  }
+
+  function decorateConquestPayoff(document, root) {
+    const map = document && document.querySelector("#world-atlas-viewer .world-atlas-map--nearby");
+    if (!map || !map.querySelector(".territory-capture-toast")) return false;
+    const target = conquestPayoffTarget(root);
+    if (!target) return false;
+    const marker = markerForTarget(map, target.key);
+    if (!marker) return false;
+    if (marker.dataset.territoryConquestTemptation === "true") return true;
+
+    marker.dataset.territoryConquestTemptation = "true";
+    const note = document.createElement("b");
+    note.className = "territory-conquest-temptation";
+    note.dataset.territoryTargetKey = target.key;
+    note.textContent = target.reason;
+    (marker.querySelector("span") || marker).appendChild(note);
+
+    const route = map.querySelector('.territory-route-ink[data-territory-directional="true"]') || map.querySelector(".territory-route-ink");
+    const paths = route
+      ? Array.from(route.children || []).filter((child) => String(child.tagName).toLowerCase() === "path")
+      : [];
+    const payoffPath = paths[paths.length - 1] || null;
+    payoffPath?.setAttribute("data-territory-conquest-payoff", "true");
+
+    const cleanup = () => {
+      note.remove();
+      delete marker.dataset.territoryConquestTemptation;
+      payoffPath?.removeAttribute("data-territory-conquest-payoff");
+    };
+    if (root && typeof root.setTimeout === "function") root.setTimeout(cleanup, PAYOFF_MS);
+    return true;
+  }
+
   function resetMarkers(markers) {
     markers.forEach((marker) => {
       marker.style.removeProperty("--territory-declutter-x");
@@ -152,6 +259,7 @@
     decorateCausalRoutes(document);
     const map = document.querySelector("#world-atlas-viewer .world-atlas-map--nearby");
     if (!map) return 0;
+    decorateConquestPayoff(document, root);
     const markers = Array.from(map.querySelectorAll("[data-territory-key]"));
     resetMarkers(markers);
     if (Number(root.innerWidth) > MOBILE_MAX || markers.length < 2) return 0;
@@ -208,7 +316,7 @@
     if (typeof root.MutationObserver === "function" && document.body) {
       const observer = new root.MutationObserver((records) => {
         const relevant = records.some((record) => Array.from(record.addedNodes || []).some((node) => node?.nodeType === 1 && (
-          node.matches?.(".world-atlas-map--nearby, [data-territory-key], .territory-route-ink") || node.querySelector?.(".world-atlas-map--nearby, [data-territory-key], .territory-route-ink")
+          node.matches?.(".world-atlas-map--nearby, [data-territory-key], .territory-route-ink, .territory-capture-toast") || node.querySelector?.(".world-atlas-map--nearby, [data-territory-key], .territory-route-ink, .territory-capture-toast")
         )));
         if (relevant) schedule(document, root);
       });
@@ -218,5 +326,5 @@
     return true;
   }
 
-  return Object.freeze({ MOBILE_MAX, MIN_GAP, CANDIDATE_OFFSETS, distance, layoutOffsets, decorateCausalRoutes, apply, schedule, install });
+  return Object.freeze({ MOBILE_MAX, MIN_GAP, PAYOFF_MS, CANDIDATE_OFFSETS, distance, layoutOffsets, conquestPayoffTarget, decorateCausalRoutes, decorateConquestPayoff, apply, schedule, install });
 });
