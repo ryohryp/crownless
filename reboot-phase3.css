@@ -139,6 +139,83 @@
   .chapel-note, .gate-note { font-size: 4.6px; }
 }
 
+/* Desktop is a stage, not a taller mobile page: keep the map and current decision visible together. */
+@media (min-width: 900px) {
+  .reboot-shell {
+    width: min(100%, 1180px);
+    min-height: 100dvh;
+    display: grid;
+    grid-template-columns: minmax(0, 1.55fr) minmax(340px, .95fr);
+    grid-template-areas:
+      'header header'
+      'map story';
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: 16px 18px;
+    align-items: start;
+    padding-top: max(14px, env(safe-area-inset-top));
+    padding-bottom: max(18px, env(safe-area-inset-bottom));
+  }
+
+  .reboot-header {
+    grid-area: header;
+    margin-bottom: 0;
+    padding-bottom: 10px;
+  }
+
+  .living-map {
+    grid-area: map;
+    align-self: start;
+  }
+
+  .story-panel {
+    grid-area: story;
+    width: auto;
+    margin: 0;
+    max-height: calc(100dvh - 150px);
+    overflow: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    padding: 20px 22px;
+  }
+
+  .story-panel h2 {
+    font-size: clamp(1.45rem, 2.3vw, 1.95rem);
+  }
+
+  .story-copy { line-height: 1.65; }
+  .dialogue { margin-top: 12px; }
+
+  /* The right rail is narrower than the viewport; don't inherit desktop two-column controls into it. */
+  .story-panel .fate-choices,
+  .story-panel .next-place-grid,
+  .story-panel .location-actions {
+    grid-template-columns: 1fr;
+  }
+  .story-panel #check-location { grid-column: auto; }
+}
+
+@media (min-width: 1200px) and (min-height: 800px) {
+  .reboot-shell {
+    grid-template-columns: minmax(0, 1.65fr) minmax(400px, 1fr);
+  }
+
+  .story-panel .fate-choices,
+  .story-panel .next-place-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 900px) and (max-height: 760px) {
+  .reboot-shell { gap-block: 10px; }
+  .reboot-header { gap: 8px; padding-bottom: 7px; }
+  .reboot-header h1 { font-size: clamp(1.45rem, 3.5vw, 2.1rem); }
+  .safety-copy { line-height: 1.4; }
+  .story-panel {
+    max-height: calc(100dvh - 118px);
+    padding-block: 16px;
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
   .fork-line,
   .signal-arrow { animation: none !important; }
