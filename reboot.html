@@ -4,15 +4,16 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#2b251b" />
-  <title>Crownless — Reboot Prototype #529</title>
+  <title>Crownless — Reboot Prototype #529–#531</title>
   <link rel="stylesheet" href="reboot-prototype.css" />
+  <link rel="stylesheet" href="reboot-phase2.css" />
 </head>
 <body data-phase="unknown">
   <div class="paper-grain" aria-hidden="true"></div>
   <main class="reboot-shell">
     <header class="reboot-header">
       <div>
-        <p class="eyebrow">CROWNLESS / REBOOT PROTOTYPE #529</p>
+        <p class="eyebrow">CROWNLESS / REBOOT PROTOTYPE #529–#531</p>
         <h1>世界に、<span>自分の選択の痕</span>を残す。</h1>
       </div>
       <p class="safety-copy">歩きながら画面を見続けない。安全に立ち止まれる場所でだけ、現在地を確かめる。</p>
@@ -104,11 +105,34 @@
         </button>
       </div>
 
+      <button id="crossing-continue" class="ink-button quiet-action" type="button" hidden>渡り場で何が起きているか見る</button>
+
+      <div id="crossing-choices" class="fate-choices" hidden aria-label="古い渡り場の運命を選ぶ">
+        <button class="fate-card" type="button" data-choice="cut_crossing">
+          <span class="fate-mark">Ⅰ</span>
+          <strong>渡りを断つ</strong>
+          <small>橋と渡しを使えなくする。追跡も軍の移動も止まるが、戻る道も消える。</small>
+        </button>
+        <button class="fate-card" type="button" data-choice="keep_crossing">
+          <span class="fate-mark">Ⅱ</span>
+          <strong>渡りを残す</strong>
+          <small>人が行き来できる道を残す。助けも危険も、同じ道を通ってくる。</small>
+        </button>
+      </div>
+
       <div class="location-actions">
         <button id="start-live" class="ink-button primary-action" type="button">現在地から始める</button>
         <button id="start-sim" class="ink-button secondary-action" type="button">模擬探索で試す</button>
         <button id="check-location" class="ink-button primary-action" type="button" hidden>安全な場所で現在地を確かめる</button>
       </div>
+
+      <div id="phase2-actions" class="dev-shortcut" hidden>
+        <p class="eyebrow">PHASE 2 / 古い渡り場へ</p>
+        <button id="phase2-live" class="ink-button primary-action" type="button">GPSで古い渡り場へ進む</button>
+        <button id="dev-walk-next" class="ink-button dev-action" type="button">DEV: 古い渡り場まで歩いたことにする</button>
+        <small>開発用ショートカットは移動時間だけを省略し、GPS側と同じ発見state transitionを通す。</small>
+      </div>
+
       <p id="location-status" class="location-status">現在地は、ボタンを押した瞬間にだけ確認する。</p>
       <p id="persistence-note" class="persistence-note">世界の状態だけを端末に残す。位置座標や移動経路は保存しない。</p>
     </section>
@@ -116,5 +140,7 @@
 
   <script src="src/reboot-prototype-state.js"></script>
   <script src="src/reboot-prototype.js"></script>
+  <script src="src/reboot-phase2-state.js"></script>
+  <script src="src/reboot-phase2-controller.js"></script>
 </body>
 </html>
