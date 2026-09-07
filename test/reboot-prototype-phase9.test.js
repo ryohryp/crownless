@@ -107,7 +107,8 @@ test('browser controller exposes keyboard and touch controls while keeping comba
   assert.match(source, /enemy-guard\.png/);
   assert.match(html, /reboot-phase9\.css/);
   assert.match(html, /src\/reboot-phase9-combat\.js/);
-  assert.match(devTools, /removeItem\('crownless_reboot_phase9_world_v1'\)/);
+  assert.match(devTools, /const phase9 = window\.CrownlessRebootPhase9Combat/);
+  assert.match(devTools, /removeItem\(phase9\.STORAGE_KEY\)/);
   assert.match(css, /@media \(max-width: 520px\)/);
   assert.match(css, /prefers-reduced-motion/);
 });
