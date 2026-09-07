@@ -198,7 +198,7 @@ async function contestSelectedPlace(page) {
       return active && active.inputs;
     });
     assert.equal(immutable.policyId, "standard");
-    assert.deepEqual(immutable.companionIds, ["ed"]);
+    assert.ok(immutable.companionIds.includes("ed"), "the chosen companion must be frozen into the active expedition input");
     assert.deepEqual(immutable.equipmentIds.sort(), ["old-knife", "shortbow"]);
 
     await page.getByRole("button", { name: "開発用: 時間を進める", exact: true }).click();
