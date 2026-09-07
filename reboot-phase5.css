@@ -1,0 +1,110 @@
+/* Reboot Prototype Phase 5 — two previous consequences converge into one authored place. */
+.collision-summary {
+  margin-top: 14px;
+  padding: 14px;
+  border: 1px solid rgba(69, 55, 38, .38);
+  background: rgba(239, 226, 196, .16);
+}
+.collision-summary > .eyebrow { margin-bottom: 7px; }
+.collision-summary h3 {
+  margin: 0;
+  color: var(--ink);
+  font-size: 1.05rem;
+  line-height: 1.4;
+}
+.collision-summary p {
+  margin: 9px 0 0;
+  color: var(--ink-soft);
+  font-size: .84rem;
+  line-height: 1.6;
+}
+.collision-summary header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.collision-summary header b {
+  flex: 0 0 auto;
+  padding: 3px 7px;
+  border: 1px solid currentColor;
+  color: var(--vermilion);
+  font-size: .66rem;
+  letter-spacing: .06em;
+  font-weight: 600;
+}
+.collision-action {
+  width: 100%;
+  margin-top: 12px;
+  color: #efe4c9;
+  background: #30281e;
+}
+.collision-history {
+  display: inline-block;
+  margin-top: 6px;
+  color: #5d2c26;
+  font-weight: 700;
+}
+
+.collision-line,
+.collision-mark,
+.collision-label { display: none; }
+.collision-line {
+  fill: none;
+  stroke: var(--ochre) !important;
+  stroke-width: 1.6 !important;
+  stroke-dasharray: 3 4;
+  opacity: .8;
+  animation: ink-route .9s steps(6, end) both;
+}
+.collision-mark path,
+.collision-mark circle {
+  fill: none;
+  stroke: var(--vermilion) !important;
+  stroke-width: 1.6 !important;
+}
+
+.living-map:not([data-collision-state='unknown']) .collision-line,
+.living-map:not([data-collision-state='unknown']) .collision-label { display: block; }
+.living-map[data-collision-state='hinted'] .collision-hint-mark,
+.living-map[data-collision-state='black_cargo_market'] .collision-black-cargo,
+.living-map[data-collision-state='dead_end_market'] .collision-dead-end,
+.living-map[data-collision-state='canvas_market'] .collision-canvas,
+.living-map[data-collision-state='salt_lantern_market'] .collision-salt-lantern { display: block; }
+
+/* The route the player actually took is darker; the unseen consequence still reaches the same place. */
+.living-map[data-first-visit='salt_chapel'] .collision-from-chapel,
+.living-map[data-first-visit='ruined_gate'] .collision-from-gate {
+  stroke: var(--known) !important;
+  stroke-width: 3 !important;
+  stroke-dasharray: none;
+}
+.living-map[data-first-visit='salt_chapel'] .collision-from-gate,
+.living-map[data-first-visit='ruined_gate'] .collision-from-chapel {
+  opacity: .48;
+}
+
+.collision-label {
+  font-size: 5.8px;
+  font-weight: 700;
+  fill: var(--vermilion);
+}
+.living-map[data-collision-state='hinted'] .collision-label {
+  fill: var(--ink-soft);
+  font-style: italic;
+}
+
+@media (min-width: 900px) and (max-width: 1199px) {
+  .story-panel .collision-summary { padding: 12px; }
+}
+
+@media (max-width: 520px) {
+  .collision-summary header {
+    display: grid;
+    justify-items: start;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .collision-line { animation: none !important; }
+}
