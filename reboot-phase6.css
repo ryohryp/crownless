@@ -1,0 +1,177 @@
+/* Reboot Prototype Phase 6 — movement direction, not a destination button, becomes the choice. */
+.phase6-navigation {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(69, 55, 38, .34);
+}
+.phase6-navigation[hidden] { display: none !important; }
+.phase6-navigation > .eyebrow { margin-bottom: 7px; }
+.phase6-lead {
+  margin: 0 0 10px;
+  color: var(--ink-soft);
+  font-size: .86rem;
+  line-height: 1.6;
+}
+
+.phase6-trace-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 9px;
+}
+.phase6-trace-card {
+  min-width: 0;
+  padding: 10px 11px;
+  border: 1px solid rgba(69, 55, 38, .42);
+  background: rgba(239, 226, 196, .15);
+}
+.phase6-trace-card header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+.phase6-trace-card strong {
+  color: var(--ink);
+  font-size: .91rem;
+}
+.phase6-trace-card b {
+  flex: 0 0 auto;
+  color: var(--ink-soft);
+  font-size: .68rem;
+  font-weight: 700;
+  letter-spacing: .04em;
+}
+.phase6-trace-card b[data-strength='noticed'] { color: var(--ochre); }
+.phase6-trace-card b[data-strength='near'] { color: var(--vermilion); }
+.phase6-trace-card p {
+  margin: 7px 0 0;
+  color: var(--ink-soft);
+  font-size: .79rem;
+  line-height: 1.5;
+}
+
+.phase6-sim-block,
+.phase6-live-block {
+  margin-top: 11px;
+  padding: 10px;
+  border: 1px dashed rgba(69, 55, 38, .38);
+  background: rgba(244, 232, 204, .09);
+}
+.phase6-mode {
+  margin: 0 0 8px;
+  color: #5d2c26;
+  font-size: .67rem;
+  font-weight: 800;
+  letter-spacing: .06em;
+}
+
+.phase6-direction-pad {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-areas:
+    '. north .'
+    'west center east'
+    '. south .';
+  gap: 7px;
+  align-items: center;
+}
+.phase6-direction-pad::before {
+  content: '現在';
+  grid-area: center;
+  justify-self: center;
+  color: var(--ink-soft);
+  font-size: .68rem;
+  font-style: italic;
+}
+.phase6-direction-pad button {
+  min-height: 42px;
+  padding: 8px 7px;
+  border: 1px solid #5f503b;
+  color: var(--ink);
+  background: rgba(240, 224, 188, .28);
+  font: inherit;
+  font-size: .78rem;
+  cursor: pointer;
+}
+.phase6-direction-pad button:hover { background: rgba(246, 232, 199, .48); }
+.phase6-direction-pad [data-move='north'] { grid-area: north; }
+.phase6-direction-pad [data-move='east'] { grid-area: east; }
+.phase6-direction-pad [data-move='south'] { grid-area: south; }
+.phase6-direction-pad [data-move='west'] { grid-area: west; }
+
+.phase6-live-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+.phase6-live-actions .ink-button { margin: 0; }
+.phase6-safety {
+  display: block;
+  margin-top: 8px;
+  color: var(--ink-soft);
+  font-size: .72rem;
+  line-height: 1.45;
+}
+
+/* While the location test is active, destination names and authored place silhouettes are withheld. */
+body[data-phase6-navigation='enabled'] #phase4-actions,
+body[data-phase6-navigation='enabled'] #fork-summary {
+  display: none !important;
+}
+
+#phase6-map-layer { display: none; }
+.living-map[data-phase6='searching'] #phase6-map-layer { display: block; }
+.living-map[data-phase6='searching'] #phase3-map-layer .next-place,
+.living-map[data-phase6='searching'] #phase3-map-layer .chapel-label,
+.living-map[data-phase6='searching'] #phase3-map-layer .gate-label,
+.living-map[data-phase6='searching'] #phase3-map-layer .chapel-note,
+.living-map[data-phase6='searching'] #phase3-map-layer .gate-note {
+  display: none !important;
+}
+
+.phase6-trace circle,
+.phase6-trace path,
+.phase6-session-mark circle,
+.phase6-session-mark path {
+  fill: none;
+  stroke: var(--ink-soft) !important;
+  stroke-width: 1.5 !important;
+}
+.phase6-trace { opacity: .28; }
+.phase6-session-mark circle,
+.phase6-session-mark path {
+  stroke: var(--known) !important;
+  stroke-width: 1.8 !important;
+}
+.phase6-map-note {
+  fill: var(--ink-soft);
+  font-size: 4.8px;
+  font-style: italic;
+}
+.living-map[data-valley-strength='noticed'] .phase6-valley-trace,
+.living-map[data-road-strength='noticed'] .phase6-road-trace { opacity: .52; }
+.living-map[data-valley-strength='near'] .phase6-valley-trace,
+.living-map[data-road-strength='near'] .phase6-road-trace {
+  opacity: .92;
+}
+.living-map[data-valley-strength='near'] .phase6-valley-trace circle,
+.living-map[data-road-strength='near'] .phase6-road-trace circle {
+  stroke: var(--vermilion) !important;
+}
+
+@media (max-width: 700px) {
+  .phase6-trace-grid,
+  .phase6-live-actions { grid-template-columns: 1fr; }
+  .phase6-direction-pad button { min-height: 46px; }
+}
+
+@media (min-width: 900px) and (max-width: 1199px) {
+  .story-panel .phase6-trace-grid,
+  .story-panel .phase6-live-actions { grid-template-columns: 1fr; }
+  .story-panel .phase6-navigation { margin-top: 10px; padding-top: 10px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .phase6-trace,
+  .phase6-session-mark { transition: none !important; animation: none !important; }
+}
