@@ -234,6 +234,10 @@
 
       <p id="location-status" class="location-status">現在地は、ボタンを押した瞬間にだけ確認する。</p>
       <p id="persistence-note" class="persistence-note">世界の状態だけを端末に残す。位置座標や移動経路は保存しない。</p>
+      <div class="prototype-dev-tools" aria-label="Reboot Prototype開発用操作">
+        <small>分岐や新しいPhaseを何度でも確認するための開発専用操作。ゲーム内の巻き戻しではない。</small>
+        <button id="reboot-dev-reset" class="ink-button quiet-action" type="button">DEV: Prototypeを最初からやり直す</button>
+      </div>
     </section>
   </main>
 
@@ -249,5 +253,6 @@
   <script src="src/reboot-phase5-controller.js"></script>
   <script src="src/reboot-phase6-location.js"></script>
   <script src="src/reboot-phase6-controller.js"></script>
+  <script src="src/reboot-dev-tools.js"></script>
 </body>
 </html>
