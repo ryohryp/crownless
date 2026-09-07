@@ -93,8 +93,9 @@ test('defeated and escaped produce visibly different world-thread consequences',
 
 test('browser controller exposes keyboard and touch controls while keeping combat HP transient', () => {
   const source = fs.readFileSync(path.join(__dirname, '..', 'src', 'reboot-phase9-combat.js'), 'utf8');
-  const loader = fs.readFileSync(path.join(__dirname, '..', 'src', 'reboot-dev-tools.js'), 'utf8');
+  const devTools = fs.readFileSync(path.join(__dirname, '..', 'src', 'reboot-dev-tools.js'), 'utf8');
   const css = fs.readFileSync(path.join(__dirname, '..', 'reboot-phase9.css'), 'utf8');
+  const html = fs.readFileSync(path.join(__dirname, '..', 'reboot.html'), 'utf8');
 
   assert.match(source, /data-combat-action="attack"/);
   assert.match(source, /data-combat-action="dodge"/);
@@ -104,9 +105,9 @@ test('browser controller exposes keyboard and touch controls while keeping comba
   assert.match(source, /player-unarmed\.png/);
   assert.match(source, /enemy-rusher\.png/);
   assert.match(source, /enemy-guard\.png/);
-  assert.match(loader, /reboot-phase9\.css/);
-  assert.match(loader, /src\/reboot-phase9-combat\.js/);
-  assert.match(loader, /removeItem\('crownless_reboot_phase9_world_v1'\)/);
+  assert.match(html, /reboot-phase9\.css/);
+  assert.match(html, /src\/reboot-phase9-combat\.js/);
+  assert.match(devTools, /removeItem\('crownless_reboot_phase9_world_v1'\)/);
   assert.match(css, /@media \(max-width: 520px\)/);
   assert.match(css, /prefers-reduced-motion/);
 });
