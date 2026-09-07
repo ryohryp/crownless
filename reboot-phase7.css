@@ -63,11 +63,104 @@
 /* Phase 7 keeps simulation deliberately qualitative. */
 .phase6-direction-pad button { font-weight: 700; }
 
+/* Phase 8 — every safe direction contains a different authored world thread. */
+body[data-phase8='enabled'] .phase6-trace-grid {
+  display: none;
+}
+
+.phase8-response-card {
+  margin: 10px 0 0;
+  padding: 11px 12px;
+  border: 1px solid rgba(69, 55, 38, .45);
+  background: rgba(239, 226, 196, .17);
+  box-shadow: inset 0 0 0 2px rgba(255, 248, 228, .08);
+}
+.phase8-response-card header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.phase8-response-card strong {
+  color: var(--ink);
+  font-size: .94rem;
+}
+.phase8-response-card header b {
+  flex: 0 0 auto;
+  color: var(--ink-soft);
+  font-size: .68rem;
+  letter-spacing: .06em;
+}
+.phase8-response-card[data-stage='faint'] header b { color: var(--ochre); }
+.phase8-response-card[data-stage='trace'] header b,
+.phase8-response-card[data-stage='encounter'] header b { color: var(--vermilion); }
+.phase8-response-card > p {
+  margin: 7px 0 0;
+  color: var(--ink-soft);
+  font-size: .81rem;
+  line-height: 1.55;
+}
+.phase8-thread-memory {
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(69, 55, 38, .28);
+}
+.phase8-thread-memory > span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--ink-soft);
+  font-size: .64rem;
+  font-weight: 800;
+  letter-spacing: .07em;
+}
+.phase8-thread-memory ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.phase8-thread-memory li {
+  padding: 4px 6px;
+  border: 1px solid rgba(69, 55, 38, .34);
+  color: var(--ink);
+  background: rgba(239, 226, 196, .12);
+  font-size: .68rem;
+}
+.phase8-thread-memory li b { color: var(--vermilion); }
+.phase8-thread-memory li small { color: var(--ink-soft); }
+.phase8-thread-memory li[data-empty='true'] {
+  border-style: dashed;
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+body[data-phase8='enabled'] .phase6-direction-pad {
+  grid-template-areas:
+    'north_west north north_east'
+    'west center east'
+    'south_west south south_east';
+}
+body[data-phase8='enabled'] .phase6-direction-pad [data-move='north_west'] { grid-area: north_west; }
+body[data-phase8='enabled'] .phase6-direction-pad [data-move='north_east'] { grid-area: north_east; }
+body[data-phase8='enabled'] .phase6-direction-pad [data-move='south_west'] { grid-area: south_west; }
+body[data-phase8='enabled'] .phase6-direction-pad [data-move='south_east'] { grid-area: south_east; }
+
+/* The old two-target marks remain as internal Phase 4 discovery anchors, not player guidance. */
+body[data-phase8='enabled'] .living-map[data-phase6='searching'] .phase6-trace,
+body[data-phase8='enabled'] .living-map[data-phase6='searching'] .phase6-map-note {
+  display: none;
+}
+
 @media (min-width: 900px) and (max-width: 1199px) {
   .story-panel .phase7-clues ul { display: grid; }
+  .story-panel .phase8-thread-memory ul { display: grid; }
 }
 
 @media (max-width: 520px) {
-  .phase7-clues ul { display: grid; }
+  .phase7-clues ul,
+  .phase8-thread-memory ul { display: grid; }
   .phase7-field-note { font-size: .74rem; }
+  .phase8-response-card > p { font-size: .77rem; }
 }
