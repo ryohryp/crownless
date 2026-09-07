@@ -3,7 +3,8 @@
   const p3 = window.CrownlessRebootPhase3State;
   const p4 = window.CrownlessRebootPhase4State;
   const locationModel = window.CrownlessRebootPhase6Location;
-  if (!p3 || !p4 || !locationModel) throw new Error('Reboot Phase 6 location model is required');
+  const fieldModel = window.CrownlessRebootPhase7Exploration;
+  if (!p3 || !p4 || !locationModel || !fieldModel) throw new Error('Reboot Phase 7 exploration model is required');
 
   const $ = (selector) => document.querySelector(selector);
   const map = $('#reboot-map');
@@ -12,8 +13,13 @@
   const navigation = $('#phase6-navigation');
   const valleyStrength = $('#phase6-valley-strength');
   const valleyCopy = $('#phase6-valley-copy');
+  const valleyTrend = $('#phase7-valley-trend');
+  const valleyClues = $('#phase7-valley-clues');
   const roadStrength = $('#phase6-road-strength');
   const roadCopy = $('#phase6-road-copy');
+  const roadTrend = $('#phase7-road-trend');
+  const roadClues = $('#phase7-road-clues');
+  const fieldNote = $('#phase7-field-note');
   const modeLabel = $('#phase6-mode');
   const liveStart = $('#phase6-live-start');
   const liveCheck = $('#phase6-live-check');
@@ -22,6 +28,8 @@
   const hillChoices = $('#hill-choices');
 
   let session = locationModel.createSession('simulated');
+  let previousSession = null;
+  let clueMemory = fieldModel.createClueMemory();
   let liveOrigin = null;
 
   injectMapLayer();
@@ -92,8 +100,25 @@
     if (roadNote && road) roadNote.textContent = `${road.direction}・${road.strengthLabel}`;
   }
 
+  function renderClueList(element, clues) {
+    if (!element) return;
+    if (!clues.length) {
+      element.innerHTML = '<li data-empty="true">まだ拾っていない</li>';
+      return;
+    }
+    element.innerHTML = clues.map((clue) => `<li>${escapeHtml(clue)}</li>`).join('');
+  }
+
+  function escapeHtml(value) {
+    return String(value).replace(/[&<>'\"]/g, (char) => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '\"': '&quot;'
+    })[char]);
+  }
+
   function renderSession() {
-    const senses = locationModel.senseAll(session);
+    const observation = fieldModel.observe(previousSession, session, clueMemory);
+    clueMemory = observation.memory;
+    const senses = observation.senses;
     const valley = senseByCue(senses, 'valley');
     const road = senseByCue(senses, 'road');
 
@@ -101,17 +126,29 @@
       valleyStrength.textContent = `${valley.direction}・${valley.strengthLabel}`;
       valleyStrength.dataset.strength = valley.strength;
       valleyCopy.textContent = valley.text;
+      if (valleyTrend) {
+        valleyTrend.textContent = valley.trendLabel;
+        valleyTrend.dataset.trend = valley.trend;
+      }
+      renderClueList(valleyClues, clueMemory[valley.placeId] || []);
     }
     if (road) {
       roadStrength.textContent = `${road.direction}・${road.strengthLabel}`;
       roadStrength.dataset.strength = road.strength;
       roadCopy.textContent = road.text;
+      if (roadTrend) {
+        roadTrend.textContent = road.trendLabel;
+        roadTrend.dataset.trend = road.trend;
+      }
+      renderClueList(roadClues, clueMemory[road.placeId] || []);
     }
+    if (fieldNote) fieldNote.textContent = observation.note;
 
     modeLabel.textContent = session.mode === 'live'
       ? 'LIVE LOCATION / 現在地は確認ボタンを押した瞬間だけ読む'
-      : 'SIMULATED LOCATION / 方角だけを40mずつ動かす';
+      : 'SIMULATED LOCATION / 方角だけを動かして気配を読む';
     renderMap(senses);
+    previousSession = session;
 
     const placeId = locationModel.discoveredPlace(session);
     if (placeId) resolveByMovement(placeId);
@@ -134,9 +171,9 @@
       const world = loadWorld();
       const chosen = world.choices[p4.FORK_FIRST_VISIT];
       if (!chosen) return;
-      status.textContent = 'PHASE 6: 目的地を押さず、歩いた方向がそのまま最初の訪問先を決めた。';
+      status.textContent = 'PHASE 7: 寄り道で手掛かりを集め、最後に踏み込んだ方向が最初の訪問先を決めた。';
       status.dataset.tone = 'found';
-      persistenceNote.textContent = '世界の変化だけを保存した。今回の位置・原点・移動方向は端末に残していない。';
+      persistenceNote.textContent = '世界の変化だけを保存した。位置・移動履歴・途中で拾った手掛かりは端末に残していない。';
     });
   }
 
@@ -145,9 +182,9 @@
     navigation.hidden = false;
     phase4Actions.hidden = true;
     if (forkSummary) forkSummary.hidden = true;
-    status.textContent = 'PHASE 6: 地点名を選ばない。安全に歩いた方向から、二つの気配の正体を探る。';
+    status.textContent = 'PHASE 7: 少し寄って気配を読み、必要なら引き返して別方向も確かめる。';
     status.dataset.tone = 'trace';
-    persistenceNote.textContent = '仮想位置も実GPS原点もセッション内だけ。localStorageには世界状態しか残さない。';
+    persistenceNote.textContent = '探索中の位置・前回位置・拾った手掛かりはセッション内だけ。localStorageには世界状態しか残さない。';
     renderSession();
   }
 
@@ -193,7 +230,12 @@
     liveOrigin = null;
     liveCheck.hidden = true;
     try {
-      session = locationModel.moveSession(session.mode === 'simulated' ? session : locationModel.createSession(), moveButton.dataset.move);
+      if (session.mode !== 'simulated') {
+        session = locationModel.createSession('simulated');
+        previousSession = null;
+        clueMemory = fieldModel.createClueMemory();
+      }
+      session = locationModel.moveSession(session, moveButton.dataset.move);
       renderSession();
     } catch (error) {
       status.textContent = error.message;
@@ -205,6 +247,8 @@
     readCurrentLocation((sample) => {
       liveOrigin = sample;
       session = locationModel.createSession('live');
+      previousSession = null;
+      clueMemory = fieldModel.createClueMemory();
       liveCheck.hidden = false;
       renderSession();
       status.textContent = '現在地を一時的な原点にした。移動後、安全な場所でだけ現在地を再確認する。';

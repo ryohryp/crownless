@@ -1,0 +1,73 @@
+/* Reboot Prototype Phase 7 — exploration leaves transient field knowledge, not a distance meter. */
+.phase7-trend {
+  margin-top: 6px !important;
+  color: #5d2c26 !important;
+  font-size: .72rem !important;
+  font-weight: 700;
+}
+.phase7-trend[data-trend='closer'] { color: var(--vermilion) !important; }
+.phase7-trend[data-trend='farther'] { color: var(--ink-soft) !important; }
+
+.phase7-clues {
+  margin-top: 9px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(69, 55, 38, .28);
+}
+.phase7-clues > span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--ink-soft);
+  font-size: .64rem;
+  font-weight: 800;
+  letter-spacing: .07em;
+}
+.phase7-clues ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.phase7-clues li {
+  padding: 3px 6px;
+  border: 1px solid rgba(69, 55, 38, .34);
+  background: rgba(239, 226, 196, .18);
+  color: var(--ink);
+  font-size: .68rem;
+  line-height: 1.35;
+}
+.phase7-clues li[data-empty='true'] {
+  border-style: dashed;
+  color: var(--ink-soft);
+  font-style: italic;
+}
+
+.phase7-field-note {
+  margin: 10px 0 0;
+  padding: 8px 10px;
+  border-left: 3px solid var(--ochre);
+  background: rgba(239, 226, 196, .13);
+  color: var(--ink);
+  font-size: .78rem;
+  line-height: 1.5;
+}
+.phase7-field-note::before {
+  content: 'FIELD NOTE  ';
+  color: var(--ink-soft);
+  font-size: .62rem;
+  font-weight: 800;
+  letter-spacing: .07em;
+}
+
+/* Phase 7 keeps simulation deliberately qualitative. */
+.phase6-direction-pad button { font-weight: 700; }
+
+@media (min-width: 900px) and (max-width: 1199px) {
+  .story-panel .phase7-clues ul { display: grid; }
+}
+
+@media (max-width: 520px) {
+  .phase7-clues ul { display: grid; }
+  .phase7-field-note { font-size: .74rem; }
+}
