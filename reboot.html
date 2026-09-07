@@ -1,0 +1,120 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#2b251b" />
+  <title>Crownless — Reboot Prototype #529</title>
+  <link rel="stylesheet" href="reboot-prototype.css" />
+</head>
+<body data-phase="unknown">
+  <div class="paper-grain" aria-hidden="true"></div>
+  <main class="reboot-shell">
+    <header class="reboot-header">
+      <div>
+        <p class="eyebrow">CROWNLESS / REBOOT PROTOTYPE #529</p>
+        <h1>世界に、<span>自分の選択の痕</span>を残す。</h1>
+      </div>
+      <p class="safety-copy">歩きながら画面を見続けない。安全に立ち止まれる場所でだけ、現在地を確かめる。</p>
+    </header>
+
+    <section id="reboot-map" class="living-map" data-tower-state="undiscovered" data-outcome="none" data-proximity="origin" aria-label="まだ書き込まれていない土地の写本地図">
+      <svg viewBox="0 0 320 180" role="img" aria-labelledby="map-title map-desc">
+        <title id="map-title">生きた写本地図</title>
+        <desc id="map-desc">歩いて発見した場所と、選択から伸びた因果が手描きの線として残る。</desc>
+        <path class="terrain-line t1" d="M6 142 C42 118 74 157 112 132 S190 104 230 126 S282 145 316 119" />
+        <path class="terrain-line t2" d="M18 35 C56 61 83 29 121 51 S180 77 212 49 S275 28 309 48" />
+        <path class="known-ink" d="M28 135 C52 116 79 120 99 105 C117 92 126 77 145 74" />
+        <path id="consequence-line" class="consequence-line" d="M155 78 C186 66 209 88 235 67 C253 53 267 50 286 55" />
+
+        <g id="presence-mark" class="presence-mark" aria-hidden="true">
+          <circle cx="49" cy="133" r="5" />
+          <path d="M43 133h12M49 127v12" />
+        </g>
+
+        <g class="tower-hint" aria-hidden="true">
+          <circle cx="150" cy="78" r="17" />
+          <path d="M143 84l7-16 8 16" />
+        </g>
+
+        <g id="tower-before" class="tower-visual tower-before" aria-hidden="true">
+          <path class="tower-stone" d="M137 92l2-35 8-5 8 5 9-4 2 39z" />
+          <path class="tower-break" d="M140 59l8 4 7-6 9 4" />
+          <circle class="bell" cx="151" cy="70" r="5" />
+          <path class="cut-rope" d="M151 75l-2 8m5-6 3 7" />
+        </g>
+
+        <g id="tower-king" class="tower-visual tower-king" aria-hidden="true">
+          <path class="tower-stone" d="M137 92l2-35 8-5 8 5 9-4 2 39z" />
+          <path class="banner-pole" d="M160 54v-22" />
+          <path class="banner" d="M161 34l15 4-15 7z" />
+          <path class="beacon" d="M142 96c2-9 7-13 9-19 7 8 9 13 7 19z" />
+        </g>
+
+        <g id="tower-free" class="tower-visual tower-free" aria-hidden="true">
+          <path class="tower-stone" d="M137 92l2-35 8-5 8 5 9-4 2 39z" />
+          <path class="shelter" d="M132 101l11-12 11 12z" />
+          <circle class="broken-bell" cx="163" cy="99" r="5" />
+          <path class="broken-bell-mark" d="M160 96l7 7m-1-8-6 9" />
+        </g>
+
+        <g id="crossing-hint" class="crossing-hint" aria-hidden="true">
+          <path class="river" d="M237 39c9 10 4 18 14 29s5 19 17 30" />
+          <path class="bridge" d="M244 68c11-11 22-11 31 0M244 68v8m31-8v8" />
+          <g class="trace trace-king">
+            <path d="M272 46c-7-7 5-8 0-14 9 5 2 11 8 15" />
+            <path d="M279 44c-5-4 4-6 1-10" />
+          </g>
+          <g class="trace trace-free">
+            <ellipse cx="250" cy="83" rx="2" ry="4" />
+            <ellipse cx="258" cy="87" rx="2" ry="4" />
+            <ellipse cx="266" cy="91" rx="2" ry="4" />
+          </g>
+        </g>
+
+        <text id="map-tower-label" class="map-label tower-label" x="127" y="116">名のない気配</text>
+        <text class="map-label crossing-label" x="230" y="117">古い渡り場</text>
+        <text id="map-crossing-hook" class="map-note crossing-hook" x="231" y="131"></text>
+      </svg>
+      <p class="map-caption">住所も建物名も表示しない。歩いた軌跡そのものも保存しない。</p>
+    </section>
+
+    <section id="story-panel" class="story-panel" aria-live="polite">
+      <p id="story-kicker" class="eyebrow">UNWRITTEN LAND</p>
+      <h2 id="story-title">この土地には、まだ何の物語もない。</h2>
+      <p id="story-copy" class="story-copy">安全に歩ける道を自分で選び、立ち止まれる場所でだけ現在地を確かめる。地図は行き先を命令しない。</p>
+
+      <div id="story-dialogue" class="dialogue" hidden>
+        <p><span>老人</span>「鐘を鳴らせば、王の兵が来る。」</p>
+        <p><span>若い旅人</span>「兵が来れば、ここは奴らの場所になる。」</p>
+      </div>
+
+      <button id="scene-continue" class="ink-button quiet-action" type="button" hidden>旅人たちの話を聞く</button>
+
+      <div id="fate-choices" class="fate-choices" hidden aria-label="鐘なき塔の運命を選ぶ">
+        <button class="fate-card" type="button" data-choice="ring_bell">
+          <span class="fate-mark">Ⅰ</span>
+          <strong>鐘を鳴らす</strong>
+          <small>王の兵を呼び、旅人を守る。だが、この場所は王の影響を受ける。</small>
+        </button>
+        <button class="fate-card" type="button" data-choice="break_bell">
+          <span class="fate-mark">Ⅱ</span>
+          <strong>鐘を壊す</strong>
+          <small>二度と誰かを呼べないようにする。旅人たちは、自分たちで逃げる。</small>
+        </button>
+      </div>
+
+      <div class="location-actions">
+        <button id="start-live" class="ink-button primary-action" type="button">現在地から始める</button>
+        <button id="start-sim" class="ink-button secondary-action" type="button">模擬探索で試す</button>
+        <button id="check-location" class="ink-button primary-action" type="button" hidden>安全な場所で現在地を確かめる</button>
+      </div>
+      <p id="location-status" class="location-status">現在地は、ボタンを押した瞬間にだけ確認する。</p>
+      <p id="persistence-note" class="persistence-note">世界の状態だけを端末に残す。位置座標や移動経路は保存しない。</p>
+    </section>
+  </main>
+
+  <script src="src/reboot-prototype-state.js"></script>
+  <script src="src/reboot-prototype.js"></script>
+</body>
+</html>
