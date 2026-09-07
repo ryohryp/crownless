@@ -27,6 +27,7 @@
   let session = p2.createLocationSession();
   let liveStarted = false;
   let contextRevealed = false;
+  let locationRequestInFlight = false;
 
   injectMapLayer();
   refresh();
@@ -46,7 +47,7 @@
   }
 
   function escapeHtml(value) {
-    return String(value).replace(/[&<>'"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[char]);
+    return String(value).replace(/[&<>'\"]/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '\"': '&quot;' })[char]);
   }
 
   function injectMapLayer() {
@@ -162,30 +163,79 @@
     status.dataset.tone = 'found';
   }
 
+  function setLocationRequestBusy(busy) {
+    locationRequestInFlight = busy;
+    phase2Live.disabled = busy;
+    phase2Live.setAttribute('aria-busy', busy ? 'true' : 'false');
+    phase2Live.textContent = busy
+      ? '現在地を確認しています…'
+      : (liveStarted ? '安全な場所で現在地をもう一度確かめる' : 'GPSで古い渡り場へ進む');
+  }
+
+  function locationErrorMessage(error) {
+    if (error && error.code === 1) {
+      return '位置情報の利用が許可されていない。端末またはブラウザの設定で位置情報を許可してから、もう一度確かめる。';
+    }
+    if (error && error.code === 2) {
+      return '現在地を取得できない。空が見える場所など、安全な場所で少し待ってからもう一度確かめる。';
+    }
+    if (error && error.code === 3) {
+      return '現在地の取得に時間がかかりすぎた。通信や位置情報の状態を確認して、もう一度確かめる。';
+    }
+    return '現在地を確認できなかった。安全な場所で少し待ってから、もう一度確かめる。';
+  }
+
   function requestLocation() {
+    if (locationRequestInFlight) return;
     if (!navigator.geolocation || !navigator.geolocation.getCurrentPosition) {
-      status.textContent = '現在地を取得できない。DEV PATHなら同じ発見stateをすぐ試せる。';
+      status.textContent = 'このブラウザでは現在地を取得できない。DEV PATHなら同じ発見stateをすぐ試せる。';
       status.dataset.tone = 'warning';
       return;
     }
+
+    setLocationRequestBusy(true);
+    status.textContent = '現在地を確認している。安全な場所でそのまま少し待つ。';
+    status.dataset.tone = 'quiet';
+
     navigator.geolocation.getCurrentPosition((position) => {
-      const result = p2.observeOldCrossingLocation(session, state, position.coords);
-      state = result.state;
-      if (result.status === 'discovered') {
-        persist();
-        contextRevealed = false;
-        return renderArrival();
+      try {
+        const result = p2.observeOldCrossingLocation(session, state, position.coords);
+        state = result.state;
+        if (result.status === 'discovered') {
+          persist();
+          contextRevealed = false;
+          setLocationRequestBusy(false);
+          renderArrival();
+          status.textContent = '古い渡り場を発見した。鐘なき塔から続いた痕跡が、ここへ届いている。';
+          status.dataset.tone = 'found';
+          return;
+        }
+
+        if (result.status === 'anchored') {
+          status.textContent = 'ここを起点にした。安全に歩いてから、もう一度だけ現在地を確かめる。';
+        } else if (result.status === 'searching') {
+          status.textContent = result.proximity === 'near'
+            ? '古い渡り場は近い。安全にもう少し進んでから、現在地をもう一度確かめる。'
+            : 'まだ古い渡り場には届いていない。安全に歩いてから、現在地をもう一度確かめる。';
+        } else {
+          status.textContent = 'この場所では、もう位置確認を進める必要はない。';
+        }
+        status.dataset.tone = 'quiet';
+      } catch (_error) {
+        status.textContent = '取得した現在地を判定できなかった。安全な場所で、もう一度確かめる。';
+        status.dataset.tone = 'warning';
+      } finally {
+        setLocationRequestBusy(false);
       }
-      phase2Live.textContent = '安全な場所で現在地をもう一度確かめる';
-      status.textContent = result.status === 'anchored' ? 'ここを起点にした。安全に歩いてから、もう一度だけ現在地を確かめる。' : '痕跡は川の方へ続いている。';
-      status.dataset.tone = 'quiet';
-    }, () => {
-      status.textContent = '現在地を確認できなかった。DEV PATHで体験を止めずに進められる。';
+    }, (error) => {
+      setLocationRequestBusy(false);
+      status.textContent = locationErrorMessage(error);
       status.dataset.tone = 'warning';
     }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 15000 });
   }
 
   phase2Live.addEventListener('click', () => {
+    if (locationRequestInFlight) return;
     if (!liveStarted) {
       liveStarted = true;
       session = p2.createLocationSession();
