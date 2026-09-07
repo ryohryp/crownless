@@ -303,6 +303,8 @@ For #503 Phase 1:
 
 Never write `Keep`, `Change`, or `Kill` from tests or static code review alone.
 
+When gameplay reaches **Playtest pending** and a human playtest, play-feel evaluation, or Keep / Change / Kill decision is performed, read `skills/crownless-playtest/SKILL.md` and use its evidence separation, verdict, and next-smallest-action workflow. The Skill executes this policy; it does not replace or redefine Canon.
+
 ## Decision log alignment (#367)
 
 Each autonomous cycle recorded in #367 should include, at minimum:
