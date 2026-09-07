@@ -9,6 +9,7 @@
   if (!p4) throw new Error('Crownless Reboot Phase 4 state is required');
 
   const STEP_METERS = 40;
+  const DIAGONAL_STEP_METERS = STEP_METERS / Math.sqrt(2);
   const DISCOVERY_RADIUS_METERS = 42;
   const EARTH_RADIUS_METERS = 6371000;
 
@@ -19,9 +20,13 @@
 
   const DIRECTION_DELTAS = Object.freeze({
     north: Object.freeze({ x: 0, y: STEP_METERS }),
+    north_east: Object.freeze({ x: DIAGONAL_STEP_METERS, y: DIAGONAL_STEP_METERS }),
     east: Object.freeze({ x: STEP_METERS, y: 0 }),
+    south_east: Object.freeze({ x: DIAGONAL_STEP_METERS, y: -DIAGONAL_STEP_METERS }),
     south: Object.freeze({ x: 0, y: -STEP_METERS }),
-    west: Object.freeze({ x: -STEP_METERS, y: 0 })
+    south_west: Object.freeze({ x: -DIAGONAL_STEP_METERS, y: -DIAGONAL_STEP_METERS }),
+    west: Object.freeze({ x: -STEP_METERS, y: 0 }),
+    north_west: Object.freeze({ x: -DIAGONAL_STEP_METERS, y: DIAGONAL_STEP_METERS })
   });
 
   function finite(value) {
@@ -149,6 +154,7 @@
 
   return Object.freeze({
     STEP_METERS,
+    DIAGONAL_STEP_METERS,
     DISCOVERY_RADIUS_METERS,
     TRACE_TARGETS,
     createSession,
