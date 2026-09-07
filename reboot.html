@@ -4,16 +4,17 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#2b251b" />
-  <title>Crownless — Reboot Prototype #529–#531</title>
+  <title>Crownless — Reboot Prototype #529–#533</title>
   <link rel="stylesheet" href="reboot-prototype.css" />
   <link rel="stylesheet" href="reboot-phase2.css" />
+  <link rel="stylesheet" href="reboot-phase3.css" />
 </head>
 <body data-phase="unknown">
   <div class="paper-grain" aria-hidden="true"></div>
   <main class="reboot-shell">
     <header class="reboot-header">
       <div>
-        <p class="eyebrow">CROWNLESS / REBOOT PROTOTYPE #529–#531</p>
+        <p class="eyebrow">CROWNLESS / REBOOT PROTOTYPE #529–#533</p>
         <h1>世界に、<span>自分の選択の痕</span>を残す。</h1>
       </div>
       <p class="safety-copy">歩きながら画面を見続けない。安全に立ち止まれる場所でだけ、現在地を確かめる。</p>
@@ -120,6 +121,21 @@
         </button>
       </div>
 
+      <button id="hill-continue" class="ink-button quiet-action" type="button" hidden>丘の信号台へ上がる</button>
+
+      <div id="hill-choices" class="fate-choices" hidden aria-label="黒鴉の丘から送る合図を選ぶ">
+        <button class="fate-card" type="button" data-choice="signal_chapel">
+          <span class="fate-mark">Ⅰ</span>
+          <strong>谷へ合図する</strong>
+          <small>塩の礼拝堂へ警告を送る。朽ちた関門には何も知らせない。</small>
+        </button>
+        <button class="fate-card" type="button" data-choice="signal_gate">
+          <span class="fate-mark">Ⅱ</span>
+          <strong>街道へ合図する</strong>
+          <small>朽ちた関門へ警告を送る。塩の礼拝堂には何も知らせない。</small>
+        </button>
+      </div>
+
       <div class="location-actions">
         <button id="start-live" class="ink-button primary-action" type="button">現在地から始める</button>
         <button id="start-sim" class="ink-button secondary-action" type="button">模擬探索で試す</button>
@@ -133,6 +149,28 @@
         <small>開発用ショートカットは移動時間だけを省略し、GPS側と同じ発見state transitionを通す。</small>
       </div>
 
+      <div id="phase3-actions" class="dev-shortcut" hidden>
+        <p class="eyebrow">PHASE 3 / 黒鴉の丘へ</p>
+        <button id="phase3-live" class="ink-button primary-action" type="button">GPSで黒鴉の丘へ進む</button>
+        <button id="dev-walk-hill" class="ink-button dev-action" type="button">DEV: 黒鴉の丘まで歩いたことにする</button>
+        <small>移動時間だけを省略する。過去2回の選択履歴はそのまま丘の状況へ持ち込まれる。</small>
+      </div>
+
+      <section id="fork-summary" class="fork-summary" hidden aria-label="黒鴉の丘から生まれた二つの次地点">
+        <p class="eyebrow">TWO PLACES CHANGED / 次は一つではない</p>
+        <div class="next-place-grid">
+          <article class="next-place-card">
+            <header><strong>塩の礼拝堂</strong><b id="chapel-state">未発見</b></header>
+            <p id="chapel-hook">谷の古い礼拝所。丘での選択が、ここへ先に届く。</p>
+          </article>
+          <article class="next-place-card">
+            <header><strong>朽ちた関門</strong><b id="gate-state">未発見</b></header>
+            <p id="gate-hook">崩れた街道の関門。丘での選択が、ここへ別の形で届く。</p>
+          </article>
+        </div>
+        <p class="fork-question">警戒している場所を見に行くか。何も知らない場所を先に確かめるか。</p>
+      </section>
+
       <p id="location-status" class="location-status">現在地は、ボタンを押した瞬間にだけ確認する。</p>
       <p id="persistence-note" class="persistence-note">世界の状態だけを端末に残す。位置座標や移動経路は保存しない。</p>
     </section>
@@ -142,5 +180,7 @@
   <script src="src/reboot-prototype.js"></script>
   <script src="src/reboot-phase2-state.js"></script>
   <script src="src/reboot-phase2-controller.js"></script>
+  <script src="src/reboot-phase3-state.js"></script>
+  <script src="src/reboot-phase3-controller.js"></script>
 </body>
 </html>
