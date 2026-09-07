@@ -71,6 +71,21 @@
         outline:1px solid rgba(205,173,99,.8);
         outline-offset:7px;
       }
+      .territory-fork-marker {
+        position:absolute;
+        z-index:6;
+        left:50%;
+        top:calc(100% + 5px);
+        translate:-50% 0;
+        padding:2px 4px;
+        border:1px solid rgba(205,173,99,.46);
+        background:rgba(14,12,9,.9);
+        color:#ddc986;
+        font:700 6px/1.15 ui-monospace,monospace;
+        letter-spacing:.06em;
+        white-space:nowrap;
+        pointer-events:none;
+      }
       .territory-frontier-fork {
         margin-top:10px;
         padding:10px;
@@ -118,10 +133,19 @@
   }
 
   function syncCandidateMarkers(document, state) {
-    const keys = new Set(state.candidates.map((candidate) => candidate.key));
+    const byKey = new Map(state.candidates.map((candidate, index) => [candidate.key, { ...candidate, index }]));
     document.querySelectorAll("[data-territory-key]").forEach((marker) => {
-      if (keys.has(cleanText(marker.dataset.territoryKey))) marker.dataset.territoryForkCandidate = "true";
-      else delete marker.dataset.territoryForkCandidate;
+      marker.querySelector?.(".territory-fork-marker")?.remove();
+      const candidate = byKey.get(cleanText(marker.dataset.territoryKey));
+      if (!candidate) {
+        delete marker.dataset.territoryForkCandidate;
+        return;
+      }
+      marker.dataset.territoryForkCandidate = "true";
+      const badge = document.createElement("b");
+      badge.className = "territory-fork-marker";
+      badge.textContent = `前線${candidate.index + 1} · ${candidate.role === "route" ? "街道" : "資源地"}`;
+      marker.appendChild(badge);
     });
   }
 
