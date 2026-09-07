@@ -1,0 +1,145 @@
+/* Reboot Prototype Phase 3 — one history branches into two meaningful next places. */
+.hill-phase,
+.fork-line,
+.next-place,
+.chapel-label,
+.chapel-note,
+.gate-label,
+.gate-note { display: none; }
+
+.living-map[data-hill-state='discovered'] .hill-discovered,
+.living-map[data-hill-state='valley_watch'] .hill-valley-watch,
+.living-map[data-hill-state='road_watch'] .hill-road-watch { display: block; }
+
+.hill-ground,
+.signal-mast,
+.raven-pair {
+  stroke: var(--ink) !important;
+  stroke-width: 1.7 !important;
+}
+.signal-flame {
+  stroke: var(--ember) !important;
+  stroke-width: 2 !important;
+}
+.signal-arrow {
+  stroke: var(--ochre) !important;
+  stroke-width: 1.8 !important;
+  stroke-dasharray: 4 3;
+}
+
+.living-map[data-hill-state='valley_watch'] .fork-line,
+.living-map[data-hill-state='road_watch'] .fork-line,
+.living-map[data-hill-state='valley_watch'] .next-place,
+.living-map[data-hill-state='road_watch'] .next-place,
+.living-map[data-hill-state='valley_watch'] .chapel-label,
+.living-map[data-hill-state='valley_watch'] .chapel-note,
+.living-map[data-hill-state='valley_watch'] .gate-label,
+.living-map[data-hill-state='valley_watch'] .gate-note,
+.living-map[data-hill-state='road_watch'] .chapel-label,
+.living-map[data-hill-state='road_watch'] .chapel-note,
+.living-map[data-hill-state='road_watch'] .gate-label,
+.living-map[data-hill-state='road_watch'] .gate-note { display: block; }
+
+.fork-line {
+  fill: none;
+  stroke: var(--ink-soft) !important;
+  stroke-width: 1.6 !important;
+  stroke-dasharray: 4 4;
+  animation: ink-route 1s steps(6, end) both;
+}
+.living-map[data-chapel-state='hinted_warned'] .fork-chapel,
+.living-map[data-gate-state='hinted_warned'] .fork-gate {
+  stroke: var(--ochre) !important;
+  stroke-width: 3 !important;
+  stroke-dasharray: none;
+}
+.living-map[data-chapel-state='hinted_exposed'] .fork-chapel,
+.living-map[data-gate-state='hinted_exposed'] .fork-gate {
+  stroke: var(--ash) !important;
+  stroke-width: 1.3 !important;
+  stroke-dasharray: 2 5;
+}
+
+.chapel-roof,
+.chapel-body,
+.chapel-cross,
+.gate-wall,
+.gate-open {
+  stroke: var(--ink-soft) !important;
+  stroke-width: 1.6 !important;
+}
+.warning-shutter,
+.gate-block {
+  display: none;
+  stroke: var(--vermilion) !important;
+  stroke-width: 1.8 !important;
+}
+.open-door { display: none; stroke: var(--ash) !important; stroke-width: 1.5 !important; }
+
+.living-map[data-chapel-state='hinted_warned'] .chapel-warning,
+.living-map[data-gate-state='hinted_warned'] .gate-warning { display: block; }
+.living-map[data-chapel-state='hinted_exposed'] .chapel-exposed,
+.living-map[data-gate-state='hinted_exposed'] .gate-exposed { display: block; }
+
+.chapel-label,
+.gate-label { font-size: 6px; font-weight: 700; }
+.chapel-note,
+.gate-note { font-size: 5px; fill: var(--vermilion); }
+
+.fork-summary {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(69, 55, 38, .34);
+}
+.fork-summary > .eyebrow { margin-bottom: 8px; }
+.next-place-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+.next-place-card {
+  min-height: 130px;
+  padding: 14px;
+  border: 1px solid rgba(69, 55, 38, .35);
+  background: rgba(239, 226, 196, .18);
+}
+.next-place-card header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 9px;
+}
+.next-place-card strong { font-size: 1.05rem; color: var(--ink); }
+.next-place-card b {
+  padding: 3px 7px;
+  border: 1px solid currentColor;
+  color: var(--vermilion);
+  font-size: .68rem;
+  letter-spacing: .08em;
+  font-weight: 600;
+}
+.next-place-card p {
+  margin: 0;
+  color: var(--ink-soft);
+  line-height: 1.65;
+  font-size: .86rem;
+}
+.fork-question {
+  margin: 11px 0 0;
+  color: var(--ink-soft);
+  font-style: italic;
+  line-height: 1.55;
+}
+
+@media (max-width: 520px) {
+  .next-place-grid { grid-template-columns: 1fr; }
+  .next-place-card { min-height: 0; }
+  .chapel-label, .gate-label { font-size: 5.5px; }
+  .chapel-note, .gate-note { font-size: 4.6px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .fork-line,
+  .signal-arrow { animation: none !important; }
+}
