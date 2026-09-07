@@ -88,7 +88,7 @@ test('Phase 2 UI stays isolated from current Crownless systems', () => {
   assert.match(html, /id="dev-walk-next"/);
   assert.match(html, /渡りを断つ/);
   assert.match(html, /渡りを残す/);
-  assert.match(html, /黒鴉の丘/);
+  assert.match(controller, /黒鴉の丘/);
   assert.match(html, /reboot-phase2-state\.js/);
   assert.match(html, /reboot-phase2-controller\.js/);
   assert.match(controller, /observeOldCrossingLocation/);
