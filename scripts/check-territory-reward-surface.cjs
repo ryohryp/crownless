@@ -1,4 +1,4 @@
-// Mobile browser regression for #512 Territory reward surface + Territory Build MVP + Phase C World Trace + #522 conquest payoff.
+// Mobile browser regression for #512 Territory reward surface + Territory Build MVP + Phase C World Trace + #522 conquest payoff + #519 operation causality.
 const assert = require("node:assert/strict");
 const { createServer } = require("node:http");
 const { readFile } = require("node:fs/promises");
@@ -155,10 +155,15 @@ async function contestSelectedPlace(page) {
     await page.waitForSelector(".territory-development-effect", { state: "attached" });
     assert.match(await page.locator(".territory-development-effect").textContent(), /補給所.*通常比約55%短縮/);
 
-    // Territory notes are part of the existing staged preparation UI and are visible
-    // on the policy stage, where the player weighs the expedition's risk posture.
+    // #519: keep the bounded route contest as one operation. The existing immutable
+    // dispatch input carries the party/equipment/policy; Territory Build changes the
+    // actual duration before dispatch. No generic operation engine is introduced.
     await page.getByRole("button", { name: "仲間と道具へ →", exact: true }).click();
+    await page.locator('input[name="companion"][value="ed"]').check();
+    await page.locator('input[name="equipment"][value="old-knife"]').check();
+    await page.locator('input[name="equipment"][value="shortbow"]').check();
     await page.getByRole("button", { name: "方針へ →", exact: true }).click();
+    await page.locator('input[name="policy"][value="standard"]').check();
     await page.waitForSelector(".territory-development-effect");
     assert.match(await page.locator(".territory-development-effect").innerText(), /補給所.*通常比約55%短縮/);
 
@@ -174,8 +179,45 @@ async function contestSelectedPlace(page) {
     assert.ok(liveEffect.base > 0);
     assert.equal(liveEffect.next, Math.round(liveEffect.base * 0.7), "supply post must alter the real dispatch-state destination, not only copy text");
 
+    await page.getByRole("button", { name: "出発確認へ →", exact: true }).click();
+    await page.locator("form button[type=submit]").click();
+    const operation = page.locator(".territory-operation-brief");
+    await operation.waitFor();
+    const operationCopy = await operation.innerText();
+    assert.match(operationCopy, /OPERATION \/ 作戦実行中/);
+    assert.match(operationCopy, /街道の露店/);
+    assert.match(operationCopy, /通常/);
+    assert.match(operationCopy, /エド/);
+    assert.match(operationCopy, /古い短刀/);
+    assert.match(operationCopy, /狩り弓/);
+    assert.match(operationCopy, /補給所.*通常比約55%短縮/);
+    assert.match(operationCopy, /帰還予定/);
+
+    const immutable = await page.evaluate(() => {
+      const active = CrownlessExpeditionPresentation.getState().activeExpedition;
+      return active && active.inputs;
+    });
+    assert.equal(immutable.policyId, "standard");
+    assert.deepEqual(immutable.companionIds, ["ed"]);
+    assert.deepEqual(immutable.equipmentIds.sort(), ["old-knife", "shortbow"]);
+
+    await page.getByRole("button", { name: "開発用: 時間を進める", exact: true }).click();
+    const causal = page.locator(".expedition-causal-decisions");
+    await causal.waitFor();
+    const causalCopy = await causal.innerText();
+    assert.match(causalCopy, /CAUSAL REPORT \/ 判断が効いた点/);
+    assert.match(causalCopy, /補給所.*通常比約55%短縮/);
+    assert.match(causalCopy, /狩り弓.*初撃/);
+    assert.match(causalCopy, /エド.*力強さ.*勇気.*攻防/);
+    assert.match(await page.locator(".territory-report-note").innerText(), /CONTROL \/ 地点を取った/);
+
+    await page.locator(".expedition-folio__close").click();
+    await page.locator(".world-atlas-home-entry").click();
+    await page.waitForSelector(".territory-atlas-summary");
+    assert.match(await page.locator(".territory-atlas-summary").innerText(), /支配 2\/3 · 前線 1/);
+
     assert.deepEqual(errors, []);
-    console.log("PASS 412x915: capture payoff → directional Atlas consequence → build choice → role-reactive World Trace → changed next preparation");
+    console.log("PASS 412x915: conquest payoff → territory operation wait → grounded causal Report → second control → next frontier");
   } finally {
     await page.close();
     await browser.close();
