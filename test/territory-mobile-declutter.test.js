@@ -32,6 +32,15 @@ test("well-separated points keep their geographic positions", () => {
   assert.ok(offsets.every((item) => item.x === 0 && item.y === 0));
 });
 
+test("Atlas focus path keeps mobile summary status-only and causal routes directional", () => {
+  assert.equal(Declutter.MOBILE_MAX, 700);
+  assert.equal(typeof Declutter.decorateCausalRoutes, "function");
+  assert.match(source, /territory-route-arrowhead/);
+  assert.match(source, /marker-end/);
+  assert.match(source, /data-territory-directional/);
+  assert.match(source, /\.territory-atlas-summary span \{ display:none !important; \}/);
+});
+
 test("mobile declutter remains presentation-only and bounded", () => {
   assert.equal(Declutter.MOBILE_MAX, 700);
   assert.match(source, /world-atlas-map--nearby/);
