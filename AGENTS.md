@@ -221,6 +221,8 @@ When choosing between architectural novelty and something that tests whether tak
 
 For autonomous task selection, follow the **Gameplay Gate** in `docs/autonomous-development-policy.md`. A gameplay innovation must add a meaningful player-visible change or decision in the Territory-driven loop and be playable end-to-end as a smallest slice; **CI green means Implemented, not fun**. Record gameplay work as **Playtest pending → Keep / Change / Kill** after human playtest.
 
+For any human gameplay playtest, play-feel evaluation, or Keep / Change / Kill decision, read `skills/crownless-playtest/SKILL.md` and use it as the execution and recording workflow. Keep implementation evidence, automated validation, observed play behavior, and player judgment distinct; never infer a gameplay verdict from CI or static review.
+
 Do not treat another isolated location-specific binary choice, Report text addition, tiny UI tweak, or expedition-result optimization as sufficient product innovation merely because it is low risk. It must serve the new North Star or be necessary maintenance.
 
 ## Before changing code
@@ -233,9 +235,10 @@ Do not treat another isolated location-specific binary choice, Report text addit
 6. If the task touches the Grey Hearth, read `docs/hearth-presentation-spec.md`.
 7. If the task touches visuals, read `docs/visual-design-guide-v0.2.md`, inspect the visual reference, and read `skills/crownless-visual-design/SKILL.md`.
 8. If an image generator will be used, also read `docs/visual/IMAGE_GENERATION_HANDOFF.md` and complete its preflight.
-9. Inspect current implementation, open issues/PRs, recent merged work, and current CI before proposing replacement architecture.
-10. Treat old product-level expedition wording and old combat documents as history when they conflict with ADR 0004.
-11. Preserve useful location, persistence, world-knowledge, expedition, visual, and deployment behavior unless there is a concrete reason to change it.
+9. If the task is a gameplay playtest, play-feel evaluation, or Keep / Change / Kill decision, read `skills/crownless-playtest/SKILL.md` before evaluating the slice.
+10. Inspect current implementation, open issues/PRs, recent merged work, and current CI before proposing replacement architecture.
+11. Treat old product-level expedition wording and old combat documents as history when they conflict with ADR 0004.
+12. Preserve useful location, persistence, world-knowledge, expedition, visual, and deployment behavior unless there is a concrete reason to change it.
 
 ## Implementation expectations
 
