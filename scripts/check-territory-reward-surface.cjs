@@ -101,9 +101,13 @@ async function contestSelectedPlace(page) {
     // Reopening the Atlas is the conquest reward surface.
     await page.locator(".world-atlas-home-entry").click();
     await page.waitForSelector(".territory-capture-toast");
-    assert.match(await page.locator(".territory-capture-toast").innerText(), /灰炉が「丘の物見台」を押さえた/);
+    const captureCopy = await page.locator(".territory-capture-toast").innerText();
+    assert.match(captureCopy, /灰炉が「丘の物見台」を押さえた/);
+    assert.match(captureCopy, /街道の露店へ支援線が伸びた/);
     assert.match(await page.locator(".territory-atlas-summary").innerText(), /支配 1\/3 · 前線 2/);
     assert.ok(await page.locator(".territory-route-ink path").count() >= 1, "captured foothold must draw a manuscript route toward the changed next target");
+    await page.waitForFunction(() => document.querySelector('.territory-route-ink[data-territory-directional="true"] > path[marker-end]'));
+    assert.ok(await page.locator('.territory-route-ink[data-territory-directional="true"] > path[marker-end]').count() >= 1, "the support route must communicate controlled-place → next-target direction");
     assert.equal(await page.locator('[data-territory-owner="player"]').count(), 1);
     assert.ok(await page.locator('[data-territory-frontier="true"]').count() >= 1);
 
@@ -162,7 +166,7 @@ async function contestSelectedPlace(page) {
     assert.equal(liveEffect.next, Math.round(liveEffect.base * 0.7), "supply post must alter the real dispatch-state destination, not only copy text");
 
     assert.deepEqual(errors, []);
-    console.log("PASS 412x915: capture → Atlas reward → build choice → role-reactive World Trace → changed next preparation");
+    console.log("PASS 412x915: capture → directional Atlas consequence → build choice → role-reactive World Trace → changed next preparation");
   } finally {
     await page.close();
     await browser.close();
