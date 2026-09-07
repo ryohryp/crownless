@@ -3,6 +3,11 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 
+// Reboot state modules intentionally mirror browser script order and publish each
+// predecessor on globalThis. Keep the Node test bootstrap in that same order.
+require('../src/reboot-prototype-state.js');
+require('../src/reboot-phase2-state.js');
+require('../src/reboot-phase3-state.js');
 const p4 = require('../src/reboot-phase4-state.js');
 const locationModel = require('../src/reboot-phase6-location.js');
 const fieldModel = require('../src/reboot-phase7-exploration.js');
@@ -114,6 +119,6 @@ test('field clue memory and previous samples remain session-only', () => {
 });
 
 test('discovery contract remains Phase 6/4 compatible after collecting clues', () => {
-  let session = moveMany(locationModel.createSession(), 'west', 4);
+  const session = moveMany(locationModel.createSession(), 'west', 4);
   assert.equal(locationModel.discoveredPlace(session), p4.RUINED_GATE);
 });
