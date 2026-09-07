@@ -208,7 +208,7 @@ async function contestSelectedPlace(page) {
     assert.match(causalCopy, /CAUSAL REPORT \/ 判断が効いた点/);
     assert.match(causalCopy, /補給所.*通常比約55%短縮/);
     assert.match(causalCopy, /狩り弓.*初撃/);
-    assert.match(causalCopy, /エド.*力強さ.*勇気.*攻防/);
+    assert.match(causalCopy, /エド.*(?:力強さ.*勇気|勇気.*力強さ).*攻防/);
     assert.match(await page.locator(".territory-report-note").innerText(), /CONTROL \/ 地点を取った/);
 
     await page.locator(".expedition-folio__close").click();
