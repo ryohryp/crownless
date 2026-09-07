@@ -4,17 +4,18 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#2b251b" />
-  <title>Crownless — Reboot Prototype #529–#533</title>
+  <title>Crownless — Reboot Prototype #529–#535</title>
   <link rel="stylesheet" href="reboot-prototype.css" />
   <link rel="stylesheet" href="reboot-phase2.css" />
   <link rel="stylesheet" href="reboot-phase3.css" />
+  <link rel="stylesheet" href="reboot-phase4.css" />
 </head>
 <body data-phase="unknown">
   <div class="paper-grain" aria-hidden="true"></div>
   <main class="reboot-shell">
     <header class="reboot-header">
       <div>
-        <p class="eyebrow">CROWNLESS / REBOOT PROTOTYPE #529–#533</p>
+        <p class="eyebrow">CROWNLESS / REBOOT PROTOTYPE #529–#535</p>
         <h1>世界に、<span>自分の選択の痕</span>を残す。</h1>
       </div>
       <p class="safety-copy">歩きながら画面を見続けない。安全に立ち止まれる場所でだけ、現在地を確かめる。</p>
@@ -171,6 +172,20 @@
         <p class="fork-question">警戒している場所を見に行くか。何も知らない場所を先に確かめるか。</p>
       </section>
 
+      <section id="phase4-actions" class="phase4-travel-actions" hidden aria-label="次に向かう場所を選ぶ">
+        <p class="eyebrow">PHASE 4 / 行き先そのものが決断</p>
+        <div class="phase4-travel-grid">
+          <button class="travel-card" type="button" data-place="salt_chapel">
+            <strong>DEV: 塩の礼拝堂へ向かう</strong>
+            <small>谷へ歩く。向かわなかった関門でも、その間に世界が進む。</small>
+          </button>
+          <button class="travel-card" type="button" data-place="ruined_gate">
+            <strong>DEV: 朽ちた関門へ向かう</strong>
+            <small>街道へ歩く。向かわなかった礼拝堂でも、その間に世界が進む。</small>
+          </button>
+        </div>
+      </section>
+
       <p id="location-status" class="location-status">現在地は、ボタンを押した瞬間にだけ確認する。</p>
       <p id="persistence-note" class="persistence-note">世界の状態だけを端末に残す。位置座標や移動経路は保存しない。</p>
     </section>
@@ -182,5 +197,7 @@
   <script src="src/reboot-phase2-controller.js"></script>
   <script src="src/reboot-phase3-state.js"></script>
   <script src="src/reboot-phase3-controller.js"></script>
+  <script src="src/reboot-phase4-state.js"></script>
+  <script src="src/reboot-phase4-controller.js"></script>
 </body>
 </html>
