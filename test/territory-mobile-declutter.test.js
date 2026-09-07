@@ -41,6 +41,26 @@ test("Atlas focus path keeps mobile summary status-only and causal routes direct
   assert.match(source, /\.territory-atlas-summary span \{ display:none !important; \}/);
 });
 
+test("conquest payoff derives one next-target reason from current territory state", () => {
+  const target = Declutter.conquestPayoffTarget({
+    CrownlessTerritoryPhase1: {
+      territories: () => [
+        { key: "geo:held", owner: "player", entry: { name: "丘の物見台" }, meta: { effect: "街道攻略の所要時間を35%短縮" } },
+        { key: "geo:next", owner: "npc", entry: { name: "街道の露店" }, meta: { effect: "資源地攻略の所要時間を25%短縮" } },
+      ],
+    },
+  });
+  assert.deepEqual(target, {
+    key: "geo:next",
+    name: "街道の露店",
+    reason: "取れば、資源地攻略の所要時間を25%短縮。",
+  });
+  assert.equal(typeof Declutter.decorateConquestPayoff, "function");
+  assert.match(source, /territory-conquest-temptation/);
+  assert.match(source, /territory-support-write/);
+  assert.match(source, /prefers-reduced-motion:reduce/);
+});
+
 test("mobile declutter remains presentation-only and bounded", () => {
   assert.equal(Declutter.MOBILE_MAX, 700);
   assert.match(source, /world-atlas-map--nearby/);
