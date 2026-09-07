@@ -1,0 +1,78 @@
+/* Reboot Prototype Phase 2 — authored consequence continuation. */
+.crossing-phase,
+.hill-hint,
+.second-consequence-line { display: none; }
+
+.living-map[data-crossing-state='discovered'] .crossing-hint,
+.living-map[data-crossing-state='ash_crossing'] .crossing-hint,
+.living-map[data-crossing-state='lantern_crossing'] .crossing-hint { display: none; }
+
+.living-map[data-crossing-state='discovered'] .crossing-found,
+.living-map[data-crossing-state='ash_crossing'] .crossing-ash,
+.living-map[data-crossing-state='lantern_crossing'] .crossing-lantern { display: block; }
+
+.crossing-found .river,
+.crossing-ash .river,
+.crossing-lantern .river { opacity: .78; }
+.crossing-hut {
+  fill: rgba(88,118,109,.18) !important;
+  stroke: var(--ink-soft) !important;
+  stroke-width: 1.7 !important;
+}
+.broken-bridge { stroke: var(--vermilion) !important; stroke-width: 2.8 !important; }
+.ash-smoke { stroke: var(--ash) !important; stroke-width: 1.8 !important; }
+.lantern {
+  fill: rgba(154,92,44,.54) !important;
+  stroke: var(--ember) !important;
+  stroke-width: 1.4 !important;
+}
+
+.living-map[data-hill-state='hinted'] .second-consequence-line,
+.living-map[data-hill-state='hinted'] .hill-hint { display: block; }
+.second-consequence-line {
+  stroke: var(--ochre) !important;
+  stroke-width: 2.6 !important;
+  stroke-dasharray: 4 4;
+  animation: ink-route 1s steps(6, end) both;
+}
+.hill-line { stroke: var(--ink-soft) !important; stroke-width: 2 !important; }
+.hill-flag { stroke: var(--vermilion) !important; stroke-width: 1.6 !important; }
+.raven-mark { stroke: var(--ink) !important; stroke-width: 1.2 !important; }
+
+.hill-label,
+.hill-hook { opacity: 0; }
+.hill-label { font-size: 6.6px; }
+.hill-hook { font-size: 5.6px; fill: var(--vermilion); }
+.living-map[data-hill-state='hinted'] .hill-label,
+.living-map[data-hill-state='hinted'] .hill-hook { opacity: .86; }
+
+.living-map[data-crossing-state='discovered'] .crossing-label,
+.living-map[data-crossing-state='ash_crossing'] .crossing-label,
+.living-map[data-crossing-state='lantern_crossing'] .crossing-label { opacity: .92; font-weight: 700; }
+
+.dev-shortcut {
+  margin-top: 14px;
+  padding: 12px;
+  border: 1px dashed rgba(69,55,38,.42);
+  background: rgba(72,59,40,.08);
+}
+.dev-shortcut .eyebrow { margin-bottom: 8px; }
+.dev-action {
+  width: 100%;
+  margin-top: 8px;
+  color: #efe4c9;
+  border-color: #705b37;
+  background: #4d3c24;
+}
+.dev-shortcut small {
+  display: block;
+  margin-top: 7px;
+  color: #6d6252;
+  line-height: 1.45;
+}
+
+@media (max-width: 430px) {
+  .hill-label { font-size: 6px; }
+  .hill-hook { font-size: 5px; }
+  .dev-shortcut { padding: 10px; }
+}
