@@ -76,7 +76,7 @@
           <path class="hill-flag" d="M300 35V23m1 1 10 3-10 5" />
           <path class="raven-mark" d="M288 31l3-2 3 2m6-5 3-2 3 2" />
         </g>
-        <text class="map-label hill-label" x="271" y="16">黒鴉の丘</text>
+        <text class="map-label hill-label" x="315" y="60" text-anchor="end">黒鴉の丘</text>
         <text id="map-hill-hook" class="map-note hill-hook" x="271" y="28"></text>
       </g>`);
   }
