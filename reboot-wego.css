@@ -1,0 +1,142 @@
+/* Issue #564 — short, stopped WEGO encounter. No timing controls or combat HUD. */
+.wego-encounter {
+  margin-top: 14px;
+  padding: 14px;
+  border: 2px solid rgba(69, 55, 38, .52);
+  background: rgba(239, 226, 196, .2);
+  box-shadow: inset 0 0 0 3px rgba(255, 248, 228, .09);
+}
+.wego-encounter[hidden] { display: none; }
+.wego-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+.wego-heading h3 { margin: 0; color: var(--ink); font-size: 1.06rem; }
+.wego-heading p { margin: 4px 0 0; color: var(--ink-soft); font-size: .78rem; line-height: 1.5; }
+.wego-heading > b {
+  flex: 0 0 auto;
+  padding: 3px 6px;
+  border: 1px solid rgba(69, 55, 38, .35);
+  color: var(--vermilion);
+  font-size: .66rem;
+  letter-spacing: .05em;
+}
+.wego-stop-note {
+  margin: 12px 0 0;
+  padding: 9px 10px;
+  border-left: 3px solid var(--vermilion);
+  background: rgba(94, 42, 31, .07);
+  color: var(--ink);
+  font-size: .78rem;
+  line-height: 1.55;
+}
+.wego-known { margin-top: 12px; }
+.wego-known > span,
+.wego-readout article > span {
+  display: block;
+  margin-bottom: 5px;
+  color: var(--ink-soft);
+  font-size: .64rem;
+  font-weight: 800;
+  letter-spacing: .07em;
+}
+.wego-known ul {
+  margin: 0;
+  padding-left: 19px;
+  color: var(--ink);
+  font-size: .76rem;
+  line-height: 1.55;
+}
+.wego-gear {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 7px;
+  margin: 12px 0 0;
+  padding: 10px;
+  border: 1px dashed rgba(69, 55, 38, .35);
+}
+.wego-gear legend {
+  padding: 0 5px;
+  color: var(--ink-soft);
+  font-size: .68rem;
+  font-weight: 800;
+}
+.wego-gear button,
+.wego-actions button {
+  min-height: 58px;
+  border: 1px solid rgba(69, 55, 38, .4);
+  background: rgba(255, 248, 228, .25);
+  color: var(--ink);
+  text-align: left;
+  cursor: pointer;
+}
+.wego-gear button[aria-pressed='true'] {
+  outline: 2px solid var(--vermilion);
+  outline-offset: 1px;
+  background: rgba(94, 42, 31, .08);
+}
+.wego-gear button strong,
+.wego-actions button strong,
+.wego-gear button small,
+.wego-actions button small { display: block; }
+.wego-gear button strong,
+.wego-actions button strong { font-size: .8rem; }
+.wego-gear button small,
+.wego-actions button small { margin-top: 3px; color: var(--ink-soft); font-size: .66rem; line-height: 1.35; }
+.wego-gear-note { margin: 7px 0 10px; color: var(--ink-soft); font-size: .72rem; line-height: 1.5; }
+.wego-readout {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-top: 12px;
+}
+.wego-readout article {
+  padding: 10px;
+  border: 1px solid rgba(69, 55, 38, .34);
+  background: rgba(255, 248, 228, .16);
+}
+.wego-readout p { margin: 0; color: var(--ink); font-size: .78rem; line-height: 1.55; }
+.wego-state-line {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+}
+.wego-state-line span {
+  padding: 4px 7px;
+  border: 1px solid rgba(69, 55, 38, .3);
+  color: var(--ink-soft);
+  font-size: .68rem;
+}
+.wego-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  margin-top: 10px;
+}
+.wego-actions button:last-child { border-style: dashed; }
+.wego-actions button:disabled,
+.phase6-navigation[data-wego-locked='true'] button:disabled { opacity: .48; cursor: not-allowed; }
+.wego-result {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed rgba(69, 55, 38, .35);
+}
+.wego-result > b { color: var(--vermilion); font-size: .7rem; letter-spacing: .06em; }
+.wego-result h4 { margin: 5px 0; color: var(--ink); font-size: 1rem; }
+.wego-result p { margin: 6px 0; color: var(--ink-soft); font-size: .78rem; line-height: 1.55; }
+.phase8-response-card[data-wego-result='cleared'] { border-left: 4px double var(--ink); }
+.phase8-response-card[data-wego-result='retreated'] { border-left: 4px dashed var(--ochre); }
+.phase8-response-card[data-wego-result='forced_retreat'] { border-left: 4px solid var(--vermilion); }
+
+@media (max-width: 620px) {
+  .wego-heading { display: block; }
+  .wego-heading > b { display: inline-block; margin-top: 7px; }
+  .wego-gear,
+  .wego-readout,
+  .wego-actions { grid-template-columns: 1fr; }
+  .wego-gear button,
+  .wego-actions button { min-height: 52px; }
+}
