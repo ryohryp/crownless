@@ -131,15 +131,12 @@ async function selectNearbyPlace(page, name) {
     assert.equal(await page.locator('[data-territory-owner="player"]').count(), 1);
     await selectNearbyPlace(page, "丘の物見台");
     await page.waitForSelector(".territory-frontier-fork");
-    await page.waitForSelector('.territory-panel__actions button.primary[data-territory-fork-linear-next="suppressed"]', { state: "attached" });
     territoryPanel = page.locator(".territory-panel");
     assert.match(await territoryPanel.innerText(), /灰炉支配/);
 
     // #525/#561: the foothold opens two equally visible frontier choices. The
     // older linear next-target CTA must not imply that the route is mandatory.
-    const linearNextButton = territoryPanel.locator('.territory-panel__actions button.primary[data-territory-fork-linear-next="suppressed"]');
-    assert.equal(await linearNextButton.count(), 1, "the legacy linear next-target CTA should still exist for later one-target states");
-    assert.equal(await linearNextButton.isVisible(), false, "the legacy linear CTA must be hidden while the real two-target fork is open");
+    assert.equal(await territoryPanel.locator(".territory-panel__actions button.primary").count(), 0, "the obsolete linear next-target CTA must be removed while the two-target fork is open");
     const frontierChoices = territoryPanel.locator(".territory-frontier-fork__choice");
     assert.equal(await frontierChoices.count(), 2, "capturing the foothold must expose two frontier choices");
     assert.match(await territoryPanel.locator(".territory-frontier-fork").innerText(), /一本道ではない/);
