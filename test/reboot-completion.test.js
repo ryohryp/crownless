@@ -30,6 +30,8 @@ test('all 16 irreversible branches reach one of four endings with six land memor
           assert.ok(result);
           assert.equal(result.memories.length, 6);
           assert.equal(new Set(result.memories.map((entry) => entry.id)).size, 6);
+          assert.ok(result.memories.every((entry) => entry.statusLabel.length > 0));
+          assert.doesNotMatch(result.branchSummary, /ring_bell|break_bell|cut_crossing|keep_crossing|signal_chapel|signal_gate|salt_chapel|ruined_gate/);
           branchKeys.add(result.branchKey);
           endingKeys.add(result.endingKey);
         }
@@ -38,6 +40,22 @@ test('all 16 irreversible branches reach one of four endings with six land memor
   }
   assert.equal(branchKeys.size, 16);
   assert.deepEqual(new Set(Object.values(p5.OUTCOME_KEYS)), endingKeys);
+});
+
+test('land memory distinguishes the visited fork from the place that changed off-screen', () => {
+  const result = completion.buildCompletion(completeBranch(
+    base.CHOICES.BREAK_BELL,
+    p2.CHOICES.KEEP_CROSSING,
+    p3.CHOICES.SIGNAL_GATE,
+    p4.RUINED_GATE
+  ));
+  const chapel = result.memories.find((entry) => entry.id === p4.SALT_CHAPEL);
+  const gate = result.memories.find((entry) => entry.id === p4.RUINED_GATE);
+  const hill = result.memories.find((entry) => entry.id === p3.BLACK_RAVEN_HILL);
+  assert.equal(chapel.statusLabel, '未訪問: 世界は進んだ');
+  assert.equal(gate.statusLabel, '訪問した');
+  assert.equal(hill.title, '道見の丘');
+  assert.match(result.branchSummary, /鐘を壊した.*渡りを残した.*街道へ合図した.*朽ちた関門へ先に向かった/);
 });
 
 test('completion survives serialize/reload without losing the ending or branch history', () => {
@@ -51,6 +69,7 @@ test('completion survives serialize/reload without losing the ending or branch h
   const after = completion.buildCompletion(p5.parseState(p5.serializeState(state)));
   assert.equal(after.endingKey, before.endingKey);
   assert.equal(after.branchKey, before.branchKey);
+  assert.equal(after.branchSummary, before.branchSummary);
   assert.deepEqual(after.memories, before.memories);
 });
 
@@ -69,6 +88,38 @@ test('resilient storage keeps world state in the same tab when persistent writes
   assert.ok(failures.some((entry) => entry.persistent === false));
 });
 
+test('resilient storage prefers newer memory and preserves it when reset deletion is denied', () => {
+  let persisted = '{"version":"old"}';
+  const native = {
+    getItem() { return persisted; },
+    setItem() { throw new DOMException('quota', 'QuotaExceededError'); },
+    removeItem() { throw new DOMException('blocked', 'SecurityError'); },
+    clear() {}
+  };
+  const storage = completion.createResilientStorage(native);
+  assert.equal(storage.getItem(base.STORAGE_KEY), persisted);
+  storage.setItem(base.STORAGE_KEY, '{"version":"new"}');
+  persisted = '{"version":"older-persistent"}';
+  assert.equal(storage.getItem(base.STORAGE_KEY), '{"version":"new"}');
+  assert.equal(storage.removeItem(base.STORAGE_KEY), false);
+  assert.equal(storage.getItem(base.STORAGE_KEY), '{"version":"new"}');
+});
+
+test('resilient reset removes only the requested key after native deletion succeeds', () => {
+  const removed = [];
+  const native = {
+    getItem() { return null; },
+    setItem() {},
+    removeItem(key) { removed.push(key); },
+    clear() { throw new Error('clear must not be called'); }
+  };
+  const storage = completion.createResilientStorage(native);
+  storage.setItem(base.STORAGE_KEY, 'current');
+  assert.equal(storage.removeItem(base.STORAGE_KEY), true);
+  assert.deepEqual(removed, [base.STORAGE_KEY]);
+  assert.equal(storage.getItem(base.STORAGE_KEY), null);
+});
+
 test('location request gate rejects duplicate requests and stale callbacks after mode switching', () => {
   const gate = completion.createLocationRequestGate();
   const first = gate.begin();
@@ -85,6 +136,13 @@ test('location accuracy distinguishes insufficient samples while allowing missin
   assert.equal(completion.accuracyStatus({ coords: { accuracy: 20 } }), 'acceptable');
   assert.equal(completion.accuracyStatus({ coords: { accuracy: 250 } }), 'insufficient');
   assert.equal(completion.accuracyStatus({ coords: {} }), 'unknown');
+});
+
+test('location failures provide retryable player-facing messages', () => {
+  assert.match(completion.locationErrorMessage({ code: 1 }), /許可.*再試行.*模擬探索/);
+  assert.match(completion.locationErrorMessage({ code: 2 }), /取得できない.*再試行.*模擬探索/);
+  assert.match(completion.locationErrorMessage({ code: 3 }), /時間切れ.*再試行.*模擬探索/);
+  assert.match(completion.locationErrorMessage({ code: 2, accuracy: 180 }), /約180m.*再試行.*模擬探索/);
 });
 
 test('GPS collision discovery uses the same p5 discovery transition as DEV', () => {
