@@ -155,6 +155,27 @@
     return key ? (Array.isArray(modelsInput) ? modelsInput : []).find((item) => item && item.key === key) || null : null;
   }
 
+  function shouldSuppressLinearNextTarget(state, selected) {
+    return Boolean(
+      selected &&
+      selected.role === "foothold" &&
+      selected.owner === "player" &&
+      state &&
+      Array.isArray(state.candidates) &&
+      state.candidates.length >= 2
+    );
+  }
+
+  function syncLinearNextTarget(document, state, selected) {
+    if (!shouldSuppressLinearNextTarget(state, selected)) return false;
+    const panel = document && document.querySelector("#world-atlas-viewer .territory-panel[data-territory-key]");
+    if (!panel) return false;
+    const button = panel.querySelector(".territory-panel__actions button.primary");
+    if (!button || button.dataset.territoryForkLocked === "true") return false;
+    button.remove();
+    return true;
+  }
+
   function syncLock(document, state, selected) {
     const panel = document && document.querySelector("#world-atlas-viewer .territory-panel[data-territory-key]");
     if (!panel || !selected) return false;
@@ -245,6 +266,7 @@
     const selected = selectedTerritory(document, models);
     syncCandidateMarkers(document, state);
     syncLock(document, state, selected);
+    syncLinearNextTarget(document, state, selected);
     syncWarCouncil(document, state, selected);
     syncFailureHint(document, root);
     return true;
@@ -291,6 +313,7 @@
     cleanText,
     frontierState,
     focusTerritoryMarker,
+    shouldSuppressLinearNextTarget,
     apply,
     schedule,
     install

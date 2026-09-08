@@ -148,8 +148,10 @@ async function contestSelectedPlace(page) {
     assert.match(await territoryTrace.innerText(), /補給路が前線へ伸びている/);
     assert.match(await territoryTrace.innerText(), /街道の露店.*通常比約55%短くなる/);
 
-    const nextButton = page.locator(".territory-panel").getByRole("button", { name: "次は「街道の露店」を狙う →", exact: true });
-    await nextButton.click();
+    // #561: while both frontier targets remain, the War Council is the only
+    // next-target decision surface. Choose the route there rather than relying
+    // on the removed linear CTA.
+    await page.locator(".territory-panel").getByRole("button", { name: /街道を固める — 街道の露店/ }).click();
     await page.waitForFunction(() => document.querySelector(".territory-panel")?.textContent.includes("所要時間が35%短くなる"));
     await page.locator(".territory-panel").getByRole("button", { name: "偵察せず攻略の準備へ →", exact: true }).click();
     await page.waitForSelector(".territory-development-effect", { state: "attached" });
