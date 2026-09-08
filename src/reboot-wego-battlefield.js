@@ -289,6 +289,7 @@
       root.setTimeout(() => {
         field.dataset.resolutionPhase = 'impact';
         replaying = true;
+        button.disabled = false;
         try { button.click(); }
         finally { replaying = false; }
         setButtonsLocked(actions, true);
