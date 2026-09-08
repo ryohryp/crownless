@@ -1,10 +1,10 @@
 (function (root, factory) {
-  const api = factory(root && root.CrownlessRebootPhase4State);
+  const api = factory(root && root.CrownlessRebootPhase4State, root && root.CrownlessRebootState);
   if (typeof module === 'object' && module.exports) {
-    module.exports = factory(require('./reboot-phase4-state.js'));
+    module.exports = factory(require('./reboot-phase4-state.js'), require('./reboot-prototype-state.js'));
   }
   if (root) root.CrownlessRebootPhase5State = api;
-})(typeof globalThis !== 'undefined' ? globalThis : this, function (p4) {
+})(typeof globalThis !== 'undefined' ? globalThis : this, function (p4, base) {
   'use strict';
   if (!p4) throw new Error('Crownless Reboot Phase 4 state is required');
 
@@ -100,6 +100,19 @@
     return p4.getFirstVisitPresentation(inputState);
   }
 
+  function observeCollisionLocation(session, inputState, coords) {
+    const state = normalizeState(inputState);
+    if (!state.choices[p4.FORK_FIRST_VISIT]) throw new Error('fork first visit is required');
+    base.haversineMeters(coords, coords);
+    if (isOutcomeState(state.placeStates[COLLISION_PLACE])) return { state, status: 'already_discovered' };
+    if (!session.anchor) {
+      session.anchor = { latitude: coords.latitude, longitude: coords.longitude };
+      return { state, status: 'anchored' };
+    }
+    if (base.haversineMeters(session.anchor, coords) < base.DISCOVERY_RADIUS_METERS) return { state, status: 'searching' };
+    return { state: discoverCollisionPlace(state), status: 'discovered' };
+  }
+
   function getCollisionHintPresentation(inputState) {
     const state = normalizeState(inputState);
     if (state.placeStates[COLLISION_PLACE] !== 'hinted') return null;
@@ -186,6 +199,8 @@
     serializeState,
     deriveCollisionKey,
     discoverCollisionPlace,
+    createLocationSession: base.createLocationSession,
+    observeCollisionLocation,
     getCollisionHintPresentation,
     getCollisionPresentation
   });

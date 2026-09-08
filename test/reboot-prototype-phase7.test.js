@@ -95,7 +95,7 @@ test('Phase 7 UI removes meter labels and exposes remembered clue surfaces', () 
   const section = html.match(/<section id="phase6-navigation"[\s\S]*?<\/section>/);
 
   assert.ok(section, 'directional exploration section should exist');
-  assert.match(section[0], /PHASE 7 \/ READ THE LAND/);
+  assert.match(section[0], /土地の気配を読む/);
   assert.match(section[0], /id="phase7-valley-clues"/);
   assert.match(section[0], /id="phase7-road-clues"/);
   assert.match(section[0], /id="phase7-field-note"/);
@@ -114,7 +114,7 @@ test('field clue memory and previous samples remain session-only', () => {
   assert.match(controller, /let previousSession = null/);
   assert.match(controller, /let clueMemory = fieldModel\.createClueMemory\(\)/);
   assert.doesNotMatch(controller, /localStorage\.setItem/);
-  assert.match(controller, /getCurrentPosition/);
+  assert.match(controller, /CrownlessRebootLocation\.request/);
   assert.doesNotMatch(controller, /watchPosition/);
 });
 

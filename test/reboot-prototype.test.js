@@ -97,7 +97,7 @@ test('standalone entrypoint does not load existing Crownless gameplay or Atlas l
 
 test('browser controller uses foreground one-shot geolocation only', () => {
   const script = fs.readFileSync(path.join(__dirname, '..', 'src', 'reboot-prototype.js'), 'utf8');
-  assert.match(script, /navigator\.geolocation\.getCurrentPosition/);
+  assert.match(script, /CrownlessRebootLocation\.request/);
   assert.doesNotMatch(script, /watchPosition/);
   assert.doesNotMatch(script, /expedition-system|territory|save-system|world-atlas/);
 });

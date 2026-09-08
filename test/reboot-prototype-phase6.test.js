@@ -85,7 +85,7 @@ test('location-session code has no persistence or route-history mechanism', () =
 
   assert.doesNotMatch(locationSource, /localStorage|routeHistory|track|watchPosition/i);
   assert.doesNotMatch(controller, /localStorage\.setItem|watchPosition|routeHistory|track/i);
-  assert.match(controller, /getCurrentPosition/);
+  assert.match(controller, /CrownlessRebootLocation\.request/);
   assert.match(controller, /let liveOrigin = null/);
 });
 

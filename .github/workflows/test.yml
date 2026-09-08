@@ -71,3 +71,12 @@ jobs:
         run: node scripts/check-territory-reward-surface.cjs
       - name: Territory mobile declutter
         run: node scripts/check-territory-mobile-declutter.cjs
+      - name: Reboot chapter, all branches and GPS recovery
+        run: node scripts/check-reboot-chapter.cjs
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: reboot-chapter-screenshots
+          path: /tmp/reboot-qa/*.png
+          retention-days: 3
+          if-no-files-found: ignore

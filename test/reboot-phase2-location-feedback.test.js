@@ -15,21 +15,15 @@ test('Phase 2 location check gives immediate visible feedback and prevents dupli
   assert.match(controller, /if \(locationRequestInFlight\) return;/);
 });
 
-test('Phase 2 location failures distinguish permission, unavailable, timeout, and fallback states', () => {
-  assert.match(controller, /error\.code === 1/);
-  assert.match(controller, /位置情報の利用が許可されていない/);
-  assert.match(controller, /error\.code === 2/);
-  assert.match(controller, /現在地を取得できない/);
-  assert.match(controller, /error\.code === 3/);
-  assert.match(controller, /現在地の取得に時間がかかりすぎた/);
-  assert.match(controller, /現在地を確認できなかった/);
+test('Phase 2 delegates failure recovery to the shared location reader', () => {
+  assert.match(controller, /CrownlessRebootLocation\.request/);
+  assert.match(controller, /CrownlessRebootSession\.locationErrorMessage/);
 });
 
 test('Phase 2 location result always tells the player whether discovery happened or more walking is needed', () => {
   assert.match(controller, /result\.status === 'discovered'/);
   assert.match(controller, /古い渡り場を発見した/);
   assert.match(controller, /result\.status === 'anchored'/);
-  assert.match(controller, /result\.status === 'searching'/);
   assert.match(controller, /まだ古い渡り場には届いていない/);
   assert.match(controller, /observeOldCrossingLocation\(session, state, position\.coords\)/);
 });

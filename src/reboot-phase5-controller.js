@@ -18,20 +18,22 @@
   const collisionCopy = $('#collision-copy');
   const collisionMark = $('#collision-mark');
   const collisionAction = $('#dev-walk-collision');
+  const collisionLive = $('#collision-live');
 
   let state = load();
+  const session = p5.createLocationSession();
 
   injectMapLayer();
   refresh();
 
   function load() {
-    try { return p5.parseState(window.localStorage.getItem(p5.STORAGE_KEY)); }
+    try { return p5.parseState(window.CrownlessRebootStorage.getItem(p5.STORAGE_KEY)); }
     catch (_error) { return p5.normalizeState({}); }
   }
 
   function persist() {
     try {
-      window.localStorage.setItem(p5.STORAGE_KEY, p5.serializeState(state));
+      window.CrownlessRebootStorage.setItem(p5.STORAGE_KEY, p5.serializeState(state));
       persistenceNote.textContent = '分岐した場所と、その結果が合流して生まれた場所だけを残す。位置座標や移動経路は保存しない。';
     } catch (_error) {
       persistenceNote.textContent = 'このブラウザでは永続保存が使えない。今回の変化はタブを閉じると失われる。';
@@ -110,6 +112,7 @@
     collisionCopy.textContent = hint.summary;
     collisionMark.textContent = '未発見';
     collisionAction.hidden = false;
+    collisionLive.hidden = false;
     status.textContent = 'PHASE 5: 礼拝堂と関門の二つの変化から、同じ場所へ向かう痕跡が生まれた。';
     status.dataset.tone = 'trace';
   }
@@ -123,6 +126,7 @@
       collisionSummary.dataset.state = 'discovered';
     }
     collisionAction.hidden = true;
+    collisionLive.hidden = true;
     collisionTitle.textContent = presentation.title;
     collisionCopy.innerHTML = escapeHtml(presentation.summary) + '<br><span class="collision-history">' + escapeHtml(presentation.history) + '</span>';
     collisionMark.textContent = presentation.mark;
@@ -133,7 +137,7 @@
       + escapeHtml(presentation.history) + '</span>';
     if (dialogue) dialogue.hidden = true;
 
-    status.textContent = `DEV PATH: 二つの因果が合流し、同じ裂け道が「${presentation.title}」になった。`;
+    status.textContent = `二つの因果が合流し、同じ裂け道が「${presentation.title}」になった。`;
     status.dataset.tone = 'found';
   }
 
@@ -157,4 +161,29 @@
   });
 
   if (phase4Actions) phase4Actions.addEventListener('click', () => queueMicrotask(refresh));
+  collisionLive.addEventListener('click', () => {
+    window.CrownlessRebootLocation.request((position) => {
+      state = load();
+      const result = p5.observeCollisionLocation(session, state, position.coords);
+      state = result.state;
+      if (result.status === 'discovered' || result.status === 'already_discovered') {
+        persist();
+        renderResult();
+        document.dispatchEvent(new Event('reboot-chapter-arrived'));
+        return;
+      }
+      status.textContent = result.status === 'anchored'
+        ? 'ここから二つの痕跡をたどる。安全に歩ける方向へ進み、立ち止まってまた確かめよう。'
+        : 'まだ合流地点には届いていない。安全に歩ける道で、もう一度確かめよう。';
+      status.dataset.tone = 'trace';
+    }, (error) => {
+      status.textContent = window.CrownlessRebootSession.locationErrorMessage(error);
+      status.dataset.tone = 'warning';
+    }, (busy) => {
+      collisionLive.disabled = busy;
+      collisionLive.setAttribute('aria-busy', String(busy));
+      collisionLive.textContent = busy ? '現在地を確認しています…' : '安全な場所で現在地を確かめる';
+      if (busy) status.textContent = '二つの痕跡の先で、現在地を一度だけ確かめている…';
+    });
+  });
 })();

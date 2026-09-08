@@ -80,7 +80,7 @@ test('Phase 8 exploration memory and direction history remain transient', () => 
 
   assert.doesNotMatch(modelSource, /localStorage|sessionStorage|routeHistory|watchPosition/i);
   assert.doesNotMatch(controller, /localStorage\.setItem|sessionStorage|routeHistory|watchPosition/i);
-  assert.match(controller, /getCurrentPosition/);
+  assert.match(controller, /CrownlessRebootLocation\.request/);
   assert.match(controller, /let threadMemory = fieldModel\.createThreadMemory\(\)/);
 });
 
@@ -88,7 +88,7 @@ test('Phase 8 runtime adds diagonal exploration and a world-response surface wit
   const controller = fs.readFileSync(path.join(__dirname, '..', 'src', 'reboot-phase6-controller.js'), 'utf8');
   const css = fs.readFileSync(path.join(__dirname, '..', 'reboot-phase7.css'), 'utf8');
 
-  assert.match(controller, /PHASE 8 \/ WALK INTO THE UNKNOWN/);
+  assert.match(controller, /未知の方角へ/);
   assert.match(controller, /id="phase8-response"/);
   assert.match(controller, /north_west/);
   assert.match(controller, /north_east/);

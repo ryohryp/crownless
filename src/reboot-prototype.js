@@ -28,7 +28,7 @@
 
   function loadState() {
     try {
-      return api.parseState(window.localStorage.getItem(api.STORAGE_KEY));
+      return api.parseState(window.CrownlessRebootStorage.getItem(api.STORAGE_KEY));
     } catch (_error) {
       return api.createInitialState();
     }
@@ -36,7 +36,7 @@
 
   function persist() {
     try {
-      window.localStorage.setItem(api.STORAGE_KEY, api.serializeState(state));
+      window.CrownlessRebootStorage.setItem(api.STORAGE_KEY, api.serializeState(state));
       persistenceNote.textContent = 'この世界の変化は、この端末に残る。位置座標や移動経路は保存しない。';
     } catch (_error) {
       persistenceNote.textContent = 'このブラウザでは永続保存が使えない。今回の変化はタブを閉じると失われる。';
@@ -171,22 +171,20 @@
   }
 
   function requestLiveLocation() {
-    if (!navigator.geolocation || !navigator.geolocation.getCurrentPosition) {
-      setLocationStatus('この端末では現在地を取得できない。模擬探索を使って体験を確認できる。', 'warning');
-      return;
-    }
-    setLocationStatus('現在地を一度だけ確かめている…', 'quiet');
-    navigator.geolocation.getCurrentPosition(
+    window.CrownlessRebootLocation.request(
       (position) => handlePosition(position.coords),
-      (error) => setLocationStatus(locationErrorMessage(error), 'warning'),
-      { enableHighAccuracy: false, timeout: 10000, maximumAge: 15000 }
+      (error) => {
+        setLocationStatus(window.CrownlessRebootSession.locationErrorMessage(error), 'warning');
+        checkLocation.hidden = false;
+        startSim.hidden = false;
+      },
+      (busy) => {
+        startLive.disabled = busy;
+        checkLocation.disabled = busy;
+        checkLocation.setAttribute('aria-busy', String(busy));
+        if (busy) setLocationStatus('現在地を一度だけ確かめている…', 'quiet');
+      }
     );
-  }
-
-  function locationErrorMessage(error) {
-    if (error && error.code === 1) return '位置情報が許可されていない。許可を変えなくても、模擬探索で試せる。';
-    if (error && error.code === 3) return '現在地を確認できなかった。安全な場所で、もう一度試せる。';
-    return '現在地を確認できなかった。移動を続ける必要はない。';
   }
 
   function startLiveMode() {

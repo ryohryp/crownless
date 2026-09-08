@@ -36,13 +36,13 @@
   refresh();
 
   function load() {
-    try { return p3.parseState(window.localStorage.getItem(p3.STORAGE_KEY)); }
+    try { return p3.parseState(window.CrownlessRebootStorage.getItem(p3.STORAGE_KEY)); }
     catch (_error) { return p3.normalizeState(base.createInitialState()); }
   }
 
   function persist() {
     try {
-      window.localStorage.setItem(p3.STORAGE_KEY, p3.serializeState(state));
+      window.CrownlessRebootStorage.setItem(p3.STORAGE_KEY, p3.serializeState(state));
       persistenceNote.textContent = '三つの選択と世界の変化だけを、この端末に残す。位置座標や移動経路は保存しない。';
     } catch (_error) {
       persistenceNote.textContent = 'このブラウザでは永続保存が使えない。今回の変化はタブを閉じると失われる。';
@@ -199,12 +199,7 @@
   }
 
   function requestLocation() {
-    if (!navigator.geolocation || !navigator.geolocation.getCurrentPosition) {
-      status.textContent = '現在地を取得できない。DEV PATHなら同じ黒鴉の丘の発見stateをすぐ試せる。';
-      status.dataset.tone = 'warning';
-      return;
-    }
-    navigator.geolocation.getCurrentPosition((position) => {
+    window.CrownlessRebootLocation.request((position) => {
       const result = p3.observeBlackRavenHillLocation(session, state, position.coords);
       state = result.state;
       if (result.status === 'discovered') {
@@ -212,15 +207,19 @@
         contextRevealed = false;
         return renderArrival();
       }
-      phase3Live.textContent = '安全な場所で現在地をもう一度確かめる';
       status.textContent = result.status === 'anchored'
         ? 'ここを起点にした。安全に歩いてから、もう一度だけ現在地を確かめる。'
-        : '丘の痕跡へ近づいている。';
+        : 'まだ丘には届いていない。安全な道を選び、立ち止まってまた確かめよう。';
       status.dataset.tone = 'quiet';
-    }, () => {
-      status.textContent = '現在地を確認できなかった。DEV PATHで体験を止めずに進められる。';
+    }, (error) => {
+      status.textContent = window.CrownlessRebootSession.locationErrorMessage(error);
       status.dataset.tone = 'warning';
-    }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 15000 });
+    }, (busy) => {
+      phase3Live.disabled = busy;
+      phase3Live.setAttribute('aria-busy', String(busy));
+      phase3Live.textContent = busy ? '現在地を確認しています…' : '安全な場所で現在地をもう一度確かめる';
+      if (busy) status.textContent = '安全に立ち止まった現在地を確認している…';
+    });
   }
 
   phase3Live.addEventListener('click', () => {

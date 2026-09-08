@@ -4,7 +4,7 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#2b251b" />
-  <title>Crownless — Reboot Prototype #529–#547</title>
+  <title>Crownless — 誓痕の一章</title>
   <link rel="stylesheet" href="reboot-prototype.css" />
   <link rel="stylesheet" href="reboot-phase2.css" />
   <link rel="stylesheet" href="reboot-phase3.css" />
@@ -12,13 +12,14 @@
   <link rel="stylesheet" href="reboot-phase5.css" />
   <link rel="stylesheet" href="reboot-phase6.css" />
   <link rel="stylesheet" href="reboot-phase7.css" />
+  <link rel="stylesheet" href="reboot-chapter.css" />
 </head>
 <body data-phase="unknown">
   <div class="paper-grain" aria-hidden="true"></div>
   <main class="reboot-shell">
     <header class="reboot-header">
       <div>
-        <p class="eyebrow">CROWNLESS / REBOOT PROTOTYPE #529–#547</p>
+        <p class="eyebrow">CROWNLESS / 誓痕の一章</p>
         <h1>世界に、<span>自分の選択の痕</span>を残す。</h1>
       </div>
       <p class="safety-copy">歩きながら画面を見続けない。安全に立ち止まれる場所でだけ、現在地を確かめる。</p>
@@ -82,7 +83,7 @@
         <text class="map-label crossing-label" x="230" y="117">古い渡り場</text>
         <text id="map-crossing-hook" class="map-note crossing-hook" x="231" y="131"></text>
       </svg>
-      <p class="map-caption">住所も建物名も表示しない。歩いた軌跡そのものも保存しない。</p>
+      <p class="map-caption">選択が土地を変え、その痕が次の場所へ続く。</p>
     </section>
 
     <section id="story-panel" class="story-panel" aria-live="polite">
@@ -147,17 +148,17 @@
       </div>
 
       <div id="phase2-actions" class="dev-shortcut" hidden>
-        <p class="eyebrow">PHASE 2 / 古い渡り場へ</p>
-        <button id="phase2-live" class="ink-button primary-action" type="button">GPSで古い渡り場へ進む</button>
+        <p class="eyebrow">渡り場へ続く痕跡</p>
+        <button id="phase2-live" class="ink-button primary-action" type="button">現在地から渡り場の痕跡をたどる</button>
         <button id="dev-walk-next" class="ink-button dev-action" type="button">DEV: 古い渡り場まで歩いたことにする</button>
-        <small>開発用ショートカットは移動時間だけを省略し、GPS側と同じ発見state transitionを通す。</small>
+        <small>模擬移動なら、その場で続きを試せる。選択した世界の変化はそのまま残る。</small>
       </div>
 
       <div id="phase3-actions" class="dev-shortcut" hidden>
-        <p class="eyebrow">PHASE 3 / 黒鴉の丘へ</p>
-        <button id="phase3-live" class="ink-button primary-action" type="button">GPSで黒鴉の丘へ進む</button>
+        <p class="eyebrow">丘へ続く痕跡</p>
+        <button id="phase3-live" class="ink-button primary-action" type="button">現在地から丘の痕跡をたどる</button>
         <button id="dev-walk-hill" class="ink-button dev-action" type="button">DEV: 黒鴉の丘まで歩いたことにする</button>
-        <small>移動時間だけを省略する。過去2回の選択履歴はそのまま丘の状況へ持ち込まれる。</small>
+        <small>塔と渡り場での選択が、丘で待つ状況を変えている。</small>
       </div>
 
       <section id="fork-summary" class="fork-summary" hidden aria-label="黒鴉の丘から生まれた二つの次地点">
@@ -176,7 +177,7 @@
       </section>
 
       <section id="phase4-actions" class="phase4-travel-actions" hidden aria-label="次に向かう場所を選ぶ">
-        <p class="eyebrow">PHASE 4 / 行き先そのものが決断</p>
+        <p class="eyebrow">行き先そのものが決断</p>
         <div class="phase4-travel-grid">
           <button class="travel-card" type="button" data-place="salt_chapel">
             <strong>DEV: 塩の礼拝堂へ向かう</strong>
@@ -190,7 +191,7 @@
       </section>
 
       <section id="phase6-navigation" class="phase6-navigation" hidden aria-label="歩いた方向から未知の気配を読み取る">
-        <p class="eyebrow">PHASE 7 / READ THE LAND</p>
+        <p class="eyebrow">土地の気配を読む</p>
         <p class="phase6-lead">少し寄って手掛かりを拾い、必要なら引き返して別方向も確かめる。最後に踏み込んだ方向が世界への選択になる。</p>
 
         <div class="phase6-trace-grid">
@@ -236,15 +237,28 @@
       </section>
 
       <section id="collision-summary" class="collision-summary" hidden aria-label="二つの因果が合流して生まれる場所">
-        <p class="eyebrow">PHASE 5 / CONSEQUENCES COLLIDE</p>
+        <p class="eyebrow">二つの痕跡が交わる場所</p>
         <header>
           <h3 id="collision-title">二つの痕跡が、同じ方角へ伸びている。</h3>
           <b id="collision-mark">未発見</b>
         </header>
         <p id="collision-copy">塩の礼拝堂と朽ちた関門。それぞれで変わった人と荷の流れが、霧の中の同じ裂け道へ向かっている。</p>
+        <button id="collision-live" class="ink-button primary-action" type="button">現在地から二つの痕跡をたどる</button>
         <button id="dev-walk-collision" class="ink-button collision-action" type="button">DEV: 二つの痕跡が交わる場所へ向かう</button>
       </section>
 
+      <section id="chapter-ending" class="chapter-ending" hidden aria-label="誓痕の一章の結末">
+        <p class="eyebrow">一章の終わり / あなたが残したもの</p>
+        <h3 id="chapter-ending-title"></h3><p id="chapter-ending-copy"></p>
+        <p class="chapter-rest">この一章はここまで。タブを閉じて休んでも、保存した土地の変化は残る。下の「土地の記憶」から、自分の選択をいつでも振り返れる。</p>
+      </section>
+      <details id="chapter-journal" class="chapter-journal" hidden>
+        <summary>土地の記憶</summary>
+        <div id="chapter-places" class="chapter-places" aria-label="記憶に残った土地"></div>
+        <article id="chapter-memory" hidden tabindex="-1" aria-live="polite">
+          <h3 id="chapter-memory-title"></h3><p id="chapter-memory-copy"></p>
+        </article>
+      </details>
       <p id="location-status" class="location-status">現在地は、ボタンを押した瞬間にだけ確認する。</p>
       <p id="persistence-note" class="persistence-note">世界の状態だけを端末に残す。位置座標や移動経路は保存しない。</p>
       <div class="prototype-dev-tools" aria-label="Reboot Prototype開発用操作">
@@ -254,6 +268,7 @@
     </section>
   </main>
 
+  <script src="src/reboot-session.js"></script>
   <script src="src/reboot-prototype-state.js"></script>
   <script src="src/reboot-prototype.js"></script>
   <script src="src/reboot-phase2-state.js"></script>
@@ -267,6 +282,7 @@
   <script src="src/reboot-phase6-location.js"></script>
   <script src="src/reboot-phase7-exploration.js"></script>
   <script src="src/reboot-phase6-controller.js"></script>
+  <script src="src/reboot-chapter.js"></script>
   <script src="src/reboot-dev-tools.js"></script>
 </body>
 </html>

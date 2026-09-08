@@ -33,13 +33,13 @@
   refresh();
 
   function load() {
-    try { return p2.parseState(window.localStorage.getItem(p2.STORAGE_KEY)); }
+    try { return p2.parseState(window.CrownlessRebootStorage.getItem(p2.STORAGE_KEY)); }
     catch (_error) { return p2.normalizeState(base.createInitialState()); }
   }
 
   function persist() {
     try {
-      window.localStorage.setItem(p2.STORAGE_KEY, p2.serializeState(state));
+      window.CrownlessRebootStorage.setItem(p2.STORAGE_KEY, p2.serializeState(state));
       persistenceNote.textContent = 'この世界の変化は、この端末に残る。位置座標や移動経路は保存しない。';
     } catch (_error) {
       persistenceNote.textContent = 'このブラウザでは永続保存が使えない。今回の変化はタブを閉じると失われる。';
@@ -172,66 +172,33 @@
       : (liveStarted ? '安全な場所で現在地をもう一度確かめる' : 'GPSで古い渡り場へ進む');
   }
 
-  function locationErrorMessage(error) {
-    if (error && error.code === 1) {
-      return '位置情報の利用が許可されていない。端末またはブラウザの設定で位置情報を許可してから、もう一度確かめる。';
-    }
-    if (error && error.code === 2) {
-      return '現在地を取得できない。空が見える場所など、安全な場所で少し待ってからもう一度確かめる。';
-    }
-    if (error && error.code === 3) {
-      return '現在地の取得に時間がかかりすぎた。通信や位置情報の状態を確認して、もう一度確かめる。';
-    }
-    return '現在地を確認できなかった。安全な場所で少し待ってから、もう一度確かめる。';
-  }
-
   function requestLocation() {
     if (locationRequestInFlight) return;
-    if (!navigator.geolocation || !navigator.geolocation.getCurrentPosition) {
-      status.textContent = 'このブラウザでは現在地を取得できない。DEV PATHなら同じ発見stateをすぐ試せる。';
-      status.dataset.tone = 'warning';
-      return;
-    }
-
-    setLocationRequestBusy(true);
-    status.textContent = '現在地を確認している。安全な場所でそのまま少し待つ。';
-    status.dataset.tone = 'quiet';
-
-    navigator.geolocation.getCurrentPosition((position) => {
-      try {
-        const result = p2.observeOldCrossingLocation(session, state, position.coords);
-        state = result.state;
-        if (result.status === 'discovered') {
-          persist();
-          contextRevealed = false;
-          setLocationRequestBusy(false);
-          renderArrival();
-          status.textContent = '古い渡り場を発見した。鐘なき塔から続いた痕跡が、ここへ届いている。';
-          status.dataset.tone = 'found';
-          return;
-        }
-
-        if (result.status === 'anchored') {
-          status.textContent = 'ここを起点にした。安全に歩いてから、もう一度だけ現在地を確かめる。';
-        } else if (result.status === 'searching') {
-          status.textContent = result.proximity === 'near'
-            ? '古い渡り場は近い。安全にもう少し進んでから、現在地をもう一度確かめる。'
-            : 'まだ古い渡り場には届いていない。安全に歩いてから、現在地をもう一度確かめる。';
-        } else {
-          status.textContent = 'この場所では、もう位置確認を進める必要はない。';
-        }
-        status.dataset.tone = 'quiet';
-      } catch (_error) {
-        status.textContent = '取得した現在地を判定できなかった。安全な場所で、もう一度確かめる。';
-        status.dataset.tone = 'warning';
-      } finally {
-        setLocationRequestBusy(false);
+    window.CrownlessRebootLocation.request((position) => {
+      const result = p2.observeOldCrossingLocation(session, state, position.coords);
+      state = result.state;
+      if (result.status === 'discovered') {
+        persist();
+        contextRevealed = false;
+        renderArrival();
+        status.textContent = '古い渡り場を発見した。鐘なき塔から続いた痕跡が、ここへ届いている。';
+        status.dataset.tone = 'found';
+        return;
       }
+      status.textContent = result.status === 'anchored'
+        ? 'ここを起点にした。安全に歩いてから、もう一度だけ現在地を確かめる。'
+        : 'まだ古い渡り場には届いていない。安全に歩ける道で、立ち止まってまた確かめよう。';
+      status.dataset.tone = 'quiet';
     }, (error) => {
-      setLocationRequestBusy(false);
-      status.textContent = locationErrorMessage(error);
+      status.textContent = window.CrownlessRebootSession.locationErrorMessage(error);
       status.dataset.tone = 'warning';
-    }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 15000 });
+    }, (busy) => {
+      setLocationRequestBusy(busy);
+      if (busy) {
+        status.textContent = '現在地を確認している。安全な場所でそのまま少し待つ。';
+        status.dataset.tone = 'quiet';
+      }
+    });
   }
 
   phase2Live.addEventListener('click', () => {

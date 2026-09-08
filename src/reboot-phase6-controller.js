@@ -43,7 +43,7 @@
   refresh();
 
   function loadWorld() {
-    try { return p4.parseState(window.localStorage.getItem(p4.STORAGE_KEY)); }
+    try { return p4.parseState(window.CrownlessRebootStorage.getItem(p4.STORAGE_KEY)); }
     catch (_error) { return p4.normalizeState({}); }
   }
 
@@ -58,7 +58,7 @@
     if (!navigation) return;
     const eyebrow = navigation.querySelector('.eyebrow');
     const lead = navigation.querySelector('.phase6-lead');
-    if (eyebrow) eyebrow.textContent = 'PHASE 8 / WALK INTO THE UNKNOWN';
+    if (eyebrow) eyebrow.textContent = '未知の方角へ';
     if (lead) lead.textContent = '安全に歩ける方向そのものを選ぶ。どちらへ進んでも世界は応答し、踏み込むほど気配が痕跡や出来事へ変わる。';
 
     if (!$('#phase8-response')) {
@@ -198,10 +198,10 @@
     phase8Copy.textContent = response.text;
 
     if (response.stage === 'encounter') {
-      status.textContent = `PHASE 8: ${response.direction}で「${response.title}」に出会った。別方向にも別の世界が残っている。`;
+      status.textContent = `${response.direction}で「${response.title}」に出会った。別方向にも別の世界が残っている。`;
       status.dataset.tone = 'found';
     } else {
-      status.textContent = `PHASE 8: ${response.direction}へ歩いたことで「${response.title}」の${response.stageLabel}が立ち上がった。`;
+      status.textContent = `${response.direction}へ歩いたことで「${response.title}」の${response.stageLabel}が立ち上がった。`;
       status.dataset.tone = 'trace';
     }
   }
@@ -241,8 +241,8 @@
     if (fieldNote) fieldNote.textContent = threadObservation.note;
 
     modeLabel.textContent = session.mode === 'live'
-      ? 'LIVE LOCATION / 現在地は確認ボタンを押した瞬間だけ読む'
-      : 'SIMULATED LOCATION / 8方向すべてに別の世界の筋がある';
+      ? '現在地で探索中 — 安全に立ち止まって再確認'
+      : '模擬探索 — 方角を選ぶたびに少し進む';
     renderMap(senses);
     previousSession = session;
 
@@ -268,7 +268,7 @@
       const world = loadWorld();
       const chosen = world.choices[p4.FORK_FIRST_VISIT];
       if (!chosen) return;
-      status.textContent = 'PHASE 8: 歩いた方向の世界を読み、そのまま既存の不可逆な地点訪問へ踏み込んだ。';
+      status.textContent = '歩いた先に、人のいた場所を見つけた。あなたが来なかった方でも、世界は動いている。';
       status.dataset.tone = 'found';
       persistenceNote.textContent = '世界の変化だけを保存した。位置・移動履歴・途中で触れた方向の手掛かりは端末に残していない。';
     });
@@ -280,7 +280,7 @@
     navigation.hidden = false;
     phase4Actions.hidden = true;
     if (forkSummary) forkSummary.hidden = true;
-    status.textContent = 'PHASE 8: 安全に歩ける方向なら、どちらへ進んでも何かが起きる。';
+    status.textContent = '安全に歩ける方向なら、どちらへ進んでも何かが起きる。';
     status.dataset.tone = 'trace';
     persistenceNote.textContent = '探索中の位置・方向・拾った手掛かりはセッション内だけ。localStorageには世界状態しか残さない。';
     renderSession();
@@ -300,26 +300,20 @@
   }
 
   function readCurrentLocation(onSuccess) {
-    if (!navigator.geolocation || typeof navigator.geolocation.getCurrentPosition !== 'function') {
-      status.textContent = 'この環境では現在地を取得できない。模擬位置で同じ判定を試せる。';
+    window.CrownlessRebootLocation.request((position) => {
+      onSuccess({ latitude: position.coords.latitude, longitude: position.coords.longitude });
+    }, (error) => {
+      status.textContent = window.CrownlessRebootSession.locationErrorMessage(error);
       status.dataset.tone = 'warning';
-      return;
-    }
-
-    status.textContent = '安全に立ち止まった現在地を、一度だけ確認している…';
-    status.dataset.tone = 'trace';
-    navigator.geolocation.getCurrentPosition((position) => {
-      onSuccess({
-        latitude: position.coords.latitude,
-        longitude: position.coords.longitude
-      });
-    }, () => {
-      status.textContent = '現在地を確認できなかった。模擬位置でも同じ発見ルールを試せる。';
-      status.dataset.tone = 'warning';
-    }, {
-      enableHighAccuracy: false,
-      timeout: 10000,
-      maximumAge: 30000
+    }, (busy) => {
+      liveStart.disabled = busy;
+      liveCheck.disabled = busy;
+      liveCheck.setAttribute('aria-busy', String(busy));
+      liveCheck.textContent = busy ? '現在地を確認しています…' : '安全な場所で現在地を再確認';
+      if (busy) {
+        status.textContent = '安全に立ち止まった現在地を、一度だけ確認している…';
+        status.dataset.tone = 'trace';
+      }
     });
   }
 

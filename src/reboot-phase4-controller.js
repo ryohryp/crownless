@@ -27,13 +27,13 @@
   refresh();
 
   function load() {
-    try { return p4.parseState(window.localStorage.getItem(p4.STORAGE_KEY)); }
+    try { return p4.parseState(window.CrownlessRebootStorage.getItem(p4.STORAGE_KEY)); }
     catch (_error) { return p4.normalizeState({}); }
   }
 
   function persist() {
     try {
-      window.localStorage.setItem(p4.STORAGE_KEY, p4.serializeState(state));
+      window.CrownlessRebootStorage.setItem(p4.STORAGE_KEY, p4.serializeState(state));
       persistenceNote.textContent = '訪れた場所と、訪れなかった場所の変化だけを残す。位置座標や移動経路は保存しない。';
     } catch (_error) {
       persistenceNote.textContent = 'このブラウザでは永続保存が使えない。今回の変化はタブを閉じると失われる。';
