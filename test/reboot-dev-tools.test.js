@@ -22,6 +22,12 @@ test('reset removes only the Reboot Prototype storage key', () => {
   assert.match(source, /(?:window|win)\.location\.reload\(\)/);
 });
 
+test('reset failure keeps the current tab instead of reloading stale persistent state', () => {
+  assert.match(source, /removed === false/);
+  assert.match(source, /削除できなかったため、再読み込みはしない/);
+  assert.match(source, /このタブの進行はそのまま続けられる/);
+});
+
 test('development replay control remains compact on desktop and stacks on mobile', () => {
   assert.match(css, /\.prototype-dev-tools\s*\{[\s\S]*?display: flex/);
   assert.match(css, /@media \(max-width: 700px\)[\s\S]*?\.prototype-dev-tools \{ align-items: stretch; flex-direction: column; \}/);
