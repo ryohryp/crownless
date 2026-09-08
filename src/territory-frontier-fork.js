@@ -167,25 +167,13 @@
   }
 
   function syncLinearNextTarget(document, state, selected) {
+    if (!shouldSuppressLinearNextTarget(state, selected)) return false;
     const panel = document && document.querySelector("#world-atlas-viewer .territory-panel[data-territory-key]");
     if (!panel) return false;
     const button = panel.querySelector(".territory-panel__actions button.primary");
     if (!button || button.dataset.territoryForkLocked === "true") return false;
-    const suppress = shouldSuppressLinearNextTarget(state, selected);
-    if (suppress) {
-      button.dataset.territoryForkLinearNext = "suppressed";
-      button.hidden = true;
-      button.setAttribute("aria-hidden", "true");
-      button.tabIndex = -1;
-      return true;
-    }
-    if (button.dataset.territoryForkLinearNext === "suppressed") {
-      delete button.dataset.territoryForkLinearNext;
-      button.hidden = false;
-      button.removeAttribute("aria-hidden");
-      button.removeAttribute("tabindex");
-    }
-    return false;
+    button.remove();
+    return true;
   }
 
   function syncLock(document, state, selected) {
