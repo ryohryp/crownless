@@ -18,8 +18,8 @@ test('reset removes only the Reboot Prototype storage key', () => {
   assert.match(source, /localStorage\.removeItem\(base\.STORAGE_KEY\)/);
   assert.doesNotMatch(source, /localStorage\.clear\s*\(/);
   assert.doesNotMatch(source, /removeItem\(['"`]/);
-  assert.match(source, /window\.confirm/);
-  assert.match(source, /window\.location\.reload\(\)/);
+  assert.match(source, /(?:window|win)\.confirm/);
+  assert.match(source, /(?:window|win)\.location\.reload\(\)/);
 });
 
 test('development replay control remains compact on desktop and stacks on mobile', () => {
