@@ -8,15 +8,15 @@ const battlefield = require('../src/reboot-wego-battlefield.js');
 
 test('resolution presentation distinguishes press guard and maneuver without adding encounter state', () => {
   const initial = wego.createEncounter({ clues: ['乱れた轍'], gear: 'round_shield' });
-  const plan = wego.enemyPlan(initial);
+  const shotPlan = { id: 'probe_shot', tags: ['shot'] };
 
   const pressed = wego.resolveRound(initial, 'press');
   const guarded = wego.resolveRound(initial, 'guard');
   const maneuvered = wego.resolveRound(initial, 'maneuver');
 
-  const pressFx = battlefield.resolutionPresentation(initial, pressed, plan, 'press');
-  const guardFx = battlefield.resolutionPresentation(initial, guarded, plan, 'guard');
-  const maneuverFx = battlefield.resolutionPresentation(initial, maneuvered, plan, 'maneuver');
+  const pressFx = battlefield.resolutionPresentation(initial, pressed, shotPlan, 'press');
+  const guardFx = battlefield.resolutionPresentation(initial, guarded, shotPlan, 'guard');
+  const maneuverFx = battlefield.resolutionPresentation(initial, maneuvered, shotPlan, 'maneuver');
 
   assert.equal(pressFx.action, 'press');
   assert.equal(guardFx.action, 'guard');
@@ -28,31 +28,36 @@ test('resolution presentation distinguishes press guard and maneuver without add
   assert.deepEqual(Object.keys(pressed).sort(), Object.keys(guarded).sort());
 });
 
-test('flank and cutoff plans become lateral frontliner motion and can narrow retreat', () => {
-  let state = wego.createEncounter({ clues: [], gear: 'long_spear' });
-  state = wego.resolveRound(state, 'press');
-  const plan = wego.enemyPlan(state);
-  const next = wego.resolveRound(state, 'press');
-  const fx = battlefield.resolutionPresentation(state, next, plan, 'press');
+test('flank presentation makes pressure legible as a narrowing retreat lane', () => {
+  const before = { advantage: 0, pressure: 1, gear: 'long_spear', injury: null };
+  const after = { ...before, advantage: -1, pressure: 2 };
+  const plan = { id: 'brace_flank', tags: ['brace', 'flank', 'shot'] };
+  const fx = battlefield.resolutionPresentation(before, after, plan, 'press');
 
-  assert.equal(plan.id, 'brace_flank');
   assert.equal(fx.frontMotion, 'flank');
+  assert.equal(fx.archerMotion, 'reposition');
   assert.equal(fx.retreat, 'narrowing');
   assert.equal(fx.tone, 'unfavorable');
 });
 
 test('new injury is exposed as a transient visual mark only', () => {
-  let state = wego.createEncounter({ clues: [], gear: 'long_spear' });
-  state = wego.resolveRound(state, 'press');
-  const plan = wego.enemyPlan(state);
-  const next = wego.resolveRound(state, 'press');
-  const fx = battlefield.resolutionPresentation(state, next, plan, 'press');
+  const before = { advantage: 0, pressure: 1, gear: 'long_spear', injury: null };
+  const after = { ...before, injury: 'arrow_graze' };
+  const plan = { id: 'probe_shot', tags: ['shot'] };
+  const fx = battlefield.resolutionPresentation(before, after, plan, 'press');
 
-  assert.ok(next.injury);
-  assert.equal(fx.injury, next.injury);
-  const record = wego.persistentRecord(wego.resolveRound(next, 'press'));
+  assert.equal(fx.injury, 'arrow_graze');
+
+  const record = wego.persistentRecord({
+    status: 'resolved',
+    result: 'cleared',
+    injury: 'arrow_graze',
+    intel: ['frontliner', 'archer']
+  });
+  assert.ok(record);
   assert.equal('resolutionPhase' in record, false);
   assert.equal('resolutionTone' in record, false);
+  assert.deepEqual(Object.keys(record).sort(), ['encounterId', 'injury', 'intel', 'placeState', 'result', 'version'].sort());
 });
 
 test('resolution polish remains short, input-locked, non-QTE, and reduced-motion safe', () => {
