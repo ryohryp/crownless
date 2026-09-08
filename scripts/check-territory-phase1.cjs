@@ -130,6 +130,8 @@ async function selectNearbyPlace(page, name) {
     await page.waitForSelector('[data-territory-owner="player"]');
     assert.equal(await page.locator('[data-territory-owner="player"]').count(), 1);
     await selectNearbyPlace(page, "丘の物見台");
+    await page.waitForSelector(".territory-frontier-fork");
+    await page.waitForSelector('.territory-panel__actions button.primary[data-territory-fork-linear-next="suppressed"]', { state: "attached" });
     territoryPanel = page.locator(".territory-panel");
     assert.match(await territoryPanel.innerText(), /灰炉支配/);
 
