@@ -47,6 +47,29 @@ test("capturing the foothold opens a real two-target frontier fork", () => {
   assert.match(state.candidates[1].support, /支援なし/);
 });
 
+test("two-target fork suppresses the old linear next-target CTA on the captured foothold", () => {
+  const models = [
+    model("foothold", "player"),
+    model("route", "npc", { supported: true }),
+    model("resource", "npc"),
+  ];
+  const state = Fork.frontierState(models);
+  assert.equal(Fork.shouldSuppressLinearNextTarget(state, models[0]), true);
+  assert.match(source, /territoryForkLinearNext = "suppressed"/);
+  assert.match(source, /button\.hidden = true/);
+});
+
+test("single remaining target keeps the normal next-target CTA available", () => {
+  const models = [
+    model("foothold", "player"),
+    model("route", "player"),
+    model("resource", "npc", { supported: true }),
+  ];
+  const state = Fork.frontierState(models);
+  assert.equal(state.candidates.length, 1);
+  assert.equal(Fork.shouldSuppressLinearNextTarget(state, models[0]), false);
+});
+
 test("taking the route changes the resource plan instead of merely ticking a checklist", () => {
   const state = Fork.frontierState([
     model("foothold", "player"),
