@@ -132,9 +132,19 @@ async function selectNearbyPlace(page, name) {
     await selectNearbyPlace(page, "丘の物見台");
     territoryPanel = page.locator(".territory-panel");
     assert.match(await territoryPanel.innerText(), /灰炉支配/);
-    const nextButton = territoryPanel.getByRole("button", { name: "次は「街道の露店」を狙う →", exact: true });
-    assert.ok(await nextButton.isVisible());
-    await nextButton.click();
+
+    // #525/#561: the foothold opens two equally visible frontier choices. The
+    // older linear next-target CTA must not imply that the route is mandatory.
+    const linearNextButton = territoryPanel.locator('.territory-panel__actions button.primary[data-territory-fork-linear-next="suppressed"]');
+    assert.equal(await linearNextButton.count(), 1, "the legacy linear next-target CTA should still exist for later one-target states");
+    assert.equal(await linearNextButton.isVisible(), false, "the legacy linear CTA must be hidden while the real two-target fork is open");
+    const frontierChoices = territoryPanel.locator(".territory-frontier-fork__choice");
+    assert.equal(await frontierChoices.count(), 2, "capturing the foothold must expose two frontier choices");
+    assert.match(await territoryPanel.locator(".territory-frontier-fork").innerText(), /一本道ではない/);
+    assert.match(await territoryPanel.locator(".territory-frontier-fork").innerText(), /街道を固める/);
+    assert.match(await territoryPanel.locator(".territory-frontier-fork").innerText(), /街道を飛ばして急襲/);
+
+    await territoryPanel.getByRole("button", { name: /街道を固める — 街道の露店/ }).click();
     await page.waitForFunction(() => document.querySelector(".territory-panel")?.textContent.includes("所要時間が35%短くなる"));
     territoryPanel = page.locator(".territory-panel");
     assert.match(await territoryPanel.innerText(), /35%短くなる/);
@@ -144,7 +154,7 @@ async function selectNearbyPlace(page, name) {
     assert.match(await page.locator(".territory-prepare-note").innerText(), /所要時間 -35%/);
 
     assert.deepEqual(errors, []);
-    console.log("PASS 412x915: Discover → Scout → Prepare → Contest → Report → Control → next territory");
+    console.log("PASS 412x915: Discover → Scout → Prepare → Contest → Report → Control → two-target frontier");
   } finally {
     await page.close();
     await browser.close();
