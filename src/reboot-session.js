@@ -29,7 +29,11 @@
     return '現在地を確認できなかった。安全な場所で再試行できる。';
   }
   function createLocationReader(getGeolocation, timers) {
-    const clock = timers || { setTimeout, clearTimeout };
+    // Browser Window timers reject an arbitrary object as their receiver.
+    const clock = timers || {
+      setTimeout: (callback, delay) => setTimeout(callback, delay),
+      clearTimeout: timer => clearTimeout(timer)
+    };
     let pending = null;
     function cancel() {
       if (!pending) return;
