@@ -28,6 +28,9 @@
 }
 
 .living-map[data-hill-state='hinted'] .second-consequence-line,
+.living-map[data-hill-state='discovered'] .second-consequence-line,
+.living-map[data-hill-state='valley_watch'] .second-consequence-line,
+.living-map[data-hill-state='road_watch'] .second-consequence-line,
 .living-map[data-hill-state='hinted'] .hill-hint { display: block; }
 .second-consequence-line {
   stroke: var(--ochre) !important;
@@ -45,6 +48,9 @@
 .hill-hook { font-size: 5.6px; fill: var(--vermilion); }
 .living-map[data-hill-state='hinted'] .hill-label,
 .living-map[data-hill-state='hinted'] .hill-hook { opacity: .86; }
+.living-map[data-hill-state='discovered'] .hill-label,
+.living-map[data-hill-state='valley_watch'] .hill-label,
+.living-map[data-hill-state='road_watch'] .hill-label { opacity: .92; font-weight: 700; }
 
 .living-map[data-crossing-state='discovered'] .crossing-label,
 .living-map[data-crossing-state='ash_crossing'] .crossing-label,
