@@ -1,7 +1,10 @@
 (function (root, factory) {
   const api = factory();
   if (typeof module === 'object' && module.exports) module.exports = api;
-  if (root) root.CrownlessRebootWegoBattlefield = api;
+  if (root) {
+    root.CrownlessRebootWegoBattlefield = api;
+    api.installResolutionPolish(root);
+  }
 })(typeof globalThis !== 'undefined' ? globalThis : this, function () {
   'use strict';
 
@@ -10,6 +13,9 @@
     PARTIAL: 'partial',
     CLEAR: 'clear'
   });
+
+  const RESOLUTION_MS = 340;
+  const SETTLE_MS = 220;
 
   const PLAN_SCENES = Object.freeze({
     probe_shot: Object.freeze({
@@ -158,10 +164,152 @@
     });
   }
 
+  function resolutionPresentation(before, after, plan, action) {
+    const tags = plan && Array.isArray(plan.tags) ? plan.tags : [];
+    const advantageDelta = Number(after && after.advantage || 0) - Number(before && before.advantage || 0);
+    const pressureDelta = Number(after && after.pressure || 0) - Number(before && before.pressure || 0);
+    const newInjury = Boolean(after && after.injury && !(before && before.injury));
+    let tone = 'neutral';
+    if ((after && after.result === 'cleared') || (advantageDelta > 0 && pressureDelta <= 1)) tone = 'favorable';
+    if ((after && after.result === 'forced_retreat') || advantageDelta < 0 || pressureDelta >= 2) tone = 'unfavorable';
+
+    let defense = 'none';
+    if (tags.includes('shot')) {
+      if (action === 'guard' && before && before.gear === 'round_shield') defense = 'shield';
+      else if (action === 'maneuver') defense = 'terrain';
+      else defense = 'exposed';
+    }
+
+    return Object.freeze({
+      action,
+      planId: plan && plan.id ? plan.id : 'unknown',
+      tone,
+      defense,
+      retreat: pressureDelta > 0 ? 'narrowing' : pressureDelta < 0 ? 'opening' : 'steady',
+      injury: newInjury ? after.injury : null,
+      frontMotion: tags.includes('cutoff') || tags.includes('flank') ? 'flank'
+        : tags.includes('wavering') ? 'retreat'
+          : tags.includes('brace') ? 'brace'
+            : 'close',
+      archerMotion: tags.includes('reposition') || tags.includes('flank') ? 'reposition'
+        : tags.includes('shot') ? 'shot'
+          : 'hold'
+    });
+  }
+
   function certaintyLabel(value) {
     if (value === CERTAINTY.CLEAR) return '意図まで読める';
     if (value === CERTAINTY.PARTIAL) return '動きは読める';
     return '狙いは不明';
+  }
+
+  function installResolutionPolish(root) {
+    const doc = root && root.document;
+    if (!doc || doc.documentElement.dataset.wegoResolutionPolish === 'true') return false;
+    doc.documentElement.dataset.wegoResolutionPolish = 'true';
+
+    if (!doc.querySelector('link[data-wego-resolution-polish]')) {
+      const link = doc.createElement('link');
+      link.rel = 'stylesheet';
+      link.href = 'reboot-wego-resolution.css';
+      link.dataset.wegoResolutionPolish = 'true';
+      doc.head.appendChild(link);
+    }
+
+    let replaying = false;
+    let locked = false;
+
+    function prefersReducedMotion() {
+      return Boolean(root.matchMedia && root.matchMedia('(prefers-reduced-motion: reduce)').matches);
+    }
+
+    function setButtonsLocked(actions, value) {
+      if (!actions) return;
+      actions.querySelectorAll('button[data-wego-action]').forEach((button) => {
+        button.disabled = Boolean(value);
+      });
+    }
+
+    function shotPlan(planId) {
+      return ['probe_shot', 'brace_flank', 'cutoff_volley', 'break_and_cover', 'close_trap'].includes(planId);
+    }
+
+    function visibleTone(docRef, previousRetreat) {
+      const field = docRef.querySelector('#wego-battlefield');
+      const position = docRef.querySelector('#wego-position');
+      if (!field) return 'neutral';
+      if (field.dataset.outcome === 'cleared') return 'favorable';
+      if (field.dataset.outcome === 'forced_retreat') return 'unfavorable';
+      if (position && /崩し切る寸前|こちら寄り/.test(position.textContent)) return 'favorable';
+      if (position && /敵側/.test(position.textContent)) return 'unfavorable';
+      if (previousRetreat !== 'danger' && field.dataset.retreat === 'danger') return 'unfavorable';
+      return 'neutral';
+    }
+
+    function syncInjury(field) {
+      const injury = doc.querySelector('#wego-injury');
+      if (!field || !injury) return;
+      field.dataset.injury = /負傷なし/.test(injury.textContent) ? 'none' : 'marked';
+    }
+
+    doc.addEventListener('click', (event) => {
+      const button = event.target && event.target.closest ? event.target.closest('button[data-wego-action]') : null;
+      if (!button) return;
+      const actions = button.closest('#wego-actions');
+      const field = doc.querySelector('#wego-battlefield');
+      if (!actions || !field) return;
+      if (replaying || prefersReducedMotion()) return;
+
+      if (locked) {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        return;
+      }
+
+      event.preventDefault();
+      event.stopImmediatePropagation();
+      locked = true;
+      const action = button.dataset.wegoAction;
+      const planId = field.dataset.plan || 'unknown';
+      const previousRetreat = field.dataset.retreat || 'open';
+      const gear = field.dataset.gear || 'shield';
+      const defense = shotPlan(planId)
+        ? action === 'guard' && gear === 'shield' ? 'shield'
+          : action === 'maneuver' ? 'terrain'
+            : 'exposed'
+        : 'none';
+
+      setButtonsLocked(actions, true);
+      field.dataset.resolving = 'true';
+      field.dataset.resolutionPhase = 'intent';
+      field.dataset.resolutionAction = action;
+      field.dataset.resolutionPlan = planId;
+      field.dataset.resolutionDefense = defense;
+
+      root.setTimeout(() => {
+        field.dataset.resolutionPhase = 'impact';
+        replaying = true;
+        button.disabled = false;
+        try { button.click(); }
+        finally { replaying = false; }
+        setButtonsLocked(actions, true);
+        field.dataset.resolutionTone = visibleTone(doc, previousRetreat);
+        syncInjury(field);
+
+        root.setTimeout(() => {
+          delete field.dataset.resolving;
+          delete field.dataset.resolutionPhase;
+          delete field.dataset.resolutionAction;
+          delete field.dataset.resolutionPlan;
+          delete field.dataset.resolutionDefense;
+          delete field.dataset.resolutionTone;
+          locked = false;
+          if (actions.offsetParent !== null) setButtonsLocked(actions, false);
+        }, SETTLE_MS);
+      }, RESOLUTION_MS);
+    }, true);
+
+    return true;
   }
 
   return Object.freeze({
@@ -172,6 +320,8 @@
     retreatTone,
     gearMode,
     sceneFor,
-    certaintyLabel
+    resolutionPresentation,
+    certaintyLabel,
+    installResolutionPolish
   });
 });
