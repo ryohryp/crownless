@@ -6,13 +6,15 @@ const path = require("node:path");
 const root = path.join(__dirname, "..");
 const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 
-test("Grey Hearth initial HTML uses expedition preparation copy", () => {
-  assert.match(html, /aria-label="遠征に持ち出す装備を確かめる"/);
-  assert.match(html, /id="loadout-title">遠征の支度をする</);
-  assert.match(html, /持ち出す装備はまだない。地図と仲間を見て、次の遠征を決めよう。/);
+test("root entrypoint sends players to the canonical reboot", () => {
+  assert.match(html, /<meta http-equiv="refresh" content="0; url=reboot\.html" \/>/);
+  assert.match(html, /<link rel="canonical" href="reboot\.html" \/>/);
+  assert.match(html, /location\.replace\('reboot\.html' \+ location\.search \+ location\.hash\)/);
 });
 
-test("Grey Hearth initial HTML does not expose legacy direct-combat copy", () => {
+test("root entrypoint does not restore the retired Grey Hearth or direct-combat shell", () => {
+  assert.doesNotMatch(html, /id="loadout-title"/);
+  assert.doesNotMatch(html, /遠征に持ち出す装備を確かめる/);
   assert.doesNotMatch(html, /拳だけで出る/);
   assert.doesNotMatch(html, /拳は最初から最後まで選べる戦い方だ/);
 });
