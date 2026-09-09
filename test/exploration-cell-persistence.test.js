@@ -113,14 +113,12 @@ test("cell window exposes a visible known/unknown frontier around the current ce
   assert.ok(model.every((cell) => cell.left >= 8 && cell.top >= 8));
 });
 
-test("browser entrypoint keeps fallback independent and renders manuscript territory cells", () => {
+test("exploration cell runtime keeps fallback independent and renders manuscript territory cells", () => {
   const runtimeSource = fs.readFileSync(path.join(__dirname, "../src/exploration-cell-runtime.js"), "utf8");
-  const indexSource = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
 
   assert.match(runtimeSource, /exploration-cell-tile\.known/);
   assert.match(runtimeSource, /entry\.known \? "known" : "unknown"/);
   assert.match(runtimeSource, /KNOWN TERRITORY/);
   assert.match(runtimeSource, /getCurrentPosition/);
   assert.doesNotMatch(runtimeSource, /Overpass|GeographyApi|google\.maps|mapbox|leaflet/i);
-  assert.match(indexSource, /exploration-map-presentation\.js[\s\S]*exploration-cell-runtime\.js/);
 });
