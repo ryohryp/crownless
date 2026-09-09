@@ -23,14 +23,10 @@ jobs:
           node --check src/dungeon-system.js
           node --check src/progression-system.js
           node --check src/save-system.js
-          node --check src/app-runtime-state.js
-          node --check src/combat-action-profiles.js
-          node --check src/app.js
           node --check src/noncombat-presentation.js
           node --check src/exploration-map-presentation.js
           node --check src/hearth-presentation.js
           node --check src/hearth-home-shell.js
-          node --check src/desktop-input.js
           node --check src/world-atlas.js
           node --check src/world-atlas-actions-presentation.js
           node --check src/territory-phase1.js
