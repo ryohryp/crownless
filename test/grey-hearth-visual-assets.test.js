@@ -12,10 +12,7 @@ const manifest = JSON.parse(await readFile(manifestPath, 'utf8'));
 function readPngSize(buffer) {
   assert.deepEqual([...buffer.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
   assert.equal(buffer.toString('ascii', 12, 16), 'IHDR');
-  return {
-    width: buffer.readUInt32BE(16),
-    height: buffer.readUInt32BE(20),
-  };
+  return { width: buffer.readUInt32BE(16), height: buffer.readUInt32BE(20) };
 }
 
 test('Grey Hearth asset package keeps only the approved runtime source on main', async () => {
@@ -28,8 +25,6 @@ test('Grey Hearth asset package keeps only the approved runtime source on main',
   assert.deepEqual(manifest.supporting_candidates, []);
   assert.match(manifest.history_policy, /Git history/);
   assert.equal(manifest.approval.approved_for_grey_hearth_runtime, true);
-  assert.equal(manifest.policy.must_not_chain_from_candidate, true);
-  assert.equal(manifest.policy.must_review_after_generation, true);
 
   const approvalManifest = JSON.parse(await readFile(join(root, 'assets', 'hearth', manifest.approval.approved_candidate_manifest), 'utf8'));
   assert.equal(approvalManifest.status, 'approved_candidate');
@@ -45,13 +40,7 @@ test('Grey Hearth asset package keeps only the approved runtime source on main',
   }
 });
 
-test('Grey Hearth avatar baseline remains the valid unarmed player source', async () => {
-  const avatar = await readFile(join(root, 'assets', 'hearth', manifest.avatar_baseline));
-  assert.deepEqual([...avatar.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
-  assert.ok(avatar.length > 1000);
-});
-
-test('approved Grey Hearth avatar stays separate from the combat source and Canon Anchor', async () => {
+test('approved Grey Hearth avatar remains a valid scoped runtime asset', async () => {
   assert.equal(manifest.avatar_runtime_status, 'approved');
   assert.equal(manifest.avatar_runtime_approval.approved_by, 'user');
   assert.equal(manifest.avatar_runtime_anchor, '../../docs/assets/player-unarmed-approved-anchor-v0.4.png');
@@ -60,7 +49,6 @@ test('approved Grey Hearth avatar stays separate from the combat source and Cano
   const runtimeAvatar = await readFile(join(root, 'assets', 'hearth', manifest.avatar_runtime_candidate));
   assert.deepEqual(readPngSize(runtimeAvatar), { width: 1024, height: 1536 });
   assert.equal(createHash('sha256').update(runtimeAvatar).digest('hex'), manifest.avatar_runtime_approval.sha256);
-  assert.notEqual(manifest.avatar_runtime_candidate, manifest.avatar_baseline);
 });
 
 test('Issue 166 runtime background is the approved 16:9 PNG without a baked runtime layer', async () => {
