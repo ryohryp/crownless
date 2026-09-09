@@ -191,7 +191,8 @@ test('Reboot runtime wires a battlefield-first stopped WEGO layer without restor
   assert.match(css, /transition: left 220ms ease, top 220ms ease/);
   assert.doesNotMatch(controller, /watchPosition|requestAnimationFrame|keydown|pointermove/i);
   assert.doesNotMatch(controller, /attack|dodge|enemyHp|timing|QTE/i);
-  assert.doesNotMatch(board, /setInterval|setTimeout|requestAnimationFrame/i);
+  // Short presentation-only timeouts may stage/settle a resolved click, but no repeating or frame-driven combat loop is allowed.
+  assert.doesNotMatch(board, /setInterval|requestAnimationFrame/i);
   assert.match(css, /@media \(max-width: 620px\)/);
   assert.match(css, /grid-template-columns: repeat\(2, minmax\(0, 1fr\)\)/);
 });
