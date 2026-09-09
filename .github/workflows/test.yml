@@ -41,7 +41,19 @@ jobs:
           node --check scripts/check-territory-mobile-declutter.cjs
           node --check scripts/check-reboot-chapter.cjs
       - name: Unit tests
-        run: npm test
+        shell: bash
+        run: |
+          set +e
+          npm test > /tmp/crownless-unit.log 2>&1
+          status=$?
+          cat /tmp/crownless-unit.log
+          exit $status
+      - name: Upload unit failure log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crownless-unit-log
+          path: /tmp/crownless-unit.log
 
   atlas-viewport:
     runs-on: ubuntu-latest
@@ -55,7 +67,19 @@ jobs:
           npm install --no-save --package-lock=false playwright@1.62.1
           npx playwright install --with-deps chromium
       - name: Atlas mobile and desktop loop
-        run: node scripts/check-atlas-viewport.cjs
+        shell: bash
+        run: |
+          set +e
+          node scripts/check-atlas-viewport.cjs > /tmp/crownless-atlas.log 2>&1
+          status=$?
+          cat /tmp/crownless-atlas.log
+          exit $status
+      - name: Upload Atlas failure log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crownless-atlas-log
+          path: /tmp/crownless-atlas.log
       - name: Territory Phase 1 mobile golden slice
         run: node scripts/check-territory-phase1.cjs
       - name: Territory reward surface, build choice, and World Trace
