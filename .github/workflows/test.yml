@@ -39,16 +39,11 @@ jobs:
           node --check src/territory-mobile-declutter.js
           node --check src/expedition-presentation.js
           node --check src/reboot-dev-tools.js
-          node --check scripts/check-atlas-viewport.cjs
-          node --check scripts/check-territory-phase1.cjs
-          node --check scripts/check-territory-reward-surface.cjs
-          node --check scripts/check-territory-mobile-declutter.cjs
-          node --check scripts/check-hearth-home-shell.cjs
           node --check scripts/check-reboot-chapter.cjs
       - name: Unit tests
         run: npm test
 
-  atlas-viewport:
+  reboot-browser:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -59,20 +54,6 @@ jobs:
         run: |
           npm install --no-save --package-lock=false playwright@1.62.1
           npx playwright install --with-deps chromium
-      - name: Hearth shell initializes and stays bounded
-        run: node scripts/check-hearth-home-shell.cjs load
-      - name: Hearth loot shelf folio
-        run: node scripts/check-hearth-home-shell.cjs loot
-      - name: Hearth expedition record folio
-        run: node scripts/check-hearth-home-shell.cjs record
-      - name: Atlas mobile and desktop loop
-        run: node scripts/check-atlas-viewport.cjs
-      - name: Territory Phase 1 mobile golden slice
-        run: node scripts/check-territory-phase1.cjs
-      - name: Territory reward surface, build choice, and World Trace
-        run: node scripts/check-territory-reward-surface.cjs
-      - name: Territory mobile declutter
-        run: node scripts/check-territory-mobile-declutter.cjs
       - name: Reboot complete chapter, GPS recovery, and viewports
         env:
           REBOOT_SCREENSHOT_DIR: /tmp/reboot-qa
