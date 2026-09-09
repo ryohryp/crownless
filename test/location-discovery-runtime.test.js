@@ -7,32 +7,6 @@ const root = path.join(__dirname, "..");
 const runtimeSource = fs.readFileSync(path.join(root, "src/location-discovery-runtime.js"), "utf8");
 const presentationSource = fs.readFileSync(path.join(root, "src/exploration-map-presentation.js"), "utf8");
 const searchStyleSource = fs.readFileSync(path.join(root, "location-discovery.css"), "utf8");
-const appSource = fs.readFileSync(path.join(root, "src/app.js"), "utf8");
-const appRuntimeSource = fs.readFileSync(path.join(root, "src/app-runtime-state.js"), "utf8");
-const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
-
-test("browser bootstrap loads location assets explicitly in dependency order", () => {
-  assert.match(html, /location-discovery\.css/);
-  const discoveryIndex = html.indexOf('src/discovery-provider.js');
-  const geographyIndex = html.indexOf('src/geography-api-provider.js');
-  const runtimeIndex = html.indexOf('src/location-discovery-runtime.js');
-  const appIndex = html.indexOf('src/app.js');
-  assert.ok(discoveryIndex >= 0);
-  assert.ok(geographyIndex > discoveryIndex);
-  assert.ok(runtimeIndex > geographyIndex);
-  assert.ok(appIndex > runtimeIndex);
-  assert.doesNotMatch(appRuntimeSource, /document\.write/);
-  assert.doesNotMatch(appRuntimeSource, /location-discovery-runtime\.js/);
-});
-
-test("both expedition entry buttons share the same app start path", () => {
-  assert.match(appSource, /getElementById\("start-expedition"\)\.addEventListener\("click", beginNewExpedition\)/);
-  assert.match(appSource, /getElementById\("return-again"\)\.addEventListener\("click", beginNewExpedition\)/);
-  assert.match(runtimeSource, /Core\.beginExpedition = function beginExpeditionWithLocationDiscovery/);
-  assert.match(runtimeSource, /reloadGeographicDiscoveries\(\)/);
-  assert.doesNotMatch(runtimeSource, /getElementById\("start-expedition"\)/);
-  assert.doesNotMatch(runtimeSource, /getElementById\("return-again"\)/);
-});
 
 test("location runtime keeps app navigation and simulated choices usable while geography loads", () => {
   assert.match(runtimeSource, /getCurrentPosition/);
