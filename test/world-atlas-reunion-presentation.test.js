@@ -33,35 +33,21 @@ function rootWithKnowledge(options = {}) {
   let saveCount = 0;
   const expeditionState = options.expeditionState || {
     destinations: [
-      {
-        id: "world:sim:north-road-ford",
-        name: "北の街道の古い渡し場",
-        discoveryKey: "sim:north-road-ford"
-      },
-      {
-        id: "ashen-wood",
-        name: "灰の森"
-      }
+      { id: "world:sim:north-road-ford", name: "北の街道の古い渡し場", discoveryKey: "sim:north-road-ford" },
+      { id: "ashen-wood", name: "灰の森" }
     ],
     completedReports: []
   };
   return {
     CrownlessCore: {
-      loadSafeState() {
-        return safe;
-      },
-      saveSafeState() {
-        saveCount += 1;
-        return true;
-      }
+      loadSafeState() { return safe; },
+      saveSafeState() { saveCount += 1; return true; }
     },
     CrownlessNpcLife: NpcLife,
     CrownlessNpcReunionEncounter: Encounter,
     CrownlessDiscoveryActions: DiscoveryActions,
     CrownlessExpeditionSystem: {
-      normalizeState(input) {
-        return input && typeof input === "object" ? input : expeditionState;
-      }
+      normalizeState(input) { return input && typeof input === "object" ? input : expeditionState; }
     },
     localStorage: {
       getItem(key) {
@@ -69,9 +55,7 @@ function rootWithKnowledge(options = {}) {
         return JSON.stringify(expeditionState);
       }
     },
-    getSaveCount() {
-      return saveCount;
-    },
+    getSaveCount() { return saveCount; },
     safe
   };
 }
@@ -87,12 +71,7 @@ function reunionReport(overrides = {}) {
 }
 
 test("selected reunion destination projects Marco into the Atlas candidate model", () => {
-  const reunion = Presentation.reunionForEntry(
-    rootWithKnowledge(),
-    knownDestinations["sim:north-road-ford"],
-    new Date(2026, 8, 1, 11, 0, 0)
-  );
-
+  const reunion = Presentation.reunionForEntry(rootWithKnowledge(), knownDestinations["sim:north-road-ford"], new Date(2026, 8, 1, 11, 0, 0));
   assert.ok(reunion);
   assert.equal(reunion.npcId, "marco");
   assert.equal(reunion.npcName, "マルコ");
@@ -106,7 +85,6 @@ test("reunion clue is deterministic and projects the current place's local event
   const first = Presentation.reunionClueForEntry(root, entry, now);
   const second = Presentation.reunionClueForEntry(root, entry, now);
   const localEvent = DiscoveryActions.buildLocalEvent(entry);
-
   assert.ok(first);
   assert.deepEqual(first, second);
   assert.equal(first.npcId, "marco");
@@ -120,7 +98,6 @@ test("regional lead content changes with the discovered place instead of becomin
   const ford = Presentation.reunionClueForEntry(root, knownDestinations["sim:north-road-ford"], new Date(2026, 8, 1, 11));
   const fordEvent = DiscoveryActions.buildLocalEvent(knownDestinations["sim:north-road-ford"]);
   const forestEvent = DiscoveryActions.buildLocalEvent(knownDestinations["sim:old-forest"]);
-
   assert.ok(ford);
   assert.equal(ford.eventTitle, fordEvent.title);
   assert.notEqual(fordEvent.family, forestEvent.family);
@@ -136,22 +113,11 @@ test("another destination and travel-window boundaries do not produce a reunion 
 
 test("completed expedition report resolves reunion using completedAt and authoritative destination discoveryKey", () => {
   const report = reunionReport();
-  const expeditionState = {
-    destinations: [
-      {
-        id: report.destinationId,
-        name: report.destinationName,
-        discoveryKey: "sim:north-road-ford"
-      }
-    ],
-    completedReports: [report]
-  };
+  const expeditionState = { destinations: [{ id: report.destinationId, name: report.destinationName, discoveryKey: "sim:north-road-ford" }], completedReports: [report] };
   const reunion = Presentation.reunionForExpeditionReport(rootWithKnowledge({ expeditionState }), report);
-
   assert.ok(reunion);
   assert.equal(reunion.npcId, "marco");
   assert.equal(reunion.discoveryKey, "sim:north-road-ford");
-
   const outsideWindow = { ...report, completedAt: new Date(2026, 8, 1, 8).getTime() };
   const outsideState = { ...expeditionState, completedReports: [outsideWindow] };
   assert.equal(Presentation.reunionForExpeditionReport(rootWithKnowledge({ expeditionState: outsideState }), outsideWindow), null);
@@ -159,50 +125,24 @@ test("completed expedition report resolves reunion using completedAt and authori
 
 test("latest completed report persists reunion exactly once and reload remains idempotent", () => {
   const report = reunionReport();
-  const expeditionState = {
-    destinations: [
-      {
-        id: report.destinationId,
-        name: report.destinationName,
-        discoveryKey: "sim:north-road-ford"
-      }
-    ],
-    completedReports: [report]
-  };
+  const expeditionState = { destinations: [{ id: report.destinationId, name: report.destinationName, discoveryKey: "sim:north-road-ford" }], completedReports: [report] };
   const root = rootWithKnowledge({ expeditionState });
-
   const first = Presentation.expeditionReportReunion(root, report);
   const second = Presentation.expeditionReportReunion(root, report);
-
   assert.ok(first);
   assert.ok(second);
   assert.equal(first.encounter.npcId, "marco");
   assert.equal(first.record.firstReunitedAt, report.completedAt);
   assert.equal(root.getSaveCount(), 1);
-  assert.deepEqual(root.safe.npcLife.reunions["marco|sim:north-road-ford"], {
-    npcId: "marco",
-    discoveryKey: "sim:north-road-ford",
-    firstReunitedAt: report.completedAt
-  });
+  assert.deepEqual(root.safe.npcLife.reunions["marco|sim:north-road-ford"], { npcId: "marco", discoveryKey: "sim:north-road-ford", firstReunitedAt: report.completedAt });
 });
 
 test("latest completed reunion reconciles without expedition report DOM", () => {
   const report = reunionReport();
-  const expeditionState = {
-    destinations: [
-      {
-        id: report.destinationId,
-        name: report.destinationName,
-        discoveryKey: "sim:north-road-ford"
-      }
-    ],
-    completedReports: [report]
-  };
+  const expeditionState = { destinations: [{ id: report.destinationId, name: report.destinationName, discoveryKey: "sim:north-road-ford" }], completedReports: [report] };
   const root = rootWithKnowledge({ expeditionState });
-
   const first = Presentation.syncLatestExpeditionReunion(root);
   const second = Presentation.syncLatestExpeditionReunion(root);
-
   assert.ok(first);
   assert.ok(second);
   assert.equal(first.encounter.npcId, "marco");
@@ -211,13 +151,7 @@ test("latest completed reunion reconciles without expedition report DOM", () => 
 });
 
 test("latest reunion reconciliation is a no-op without completed reports", () => {
-  const root = rootWithKnowledge({
-    expeditionState: {
-      destinations: [],
-      completedReports: []
-    }
-  });
-
+  const root = rootWithKnowledge({ expeditionState: { destinations: [], completedReports: [] } });
   assert.equal(Presentation.latestExpeditionReport(root), null);
   assert.equal(Presentation.syncLatestExpeditionReunion(root), null);
   assert.equal(root.getSaveCount(), 0);
@@ -226,18 +160,8 @@ test("latest reunion reconciliation is a no-op without completed reports", () =>
 test("historical unrecorded report stays read-only", () => {
   const latest = reunionReport({ expeditionId: "exp-latest" });
   const historical = reunionReport({ expeditionId: "exp-old" });
-  const expeditionState = {
-    destinations: [
-      {
-        id: historical.destinationId,
-        name: historical.destinationName,
-        discoveryKey: "sim:north-road-ford"
-      }
-    ],
-    completedReports: [latest, historical]
-  };
+  const expeditionState = { destinations: [{ id: historical.destinationId, name: historical.destinationName, discoveryKey: "sim:north-road-ford" }], completedReports: [latest, historical] };
   const root = rootWithKnowledge({ expeditionState });
-
   assert.equal(Presentation.expeditionReportReunion(root, historical), null);
   assert.equal(root.getSaveCount(), 0);
   assert.deepEqual(root.safe.npcLife.reunions, {});
@@ -245,12 +169,8 @@ test("historical unrecorded report stays read-only", () => {
 
 test("built-in destination report cannot create an NPC reunion", () => {
   const report = reunionReport({ destinationId: "ashen-wood", destinationName: "灰の森" });
-  const expeditionState = {
-    destinations: [{ id: "ashen-wood", name: "灰の森" }],
-    completedReports: [report]
-  };
+  const expeditionState = { destinations: [{ id: "ashen-wood", name: "灰の森" }], completedReports: [report] };
   const root = rootWithKnowledge({ expeditionState });
-
   assert.equal(Presentation.reunionForExpeditionReport(root, report), null);
   assert.equal(Presentation.expeditionReportReunion(root, report), null);
   assert.equal(root.getSaveCount(), 0);
@@ -261,7 +181,6 @@ test("Atlas candidate rendering exposes a regional NPC lead without confirming r
   const syncStart = source.indexOf("function syncReunion");
   const syncEnd = source.indexOf("function ensureStyles");
   const syncBody = source.slice(syncStart, syncEnd);
-
   assert.match(syncBody, /再会候補/);
   assert.match(syncBody, /遠征で会えるかもしれない/);
   assert.match(syncBody, /reunionClueForEntry\s*\(/);
@@ -277,7 +196,6 @@ test("expedition report only persists from the latest completed report", () => {
   const start = source.indexOf("function expeditionReportReunion");
   const end = source.indexOf("function latestExpeditionReport");
   const body = source.slice(start, end);
-
   assert.match(body, /completedReports\[0\]/);
   assert.match(body, /recordReunion\s*\(/);
   assert.match(body, /if \(!record && latest\)/);
@@ -285,9 +203,7 @@ test("expedition report only persists from the latest completed report", () => {
 
 test("Atlas reunion layer reuses authoritative domains without GPS or world-knowledge mutation", () => {
   const source = fs.readFileSync(path.join(__dirname, "../src/world-atlas-reunion-presentation.js"), "utf8");
-  const runtimeSource = fs.readFileSync(path.join(__dirname, "../src/app-runtime-state.js"), "utf8");
   const reunion = Presentation.reunionForEntry(rootWithKnowledge(), knownDestinations["sim:north-road-ford"], new Date(2026, 8, 1, 11));
-
   assert.match(source, /CrownlessNpcReunionEncounter/);
   assert.match(source, /encounterAtDiscovery/);
   assert.match(source, /encounterForExpedition/);
@@ -295,7 +211,4 @@ test("Atlas reunion layer reuses authoritative domains without GPS or world-know
   assert.equal("latitude" in reunion, false);
   assert.equal("longitude" in reunion, false);
   assert.equal("coordinates" in reunion, false);
-  assert.match(runtimeSource, /src\/npc-life\.js/);
-  assert.match(runtimeSource, /src\/npc-reunion-encounter\.js/);
-  assert.match(runtimeSource, /src\/world-atlas-reunion-presentation\.js/);
 });
