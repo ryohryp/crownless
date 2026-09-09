@@ -8,7 +8,7 @@ Crownless is built around one loop:
 
 Real-world movement reveals the game world. The player then returns to safety, chooses companions and equipment, sends an expedition into a discovered place, and later reads what happened.
 
-This is the current canonical product direction, established by [Issue #189](https://github.com/ryohryp/crownless/issues/189) and [ADR 0002](docs/adr/0002-idle-expedition-pivot.md). The earlier action hack-and-slash direction is no longer gameplay Canon.
+This is the current canonical product direction, established by [Issue #189](https://github.com/ryohryp/crownless/issues/189), [ADR 0002](docs/adr/0002-idle-expedition-pivot.md), and reinforced by [ADR 0005](docs/adr/0005-realtime-combat-rejected.md). The earlier action hack-and-slash direction is no longer gameplay Canon.
 
 ## Core idea
 
@@ -57,17 +57,18 @@ Combat may occur during an expedition, but the current design does not use playe
 - [Exploration & Location Discovery Specification](docs/exploration-location-spec.md) — GPS / geography discovery and persistent world knowledge
 - [Grey Hearth Presentation Specification](docs/hearth-presentation-spec.md) — safe-room presentation and expedition preparation / review
 - [ADR 0002 — Location-discovery expedition RPG](docs/adr/0002-idle-expedition-pivot.md) — explicit replacement of the action-combat-centered direction
+- [ADR 0005 — Real-time combat rejected](docs/adr/0005-realtime-combat-rejected.md) — guardrail against reintroducing player-controlled real-time combat
 - [Visual Design Guide v0.2](docs/visual-design-guide-v0.2.md) — canonical global visual rules
 - [Deployment strategy](docs/deployment-strategy.md)
 - [Development guide for coding agents](AGENTS.md)
 
-Historical action-combat documents remain in the repository only as deprecated transition references and do not override the current Canon.
+Historical action-combat documents may remain only as deprecated references and do not override the current Canon.
 
-## Current implementation transition
+## Current implementation
 
-The browser prototype may still contain earlier action-combat implementation, combat CSS/assets, Named Hunt combat, and other systems created before ADR 0002.
+The rejected real-time combat runtime, combat-specific presentation modules, dedicated runtime assets, and dedicated tests have been removed from the active product under ADR 0005.
 
-Do **not** interpret that code as the current product direction.
+The repository root entry point routes to `reboot.html`, which is the current playable exploration / consequence / expedition prototype. Combat or hostile encounters may still be represented inside deterministic expedition and encounter resolution; that is intentionally distinct from player-controlled real-time combat.
 
 Current implementation should strengthen this loop:
 
@@ -91,7 +92,7 @@ loot / injury / discovery / new options
 adapt and dispatch again
 ```
 
-Old combat code should be removed or repurposed incrementally only after tracing runtime/test/document references.
+Do not rebuild a manual attack / dodge / enemy-HP loop without a new explicit Canon decision.
 
 ## First playable target
 
