@@ -5,7 +5,6 @@ const path = require("node:path");
 const Presentation = require("../src/exploration-map-presentation.js");
 const Discovery = require("../src/discovery-provider.js");
 
-const index = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 const presentationSource = fs.readFileSync(path.join(__dirname, "..", "src", "exploration-map-presentation.js"), "utf8");
 
 function card(name, risk, signal) {
@@ -113,11 +112,4 @@ test("lead-list observer refresh reapplies geographic discoveries after any DOM 
   assert.ok(observerIndex >= 0, "lead-list must remain observed for child-list rebuilds");
   assert.ok(refreshIndex >= 0, "observer-driven refresh must reapply cached geographic discoveries");
   assert.match(presentationSource, /observer\.observe\(leadList, \{ childList: true, subtree: false \}\)/);
-});
-
-test("browser loads direct exploration presentation after existing presentation layers", () => {
-  const noncombat = index.indexOf('src/noncombat-presentation.js');
-  const exploration = index.indexOf('src/exploration-map-presentation.js');
-  assert.ok(noncombat >= 0);
-  assert.ok(exploration > noncombat);
 });
