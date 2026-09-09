@@ -42,12 +42,13 @@
   "runtime": {
     "status": "identity_reference_only",
     "runtime_actor_replacement": "not_requested",
-    "runtime_source_remains": "assets/combat/minimal-v0.1/actors/player-unarmed.png"
+    "runtime_source_remains": null,
+    "note": "The rejected real-time combat actor source was removed under ADR 0005. This Anchor remains a visual identity reference for current expedition-era presentation."
   },
   "notes": [
     "This v0.4 PNG replaces the v0.3 protagonist identity Anchor after explicit user approval.",
     "The previous v0.3 PNG and manifest remain available as historical provenance.",
     "The image contains only the requested game asset: no issue, PR, progress, validation, approval, or metadata text.",
-    "The Anchor establishes identity and visual grammar; runtime actor replacement remains a separate integration step."
+    "The Anchor establishes identity and visual grammar; a future runtime actor integration must target current expedition presentation rather than the rejected real-time combat runtime."
   ]
 }
