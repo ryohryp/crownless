@@ -78,6 +78,8 @@ test('retreat is always a legitimate terminal action and still carries enemy inf
 
   assert.equal(resolved.result, 'retreated');
   assert.equal(record.placeState, 'bandits_alerted');
+  assert.equal(record.owner, 'npc');
+  assert.equal(record.strategicEffect, 'route_contested');
   assert.ok(record.intel.includes('弓兵は崩れ石から射線を作る'));
 });
 
@@ -86,7 +88,7 @@ test('persistent result contains semantic aftermath but no transient combat inpu
   const serialized = wego.serializePersistentRecord(resolved);
   const record = JSON.parse(serialized);
 
-  assert.deepEqual(Object.keys(record).sort(), ['encounterId', 'injury', 'intel', 'placeState', 'result', 'version'].sort());
+  assert.deepEqual(Object.keys(record).sort(), ['encounterId', 'injury', 'intel', 'owner', 'placeState', 'result', 'strategicEffect', 'version'].sort());
   assert.equal('round' in record, false);
   assert.equal('advantage' in record, false);
   assert.equal('pressure' in record, false);
@@ -101,6 +103,10 @@ test('cleared retreat and forced retreat produce different land presentations', 
   const retreated = wego.presentationForPersistent({ encounterId: wego.ENCOUNTER_ID, result: 'retreated', injury: null, placeState: 'bandits_alerted', intel: [] });
   const forced = wego.presentationForPersistent({ encounterId: wego.ENCOUNTER_ID, result: 'forced_retreat', injury: 'bruised_ribs', placeState: 'bandits_hold_road', intel: [] });
 
+  assert.equal(cleared.owner, 'player');
+  assert.equal(retreated.owner, 'npc');
+  assert.equal(forced.owner, 'npc');
+  assert.match(cleared.nextDecision, /さらに先|別方向/);
   assert.notEqual(cleared.mark, retreated.mark);
   assert.notEqual(retreated.mark, forced.mark);
   assert.notEqual(cleared.text, forced.text);
@@ -181,6 +187,8 @@ test('Reboot runtime wires a battlefield-first stopped WEGO layer without restor
   assert.match(controller, /data-wego-action=\"maneuver\"/);
   assert.match(controller, /data-wego-action=\"retreat\"/);
   assert.match(controller, /安全に立ち止まってから/);
+  assert.match(controller, /territoryOwner/);
+  assert.match(controller, /nextDecision/);
   assert.match(board, /certaintyFor/);
   assert.match(board, /retreatTone/);
   assert.match(css, /\.wego-board/);

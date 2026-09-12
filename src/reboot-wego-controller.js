@@ -403,6 +403,7 @@
       if (!presentation) return;
       if (map) map.dataset.wegoRoad = presentation.tone;
       response.dataset.wegoResult = presentation.tone;
+      response.dataset.territoryOwner = presentation.owner || 'npc';
 
       if (response.dataset.sector === 'west' && response.dataset.stage === 'encounter') {
         const title = $('#phase8-title');
@@ -421,7 +422,7 @@
       if (record) {
         applyPersistentLandState(record);
         const presentation = wego.presentationForPersistent(record);
-        setStatus(`街道の状態が変わった: ${presentation.mark}。別方向へ戻るか、さらに街道へ踏み込める。`, 'found');
+        setStatus(`街道の状態が変わった: ${presentation.mark}。${presentation.nextDecision}`, 'found');
         if (persistenceNote) persistenceNote.textContent = `保存したのは ${record.result} / ${wego.injuryLabel(record.injury)} / 土地状態 / 持ち帰った敵情報だけ。位置・移動経路・ラウンド履歴は残していない。`;
       }
     }

@@ -38,6 +38,8 @@
   const VALID_RESULTS = new Set(['cleared', 'retreated', 'forced_retreat']);
   const VALID_INJURIES = new Set([null, 'arrow_graze', 'wrenched_knee', 'bruised_ribs']);
   const VALID_PLACE_STATES = new Set(['road_cleared', 'bandits_alerted', 'bandits_hold_road']);
+  const VALID_OWNERS = new Set(['player', 'npc']);
+  const VALID_STRATEGIC_EFFECTS = new Set(['route_secured', 'route_contested']);
 
   const PLANS = Object.freeze({
     probe_shot: Object.freeze({
@@ -245,6 +247,14 @@
     return 'bandits_hold_road';
   }
 
+  function ownerForResult(result) {
+    return result === 'cleared' ? 'player' : 'npc';
+  }
+
+  function strategicEffectForResult(result) {
+    return result === 'cleared' ? 'route_secured' : 'route_contested';
+  }
+
   function terminalState(state, result, injury, resolution, intel) {
     return Object.freeze({
       ...state,
@@ -315,6 +325,8 @@
       result: state.result,
       injury: VALID_INJURIES.has(state.injury) ? state.injury : null,
       placeState: placeStateForResult(state.result),
+      owner: ownerForResult(state.result),
+      strategicEffect: strategicEffectForResult(state.result),
       intel: Object.freeze([...new Set((state.intel || []).filter((value) => typeof value === 'string'))])
     });
   }
@@ -323,12 +335,16 @@
     if (!input || input.encounterId !== ENCOUNTER_ID || !VALID_RESULTS.has(input.result)) return null;
     const placeState = VALID_PLACE_STATES.has(input.placeState) ? input.placeState : placeStateForResult(input.result);
     const injury = VALID_INJURIES.has(input.injury) ? input.injury : null;
+    const owner = VALID_OWNERS.has(input.owner) ? input.owner : ownerForResult(input.result);
+    const strategicEffect = VALID_STRATEGIC_EFFECTS.has(input.strategicEffect) ? input.strategicEffect : strategicEffectForResult(input.result);
     return Object.freeze({
       version: 1,
       encounterId: ENCOUNTER_ID,
       result: input.result,
       injury,
       placeState,
+      owner,
+      strategicEffect,
       intel: Object.freeze([...new Set((Array.isArray(input.intel) ? input.intel : []).filter((value) => typeof value === 'string'))])
     });
   }
@@ -360,25 +376,31 @@
     if (!record) return null;
     if (record.result === 'cleared') {
       return Object.freeze({
-        mark: '追い剥ぎ排除',
-        title: '街道に通れる隙間が戻った',
-        text: `前衛と弓兵は退いた。${record.injury ? `${injuryLabel(record.injury)}を負ったが、` : ''}崩れ関門の手前は一度静かになった。`,
-        tone: 'cleared'
+        mark: '街道を確保',
+        title: 'ここは、こちらの足場になった',
+        text: `前衛と弓兵は退いた。${record.injury ? `${injuryLabel(record.injury)}を負ったが、` : ''}崩れ関門の手前をこちらの足場として確保した。次はこの道を使って、さらに先へ踏み込める。`,
+        tone: 'cleared',
+        owner: record.owner,
+        nextDecision: 'この街道を足場に、さらに先へ踏み込むか。別方向を先に確かめるか。'
       });
     }
     if (record.result === 'retreated') {
       return Object.freeze({
         mark: '敵を把握・撤退',
         title: '追い剥ぎは街道に残っている',
-        text: `${record.injury ? `${injuryLabel(record.injury)}を抱えて` : ''}生還した。前衛と弓兵の役割は分かったため、次は装備を変えて戻れる。`,
-        tone: 'retreated'
+        text: `${record.injury ? `${injuryLabel(record.injury)}を抱えて` : ''}生還した。前衛と弓兵の役割は分かったが、街道の支配はまだ敵側にある。次は装備を変えて戻るか、別方向を選べる。`,
+        tone: 'retreated',
+        owner: record.owner,
+        nextDecision: 'この街道へ再挑戦するか。別方向を先に確かめるか。'
       });
     }
     return Object.freeze({
       mark: '敵支配が強まる',
       title: '街道は二人に押さえられた',
-      text: `${injuryLabel(record.injury)}を持ち帰った。追い剥ぎは退路まで使う相手だと分かり、この道へ次に入る準備が変わる。`,
-      tone: 'forced_retreat'
+      text: `${injuryLabel(record.injury)}を持ち帰った。追い剥ぎは退路まで使う相手で、街道の支配は敵側に残った。この道へ次に入る準備が変わる。`,
+      tone: 'forced_retreat',
+      owner: record.owner,
+      nextDecision: '街道の再攻略に備えるか。別方向から勢力圏を広げるか。'
     });
   }
 
