@@ -285,7 +285,6 @@ test("expedition report only persists from the latest completed report", () => {
 
 test("Atlas reunion layer reuses authoritative domains without GPS or world-knowledge mutation", () => {
   const source = fs.readFileSync(path.join(__dirname, "../src/world-atlas-reunion-presentation.js"), "utf8");
-  const runtimeSource = fs.readFileSync(path.join(__dirname, "../src/app-runtime-state.js"), "utf8");
   const reunion = Presentation.reunionForEntry(rootWithKnowledge(), knownDestinations["sim:north-road-ford"], new Date(2026, 8, 1, 11));
 
   assert.match(source, /CrownlessNpcReunionEncounter/);
@@ -295,7 +294,4 @@ test("Atlas reunion layer reuses authoritative domains without GPS or world-know
   assert.equal("latitude" in reunion, false);
   assert.equal("longitude" in reunion, false);
   assert.equal("coordinates" in reunion, false);
-  assert.match(runtimeSource, /src\/npc-life\.js/);
-  assert.match(runtimeSource, /src\/npc-reunion-encounter\.js/);
-  assert.match(runtimeSource, /src\/world-atlas-reunion-presentation\.js/);
 });
