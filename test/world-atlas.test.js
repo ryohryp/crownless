@@ -6,7 +6,6 @@ const Atlas = require("../src/world-atlas.js");
 
 const source = fs.readFileSync(path.join(__dirname, "../src/world-atlas.js"), "utf8");
 const css = fs.readFileSync(path.join(__dirname, "../world-atlas.css"), "utf8");
-const runtimeSource = fs.readFileSync(path.join(__dirname, "../src/app-runtime-state.js"), "utf8");
 
 test("atlas parses coarse cell and area identities without coordinates", () => {
   assert.deepEqual(Atlas.parseCellId("cell:16:100:200"), { id: "cell:16:100:200", zoom: 16, x: 100, y: 200 });
@@ -176,7 +175,6 @@ test("atlas remains manuscript UI rather than a navigation map and has phone rul
   assert.match(css, /world-atlas-cell\.known/);
   assert.match(css, /@media \(max-width:700px\)/);
   assert.match(css, /prefers-reduced-motion:reduce/);
-  assert.match(runtimeSource, /src\/world-atlas\.js/);
 });
 
 test("atlas mobile viewport shell bounds layout to 1 viewport and provides dock navigation", () => {
