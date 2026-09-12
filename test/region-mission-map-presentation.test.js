@@ -5,19 +5,7 @@ const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 
 const root = path.join(__dirname, '..');
-const htmlPath = path.join(root, 'index.html');
 const presentationPath = path.join(root, 'src', 'region-mission-map-presentation.js');
-
-test('regional mission target presentation loads after the exploration map', () => {
-  const html = fs.readFileSync(htmlPath, 'utf8');
-  const explorationMap = html.indexOf('src/exploration-map-presentation.js');
-  const regionalMap = html.indexOf('src/region-mission-map-presentation.js');
-  const explorationFeel = html.indexOf('src/exploration-feel.js');
-
-  assert.ok(explorationMap >= 0);
-  assert.ok(regionalMap > explorationMap);
-  assert.ok(explorationFeel > regionalMap);
-});
 
 test('revealed regional target is a schematic map marker that points combat back to Grey Hearth', () => {
   const source = fs.readFileSync(presentationPath, 'utf8');

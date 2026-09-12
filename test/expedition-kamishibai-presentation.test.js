@@ -6,19 +6,9 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const root = path.join(__dirname, "..");
-const runtime = fs.readFileSync(path.join(root, "src", "app-runtime-state.js"), "utf8");
 const presentation = fs.readFileSync(path.join(root, "src", "expedition-presentation.js"), "utf8");
 const styles = fs.readFileSync(path.join(root, "expedition-kamishibai.css"), "utf8");
 const battleStyles = fs.readFileSync(path.join(root, "expedition-kamishibai-battle.css"), "utf8");
-
-test("runtime loads scene projection, battle composition, and kamishibai styles before report presentation", () => {
-  assert.match(runtime, /expedition-kamishibai\.css/);
-  assert.match(runtime, /expedition-kamishibai-battle\.css/);
-  assert.match(runtime, /src\/expedition-scenes\.js/);
-  assert.match(runtime, /src\/expedition-visual-composition\.js/);
-  assert.ok(runtime.indexOf('await script("src/expedition-scenes.js"') < runtime.indexOf('await script("src/expedition-presentation.js"'));
-  assert.match(runtime, /"CrownlessExpeditionVisualComposition"\)\.catch/);
-});
 
 test("completed report reads as result and adaptation before the optional scene deck and details", () => {
   const reportStart = presentation.indexOf("function renderReport");

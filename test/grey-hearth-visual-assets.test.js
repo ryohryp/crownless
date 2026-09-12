@@ -45,13 +45,13 @@ test('Grey Hearth asset package keeps only the approved runtime source on main',
   }
 });
 
-test('Grey Hearth avatar baseline remains the valid unarmed player source', async () => {
+test('Grey Hearth avatar baseline remains the approved protagonist Canon Anchor', async () => {
   const avatar = await readFile(join(root, 'assets', 'hearth', manifest.avatar_baseline));
   assert.deepEqual([...avatar.subarray(0, 8)], [137, 80, 78, 71, 13, 10, 26, 10]);
   assert.ok(avatar.length > 1000);
 });
 
-test('approved Grey Hearth avatar stays separate from the combat source and Canon Anchor', async () => {
+test('approved Grey Hearth runtime avatar stays separate from the protagonist Canon Anchor', async () => {
   assert.equal(manifest.avatar_runtime_status, 'approved');
   assert.equal(manifest.avatar_runtime_approval.approved_by, 'user');
   assert.equal(manifest.avatar_runtime_anchor, '../../docs/assets/player-unarmed-approved-anchor-v0.4.png');
