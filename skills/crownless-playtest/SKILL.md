@@ -1,30 +1,23 @@
 ---
 name: crownless-playtest
-description: Evaluate whether a playable Crownless slice is fun enough to keep, change, or kill.
+description: Evaluate whether a playable Crownless slice is fun enough to keep, change, or drop.
 ---
 
 # Crownless Playtest
 
 Use this Skill when judging a playable Crownless slice.
 
-## Goal
+Prioritize these current fun anchors:
 
-Test the smallest playable experience and decide what to keep, change, or remove.
+- equipment visibly changes the character,
+- combat rewards strategy and meaningful choices,
+- exploration makes the world feel larger,
+- stronger equipment creates motivation to explore again.
 
-Prioritize:
+The loop to protect is:
 
-- desire to explore another place,
-- satisfying combat,
-- meaningful loot,
-- tension between continuing and returning alive,
-- noticeable improvement after returning.
+**Explore → Fight → Loot → Equip/Improve → Reach farther → Explore again**
 
-The core loop is:
-
-**Explore → Fight → Loot → Return alive → Improve → Explore farther**
-
-Do not judge a feature by completeness or technical sophistication. Judge it by whether it makes the player want another expedition.
-
-Play the game, observe what actually happened, make the smallest useful change, and play again.
+Play the game, observe what actually happened, identify the weakest link, make the smallest useful change, and play again.
 
 Never infer fun from tests, code, or automation alone.
