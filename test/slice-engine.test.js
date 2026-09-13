@@ -28,9 +28,23 @@ test('complete first loop banks signature gear; a second expedition uses it', ()
   s = E.equip(s,'fang'); s = E.upgrade(s);
   assert.equal(s.scrap,1); assert.equal(E.maxHp(s),35);
   s = E.start(s,'wood'); s = E.act(s,'careful'); s = E.act(s,'dodge');
-  assert.equal(s.expedition.focus,5); assert.equal(s.expedition.hp,35);
+  assert.equal(s.expedition.focus,6); assert.equal(s.expedition.hp,35);
   const before = s.expedition.enemy.hp;
-  s = E.act(s,'strike'); assert.equal(before-s.expedition.enemy.hp,10);
+  s = E.act(s,'strike'); assert.equal(before-s.expedition.enemy.hp,11);
+});
+test('upgrades strengthen each loadout signature without erasing its role', () => {
+  let s=fresh(); s.scrap=100; s.owned.push('fang','shield','bow');
+  s=E.upgrade(s);
+  assert.equal(s.level,1);
+  assert.equal(E.combatProfile(s,'fang').dodgeFocus,6);
+  assert.equal(E.combatProfile(s,'shield').block,13);
+  assert.equal(E.combatProfile(s,'shield').counter,3);
+  assert.equal(E.combatProfile(s,'bow').heavyBonus,5);
+  assert.equal(E.combatProfile(s,'rust').heavyBonus,5);
+  assert.match(E.gearText(s,'fang'),/\+6/);
+  assert.match(E.gearText(s,'shield'),/13 軽減/);
+  assert.match(E.gearText(s,'bow'),/強撃 10/);
+  assert.match(E.gearText(s,'rust'),/9 ダメージ/);
 });
 test('all destinations lead to an achievable crown ending and permanent health bonus', () => {
   let s = fresh();

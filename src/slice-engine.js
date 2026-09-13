@@ -35,6 +35,26 @@
   const initial = () => ({ version: VERSION, mode: null, unlocked: ['wood'], cleared: [], owned: ['rust'], equipped: 'rust', scrap: 0, level: 0, runs: 0, victories: 0, expedition: null, report: null });
   const maxHp = s => 30 + s.level * 5 + (s.owned.includes('crown') ? 6 : 0);
   const upgradeCost = s => 8 + s.level * 6;
+  function combatProfile(s, id = s.equipped) {
+    const level = Number.isInteger(s?.level) ? Math.max(0, Math.min(4, s.level)) : 0;
+    return {
+      heavyBonus: 4 + (id === 'bow' || id === 'rust' ? level : 0),
+      dodgeFocus: id === 'fang' ? 5 + level : 3,
+      block: id === 'shield' ? 12 + Math.ceil(level / 2) : 9,
+      counter: id === 'shield' ? 3 + Math.floor(level / 2) : 0,
+      pierce: id === 'bow',
+    };
+  }
+  function gearText(s, id) {
+    const gear = GEAR[id];
+    if (!gear) return '';
+    if (id === 'crown') return gear.text;
+    const profile = combatProfile(s, id);
+    if (id === 'fang') return `攻撃 ${gear.attack}。回避後の追撃が +${profile.dodgeFocus}（通常 +3）。`;
+    if (id === 'shield') return `攻撃 ${gear.attack}。防御で ${profile.block} 軽減し、${profile.counter} ダメージを返す。`;
+    if (id === 'bow') return `攻撃 ${gear.attack}。強撃 ${gear.attack + profile.heavyBonus} が敵の守りを貫通する。`;
+    return `攻撃 ${gear.attack}。強撃は気力 2 で ${gear.attack + profile.heavyBonus} ダメージ。`;
+  }
   const intent = e => {
     const id = ENEMIES[e.kind].pattern[e.turn % ENEMIES[e.kind].pattern.length];
     return { id, ...INTENTS[id], damage: INTENTS[id].damage ? INTENTS[id].damage + e.depth - 1 + (e.elite ? 2 : 0) : 0 };
@@ -105,7 +125,7 @@
       if ((action === 'heavy' && x.stamina < 2) || (action === 'dodge' && x.stamina < 1)) return s;
       x.log = [];
     } else return s;
-    const e = x.enemy, next = intent(e), weapon = GEAR[n.equipped];
+    const e = x.enemy, next = intent(e), weapon = GEAR[n.equipped], profile = combatProfile(n);
     if (action === 'flee') {
       const damage = Math.max(2, next.damage);
       x.hp -= damage;
@@ -113,16 +133,16 @@
     }
     let damage = 0;
     if (action === 'strike' || action === 'heavy') {
-      damage = weapon.attack + (action === 'heavy' ? 4 : 0) + x.focus;
-      if (next.id === 'guard' && !(n.equipped === 'bow' && action === 'heavy')) damage = Math.max(0, damage - 5);
+      damage = weapon.attack + (action === 'heavy' ? profile.heavyBonus : 0) + x.focus;
+      if (next.id === 'guard' && !(profile.pierce && action === 'heavy')) damage = Math.max(0, damage - 5);
       x.stamina = Math.min(3, x.stamina + (action === 'heavy' ? -2 : 1)); x.focus = 0;
     }
-    if (action === 'guard') { x.stamina = Math.min(3, x.stamina + 1); if (n.equipped === 'shield' && next.damage > 0) damage = 3; }
-    if (action === 'dodge') { x.stamina--; x.focus = n.equipped === 'fang' ? 5 : 3; }
+    if (action === 'guard') { x.stamina = Math.min(3, x.stamina + 1); if (profile.counter && next.damage > 0) damage = profile.counter; }
+    if (action === 'dodge') { x.stamina--; x.focus = profile.dodgeFocus; }
     e.hp = Math.max(0, e.hp - damage);
     if (damage > 0) x.log.push(`こちらの一撃。${damage} ダメージ。`);
     if (e.hp <= 0) { victory(n); return n; }
-    const block = action === 'guard' ? (n.equipped === 'shield' ? 12 : 9) : 0;
+    const block = action === 'guard' ? profile.block : 0;
     const taken = action === 'dodge' ? 0 : Math.max(0, next.damage - block);
     x.hp -= taken;
     x.log.push(action === 'dodge' ? `身をかわした。次の攻撃 +${x.focus}。` : taken ? `${next.name}。体力 −${taken}。` : next.damage ? '攻撃を受け止めた。体力消費なし。' : '敵は攻撃してこない。');
@@ -165,7 +185,8 @@
       // Validate the complete live run before restoring it; never silently bank a damaged save.
       if (s.expedition) {
         const x = s.expedition;
-        if (Object.keys(x).some(k => !['place','depth','room','hp','stamina','focus','potions','scrap','gear','seals','enemy','stage','log'].includes(k)) || !s.unlocked.includes(x.place) || !int(x.depth,1,3) || !int(x.room,0,4) || !int(x.hp,1,maxHp(s)) || !int(x.stamina,0,3) || ![0,3,5].includes(x.focus) || !int(x.potions,0,2) || !int(x.scrap,0,1000) || !validArray(x.gear,Object.keys(GEAR)) || !Array.isArray(x.seals) || x.seals.length > 3 || !x.seals.every(v => ids.includes(v)) || !['path','fight','cleared'].includes(x.stage) || !Array.isArray(x.log) || x.log.length > 8 || !x.log.every(v => typeof v === 'string' && v.length < 250)) throw Error('run');
+        const allowedFocus = s.equipped === 'fang' ? [0,3,5,6,7,8,9] : [0,3];
+        if (Object.keys(x).some(k => !['place','depth','room','hp','stamina','focus','potions','scrap','gear','seals','enemy','stage','log'].includes(k)) || !s.unlocked.includes(x.place) || !int(x.depth,1,3) || !int(x.room,0,4) || !int(x.hp,1,maxHp(s)) || !int(x.stamina,0,3) || !allowedFocus.includes(x.focus) || !int(x.potions,0,2) || !int(x.scrap,0,1000) || !validArray(x.gear,Object.keys(GEAR)) || !Array.isArray(x.seals) || x.seals.length > 3 || !x.seals.every(v => ids.includes(v)) || !['path','fight','cleared'].includes(x.stage) || !Array.isArray(x.log) || x.log.length > 8 || !x.log.every(v => typeof v === 'string' && v.length < 250)) throw Error('run');
         if (x.stage === 'fight') {
           const e = x.enemy;
           if (!e || Object.keys(e).some(k => !['kind','hp','maxHp','turn','depth','elite','risky'].includes(k)) || !ENEMIES[e.kind] || !int(e.maxHp,1,80) || !int(e.hp,1,e.maxHp) || !int(e.turn,0,1e6) || e.depth !== x.depth || typeof e.elite !== 'boolean' || typeof e.risky !== 'boolean') throw Error('enemy');
@@ -178,5 +199,5 @@
       return s;
     } catch { return null; }
   }
-  return { VERSION, PLACES, GEAR, ENEMIES, INTENTS, initial, maxHp, upgradeCost, intent, place, discover, start, act, equip, upgrade, locationSession, observe, serialize, parse };
+  return { VERSION, PLACES, GEAR, ENEMIES, INTENTS, initial, maxHp, upgradeCost, combatProfile, gearText, intent, place, discover, start, act, equip, upgrade, locationSession, observe, serialize, parse };
 });
