@@ -1,14 +1,14 @@
 # Crownless
 
-**Location-discovery expedition RPG in a medieval fantasy world.**
+**Location-discovery territory-expansion RPG in a medieval fantasy world.**
 
 Crownless is built around one loop:
 
-> **Walk → Discover → Prepare → Dispatch → Wait → Report → Adapt**
+> **Walk → Discover → Scout / Learn → Prepare → Contest / Expedition → Control → Exploit / Defend / Expand → Next place**
 
 Real-world movement reveals the game world. The player then returns to safety, chooses companions and equipment, sends an expedition into a discovered place, and later reads what happened.
 
-This is the current canonical product direction, established by [Issue #189](https://github.com/ryohryp/crownless/issues/189), [ADR 0002](docs/adr/0002-idle-expedition-pivot.md), and reinforced by [ADR 0005](docs/adr/0005-realtime-combat-rejected.md). The earlier action hack-and-slash direction is no longer gameplay Canon.
+This is the current canonical product direction, established by [Issue #503](https://github.com/ryohryp/crownless/issues/503) and [ADR 0004](docs/adr/0004-territory-driven-reforge.md). [ADR 0005](docs/adr/0005-realtime-combat-rejected.md) remains the guardrail against reintroducing player-controlled real-time combat. ADR 0002 is historical context and no longer defines the product-level loop or North Star.
 
 ## Core idea
 
@@ -18,7 +18,7 @@ Walking through reality reveals, remembers, and develops Crownless. A newly disc
 
 The central question is:
 
-> **After dispatching an expedition, do you want to reopen the game to see what happened?**
+> **自分の行動で勢力圏が広がった地図を見たとき、次の地点を取りたくなるか？**
 
 ## What the player does
 
@@ -37,7 +37,7 @@ The central question is:
 
 Combat may occur during an expedition, but the current design does not use player-controlled real-time action combat as a core system.
 
-`Idle` or elapsed-time behavior is an expedition-resolution mechanic, not the main genre identity. Crownless is primarily a **Location × Expedition RPG**.
+Expeditions and elapsed-time resolution remain important means of acting on places, but they are not the product goal. Crownless is primarily a **Location × Territory RPG**.
 
 ## Design pillars
 
@@ -56,7 +56,8 @@ Combat may occur during an expedition, but the current design does not use playe
 - [Expedition System Specification](docs/expedition-system-spec.md) — dispatch, elapsed time, event resolution, companions, reports, injury / missing state, and loot
 - [Exploration & Location Discovery Specification](docs/exploration-location-spec.md) — GPS / geography discovery and persistent world knowledge
 - [Grey Hearth Presentation Specification](docs/hearth-presentation-spec.md) — safe-room presentation and expedition preparation / review
-- [ADR 0002 — Location-discovery expedition RPG](docs/adr/0002-idle-expedition-pivot.md) — explicit replacement of the action-combat-centered direction
+- [ADR 0004 — Territory-driven Reforge](docs/adr/0004-territory-driven-reforge.md) — current product decision, core loop, and North Star
+- [ADR 0002 — Location-discovery expedition RPG](docs/adr/0002-idle-expedition-pivot.md) — historical expedition-centered pivot; product-level wording is superseded by ADR 0004
 - [ADR 0005 — Real-time combat rejected](docs/adr/0005-realtime-combat-rejected.md) — guardrail against reintroducing player-controlled real-time combat
 - [Visual Design Guide v0.2](docs/visual-design-guide-v0.2.md) — canonical global visual rules
 - [Deployment strategy](docs/deployment-strategy.md)
@@ -68,7 +69,7 @@ Historical action-combat documents may remain only as deprecated references and 
 
 The rejected real-time combat runtime, combat-specific presentation modules, dedicated runtime assets, and dedicated tests have been removed from the active product under ADR 0005.
 
-The repository root entry point routes to `reboot.html`, which is the current playable exploration / consequence / expedition prototype. Combat or hostile encounters may still be represented inside deterministic expedition and encounter resolution; that is intentionally distinct from player-controlled real-time combat.
+The repository root entry point routes to `reboot.html`, a bounded exploration / consequence prototype. It is useful implementation work, but it does not replace the Territory-driven Canon. Combat or hostile encounters may still be represented inside deterministic expedition and encounter resolution; that is intentionally distinct from player-controlled real-time combat.
 
 Current implementation should strengthen this loop:
 
@@ -77,19 +78,19 @@ walk in reality
   ↓
 discover Crownless places
   ↓
-choose a destination + party + equipment + policy
+scout / learn
   ↓
-dispatch
+prepare companions + equipment + approach
   ↓
-elapsed time
+contest / expedition
   ↓
-resolve deterministic events
+resolve deterministic consequences
   ↓
-report
+valid success may change control
   ↓
-loot / injury / discovery / new options
+Atlas and next-place conditions change
   ↓
-adapt and dispatch again
+choose the next place
 ```
 
 Do not rebuild a manual attack / dodge / enemy-HP loop without a new explicit Canon decision.
@@ -189,4 +190,4 @@ See [Deployment strategy](docs/deployment-strategy.md) for details.
 
 ## Status
 
-Playable browser prototype / **Location × Expedition RPG** in active development.
+Playable browser prototype / **Location × Territory RPG** in active development.
