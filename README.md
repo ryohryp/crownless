@@ -6,7 +6,7 @@ Crownless is built around one loop:
 
 > **Walk → Discover → Scout / Learn → Prepare → Contest / Expedition → Control → Exploit / Defend / Expand → Next place**
 
-Real-world movement reveals the game world. The player then returns to safety, chooses companions and equipment, sends an expedition into a discovered place, and later reads what happened.
+Real-world movement reveals the game world. The player can then return to safety, learn what matters about discovered places, choose companions, equipment, and an approach, contest NPC-held locations, and see persistent control of the map change.
 
 This is the current canonical product direction, established by [Issue #503](https://github.com/ryohryp/crownless/issues/503) and [ADR 0004](docs/adr/0004-territory-driven-reforge.md). [ADR 0005](docs/adr/0005-realtime-combat-rejected.md) remains the guardrail against reintroducing player-controlled real-time combat. ADR 0002 is historical context and no longer defines the product-level loop or North Star.
 
@@ -24,16 +24,14 @@ The central question is:
 
 - walk somewhere and reveal new Crownless world knowledge
 - return to the **Grey Hearth** or another safe stationary context
-- choose a discovered destination
-- choose companions
-- assign weapons, clothing, tools, and supplies
-- choose an objective and risk policy
-- dispatch the expedition
-- let time pass
-- read a concise result and optional chronological report
-- secure returned loot and knowledge
-- deal with injuries, delays, missing companions, or rescue opportunities
-- adapt and send the next expedition
+- inspect discovered places, uncertainty, NPC control, and strategic value
+- scout a target or deliberately accept incomplete information
+- choose companions, equipment, supplies, and an approach
+- contest the place through the deterministic expedition / event resolver
+- understand the result, injuries, loot, knowledge, and causal consequences
+- on legitimate success, change persistent control from NPC to player
+- see the Atlas and at least one later target condition change
+- choose which place to take next
 
 Combat may occur during an expedition, but the current design does not use player-controlled real-time action combat as a core system.
 
@@ -42,12 +40,13 @@ Expeditions and elapsed-time resolution remain important means of acting on plac
 ## Design pillars
 
 - **Discovery:** real-world movement opens the world instead of filling an energy meter
-- **Expedition judgment:** the important input is who / what / where / why / how risky
-- **Waiting with anticipation:** elapsed time should create curiosity, not chores
-- **Reports as stories:** results should be memorable beyond `Gold +100`
-- **Companion history:** people become meaningful through survival, injury, rescue, and repeated expeditions
-- **Loot with options:** equipment should change possible expedition outcomes and branches, not only stats
-- **Survival and return:** carried value is not fully safe until people come home
+- **Discovery:** real-world movement opens the world instead of filling an energy meter
+- **Territorial judgment:** scouting, preparation, and approach should determine whether and how a place can be taken
+- **Visible world change:** legitimate success must change persistent control and make that change legible on the Atlas
+- **Strategic consequence:** a controlled place should change at least one later option, risk, duration, resource, route, or piece of information
+- **Companion history:** people become meaningful through survival, injury, rescue, geographic knowledge, and repeated expeditions
+- **Loot with options:** equipment should change possible approaches and outcomes, not only stats
+- **Reports as evidence:** results explain what happened and why; they are not the product reward by themselves
 - **Living medieval world:** factions, territory, war, regional events, hunts, facilities, and dungeons remain compatible future layers
 
 ## Canonical documents
@@ -97,20 +96,21 @@ Do not rebuild a manual attack / dodge / enemy-HP loop without a new explicit Ca
 
 ## First playable target
 
-Keep slices deliberately small and playable:
+Keep the first Territory slice deliberately small and playable:
 
-- a small persistent companion roster
-- several location-discovered destinations
-- multiple destination / event families
-- meaningful equipment and supplies
-- cautious / standard / greedy-style policies
-- deterministic expedition events
-- injury / delay / missing states
-- loot and new discoveries
-- concise result summary + expandable chronology
-- instant / accelerated developer resolution
+- exactly three representative discovered places
+- NPC-controlled and player-controlled states
+- visible uncertainty and strategic value
+- scouting versus acting with incomplete information
+- at least one companion / equipment / approach choice that changes the contest
+- deterministic contest resolution that reuses the expedition resolver where practical
+- persistent NPC → player control on legitimate success only
+- failure / retreat that does not grant control
+- idempotent Report / reload behavior
+- at least one captured-place effect that changes a later target's approach, risk, duration, resource, route, or information
+- a clear next-target decision immediately after capture
 
-If this does not create a reason to come back for the result, do not expand the world simulation yet.
+If taking one place does not change the map and make another place desirable, fix or kill the hypothesis before expanding territory content or infrastructure.
 
 ## Location rules
 
@@ -168,7 +168,7 @@ See [Visual Design Guide v0.2](docs/visual-design-guide-v0.2.md).
 
 1. **Fun beats technical novelty.**
 2. **Design → smallest implementation → play → improve.**
-3. Build discovery → expedition → anticipation → report before infrastructure.
+3. Build the smallest discovery → scout → prepare → contest → control → next-place slice before infrastructure.
 4. Prefer deterministic systems that can be tested without live GPS or network access.
 5. If architecture is cleaner but the prototype is no more compelling, it is probably not the next task.
 
