@@ -67,3 +67,13 @@ test('weapon reinforcement is shown and only changes the selected weapon', () =>
   b.click('depart','wood'); b.click('careful');
   assert.match(b.html(),/強撃 <span class="cost">10<\/span>/);
 });
+
+test('deeper choice renders an honest risk/reward cue before committing', () => {
+  const k='crownless-expedition-v1-demo';
+  const state={...E.initial(),mode:'demo',runs:1,expedition:{place:'wood',depth:1,room:4,hp:30,stamina:3,focus:0,potions:2,scrap:9,gear:['fang'],seals:['wood'],enemy:null,stage:'cleared',log:[]}};
+  const b=browser({[k]:E.serialize(state),'crownless-expedition-mode':'demo'});
+  assert.match(b.html(),/奥ほど鉄の気配が濃い。何が残っているかは、まだ分からない。/);
+  assert.match(b.html(),/深層 2 へ踏み込む/);
+  assert.match(b.html(),/鉄片の基本報酬 ×2/);
+  assert.doesNotMatch(b.html(),/砕けた装具/);
+});
