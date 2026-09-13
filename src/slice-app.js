@@ -48,7 +48,8 @@
     return `<p class="kicker">${unlocked ? p.terrain : 'UNDISCOVERED'}</p><h2>${unlocked ? p.name : 'まだ、霧の向こう。'}</h2><p class="intro">${unlocked ? p.subtitle : 'いつもと違う道を歩くと、別の土地に出会えるかもしれない。発見した場所には、あとから何度でも遠征できる。'}</p>${unlocked ? `<div class="reward"><span class="reward-icon">♢</span><div><strong>${p.reward}</strong><small>${p.hint}</small></div></div><p class="small">5 つの場面 / 戦闘 3 回 / 休息 2 回<br>${p.id === 'crypt' ? '危険度：高い。装備と体力を整えてから。' : '初回は 3〜5 分。戦闘の合間はいつでも帰還。'}</p>${state.cleared.includes(p.id) ? '<span class="badge">踏破済み · 深層でさらに鉄片を集められる</span>' : ''}<div class="button-stack">${button('depart',locked ? `他の土地をあと ${2-state.cleared.length} か所踏破する` : 'この土地へ遠征する','',{class:'primary',value:p.id,disabled:locked})}</div>` : ''}${scouting()}`;
   }
   function gearPanel() {
-    return `<p class="kicker">MAKE IT HOME. MAKE IT YOURS.</p><h2>次の旅の、戦い方。</h2><p class="small">装備は生還して初めて手に入る。失敗しても、持っていた装備は失わない。</p><div class="gear-list">${state.owned.filter(g => g !== 'crown').map(g => button('equip',`${E.GEAR[g].name}${state.equipped === g ? ' · 装備中' : ''}`,E.gearText(state,g),{value:g,class:`choice ${state.equipped === g ? 'selected' : ''}`})).join('')}</div>${state.owned.includes('crown') ? '<p class="badge">灰の王冠 · 永続で最大体力 +6</p>' : ''}<div class="rule-line"><div class="section-heading"><h3 style="margin:0">旅装を補強する</h3><span class="small">${state.level} / 4</span></div><p class="small">最大体力 +5。さらに、装備ごとの得意行動が一段強くなる。</p>${button('upgrade',state.level >= 4 ? '補強を終えた' : `鉄片 ${E.upgradeCost(state)} で補強する`,'',{class:'secondary',disabled:state.level >= 4 || state.scrap < E.upgradeCost(state)})}${notice ? `<p class="notice" role="status">${esc(notice)}</p>` : ''}</div>`;
+    const id = state.equipped, level = E.weaponLevel(state,id), cost = E.upgradeCost(state,id);
+    return `<p class="kicker">MAKE IT HOME. MAKE IT YOURS.</p><h2>次の旅の、戦い方。</h2><p class="small">装備は生還して初めて手に入る。補強は武器ごとに残り、持ち替えても他の武器は強くならない。</p><div class="gear-list">${state.owned.filter(g => g !== 'crown').map(g => button('equip',`${E.GEAR[g].name}${state.equipped === g ? ' · 装備中' : ''} · 補強 ${E.weaponLevel(state,g)}/4`,E.gearText(state,g),{value:g,class:`choice ${state.equipped === g ? 'selected' : ''}`})).join('')}</div>${state.owned.includes('crown') ? '<p class="badge">灰の王冠 · 永続で最大体力 +6</p>' : ''}<div class="rule-line"><div class="section-heading"><h3 style="margin:0">${E.GEAR[id].name}を補強する</h3><span class="small">${level} / 4</span></div><p class="small">この武器の得意行動だけが一段強くなる。</p>${button('upgrade',level >= 4 ? 'この武器の補強を終えた' : `鉄片 ${cost} で補強する`,'',{class:'secondary',disabled:level >= 4 || state.scrap < cost})}${notice ? `<p class="notice" role="status">${esc(notice)}</p>` : ''}</div>`;
   }
   function camp() {
     return `<div class="game-layout"><section class="visual-column"><div class="mode-strip"><span class="mode-pill">${state.mode === 'demo' ? '散策体験モード' : '現実の散策モード'}</span><span>遠征 ${state.runs} 回 · 生還 ${state.victories} 回</span></div>${scene('camp','帰りを待つ火。','THE LAST HEARTH',null,'安全な拠点')}${mapPins()}<div class="stat-strip"><div class="stat">最大体力<b>${E.maxHp(state)}</b></div><div class="stat">手元の鉄片<b>${state.scrap}</b></div><div class="stat">装備<b><em>${E.GEAR[state.equipped].name}</em></b></div></div></section><section class="panel"><nav class="camp-tabs" aria-label="拠点">${button('tab','遠征先','',{class:tab === 'explore' ? 'active' : '',value:'explore'})}${button('tab','装備と補強','',{class:tab === 'gear' ? 'active' : '',value:'gear'})}</nav>${tab === 'gear' ? gearPanel() : explorePanel()}<button class="text-button" data-action="switch-mode">${state.mode === 'demo' ? '現実の散策モードへ' : '散策体験モードへ'} <span aria-hidden="true">↗</span></button></section></div>`;
@@ -119,7 +120,7 @@
       }, { enableHighAccuracy:true, maximumAge:0, timeout:12000 }); return;
     } else if (action === 'depart') { locationRequest++; busy = false; state = E.start(state,value); }
     else if (action === 'equip') { state = E.equip(state,value); notice = `${E.GEAR[value].name}を装備した。`; }
-    else if (action === 'upgrade') { state = E.upgrade(state); if (state !== before) notice = `旅装を補強した。最大体力 ${E.maxHp(state)}。${E.GEAR[state.equipped].short}の得意行動も強くなった。`; }
+    else if (action === 'upgrade') { const id=state.equipped; state = E.upgrade(state,id); if (state !== before) notice = `${E.GEAR[id].name}を補強した。得意行動が強くなった。`; }
     else if (action === 'continue') { tab = state.report.newGear.some(g => g !== 'crown') ? 'gear' : 'explore'; state = {...state,report:null}; notice = ''; }
     else state = E.act(state, action);
     if (state !== before) save();
@@ -128,7 +129,6 @@
       const focusTarget = document.querySelector(`[data-action="${action}"]:not(:disabled)`) || document.querySelector('[data-action="strike"]');
       focusTarget?.focus({preventScroll:true});
     }
-    // Keep the decision panel in view on small screens after a phase change.
     if (['depart','continue','return','flee'].includes(action) || (before.expedition && state.expedition?.stage !== before.expedition.stage)) {
       document.querySelector('.panel')?.scrollIntoView({block:'nearest',behavior:'instant'});
     }
