@@ -1,0 +1,122 @@
+/* Issue #567 — transient WEGO resolution polish. No gameplay state lives here. */
+.wego-battlefield[data-resolving='true'] .wego-intent-path {
+  opacity: .92;
+  stroke-dashoffset: 18;
+  animation: wego-line-resolve 340ms linear forwards;
+}
+
+.wego-battlefield[data-resolving='true'][data-resolution-action='press'] .wego-player-unit .wego-token {
+  animation: wego-player-press 340ms cubic-bezier(.2,.8,.25,1) both;
+}
+.wego-battlefield[data-resolving='true'][data-resolution-action='guard'] .wego-player-unit .wego-token {
+  animation: wego-player-guard 340ms ease-out both;
+}
+.wego-battlefield[data-resolving='true'][data-resolution-action='maneuver'] .wego-player-unit .wego-token {
+  animation: wego-player-maneuver 340ms ease-in-out both;
+}
+.wego-battlefield[data-resolving='true'][data-resolution-action='retreat'] .wego-player-unit .wego-token {
+  animation: wego-player-retreat 340ms ease-in both;
+}
+
+.wego-battlefield[data-resolving='true'][data-resolution-plan='probe_shot'] .wego-front-unit .wego-token,
+.wego-battlefield[data-resolving='true'][data-resolution-plan='advance_reposition'] .wego-front-unit .wego-token,
+.wego-battlefield[data-resolving='true'][data-resolution-plan='close_trap'] .wego-front-unit .wego-token {
+  animation: wego-front-close 340ms ease-in-out both;
+}
+.wego-battlefield[data-resolving='true'][data-resolution-plan='brace_flank'] .wego-front-unit .wego-token {
+  animation: wego-front-brace 340ms ease-out both;
+}
+.wego-battlefield[data-resolving='true'][data-resolution-plan='cutoff_volley'] .wego-front-unit .wego-token {
+  animation: wego-front-cutoff 340ms ease-in-out both;
+}
+.wego-battlefield[data-resolving='true'][data-resolution-plan='break_and_cover'] .wego-front-unit .wego-token {
+  animation: wego-front-break 340ms ease-in both;
+}
+
+.wego-battlefield[data-resolving='true'][data-resolution-plan='brace_flank'] .wego-archer-unit .wego-token,
+.wego-battlefield[data-resolving='true'][data-resolution-plan='advance_reposition'] .wego-archer-unit .wego-token {
+  animation: wego-archer-reposition 340ms ease-in-out both;
+}
+.wego-battlefield[data-resolving='true'][data-resolution-plan='probe_shot'] .wego-archer-unit .wego-token,
+.wego-battlefield[data-resolving='true'][data-resolution-plan='cutoff_volley'] .wego-archer-unit .wego-token,
+.wego-battlefield[data-resolving='true'][data-resolution-plan='break_and_cover'] .wego-archer-unit .wego-token,
+.wego-battlefield[data-resolving='true'][data-resolution-plan='close_trap'] .wego-archer-unit .wego-token {
+  animation: wego-archer-shot 340ms ease-out both;
+}
+
+.wego-battlefield[data-resolving='true'][data-resolution-defense='shield'] .wego-shield-arc {
+  display: block;
+  animation: wego-shield-catch 340ms ease-out both;
+}
+.wego-battlefield[data-resolving='true'][data-resolution-defense='terrain'] .wego-rubble-a {
+  animation: wego-rubble-cover 340ms ease-out both;
+}
+.wego-battlefield[data-resolving='true'][data-resolution-defense='terrain'] .wego-shot-path {
+  stroke-dasharray: 3 8;
+  opacity: .45;
+}
+.wego-battlefield[data-resolving='true'][data-resolution-defense='exposed'] .wego-shot-path {
+  stroke-width: 2.25;
+}
+
+.wego-battlefield[data-resolution-phase='impact'] .wego-board {
+  animation: wego-board-impact 180ms ease-out both;
+}
+.wego-battlefield[data-resolution-phase='impact'][data-resolution-tone='favorable'] .wego-enemy-unit .wego-token {
+  animation: wego-formation-break 220ms ease-out both;
+}
+.wego-battlefield[data-resolution-phase='impact'][data-resolution-tone='unfavorable'] .wego-player-unit .wego-token {
+  animation: wego-player-hit 220ms ease-out both;
+}
+.wego-battlefield[data-resolution-phase='impact'] .wego-unit .wego-token::after {
+  content: '';
+  position: absolute;
+  inset: -8px;
+  border: 2px dashed rgba(69, 55, 38, .38);
+  border-radius: 48% 52% 44% 56%;
+  opacity: 0;
+  pointer-events: none;
+  animation: wego-ink-burst 220ms ease-out both;
+}
+.wego-battlefield[data-resolution-phase='impact'][data-resolution-tone='unfavorable'] .wego-player-unit .wego-token::after {
+  border-color: var(--vermilion);
+}
+
+.wego-battlefield[data-injury='marked'] .wego-player-unit > small::before {
+  content: '傷 '; color: var(--vermilion); font-weight: 900;
+}
+.wego-battlefield[data-injury='marked'] .wego-player-unit .wego-token {
+  box-shadow: -3px 2px 0 rgba(94, 42, 31, .16), inset 0 0 0 3px rgba(94, 42, 31, .08);
+}
+
+.wego-battlefield[data-retreat='watched'] .wego-retreat-lane { width: 22%; }
+.wego-battlefield[data-retreat='danger'] .wego-retreat-lane { width: 16%; }
+.wego-retreat-lane { transition: width 220ms ease, border-color 180ms ease, background 180ms ease, opacity 180ms ease; }
+
+@keyframes wego-line-resolve { from { stroke-dashoffset: 18; } to { stroke-dashoffset: 0; } }
+@keyframes wego-player-press { 0% { transform: translate(0,0) rotate(0); } 55% { transform: translate(10px,-2px) rotate(-4deg); } 100% { transform: translate(5px,0) rotate(0); } }
+@keyframes wego-player-guard { 0%,100% { transform: scale(1); } 45% { transform: scale(.94); box-shadow: 0 0 0 7px rgba(69,55,38,.11); } }
+@keyframes wego-player-maneuver { 0% { transform: translate(0,0); } 55% { transform: translate(-9px,-7px) rotate(-7deg); } 100% { transform: translate(-4px,-3px) rotate(0); } }
+@keyframes wego-player-retreat { from { transform: translate(0,0); } to { transform: translate(-8px,6px); } }
+@keyframes wego-front-close { 0%,100% { transform: translate(0,0); } 60% { transform: translate(-8px,1px); } }
+@keyframes wego-front-brace { 0%,100% { transform: scale(1); } 55% { transform: scale(1.08,.94); } }
+@keyframes wego-front-cutoff { 0%,100% { transform: translate(0,0); } 60% { transform: translate(-5px,8px) rotate(5deg); } }
+@keyframes wego-front-break { from { transform: translate(0,0); } to { transform: translate(7px,-3px); opacity: .72; } }
+@keyframes wego-archer-reposition { 0%,100% { transform: translate(0,0); } 55% { transform: translate(8px,6px) rotate(6deg); } }
+@keyframes wego-archer-shot { 0%,100% { transform: translate(0,0); } 45% { transform: translate(2px,-3px) rotate(-5deg); } 62% { transform: translate(-2px,2px) rotate(3deg); } }
+@keyframes wego-shield-catch { 0% { transform: scale(.9) rotate(-4deg); opacity: .55; } 55% { transform: scale(1.15) rotate(5deg); opacity: 1; } 100% { transform: scale(1) rotate(0); opacity: .8; } }
+@keyframes wego-rubble-cover { 0%,100% { outline: 0 solid transparent; } 55% { outline: 3px double rgba(151,111,43,.45); outline-offset: 3px; } }
+@keyframes wego-board-impact { 0%,100% { transform: translate(0,0); } 35% { transform: translate(1px,-1px); } 65% { transform: translate(-1px,1px); } }
+@keyframes wego-formation-break { 0% { transform: translate(0,0); } 55% { transform: translate(5px,-3px) rotate(4deg); } 100% { transform: translate(2px,-1px); } }
+@keyframes wego-player-hit { 0% { transform: translate(0,0); } 45% { transform: translate(-4px,2px) rotate(-5deg); } 100% { transform: translate(-1px,0); } }
+@keyframes wego-ink-burst { 0% { opacity: 0; transform: scale(.7) rotate(0); } 35% { opacity: .7; } 100% { opacity: 0; transform: scale(1.35) rotate(8deg); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .wego-battlefield *,
+  .wego-battlefield *::before,
+  .wego-battlefield *::after {
+    animation-duration: .001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .001ms !important;
+  }
+}

@@ -1,197 +1,101 @@
 ---
 name: crownless-playtest
-description: Run or structure human playtests for Crownless gameplay slices, separating implementation evidence from player judgment and producing a Keep / Change / Kill verdict with the next smallest action.
+description: Evaluate a playable Crownless slice against one concrete gameplay hypothesis using real play evidence, then decide Keep, Change, Kill, or Playtest pending.
 ---
 
 # Crownless Playtest
 
 ## Purpose
 
-Use this Skill after a gameplay slice is implemented, or whenever the user asks to playtest, evaluate feel, or decide whether a gameplay hypothesis should be kept, changed, or killed.
+Use this Skill when a playable slice exists and the question is whether the experience works, not merely whether the implementation is correct.
 
-The goal is not exhaustive QA. The goal is to test the **specific product hypothesis** that justified the slice and connect real player evidence to the next development decision.
+The goal is to test one gameplay hypothesis cheaply and turn the result into the next smallest development action.
 
-For current Territory-driven work, the product-level question is defined by Canon, not by this Skill. Read the current Canon and evaluate the implemented slice against it. Do not turn observations from one playtest into new Canon inside this Skill.
+Passing tests, CI, static review, or browser automation can show that software works. They do not show that the game is fun.
 
-Passing tests, review, browser checks, or CI means the implementation may be complete. It does **not** mean the game is fun.
+## Context rule
 
-## Authority and preflight
+Read only the context needed for the slice being tested:
 
-Before a gameplay playtest, read or confirm the current versions of:
+- the current Crownless product brief or current project instruction,
+- the target Issue / PR when one exists,
+- subsystem documentation only when it is needed to understand the behavior under test.
 
-1. [AGENTS.md](../../AGENTS.md)
-2. [ADR 0004](../../docs/adr/0004-territory-driven-reforge.md) while it remains the current product decision
-3. [game-system-design.md](../../docs/game-system-design.md)
-4. the target Issue / PR and its Acceptance Criteria / gameplay hypothesis
-5. [autonomous-development-policy.md](../../docs/autonomous-development-policy.md) for gameplay work using the Planner / Keep-Change-Kill process
+Do not preload old ADRs, deprecated product loops, historical combat rules, or legacy architecture simply because they exist. Historical documents are evidence, not automatic Canon.
 
-Read subsystem specs only when needed to understand the tested behavior. Do not broaden a focused playtest into a full-system audit.
+## Define one hypothesis
 
-Confirm the target build, branch, PR, deployment, commit, or local state being tested when that information is available. If the user is testing a physical device, treat their firsthand description as the authoritative play observation for things you cannot directly observe.
-
-## Separate four kinds of evidence
-
-Keep these distinct in notes and conclusions:
-
-- **Implementation evidence:** code exists, Acceptance Criteria are implemented, state/persistence contracts are present.
-- **Automated validation:** unit/integration/browser tests, CI, deterministic checks.
-- **Observed play behavior:** what actually happened during the play session, including screenshots or viewport evidence where useful.
-- **Player judgment:** confusion, tension, curiosity, satisfaction, boredom, desire to continue, or lack of it.
-
-Never infer a player feeling from source code or CI. Never claim a human playtest happened if only automated checks were performed.
-
-## Define the hypothesis before playing
-
-Write one short sentence describing what this slice is supposed to make the player do, notice, decide, or want.
-
-Prefer a causal statement, for example:
-
-> Taking one place visibly changes another target enough that the player wants to choose where to expand next.
-
-Then identify the smallest end-to-end loop that can prove or disprove that statement. Ignore unrelated polish unless it prevents the loop from being evaluated.
-
-## First-pass play rule
-
-When practical, perform the first pass as a player rather than as an implementer:
-
-- do not inspect source code during the first pass unless the game is blocked,
-- do not pre-explain every mechanic to the player,
-- let labels, state changes, consequences, and affordances explain themselves,
-- note hesitation, misreads, and dead ends before correcting them,
-- continue far enough to observe the intended consequence and the next decision.
-
-If a blocker prevents reaching the hypothesis, record the blocker and stop pretending the product hypothesis was tested. Fixing the blocker is the next smallest action; the gameplay verdict remains pending.
-
-## Territory-driven observation checklist
-
-For a Territory slice, observe the following only where the tested slice implements them.
-
-### Target and value
-
-- Did the player notice more than one meaningful place or path forward?
-- Did the player hesitate over **which place to take next**, or was one option mechanically obvious / others irrelevant?
-- Could the player understand why a place mattered before committing?
-
-### Scouting and uncertainty
-
-- Was there a real reason to scout first versus act with incomplete information?
-- Could the player tell what was known, unknown, and newly revealed?
-- Did scouting change preparation, approach, target priority, or confidence rather than acting like hidden progress toward capture?
-
-### Preparation
-
-- Was there a reason to choose a particular companion, equipment item, route, policy, or approach?
-- Did the player understand the trade-off, or were choices effectively interchangeable?
-- Did prior territory or geographic knowledge create a different useful option where intended?
-
-### Contest and consequence
-
-- Could the player understand why success, failure, retreat, injury, delay, or another relevant outcome happened?
-- Did success and failure produce clearly different world-state consequences?
-- Did failure / retreat avoid falsely implying control?
-
-### Control and Atlas reward
-
-- Was NPC → player control immediately legible on the Atlas or equivalent reward surface?
-- Did the controlled place feel like a changed part of the world rather than a badge, meter, or checklist item?
-- Could the player see what strategic effect the captured place now provided?
-
-### Next place
-
-- Did taking the place change another target's risk, duration, route, information, resource, approach, or desirability where intended?
-- Was that causal relationship understandable without reading debug-like detail?
-- Immediately after capture, was another meaningful target naturally visible?
-- Did the player actually want to take another place?
-
-The final question matters most. A mechanically complete chain can still fail if the player has no desire to continue.
-
-## Anti-grind and false-positive checks
-
-Watch for cases where the slice technically satisfies Acceptance Criteria but drifts away from the intended experience:
-
-- territory feels like renamed XP or completion percentage,
-- the optimal choice is obvious every time,
-- scouting is mandatory busywork instead of a judgment,
-- equipment / companion choice changes only invisible numbers,
-- capture is satisfying only because a checklist advances,
-- the Atlas changes but the next decision does not,
-- repeated solved actions are required without new information or trade-offs,
-- the player reads a richer Report but has no stronger reason to act on the map.
-
-Do not rescue a weak hypothesis by counting text, screens, animations, or test coverage as gameplay value.
-
-## Record observations before interpretation
-
-Capture concise evidence in this order:
-
-### Observed
-
-State only what happened.
+Before playing, state one sentence describing what the slice is supposed to make the player do, feel, decide, or want.
 
 Examples:
 
-- selected Place A without opening scouting,
-- ignored Place B because its value was not visible,
-- after capture, Atlas marker changed but the neighboring place showed no obvious consequence,
-- player reopened the same panel twice looking for the next action.
+- Discovering a place in the real world makes the player curious enough to investigate it in-game.
+- Going deeper creates enough risk that returning safely becomes a meaningful decision.
+- Loot changes the player's next build or expedition choice rather than acting as a cosmetic reward.
+- After returning from one expedition, the player wants to start another.
 
-### Friction / bug
+Test the smallest end-to-end loop that can support or reject that statement.
 
-Record defects that obstructed or distorted the test. Separate severe blockers from small polish issues.
+## Keep evidence types separate
 
-### Player judgment
+Do not mix these:
 
-Record the player's actual reaction. Preserve firsthand statements as firsthand evidence; do not rewrite them into stronger claims than the player made.
+- **Implementation evidence:** the feature exists and required state transitions are implemented.
+- **Automated validation:** tests, CI, deterministic checks, browser automation.
+- **Observed play behavior:** what actually happened during play.
+- **Player judgment:** confusion, tension, satisfaction, boredom, curiosity, or desire to continue.
 
-### Interpretation
+Never invent player feelings from code or automated checks.
 
-Explain what the observation suggests about the tested hypothesis. Keep alternative explanations when evidence is ambiguous.
+## First-pass rule
+
+When practical, experience the slice as a player before reading implementation details.
+
+Observe where the player hesitates, misunderstands, becomes curious, loses interest, or cannot continue. Do not rescue unclear mechanics by explaining them during the first pass.
+
+If a bug blocks the intended loop, record the blocker and leave the gameplay verdict pending. Fixing the blocker becomes the next smallest action.
+
+## Crownless questions
+
+Use only the questions relevant to the slice.
+
+- Did real-world movement or location create a meaningful discovery rather than a step-count reward?
+- Was there a meaningful choice about where to go, what to attempt, how to prepare, or when to return?
+- Did danger and uncertainty create tension without becoming arbitrary or tedious?
+- Was combat or conflict understandable and satisfying for the chosen implementation?
+- Did loot, equipment, companions, knowledge, or other rewards change a later decision?
+- Did survival / safe return matter?
+- Did the world feel more discovered, changed, or personally meaningful afterward?
+- Most importantly: did the player want to continue exploring or start another expedition?
+
+Do not require territory control, elapsed-time expeditions, real-time combat, a specific map model, or any other historical Crownless mechanic unless the current slice intentionally uses it.
 
 ## Verdict
 
-After the intended loop was actually played, choose exactly one product verdict:
+After the intended loop was actually played, choose exactly one:
 
 ### Keep
 
-Use when the hypothesis works substantially as intended and the remaining issues are supporting fixes or polish.
-
-For Territory-driven work, a strong Keep normally means visible control created a meaningful next decision and the player wanted to continue expanding.
+The hypothesis substantially works. Remaining problems are supporting fixes or polish.
 
 ### Change
 
-Use when the core idea has value but one or more important links are weak, confusing, or low-impact.
-
-Examples:
-
-- control feels good but target value is unclear,
-- scouting exists but does not change a decision,
-- capture is legible but the next target consequence is too weak,
-- preparation choices are present but effectively interchangeable.
-
-Identify the weakest causal link and propose **one smallest change** that would make the next playtest more informative.
+The idea has value, but one important causal link is weak or confusing. Identify the weakest link and propose one small change that makes the next playtest more informative.
 
 ### Kill
 
-Use when the hypothesis fails at the product level, including when the loop becomes checklist play, grind, obvious-choice repetition, or does not create desire for the next place.
+The hypothesis fails at the product level. Do not preserve a weak idea merely because implementation cost was high.
 
-Kill is valid learning. Do not preserve a weak idea merely because implementation cost was high or tests are green.
+### Playtest pending
 
-## Blocked / Playtest pending
+Use when the intended loop could not be reached or only automated validation exists.
 
-If the intended loop could not be reached because of a blocker, do not force a Keep / Change / Kill verdict. Record:
+## Output
 
-- what blocked the playtest,
-- the smallest fix needed to reach the hypothesis,
-- status: **Playtest pending**.
-
-Likewise, automated validation alone leaves gameplay at **Implemented / Playtest pending**.
-
-## Output format
-
-Keep the result short enough to use directly in an Issue or PR comment.
+Keep the result short enough to paste into an Issue or PR.
 
 ```text
-Target: #<issue> / PR #<pr> / <build>
+Target: <issue / PR / build / commit>
 Hypothesis: <one sentence>
 
 Observed:
@@ -206,31 +110,15 @@ Why: <one concise paragraph>
 Next smallest action: <one concrete action>
 ```
 
-Add screenshots, viewport notes, console errors, or reproducible steps only when they support the verdict or unblock the next action.
-
-## Updating project records
-
-When the user explicitly asks to record the result in GitHub, update the relevant Issue / PR with the playtest evidence rather than creating a second source of truth.
-
-For autonomous-development history, align with [the policy](../../docs/autonomous-development-policy.md) and the existing decision log process. Preserve the distinction between:
-
-- Implemented,
-- Playtest pending,
-- Keep,
-- Change,
-- Kill.
-
-Do not mark an Issue or gameplay hypothesis Keep from CI, static review, or your own simulated reaction.
+Add screenshots, console errors, or reproduction steps only when they materially support the verdict or unblock the next test.
 
 ## Anti-patterns
 
-- Do not perform exhaustive QA before answering the product hypothesis.
-- Do not let one tiny UI defect dominate the verdict unless it blocks the loop.
-- Do not call a feature fun because it works.
-- Do not convert test pass counts into player evidence.
-- Do not fabricate hesitation, excitement, boredom, or desire.
-- Do not treat one successful run as proof of replayability when the question requires repeated variation.
-- Do not rewrite Canon from a single playtest.
-- Do not hide a Kill behind vague language such as “needs polish” when the player simply does not want to continue.
+- Do not call a feature fun because tests pass.
+- Do not turn a focused playtest into exhaustive QA.
+- Do not confuse polish with a failed gameplay hypothesis.
+- Do not infer replayability from one successful run when variation matters.
+- Do not rewrite project Canon from one playtest.
+- Do not hide a Kill behind vague wording such as “needs polish.”
 
-The purpose of the playtest loop is to make it cheap to discover that an idea should change or die before Crownless grows around it.
+The purpose of this Skill is to make it cheap to discover what Crownless should keep, change, or abandon before the game grows around the wrong idea.

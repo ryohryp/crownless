@@ -10,10 +10,10 @@
     "concepts/grey-hearth-empty-room-v0.2.png"
   ],
   "supporting_candidates": [],
-  "avatar_baseline": "../combat/minimal-v0.1/actors/player-unarmed.png",
+  "avatar_baseline": "../../docs/assets/player-unarmed-approved-anchor-v0.4.png",
   "avatar_runtime_candidate": "actors/player-unarmed-hearth-v0.1.png",
   "avatar_runtime_status": "approved",
-  "avatar_runtime_scope": "Grey Hearth only; the combat avatar remains the baseline above",
+  "avatar_runtime_scope": "Grey Hearth only; the approved protagonist Canon Anchor remains the baseline above",
   "avatar_runtime_anchor": "../../docs/assets/player-unarmed-approved-anchor-v0.4.png",
   "avatar_runtime_approval": {
     "approved_by": "user",

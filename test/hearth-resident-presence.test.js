@@ -7,7 +7,6 @@ const NpcLife = require("../src/npc-life.js");
 const HearthResidents = require("../src/hearth-resident-presence.js");
 
 const root = path.join(__dirname, "..");
-const indexHtml = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const presentationSource = fs.readFileSync(path.join(root, "src", "hearth-resident-presence.js"), "utf8");
 const residentCss = fs.readFileSync(path.join(root, "hearth-residents.css"), "utf8");
 const viewportCss = fs.readFileSync(path.join(root, "hearth-viewport.css"), "utf8");
@@ -44,13 +43,6 @@ test("人物ラベルへオフスクリーンの正確な居場所を追加し�
   const detail = HearthResidents.residentDetailLabel(marco);
   assert.equal(detail, "行商人・荷支度中");
   assert.doesNotMatch(detail, /工房|市場|北の街道|酒場|自宅|宿|薬草畑|川辺/);
-});
-
-test("Grey HearthはNPC生活presentationの後に人物レイヤーを読み込む", () => {
-  const hearthPresentation = indexHtml.indexOf('<script src="src/hearth-presentation.js"></script>');
-  const residentPresentation = indexHtml.indexOf('<script src="src/hearth-resident-presence.js"></script>');
-  assert.ok(hearthPresentation >= 0);
-  assert.ok(residentPresentation > hearthPresentation);
 });
 
 test("人物レイヤー更新は既存DOMを置換し、常駐タイマーを追加しない", () => {

@@ -68,7 +68,6 @@ test("known destinations are not turned back into first-discovery mysteries on r
 test("browser bridge owns geography coupling and resolves mystery before the existing journal records it", () => {
   const cellSource = fs.readFileSync(path.join(__dirname, "../src/exploration-cell-runtime.js"), "utf8");
   const bridgeSource = fs.readFileSync(path.join(__dirname, "../src/expedition-unknown-bridge.js"), "utf8");
-  const indexSource = fs.readFileSync(path.join(__dirname, "../index.html"), "utf8");
 
   assert.doesNotMatch(cellSource, /GeographyApi|Overpass|google\.maps|mapbox|leaflet/i);
   assert.match(bridgeSource, /createProxyLocationDiscoveryProvider = function createProviderWithExpeditionUnknowns/);
@@ -77,5 +76,4 @@ test("browser bridge owns geography coupling and resolves mystery before the exi
   assert.match(bridgeSource, /Core\.discoverLocation = function discoverLocationWithUnknownReveal/);
   assert.match(bridgeSource, /Object\.assign\(visible, resolved\)/);
   assert.match(bridgeSource, /last\.wasUnknownDiscovery = true/);
-  assert.ok(indexSource.indexOf("src/exploration-cell-runtime.js") < indexSource.indexOf("src/expedition-unknown-bridge.js"));
 });

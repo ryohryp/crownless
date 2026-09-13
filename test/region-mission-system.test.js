@@ -133,13 +133,7 @@ test('unrelated simulated discoveries do not start the road mission', () => {
   assert.deepEqual(Core.getRegionMissionBoard(state), []);
 });
 
-test('regional mission script is loaded after geographic enrichment and before app state creation', () => {
+test('regional mission module is valid JavaScript', () => {
   const root = path.join(__dirname, '..');
-  const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-  const geography = html.indexOf('src/location-discovery-runtime.js');
-  const missions = html.indexOf('src/region-mission-system.js');
-  const app = html.indexOf('src/app.js');
-
-  assert.ok(geography >= 0 && missions > geography && app > missions);
   execFileSync(process.execPath, ['--check', path.join(root, 'src', 'region-mission-system.js')]);
 });

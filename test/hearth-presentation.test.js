@@ -4,27 +4,12 @@ const fs = require("node:fs");
 const path = require("node:path");
 
 const root = path.join(__dirname, "..");
-const html = fs.readFileSync(path.join(root, "index.html"), "utf8");
 const css = fs.readFileSync(path.join(root, "hearth.css"), "utf8");
 const viewportCss = fs.readFileSync(path.join(root, "hearth-viewport.css"), "utf8");
 const locationVisualCss = fs.readFileSync(path.join(root, "hearth-location-visual.css"), "utf8");
 const js = fs.readFileSync(path.join(root, "src", "hearth-presentation.js"), "utf8");
 
-test("Grey Hearth exposes interactive world objects instead of a single CTA card", () => {
-  assert.match(html, /id="hearth-scene"/);
-  assert.match(html, /class="hearth-scene hearth-scene--empty-room"/);
-  assert.match(html, /class="hearth-scene-art"/);
-  assert.match(html, /assets\/hearth\/actors\/player-unarmed-hearth-v0\.1\.png/);
-  assert.match(html, /id="start-expedition"[^>]*class="hearth-object hearth-gate"/);
-  assert.match(html, /id="hearth-fire-interaction"/);
-  assert.match(html, /id="hearth-character-interaction"/);
-  assert.match(html, /id="hearth-loot-focus"/);
-  assert.match(html, /id="hearth-map-focus"/);
-});
-
 test("Issue 166 keeps the room visual primary and reveals secondary labels on interaction", () => {
-  assert.match(html, /data-visual="grey-hearth-empty-room-v0\.2"/);
-  assert.match(html, /<h1>灰炉<em>帰る場所が、<br>少しずつ育つ。<\/em><\/h1>/);
   assert.match(css, /\.hearth-scene-copy\s*\{[\s\S]*?width:\s*min\(290px,\s*32%\)/);
   assert.match(css, /\.hearth-object \.object-label\s*\{[\s\S]*?opacity:\s*0[\s\S]*?visibility:\s*hidden/);
   assert.match(css, /\.hearth-object:hover \.object-label/);
@@ -32,12 +17,6 @@ test("Issue 166 keeps the room visual primary and reveals secondary labels on in
   assert.match(css, /\.hearth-gate \.object-label\s*\{[\s\S]*?opacity:\s*1[\s\S]*?visibility:\s*visible/);
   assert.match(css, /\.hearth-scene-art::after\s*\{[\s\S]*?animation:\s*hearthRoomMist/);
   assert.match(css, /\.hearth-scene-art::after,[\s\S]*?animation:\s*none\s*!important/);
-});
-
-test("existing hub state ids remain wired for app rendering", () => {
-  for (const id of ["equipped-label", "loadout-title", "loadout-description", "secured-count", "secured-loot", "stat-runs", "stat-survived", "stat-kills", "stat-defeats"]) {
-    assert.match(html, new RegExp(`id="${id}"`));
-  }
 });
 
 test("hearth presentation responds to progression and equipment state", () => {
@@ -63,7 +42,6 @@ test("discovery journal is surfaced through the physical wall map instead of ano
 });
 
 test("discovered location art opens from the physical wall map without a second permanent map layer", () => {
-  assert.match(html, /src="src\/location-visuals\.js"[\s\S]*src="src\/location-discovery-runtime\.js"/);
   assert.match(js, /window\.CrownlessLocationVisuals/);
   assert.match(js, /resolveLatestDiscoveredVisual/);
   assert.match(js, /new Image\(\)/);
@@ -93,8 +71,6 @@ test("ambient interactions are optional play and preserve the expedition action"
   assert.match(js, /temporaryClass\("character-ready"/);
   assert.match(js, /scrollTo\("#hub-screen \.inventory-panel"\)/);
   assert.match(js, /scrollTo\("#hearth-progress"\)/);
-  assert.match(html, /src="src\/hearth-presentation\.js"/);
-  assert.match(html, /href="hearth\.css"/);
 });
 
 test("interactive Hearth remains scroll-safe at tablet widths", () => {

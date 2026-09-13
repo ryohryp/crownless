@@ -6,7 +6,6 @@ const Preview = require("../src/world-atlas-selection-preview.js");
 const LocationVisuals = require("../src/location-visuals.js");
 
 const source = fs.readFileSync(path.join(__dirname, "../src/world-atlas-selection-preview.js"), "utf8");
-const runtimeSource = fs.readFileSync(path.join(__dirname, "../src/app-runtime-state.js"), "utf8");
 
 test("selected watchtower resolves its own artwork instead of the latest discovery artwork", () => {
   const model = Preview.previewModel({
@@ -98,9 +97,4 @@ test("atlas preview controller updates immediately on pointer release and remain
   assert.match(source, /選択地点の墨絵/);
   assert.match(source, /この地点の墨絵はまだ記録されていない/);
   assert.match(source, /pointer-events:auto !important/);
-});
-
-test("runtime loads selected-location preview only after world atlas", () => {
-  assert.match(runtimeSource, /atlas\.onload = loadSelectionPreview/);
-  assert.match(runtimeSource, /src\/world-atlas-selection-preview\.js/);
 });

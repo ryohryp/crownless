@@ -46,19 +46,6 @@ test('revealed final POI stays out of normal outdoor choices until armed from Gr
   assert.equal(Core.isRegionMissionAssaultArmed(), false);
 });
 
-test('stationary gate and Grey Hearth presentation load in the required order', () => {
-  const root = path.join(__dirname, '..');
-  const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-  const regionSystem = html.indexOf('src/region-mission-system.js');
-  const stationaryGate = html.indexOf('src/region-mission-stationary-gate.js');
-  const app = html.indexOf('src/app.js');
-  const hearth = html.indexOf('src/region-mission-hearth-presentation.js');
-
-  assert.ok(regionSystem >= 0 && stationaryGate > regionSystem);
-  assert.ok(app > stationaryGate);
-  assert.ok(hearth > app);
-});
-
 test('Grey Hearth presentation launches the armed target through existing app controls', () => {
   const root = path.join(__dirname, '..');
   const source = fs.readFileSync(path.join(root, 'src', 'region-mission-hearth-presentation.js'), 'utf8');

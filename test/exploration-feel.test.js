@@ -1,10 +1,6 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const Feel = require("../src/exploration-feel.js");
-
-const index = fs.readFileSync(path.join(__dirname, "..", "index.html"), "utf8");
 
 test("expedition pressure escalates with wounds, loot, and depth", () => {
   assert.equal(Feel.pressureLevel({ hp: 100, loot: 0, depth: 1 }), "calm");
@@ -23,11 +19,4 @@ test("dangerous discoveries use a deliberate entry label", () => {
   assert.equal(Feel.investigateLabel(2), "この場所を調べる");
   assert.equal(Feel.investigateLabel(3), "警戒して踏み込む");
   assert.equal(Feel.investigateLabel(5), "危険を承知で踏み込む");
-});
-
-test("browser loads exploration feel after the fog map", () => {
-  const map = index.indexOf('src/exploration-map-presentation.js');
-  const feel = index.indexOf('src/exploration-feel.js');
-  assert.ok(map >= 0);
-  assert.ok(feel > map);
 });

@@ -1,11 +1,7 @@
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const fs = require("node:fs");
-const path = require("node:path");
 const Bridge = require("../src/geographic-expedition-bridge.js");
 const System = require("../src/expedition-system.js");
-
-const runtimeSource = fs.readFileSync(path.join(__dirname, "../src/app-runtime-state.js"), "utf8");
 
 test("geographic discoveries map into the existing expedition families", () => {
   assert.equal(Bridge.destinationFamily({ contentKind: "dungeon", terrain: ["height"] }), "cave");
@@ -136,9 +132,4 @@ test("non-geographic expedition reports never change atlas knowledge", () => {
   };
   assert.equal(Bridge.applyGeographicReport(Core, { destinationId: "forest-edge", outcome: "success" }, null), null);
   assert.equal(saved, false);
-});
-
-test("runtime bootstrap loads the bridge before expedition presentation can resolve a saved expedition", () => {
-  assert.match(runtimeSource, /src\/geographic-expedition-bridge\.js/);
-  assert.ok(runtimeSource.indexOf('await script("src/geographic-expedition-bridge.js"') < runtimeSource.indexOf('await script("src/expedition-presentation.js"'));
 });

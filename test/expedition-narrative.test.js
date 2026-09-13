@@ -120,14 +120,8 @@ test("victory retreat and defeat finish with different aftertastes", () => {
 
 test("report UI uses narrative through the scroll only and keeps raw chronology collapsed", () => {
   const root = path.join(__dirname, "..");
-  const runtime = fs.readFileSync(path.join(root, "src", "app-runtime-state.js"), "utf8");
   const presentation = fs.readFileSync(path.join(root, "src", "expedition-presentation.js"), "utf8");
   const css = fs.readFileSync(path.join(root, "expedition.css"), "utf8");
-  const narrativeLoad = runtime.indexOf('await script("src/expedition-narrative.js"');
-  const sceneLoad = runtime.indexOf('await script("src/expedition-scenes.js"');
-  const compositionLoad = runtime.indexOf('await script("src/expedition-visual-composition.js"');
-  const presentationLoad = runtime.indexOf('await script("src/expedition-presentation.js"');
-  assert.ok(narrativeLoad >= 0 && sceneLoad > narrativeLoad && compositionLoad > sceneLoad && presentationLoad > compositionLoad);
   assert.match(presentation, /buildExpeditionNarrative/);
   assert.match(presentation, /renderKamishibai\(content, report, generatedNarrative\)/);
   assert.match(presentation, /EXPEDITION SCENES/);

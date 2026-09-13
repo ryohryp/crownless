@@ -75,9 +75,9 @@
     choices.hidden = true;
     sceneContinue.hidden = true;
     startLive.textContent = '現在地から始める';
-    startSim.textContent = '模擬探索で試す';
+    startSim.textContent = mode === 'live' ? '模擬探索へ切り替える' : '模擬探索で試す';
     startLive.hidden = mode !== null;
-    startSim.hidden = mode !== null;
+    startSim.hidden = mode !== null && mode !== 'live';
     checkLocation.hidden = mode === null;
     mapTowerLabel.textContent = '名のない気配';
     mapCrossingHook.textContent = '';
@@ -193,7 +193,8 @@
     mode = 'live';
     session = api.createLocationSession();
     startLive.hidden = true;
-    startSim.hidden = true;
+    startSim.hidden = false;
+    startSim.textContent = '模擬探索へ切り替える';
     checkLocation.textContent = '安全な場所で現在地を確かめる';
     requestLiveLocation();
   }
