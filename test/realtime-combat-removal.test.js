@@ -13,10 +13,10 @@ function exists(relativePath) {
   return fs.existsSync(path.join(root, relativePath));
 }
 
-test('canonical root entrypoint routes to reboot instead of legacy realtime combat app', () => {
+test('canonical root entrypoint routes to the expedition slice instead of legacy realtime combat app', () => {
   const html = read('index.html');
 
-  assert.match(html, /reboot\.html/);
+  assert.match(html, /expedition\.html/);
   assert.equal(html.includes('combat-screen'), false);
   assert.equal(html.includes('id="arena"'), false);
   assert.equal(html.includes('src/app.js'), false);

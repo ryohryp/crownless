@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#13272b">
+  <meta name="description" content="霧の向こうを見つけ、戦利品を持ち帰る。Crownless — 歩いて世界を発見する小さな遠征RPG。">
+  <title>Crownless — 霧の向こうへ</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath fill='%23ccb47e' d='M5 10l9 8 6-13 6 13 9-8-4 23H9z'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="slice.css">
+  <script src="src/slice-engine.js" defer></script>
+  <script src="src/slice-art.js" defer></script>
+  <script src="src/slice-app.js" defer></script>
+</head>
+<body>
+  <div class="app-shell">
+    <header class="masthead"><a class="wordmark" href="expedition.html" aria-label="Crownless ホーム">♜ <span>CROWNLESS</span></a><span class="edition">THE UNWRITTEN LANDS</span><button id="help-toggle" class="text-button" aria-expanded="false" aria-controls="help">遊び方</button></header>
+    <aside id="help" class="help" hidden><strong>発見 → 戦闘 → 戦利品 → 生還 → 装備を整える</strong><p>敵の「次の行動」を見て、攻撃・防御・回避を選びます。行動を選ぶまで時間は進みません。戦利品は生還して初めて自分のものに。戦闘の合間はいつでも帰れます。</p><p>現実の道は自分で安全に選び、立ち止まってから発見してください。地図は架空の土地の模式図です。施設や私有地に入る必要はありません。現在地は送信・保存せず、ページを閉じると基準位置も消えます。体験モードでは同じ遊びを室内で試せます。</p><p>進行はこのブラウザに自動保存します。体験／散策のセーブは別々です。</p></aside>
+    <div id="save-status" class="save-warning" role="status" hidden></div>
+    <main id="game" tabindex="-1"></main>
+    <footer class="footer"><span>名もなき者の、小さな遠征。</span><span id="save-label">端末に自動保存</span></footer>
+  </div>
+  <noscript>このゲームを遊ぶには JavaScript を有効にしてください。</noscript>
+</body>
+</html>

@@ -69,7 +69,7 @@ jobs:
           const sha = String(process.env.DEPLOY_SHA || '').trim();
           if (!sha) throw new Error('DEPLOY_SHA is required for Pages asset fingerprinting');
           const version = sha.slice(0, 12);
-          for (const path of ['_site/index.html', '_site/reboot.html']) {
+          for (const path of ['_site/index.html', '_site/expedition.html', '_site/reboot.html']) {
             if (!fs.existsSync(path)) continue;
             const html = fs.readFileSync(path, 'utf8').replace(
               /((?:href|src)=["'])(?!https?:|\/\/|#|data:)([^"'?]+\.(?:css|js))(?:\?[^"']*)?(["'])/g,
