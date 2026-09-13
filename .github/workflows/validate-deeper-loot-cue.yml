@@ -1,0 +1,20 @@
+name: validate-deeper-loot-cue
+
+on:
+  push:
+    branches:
+      - 'ci/deeper-loot-cue-*'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Unit tests
+        run: npm test
