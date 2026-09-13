@@ -48,13 +48,21 @@ test('mode progression is isolated and concurrent updates cannot be overwritten'
   b.click('depart','wood'); assert.match(b.html(),/別のタブで旅が進んで/);
   assert.equal(JSON.parse(b.store.get('crownless-expedition-v1-demo')).scrap,123);
 });
-test('upgraded loadout strengths are visible before and during combat', () => {
+test('weapon reinforcement is shown and only changes the selected weapon', () => {
   const k='crownless-expedition-v1-demo';
-  const state={...E.initial(),mode:'demo',scrap:100,level:1,owned:['rust','fang','shield','bow'],equipped:'shield'};
+  const state={...E.initial(),mode:'demo',scrap:100,owned:['rust','fang','shield','bow'],equipped:'shield'};
   const b=browser({[k]:E.serialize(state),'crownless-expedition-mode':'demo'});
   b.click('tab','gear');
+  assert.match(b.html(),/番人の盾を補強する/);
+  assert.match(b.html(),/番人の盾 · 装備中 · 補強 0\/4/);
+  b.click('upgrade');
+  assert.match(b.html(),/番人の盾 · 装備中 · 補強 1\/4/);
   assert.match(b.html(),/防御で 13 軽減し、3 ダメージ/);
   b.click('equip','bow');
+  assert.match(b.html(),/葦の長弓 · 装備中 · 補強 0\/4/);
+  assert.match(b.html(),/強撃 9 が敵の守りを貫通/);
+  b.click('upgrade');
+  assert.match(b.html(),/葦の長弓 · 装備中 · 補強 1\/4/);
   assert.match(b.html(),/強撃 10 が敵の守りを貫通/);
   b.click('depart','wood'); b.click('careful');
   assert.match(b.html(),/強撃 <span class="cost">10<\/span>/);

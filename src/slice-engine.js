@@ -18,6 +18,8 @@
     bow: { name: '葦の長弓', short: '長弓', text: '攻撃 5。強撃が敵の守りを貫通する。', attack: 5 },
     crown: { name: '灰の王冠', short: '王冠', text: '持ち帰った証。すべての装備で最大体力 +6。', attack: 4 },
   };
+  const UPGRADEABLE = ['rust', 'fang', 'shield', 'bow'];
+  const emptyUpgrades = () => Object.fromEntries(UPGRADEABLE.map(id => [id, 0]));
   const ENEMIES = {
     wolf: { name: '茨牙の狼', hp: 16, pattern: ['quick', 'heavy', 'open'] },
     knight: { name: '鐘守の亡兵', hp: 20, pattern: ['guard', 'heavy', 'open', 'quick'] },
@@ -32,11 +34,16 @@
   };
   const copy = s => JSON.parse(JSON.stringify(s));
   const place = id => PLACES.find(p => p.id === id);
-  const initial = () => ({ version: VERSION, mode: null, unlocked: ['wood'], cleared: [], owned: ['rust'], equipped: 'rust', scrap: 0, level: 0, runs: 0, victories: 0, expedition: null, report: null });
-  const maxHp = s => 30 + s.level * 5 + (s.owned.includes('crown') ? 6 : 0);
-  const upgradeCost = s => 8 + s.level * 6;
+  const initial = () => ({ version: VERSION, mode: null, unlocked: ['wood'], cleared: [], owned: ['rust'], equipped: 'rust', scrap: 0, level: 0, upgrades: emptyUpgrades(), runs: 0, victories: 0, expedition: null, report: null });
+  const maxHp = s => 30 + (Number.isInteger(s.level) ? s.level : 0) * 5 + (s.owned.includes('crown') ? 6 : 0);
+  function weaponLevel(s, id = s.equipped) {
+    const legacy = Number.isInteger(s?.level) ? Math.max(0, Math.min(4, s.level)) : 0;
+    const specific = Number.isInteger(s?.upgrades?.[id]) ? Math.max(0, Math.min(4, s.upgrades[id])) : 0;
+    return Math.max(legacy, specific);
+  }
+  const upgradeCost = (s, id = s.equipped) => 8 + weaponLevel(s, id) * 6;
   function combatProfile(s, id = s.equipped) {
-    const level = Number.isInteger(s?.level) ? Math.max(0, Math.min(4, s.level)) : 0;
+    const level = weaponLevel(s, id);
     return {
       heavyBonus: 4 + (id === 'bow' || id === 'rust' ? level : 0),
       dodgeFocus: id === 'fang' ? 5 + level : 3,
@@ -154,11 +161,12 @@
     if (s.expedition || !s.owned.includes(id) || !GEAR[id] || id === 'crown') return s;
     const n = copy(s); n.equipped = id; return n;
   }
-  function upgrade(s) {
-    if (s.expedition || s.level >= 4 || s.scrap < upgradeCost(s)) return s;
-    const n = copy(s); n.scrap -= upgradeCost(s); n.level++; return n;
+  function upgrade(s, id = s.equipped) {
+    if (s.expedition || !UPGRADEABLE.includes(id) || !s.owned.includes(id)) return s;
+    const level = weaponLevel(s, id), cost = upgradeCost(s, id);
+    if (level >= 4 || s.scrap < cost) return s;
+    const n = copy(s); n.scrap -= cost; n.upgrades[id] = level + 1; return n;
   }
-  // Only explicit, stationary fixes are used. Coordinates exist only in this session object.
   const locationSession = () => ({ anchor: null });
   function observe(session, fix) {
     if (!fix || !Number.isFinite(fix.latitude) || Math.abs(fix.latitude) > 90 || !Number.isFinite(fix.longitude) || Math.abs(fix.longitude) > 180 || !Number.isFinite(fix.accuracy) || fix.accuracy < 0 || fix.accuracy > 60) return { status: 'inaccurate' };
@@ -169,7 +177,6 @@
     const east = deltaLongitude * 111320 * Math.cos(a.latitude * Math.PI / 180);
     const distance = Math.hypot(north, east);
     if (distance < 150 + a.accuracy + fix.accuracy) return { status: 'nearby' };
-    // Four broad relative regions; no trail, coordinates, compass bearing or grid identifiers are saved.
     const id = Math.abs(north) > Math.abs(east) ? (north > 0 ? 'tower' : 'crypt') : (east > 0 ? 'fen' : 'wood');
     return { status: 'discovered', place: id };
   }
@@ -178,11 +185,12 @@
     if (!raw) return initial();
     try {
       const s = JSON.parse(raw);
+      if (s.version === VERSION && s.upgrades === undefined) s.upgrades = emptyUpgrades();
       const ids = PLACES.map(p => p.id), keys = Object.keys(initial());
       const validArray = (a, allowed) => Array.isArray(a) && a.length <= allowed.length && new Set(a).size === a.length && a.every(v => allowed.includes(v));
       const int = (v, min, max) => Number.isInteger(v) && v >= min && v <= max;
-      if (s.version !== VERSION || Object.keys(s).some(k => !keys.includes(k)) || ![null, 'demo', 'walk'].includes(s.mode) || !validArray(s.unlocked, ids) || !s.unlocked.includes('wood') || !validArray(s.cleared, ids) || !validArray(s.owned, Object.keys(GEAR)) || !s.owned.includes('rust') || !s.owned.includes(s.equipped) || s.equipped === 'crown' || !int(s.level, 0, 4) || !int(s.scrap, 0, 1e9) || !int(s.runs, 0, 1e9) || !int(s.victories, 0, s.runs)) throw Error('save');
-      // Validate the complete live run before restoring it; never silently bank a damaged save.
+      const validUpgrades = u => u && typeof u === 'object' && !Array.isArray(u) && Object.keys(u).length === UPGRADEABLE.length && UPGRADEABLE.every(id => Object.prototype.hasOwnProperty.call(u,id) && int(u[id],0,4)) && Object.keys(u).every(id => UPGRADEABLE.includes(id));
+      if (s.version !== VERSION || Object.keys(s).some(k => !keys.includes(k)) || ![null, 'demo', 'walk'].includes(s.mode) || !validArray(s.unlocked, ids) || !s.unlocked.includes('wood') || !validArray(s.cleared, ids) || !validArray(s.owned, Object.keys(GEAR)) || !s.owned.includes('rust') || !s.owned.includes(s.equipped) || s.equipped === 'crown' || !int(s.level, 0, 4) || !validUpgrades(s.upgrades) || !int(s.scrap, 0, 1e9) || !int(s.runs, 0, 1e9) || !int(s.victories, 0, s.runs)) throw Error('save');
       if (s.expedition) {
         const x = s.expedition;
         const allowedFocus = s.equipped === 'fang' ? [0,3,5,6,7,8,9] : [0,3];
@@ -199,5 +207,5 @@
       return s;
     } catch { return null; }
   }
-  return { VERSION, PLACES, GEAR, ENEMIES, INTENTS, initial, maxHp, upgradeCost, combatProfile, gearText, intent, place, discover, start, act, equip, upgrade, locationSession, observe, serialize, parse };
+  return { VERSION, PLACES, GEAR, ENEMIES, INTENTS, initial, maxHp, weaponLevel, upgradeCost, combatProfile, gearText, intent, place, discover, start, act, equip, upgrade, locationSession, observe, serialize, parse };
 });

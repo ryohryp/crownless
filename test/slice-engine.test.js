@@ -22,29 +22,42 @@ function complete(s,id) {
   }
   assert.equal(s.expedition,null); assert.equal(s.report.died,false); return s;
 }
-test('complete first loop banks signature gear; a second expedition uses it', () => {
+test('complete first loop banks signature gear; a second expedition uses its own upgrade', () => {
   let s = complete(fresh(),'wood');
   assert.ok(s.owned.includes('fang')); assert.equal(s.scrap,9); assert.deepEqual(s.cleared,['wood']);
-  s = E.equip(s,'fang'); s = E.upgrade(s);
-  assert.equal(s.scrap,1); assert.equal(E.maxHp(s),35);
+  s = E.equip(s,'fang'); s = E.upgrade(s,'fang');
+  assert.equal(s.scrap,1); assert.equal(E.weaponLevel(s,'fang'),1); assert.equal(E.weaponLevel(s,'rust'),0); assert.equal(E.maxHp(s),30);
   s = E.start(s,'wood'); s = E.act(s,'careful'); s = E.act(s,'dodge');
-  assert.equal(s.expedition.focus,6); assert.equal(s.expedition.hp,35);
+  assert.equal(s.expedition.focus,6); assert.equal(s.expedition.hp,30);
   const before = s.expedition.enemy.hp;
   s = E.act(s,'strike'); assert.equal(before-s.expedition.enemy.hp,11);
 });
-test('upgrades strengthen each loadout signature without erasing its role', () => {
+test('reinforcement is per weapon and does not leak to other loadouts', () => {
   let s=fresh(); s.scrap=100; s.owned.push('fang','shield','bow');
-  s=E.upgrade(s);
-  assert.equal(s.level,1);
+  s=E.equip(s,'fang'); s=E.upgrade(s,'fang');
+  assert.equal(E.weaponLevel(s,'fang'),1);
+  assert.equal(E.weaponLevel(s,'shield'),0);
+  assert.equal(E.weaponLevel(s,'bow'),0);
   assert.equal(E.combatProfile(s,'fang').dodgeFocus,6);
+  assert.equal(E.combatProfile(s,'shield').block,12);
+  assert.equal(E.combatProfile(s,'bow').heavyBonus,4);
+  assert.equal(E.combatProfile(s,'rust').heavyBonus,4);
+  s=E.equip(s,'shield'); s=E.upgrade(s,'shield');
+  assert.equal(E.weaponLevel(s,'shield'),1);
   assert.equal(E.combatProfile(s,'shield').block,13);
-  assert.equal(E.combatProfile(s,'shield').counter,3);
-  assert.equal(E.combatProfile(s,'bow').heavyBonus,5);
-  assert.equal(E.combatProfile(s,'rust').heavyBonus,5);
+  assert.equal(E.combatProfile(s,'fang').dodgeFocus,6);
   assert.match(E.gearText(s,'fang'),/\+6/);
   assert.match(E.gearText(s,'shield'),/13 軽減/);
-  assert.match(E.gearText(s,'bow'),/強撃 10/);
-  assert.match(E.gearText(s,'rust'),/9 ダメージ/);
+  assert.match(E.gearText(s,'bow'),/強撃 9/);
+  assert.match(E.gearText(s,'rust'),/8 ダメージ/);
+});
+test('legacy shared reinforcement remains a baseline when old saves are loaded', () => {
+  const old={...fresh(),level:2}; delete old.upgrades;
+  const s=E.parse(JSON.stringify(old));
+  assert.ok(s); assert.deepEqual(s.upgrades,{rust:0,fang:0,shield:0,bow:0});
+  assert.equal(E.weaponLevel(s,'rust'),2); assert.equal(E.maxHp(s),40);
+  s.owned.push('fang');
+  assert.equal(E.weaponLevel(s,'fang'),2);
 });
 test('all destinations lead to an achievable crown ending and permanent health bonus', () => {
   let s = fresh();
@@ -52,10 +65,10 @@ test('all destinations lead to an achievable crown ending and permanent health b
     s = E.discover(s,id); s = complete(s,id);
     if(id==='wood') s = E.equip(s,'fang');
     if(id==='tower') s = E.equip(s,'shield');
-    s = E.upgrade(s);
+    if(id==='fen') s = E.equip(s,'bow');
   }
   assert.equal(s.cleared.length,4); assert.ok(s.owned.includes('crown'));
-  assert.equal(E.maxHp(s),36+s.level*5);
+  assert.equal(E.maxHp(s),36);
 });
 test('loot and clearing are unbanked until extraction; dying preserves owned gear and currency', () => {
   let s = fresh(); s.scrap=10;
@@ -76,7 +89,7 @@ test('early return is safe and idempotent; escaping pays the advertised attack o
 test('insufficient stamina, unowned gear and locked destinations cannot be used', () => {
   let s=fresh(); assert.equal(E.start(s,'tower'),s);
   s=E.discover(s,'crypt'); assert.equal(E.start(s,'crypt'),s);
-  assert.equal(E.equip(s,'fang'),s); assert.equal(E.upgrade(s),s);
+  assert.equal(E.equip(s,'fang'),s); assert.equal(E.upgrade(s,'fang'),s);
   s=E.act(E.start(s,'wood'),'careful'); s.expedition.stamina=0;
   assert.equal(E.act(s,'heavy'),s); assert.equal(E.act(s,'dodge'),s); assert.equal(E.act(s,'return'),s);
 });
@@ -95,7 +108,7 @@ test('shield counters and bow pierces guarded enemies', () => {
   s=E.act(E.start(s,'tower'),'careful'); s=E.act(s,'heavy'); assert.equal(s.expedition.enemy.hp,11);
 });
 test('deeper layers keep risk, raise enemy stats and stop at depth three', () => {
-  let s=fresh(); s.owned.push('shield'); s=E.equip(s,'shield'); s.level=4; s=E.start(s,'wood');
+  let s=fresh(); s.owned.push('shield'); s=E.equip(s,'shield'); s.upgrades.shield=4; s=E.start(s,'wood');
   for(let depth=1;depth<=3;depth++) {
     let count=0;
     while(s.expedition.stage!=='cleared' && count++<150) s=E.act(s,safeAction(s));
@@ -129,7 +142,7 @@ test('GPS uncertainty, invalid fixes and motion cannot create discoveries or cha
 });
 test('malformed and foreign saves are rejected, with no silent reset or reward grants', () => {
   assert.deepEqual(E.parse(null),E.initial()); assert.equal(E.parse('{broken'),null);
-  for(const patch of [{version:2},{equipped:'crown'},{scrap:-1},{owned:['rust','unknown']},{latitude:35},{report:{}}]) assert.equal(E.parse(JSON.stringify({...fresh(),...patch})),null);
+  for(const patch of [{version:2},{equipped:'crown'},{scrap:-1},{owned:['rust','unknown']},{upgrades:{rust:9,fang:0,shield:0,bow:0}},{latitude:35},{report:{}}]) assert.equal(E.parse(JSON.stringify({...fresh(),...patch})),null);
   let s=E.act(E.start(fresh(),'wood'),'careful'); s.expedition.enemy.hp=NaN;
   assert.equal(E.parse(E.serialize(s)),null);
 });
