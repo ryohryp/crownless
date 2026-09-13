@@ -1,0 +1,121 @@
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const E = require('../src/slice-engine.js');
+const fresh = () => ({...E.initial(), mode:'demo'});
+function safeAction(s) {
+  const x = s.expedition;
+  if (x.stage === 'cleared') return 'return';
+  if (x.stage === 'path') return [1,3].includes(x.room) ? 'rest' : 'careful';
+  const i = E.intent(x.enemy);
+  const attack = E.GEAR[s.equipped].attack + x.focus;
+  if (x.enemy.hp <= attack && i.id !== 'guard') return 'strike';
+  if (i.id === 'heavy' && x.stamina) return 'dodge';
+  if (i.id === 'quick') return s.equipped === 'shield' || !x.stamina ? 'guard' : 'dodge';
+  if (i.id === 'guard') return 'guard';
+  return x.stamina >= 2 ? 'heavy' : 'strike';
+}
+function complete(s,id) {
+  s = E.start(s,id); assert.ok(s.expedition);
+  for (let i=0; i<150 && s.expedition; i++) {
+    s = E.act(s,safeAction(s));
+    assert.deepEqual(E.parse(E.serialize(s)),s,'every checkpoint resumes exactly');
+  }
+  assert.equal(s.expedition,null); assert.equal(s.report.died,false); return s;
+}
+test('complete first loop banks signature gear; a second expedition uses it', () => {
+  let s = complete(fresh(),'wood');
+  assert.ok(s.owned.includes('fang')); assert.equal(s.scrap,9); assert.deepEqual(s.cleared,['wood']);
+  s = E.equip(s,'fang'); s = E.upgrade(s);
+  assert.equal(s.scrap,1); assert.equal(E.maxHp(s),35);
+  s = E.start(s,'wood'); s = E.act(s,'careful'); s = E.act(s,'dodge');
+  assert.equal(s.expedition.focus,5); assert.equal(s.expedition.hp,35);
+  const before = s.expedition.enemy.hp;
+  s = E.act(s,'strike'); assert.equal(before-s.expedition.enemy.hp,10);
+});
+test('all destinations lead to an achievable crown ending and permanent health bonus', () => {
+  let s = fresh();
+  for (const id of ['wood','tower','fen','crypt']) {
+    s = E.discover(s,id); s = complete(s,id);
+    if(id==='wood') s = E.equip(s,'fang');
+    if(id==='tower') s = E.equip(s,'shield');
+    s = E.upgrade(s);
+  }
+  assert.equal(s.cleared.length,4); assert.ok(s.owned.includes('crown'));
+  assert.equal(E.maxHp(s),36+s.level*5);
+});
+test('loot and clearing are unbanked until extraction; dying preserves owned gear and currency', () => {
+  let s = fresh(); s.scrap=10;
+  s = E.start(s,'wood'); s = E.act(s,'careful');
+  while(s.expedition?.stage === 'fight') s = E.act(s,safeAction(s));
+  assert.equal(s.scrap,10); assert.equal(s.expedition.scrap,2);
+  s = E.act(s,'search'); s = E.act(s,'risky');
+  while (s.expedition) s = E.act(s,s.expedition.stage==='fight' ? 'strike' : s.expedition.stage==='cleared' ? 'deeper' : [1,3].includes(s.expedition.room) ? 'search' : 'risky');
+  assert.equal(s.report.died,true); assert.equal(s.scrap,10); assert.deepEqual(s.owned,['rust']); assert.deepEqual(s.cleared,[]);
+});
+test('early return is safe and idempotent; escaping pays the advertised attack once', () => {
+  let s = E.start(fresh(),'wood'); s.expedition.scrap=5;
+  s = E.act(s,'return'); assert.equal(s.scrap,5);
+  assert.deepEqual(E.act(s,'return'),s);
+  s = E.start(s,'wood'); s = E.act(s,'careful'); s.expedition.scrap=3;
+  s = E.act(s,'flee'); assert.equal(s.report.hp,24); assert.equal(s.scrap,8);
+});
+test('insufficient stamina, unowned gear and locked destinations cannot be used', () => {
+  let s=fresh(); assert.equal(E.start(s,'tower'),s);
+  s=E.discover(s,'crypt'); assert.equal(E.start(s,'crypt'),s);
+  assert.equal(E.equip(s,'fang'),s); assert.equal(E.upgrade(s),s);
+  s=E.act(E.start(s,'wood'),'careful'); s.expedition.stamina=0;
+  assert.equal(E.act(s,'heavy'),s); assert.equal(E.act(s,'dodge'),s); assert.equal(E.act(s,'return'),s);
+});
+test('healing in combat consumes an enemy turn; healing on a path does not', () => {
+  let s=E.start(fresh(),'wood'); s.expedition.hp=10;
+  s=E.act(s,'heal'); assert.equal(s.expedition.hp,22); assert.equal(s.expedition.potions,1);
+  s=E.act(s,'careful'); s=E.act(s,'heal');
+  assert.equal(s.expedition.hp,24); assert.equal(s.expedition.enemy.turn,1); assert.equal(s.expedition.potions,0);
+  assert.equal(E.act(s,'heal'),s);
+});
+test('shield counters and bow pierces guarded enemies', () => {
+  let s=fresh(); s.owned.push('shield','bow'); s=E.equip(s,'shield');
+  s=E.act(E.start(s,'wood'),'careful'); s=E.act(s,'guard');
+  assert.equal(s.expedition.hp,30); assert.equal(s.expedition.enemy.hp,13);
+  s=fresh(); s.owned.push('bow'); s=E.equip(s,'bow'); s=E.discover(s,'tower');
+  s=E.act(E.start(s,'tower'),'careful'); s=E.act(s,'heavy'); assert.equal(s.expedition.enemy.hp,11);
+});
+test('deeper layers keep risk, raise enemy stats and stop at depth three', () => {
+  let s=fresh(); s.owned.push('shield'); s=E.equip(s,'shield'); s.level=4; s=E.start(s,'wood');
+  for(let depth=1;depth<=3;depth++) {
+    let count=0;
+    while(s.expedition.stage!=='cleared' && count++<150) s=E.act(s,safeAction(s));
+    assert.equal(s.expedition.stage,'cleared');
+    const hp=s.expedition.hp, loot=s.expedition.scrap;
+    const next=E.act(s,'deeper');
+    if(depth===3) assert.equal(next,s);
+    else { assert.equal(next.expedition.depth,depth+1); assert.equal(next.expedition.hp,hp); assert.equal(next.expedition.scrap,loot); s=next; }
+  }
+});
+test('stationary location samples reveal spatial regions, never step-count rewards', () => {
+  const session=E.locationSession(), fix={latitude:35,longitude:139,accuracy:10,speed:0};
+  assert.equal(E.observe(session,fix).status,'anchored');
+  assert.equal(E.observe(session,{...fix,latitude:35.0005}).status,'nearby');
+  assert.equal(E.observe(session,{...fix,latitude:35.003}).place,'tower');
+  assert.equal(E.observe(session,{...fix,longitude:139.004}).place,'fen');
+  assert.equal(E.observe(session,{...fix,latitude:34.997}).place,'crypt');
+  assert.equal(E.observe(session,{...fix,longitude:138.996}).place,'wood');
+  let s=E.discover(fresh(),E.observe(session,{...fix,latitude:35.003}).place);
+  assert.equal(E.discover(s,'tower'),s); assert.equal(s.scrap,0);
+  assert.doesNotMatch(E.serialize(s),/latitude|longitude|accuracy|coords|35\.003|139/);
+});
+test('GPS uncertainty, invalid fixes and motion cannot create discoveries or change anchor', () => {
+  const session=E.locationSession(), fix={latitude:35,longitude:139,accuracy:10};
+  for(const patch of [{accuracy:100},{accuracy:NaN},{latitude:91},{longitude:Infinity},{speed:3}]) assert.notEqual(E.observe(session,{...fix,...patch}).status,'anchored');
+  assert.equal(session.anchor,null); E.observe(session,fix);
+  const anchor={...session.anchor};
+  assert.equal(E.observe(session,{...fix,latitude:35.01,accuracy:100}).status,'inaccurate');
+  assert.equal(E.observe(session,{...fix,latitude:35.01,speed:2}).status,'moving');
+  assert.deepEqual(session.anchor,anchor);
+});
+test('malformed and foreign saves are rejected, with no silent reset or reward grants', () => {
+  assert.deepEqual(E.parse(null),E.initial()); assert.equal(E.parse('{broken'),null);
+  for(const patch of [{version:2},{equipped:'crown'},{scrap:-1},{owned:['rust','unknown']},{latitude:35},{report:{}}]) assert.equal(E.parse(JSON.stringify({...fresh(),...patch})),null);
+  let s=E.act(E.start(fresh(),'wood'),'careful'); s.expedition.enemy.hp=NaN;
+  assert.equal(E.parse(E.serialize(s)),null);
+});
