@@ -8,9 +8,10 @@ Keep these unless the user changes them:
 
 - Core loop: **Explore → Fight → Loot → Return alive → Improve → Explore farther**.
 - Real-world movement discovers and opens the game world; it is not a step-count reward system.
-- Exploration should create curiosity, risk, and meaningful choices.
-- Returning alive should matter.
-- Loot and equipment should change later combat or expedition choices.
+- Equipment should visibly change the character and meaningfully change later choices.
+- Combat should reward strategy and meaningful decisions.
+- Exploration should make the world feel larger and open new possibilities.
+- Stronger equipment should create motivation to explore again.
 - The player starts unknown and poorly equipped, then develops different builds and combat styles.
 - Design for real smartphone play.
 
@@ -18,7 +19,7 @@ The first milestone is simple:
 
 > **Can someone play for about 15 minutes and want one more expedition?**
 
-Prefer work that answers that question.
+Prefer work that strengthens the loop above.
 
 ## Build principles
 
@@ -56,7 +57,7 @@ Keep location-dependent behavior testable with simulated locations where practic
 
 ## Skills
 
-Use `skills/crownless-playtest/SKILL.md` for gameplay evaluation and `skills/crownless-visual-design/SKILL.md` for visual work when relevant.
+Use `skills/crownless-loop-engineering/SKILL.md` for gameplay iteration, `skills/crownless-playtest/SKILL.md` for evaluation, and `skills/crownless-visual-design/SKILL.md` for visual work when relevant.
 
 ## Priority
 
