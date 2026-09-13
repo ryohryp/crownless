@@ -67,3 +67,9 @@ test('weapon reinforcement is shown and only changes the selected weapon', () =>
   b.click('depart','wood'); b.click('careful');
   assert.match(b.html(),/強撃 <span class="cost">10<\/span>/);
 });
+
+test('deeper choice hints at more iron without promising specific gear', () => {
+  assert.match(code,/奥ほど鉄の気配が濃い。何が残っているかは、まだ分からない。/);
+  assert.match(code,/鉄片の基本報酬 ×/);
+  assert.doesNotMatch(code,/砕けた装具/);
+});
