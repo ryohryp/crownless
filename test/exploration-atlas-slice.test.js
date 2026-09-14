@@ -15,6 +15,8 @@ test('canonical slice renders the map as a fog-of-war exploration gameboard', ()
   assert.match(app, /霧の向こう/);
   assert.match(app, /state\.unlocked\.includes/);
   assert.match(app, /state\.cleared\.includes/);
+  assert.match(app, /atlas-shroud/);
+  assert.match(app, /known \? 'revealed' : 'unrevealed'/);
   assert.match(app, /data-action="select"/);
   assert.match(app, /移動軌跡は保存しません/);
 });
@@ -29,6 +31,8 @@ test('exploration atlas is phone-sized manuscript UI and loaded by the canonical
   assert.match(html, /exploration-atlas\.css/);
   assert.match(css, /\.atlas-field/);
   assert.match(css, /\.atlas-fog/);
+  assert.match(css, /\.atlas-shroud\.revealed/);
+  assert.match(css, /\.atlas-shroud\.unrevealed/);
   assert.match(css, /\.atlas-marker\.unknown/);
   assert.match(css, /@media \(max-width: 620px\)/);
   assert.match(css, /min-height: 54px/);
