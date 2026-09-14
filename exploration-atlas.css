@@ -47,6 +47,23 @@
   mix-blend-mode: multiply;
 }
 
+.atlas-shroud {
+  position: absolute;
+  left: var(--atlas-x);
+  top: var(--atlas-y);
+  z-index: 1;
+  width: 46%;
+  height: 46%;
+  transform: translate(-50%,-50%);
+  border-radius: 50%;
+  pointer-events: none;
+  background:
+    radial-gradient(circle, rgba(8,22,25,.86) 0 26%, rgba(8,22,25,.70) 43%, rgba(8,22,25,.28) 66%, transparent 76%);
+  transition: opacity .35s ease;
+}
+.atlas-shroud.revealed { opacity: 0; }
+.atlas-shroud.unrevealed { opacity: 1; }
+
 .atlas-hearth {
   position: absolute;
   left: 11%;
