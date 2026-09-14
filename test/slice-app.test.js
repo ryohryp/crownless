@@ -48,32 +48,46 @@ test('mode progression is isolated and concurrent updates cannot be overwritten'
   b.click('depart','wood'); assert.match(b.html(),/別のタブで旅が進んで/);
   assert.equal(JSON.parse(b.store.get('crownless-expedition-v1-demo')).scrap,123);
 });
-test('weapon reinforcement is shown and only changes the selected weapon', () => {
+test('individual weapon reinforcement is shown and variants expose their distinct traits', () => {
   const k='crownless-expedition-v1-demo';
-  const state={...E.initial(),mode:'demo',scrap:100,owned:['rust','fang','shield','bow'],equipped:'shield'};
+  const state={...E.initial(),mode:'demo',scrap:100,owned:['rust','fang','fang_moon','shield','bow'],equipped:'fang_moon'};
   const b=browser({[k]:E.serialize(state),'crownless-expedition-mode':'demo'});
   b.click('tab','gear');
-  assert.match(b.html(),/番人の盾を補強する/);
+  assert.match(b.html(),/月影の短剣を補強する/);
+  assert.match(b.html(),/月影の短剣 · 装備中 · 補強 0\/4/);
+  assert.match(b.html(),/回避の気力消費 0/);
+  b.click('upgrade');
+  assert.match(b.html(),/月影の短剣 · 装備中 · 補強 1\/4/);
+  b.click('equip','fang');
+  assert.match(b.html(),/牙の短剣 · 装備中 · 補強 0\/4/);
+  b.click('equip','shield');
   assert.match(b.html(),/番人の盾 · 装備中 · 補強 0\/4/);
-  b.click('upgrade');
-  assert.match(b.html(),/番人の盾 · 装備中 · 補強 1\/4/);
-  assert.match(b.html(),/防御で 13 軽減し、3 ダメージ/);
-  b.click('equip','bow');
-  assert.match(b.html(),/葦の長弓 · 装備中 · 補強 0\/4/);
-  assert.match(b.html(),/強撃 9 が敵の守りを貫通/);
-  b.click('upgrade');
-  assert.match(b.html(),/葦の長弓 · 装備中 · 補強 1\/4/);
-  assert.match(b.html(),/強撃 10 が敵の守りを貫通/);
-  b.click('depart','wood'); b.click('careful');
-  assert.match(b.html(),/強撃 <span class="cost">10<\/span>/);
 });
-
-test('deeper choice renders an honest risk/reward cue before committing', () => {
+test('deeper choice renders a specific but non-spoiling weapon cue', () => {
   const k='crownless-expedition-v1-demo';
   const state={...E.initial(),mode:'demo',runs:1,expedition:{place:'wood',depth:1,room:4,hp:30,stamina:3,focus:0,potions:2,scrap:9,gear:['fang'],seals:['wood'],enemy:null,stage:'cleared',log:[]}};
   const b=browser({[k]:E.serialize(state),'crownless-expedition-mode':'demo'});
-  assert.match(b.html(),/奥ほど鉄の気配が濃い。何が残っているかは、まだ分からない。/);
+  assert.match(b.html(),/細身の刃/);
   assert.match(b.html(),/深層 2 へ踏み込む/);
-  assert.match(b.html(),/鉄片の基本報酬 ×2/);
-  assert.doesNotMatch(b.html(),/砕けた装具/);
+  assert.match(b.html(),/珍しい武具の可能性/);
+  assert.doesNotMatch(b.html(),/血染めの短剣|月影の短剣/);
+});
+test('deep combat surfaces archetype, elite trait, changed action costs and loot stakes', () => {
+  const k='crownless-expedition-v1-demo';
+  const state={...E.initial(),mode:'demo',runs:2,owned:['rust','fang_moon'],equipped:'fang_moon',expedition:{place:'wood',depth:2,room:4,hp:30,stamina:3,focus:0,potions:2,scrap:12,gear:[],seals:[],enemy:{kind:'wolf',hp:28,maxHp:28,turn:0,depth:2,elite:true,risky:false},stage:'fight',log:['土地の主が、帰り道を塞いだ。《猛攻》の気配。']}};
+  const b=browser({[k]:E.serialize(state),'crownless-expedition-mode':'demo'});
+  assert.match(b.html(),/速攻型/);
+  assert.match(b.html(),/《猛攻》/);
+  assert.match(b.html(),/回避/);
+  assert.match(b.html(),/気力 −0/);
+  assert.match(b.html(),/背嚢：鉄片 12/);
+});
+test('return report compares newly banked variants and sends player to gear tab', () => {
+  const k='crownless-expedition-v1-demo';
+  const state={...E.initial(),mode:'demo',owned:['rust','fang_blood'],report:{died:false,place:'wood',depth:2,scrap:14,gear:['fang_blood'],newGear:['fang_blood'],hp:18,cleared:['wood']}};
+  const b=browser({[k]:E.serialize(state),'crownless-expedition-mode':'demo'});
+  assert.match(b.html(),/新しい一本を、火へ/);
+  assert.match(b.html(),/血染めの短剣/);
+  assert.match(b.html(),/体力半分以下で攻撃 \+2/);
+  assert.match(b.html(),/持ち帰った装備を比べる/);
 });
