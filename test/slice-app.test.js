@@ -77,3 +77,16 @@ test('deeper choice renders an honest risk/reward cue before committing', () => 
   assert.match(b.html(),/鉄片の基本報酬 ×2/);
   assert.doesNotMatch(b.html(),/砕けた装具/);
 });
+
+
+test('exploration map exposes fog, discovery state, and demo reveal', () => {
+  const b=browser(); b.click('mode','demo');
+  assert.match(b.html(),/霧を晴らして開拓する探索地図/);
+  assert.match(b.html(),/囁きの森/);
+  assert.match(b.html(),/未知の気配/);
+  assert.match(b.html(),/未探索/);
+  assert.match(b.html(),/1 \/ 4 の土地を発見/);
+  b.click('scout','tower');
+  assert.match(b.html(),/鐘なき塔/);
+  assert.match(b.html(),/2 \/ 4 の土地を発見/);
+});
