@@ -38,7 +38,35 @@
     return `<div class="game-layout onboard"><section class="visual-column">${scene('camp','まだ、名もなき旅人。','A FIRE WORTH RETURNING TO')}<div class="journey-note"><b>01</b><span>霧の先には、まだ知らない場所。<br>その手の戦利品を、この火まで持ち帰ろう。</span></div></section><section class="panel"><p class="kicker">A SMALL JOURNEY. SOMETHING TO LOSE.</p><h1>霧の向こうへ。<br>生きて、帰ろう。</h1><p class="intro">欠けた剣と、ふた束の薬草。<br>あなたの旅は、それだけで始まる。<br>踏み込むか、引き返すか。<br>持ち帰った一本の剣が、次の旅を変える。</p><div class="button-stack">${button('mode','まずは体験する <span>約 15 分</span>','',{class:'primary',value:'demo'})}${button('mode','現実の散策で発見する','',{class:'secondary',value:'walk'})}</div><p class="small rule-line">体験モードは、室内で移動を再現します。<br>散策モードは、安全に立ち止まって現在地を確認。<br>位置情報を送信せず、移動履歴も残しません。</p></section></div>`;
   }
   function mapPins() {
-    return `<div class="places" aria-label="発見した土地の模式図">${E.PLACES.map(p => `<button class="place-pin ${selected === p.id ? 'selected' : ''} ${state.unlocked.includes(p.id) ? '' : 'locked'}" data-action="select" data-value="${p.id}" aria-pressed="${selected === p.id}">${A.icon(p.id)}<span>${state.unlocked.includes(p.id) ? p.name : '霧の向こう'}</span></button>`).join('')}</div><p class="atlas-note">${state.unlocked.length} / 4 の土地を発見 · 架空の模式図。現実の目的地案内ではありません。</p>`;
+    const positions = { wood:[22,68], tower:[47,27], fen:[75,58], crypt:[58,82] };
+    const markers = E.PLACES.map(p => {
+      const known = state.unlocked.includes(p.id), cleared = state.cleared.includes(p.id), [x,y] = positions[p.id];
+      const label = known ? p.name : '未知の気配';
+      const status = cleared ? '踏破済み' : known ? '発見済み' : '未踏';
+      return `<button class="atlas-marker ${selected === p.id ? 'selected' : ''} ${known ? 'known' : 'unknown'} ${cleared ? 'cleared' : ''}" style="--atlas-x:${x}%;--atlas-y:${y}%" data-action="select" data-value="${p.id}" aria-pressed="${selected === p.id}" aria-label="${label}・${status}">
+        <span class="atlas-marker-icon">${known ? A.icon(p.id) : '<b>?</b>'}</span>
+        <span class="atlas-marker-copy"><strong>${label}</strong><small>${status}</small></span>
+      </button>`;
+    }).join('');
+    const selectedPlace = E.place(selected), selectedKnown = state.unlocked.includes(selected), selectedCleared = state.cleared.includes(selected);
+    const memory = selectedKnown
+      ? `<div class="atlas-memory"><span>${selectedCleared ? 'この土地の記録' : '探索録'}</span><strong>${selectedPlace.name}</strong><small>${selectedCleared ? `${selectedPlace.reward}を持ち帰った。さらに深層には、まだ見ていない武具の気配がある。` : `${selectedPlace.subtitle} 遠征すれば、この土地の記録が増えていく。`}</small></div>`
+      : '<div class="atlas-memory unknown"><span>UNWRITTEN LAND</span><strong>霧の向こう</strong><small>別の道を歩けば、この場所の輪郭が地図に刻まれるかもしれない。</small></div>';
+    return `<section class="exploration-atlas" aria-label="発見と未踏が残る探索地図">
+      <div class="atlas-heading"><div><p class="kicker">THE UNWRITTEN LANDS</p><strong>探索地図</strong></div><span>${state.unlocked.length} / 4 発見</span></div>
+      <div class="atlas-field">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+          <path class="atlas-contour" d="M5 72 C18 55 31 67 40 50 S62 21 76 36 S86 70 96 62" />
+          <path class="atlas-contour secondary" d="M12 28 C28 16 37 38 55 26 S80 16 91 31" />
+          <path class="atlas-trail" d="M22 68 C31 55 37 43 47 27 M47 27 C59 35 66 44 75 58 M75 58 C68 68 63 76 58 82" />
+        </svg>
+        <span class="atlas-hearth" aria-label="安全な拠点"><i>✦</i><small>焚き火</small></span>
+        <div class="atlas-fog" aria-hidden="true"></div>
+        ${markers}
+      </div>
+      ${memory}
+      <p class="atlas-note">現実の道路や住所ではなく、発見したゲーム世界だけを記す。移動軌跡は保存しません。</p>
+    </section>`;
   }
   function scouting() {
     return `<div class="discovery"><p>${state.mode === 'demo' ? '散策を体験する — 歩く道で出会う土地が変わる。' : '画面を閉じて散策し、安全に止まれる場所で発見する。'}</p>${state.mode === 'demo' ? `<div class="choice-grid">${button('scout','丘の道を歩いた','',{value:'tower'})}${button('scout','水辺の道を歩いた','',{value:'fen'})}${button('scout','南の小道を歩いた','',{value:'crypt'})}${button('scout','森の道を歩いた','',{value:'wood'})}</div>` : `${button('gps',busy ? '現在地を確認中…' : session.anchor ? '立ち止まった場所で発見する' : 'ここを散策の起点にする','',{class:'secondary',disabled:busy})}<p class="small" style="margin-top:10px">最初の観測点からおよそ 150〜270 m 離れた広い領域で土地を発見。距離の累積報酬はありません。無理に移動せず、後日でも続けられます。</p>`}${notice ? `<p class="notice" role="status">${esc(notice)}</p>` : ''}</div>`;
