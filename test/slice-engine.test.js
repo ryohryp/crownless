@@ -7,12 +7,12 @@ function safeAction(s) {
   if (x.stage === 'cleared') return 'return';
   if (x.stage === 'path') return [1,3].includes(x.room) ? 'rest' : 'careful';
   const i = E.intent(x.enemy);
-  const attack = E.GEAR[s.equipped].attack + x.focus;
+  const attack = E.attackPreview(s,'strike');
   if (x.enemy.hp <= attack && i.id !== 'guard') return 'strike';
-  if (i.id === 'heavy' && x.stamina) return 'dodge';
-  if (i.id === 'quick') return s.equipped === 'shield' || !x.stamina ? 'guard' : 'dodge';
+  if (i.id === 'heavy' && x.stamina >= E.combatProfile(s).dodgeCost) return 'dodge';
+  if (i.id === 'quick') return E.gearFamily(s.equipped) === 'shield' || x.stamina < E.combatProfile(s).dodgeCost ? 'guard' : 'dodge';
   if (i.id === 'guard') return 'guard';
-  return x.stamina >= 2 ? 'heavy' : 'strike';
+  return x.stamina >= E.combatProfile(s).heavyCost ? 'heavy' : 'strike';
 }
 function complete(s,id) {
   s = E.start(s,id); assert.ok(s.expedition);
@@ -32,32 +32,38 @@ test('complete first loop banks signature gear; a second expedition uses its own
   const before = s.expedition.enemy.hp;
   s = E.act(s,'strike'); assert.equal(before-s.expedition.enemy.hp,11);
 });
-test('reinforcement is per weapon and does not leak to other loadouts', () => {
-  let s=fresh(); s.scrap=100; s.owned.push('fang','shield','bow');
-  s=E.equip(s,'fang'); s=E.upgrade(s,'fang');
-  assert.equal(E.weaponLevel(s,'fang'),1);
+test('reinforcement is per individual weapon, including loot variants', () => {
+  let s=fresh(); s.scrap=100; s.owned.push('fang','fang_blood','shield','bow');
+  s=E.equip(s,'fang_blood'); s=E.upgrade(s,'fang_blood');
+  assert.equal(E.weaponLevel(s,'fang_blood'),1);
+  assert.equal(E.weaponLevel(s,'fang'),0);
   assert.equal(E.weaponLevel(s,'shield'),0);
   assert.equal(E.weaponLevel(s,'bow'),0);
-  assert.equal(E.combatProfile(s,'fang').dodgeFocus,6);
+  assert.equal(E.combatProfile(s,'fang_blood').dodgeFocus,6);
   assert.equal(E.combatProfile(s,'shield').block,12);
-  assert.equal(E.combatProfile(s,'bow').heavyBonus,4);
-  assert.equal(E.combatProfile(s,'rust').heavyBonus,4);
   s=E.equip(s,'shield'); s=E.upgrade(s,'shield');
   assert.equal(E.weaponLevel(s,'shield'),1);
   assert.equal(E.combatProfile(s,'shield').block,13);
-  assert.equal(E.combatProfile(s,'fang').dodgeFocus,6);
-  assert.match(E.gearText(s,'fang'),/\+6/);
-  assert.match(E.gearText(s,'shield'),/13 軽減/);
-  assert.match(E.gearText(s,'bow'),/強撃 9/);
-  assert.match(E.gearText(s,'rust'),/8 ダメージ/);
+  assert.match(E.gearText(s,'fang_blood'),/体力半分以下で攻撃 \+2/);
+});
+test('three weapon families have multiple hand-authored variants with different combat decisions', () => {
+  let s=fresh(); s.owned.push('fang','fang_blood','fang_moon','shield','shield_thorn','shield_oath','bow','bow_hunter','bow_recurve');
+  assert.equal(E.gearFamily('fang_moon'),'fang');
+  assert.equal(E.combatProfile(s,'fang_moon').dodgeCost,0);
+  assert.ok(E.combatProfile(s,'shield_thorn').counter > E.combatProfile(s,'shield').counter);
+  assert.ok(E.combatProfile(s,'shield_oath').block > E.combatProfile(s,'shield').block);
+  assert.equal(E.combatProfile(s,'shield_oath').counter,0);
+  assert.equal(E.combatProfile(s,'bow_recurve').heavyCost,1);
+  assert.equal(E.combatProfile(s,'bow_recurve').pierce,false);
+  assert.equal(E.combatProfile(s,'bow_hunter').openBonus,3);
 });
 test('legacy shared reinforcement remains a baseline when old saves are loaded', () => {
   const old={...fresh(),level:2}; delete old.upgrades;
   const s=E.parse(JSON.stringify(old));
-  assert.ok(s); assert.deepEqual(s.upgrades,{rust:0,fang:0,shield:0,bow:0});
+  assert.ok(s); assert.equal(s.upgrades.rust,0); assert.equal(s.upgrades.fang_blood,0); assert.equal(s.upgrades.bow_recurve,0);
   assert.equal(E.weaponLevel(s,'rust'),2); assert.equal(E.maxHp(s),40);
-  s.owned.push('fang');
-  assert.equal(E.weaponLevel(s,'fang'),2);
+  s.owned.push('fang_blood');
+  assert.equal(E.weaponLevel(s,'fang_blood'),2);
 });
 test('all destinations lead to an achievable crown ending and permanent health bonus', () => {
   let s = fresh();
@@ -78,6 +84,45 @@ test('loot and clearing are unbanked until extraction; dying preserves owned gea
   s = E.act(s,'search'); s = E.act(s,'risky');
   while (s.expedition) s = E.act(s,s.expedition.stage==='fight' ? 'strike' : s.expedition.stage==='cleared' ? 'deeper' : [1,3].includes(s.expedition.room) ? 'search' : 'risky');
   assert.equal(s.report.died,true); assert.equal(s.scrap,10); assert.deepEqual(s.owned,['rust']); assert.deepEqual(s.cleared,[]);
+});
+test('deep elites drop unbanked weapon variants and extraction banks them', () => {
+  let s=fresh(); s.owned.push('shield'); s=E.equip(s,'shield'); s.upgrades.shield=4;
+  s=E.start(s,'wood');
+  while(s.expedition.stage!=='cleared') s=E.act(s,safeAction(s));
+  s=E.act(s,'deeper');
+  while(s.expedition.stage!=='cleared') s=E.act(s,safeAction(s));
+  assert.equal(s.expedition.depth,2);
+  assert.ok(s.expedition.gear.some(g=>['fang_blood','fang_moon'].includes(g)));
+  const found=s.expedition.gear.find(g=>g.startsWith('fang_'));
+  assert.ok(found); assert.ok(!s.owned.includes(found));
+  const saved=E.parse(E.serialize(s)); assert.ok(saved.expedition.gear.includes(found));
+  s=E.act(s,'return'); assert.ok(s.owned.includes(found)); assert.ok(s.report.newGear.includes(found));
+});
+test('loot cues tease weapon families without naming the exact drop', () => {
+  const cue2=E.lootCue('wood',2), cue3=E.lootCue('tower',3);
+  assert.match(cue2,/刃/); assert.doesNotMatch(cue2,/血染めの短剣|月影の短剣/);
+  assert.match(cue3,/盾/); assert.doesNotMatch(cue3,/返し棘の盾|誓壁の盾/);
+});
+test('enemy archetypes change patterns by depth and elites gain hand-authored traits', () => {
+  const shallow={kind:'wolf',hp:20,maxHp:20,turn:1,depth:1,elite:false,risky:false};
+  const deep={...shallow,depth:2,elite:true,turn:0};
+  assert.equal(E.intent(shallow).id,'heavy');
+  assert.equal(E.intent(deep).id,'quick');
+  assert.equal(E.enemyProfile(deep).archetype,'速攻型');
+  assert.equal(E.enemyProfile(deep).trait.name,'猛攻');
+  assert.ok(E.intent(deep).damage > E.INTENTS.quick.damage);
+  const iron={kind:'knight',hp:30,maxHp:30,turn:0,depth:2,elite:true,risky:false};
+  assert.equal(E.enemyProfile(iron).trait.name,'鉄皮');
+});
+test('ironhide rewards heavy attacks while hunter bow rewards enemy openings', () => {
+  let s=fresh(); s.owned.push('bow_hunter'); s=E.equip(s,'bow_hunter'); s=E.discover(s,'tower');
+  s=E.start(s,'tower'); s.expedition.depth=2; s.expedition.room=4; s=E.act(s,'careful');
+  assert.equal(E.enemyProfile(s.expedition.enemy).trait.name,'鉄皮');
+  const strike=E.attackPreview(s,'strike'), heavy=E.attackPreview(s,'heavy');
+  assert.ok(heavy > strike);
+  s.expedition.enemy.turn=4;
+  assert.equal(E.intent(s.expedition.enemy).id,'open');
+  assert.equal(E.attackPreview(s,'strike'),E.GEAR.bow_hunter.attack+3);
 });
 test('early return is safe and idempotent; escaping pays the advertised attack once', () => {
   let s = E.start(fresh(),'wood'); s.expedition.scrap=5;
@@ -107,7 +152,7 @@ test('shield counters and bow pierces guarded enemies', () => {
   s=fresh(); s.owned.push('bow'); s=E.equip(s,'bow'); s=E.discover(s,'tower');
   s=E.act(E.start(s,'tower'),'careful'); s=E.act(s,'heavy'); assert.equal(s.expedition.enemy.hp,11);
 });
-test('deeper layers keep risk, raise enemy stats and stop at depth three', () => {
+test('deeper layers keep risk, change enemy behavior and stop at depth three', () => {
   let s=fresh(); s.owned.push('shield'); s=E.equip(s,'shield'); s.upgrades.shield=4; s=E.start(s,'wood');
   for(let depth=1;depth<=3;depth++) {
     let count=0;
