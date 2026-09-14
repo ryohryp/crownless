@@ -48,6 +48,7 @@
         <span class="atlas-marker-copy"><strong>${label}</strong><small>${status}</small></span>
       </button>`;
     }).join('');
+    const shrouds = E.PLACES.map(p => { const known = state.unlocked.includes(p.id), [x,y] = positions[p.id]; return `<span class="atlas-shroud ${known ? 'revealed' : 'unrevealed'}" style="--atlas-x:${x}%;--atlas-y:${y}%" aria-hidden="true"></span>`; }).join('');
     const selectedPlace = E.place(selected), selectedKnown = state.unlocked.includes(selected), selectedCleared = state.cleared.includes(selected);
     const memory = selectedKnown
       ? `<div class="atlas-memory"><span>${selectedCleared ? 'この土地の記録' : '探索録'}</span><strong>${selectedPlace.name}</strong><small>${selectedCleared ? `${selectedPlace.reward}を持ち帰った。さらに深層には、まだ見ていない武具の気配がある。` : `${selectedPlace.subtitle} 遠征すれば、この土地の記録が増えていく。`}</small></div>`
@@ -62,6 +63,7 @@
         </svg>
         <span class="atlas-hearth" aria-label="安全な拠点"><i>✦</i><small>焚き火</small></span>
         <div class="atlas-fog" aria-hidden="true"></div>
+        ${shrouds}
         ${markers}
       </div>
       ${memory}
