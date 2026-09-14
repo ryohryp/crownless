@@ -91,3 +91,16 @@ test('return report compares newly banked variants and sends player to gear tab'
   assert.match(b.html(),/体力半分以下で攻撃 \+2/);
   assert.match(b.html(),/持ち帰った装備を比べる/);
 });
+
+test('cleared place remembers its adventure and owned gear shows where it came from', () => {
+  const k='crownless-expedition-v1-demo';
+  const state={...E.initial(),mode:'demo',unlocked:['wood','tower'],cleared:['wood'],owned:['rust','fang_moon'],equipped:'fang_moon'};
+  const b=browser({[k]:E.serialize(state),'crownless-expedition-mode':'demo'});
+  assert.match(b.html(),/旅の記憶/);
+  assert.match(b.html(),/茨牙の狼を越えた/);
+  assert.match(b.html(),/月影の短剣をここから持ち帰った/);
+  assert.match(b.html(),/細身の刃/);
+  b.click('tab','gear');
+  assert.match(b.html(),/月影の短剣 · 装備中/);
+  assert.match(b.html(),/囁きの森の戦利品/);
+});
