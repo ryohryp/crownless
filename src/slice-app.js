@@ -42,17 +42,17 @@
     const markers = E.PLACES.map(p => {
       const known = state.unlocked.includes(p.id), cleared = state.cleared.includes(p.id), [x,y] = positions[p.id];
       const label = known ? p.name : '未知の気配';
-      const status = cleared ? '踏破済み' : known ? '発見済み' : '未踏';
-      return `<button class="atlas-marker ${selected === p.id ? 'selected' : ''} ${known ? 'known' : 'unknown'} ${cleared ? 'cleared' : ''}" style="--atlas-x:${x}%;--atlas-y:${y}%" data-action="select" data-value="${p.id}" aria-pressed="${selected === p.id}" aria-label="${label}・${status}">
+      const status = cleared ? '踏破済み' : known ? '発見済み' : '予兆';
+      return `<button class="atlas-marker ${selected === p.id ? 'selected' : ''} ${known ? 'known' : 'unknown'} ${cleared ? 'cleared' : ''}" style="--atlas-x:${x}%;--atlas-y:${y}%" data-action="select" data-value="${p.id}" aria-pressed="${selected === p.id}" aria-label="${label}・${status}${known ? '' : '・'+p.teaser}">
         <span class="atlas-marker-icon">${known ? A.icon(p.id) : '<b>?</b>'}</span>
-        <span class="atlas-marker-copy"><strong>${label}</strong><small>${status}</small></span>
+        <span class="atlas-marker-copy"><strong>${label}</strong><small>${known ? status : '予兆あり'}</small></span>
       </button>`;
     }).join('');
     const shrouds = E.PLACES.map(p => { const known = state.unlocked.includes(p.id), [x,y] = positions[p.id]; return `<span class="atlas-shroud ${known ? 'revealed' : 'unrevealed'}" style="--atlas-x:${x}%;--atlas-y:${y}%" aria-hidden="true"></span>`; }).join('');
     const selectedPlace = E.place(selected), selectedKnown = state.unlocked.includes(selected), selectedCleared = state.cleared.includes(selected);
     const memory = selectedKnown
       ? `<div class="atlas-memory"><span>${selectedCleared ? 'この土地の記録' : '探索録'}</span><strong>${selectedPlace.name}</strong><small>${selectedCleared ? `${selectedPlace.reward}を持ち帰った。さらに深層には、まだ見ていない武具の気配がある。` : `${selectedPlace.subtitle} 遠征すれば、この土地の記録が増えていく。`}</small></div>`
-      : '<div class="atlas-memory unknown"><span>UNWRITTEN LAND</span><strong>霧の向こう</strong><small>別の道を歩けば、この場所の輪郭が地図に刻まれるかもしれない。</small></div>';
+      : `<div class="atlas-memory unknown teaser"><span>SIGN IN THE MIST</span><strong>霧の向こうに、何かいる。</strong><small>${esc(selectedPlace.teaser)}</small></div>`;
     return `<section class="exploration-atlas" aria-label="発見と未踏が残る探索地図">
       <div class="atlas-heading"><div><p class="kicker">THE UNWRITTEN LANDS</p><strong>探索地図</strong></div><span>${state.unlocked.length} / 4 発見</span></div>
       <div class="atlas-field">
@@ -75,7 +75,7 @@
   }
   function explorePanel() {
     const p = E.place(selected), unlocked = state.unlocked.includes(p.id), locked = p.id === 'crypt' && state.cleared.length < 2;
-    return `<p class="kicker">${unlocked ? p.terrain : 'UNDISCOVERED'}</p><h2>${unlocked ? p.name : 'まだ、霧の向こう。'}</h2><p class="intro">${unlocked ? p.subtitle : 'いつもと違う道を歩くと、別の土地に出会えるかもしれない。発見した場所には、あとから何度でも遠征できる。'}</p>${unlocked ? `<div class="reward"><span class="reward-icon">♢</span><div><strong>${p.reward}</strong><small>${p.hint}</small></div></div><p class="small">5 つの場面 / 戦闘 3 回 / 休息 2 回<br>${p.id === 'crypt' ? '危険度：高い。装備と体力を整えてから。' : '初回は 3〜5 分。深層では珍しい武具が出ることがある。'}</p>${state.cleared.includes(p.id) ? '<span class="badge">踏破済み · 深層で珍しい武具を探せる</span>' : ''}<div class="button-stack">${button('depart',locked ? `他の土地をあと ${2-state.cleared.length} か所踏破する` : 'この土地へ遠征する','',{class:'primary',value:p.id,disabled:locked})}</div>` : ''}${scouting()}`;
+    return `<p class="kicker">${unlocked ? p.terrain : 'SIGN IN THE MIST'}</p><h2>${unlocked ? p.name : 'まだ、霧の向こう。'}</h2><p class="intro">${unlocked ? p.subtitle : esc(p.teaser)}</p>${unlocked ? `<div class="reward"><span class="reward-icon">♢</span><div><strong>${p.reward}</strong><small>${p.hint}</small></div></div><p class="small">5 つの場面 / 戦闘 3 回 / 休息 2 回<br>${p.id === 'crypt' ? '危険度：高い。装備と体力を整えてから。' : '初回は 3〜5 分。深層では珍しい武具が出ることがある。'}</p>${state.cleared.includes(p.id) ? '<span class="badge">踏破済み · 深層で珍しい武具を探せる</span>' : ''}<div class="button-stack">${button('depart',locked ? `他の土地をあと ${2-state.cleared.length} か所踏破する` : 'この土地へ遠征する','',{class:'primary',value:p.id,disabled:locked})}</div>` : ''}${scouting()}`;
   }
   function gearPanel() {
     const id = state.equipped, level = E.weaponLevel(state,id), cost = E.upgradeCost(state,id);
