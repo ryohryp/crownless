@@ -1,0 +1,25 @@
+/* Phone-only density guardrails for the playable slice.
+   Keep the decision, intent and carried-loot information visible without turning
+   the combat screen into a wall of copy. Desktop/tablet presentation is unchanged. */
+@media (max-width: 480px) {
+  .app-shell { min-height: 100dvh; }
+  .masthead { gap: .45rem; }
+  .edition { display: none; }
+  #game { padding-inline: .65rem; }
+
+  /* Secondary prose may wrap, but should not dominate the decision surface. */
+  .hint, .help, .muted, .subtle { line-height: 1.35; }
+
+  /* Action rows remain thumb-friendly while using the narrow viewport efficiently. */
+  button, .button, [role="button"] { min-height: 44px; }
+  .actions, .combat-actions, .choice-row { gap: .45rem; }
+
+  /* Long loot / gear names must wrap instead of widening the page. */
+  .gear-card, .loot-card, .intent-card, .panel, .card {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  /* Avoid horizontal scrolling from decorative battle/map content. */
+  svg, img, canvas { max-width: 100%; }
+}
