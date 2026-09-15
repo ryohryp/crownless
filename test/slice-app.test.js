@@ -82,6 +82,17 @@ test('deep combat surfaces archetype, elite trait, changed action costs and loot
   assert.match(b.html(),/気力 −0/);
   assert.match(b.html(),/背嚢：鉄片 12/);
 });
+test('at-risk loot compares found weapon traits with the equipped weapon before extraction', () => {
+  const k='crownless-expedition-v1-demo';
+  const state={...E.initial(),mode:'demo',owned:['rust','shield'],equipped:'shield',expedition:{place:'wood',depth:2,room:2,hp:26,stamina:3,focus:0,potions:2,scrap:13,gear:['fang_moon'],seals:[],enemy:null,stage:'path',log:['月影の短剣を発見した。']}};
+  const b=browser({[k]:E.serialize(state),'crownless-expedition-mode':'demo'});
+  assert.match(b.html(),/AT RISK · 生還で確定/);
+  assert.match(b.html(),/現在装備：番人の盾/);
+  assert.match(b.html(),/防御で 12 軽減/);
+  assert.match(b.html(),/＋ 月影の短剣/);
+  assert.match(b.html(),/未帰還 · .*回避の気力消費 0/);
+});
+
 test('return report compares newly banked variants and sends player to gear tab', () => {
   const k='crownless-expedition-v1-demo';
   const state={...E.initial(),mode:'demo',owned:['rust','fang_blood'],report:{died:false,place:'wood',depth:2,scrap:14,gear:['fang_blood'],newGear:['fang_blood'],hp:18,cleared:['wood']}};
