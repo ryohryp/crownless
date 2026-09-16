@@ -39,27 +39,32 @@
   }
   function mapPins() {
     const positions = { wood:[22,68], tower:[47,27], fen:[75,58], crypt:[58,82] };
+    const maturity = p => state.cleared.includes(p.id) ? 'surveyed' : state.unlocked.includes(p.id) ? 'found' : p.id === 'tower' ? 'exploring' : p.id === 'fen' ? 'traced' : 'unknown';
+    const labels = { unknown:'未踏', traced:'踏査', exploring:'探索', found:'発見', surveyed:'調査済み' };
     const markers = E.PLACES.map(p => {
-      const known = state.unlocked.includes(p.id), cleared = state.cleared.includes(p.id), [x,y] = positions[p.id];
-      const label = known ? p.name : '未知の気配';
-      const status = cleared ? '踏破済み' : known ? '発見済み' : '予兆';
-      return `<button class="atlas-marker ${selected === p.id ? 'selected' : ''} ${known ? 'known' : 'unknown'} ${cleared ? 'cleared' : ''}" style="--atlas-x:${x}%;--atlas-y:${y}%" data-action="select" data-value="${p.id}" aria-pressed="${selected === p.id}" aria-label="${label}・${status}${known ? '' : '・'+p.teaser}">
-        <span class="atlas-marker-icon">${known ? A.icon(p.id) : '<b>?</b>'}</span>
-        <span class="atlas-marker-copy"><strong>${label}</strong><small>${known ? status : '予兆あり'}</small></span>
+      const stage = maturity(p), known = stage === 'found' || stage === 'surveyed', [x,y] = positions[p.id];
+      if (stage === 'unknown') return '';
+      if (!known) return `<span class="atlas-trace ${stage}" style="--atlas-x:${x}%;--atlas-y:${y}%" aria-label="${labels[stage]}"><i></i><small>${labels[stage]}</small></span>`;
+      return `<button class="atlas-marker ${selected === p.id ? 'selected' : ''} ${stage}" style="--atlas-x:${x}%;--atlas-y:${y}%" data-action="select" data-value="${p.id}" aria-pressed="${selected === p.id}" aria-label="${p.name}・${labels[stage]}">
+        <span class="atlas-marker-icon">${A.icon(p.id)}</span>
+        <span class="atlas-marker-copy"><strong>${p.name}</strong><small>${labels[stage]}</small></span>
       </button>`;
     }).join('');
-    const shrouds = E.PLACES.map(p => { const known = state.unlocked.includes(p.id), [x,y] = positions[p.id]; return `<span class="atlas-shroud ${known ? 'revealed' : 'unrevealed'}" style="--atlas-x:${x}%;--atlas-y:${y}%" aria-hidden="true"></span>`; }).join('');
+    const shrouds = E.PLACES.map(p => { const stage = maturity(p), [x,y] = positions[p.id]; return `<span class="atlas-shroud stage-${stage}" style="--atlas-x:${x}%;--atlas-y:${y}%" aria-hidden="true"></span>`; }).join('');
     const selectedPlace = E.place(selected), selectedKnown = state.unlocked.includes(selected), selectedCleared = state.cleared.includes(selected);
     const memory = selectedKnown
-      ? `<div class="atlas-memory"><span>${selectedCleared ? 'この土地の記録' : '探索録'}</span><strong>${selectedPlace.name}</strong><small>${selectedCleared ? `${selectedPlace.reward}を持ち帰った。さらに深層には、まだ見ていない武具の気配がある。` : `${selectedPlace.subtitle} 遠征すれば、この土地の記録が増えていく。`}</small></div>`
-      : `<div class="atlas-memory unknown teaser"><span>SIGN IN THE MIST</span><strong>霧の向こうに、何かいる。</strong><small>${esc(selectedPlace.teaser)}</small></div>`;
-    return `<section class="exploration-atlas" aria-label="発見と未踏が残る探索地図">
+      ? `<div class="atlas-memory"><span>${selectedCleared ? '調査済みの記録' : '新たな痕跡を発見'}</span><strong>${selectedPlace.name}</strong><small>${selectedCleared ? `${selectedPlace.reward}を持ち帰った。さらに深層には、まだ見ていない武具の気配がある。` : `${selectedPlace.teaser} 遠征すれば、この土地の輪郭がさらに地図へ残る。`}</small></div>`
+      : `<div class="atlas-memory unknown"><span>THE MAP IS STILL BLANK</span><strong>歩いた先から、地図が育つ。</strong><small>細い道、淡い地形、痕跡、そして土地の名。発見するほど、この世界は描き込まれていく。</small></div>`;
+    return `<section class="exploration-atlas" aria-label="探索によって育つ冒険地図">
       <div class="atlas-heading"><div><p class="kicker">THE UNWRITTEN LANDS</p><strong>探索地図</strong></div><span>${state.unlocked.length} / 4 発見</span></div>
+      <div class="atlas-stage-legend" aria-label="地図の成熟度"><span>未踏</span><span>踏査</span><span>探索</span><span>発見</span><span>調査</span></div>
       <div class="atlas-field">
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
           <path class="atlas-contour" d="M5 72 C18 55 31 67 40 50 S62 21 76 36 S86 70 96 62" />
           <path class="atlas-contour secondary" d="M12 28 C28 16 37 38 55 26 S80 16 91 31" />
           <path class="atlas-trail" d="M22 68 C31 55 37 43 47 27 M47 27 C59 35 66 44 75 58 M75 58 C68 68 63 76 58 82" />
+          <path class="atlas-water" d="M0 82 C19 75 30 84 45 77 S72 65 100 74" />
+          <path class="atlas-sketch" d="M34 46 C39 41 42 36 47 27 M66 51 C70 53 73 56 75 58" />
         </svg>
         <span class="atlas-hearth" aria-label="安全な拠点"><i>✦</i><small>焚き火</small></span>
         <div class="atlas-fog" aria-hidden="true"></div>
@@ -67,15 +72,15 @@
         ${markers}
       </div>
       ${memory}
-      <p class="atlas-note">現実の道路や住所ではなく、発見したゲーム世界だけを記す。移動軌跡は保存しません。</p>
+      <p class="atlas-note">現実の道路や住所は描かない。歩いた結果だけを、冒険者の地図として抽象化して残す。</p>
     </section>`;
   }
   function scouting() {
-    return `<div class="discovery"><p>${state.mode === 'demo' ? '散策を体験する — 歩く道で出会う土地が変わる。' : '画面を閉じて散策し、安全に止まれる場所で発見する。'}</p>${state.mode === 'demo' ? `<div class="choice-grid">${button('scout','丘の道を歩いた','',{value:'tower'})}${button('scout','水辺の道を歩いた','',{value:'fen'})}${button('scout','南の小道を歩いた','',{value:'crypt'})}${button('scout','森の道を歩いた','',{value:'wood'})}</div>` : `${button('gps',busy ? '現在地を確認中…' : session.anchor ? '立ち止まった場所で発見する' : 'ここを散策の起点にする','',{class:'secondary',disabled:busy})}<p class="small" style="margin-top:10px">最初の観測点からおよそ 150〜270 m 離れた広い領域で土地を発見。距離の累積報酬はありません。無理に移動せず、後日でも続けられます。</p>`}${notice ? `<p class="notice" role="status">${esc(notice)}</p>` : ''}</div>`;
+    return `<div class="discovery"><p>${state.mode === 'demo' ? '散策を体験する — 歩くほど、地図の線と色が増えていく。' : '画面を閉じて散策し、安全に止まれる場所で発見する。'}</p>${state.mode === 'demo' ? `<div class="choice-grid">${button('scout','丘の道を歩いた','',{value:'tower'})}${button('scout','水辺の道を歩いた','',{value:'fen'})}${button('scout','南の小道を歩いた','',{value:'crypt'})}${button('scout','森の道を歩いた','',{value:'wood'})}</div>` : `${button('gps',busy ? '現在地を確認中…' : session.anchor ? '立ち止まった場所で発見する' : 'ここを散策の起点にする','',{class:'secondary',disabled:busy})}<p class="small" style="margin-top:10px">現在地そのものは地図に表示しません。安全に立ち止まって観測すると、その移動結果だけがゲーム世界へ反映されます。</p>`}${notice ? `<p class="notice" role="status">${esc(notice)}</p>` : ''}</div>`;
   }
   function explorePanel() {
     const p = E.place(selected), unlocked = state.unlocked.includes(p.id), locked = p.id === 'crypt' && state.cleared.length < 2;
-    return `<p class="kicker">${unlocked ? p.terrain : 'SIGN IN THE MIST'}</p><h2>${unlocked ? p.name : 'まだ、霧の向こう。'}</h2><p class="intro">${unlocked ? p.subtitle : esc(p.teaser)}</p>${unlocked ? `<div class="reward"><span class="reward-icon">♢</span><div><strong>${p.reward}</strong><small>${p.hint}</small></div></div><p class="small">5 つの場面 / 戦闘 3 回 / 休息 2 回<br>${p.id === 'crypt' ? '危険度：高い。装備と体力を整えてから。' : '初回は 3〜5 分。深層では珍しい武具が出ることがある。'}</p>${state.cleared.includes(p.id) ? '<span class="badge">踏破済み · 深層で珍しい武具を探せる</span>' : ''}<div class="button-stack">${button('depart',locked ? `他の土地をあと ${2-state.cleared.length} か所踏破する` : 'この土地へ遠征する','',{class:'primary',value:p.id,disabled:locked})}</div>` : ''}${scouting()}`;
+    return `<p class="kicker">${unlocked ? p.terrain : 'SIGN IN THE MIST'}</p><h2>${unlocked ? p.name : 'まだ、霧の向こう。'}</h2><p class="intro">${unlocked ? p.subtitle : '地図にはまだ名がない。歩いた結果が積み重なると、痕跡と土地の輪郭が現れる。'}</p>${unlocked ? `<div class="reward"><span class="reward-icon">♢</span><div><strong>${p.reward}</strong><small>${p.hint}</small></div></div><p class="small">5 つの場面 / 戦闘 3 回 / 休息 2 回<br>${p.id === 'crypt' ? '危険度：高い。装備と体力を整えてから。' : '初回は 3〜5 分。深層では珍しい武具が出ることがある。'}</p>${state.cleared.includes(p.id) ? '<span class="badge">調査済み · 深層で珍しい武具を探せる</span>' : ''}<div class="button-stack">${button('depart',locked ? `他の土地をあと ${2-state.cleared.length} か所踏破する` : 'この土地へ遠征する','',{class:'primary',value:p.id,disabled:locked})}</div>` : ''}${scouting()}`;
   }
   function gearPanel() {
     const id = state.equipped, level = E.weaponLevel(state,id), cost = E.upgradeCost(state,id);
@@ -114,9 +119,9 @@
     if (conflict) { root.innerHTML = '<div class="help"><h2>別のタブで旅が進んでいます。</h2><p>最新のセーブを読み直してください。</p><button class="primary" data-action="reload">再読み込み</button></div>'; return; }
     root.innerHTML = !state.mode ? onboard() : state.expedition ? expedition() : state.report ? report() : camp();
   }
-  function locationResult(fix) {
-    const result = E.observe(session, fix);
-    const messages = { inaccurate:'位置の精度が足りません。進行は変わっていません。安全な場所で後ほど試してください。', moving:'移動中のようです。安全に立ち止まってから試してください。', anchored:'ここを今回の起点にしました。次の安全な立ち止まり場所で、別の土地を探せます。', nearby:'起点の近くです。この地域の森はすでに発見済み。別の機会に違う道を散策してみましょう。' };
+  function locationResult(coords) {
+    const result = E.observe(session,coords);
+    const messages = { anchor:'ここを散策の起点にしました。少し場所を変えてから、また安全に立ち止まって発見してください。', close:'まだ同じ土地の中です。距離を稼ぐ必要はありません。別の安全な場所へ移動した日に、また試せます。', inaccurate:'位置の精度が足りませんでした。屋外の開けた場所で再度試すか、散策体験モードで続けられます。', fast:'移動中のようです。安全な場所で立ち止まってから再度試してください。' };
     if (result.status === 'discovered') {
       const known = state.unlocked.includes(result.place);
       state = E.discover(state, result.place); selected = result.place;
