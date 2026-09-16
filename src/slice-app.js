@@ -121,7 +121,7 @@
   }
   function locationResult(coords) {
     const result = E.observe(session,coords);
-    const messages = { anchor:'ここを散策の起点にしました。少し場所を変えてから、また安全に立ち止まって発見してください。', close:'まだ同じ土地の中です。距離を稼ぐ必要はありません。別の安全な場所へ移動した日に、また試せます。', inaccurate:'位置の精度が足りませんでした。屋外の開けた場所で再度試すか、散策体験モードで続けられます。', fast:'移動中のようです。安全な場所で立ち止まってから再度試してください。' };
+    const messages = { anchored:'ここを散策の起点にしました。少し場所を変えてから、また安全に立ち止まって発見してください。', nearby:'まだ同じ土地の中です。距離を稼ぐ必要はありません。別の安全な場所へ移動した日に、また試せます。', inaccurate:'位置の精度が足りませんでした。屋外の開けた場所で再度試すか、散策体験モードで続けられます。', moving:'移動中のようです。安全な場所で立ち止まってから再度試してください。' };
     if (result.status === 'discovered') {
       const known = state.unlocked.includes(result.place);
       state = E.discover(state, result.place); selected = result.place;
