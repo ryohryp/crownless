@@ -14,6 +14,14 @@ test('repeating dodge lets quick enemies telegraph a feint', () => {
   assert.match(intent.help, /防御|通常攻撃/);
 });
 
+test('repeating guard lets hunter enemies telegraph a break with multiple answers', () => {
+  const intent = counterIntent(['guard', 'guard'], '狩人型');
+  assert.equal(intent.id, 'break');
+  assert.match(intent.reason, /盾の構え/);
+  assert.match(intent.help, /回避/);
+  assert.match(intent.help, /通常攻撃/);
+});
+
 test('repeating heavy lets defensive enemies telegraph an intercept', () => {
   const intent = counterIntent(['heavy', 'heavy'], '防御型');
   assert.equal(intent.id, 'intercept');
