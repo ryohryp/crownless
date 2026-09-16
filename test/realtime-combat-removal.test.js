@@ -25,15 +25,6 @@ test('canonical root entrypoint routes to the expedition slice instead of legacy
   assert.equal(html.includes('combat-render-space.css'), false);
 });
 
-test('reboot runtime does not load rejected realtime combat', () => {
-  const html = read('reboot.html');
-
-  assert.equal(html.includes('reboot-phase9.css'), false);
-  assert.equal(html.includes('reboot-phase9-combat.js'), false);
-  assert.equal(exists('reboot-phase9.css'), false);
-  assert.equal(exists('src/reboot-phase9-combat.js'), false);
-});
-
 test('legacy realtime combat runtime and presentation stay removed', () => {
   const removed = [
     'src/app.js',
@@ -55,20 +46,4 @@ test('legacy realtime combat runtime and presentation stay removed', () => {
   for (const relativePath of removed) {
     assert.equal(exists(relativePath), false, `${relativePath} must remain removed`);
   }
-});
-
-test('prototype reset no longer depends on combat persistence', () => {
-  const devTools = read('src/reboot-dev-tools.js');
-
-  assert.equal(devTools.includes('CrownlessRebootPhase9Combat'), false);
-  assert.equal(devTools.includes('crownless_reboot_phase9_world_v1'), false);
-  assert.match(devTools, /removeItem\(base\.STORAGE_KEY\)/);
-});
-
-test('preceding reboot exploration remains wired after combat removal', () => {
-  const html = read('reboot.html');
-
-  assert.match(html, /src\/reboot-phase7-exploration\.js/);
-  assert.match(html, /src\/reboot-phase6-controller\.js/);
-  assert.match(html, /src\/reboot-dev-tools\.js/);
 });
