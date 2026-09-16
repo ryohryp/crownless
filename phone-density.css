@@ -22,4 +22,39 @@
 
   /* Avoid horizontal scrolling from decorative battle/map content. */
   svg, img, canvas { max-width: 100%; }
+
+  /* #601: the gear tab is a fitting scene, not another long page.
+     Keep the equipped-character scene visible while the player changes gear;
+     the exploration atlas is secondary here and belongs to the expedition tab. */
+  .game-layout:has(.camp-tabs button.active[data-value="gear"]) {
+    min-height: calc(100dvh - 7.5rem);
+    grid-template-rows: minmax(12rem, 34dvh) minmax(0, 1fr);
+    overflow: hidden;
+  }
+  .game-layout:has(.camp-tabs button.active[data-value="gear"]) .visual-column {
+    min-height: 0;
+  }
+  .game-layout:has(.camp-tabs button.active[data-value="gear"]) .exploration-atlas {
+    display: none;
+  }
+  .game-layout:has(.camp-tabs button.active[data-value="gear"]) .scene {
+    min-height: 0;
+    height: min(29dvh, 15rem);
+  }
+  .game-layout:has(.camp-tabs button.active[data-value="gear"]) .stat-strip {
+    margin-top: .35rem;
+  }
+  .game-layout:has(.camp-tabs button.active[data-value="gear"]) .panel {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  .game-layout:has(.camp-tabs button.active[data-value="gear"]) .panel > .small:first-of-type {
+    display: none;
+  }
+  .game-layout:has(.camp-tabs button.active[data-value="gear"]) .gear-list {
+    max-height: 12rem;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
 }
