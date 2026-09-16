@@ -121,7 +121,7 @@
   }
   function locationResult(coords) {
     const result = E.observe(session,coords);
-    const messages = { anchor:'ここを散策の起点にしました。少し場所を変えてから、また安全に立ち止まって発見してください。', close:'まだ同じ土地の中です。距離を稼ぐ必要はありません。別の安全な場所へ移動した日に、また試せます。', inaccurate:'位置の精度が足りませんでした。屋外の開けた場所で再度試すか、散策体験モードで続けられます。', fast:'移動中のようです。安全な場所で立ち止まってから再度試してください。' };
+    const messages = { anchored:'ここを散策の起点にしました。少し場所を変えてから、また安全に立ち止まって発見してください。', nearby:'まだ同じ土地の中です。距離を稼ぐ必要はありません。別の安全な場所へ移動した日に、また試せます。', inaccurate:'位置の精度が足りませんでした。屋外の開けた場所で再度試すか、散策体験モードで続けられます。', moving:'移動中のようです。安全な場所で立ち止まってから再度試してください。' };
     if (result.status === 'discovered') {
       const known = state.unlocked.includes(result.place);
       state = E.discover(state, result.place); selected = result.place;
@@ -144,7 +144,7 @@
     else if (action === 'scout') {
       const demoSession = E.locationSession(); E.observe(demoSession,{latitude:0,longitude:0,accuracy:5}); session = demoSession;
       const offsets = { tower:[.003,0],fen:[0,.003],crypt:[-.003,0],wood:[0,-.003] };
-      locationResult({latitude:offsets[value][0],longitude:offsets[value][1],accuracy:5,speed:0}); return;
+      locationResult({latitude:offsets[value][0],longitude:offsetsets[value][1],accuracy:5,speed:0}); return;
     } else if (action === 'gps') {
       if (!navigator.geolocation || !window.isSecureContext) { notice = 'この環境では位置情報を使えません。HTTPS または localhost で開くか、散策体験モードで遊べます。'; render(); return; }
       busy = true; const request = ++locationRequest; render();
