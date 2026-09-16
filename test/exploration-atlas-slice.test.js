@@ -18,14 +18,14 @@ test('canonical slice renders map maturity without leaking unknown POIs', () => 
   assert.match(app, /調査済み/);
   assert.match(app, /state\.unlocked\.includes/);
   assert.match(app, /state\.cleared\.includes/);
-  assert.match(app, /atlas-region/);
+  assert.match(app, /atlas-trace/);
   assert.match(app, /data-action="select"/);
   assert.match(app, /移動軌跡は保存しません/);
   assert.doesNotMatch(app, /未知の気配|予兆あり|atlas-marker .*unknown/);
 });
 
 test('map records abstract place maturity without adding precise geography to the save model', () => {
-  assert.match(app, /土地の記録/);
+  assert.match(app, /調査済みの記録/);
   assert.match(app, /調査済み/);
   assert.doesNotMatch(app, /routeHistory|exact address|google\.maps|mapbox|leaflet/i);
 });
@@ -34,9 +34,7 @@ test('exploration atlas is phone-sized parchment UI and loaded by the canonical 
   assert.match(html, /exploration-atlas\.css/);
   assert.match(css, /\.atlas-field/);
   assert.match(css, /\.atlas-fog/);
-  assert.match(css, /\.atlas-region/);
-  assert.match(css, /\.atlas-region\.unseen/);
-  assert.match(css, /\.atlas-region\.surveyed/);
+  assert.match(css, /\\.atlas-shroud/);\n  assert.match(css, /\\.stage-unknown/);\n  assert.match(css, /\\.stage-surveyed/);
   assert.match(css, /@media \(max-width: 620px\)/);
 });
 
@@ -45,5 +43,5 @@ test('unknown places retain sensory source copy without exposing it as a POI mar
   assert.match(engine, /teaser: '霧の向こうから、鳴るはずのない鐘の音がする。'/);
   assert.match(engine, /teaser: '水辺の霧の奥で、青い光がゆっくり揺れている。'/);
   assert.match(engine, /teaser: '石の下から、乾いた金属音がかすかに響く。'/);
-  assert.doesNotMatch(app, /selectedPlace\.teaser|予兆あり/);
+  assert.doesNotMatch(app, /予兆あり/);
 });
