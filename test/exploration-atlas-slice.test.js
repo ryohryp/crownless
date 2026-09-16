@@ -8,47 +8,42 @@ const engine = fs.readFileSync(path.join(__dirname, '../src/slice-engine.js'), '
 const css = fs.readFileSync(path.join(__dirname, '../exploration-atlas.css'), 'utf8');
 const html = fs.readFileSync(path.join(__dirname, '../expedition.html'), 'utf8');
 
-test('canonical slice renders the map as a fog-of-war exploration gameboard', () => {
+test('canonical slice renders map maturity without leaking unknown POIs', () => {
   assert.match(app, /class="exploration-atlas"/);
   assert.match(app, /THE UNWRITTEN LANDS/);
-  assert.match(app, /atlas-marker .*unknown/);
-  assert.match(app, /未知の気配/);
-  assert.match(app, /予兆あり/);
-  assert.match(app, /SIGN IN THE MIST/);
-  assert.match(app, /霧の向こう/);
+  assert.match(app, /未踏/);
+  assert.match(app, /踏査/);
+  assert.match(app, /探索/);
+  assert.match(app, /発見/);
+  assert.match(app, /調査済み/);
   assert.match(app, /state\.unlocked\.includes/);
   assert.match(app, /state\.cleared\.includes/);
-  assert.match(app, /atlas-shroud/);
-  assert.match(app, /known \? 'revealed' : 'unrevealed'/);
+  assert.match(app, /atlas-region/);
   assert.match(app, /data-action="select"/);
   assert.match(app, /移動軌跡は保存しません/);
+  assert.doesNotMatch(app, /未知の気配|予兆あり|atlas-marker .*unknown/);
 });
 
-test('map records place memory without adding precise geography to the save model', () => {
-  assert.match(app, /この土地の記録/);
-  assert.match(app, /を持ち帰った。さらに深層には/);
+test('map records abstract place maturity without adding precise geography to the save model', () => {
+  assert.match(app, /土地の記録/);
+  assert.match(app, /調査済み/);
   assert.doesNotMatch(app, /routeHistory|exact address|google\.maps|mapbox|leaflet/i);
 });
 
-test('exploration atlas is phone-sized manuscript UI and loaded by the canonical page', () => {
+test('exploration atlas is phone-sized parchment UI and loaded by the canonical page', () => {
   assert.match(html, /exploration-atlas\.css/);
   assert.match(css, /\.atlas-field/);
   assert.match(css, /\.atlas-fog/);
-  assert.match(css, /\.atlas-shroud\.revealed/);
-  assert.match(css, /\.atlas-shroud\.unrevealed/);
-  assert.match(css, /\.atlas-marker\.unknown/);
+  assert.match(css, /\.atlas-region/);
+  assert.match(css, /\.atlas-region\.unseen/);
+  assert.match(css, /\.atlas-region\.surveyed/);
   assert.match(css, /@media \(max-width: 620px\)/);
-  assert.match(css, /min-height: 54px/);
 });
 
-
-test('unknown places expose sensory teasers without leaking identity or loot', () => {
+test('unknown places retain sensory source copy without exposing it as a POI marker', () => {
   assert.match(engine, /teaser: '霧の中に、折れた枝と獣の足跡が続いている。'/);
   assert.match(engine, /teaser: '霧の向こうから、鳴るはずのない鐘の音がする。'/);
   assert.match(engine, /teaser: '水辺の霧の奥で、青い光がゆっくり揺れている。'/);
   assert.match(engine, /teaser: '石の下から、乾いた金属音がかすかに響く。'/);
-  assert.match(app, /unlocked \? p\.subtitle : esc\(p\.teaser\)/);
-  assert.match(app, /selectedPlace\.teaser/);
-  assert.match(app, /known \? status : '予兆あり'/);
-  assert.match(css, /\.atlas-memory\.teaser/);
+  assert.doesNotMatch(app, /selectedPlace\.teaser|予兆あり/);
 });
