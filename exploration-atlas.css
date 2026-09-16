@@ -108,7 +108,19 @@
   color: #869a91;
   background: rgba(20,39,42,.72);
 }
-.atlas-marker.cleared { box-shadow: inset 0 0 0 1px rgba(151,181,155,.24), 0 8px 18px rgba(0,0,0,.16); }
+.atlas-marker.known:not(.cleared) {
+  background:
+    linear-gradient(rgba(20,43,46,.82), rgba(20,43,46,.82)),
+    repeating-linear-gradient(-18deg, rgba(210,185,129,.12) 0 1px, transparent 1px 7px);
+  box-shadow: inset 0 0 22px rgba(210,185,129,.035), 0 8px 18px rgba(0,0,0,.16);
+}
+.atlas-marker.cleared {
+  border-color: rgba(151,181,155,.44);
+  background:
+    linear-gradient(rgba(24,48,45,.88), rgba(24,48,45,.88)),
+    radial-gradient(circle at 72% 25%, rgba(151,181,155,.24), transparent 38%);
+  box-shadow: inset 0 0 0 1px rgba(151,181,155,.24), 0 8px 18px rgba(0,0,0,.16);
+}
 
 .atlas-marker-icon {
   width: 34px;
