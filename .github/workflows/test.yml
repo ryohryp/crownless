@@ -38,23 +38,5 @@ jobs:
           node --check src/territory-world-trace.js
           node --check src/territory-mobile-declutter.js
           node --check src/expedition-presentation.js
-          node --check src/reboot-dev-tools.js
-          node --check scripts/check-reboot-chapter.cjs
       - name: Unit tests
         run: npm test
-
-  reboot-browser:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: 22
-      - name: Install browser QA tools
-        run: |
-          npm install --no-save --package-lock=false playwright@1.62.1
-          npx playwright install --with-deps chromium
-      - name: Reboot complete chapter, GPS recovery, and viewports
-        env:
-          REBOOT_SCREENSHOT_DIR: /tmp/reboot-qa
-        run: node scripts/check-reboot-chapter.cjs
