@@ -16,7 +16,7 @@
   E.intent = e => {
     const counter = adaptation(e);
     if (!counter) return baseIntent(e);
-    return { ...counter, adaptive: true };
+    return { ...counter, help: `${counter.reason} ${counter.help}`, adaptive: true };
   };
 
   E.attackPreview = (s, action) => {
@@ -25,8 +25,7 @@
     if (!counter) return baseAttackPreview(s, action);
     const shadow = JSON.parse(JSON.stringify(s));
     shadow.expedition.enemy.history = [];
-    const normal = baseAttackPreview(shadow, action);
-    return normal;
+    return baseAttackPreview(shadow, action);
   };
 
   E.act = (s, action) => {
@@ -44,7 +43,6 @@
 
     const base = baseIntent(before);
     const block = E.combatProfile(s).block;
-    let baseTaken = action === 'dodge' ? 0 : Math.max(0, base.damage - (action === 'guard' ? block : 0));
     let counterTaken = 0;
     if (counter.id === 'feint') counterTaken = action === 'dodge' ? counter.damage : Math.max(0, counter.damage - (action === 'guard' ? block : 0));
     if (counter.id === 'break') counterTaken = action === 'dodge' ? 0 : action === 'guard' ? Math.max(2, counter.damage - Math.floor(block / 2)) : counter.damage;
