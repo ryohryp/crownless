@@ -279,7 +279,11 @@
     if (level >= 4 || s.scrap < cost) return s;
     const n = copy(s); n.scrap -= cost; n.upgrades[key] = level + 1; return n;
   }
-  const locationSession = () => ({ anchor: null });
+  function locationSession(anchor = null) {
+    const latitude = Number(anchor?.latitude), longitude = Number(anchor?.longitude), accuracy = Number(anchor?.accuracy);
+    const valid = Number.isFinite(latitude) && Math.abs(latitude) <= 90 && Number.isFinite(longitude) && Math.abs(longitude) <= 180 && Number.isFinite(accuracy) && accuracy >= 0;
+    return { anchor: valid ? { latitude, longitude, accuracy } : null };
+  }
   function observe(session, fix) {
     if (!fix || !Number.isFinite(fix.latitude) || Math.abs(fix.latitude) > 90 || !Number.isFinite(fix.longitude) || Math.abs(fix.longitude) > 180 || !Number.isFinite(fix.accuracy) || fix.accuracy < 0 || fix.accuracy > 60) return { status: 'inaccurate' };
     if (Number.isFinite(fix.speed) && fix.speed > 1.5) return { status: 'moving' };
