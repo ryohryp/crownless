@@ -8,7 +8,7 @@ const html = fs.readFileSync('expedition.html', 'utf8');
 
 test('undiscovered locations keep identity-safe source teasers but render as blank map space', () => {
   for (const id of ['wood', 'tower', 'fen', 'crypt']) {
-    assert.match(engine, new RegExp(`id: '${id}'[^\\n]+teaser:`));
+    assert.match(engine, new RegExp(`id: '${id}'[\\s\\S]+?teaser:`));
   }
   assert.match(app, /atlas-trace/);
   assert.match(app, /stage-\$\{stage\}/);
