@@ -7,6 +7,21 @@
   let state = E.initial(), selected = 'wood', tab = 'explore', notice = '', busy = false;
   let session = E.locationSession(), currentKey = null, lastRaw = null, saveBlocked = false, conflict = false, locationRequest = 0;
   const key = mode => `crownless-expedition-v1-${mode}`;
+  const walkAnchorKey = 'crownless-expedition-v1-walk-anchor';
+  const coarseAnchor = anchor => anchor && Number.isFinite(anchor.latitude) && Number.isFinite(anchor.longitude)
+    ? { latitude: Math.round(anchor.latitude * 1000) / 1000, longitude: Math.round(anchor.longitude * 1000) / 1000, accuracy: Math.max(60, Number(anchor.accuracy) || 60) }
+    : null;
+  function restoreWalkSession() {
+    if (state.mode !== 'walk') return E.locationSession();
+    try {
+      const anchor = coarseAnchor(JSON.parse(localStorage.getItem(walkAnchorKey) || 'null'));
+      return E.locationSession(anchor);
+    } catch { return E.locationSession(); }
+  }
+  function saveWalkAnchor() {
+    if (state.mode !== 'walk' || !session.anchor) return;
+    try { localStorage.setItem(walkAnchorKey, JSON.stringify(coarseAnchor(session.anchor))); } catch { /* Game save can still continue without a persisted walk anchor. */ }
+  }
   const warning = message => { const el = document.querySelector('#save-status'); el.hidden = !message; el.textContent = message; document.querySelector('#save-label').textContent = message ? '保存停止中・この画面でのみ進行' : '端末に自動保存'; };
   function loadMode(mode) {
     state = E.initial(); state.mode = mode; currentKey = key(mode); lastRaw = null; saveBlocked = false; conflict = false; warning('');
@@ -17,7 +32,7 @@
       else { saveBlocked = true; warning('セーブを読み込めませんでした。元データを保持し、この回は保存せずに遊べます。'); }
       localStorage.setItem('crownless-expedition-mode', mode);
     } catch { saveBlocked = true; warning('このブラウザでは保存できません。ページを閉じると今回の進行は失われます。'); }
-    locationRequest++; busy = false; session = E.locationSession(); selected = state.expedition?.place || 'wood'; tab = 'explore'; notice = ''; render();
+    locationRequest++; busy = false; session = restoreWalkSession(); selected = state.expedition?.place || 'wood'; tab = 'explore'; notice = ''; render();
   }
   function save() {
     if (!currentKey || saveBlocked) return;
@@ -122,6 +137,7 @@
   function locationResult(coords) {
     const result = E.observe(session,coords);
     const messages = { anchored:'ここを散策の起点にしました。少し場所を変えてから、また安全に立ち止まって発見してください。', nearby:'まだ同じ土地の中です。距離を稼ぐ必要はありません。別の安全な場所へ移動した日に、また試せます。', inaccurate:'位置の精度が足りませんでした。屋外の開けた場所で再度試すか、散策体験モードで続けられます。', moving:'移動中のようです。安全な場所で立ち止まってから再度試してください。' };
+    if (result.status === 'anchored') saveWalkAnchor();
     if (result.status === 'discovered') {
       const known = state.unlocked.includes(result.place);
       state = E.discover(state, result.place); selected = result.place;
