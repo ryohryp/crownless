@@ -11,7 +11,8 @@ test('undiscovered locations keep identity-safe source teasers but render as bla
     assert.match(engine, new RegExp(`id: '${id}'[^\\n]+teaser:`));
   }
   assert.match(app, /atlas-trace/);
-  assert.match(app, /stage-unknown/);
+  assert.match(app, /stage-\$\{stage\}/);
+  assert.match(app, /unknown:'未踏'/);
   assert.doesNotMatch(app, /予兆あり|未知の気配/);
   assert.doesNotMatch(engine.match(/teaser: '[^']+'/g).join('\n'), /番人の盾|牙の短剣|灰の王冠/);
 });
