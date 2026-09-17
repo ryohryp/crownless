@@ -25,3 +25,16 @@ test("discovered places normalize risk without changing source content", () => {
   assert.equal(high.risk, 5);
   assert.equal(high.source.risk, 99);
 });
+
+test("location privacy budget persists only a coarse region key", () => {
+  const state = Discovery.locationToPersistentState({ latitude: 35.742981, longitude: 139.855432 });
+  assert.deepEqual(Object.keys(state), ["regionKey"]);
+  assert.match(state.regionKey, /^r:-?\d+:-?\d+$/);
+  assert.doesNotMatch(JSON.stringify(state), /35\.742981|139\.855432|latitude|longitude|route|history/);
+});
+
+test("nearby coordinates collapse into the same coarse region", () => {
+  const first = Discovery.locationToPersistentState({ latitude: 35.742981, longitude: 139.855432 });
+  const nearby = Discovery.locationToPersistentState({ latitude: 35.743311, longitude: 139.855901 });
+  assert.equal(first.regionKey, nearby.regionKey);
+});
