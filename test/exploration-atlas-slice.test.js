@@ -34,7 +34,9 @@ test('exploration atlas is phone-sized parchment UI and loaded by the canonical 
   assert.match(html, /exploration-atlas\.css/);
   assert.match(css, /\.atlas-field/);
   assert.match(css, /\.atlas-fog/);
-  assert.match(css, /\\.atlas-shroud/);\n  assert.match(css, /\\.stage-unknown/);\n  assert.match(css, /\\.stage-surveyed/);
+  assert.match(css, /\.atlas-shroud/);
+  assert.match(css, /\.stage-unknown/);
+  assert.match(css, /\.stage-surveyed/);
   assert.match(css, /@media \(max-width: 620px\)/);
 });
 
