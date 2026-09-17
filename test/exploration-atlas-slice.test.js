@@ -20,7 +20,7 @@ test('canonical slice renders map maturity without leaking unknown POIs', () => 
   assert.match(app, /state\.cleared\.includes/);
   assert.match(app, /atlas-trace/);
   assert.match(app, /data-action="select"/);
-  assert.match(app, /移動軌跡は保存しません/);
+  assert.match(app, /歩いた結果だけを、冒険者の地図として抽象化して残す/);
   assert.doesNotMatch(app, /未知の気配|予兆あり|atlas-marker .*unknown/);
 });
 
