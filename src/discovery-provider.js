@@ -11,9 +11,19 @@
   const DEFAULT_OVERPASS_ENDPOINTS = ["https://overpass.openstreetmap.jp/api/interpreter", "https://overpass.private.coffee/api/interpreter", "https://overpass-api.de/api/interpreter"];
   const LANDMARK_BUILDING_HEIGHT_METRES = 30;
   const LANDMARK_BUILDING_LEVELS = 10;
+  const LOCATION_REGION_DEGREES = 0.01;
 
   function clampRisk(value) {
     return Math.max(1, Math.min(5, Number(value) || 1));
+  }
+
+  function locationToPersistentState(location) {
+    const latitude = Number(location && location.latitude);
+    const longitude = Number(location && location.longitude);
+    if (!Number.isFinite(latitude) || !Number.isFinite(longitude)) throw new Error("Valid latitude and longitude are required");
+    const latRegion = Math.floor(latitude / LOCATION_REGION_DEGREES);
+    const lngRegion = Math.floor(longitude / LOCATION_REGION_DEGREES);
+    return { regionKey: `r:${latRegion}:${lngRegion}` };
   }
 
   function normalizePlace(lead, index) {
@@ -58,9 +68,7 @@
     const tags = tagsOf(feature);
     const name = featureName(tags);
     const types = [];
-    const add = (type) => {
-      if (!types.includes(type)) types.push(type);
-    };
+    const add = (type) => { if (!types.includes(type)) types.push(type); };
     if (tags.natural === "water" || tags.waterway || tags.water || tags.landuse === "reservoir") add("water");
     if (tags.bridge === "yes" || tags.bridge || tags.ford === "yes" || tags.highway === "ford") add("crossing");
     if (tags.amenity === "place_of_worship" || tags.historic === "wayside_shrine" || tags.cemetery || tags.landuse === "cemetery") add("sacred");
@@ -70,45 +78,24 @@
     const sparseManMadeHeight = ["tower", "communications_tower", "mast", "water_tower", "lighthouse"].includes(tags.man_made);
     const buildingHeight = numericTag(tags, "height");
     const buildingLevels = numericTag(tags, "building:levels");
-    const tallBuilding = !!tags.building && (
-      (buildingHeight != null && buildingHeight >= LANDMARK_BUILDING_HEIGHT_METRES)
-      || (buildingLevels != null && buildingLevels >= LANDMARK_BUILDING_LEVELS)
-    );
-    const towerLike = sparseManMadeHeight
-      || tags.tourism === "viewpoint"
-      || tags.historic === "tower"
-      || namedTowerBuilding
-      || tallBuilding;
+    const tallBuilding = !!tags.building && ((buildingHeight != null && buildingHeight >= LANDMARK_BUILDING_HEIGHT_METRES) || (buildingLevels != null && buildingLevels >= LANDMARK_BUILDING_LEVELS));
+    const towerLike = sparseManMadeHeight || tags.tourism === "viewpoint" || tags.historic === "tower" || namedTowerBuilding || tallBuilding;
     if (tags.natural === "peak" || tags.natural === "ridge" || tags.natural === "hill" || tags.ele || towerLike) add("height");
     if (tags.natural === "coastline" || tags.place === "island") add("coast");
     if (["city", "town", "village", "hamlet", "suburb", "neighbourhood", "quarter"].includes(tags.place)) add("settlement");
-    return {
-      id: String((feature && feature.id) || "feature"),
-      name,
-      types: FEATURE_ORDER.filter((type) => types.includes(type))
-    };
+    return { id: String((feature && feature.id) || "feature"), name, types: FEATURE_ORDER.filter((type) => types.includes(type)) };
   }
 
   function normalizeGeographicContext(features) {
-    const seen = new Set();
-    const types = [];
-    const namesByType = {};
+    const seen = new Set(); const types = []; const namesByType = {};
     (Array.isArray(features) ? features : []).forEach((feature) => {
       const item = normalizeGeographicFeature(feature);
-      item.types.forEach((type) => {
-        if (!seen.has(type)) {
-          seen.add(type);
-          types.push(type);
-        }
-        if (item.name && !namesByType[type]) namesByType[type] = item.name;
-      });
+      item.types.forEach((type) => { if (!seen.has(type)) { seen.add(type); types.push(type); } if (item.name && !namesByType[type]) namesByType[type] = item.name; });
     });
     return { types: FEATURE_ORDER.filter((type) => types.includes(type)), namesByType };
   }
 
-  function normalizeGeographicFeatures(features) {
-    return normalizeGeographicContext(features).types;
-  }
+  function normalizeGeographicFeatures(features) { return normalizeGeographicContext(features).types; }
 
   const DISCOVERY_RULES = [
     { requires: ["water", "sacred"], signal: "水辺に、祈りの跡らしい石影が沈んでいる。", title: "沈んだ祠", risk: 3, palette: "water", kind: "event" },
@@ -125,229 +112,64 @@
     { requires: ["settlement"], signal: "人の気配はあるのに、煙の上がらない一角がある。", title: "閉ざされた路地", risk: 2, palette: "road", kind: "event" }
   ];
 
-  function ruleMatches(rule, features) {
-    return rule.requires.every((type) => features.includes(type));
-  }
-
-  function candidateSignalRank(candidate) {
-    const required = candidate && candidate.rule && Array.isArray(candidate.rule.requires) ? candidate.rule.requires : [];
-    return required.reduce((best, type) => {
-      const rank = DISCOVERY_SIGNAL_PRIORITY.indexOf(type);
-      return rank >= 0 ? Math.min(best, rank) : best;
-    }, DISCOVERY_SIGNAL_PRIORITY.length);
-  }
-
-  function candidateRequiresFeature(candidate, feature) {
-    return !!(candidate && candidate.rule && Array.isArray(candidate.rule.requires) && candidate.rule.requires.includes(feature));
-  }
-
+  function ruleMatches(rule, features) { return rule.requires.every((type) => features.includes(type)); }
+  function candidateSignalRank(candidate) { const required = candidate && candidate.rule && Array.isArray(candidate.rule.requires) ? candidate.rule.requires : []; return required.reduce((best, type) => { const rank = DISCOVERY_SIGNAL_PRIORITY.indexOf(type); return rank >= 0 ? Math.min(best, rank) : best; }, DISCOVERY_SIGNAL_PRIORITY.length); }
+  function candidateRequiresFeature(candidate, feature) { return !!(candidate && candidate.rule && Array.isArray(candidate.rule.requires) && candidate.rule.requires.includes(feature)); }
   function preserveHeightDiversity(candidates, selected, limit) {
     const max = Math.max(1, Number(limit) || 3);
     if (max < 3 || selected.length < max || selected.some((candidate) => candidateRequiresFeature(candidate, "height"))) return selected;
-
-    const heightCandidate = candidates.find((candidate) => candidateRequiresFeature(candidate, "height"));
-    if (!heightCandidate) return selected;
-
-    const result = selected.slice();
-    const heightPlaceName = String(heightCandidate.realPlaceName || "").trim();
-    const samePlaceIndex = heightPlaceName
-      ? result.findIndex((candidate) => String(candidate && candidate.realPlaceName || "").trim() === heightPlaceName)
-      : -1;
-    const replacementIndex = samePlaceIndex >= 0 ? samePlaceIndex : result.length - 1;
-    result[replacementIndex] = heightCandidate;
-    return result;
+    const heightCandidate = candidates.find((candidate) => candidateRequiresFeature(candidate, "height")); if (!heightCandidate) return selected;
+    const result = selected.slice(); const heightPlaceName = String(heightCandidate.realPlaceName || "").trim();
+    const samePlaceIndex = heightPlaceName ? result.findIndex((candidate) => String(candidate && candidate.realPlaceName || "").trim() === heightPlaceName) : -1;
+    result[samePlaceIndex >= 0 ? samePlaceIndex : result.length - 1] = heightCandidate; return result;
   }
-
   function selectDiverseDiscoveryCandidates(candidates, limit) {
-    const source = Array.isArray(candidates) ? candidates : [];
-    const max = Math.max(1, Number(limit) || 3);
-    const namedGroups = new Map();
-    const primaries = [];
-
-    source.forEach((candidate, index) => {
-      const realPlaceName = String(candidate && candidate.realPlaceName || "").trim();
-      if (!realPlaceName) {
-        primaries.push({ candidate, order: index });
-        return;
-      }
-
-      const existing = namedGroups.get(realPlaceName);
-      if (!existing) {
-        namedGroups.set(realPlaceName, { candidate, order: index, rank: candidateSignalRank(candidate) });
-        return;
-      }
-
-      const rank = candidateSignalRank(candidate);
-      if (rank < existing.rank) {
-        existing.candidate = candidate;
-        existing.rank = rank;
-      }
-    });
-
-    namedGroups.forEach((entry) => primaries.push(entry));
-    primaries.sort((left, right) => left.order - right.order);
-
-    const selected = primaries.slice(0, max).map((entry) => entry.candidate);
-    const selectedSet = new Set(selected);
-    for (const candidate of source) {
-      if (selected.length >= max) break;
-      if (selectedSet.has(candidate)) continue;
-      selected.push(candidate);
-      selectedSet.add(candidate);
-    }
+    const source = Array.isArray(candidates) ? candidates : []; const max = Math.max(1, Number(limit) || 3); const namedGroups = new Map(); const primaries = [];
+    source.forEach((candidate, index) => { const realPlaceName = String(candidate && candidate.realPlaceName || "").trim(); if (!realPlaceName) { primaries.push({ candidate, order: index }); return; } const existing = namedGroups.get(realPlaceName); if (!existing) { namedGroups.set(realPlaceName, { candidate, order: index, rank: candidateSignalRank(candidate) }); return; } const rank = candidateSignalRank(candidate); if (rank < existing.rank) { existing.candidate = candidate; existing.rank = rank; } });
+    namedGroups.forEach((entry) => primaries.push(entry)); primaries.sort((left, right) => left.order - right.order);
+    const selected = primaries.slice(0, max).map((entry) => entry.candidate); const selectedSet = new Set(selected);
+    for (const candidate of source) { if (selected.length >= max) break; if (selectedSet.has(candidate)) continue; selected.push(candidate); selectedSet.add(candidate); }
     return preserveHeightDiversity(source, selected, max);
   }
-
   function discoveriesFromFeatures(features, options) {
-    const settings = options || {};
-    const limit = Math.max(1, Number(settings.limit) || 3);
-    const normalized = Array.isArray(features) ? FEATURE_ORDER.filter((type) => features.includes(type)) : [];
-    const usedPrimary = new Set();
-    const matches = [];
-
-    DISCOVERY_RULES.forEach((rule) => {
-      if (!ruleMatches(rule, normalized)) return;
-      const primary = rule.requires[0];
-      if (rule.requires.length === 1 && usedPrimary.has(primary)) return;
-      rule.requires.forEach((type) => usedPrimary.add(type));
-      const names = settings.namesByType || {};
-      const realPlaceName = rule.requires.map((type) => names[type]).find(Boolean) || settings.areaName || "";
-      matches.push({ rule, realPlaceName });
-    });
-
-    return selectDiverseDiscoveryCandidates(matches, limit).map((candidate, index) => {
-      const rule = candidate.rule;
-      const realPlaceName = candidate.realPlaceName;
-      return {
-        id: `geo-${rule.requires.join("-")}-${index + 1}`,
-        title: realPlaceName ? `${realPlaceName}の${rule.title}` : rule.title,
-        baseTitle: rule.title,
-        realPlaceName,
-        signal: rule.signal,
-        risk: rule.risk,
-        palette: rule.palette,
-        contentKind: rule.kind,
-        revealState: "signal",
-        features: rule.requires.slice()
-      };
-    });
+    const settings = options || {}; const limit = Math.max(1, Number(settings.limit) || 3); const normalized = Array.isArray(features) ? FEATURE_ORDER.filter((type) => features.includes(type)) : []; const usedPrimary = new Set(); const matches = [];
+    DISCOVERY_RULES.forEach((rule) => { if (!ruleMatches(rule, normalized)) return; const primary = rule.requires[0]; if (rule.requires.length === 1 && usedPrimary.has(primary)) return; rule.requires.forEach((type) => usedPrimary.add(type)); const names = settings.namesByType || {}; const realPlaceName = rule.requires.map((type) => names[type]).find(Boolean) || settings.areaName || ""; matches.push({ rule, realPlaceName }); });
+    return selectDiverseDiscoveryCandidates(matches, limit).map((candidate, index) => { const rule = candidate.rule; const realPlaceName = candidate.realPlaceName; return { id: `geo-${rule.requires.join("-")}-${index + 1}`, title: realPlaceName ? `${realPlaceName}の${rule.title}` : rule.title, baseTitle: rule.title, realPlaceName, signal: rule.signal, risk: rule.risk, palette: rule.palette, contentKind: rule.kind, revealState: "signal", features: rule.requires.slice() }; });
   }
-
-  function investigateDiscovery(discovery) {
-    if (!discovery) return null;
-    return Object.assign({}, discovery, {
-      revealState: "identified",
-      description: `${discovery.title}。危険度 ${clampRisk(discovery.risk)}。踏み込むか、ここで引き返せる。`
-    });
-  }
-
+  function investigateDiscovery(discovery) { if (!discovery) return null; return Object.assign({}, discovery, { revealState: "identified", description: `${discovery.title}。危険度 ${clampRisk(discovery.risk)}。踏み込むか、ここで引き返せる。` }); }
   function buildOverpassQuery(latitude, longitude, radius) {
-    const lat = Number(latitude);
-    const lng = Number(longitude);
-    const metres = Math.max(100, Math.min(1500, Number(radius) || 500));
+    const lat = Number(latitude); const lng = Number(longitude); const metres = Math.max(100, Math.min(1500, Number(radius) || 500));
     if (!Number.isFinite(lat) || !Number.isFinite(lng)) throw new Error("Valid latitude and longitude are required");
     return `[out:json][timeout:12];(nwr(around:${metres},${lat},${lng})[natural];nwr(around:${metres},${lat},${lng})[waterway];nwr(around:${metres},${lat},${lng})[bridge];nwr(around:${metres},${lat},${lng})[amenity=place_of_worship];nwr(around:${metres},${lat},${lng})[landuse=cemetery];nwr(around:${metres},${lat},${lng})[landuse=forest];nwr(around:${metres},${lat},${lng})[leisure=park];nwr(around:${metres},${lat},${lng})[railway=station];nwr(around:${metres},${lat},${lng})[public_transport=station];nwr(around:${metres},${lat},${lng})[man_made=tower];nwr(around:${metres},${lat},${lng})[man_made=communications_tower];nwr(around:${metres},${lat},${lng})[man_made=mast][height];nwr(around:${metres},${lat},${lng})[man_made~"^(water_tower|lighthouse)$"];nwr(around:${metres},${lat},${lng})[tourism=viewpoint];nwr(around:${metres},${lat},${lng})[historic=tower];nwr(around:${metres},${lat},${lng})[building][height];nwr(around:${metres},${lat},${lng})[building]["building:levels"~"^([1-9][0-9]+)$"];nwr(around:${metres},${lat},${lng})[place];);out tags center;`;
   }
 
   function createLocationDiscoveryProvider(options) {
-    const settings = options || {};
-    const limit = Math.max(1, Number(settings.limit) || 3);
-    const radius = Math.max(100, Math.min(1500, Number(settings.radius) || 500));
-    const timeoutMs = Math.max(1000, Number(settings.timeoutMs) || 8000);
+    const settings = options || {}; const limit = Math.max(1, Number(settings.limit) || 3); const radius = Math.max(100, Math.min(1500, Number(settings.radius) || 500)); const timeoutMs = Math.max(1000, Number(settings.timeoutMs) || 8000); const fetchFn = settings.fetch || (typeof fetch === "function" ? fetch.bind(globalThis) : null); const onStatus = typeof settings.onStatus === "function" ? settings.onStatus : null;
     const endpoints = Array.isArray(settings.endpoints) && settings.endpoints.length ? settings.endpoints.slice() : settings.endpoint ? [settings.endpoint] : DEFAULT_OVERPASS_ENDPOINTS.slice();
-    const fetchFn = settings.fetch || (typeof fetch === "function" ? fetch.bind(globalThis) : null);
-    const onStatus = typeof settings.onStatus === "function" ? settings.onStatus : null;
-    let lastEndpoint = "";
-    let lastError = "";
-    let lastStatus = { state: "idle", endpoint: "", attempt: 0, total: endpoints.length };
-
-    function emit(status) {
-      lastStatus = Object.assign({}, lastStatus, status);
-      if (onStatus) onStatus(Object.assign({}, lastStatus));
-    }
-
+    let lastEndpoint = ""; let lastError = ""; let lastStatus = { state: "idle", endpoint: "", attempt: 0, total: endpoints.length };
+    function emit(status) { lastStatus = Object.assign({}, lastStatus, status); if (onStatus) onStatus(Object.assign({}, lastStatus)); }
     async function fetchWithTimeout(endpoint, requestOptions) {
-      let timer = null;
-      const controller = typeof AbortController === "function" ? new AbortController() : null;
-      const optionsWithSignal = controller ? Object.assign({}, requestOptions, { signal: controller.signal }) : requestOptions;
-      const timeoutPromise = new Promise((resolve, reject) => {
-        timer = setTimeout(() => {
-          if (controller) controller.abort();
-          const error = new Error(`timeout after ${timeoutMs}ms`);
-          error.code = "OVERPASS_TIMEOUT";
-          reject(error);
-        }, timeoutMs);
-      });
-      try {
-        return await Promise.race([Promise.resolve(fetchFn(endpoint, optionsWithSignal)), timeoutPromise]);
-      } finally {
-        if (timer) clearTimeout(timer);
-      }
+      let timer = null; const controller = typeof AbortController === "function" ? new AbortController() : null; const optionsWithSignal = controller ? Object.assign({}, requestOptions, { signal: controller.signal }) : requestOptions;
+      const timeoutPromise = new Promise((resolve, reject) => { timer = setTimeout(() => { if (controller) controller.abort(); const error = new Error(`timeout after ${timeoutMs}ms`); error.code = "OVERPASS_TIMEOUT"; reject(error); }, timeoutMs); });
+      try { return await Promise.race([Promise.resolve(fetchFn(endpoint, optionsWithSignal)), timeoutPromise]); } finally { if (timer) clearTimeout(timer); }
     }
-
     return {
-      kind: "location",
-      get endpoint() { return lastEndpoint; },
-      get error() { return lastError; },
-      get status() { return Object.assign({}, lastStatus); },
+      kind: "location", get endpoint() { return lastEndpoint; }, get error() { return lastError; }, get status() { return Object.assign({}, lastStatus); },
       async discover(context) {
-        if (!fetchFn) throw new Error("Geographic discovery is unavailable");
-        const location = context && context.location;
-        if (!location) throw new Error("Location is required for geographic discovery");
-        const query = buildOverpassQuery(location.latitude, location.longitude, radius);
-        const failures = [];
+        if (!fetchFn) throw new Error("Geographic discovery is unavailable"); const location = context && context.location; if (!location) throw new Error("Location is required for geographic discovery"); const query = buildOverpassQuery(location.latitude, location.longitude, radius); const failures = [];
         for (let index = 0; index < endpoints.length; index += 1) {
-          const endpoint = endpoints[index];
-          lastEndpoint = endpoint;
-          lastError = "";
-          emit({ state: "requesting", endpoint, attempt: index + 1, total: endpoints.length, httpStatus: null, error: "", timedOut: false });
+          const endpoint = endpoints[index]; lastEndpoint = endpoint; lastError = ""; emit({ state: "requesting", endpoint, attempt: index + 1, total: endpoints.length, httpStatus: null, error: "", timedOut: false });
           try {
-            const response = await fetchWithTimeout(endpoint, {
-              method: "POST",
-              headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" },
-              body: `data=${encodeURIComponent(query)}`
-            });
-            const httpStatus = response && response.status ? response.status : null;
-            if (!response || !response.ok) {
-              const error = new Error(`HTTP ${httpStatus || "error"}`);
-              error.httpStatus = httpStatus;
-              throw error;
-            }
-            const payload = await response.json();
-            const geographic = normalizeGeographicContext(payload && payload.elements);
-            const discoveries = discoveriesFromFeatures(geographic.types, { limit, namesByType: geographic.namesByType });
-            lastError = "";
-            emit({ state: "success", endpoint, attempt: index + 1, total: endpoints.length, httpStatus, error: "", timedOut: false, features: geographic.types.slice(), names: Object.values(geographic.namesByType).filter(Boolean), discoveries: discoveries.length });
-            return discoveries;
-          } catch (error) {
-            const message = error && error.message ? error.message : "failed";
-            const timedOut = !!(error && error.code === "OVERPASS_TIMEOUT");
-            const httpStatus = error && error.httpStatus ? error.httpStatus : null;
-            lastError = message;
-            failures.push(`${endpoint}: ${message}`);
-            emit({ state: "failed", endpoint, attempt: index + 1, total: endpoints.length, httpStatus, error: message, timedOut });
-          }
+            const response = await fetchWithTimeout(endpoint, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8" }, body: `data=${encodeURIComponent(query)}` }); const httpStatus = response && response.status ? response.status : null;
+            if (!response || !response.ok) { const error = new Error(`HTTP ${httpStatus || "error"}`); error.httpStatus = httpStatus; throw error; }
+            const payload = await response.json(); const geographic = normalizeGeographicContext(payload && payload.elements); const discoveries = discoveriesFromFeatures(geographic.types, { limit, namesByType: geographic.namesByType }); lastError = "";
+            emit({ state: "success", endpoint, attempt: index + 1, total: endpoints.length, httpStatus, error: "", timedOut: false, features: geographic.types.slice(), names: Object.values(geographic.namesByType).filter(Boolean), discoveries: discoveries.length }); return discoveries;
+          } catch (error) { const message = error && error.message ? error.message : "failed"; const timedOut = !!(error && error.code === "OVERPASS_TIMEOUT"); const httpStatus = error && error.httpStatus ? error.httpStatus : null; lastError = message; failures.push(`${endpoint}: ${message}`); emit({ state: "failed", endpoint, attempt: index + 1, total: endpoints.length, httpStatus, error: message, timedOut }); }
         }
-        lastError = failures.join(" | ");
-        throw new Error(`Geographic data could not be loaded (${lastError})`);
+        lastError = failures.join(" | "); throw new Error(`Geographic data could not be loaded (${lastError})`);
       }
     };
   }
 
-  return {
-    FEATURE_ORDER,
-    DISCOVERY_SIGNAL_PRIORITY,
-    DEFAULT_OVERPASS_ENDPOINTS,
-    DISCOVERY_RULES,
-    normalizePlace,
-    normalizeGeographicFeature,
-    normalizeGeographicContext,
-    normalizeGeographicFeatures,
-    selectDiverseDiscoveryCandidates,
-    discoveriesFromFeatures,
-    investigateDiscovery,
-    buildOverpassQuery,
-    createSimulatedDiscoveryProvider,
-    createLocationDiscoveryProvider
-  };
+  return { FEATURE_ORDER, DISCOVERY_SIGNAL_PRIORITY, DEFAULT_OVERPASS_ENDPOINTS, DISCOVERY_RULES, LOCATION_REGION_DEGREES, locationToPersistentState, normalizePlace, normalizeGeographicFeature, normalizeGeographicContext, normalizeGeographicFeatures, selectDiverseDiscoveryCandidates, discoveriesFromFeatures, investigateDiscovery, buildOverpassQuery, createSimulatedDiscoveryProvider, createLocationDiscoveryProvider };
 });
