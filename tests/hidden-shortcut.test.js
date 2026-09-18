@@ -28,3 +28,21 @@ test("normal route remains available without consuming shortcut use", () => {
   assert.equal(picked.lootOpportunity, true);
   assert.equal(state.hiddenShortcuts[Shortcut.SHORTCUT_ID].uses, 0);
 });
+
+test("shortcut advances only the opening path and records the lost shallow loot", () => {
+  const state = { expedition: { room: 0, stage: "path", log: ["start"] } };
+  Shortcut.discover(state);
+  const picked = Shortcut.applyToExpedition(state, "shortcut");
+  assert.equal(picked.skipRooms, 1);
+  assert.equal(state.expedition.room, 1);
+  assert.match(state.expedition.log[0], /浅層の戦利品/);
+  assert.equal(state.hiddenShortcuts[Shortcut.SHORTCUT_ID].uses, 1);
+});
+
+test("shortcut cannot skip a later room", () => {
+  const state = { expedition: { room: 2, stage: "path", log: [] } };
+  Shortcut.discover(state);
+  assert.equal(Shortcut.applyToExpedition(state, "shortcut"), null);
+  assert.equal(state.expedition.room, 2);
+  assert.equal(state.hiddenShortcuts[Shortcut.SHORTCUT_ID].uses, 0);
+});
