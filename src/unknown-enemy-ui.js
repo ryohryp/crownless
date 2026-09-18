@@ -21,7 +21,8 @@
     if (!heading || !intent || !heading.textContent.includes('茨牙の狼')) return;
     const memory = readMemory();
     const view = U.describe(memory, U.TARGET, '');
-    if (!view.hidden) return;
+    if (!view.hidden || intent.dataset.unknownEnemyRendered === U.TARGET) return;
+    intent.dataset.unknownEnemyRendered = U.TARGET;
     intent.innerHTML = '<p class="kicker">次の行動 · 初遭遇</p><span class="damage">?</span><strong>動きが読めない</strong><small>低く身構えている。攻撃の瞬間までは読めない。防御か回避なら様子を見やすい。</small>';
     intent.setAttribute('aria-label', '初遭遇の敵。次の行動はまだ読めない');
   }
