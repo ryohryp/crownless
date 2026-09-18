@@ -52,5 +52,16 @@
     return { ...choice };
   }
 
-  return { SHORTCUT_ID, ensureState, discover, choices, choose };
+  function applyToExpedition(state, choiceId) {
+    if (!state || !state.expedition || state.expedition.stage !== "path" || state.expedition.room !== 0) return null;
+    const choice = choose(state, choiceId);
+    if (!choice) return null;
+    if (choice.skipRooms) {
+      state.expedition.room = Math.min(4, state.expedition.room + choice.skipRooms);
+      state.expedition.log = ["見つけた近道を抜けた。浅層の戦利品は霧の向こうへ置いてきた。"]; 
+    }
+    return choice;
+  }
+
+  return { SHORTCUT_ID, ensureState, discover, choices, choose, applyToExpedition };
 });
