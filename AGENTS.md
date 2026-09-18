@@ -21,6 +21,24 @@ The first milestone is simple:
 
 Prefer work that strengthens the loop above.
 
+## Smartphone UI principles
+
+Crownless is a smartphone game, not a web page that happens to run on a phone.
+
+- Treat primary gameplay screens as **one scene = one viewport**. Avoid long document-level scrolling during the core loop.
+- Keep frequent global navigation and high-frequency actions in a persistent bottom area that is easy to reach with a thumb.
+- Navigation must not disappear because the player scrolled.
+- Use the upper area mainly for scene identity and compact status; do not scatter frequent actions across the top and body.
+- Reveal secondary information and contextual actions only when needed, using detail views, bottom sheets, tabs, modals, or local scrolling.
+- Scrolling is allowed when reading or browsing is the task (logs, codex, long lists), and within bounded content regions when necessary.
+- Do not shrink controls or text merely to force everything into one viewport. Keep touch targets comfortably tappable.
+- Respect iOS/Android safe areas and gesture regions, and reserve content space so persistent bottom UI does not cover gameplay.
+- Validate primary flows on real-phone-sized viewports (roughly 360–430 CSS px wide), not desktop alone.
+- When choosing placement, ask: **what will the player do most often on this screen?** Put that action in the easiest reachable place.
+- If a primary gameplay screen starts to feel like a vertically stacked website, reconsider its information architecture before polishing CSS.
+
+Related implementation work: #602, #708, #709, #710.
+
 ## Build principles
 
 - Choose the stack, architecture, Web/PWA/native approach, rendering, storage, and libraries that best fit the current playable goal.
