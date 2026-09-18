@@ -13,3 +13,9 @@ test('gear tab keeps character preview and fitting controls in one phone scene',
   assert.match(css, /\.panel\s*\{[\s\S]*?overflow-y:\s*auto/);
   assert.match(css, /\.gear-list\s*\{[\s\S]*?max-height:\s*12rem[\s\S]*?overflow-y:\s*auto/);
 });
+
+test('gear tab keeps the owned list compact and selected reinforce controls visible', () => {
+  assert.match(css, /\.gear-list \.choice small\s*\{\s*display:\s*none/);
+  assert.match(css, /\.gear-list \.choice\s*\{[\s\S]*?min-height:\s*44px/);
+  assert.match(css, /\.rule-line\s*\{[\s\S]*?position:\s*sticky[\s\S]*?bottom:\s*0/);
+});
