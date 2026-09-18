@@ -58,3 +58,74 @@
     overscroll-behavior: contain;
   }
 }
+
+
+/* #602: primary phone gameplay is a bounded scene, not a scrolling document.
+   Secondary/detail content may scroll inside the scene, while the masthead/footer
+   stay out of the scarce play surface. */
+@media (max-width: 480px) {
+  body { height: 100dvh; overflow: hidden; }
+  .app-shell {
+    height: 100dvh;
+    min-height: 100dvh;
+    padding: env(safe-area-inset-top) .65rem env(safe-area-inset-bottom);
+    overflow: hidden;
+  }
+  .masthead, .footer { display: none; }
+  #game { height: 100%; min-height: 0; padding: 0; overflow: hidden; }
+  #game > .game-layout {
+    height: 100%;
+    min-height: 0;
+    padding-top: .5rem;
+    grid-template-rows: minmax(10.5rem, 34dvh) minmax(0, 1fr);
+    overflow: hidden;
+  }
+  #game > .game-layout .visual-column,
+  #game > .game-layout .panel { min-height: 0; }
+  #game > .game-layout .scene {
+    height: 100%;
+    min-height: 0;
+  }
+  #game > .game-layout .panel {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-bottom: max(.75rem, env(safe-area-inset-bottom));
+  }
+
+  /* Camp keeps the scene identity and current decision visible; the atlas is
+     contextual exploration detail and scrolls only inside the visual region. */
+  #game > .game-layout:not(.battle-layout) .visual-column {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #game > .game-layout:not(.battle-layout) .visual-column > .mode-strip,
+  #game > .game-layout:not(.battle-layout) .visual-column > .stat-strip {
+    flex: 0 0 auto;
+  }
+  #game > .game-layout:not(.battle-layout) .visual-column > .scene {
+    flex: 1 1 auto;
+  }
+  #game > .game-layout:not(.battle-layout) .exploration-atlas {
+    max-height: 45%;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
+  /* Combat needs the enemy and the decision controls simultaneously; route and
+     journey prose are secondary and already hidden by the compact battle rules. */
+  #game > .battle-layout {
+    grid-template-rows: minmax(9.5rem, 30dvh) minmax(0, 1fr);
+  }
+  #game > .battle-layout .visual-column {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    overflow: hidden;
+  }
+  #game > .battle-layout .vitals { margin-top: .35rem; }
+
+  /* Return is also a game decision scene: keep the homecoming image in view and
+     confine unusually long reward summaries to the report panel. */
+  #game > .game-layout .result-number { margin: .65rem 0; }
+  #game > .game-layout .reward { margin: .55rem 0; }
+}
