@@ -112,6 +112,24 @@
     padding-bottom: max(.75rem, env(safe-area-inset-bottom));
   }
 
+  /* #708/#709: the existing Explore/Gear camp tabs are the smallest useful
+     global navigation primitive. Keep them reachable at the thumb edge instead
+     of adding a second, competing navigation system. */
+  #game > .game-layout .camp-tabs {
+    position: sticky;
+    bottom: 0;
+    z-index: 8;
+    order: 99;
+    margin-top: .5rem;
+    margin-bottom: calc(-1 * max(.75rem, env(safe-area-inset-bottom)));
+    padding: .45rem 0 max(.45rem, env(safe-area-inset-bottom));
+    background: var(--paper, #f2ead8);
+    border-top: 1px solid currentColor;
+  }
+  #game > .game-layout .camp-tabs button {
+    min-height: 48px;
+  }
+
   /* Camp keeps the scene identity and current decision visible; the atlas is
      contextual exploration detail and scrolls only inside the visual region. */
   #game > .game-layout:not(.battle-layout) .visual-column {
