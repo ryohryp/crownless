@@ -23,7 +23,7 @@
   /* Avoid horizontal scrolling from decorative battle/map content. */
   svg, img, canvas { max-width: 100%; }
 
-  /* #601: the gear tab is a fitting scene, not another long page.
+  /* #601/#708: the gear tab is a fitting scene, not another long page.
      Keep the equipped-character scene visible while the player changes gear;
      the exploration atlas is secondary here and belongs to the expedition tab. */
   .game-layout:has(.camp-tabs button.active[data-value="gear"]) {
@@ -56,6 +56,26 @@
     max-height: 12rem;
     overflow-y: auto;
     overscroll-behavior: contain;
+  }
+
+  /* The list is for choosing a weapon, not reading every weapon at once.
+     Keep rows compact and pin the selected weapon's reinforce controls so they
+     do not disappear beneath a long owned-gear list. */
+  .game-layout:has(.camp-tabs button.active[data-value="gear"]) .gear-list .choice small {
+    display: none;
+  }
+  .game-layout:has(.camp-tabs button.active[data-value="gear"]) .gear-list .choice {
+    min-height: 44px;
+    padding-block: .55rem;
+  }
+  .game-layout:has(.camp-tabs button.active[data-value="gear"]) .rule-line {
+    position: sticky;
+    bottom: 0;
+    z-index: 3;
+    margin-top: .5rem;
+    padding: .7rem;
+    background: var(--paper, #f2ead8);
+    border-top: 1px solid currentColor;
   }
 }
 
