@@ -57,13 +57,30 @@ test('three weapon families have multiple hand-authored variants with different 
   assert.equal(E.combatProfile(s,'bow_recurve').pierce,false);
   assert.equal(E.combatProfile(s,'bow_hunter').openBonus,3);
 });
-test('legacy shared reinforcement remains a baseline when old saves are loaded', () => {
+test('legacy shared reinforcement remains only on weapons that existed before per-weapon upgrades', () => {
   const old={...fresh(),level:2}; delete old.upgrades;
   const s=E.parse(JSON.stringify(old));
   assert.ok(s); assert.equal(s.upgrades.rust,0); assert.equal(s.upgrades.fang_blood,0); assert.equal(s.upgrades.bow_recurve,0);
   assert.equal(E.weaponLevel(s,'rust'),2); assert.equal(E.maxHp(s),40);
-  s.owned.push('fang_blood');
-  assert.equal(E.weaponLevel(s,'fang_blood'),2);
+  s.owned.push('fang','shield','bow','fang_blood','shield_oath','bow_recurve');
+  assert.equal(E.weaponLevel(s,'fang'),2);
+  assert.equal(E.weaponLevel(s,'shield'),2);
+  assert.equal(E.weaponLevel(s,'bow'),2);
+  assert.equal(E.weaponLevel(s,'fang_blood'),0);
+  assert.equal(E.weaponLevel(s,'shield_oath'),0);
+  assert.equal(E.weaponLevel(s,'bow_recurve'),0);
+});
+
+test('newly acquired variant starts unreinforced even when legacy journey level is maxed', () => {
+  let s=fresh();
+  s.level=4;
+  s.owned.push('shield','shield_oath');
+  s.upgrades.shield=4;
+  assert.equal(E.weaponLevel(s,'shield'),4);
+  assert.equal(E.weaponLevel(s,'shield_oath'),0);
+  s=E.equip(s,'shield_oath');
+  assert.equal(E.weaponLevel(s),0);
+  assert.equal(E.combatProfile(s).block,15);
 });
 test('all destinations lead to an achievable crown ending and permanent health bonus', () => {
   let s = fresh();

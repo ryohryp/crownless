@@ -63,6 +63,17 @@ test('individual weapon reinforcement is shown and variants expose their distinc
   b.click('equip','shield');
   assert.match(b.html(),/番人の盾 · 装備中 · 補強 0\/4/);
 });
+test('new variant gear is shown at reinforcement zero despite a maxed legacy journey level', () => {
+  const k='crownless-expedition-v1-demo';
+  const state={...E.initial(),mode:'demo',level:4,owned:['rust','shield','shield_oath'],equipped:'shield_oath'};
+  state.upgrades.shield=4;
+  const b=browser({[k]:E.serialize(state),'crownless-expedition-mode':'demo'});
+  b.click('tab','gear');
+  assert.match(b.html(),/番人の盾 · 補強 4\/4/);
+  assert.match(b.html(),/誓壁の盾 · 装備中 · 補強 0\/4/);
+  assert.match(b.html(),/誓壁の盾を補強する/);
+});
+
 test('deeper choice renders a specific but non-spoiling weapon cue', () => {
   const k='crownless-expedition-v1-demo';
   const state={...E.initial(),mode:'demo',runs:1,expedition:{place:'wood',depth:1,room:4,hp:30,stamina:3,focus:0,potions:2,scrap:9,gear:['fang'],seals:['wood'],enemy:null,stage:'cleared',log:[]}};
