@@ -83,6 +83,24 @@ test('deeper choice renders a specific but non-spoiling weapon cue', () => {
   assert.match(b.html(),/珍しい武具の可能性/);
   assert.doesNotMatch(b.html(),/血染めの短剣|月影の短剣/);
 });
+test('forest mid-run encounter surfaces a different enemy and archetype', () => {
+  const k='crownless-expedition-v1-demo';
+  const state={...E.initial(),mode:'demo',runs:1,expedition:{place:'wood',depth:1,room:2,hp:27,stamina:3,focus:0,potions:2,scrap:4,gear:[],seals:[],enemy:{kind:'forest_hunter',hp:18,maxHp:18,turn:0,depth:1,elite:false,risky:false},stage:'fight',log:['別の足音が近づく。']}};
+  const b=browser({[k]:E.serialize(state),'crownless-expedition-mode':'demo'});
+  assert.match(b.html(),/苔鎧の狩人/);
+  assert.match(b.html(),/狩人型/);
+  assert.doesNotMatch(b.html(),/主・茨牙の狼/);
+});
+
+test('forest guardian announces its unique pounce intent', () => {
+  const k='crownless-expedition-v1-demo';
+  const state={...E.initial(),mode:'demo',runs:1,expedition:{place:'wood',depth:1,room:4,hp:25,stamina:3,focus:0,potions:2,scrap:6,gear:[],seals:[],enemy:{kind:'wolf',hp:24,maxHp:24,turn:0,depth:1,elite:true,risky:false},stage:'fight',log:['土地の主が、帰り道を塞いだ。']}};
+  const b=browser({[k]:E.serialize(state),'crownless-expedition-mode':'demo'});
+  assert.match(b.html(),/主・茨牙の狼/);
+  assert.match(b.html(),/飛びかかり/);
+  assert.match(b.html(),/主だけの鋭い踏み込み/);
+});
+
 test('deep combat surfaces archetype, elite trait, changed action costs and loot stakes', () => {
   const k='crownless-expedition-v1-demo';
   const state={...E.initial(),mode:'demo',runs:2,owned:['rust','fang_moon'],equipped:'fang_moon',expedition:{place:'wood',depth:2,room:4,hp:30,stamina:3,focus:0,potions:2,scrap:12,gear:[],seals:[],enemy:{kind:'wolf',hp:28,maxHp:28,turn:0,depth:2,elite:true,risky:false},stage:'fight',log:['土地の主が、帰り道を塞いだ。《猛攻》の気配。']}};
