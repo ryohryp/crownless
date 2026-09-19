@@ -18,3 +18,13 @@ test('overflow is local to secondary phone content', () => {
   assert.match(css, /#game\s*>\s*\.battle-layout\s*\{[\s\S]*?grid-template-rows:/);
   assert.match(css, /env\(safe-area-inset-bottom\)/);
 });
+
+
+test('return result keeps its continuation action reachable on phone', () => {
+  const app = fs.readFileSync('src/slice-app.js', 'utf8');
+  assert.match(app, /game-layout report-layout/);
+  assert.match(app, /panel report-panel/);
+  assert.match(css, /\.report-layout\s*\{[\s\S]*?grid-template-rows:\s*minmax\(9rem, 31dvh\)\s+minmax\(0, 1fr\)/);
+  assert.match(css, /\.report-panel\s*\{[\s\S]*?overflow-y:\s*auto/);
+  assert.match(css, /\.report-panel\s*>\s*\.button-stack\s*\{[\s\S]*?position:\s*sticky[\s\S]*?order:\s*99/);
+});
