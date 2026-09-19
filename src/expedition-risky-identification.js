@@ -34,7 +34,7 @@
           : "次の戦闘で試して特性を確かめるか、使わず持ち帰って安全に鑑定する。",
       selected,
       choices: [
-        { id: "field-test", label: "次の戦闘で試す", consequence: "戦闘で一度行動すると特性が判明する" },
+        { id: "field-test", label: "次の戦闘で試す", consequence: "次の戦闘で一度行動すると特性が判明する" },
         { id: "carry-home", label: "使わず持ち帰る", consequence: "帰還できれば安全に鑑定できる" },
       ],
     };
