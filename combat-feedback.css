@@ -1,0 +1,36 @@
+.battle-layout .scene,
+.battle-layout .panel,
+.battle-layout .combat-vitals{will-change:transform,filter,box-shadow}
+
+.combat-feedback-hit .scene{animation:crownless-enemy-hit .22s ease-out}
+.combat-feedback-hurt .panel,
+.combat-feedback-hurt .combat-vitals{animation:crownless-player-hurt .26s ease-out}
+.combat-feedback-dodge .scene{animation:crownless-dodge .24s ease-out}
+
+@keyframes crownless-enemy-hit{
+  0%{filter:brightness(1);transform:translateX(0)}
+  35%{filter:brightness(1.3);transform:translateX(4px)}
+  100%{filter:brightness(1);transform:translateX(0)}
+}
+@keyframes crownless-player-hurt{
+  0%{filter:brightness(1);transform:translateX(0)}
+  28%{filter:brightness(1.16);transform:translateX(-3px)}
+  55%{transform:translateX(3px)}
+  100%{filter:brightness(1);transform:translateX(0)}
+}
+@keyframes crownless-dodge{
+  0%{filter:brightness(1);transform:translateX(0)}
+  45%{filter:brightness(1.12);transform:translateX(-5px)}
+  100%{filter:brightness(1);transform:translateX(0)}
+}
+
+@media(prefers-reduced-motion:reduce){
+  .combat-feedback-hit .scene,
+  .combat-feedback-hurt .panel,
+  .combat-feedback-hurt .combat-vitals,
+  .combat-feedback-dodge .scene{animation:none!important}
+  .combat-feedback-hit .scene{box-shadow:inset 0 0 0 2px #d2b98155}
+  .combat-feedback-hurt .panel,
+  .combat-feedback-hurt .combat-vitals{box-shadow:inset 0 0 0 2px #e2a28b55}
+  .combat-feedback-dodge .scene{box-shadow:inset 0 0 0 2px #97b59b55}
+}
