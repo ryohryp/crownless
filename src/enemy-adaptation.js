@@ -36,18 +36,22 @@
     return a === b && COUNTERS[a] ? a : null;
   }
 
-  function counterIntent(history, archetype) {
-    const repeated = repeatedAction(history);
-    if (!repeated) return null;
-    const reads = {
-      '速攻型': ['dodge'],
-      '防御型': ['heavy'],
-      '狩人型': ['dodge', 'guard'],
-      '重装型': ['heavy'],
-    };
-    if (!(reads[archetype] || []).includes(repeated)) return null;
-    return { ...COUNTERS[repeated], counters: repeated };
+  const READS = {
+    '速攻型': ['dodge'],
+    '防御型': ['heavy'],
+    '狩人型': ['dodge', 'guard'],
+    '重装型': ['heavy'],
+  };
+
+  function counterForAction(action, archetype) {
+    if (!COUNTERS[action] || !(READS[archetype] || []).includes(action)) return null;
+    return { ...COUNTERS[action], counters: action };
   }
 
-  return { COUNTERS, repeatedAction, counterIntent };
+  function counterIntent(history, archetype) {
+    const repeated = repeatedAction(history);
+    return repeated ? counterForAction(repeated, archetype) : null;
+  }
+
+  return { COUNTERS, READS, repeatedAction, counterForAction, counterIntent };
 });
