@@ -7,6 +7,8 @@
   let item = null;
   try { item = JSON.parse(localStorage.getItem(key) || 'null'); } catch { item = null; }
   const persist = () => { try { item ? localStorage.setItem(key, JSON.stringify(item)) : localStorage.removeItem(key); } catch {} };
+  const cardMarkup = choice => `<p class="kicker">UNKNOWN LOOT</p><h3>${choice.title}</h3><p class="small">${choice.description}</p>${choice.selected ? '<p class="notice">選択済み · 戦闘前なら変更できる</p>' : ''}<div class="choice-grid">${choice.choices.map(c => `<button class="choice ${choice.selected === c.id ? 'selected' : ''}" data-risky-identification="${c.id}" aria-pressed="${choice.selected === c.id}"><strong>${c.label}</strong><small>${c.consequence}</small></button>`).join('')}</div>`;
+
   function enhance() {
     const existing = root.querySelector('.risky-identification');
     const choice = R.describeChoice(item), panel = root.querySelector('.panel'), ledger = root.querySelector('.loot-ledger');
@@ -15,8 +17,14 @@
       existing?.remove();
       return;
     }
-    if (existing) return;
-    ledger.insertAdjacentHTML('afterend', `<div class="rule-line risky-identification" role="group" aria-label="未知装備の鑑定"><p class="kicker">UNKNOWN LOOT</p><h3>${choice.title}</h3><p class="small">${choice.description}</p><div class="choice-grid">${choice.choices.map(c => `<button class="choice" data-risky-identification="${c.id}"><strong>${c.label}</strong><small>${c.consequence}</small></button>`).join('')}</div></div>`);
+    const viewState = choice.selected || 'pending';
+    if (existing) {
+      if (existing.dataset.viewState === viewState) return;
+      existing.dataset.viewState = viewState;
+      existing.innerHTML = cardMarkup(choice);
+      return;
+    }
+    ledger.insertAdjacentHTML('afterend', `<div class="rule-line risky-identification" data-view-state="${viewState}" role="group" aria-label="未知装備の鑑定">${cardMarkup(choice)}</div>`);
   }
   root.addEventListener('click', event => {
     const choice = event.target.closest('[data-risky-identification]');
