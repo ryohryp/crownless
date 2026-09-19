@@ -368,3 +368,68 @@
     white-space: nowrap;
   }
 }
+
+
+/* #602 real-device follow-up: the return result must always expose its
+   continuation action. The summary scrolls locally; the action stays at the
+   bottom of the result surface. */
+@media (max-width: 480px) {
+  #game > .report-layout {
+    grid-template-rows: minmax(9rem, 31dvh) minmax(0, 1fr);
+  }
+
+  #game > .report-layout .visual-column {
+    min-height: 0;
+    overflow: hidden;
+  }
+
+  #game > .report-layout .report-panel {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-top: .55rem;
+    padding-bottom: calc(5.25rem + env(safe-area-inset-bottom));
+  }
+
+  #game > .report-layout .report-panel h1 {
+    margin-bottom: .45rem;
+    font-size: clamp(1.7rem, 8vw, 2.25rem);
+    line-height: 1.15;
+  }
+
+  #game > .report-layout .report-panel .intro {
+    margin-bottom: .45rem;
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  #game > .report-layout .report-panel .result-number {
+    margin: .35rem 0;
+  }
+
+  #game > .report-layout .report-panel .reward {
+    margin: .35rem 0;
+  }
+
+  #game > .report-layout .report-panel > .button-stack {
+    position: sticky;
+    bottom: calc(-5.25rem - env(safe-area-inset-bottom));
+    z-index: 9;
+    order: 99;
+    margin: auto -.05rem 0;
+    padding: .55rem .05rem max(.55rem, env(safe-area-inset-bottom));
+    background: var(--bg);
+    border-top: 1px solid var(--line);
+  }
+
+  #game > .report-layout .report-panel > .button-stack button {
+    min-height: 52px;
+  }
+
+  #game > .report-layout .report-panel .rule-line {
+    order: 98;
+    margin-bottom: .45rem;
+  }
+}
