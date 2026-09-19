@@ -15,16 +15,26 @@
   });
 
   function createUnknownLoot() {
-    return { id: UNKNOWN_RELIC.id, name: UNKNOWN_RELIC.name, identified: false, fieldTested: false };
+    return { id: UNKNOWN_RELIC.id, name: UNKNOWN_RELIC.name, identified: false, fieldTested: false, decision: null };
   }
 
   function describeChoice(item) {
     if (!item || item.id !== UNKNOWN_RELIC.id || item.identified) return null;
+    const selected = item.decision || (item.fieldTested ? "field-test" : null);
     return {
-      title: "この場で試す？",
-      description: "装備して次の戦闘で特性を確かめるか、使わず持ち帰って安全に鑑定する。",
+      title: selected === "field-test"
+        ? "次の戦闘で試すことにした。"
+        : selected === "carry-home"
+          ? "持ち帰って鑑定することにした。"
+          : "この場で試す？",
+      description: selected === "field-test"
+        ? "素性不明の牙刃を次の戦闘で試す。ひとつ行動すれば特性が判明する。"
+        : selected === "carry-home"
+          ? "未知の刃は背嚢にしまった。生還できれば安全に特性を確かめられる。"
+          : "次の戦闘で試して特性を確かめるか、使わず持ち帰って安全に鑑定する。",
+      selected,
       choices: [
-        { id: "field-test", label: "今ここで装備する", consequence: "次の戦闘で特性が判明する" },
+        { id: "field-test", label: "次の戦闘で試す", consequence: "次の戦闘で一度行動すると特性が判明する" },
         { id: "carry-home", label: "使わず持ち帰る", consequence: "帰還できれば安全に鑑定できる" },
       ],
     };
@@ -32,10 +42,8 @@
 
   function choose(itemInput, choice) {
     if (!itemInput || itemInput.id !== UNKNOWN_RELIC.id || itemInput.identified) return itemInput;
-    const item = { ...itemInput };
-    if (choice === "field-test") item.fieldTested = true;
-    if (choice === "carry-home") item.fieldTested = false;
-    return item;
+    if (!["field-test", "carry-home"].includes(choice)) return itemInput;
+    return { ...itemInput, decision: choice, fieldTested: choice === "field-test" };
   }
 
   function revealAfterCombat(itemInput) {
