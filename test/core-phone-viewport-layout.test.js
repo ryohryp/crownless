@@ -28,3 +28,13 @@ test('return result keeps its continuation action reachable on phone', () => {
   assert.match(css, /\.report-panel\s*\{[\s\S]*?overflow-y:\s*auto/);
   assert.match(css, /\.report-panel\s*>\s*\.button-stack\s*\{[\s\S]*?position:\s*sticky[\s\S]*?order:\s*99/);
 });
+
+
+test('return result reserves a separate visible action row', () => {
+  const app = fs.readFileSync('src/slice-app.js', 'utf8');
+  assert.match(app, /class="report-scroll"/);
+  assert.match(app, /class="report-actions"/);
+  assert.match(css, /\.report-panel\s*\{[\s\S]*?grid-template-rows:\s*minmax\(0, 1fr\)\s+auto[\s\S]*?overflow:\s*hidden/);
+  assert.match(css, /\.report-scroll\s*\{[\s\S]*?overflow-y:\s*auto/);
+  assert.match(css, /\.report-actions\s*\{[\s\S]*?position:\s*static/);
+});
