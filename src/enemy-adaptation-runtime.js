@@ -11,7 +11,37 @@
   const baseParse = E.parse;
   const baseAttackPreview = E.attackPreview;
   const history = e => Array.isArray(e?.history) ? e.history : [];
-  const adaptation = e => A.counterIntent(history(e), E.enemyProfile(e).archetype);
+
+  // #740: the winning shallow-wolf routine alternates guard -> dodge -> attack,
+  // so consecutive-action detection never sees the habit. Read one specific
+  // response habit instead: if the wolf has already seen this player answer a
+  // heavy with dodge, the next heavy may be a clearly telegraphed feint.
+  // This stays deterministic, local to the fight, and never changes after input.
+  const responseAdaptation = e => {
+    if (e?.kind !== 'wolf') return null;
+    const current = baseIntent(e);
+    if (current.id !== 'heavy') return null;
+    const prior = history(e);
+    if (!prior.length) return null;
+    const firstTurn = e.turn - prior.length;
+    for (let i = prior.length - 1; i >= 0; i--) {
+      const turn = firstTurn + i;
+      if (turn < 0) continue;
+      const previousIntent = baseIntent({ ...e, turn });
+      if (previousIntent.id !== current.id) continue;
+      const counter = A.counterForAction(prior[i], E.enemyProfile(e).archetype);
+      if (!counter) return null;
+      return {
+        ...counter,
+        reason: `前の「${current.name}」への対応を覚えている。`,
+        responseAdaptive: true,
+      };
+    }
+    return null;
+  };
+
+  const adaptation = e =>
+    A.counterIntent(history(e), E.enemyProfile(e).archetype) || responseAdaptation(e);
 
   E.intent = e => {
     const counter = adaptation(e);
