@@ -25,6 +25,9 @@
     crown: { name: '灰の王冠', short: '王冠', family: 'crown', trait: 'crown', attack: 4 },
   };
   const UPGRADEABLE = Object.keys(GEAR).filter(id => id !== 'crown');
+  // Only these weapons existed before reinforcement became per-weapon (#577).
+  // Post-migration variants must never inherit the old shared `level`.
+  const LEGACY_UPGRADEABLE = new Set(['rust', 'fang', 'shield', 'bow']);
   const emptyUpgrades = () => Object.fromEntries(UPGRADEABLE.map(id => [id, 0]));
   const VARIANT_LOOT = {
     wood: ['fang_blood', 'fang_moon'],
@@ -72,7 +75,9 @@
   const initial = () => ({ version: VERSION, mode: null, unlocked: ['wood'], cleared: [], owned: ['rust'], equipped: 'rust', scrap: 0, level: 0, upgrades: emptyUpgrades(), runs: 0, victories: 0, expedition: null, report: null });
   const maxHp = s => 30 + (Number.isInteger(s.level) ? s.level : 0) * 5 + (s.owned.includes('crown') ? 6 : 0);
   function weaponLevel(s, id = s.equipped) {
-    const legacy = Number.isInteger(s?.level) ? Math.max(0, Math.min(4, s.level)) : 0;
+    const legacy = LEGACY_UPGRADEABLE.has(id) && Number.isInteger(s?.level)
+      ? Math.max(0, Math.min(4, s.level))
+      : 0;
     const key = upgradeKey(id);
     const specific = key && Number.isInteger(s?.upgrades?.[key]) ? Math.max(0, Math.min(4, s.upgrades[key])) : 0;
     return Math.max(legacy, specific);
