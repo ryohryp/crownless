@@ -9,7 +9,7 @@ function safeAction(s) {
   const i = E.intent(x.enemy);
   const attack = E.attackPreview(s,'strike');
   if (x.enemy.hp <= attack && i.id !== 'guard') return 'strike';
-  if (i.id === 'heavy' && x.stamina >= E.combatProfile(s).dodgeCost) return 'dodge';
+  if (['heavy','pounce'].includes(i.id) && x.stamina >= E.combatProfile(s).dodgeCost) return 'dodge';
   if (i.id === 'quick') return 'guard';
   if (i.id === 'guard') return 'guard';
   return x.stamina >= E.combatProfile(s).heavyCost ? 'heavy' : 'strike';
@@ -120,6 +120,40 @@ test('loot cues tease weapon families without naming the exact drop', () => {
   assert.match(cue2,/刃/); assert.doesNotMatch(cue2,/血染めの短剣|月影の短剣/);
   assert.match(cue3,/盾/); assert.doesNotMatch(cue3,/返し棘の盾|誓壁の盾/);
 });
+test('whispering wood changes enemy archetype mid-expedition and gives its guardian a unique opener', () => {
+  let s=E.start(fresh(),'wood');
+
+  s=E.act(s,'careful');
+  assert.equal(s.expedition.enemy.kind,'wolf');
+  assert.equal(E.enemyProfile(s.expedition.enemy).archetype,'速攻型');
+  while(s.expedition.stage==='fight') s=E.act(s,safeAction(s));
+
+  assert.equal(s.expedition.room,1);
+  s=E.act(s,'rest');
+  s=E.act(s,'careful');
+  assert.equal(s.expedition.enemy.kind,'forest_hunter');
+  assert.equal(E.ENEMIES.forest_hunter.name,'苔鎧の狩人');
+  assert.equal(E.enemyProfile(s.expedition.enemy).archetype,'狩人型');
+  assert.equal(E.intent(s.expedition.enemy).id,'guard');
+  while(s.expedition.stage==='fight') s=E.act(s,safeAction(s));
+
+  assert.equal(s.expedition.room,3);
+  s=E.act(s,'rest');
+  s=E.act(s,'careful');
+  assert.equal(s.expedition.enemy.kind,'wolf');
+  assert.equal(s.expedition.enemy.elite,true);
+  assert.equal(E.intent(s.expedition.enemy).id,'pounce');
+  assert.equal(E.intent(s.expedition.enemy).name,'飛びかかり');
+});
+
+test('normal wolf keeps its original opener while the guardian pattern is separate', () => {
+  const normal={kind:'wolf',hp:16,maxHp:16,turn:0,depth:1,elite:false,risky:false};
+  const guardian={...normal,hp:24,maxHp:24,elite:true};
+  assert.equal(E.intent(normal).id,'quick');
+  assert.equal(E.intent(guardian).id,'pounce');
+  assert.match(E.intent(guardian).help,/主だけ/);
+});
+
 test('enemy archetypes change patterns by depth and elites gain hand-authored traits', () => {
   const shallow={kind:'wolf',hp:20,maxHp:20,turn:1,depth:1,elite:false,risky:false};
   const deep={...shallow,depth:2,elite:true,turn:0};
