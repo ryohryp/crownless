@@ -7,7 +7,7 @@ const css = fs.readFileSync('slice.css', 'utf8');
 const phoneCss = fs.readFileSync('phone-density.css', 'utf8');
 
 test('mobile combat renders player vitals with the action panel', () => {
-  assert.match(app, /<div class="combat-vitals">\$\{vitals\(x\)\}<\/div><p class="kicker">/);
+  assert.match(app, /<div class="combat-vitals">\$\{vitals\(x\)\}<\/div><div class="combat-enemy-summary">/);
   assert.match(css, /\.combat-vitals\{display:none\}/);
   assert.match(css, /@media\(max-width:620px\)[\s\S]*?\.battle-layout \.visual-column>\.vitals\{display:none\}/);
   assert.match(css, /\.battle-layout \.combat-vitals\{display:block;position:sticky;top:0/);
