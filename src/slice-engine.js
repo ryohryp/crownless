@@ -41,10 +41,19 @@
     crypt: ['王墓の奥から、鉄ではない乾いた響きが返る。', '灰冠の主の近くに、まだ何かが残されている気配がある。'],
   };
   const ENEMIES = {
-    wolf: { name: '茨牙の狼', hp: 16, archetype: '速攻型', patterns: [
+    wolf: { name: '茨牙の狼', art: 'wolf', hp: 16, archetype: '速攻型', patterns: [
       ['quick', 'heavy', 'open'],
       ['quick', 'quick', 'heavy', 'open'],
       ['quick', 'heavy', 'quick', 'open'],
+    ], elitePatterns: [
+      ['pounce', 'quick', 'open', 'heavy'],
+      ['quick', 'pounce', 'heavy', 'open'],
+      ['pounce', 'quick', 'pounce', 'open'],
+    ] },
+    forest_hunter: { name: '苔鎧の狩人', art: 'knight', hp: 18, archetype: '狩人型', patterns: [
+      ['guard', 'quick', 'heavy', 'open'],
+      ['quick', 'guard', 'heavy', 'quick', 'open'],
+      ['guard', 'heavy', 'quick', 'guard', 'open'],
     ] },
     knight: { name: '鐘守の亡兵', hp: 20, archetype: '防御型', patterns: [
       ['guard', 'heavy', 'open', 'quick'],
@@ -64,6 +73,7 @@
   };
   const INTENTS = {
     quick: { name: '薙ぎ払い', damage: 6, help: '横薙ぎ。防御なら安定。回避しても半分は受け、追撃の好機は作れない。' },
+    pounce: { name: '飛びかかり', damage: 10, help: '主だけの鋭い踏み込み。回避なら無傷と追撃、防御では少し削られる。' },
     heavy: { name: '大振り', damage: 12, help: '回避がおすすめ。防御だけでは削られる。' },
     guard: { name: '守りを固める', damage: 0, help: '攻撃を 5 軽減する。防御で気力を整える。' },
     open: { name: '体勢を崩している', damage: 0, help: '攻撃の好機。強撃なら大きく削れる。' },
@@ -138,7 +148,8 @@
   }
   const intent = e => {
     const enemy = ENEMIES[e.kind];
-    const pattern = enemy.patterns[Math.max(0, Math.min(2, e.depth - 1))];
+    const patterns = e.elite && enemy.elitePatterns ? enemy.elitePatterns : enemy.patterns;
+    const pattern = patterns[Math.max(0, Math.min(2, e.depth - 1))];
     const id = pattern[e.turn % pattern.length];
     let damage = INTENTS[id].damage ? INTENTS[id].damage + e.depth - 1 + (e.elite ? 2 : 0) : 0;
     const trait = enemyProfile(e).trait?.id;
@@ -162,8 +173,8 @@
     return n;
   }
   function encounter(x, risky) {
-    const kind = place(x.place).enemy;
     const elite = x.room === 4;
+    const kind = x.place === 'wood' && x.room === 2 ? 'forest_hunter' : place(x.place).enemy;
     const hp = ENEMIES[kind].hp + (x.depth - 1) * 6 + (elite ? 8 : 0) + (risky ? 3 : 0);
     x.enemy = { kind, hp, maxHp: hp, turn: 0, depth: x.depth, elite, risky };
     x.stage = 'fight'; x.stamina = Math.max(2, x.stamina); x.focus = 0;
