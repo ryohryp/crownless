@@ -60,7 +60,7 @@
     ] },
   };
   const INTENTS = {
-    quick: { name: '薙ぎ払い', damage: 6, help: '防御で受け止める。回避なら追撃の好機。' },
+    quick: { name: '薙ぎ払い', damage: 6, help: '横薙ぎ。防御なら安定。回避しても半分は受け、追撃の好機は作れない。' },
     heavy: { name: '大振り', damage: 12, help: '回避がおすすめ。防御だけでは削られる。' },
     guard: { name: '守りを固める', damage: 0, help: '攻撃を 5 軽減する。防御で気力を整える。' },
     open: { name: '体勢を崩している', damage: 0, help: '攻撃の好機。強撃なら大きく削れる。' },
@@ -256,14 +256,25 @@
       x.stamina = Math.min(3, x.stamina + (action === 'heavy' ? -p.heavyCost : 1)); x.focus = 0;
     }
     if (action === 'guard') { x.stamina = Math.min(3, x.stamina + 1); if (p.counter && next.damage > 0) damage = p.counter; }
-    if (action === 'dodge') { x.stamina -= p.dodgeCost; x.focus = p.dodgeFocus; }
+    if (action === 'dodge') {
+      x.stamina -= p.dodgeCost;
+      x.focus = next.damage > 0 && next.id !== 'quick' ? p.dodgeFocus : 0;
+    }
     e.hp = Math.max(0, e.hp - damage);
     if (damage > 0) x.log.push(`こちらの一撃。${damage} ダメージ。`);
     if (e.hp <= 0) { victory(n); return n; }
     const block = action === 'guard' ? p.block : 0;
-    const taken = action === 'dodge' ? 0 : Math.max(0, next.damage - block);
+    const taken = action === 'dodge'
+      ? (next.id === 'quick' ? Math.max(1, Math.ceil(next.damage / 2)) : 0)
+      : Math.max(0, next.damage - block);
     x.hp -= taken;
-    x.log.push(action === 'dodge' ? `身をかわした。次の攻撃 +${x.focus}。` : taken ? `${next.name}。体力 −${taken}。` : next.damage ? '攻撃を受け止めた。体力消費なし。' : '敵は攻撃してこない。');
+    if (action === 'dodge') {
+      if (next.id === 'quick') x.log.push(`${next.name}をかわしきれない。体力 −${taken}。追撃の好機は作れない。`);
+      else if (next.damage) x.log.push(`身をかわした。次の攻撃 +${x.focus}。`);
+      else x.log.push('攻撃は来ない。回避に気力を使った。');
+    } else {
+      x.log.push(taken ? `${next.name}。体力 −${taken}。` : next.damage ? '攻撃を受け止めた。体力消費なし。' : '敵は攻撃してこない。');
+    }
     e.turn++;
     if (x.hp <= 0) return finish(n, true);
     return n;
