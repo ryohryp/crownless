@@ -114,11 +114,15 @@
     const e = x.enemy, next = E.intent(e), profile = E.combatProfile(state), info = E.enemyProfile(e);
     const strike = E.attackPreview(state,'strike'), strong = E.attackPreview(state,'heavy');
     const enemyTag = `${info.archetype}${info.trait ? ` · 《${info.trait.name}》${info.trait.help}` : ''}`;
-    const dodgeHelp = next.id === 'quick'
-      ? `気力 −${profile.dodgeCost} / 薙ぎ払いは半分被弾・追撃なし`
-      : next.damage
-        ? `気力 −${profile.dodgeCost} / 無傷・次の攻撃 +${profile.dodgeFocus}`
-        : `気力 −${profile.dodgeCost} / 攻撃なし・追撃なし`;
+    const dodgeHelp = next.adaptive
+      ? next.id === 'feint'
+        ? `気力 −${profile.dodgeCost} / 足運びを読まれている・被弾・追撃なし`
+        : `気力 −${profile.dodgeCost} / この対策行動は回避可能`
+      : next.id === 'quick'
+        ? `気力 −${profile.dodgeCost} / 薙ぎ払いは半分被弾・追撃なし`
+        : next.damage
+          ? `気力 −${profile.dodgeCost} / 無傷・次の攻撃 +${profile.dodgeFocus}`
+          : `気力 −${profile.dodgeCost} / 攻撃なし・追撃なし`;
     return `<div class="combat-vitals">${vitals(x)}</div><p class="kicker">${e.elite ? 'GUARDIAN' : 'ENCOUNTER'} / ${E.GEAR[state.equipped].name}</p><div class="hp-row"><h2 style="margin:0">${e.elite ? '主・' : ''}${E.ENEMIES[e.kind].name}</h2><span>${e.hp} <small class="small">/ ${e.maxHp}</small></span></div><p class="small">${enemyTag}</p><div class="bar enemy-bar" role="meter" aria-label="敵の体力" aria-valuenow="${e.hp}" aria-valuemin="0" aria-valuemax="${e.maxHp}"><span style="width:${e.hp/e.maxHp*100}%"></span></div><div class="intent"><p class="kicker">次の行動 · 行動を選ぶまで時間は進まない</p><span class="damage">${next.damage ? next.damage : '—'}</span><strong>${next.name}</strong><small>${next.help}</small></div><div class="choice-grid">${button('strike',`${E.gearFamily(state.equipped) === 'bow' ? '射る' : '斬る'} <span class="cost">${strike}</span>`,'気力 +1 / 表示は与えるダメージ')}${button('heavy',`強撃 <span class="cost">${strong}</span>`,`気力 −${profile.heavyCost} / 大きな一撃`,{disabled:x.stamina < profile.heavyCost})}${button('guard','防御',`気力 +1 / ${profile.counter ? `${profile.block} 軽減・${profile.counter} 反撃` : `${profile.block} ダメージ軽減`}`)}${button('dodge','回避',dodgeHelp,{disabled:x.stamina < profile.dodgeCost})}</div>${logs(x)}<div class="combat-foot">${button('heal',`薬草 ${x.potions} · 体力 +12`,'敵も行動する',{class:'choice',disabled:x.potions === 0 || x.hp === E.maxHp(state)})}${button('flee',`撤退 · 体力 −${Math.max(2,next.damage)}`,x.hp <= Math.max(2,next.damage) ? '生還できない' : '残れば戦利品を持ち帰れる',{class:'choice',disabled:x.hp <= Math.max(2,next.damage)})}</div><p class="small" style="margin:12px 0 0">背嚢：鉄片 ${x.scrap}${x.gear.length ? ' / 装備 '+x.gear.length+' 個' : ''} · 生還で確定${x.focus ? ` / 追撃 +${x.focus}` : ''}</p>`;
   }
   function pathPanel(x) {
