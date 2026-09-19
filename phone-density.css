@@ -433,3 +433,30 @@
     margin-bottom: .45rem;
   }
 }
+
+
+/* #602 real-device correction: sticky inside the clipped report scroller can
+   start below the visible scrollport. Reserve a real action row instead. */
+@media (max-width: 480px) {
+  #game > .report-layout .report-panel {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) auto;
+    overflow: hidden;
+    padding-bottom: max(.45rem, env(safe-area-inset-bottom));
+  }
+
+  #game > .report-layout .report-scroll {
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding-right: .1rem;
+  }
+
+  #game > .report-layout .report-actions {
+    position: static;
+    margin: .45rem 0 0;
+    padding: .55rem 0 max(.35rem, env(safe-area-inset-bottom));
+    background: var(--bg);
+    border-top: 1px solid var(--line);
+  }
+}
