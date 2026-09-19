@@ -8,9 +8,14 @@
   try { item = JSON.parse(localStorage.getItem(key) || 'null'); } catch { item = null; }
   const persist = () => { try { item ? localStorage.setItem(key, JSON.stringify(item)) : localStorage.removeItem(key); } catch {} };
   function enhance() {
-    root.querySelector('.risky-identification')?.remove();
+    const existing = root.querySelector('.risky-identification');
     const choice = R.describeChoice(item), panel = root.querySelector('.panel'), ledger = root.querySelector('.loot-ledger');
-    if (!choice || !panel || !ledger || panel.querySelector('.enemy-bar')) return;
+    const canShow = Boolean(choice && panel && ledger && !panel.querySelector('.enemy-bar'));
+    if (!canShow) {
+      existing?.remove();
+      return;
+    }
+    if (existing) return;
     ledger.insertAdjacentHTML('afterend', `<div class="rule-line risky-identification" role="group" aria-label="未知装備の鑑定"><p class="kicker">UNKNOWN LOOT</p><h3>${choice.title}</h3><p class="small">${choice.description}</p><div class="choice-grid">${choice.choices.map(c => `<button class="choice" data-risky-identification="${c.id}"><strong>${c.label}</strong><small>${c.consequence}</small></button>`).join('')}</div></div>`);
   }
   root.addEventListener('click', event => {
