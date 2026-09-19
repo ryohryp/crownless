@@ -10,7 +10,7 @@ function safeAction(s) {
   const attack = E.attackPreview(s,'strike');
   if (x.enemy.hp <= attack && i.id !== 'guard') return 'strike';
   if (i.id === 'heavy' && x.stamina >= E.combatProfile(s).dodgeCost) return 'dodge';
-  if (i.id === 'quick') return E.gearFamily(s.equipped) === 'shield' || x.stamina < E.combatProfile(s).dodgeCost ? 'guard' : 'dodge';
+  if (i.id === 'quick') return 'guard';
   if (i.id === 'guard') return 'guard';
   return x.stamina >= E.combatProfile(s).heavyCost ? 'heavy' : 'strike';
 }
@@ -27,7 +27,7 @@ test('complete first loop banks signature gear; a second expedition uses its own
   assert.ok(s.owned.includes('fang')); assert.equal(s.scrap,9); assert.deepEqual(s.cleared,['wood']);
   s = E.equip(s,'fang'); s = E.upgrade(s,'fang');
   assert.equal(s.scrap,1); assert.equal(E.weaponLevel(s,'fang'),1); assert.equal(E.weaponLevel(s,'rust'),0); assert.equal(E.maxHp(s),30);
-  s = E.start(s,'wood'); s = E.act(s,'careful'); s = E.act(s,'dodge');
+  s = E.start(s,'wood'); s = E.act(s,'careful'); s = E.act(s,'guard'); s = E.act(s,'dodge');
   assert.equal(s.expedition.focus,6); assert.equal(s.expedition.hp,30);
   const before = s.expedition.enemy.hp;
   s = E.act(s,'strike'); assert.equal(before-s.expedition.enemy.hp,11);
@@ -145,6 +145,35 @@ test('healing in combat consumes an enemy turn; healing on a path does not', () 
   assert.equal(s.expedition.hp,24); assert.equal(s.expedition.enemy.turn,1); assert.equal(s.expedition.potions,0);
   assert.equal(E.act(s,'heal'),s);
 });
+test('sweep favors guard while heavy still rewards dodge', () => {
+  let s=E.act(E.start(fresh(),'wood'),'careful');
+  assert.equal(E.intent(s.expedition.enemy).id,'quick');
+  const dodged=E.act(s,'dodge');
+  assert.equal(dodged.expedition.hp,27);
+  assert.equal(dodged.expedition.focus,0);
+  assert.match(dodged.expedition.log.join(' '),/かわしきれない/);
+  const guarded=E.act(s,'guard');
+  assert.equal(guarded.expedition.hp,30);
+
+  s=guarded;
+  assert.equal(E.intent(s.expedition.enemy).id,'heavy');
+  const heavyDodged=E.act(s,'dodge');
+  assert.equal(heavyDodged.expedition.hp,30);
+  assert.equal(heavyDodged.expedition.focus,3);
+  const heavyGuarded=E.act(s,'guard');
+  assert.equal(heavyGuarded.expedition.hp,27);
+});
+
+test('dodging when no attack is coming spends stamina without banking focus', () => {
+  let s=E.act(E.start(fresh(),'wood'),'careful');
+  s=E.act(s,'guard');
+  s=E.act(s,'dodge');
+  assert.equal(E.intent(s.expedition.enemy).id,'open');
+  const after=E.act(s,'dodge');
+  assert.equal(after.expedition.focus,0);
+  assert.match(after.expedition.log.join(' '),/攻撃は来ない/);
+});
+
 test('shield counters and bow pierces guarded enemies', () => {
   let s=fresh(); s.owned.push('shield','bow'); s=E.equip(s,'shield');
   s=E.act(E.start(s,'wood'),'careful'); s=E.act(s,'guard');
