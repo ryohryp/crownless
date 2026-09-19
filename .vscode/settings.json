@@ -1,5 +1,7 @@
 {
     "gameAssetExplorer.assetDirectories": [
-        "assets"
-    ]
+        "assets",
+        "."
+    ],
+    "gameAssetExplorer.assetProfile": "rpg"
 }
