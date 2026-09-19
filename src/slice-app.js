@@ -133,7 +133,8 @@
   }
   function expedition() {
     const x = state.expedition, p = E.place(x.place), isFight = x.stage === 'fight';
-    return `<div class="game-layout ${isFight ? 'battle-layout' : ''}"><section class="visual-column">${scene(x.place,p.name,`DEPTH ${String(x.depth).padStart(2,'0')} · ${x.stage === 'cleared' ? '踏破' : `${x.room+1} / 5`}`,x.enemy?.kind,`${E.GEAR[state.equipped].name}`)}${route(x)}${vitals(x)}<div class="journey-note"><b>${String(x.depth).padStart(2,'0')}</b><span>深層 ${x.depth} · 戦利品を失っても、持ち込んだ装備は残る。<br>深層ほど敵の型が変わり、珍しい武具を期待できる。</span></div></section><section class="panel">${isFight ? fight(x) : pathPanel(x)}</section></div>`;
+    const enemyArt = x.enemy ? (E.ENEMIES[x.enemy.kind].art || x.enemy.kind) : null;
+    return `<div class="game-layout ${isFight ? 'battle-layout' : ''}"><section class="visual-column">${scene(x.place,p.name,`DEPTH ${String(x.depth).padStart(2,'0')} · ${x.stage === 'cleared' ? '踏破' : `${x.room+1} / 5`}`,enemyArt,`${E.GEAR[state.equipped].name}`)}${route(x)}${vitals(x)}<div class="journey-note"><b>${String(x.depth).padStart(2,'0')}</b><span>深層 ${x.depth} · 戦利品を失っても、持ち込んだ装備は残る。<br>深層ほど敵の型が変わり、珍しい武具を期待できる。</span></div></section><section class="panel">${isFight ? fight(x) : pathPanel(x)}</section></div>`;
   }
   function report() {
     const r = state.report;
