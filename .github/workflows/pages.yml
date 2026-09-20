@@ -58,6 +58,17 @@ jobs:
           rsync -a --delete \
             --exclude '.git' \
             --exclude '_site' \
+            --exclude '.github' \
+            --exclude '.visual-director' \
+            --exclude '.vscode' \
+            --exclude 'art-source' \
+            --exclude 'docs' \
+            --exclude 'scripts' \
+            --exclude 'skills' \
+            --exclude 'test' \
+            --exclude 'tests' \
+            --exclude 'test-support' \
+            --exclude 'tools' \
             ./ _site/
           DEPLOY_SHA="$DEPLOY_SHA" node <<'NODE'
           const fs = require('node:fs');
