@@ -53,6 +53,30 @@ test('GitHub Pages fingerprints local CSS and JS assets with the deployed commit
   assert.doesNotMatch(workflow, /path:\s*\.\s*$/m);
 });
 
+test('GitHub Pages artifact excludes development-only sources', () => {
+  const workflow = read('.github/workflows/pages.yml');
+
+  for (const directory of [
+    '.github',
+    '.visual-director',
+    '.vscode',
+    'art-source',
+    'docs',
+    'scripts',
+    'skills',
+    'test',
+    'tests',
+    'test-support',
+    'tools',
+  ]) {
+    const escaped = directory.replace(/[.*+?^${}()|[\]\\]/g, '\\test('Vercel Production stays manual-only while retaining production smoke checks', () => {');
+    assert.match(workflow, new RegExp("--exclude ['\"]" + escaped + "['\"]"));
+  }
+
+  assert.doesNotMatch(workflow, /--exclude ['\"]assets['\"]/);
+  assert.doesNotMatch(workflow, /--exclude ['\"]src['\"]/);
+  assert.doesNotMatch(workflow, /--exclude ['\"]api['\"]/);
+});
 test('Vercel Production stays manual-only while retaining production smoke checks', () => {
   const workflow = read('.github/workflows/vercel-production.yml');
 
