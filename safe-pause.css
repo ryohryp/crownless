@@ -1,0 +1,39 @@
+.safe-pause-button {
+  align-self: flex-end;
+  margin: 0 0 8px;
+  min-height: 44px;
+}
+
+.safe-pause-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: max(20px, env(safe-area-inset-top)) 18px max(20px, env(safe-area-inset-bottom));
+  background: rgba(6, 15, 17, .88);
+  backdrop-filter: blur(5px);
+}
+
+.safe-pause-card {
+  width: min(100%, 390px);
+  max-height: 100%;
+  overflow: auto;
+  padding: 22px;
+  border: 1px solid rgba(204, 180, 126, .38);
+  border-radius: 16px;
+  background: #13272b;
+  box-shadow: 0 18px 50px rgba(0,0,0,.38);
+}
+
+.safe-pause-card h2 { margin: 4px 0 12px; }
+.safe-pause-place { margin: 0 0 10px; font-weight: 700; }
+.safe-pause-risk {
+  margin: 12px 0;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(204, 180, 126, .1);
+  color: #ead7a7;
+  font-weight: 700;
+}
+.safe-pause-card .primary { width: 100%; margin-top: 12px; min-height: 48px; }
