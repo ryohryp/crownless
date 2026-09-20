@@ -12,7 +12,7 @@ test('secret loot wrapper is wired before the app consumes combat actions', () =
 });
 
 test('one readable clue points at the bounded forest-lord condition', () => {
-  assert.match(source, /enemy\.kind === 'wolf'/);
+  assert.match(source, /enemy\?\.kind === 'wolf'/);
   assert.match(source, /enemy\.elite/);
   assert.match(source, /enemy\.depth >= 2/);
   assert.match(source, /next\.id === 'open'/);
