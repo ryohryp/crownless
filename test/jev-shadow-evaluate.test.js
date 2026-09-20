@@ -30,7 +30,7 @@ test("Jev shadow evaluator compares normalized choices without changing authorit
   const mock = path.join(__dirname, "..", "test-support", "mock-jev-evaluator.cjs");
   const result = run(
     { task: "#744", agentChoice: "done", diffSummary: "bounded" },
-    { CROWNLESS_JEV_MCP_COMMAND: process.execPath + " " + mock },
+    { CROWNLESS_JEV_MCP_COMMAND: `"${process.execPath}" "${mock}"` },
   );
   assert.equal(result.available, true);
   assert.equal(result.choice, "retry");

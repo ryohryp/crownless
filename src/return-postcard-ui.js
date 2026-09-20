@@ -27,7 +27,8 @@
   function fromReportPanel(text) {
     const value = String(text || '');
     if (!value.includes('SAFE RETURN') || value.includes('EXPEDITION LOST')) return null;
-    const place = value.match(/SAFE RETURN\s*\/\s*([^\n]+)/)?.[1]?.trim() || '名もなき土地';
+    const kicker = value.match(/SAFE RETURN\s*\/\s*([^\n\r<]+)/)?.[1] || '';
+    const place = kicker.split(/\s{2,}|\r?\n|欲張らずに|命だけを|新しい一本/)[0].trim() || '名もなき土地';
     const gear = value.match(/新しい一本を、火へ。/) ? '新しい武具を火へ持ち帰った' : '戦利品を火へ持ち帰った';
     const create = postcardApi && postcardApi.createExpeditionPostcard;
     return create ? create({ location: { label: place }, event: gear }) : { title: '遠征の記録', region: place, memory: gear };
