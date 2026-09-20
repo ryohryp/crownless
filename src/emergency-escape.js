@@ -8,27 +8,18 @@
   function escapeCost(state) {
     const x = state?.expedition;
     if (!x || x.stage !== 'fight') return null;
-    if (x.gear?.length) {
-      const id = x.gear[x.gear.length - 1];
-      return { kind: 'gear', id, label: state.__gearNames?.[id] || id };
-    }
-    if (x.scrap > 0) return { kind: 'scrap', amount: x.scrap, label: `鉄片 ${x.scrap}` };
+    if (x.gear?.length) return { kind: 'gear', id: x.gear[x.gear.length - 1] };
+    if (x.scrap > 0) return { kind: 'scrap', amount: x.scrap };
     return null;
   }
 
-  function safeEscape(state, gearNames = {}) {
+  function safeEscape(state) {
     const cost = escapeCost(state);
     if (!cost) return state;
     const n = JSON.parse(JSON.stringify(state));
     const x = n.expedition;
-    let lost;
-    if (cost.kind === 'gear') {
-      const id = x.gear.pop();
-      lost = gearNames[id]?.name || id;
-    } else {
-      lost = `鉄片 ${x.scrap}`;
-      x.scrap = 0;
-    }
+    if (cost.kind === 'gear') x.gear.pop();
+    else x.scrap = 0;
     const found = x.gear.filter(g => !n.owned.includes(g));
     n.report = { died: false, place: x.place, depth: x.depth, scrap: x.scrap, gear: [...x.gear], newGear: found, hp: x.hp, cleared: [...x.seals] };
     n.scrap += x.scrap;
@@ -36,7 +27,6 @@
     n.cleared = [...new Set([...n.cleared, ...x.seals])];
     n.victories++;
     n.expedition = null;
-    n.report.escapeSacrifice = lost;
     return n;
   }
 
@@ -44,7 +34,7 @@
     if (!engine || engine.__emergencyEscapeInstalled) return engine;
     const originalAct = engine.act.bind(engine);
     engine.act = function (state, action) {
-      if (action === 'flee-drop') return safeEscape(state, engine.GEAR);
+      if (action === 'flee-drop') return safeEscape(state);
       return originalAct(state, action);
     };
     engine.__emergencyEscapeInstalled = true;
