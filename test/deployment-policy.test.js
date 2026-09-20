@@ -76,14 +76,6 @@ test('GitHub Pages artifact excludes development-only sources', () => {
   assert.equal(workflow.includes("--exclude 'src'"), false);
   assert.equal(workflow.includes("--exclude 'api'"), false);
 });
-test('Vercel Production stays manual-only while retaining production smoke checks', () => {');
-    assert.match(workflow, new RegExp("--exclude ['\"]" + escaped + "['\"]"));
-  }
-
-  assert.doesNotMatch(workflow, /--exclude ['\"]assets['\"]/);
-  assert.doesNotMatch(workflow, /--exclude ['\"]src['\"]/);
-  assert.doesNotMatch(workflow, /--exclude ['\"]api['\"]/);
-});
 test('Vercel Production stays manual-only while retaining production smoke checks', () => {
   const workflow = read('.github/workflows/vercel-production.yml');
 
