@@ -1,9 +1,7 @@
 name: deploy-pages
 
 on:
-  workflow_run:
-    workflows: ["test"]
-    types: [completed]
+  push:
     branches: [main]
   workflow_dispatch:
 
@@ -18,15 +16,12 @@ concurrency:
 
 jobs:
   deploy:
-    if: github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success'
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
 
       - name: Check whether GitHub Pages is enabled
         id: pages
@@ -47,7 +42,7 @@ jobs:
             echo "enabled=true" >> "${GITHUB_OUTPUT}"
           else
             echo "enabled=false" >> "${GITHUB_OUTPUT}"
-            echo "::notice title=GitHub Pages is not enabled::Open Settings → Pages and set Build and deployment / Source to GitHub Actions once. Future green main builds will publish automatically."
+            echo "::notice title=GitHub Pages is not enabled::Open Settings → Pages and set Build and deployment / Source to GitHub Actions once. Future main pushes will publish automatically."
           fi
 
       - uses: actions/configure-pages@v5
@@ -57,12 +52,23 @@ jobs:
         if: steps.pages.outputs.enabled == 'true'
         shell: bash
         env:
-          DEPLOY_SHA: ${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_sha || github.sha }}
+          DEPLOY_SHA: ${{ github.sha }}
         run: |
           mkdir -p _site
           rsync -a --delete \
             --exclude '.git' \
             --exclude '_site' \
+            --exclude '.github' \
+            --exclude '.visual-director' \
+            --exclude '.vscode' \
+            --exclude 'art-source' \
+            --exclude 'docs' \
+            --exclude 'scripts' \
+            --exclude 'skills' \
+            --exclude 'test' \
+            --exclude 'tests' \
+            --exclude 'test-support' \
+            --exclude 'tools' \
             ./ _site/
           DEPLOY_SHA="$DEPLOY_SHA" node <<'NODE'
           const fs = require('node:fs');

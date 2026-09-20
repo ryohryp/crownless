@@ -14,17 +14,17 @@ test('Vercel automatic Git deployments stay disabled', () => {
   assert.equal(config.git?.deploymentEnabled, false);
 });
 
-test('GitHub Pages automatically publishes only a successful tested main commit', () => {
-  const workflow = read('.github/workflows/pages.yml');
+test('CI validates pull requests once and Pages publishes merged main directly', () => {
+  const testWorkflow = read('.github/workflows/test.yml');
+  const pagesWorkflow = read('.github/workflows/pages.yml');
 
-  assert.match(workflow, /workflow_run:/);
-  assert.match(workflow, /workflows:\s*\["test"\]/);
-  assert.match(workflow, /types:\s*\[completed\]/);
-  assert.match(workflow, /branches:\s*\[main\]/);
-  assert.match(workflow, /workflow_run\.conclusion == 'success'/);
-  assert.match(workflow, /ref:\s*\$\{\{ github\.event_name == 'workflow_run' && github\.event\.workflow_run\.head_sha \|\| github\.sha \}\}/);
-  assert.doesNotMatch(workflow, /\n\s*push:/);
-  assert.doesNotMatch(workflow, /enablement:\s*true/);
+  assert.match(testWorkflow, /pull_request:/);
+  assert.doesNotMatch(testWorkflow, /\n\s*push:/);
+
+  assert.match(pagesWorkflow, /\n\s*push:/);
+  assert.match(pagesWorkflow, /branches:\s*\[main\]/);
+  assert.doesNotMatch(pagesWorkflow, /workflow_run:/);
+  assert.doesNotMatch(pagesWorkflow, /enablement:\s*true/);
 });
 
 test('GitHub Pages keeps manual recovery and latest-deploy-wins safeguards', () => {
@@ -42,7 +42,7 @@ test('GitHub Pages fingerprints local CSS and JS assets with the deployed commit
   const workflow = read('.github/workflows/pages.yml');
 
   assert.match(workflow, /DEPLOY_SHA:/);
-  assert.match(workflow, /github\.event\.workflow_run\.head_sha/);
+  assert.match(workflow, /DEPLOY_SHA:\s*\$\{\{ github\.sha \}\}/);
   assert.match(workflow, /mkdir -p _site/);
   assert.match(workflow, /rsync -a --delete/);
   assert.match(workflow, /sha\.slice\(0, 12\)/);
@@ -53,6 +53,29 @@ test('GitHub Pages fingerprints local CSS and JS assets with the deployed commit
   assert.doesNotMatch(workflow, /path:\s*\.\s*$/m);
 });
 
+test('GitHub Pages artifact excludes development-only sources', () => {
+  const workflow = read('.github/workflows/pages.yml');
+
+  for (const directory of [
+    '.github',
+    '.visual-director',
+    '.vscode',
+    'art-source',
+    'docs',
+    'scripts',
+    'skills',
+    'test',
+    'tests',
+    'test-support',
+    'tools',
+  ]) {
+    assert.equal(workflow.includes("--exclude '" + directory + "'"), true);
+  }
+
+  assert.equal(workflow.includes("--exclude 'assets'"), false);
+  assert.equal(workflow.includes("--exclude 'src'"), false);
+  assert.equal(workflow.includes("--exclude 'api'"), false);
+});
 test('Vercel Production stays manual-only while retaining production smoke checks', () => {
   const workflow = read('.github/workflows/vercel-production.yml');
 
