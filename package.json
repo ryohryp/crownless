@@ -5,6 +5,7 @@
   "description": "Location-discovery expedition RPG in a medieval fantasy world",
   "scripts": {
     "start": "node scripts/serve-slice.cjs",
-    "test": "node --test"
+    "test": "node --test",
+    "playtest": "node scripts/evaluate-playtest-jev.cjs"
   }
 }
