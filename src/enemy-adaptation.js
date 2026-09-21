@@ -38,9 +38,9 @@
 
   const READS = {
     '速攻型': ['dodge'],
-    '防御型': ['heavy'],
+    '防御型': ['heavy', 'guard'],
     '狩人型': ['dodge', 'guard'],
-    '重装型': ['heavy'],
+    '重装型': ['heavy', 'guard'],
   };
 
   function counterForAction(action, archetype) {

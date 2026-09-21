@@ -271,3 +271,24 @@ test('malformed and foreign saves are rejected, with no silent reset or reward g
   let s=E.act(E.start(fresh(),'wood'),'careful'); s.expedition.enemy.hp=NaN;
   assert.equal(E.parse(E.serialize(s)),null);
 });
+
+test('heavy attack against open enemy deals bonus damage and enemy guard reduces 3', () => {
+  let s = E.act(E.start(fresh(), 'wood'), 'careful');
+  // wolf pattern: quick(0), heavy(1), open(2)
+  s.expedition.enemy.turn = 2; // open
+  assert.equal(E.intent(s.expedition.enemy).id, 'open');
+  // rust weapon attack = 4, heavyBonus = 4, openBonus = +3 -> 11 damage
+  assert.equal(E.attackPreview(s, 'heavy'), 11);
+  assert.equal(E.attackPreview(s, 'strike'), 4);
+
+  // Set intent to guard
+  s.expedition.place = 'tower';
+  s.expedition.enemy.kind = 'knight';
+  s.expedition.enemy.turn = 0; // knight turn 0 is guard
+  assert.equal(E.intent(s.expedition.enemy).id, 'guard');
+  // strike attack 4 - 3 = 1 damage
+  assert.equal(E.attackPreview(s, 'strike'), 1);
+  // heavy attack (4 + 4) - 3 = 5 damage
+  assert.equal(E.attackPreview(s, 'heavy'), 5);
+});
+

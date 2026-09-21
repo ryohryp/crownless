@@ -28,7 +28,13 @@ test('repeating heavy lets defensive enemies telegraph an intercept', () => {
   assert.match(intent.help, /通常攻撃|防御/);
 });
 
+test('repeating guard lets defensive enemies telegraph a break', () => {
+  const intent = counterIntent(['guard', 'guard'], '防御型');
+  assert.equal(intent.id, 'break');
+});
+
 test('archetypes do not all read the same habit', () => {
   assert.equal(counterIntent(['heavy', 'heavy'], '速攻型'), null);
-  assert.equal(counterIntent(['guard', 'guard'], '防御型'), null);
+  assert.equal(counterIntent(['guard', 'guard'], '速攻型'), null);
+  assert.equal(counterIntent(['dodge', 'dodge'], '防御型'), null);
 });

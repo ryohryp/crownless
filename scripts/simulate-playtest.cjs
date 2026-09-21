@@ -79,6 +79,9 @@ function chooseAction(archetype, gameState) {
 
     // Cautious: high defense, preserves HP above all
     if (archetype === "cautious") {
+      if (nextIntent.id === "break" && x.stamina >= p.dodgeCost) {
+        return "dodge";
+      }
       if (nextIntent.damage > 0) {
         if (nextIntent.id === "heavy" && x.stamina >= p.dodgeCost) return "dodge";
         return "guard";
@@ -89,6 +92,21 @@ function chooseAction(archetype, gameState) {
 
     // Tactician: strategic match of player action to enemy intent & weapon traits
     if (archetype === "tactician") {
+      // Adaptive counter intents
+      if (nextIntent.id === "break") {
+        if (x.stamina >= p.dodgeCost) return "dodge";
+        return "strike";
+      }
+
+      if (nextIntent.id === "feint") {
+        return "strike";
+      }
+
+      if (nextIntent.id === "intercept") {
+        if (x.stamina < 3) return "guard";
+        return "strike";
+      }
+
       if (nextIntent.id === "open") {
         if (x.stamina >= p.heavyCost) return "heavy";
         return "strike";
@@ -132,6 +150,13 @@ function simulateExpedition(options = {}) {
   const placeId = options.place || "wood";
   let state = options.initialState || Engine.initial();
   state.mode = "trial";
+
+  if (placeId === "crypt" && state.cleared.length < 2) {
+    state.cleared = ["wood", "tower"];
+    if (!state.owned.includes("shield")) state.owned.push("shield");
+    if (!state.owned.includes("fang")) state.owned.push("fang");
+    if (state.equipped === "rust") state.equipped = "shield";
+  }
 
   if (!state.unlocked.includes(placeId)) {
     state = Engine.discover(state, placeId);
