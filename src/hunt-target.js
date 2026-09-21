@@ -6,9 +6,9 @@
 })(typeof globalThis === 'object' ? globalThis : this, function () {
   'use strict';
   const TARGETS = {
-    gear: { label: '武具を探す', help: '深層の武具の気配を追う' },
+    gear: { label: '武具を探す', help: '深層で武具を見つけやすくする' },
     scrap: { label: '鉄片を集める', help: '討伐時の鉄片を少し増やす' },
-    danger: { label: '強敵を探す', help: '敵を強くする代わりに鉄片も増える' },
+    danger: { label: '強敵を探す', help: '敵を強くする代わりに戦利品も増える' },
   };
   let target = null;
   const setTarget = value => { target = TARGETS[value] ? value : null; return target; };
@@ -26,11 +26,12 @@
       const hadEnemy = !!state?.expedition?.enemy;
       let next = originalAct(state, action);
       if (target === 'scrap' && next?.expedition && next.expedition.scrap > beforeScrap) next.expedition.scrap += 2;
-      if (target === 'danger' && next?.expedition?.enemy && !hadEnemy) {
-        next.expedition.enemy.hp += 3; next.expedition.enemy.maxHp += 3; next.expedition.enemy.risky = true;
+      if (next?.expedition?.enemy && !hadEnemy && target === 'gear' && next.expedition.depth >= 2) {
+        /* Reuse the engine's existing risky-loot path; no new drop table or guaranteed reward. */
+        next.expedition.enemy.risky = true;
       }
-      if (target === 'gear' && next?.expedition && next.expedition.depth >= 2 && next.expedition.stage === 'path' && state?.expedition?.stage === 'fight' && !next.expedition.enemy) {
-        next.expedition.log.push('武具を探す目で周囲を探る。珍しい武具は、宝の気配を追うほど見つけやすい。');
+      if (next?.expedition?.enemy && !hadEnemy && target === 'danger') {
+        next.expedition.enemy.hp += 3; next.expedition.enemy.maxHp += 3; next.expedition.enemy.risky = true;
       }
       if (state?.expedition && !next?.expedition) target = null;
       return next;
