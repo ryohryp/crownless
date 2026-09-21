@@ -1,6 +1,8 @@
 "use strict";
 
 const Engine = require("../src/slice-engine.js");
+const EnemyAdaptation = require("../src/enemy-adaptation.js");
+require("../src/enemy-adaptation-runtime.js")(Engine, EnemyAdaptation);
 
 const ARCHETYPES = ["tactician", "cautious", "greedy", "rusher"];
 

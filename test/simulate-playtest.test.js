@@ -89,3 +89,22 @@ test("runPlaytestSuite executes specified number of runs for all archetypes", ()
     assert.ok(seenArchetypes.has(arch));
   }
 });
+
+test("playtest harness uses the live telegraphed enemy adaptation runtime", () => {
+  let state = Engine.initial();
+  state.mode = "trial";
+  state = Engine.start(state, "wood");
+  state = Engine.act(state, "careful");
+
+  // Repeat the successful shallow-wolf response pattern from #740.
+  state = Engine.act(state, "guard");
+  state = Engine.act(state, "dodge");
+  state = Engine.act(state, "strike");
+  state = Engine.act(state, "guard");
+
+  const nextIntent = Engine.intent(state.expedition.enemy);
+  assert.equal(nextIntent.id, "feint");
+  assert.equal(nextIntent.adaptive, true);
+  assert.equal(nextIntent.responseAdaptive, true);
+  assert.equal(chooseAction("tactician", state), "strike");
+});
