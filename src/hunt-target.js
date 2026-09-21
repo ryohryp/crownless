@@ -6,7 +6,7 @@
 })(typeof globalThis === 'object' ? globalThis : this, function () {
   'use strict';
   const TARGETS = {
-    gear: { label: '武具を探す', help: '珍しい武具の気配を優先する' },
+    gear: { label: '武具を探す', help: '深層の武具の気配を追う' },
     scrap: { label: '鉄片を集める', help: '討伐時の鉄片を少し増やす' },
     danger: { label: '強敵を探す', help: '敵を強くする代わりに鉄片も増える' },
   };
@@ -18,24 +18,21 @@
     const originalStart = E.start, originalAct = E.act;
     E.start = function (state, place) {
       const next = originalStart(state, place);
-      if (next !== state && next.expedition && target) {
-        next.expedition.log = [`狙い：${TARGETS[target].label}。${TARGETS[target].help}。`, ...next.expedition.log];
-        next.expedition.__huntTarget = target;
-      }
+      if (next !== state && next.expedition && target) next.expedition.log = [`狙い：${TARGETS[target].label}。${TARGETS[target].help}。`, ...next.expedition.log];
       return next;
     };
     E.act = function (state, action) {
-      const active = state?.expedition?.__huntTarget || null;
-      if (state?.expedition?.__huntTarget) delete state.expedition.__huntTarget;
+      const beforeScrap = state?.expedition?.scrap || 0;
+      const hadEnemy = !!state?.expedition?.enemy;
       let next = originalAct(state, action);
-      if (active && next?.expedition) next.expedition.__huntTarget = active;
-      if (active === 'scrap' && next?.expedition && state?.expedition && next.expedition.scrap > state.expedition.scrap) next.expedition.scrap += 2;
-      if (active === 'danger' && next?.expedition?.enemy && !state?.expedition?.enemy) {
+      if (target === 'scrap' && next?.expedition && next.expedition.scrap > beforeScrap) next.expedition.scrap += 2;
+      if (target === 'danger' && next?.expedition?.enemy && !hadEnemy) {
         next.expedition.enemy.hp += 3; next.expedition.enemy.maxHp += 3; next.expedition.enemy.risky = true;
       }
-      if (active === 'gear' && next?.expedition && next.expedition.depth >= 2 && next.expedition.stage === 'path' && state?.expedition?.stage === 'fight' && !next.expedition.enemy) {
-        next.expedition.log.push('武具を探す目で周囲を探る。深層の珍しい武具は、宝の気配を追うほど見つけやすい。');
+      if (target === 'gear' && next?.expedition && next.expedition.depth >= 2 && next.expedition.stage === 'path' && state?.expedition?.stage === 'fight' && !next.expedition.enemy) {
+        next.expedition.log.push('武具を探す目で周囲を探る。珍しい武具は、宝の気配を追うほど見つけやすい。');
       }
+      if (state?.expedition && !next?.expedition) target = null;
       return next;
     };
     Object.defineProperty(E, '__huntTargetWrapped', { value: true });
