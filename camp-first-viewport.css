@@ -1,0 +1,64 @@
+/* #602: on phones the camp is a decision surface, not a document.
+   Keep the selected land and expedition CTA visible; secondary lore stays available
+   through the atlas/scouting surface without pushing the primary action away. */
+@media (max-width: 480px) {
+  #game > .game-layout:has(.camp-tabs button.active[data-value="explore"]) {
+    grid-template-rows: minmax(8.5rem, 27dvh) minmax(0, 1fr);
+  }
+
+  #game > .game-layout:has(.camp-tabs button.active[data-value="explore"]) .visual-column .mode-strip {
+    display: none;
+  }
+
+  #game > .game-layout:has(.camp-tabs button.active[data-value="explore"]) .visual-column .stat-strip {
+    margin-top: .2rem;
+    padding: .4rem .55rem;
+  }
+
+  #game > .game-layout:has(.camp-tabs button.active[data-value="explore"]) .exploration-atlas {
+    max-height: 100%;
+  }
+
+  #game > .game-layout:has(.camp-tabs button.active[data-value="explore"]) .panel {
+    overflow: hidden;
+  }
+
+  #game > .game-layout:has(.camp-tabs button.active[data-value="explore"]) .panel > .kicker {
+    margin-bottom: .2rem;
+  }
+
+  #game > .game-layout:has(.camp-tabs button.active[data-value="explore"]) .panel > h2 {
+    margin-bottom: .3rem;
+    font-size: 1.35rem;
+  }
+
+  #game > .game-layout:has(.camp-tabs button.active[data-value="explore"]) .panel > .intro,
+  #game > .game-layout:has(.camp-tabs button.active[data-value="explore"]) .panel > .reward,
+  #game > .game-layout:has(.camp-tabs button.active[data-value="explore"]) .panel > .small,
+  #game > .game-layout:has(.camp-tabs button.active[data-value="explore"]) .panel > .badge {
+    display: none;
+  }
+
+  #game > .game-layout:has(.camp-tabs button.active[data-value="explore"]) .panel > .button-stack {
+    order: 1;
+    margin: .25rem 0 .45rem;
+  }
+
+  #game > .game-layout:has(.camp-tabs button.active[data-value="explore"]) .panel > .button-stack .primary {
+    min-height: 52px;
+  }
+
+  #game > .game-layout:has(.camp-tabs button.active[data-value="explore"]) .discovery {
+    order: 2;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-top: 1px solid var(--line);
+    padding-top: .4rem;
+  }
+
+  #game > .game-layout:has(.camp-tabs button.active[data-value="explore"]) .camp-tabs {
+    order: 99;
+    flex: 0 0 auto;
+  }
+}
