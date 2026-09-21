@@ -1,0 +1,8 @@
+.hunt-target-sheet { position: fixed; inset: 0; z-index: 40; display: grid; align-items: end; background: rgba(5,12,13,.72); padding: 1rem; padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+.hunt-target-sheet[hidden] { display: none; }
+.hunt-target-card { width: min(100%, 32rem); max-height: min(80dvh, 38rem); overflow-y: auto; margin: 0 auto; padding: 1rem; border: 1px solid var(--line); background: var(--bg); box-shadow: 0 -16px 48px rgba(0,0,0,.35); }
+.hunt-target-card h2 { margin: .2rem 0 .35rem; }
+.hunt-target-options { display: grid; gap: .5rem; margin: .8rem 0; }
+.hunt-target-options .choice { min-height: 58px; text-align: left; }
+.hunt-target-options strong, .hunt-target-options small { display: block; }
+@media (min-width: 700px) { .hunt-target-sheet { align-items: center; } }
