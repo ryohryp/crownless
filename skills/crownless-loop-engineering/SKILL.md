@@ -57,11 +57,21 @@ Prefer this order when it is sufficient:
 
 Do not open a browser, remote desktop, or local environment merely to inspect data already available through GitHub APIs.
 
-When two or more execution targets are genuinely plausible and the choice materially changes cost or context size, use a bounded Jev routing decision before dispatch:
+When two or more execution targets are genuinely plausible and the choice materially changes cost or context size, use a bounded Jev routing decision before dispatch.
 
-- prefer `jevChooseExecutionTarget` when that advisor is available,
-- otherwise use `jevDecide` with the candidate execution targets as choices,
-- if no Jev routing tool is available, fall back to the deterministic order above and continue; Jev availability must never block the cycle.
+Use Jev transport in this order:
+
+1. **Advisor MCP/tool**, when `jevChooseExecutionTarget` / `jevDecide` is exposed in the active environment.
+2. **Personal Orbit Jev REST**, when MCP/tool exposure is unavailable:
+   - `POST /api/chat/secretary/jev/execution-target`
+   - `POST /api/chat/secretary/jev/decide`
+   - base URL from the configured Personal Orbit Jev/Public base URL
+   - authenticated with the existing Secretary REST bearer; never copy the bearer into prompts, logs, commits, Issues, or PRs.
+3. **Deterministic routing fallback** only when neither Jev transport is available or the Jev request fails.
+
+For execution-target selection, prefer the dedicated execution-target contract. Use `decide` with execution targets as bounded choices only when the dedicated contract is unavailable.
+
+Jev transport availability must never block the development cycle.
 
 Provide only a short task summary, required capabilities, and available target names. Do not send tool arguments, secrets, raw logs, or source dumps.
 
@@ -69,13 +79,13 @@ Skip Jev routing when the target is obvious. The purpose is to avoid expensive d
 
 ### During failure recovery: reduce diagnostic branching
 
-If the first direct inspection does not make a CI/test failure obvious, summarize 2–4 plausible causes or next diagnostic actions and use `jevDecide` to choose which branch to investigate first.
+If the first direct inspection does not make a CI/test failure obvious, summarize 2–4 plausible causes or next diagnostic actions and use Jev `decide` to choose which branch to investigate first, via MCP/tool or the Personal Orbit REST endpoint.
 
 Do not use Jev instead of reading the actual failing assertion, stack trace, or workflow step.
 
 ### After implementation: keep shadow evaluation bounded
 
-Keep completion evaluation shadow-only. Prefer one Jev evaluation for the final materially changed head of a cycle.
+Keep completion evaluation shadow-only. Prefer one Jev evaluation for the final materially changed head of a cycle. If the MCP/tool is not exposed, use the Personal Orbit `/api/chat/secretary/jev/decide` REST endpoint before falling back to no Jev evaluation.
 
 Do not repeat the same evaluation unless the implementation or evidence changed materially.
 
