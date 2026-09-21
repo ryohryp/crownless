@@ -75,7 +75,7 @@
     quick: { name: '薙ぎ払い', damage: 6, help: '横薙ぎ。防御なら安定。回避しても半分は受け、追撃の好機は作れない。' },
     pounce: { name: '飛びかかり', damage: 10, help: '主だけの鋭い踏み込み。回避なら無傷と追撃、防御では少し削られる。' },
     heavy: { name: '大振り', damage: 12, help: '回避がおすすめ。防御だけでは削られる。' },
-    guard: { name: '守りを固める', damage: 0, help: '攻撃を 5 軽減する。防御で気力を整える。' },
+    guard: { name: '守りを固める', damage: 0, help: '攻撃を 3 軽減する。防御で気力を整える。' },
     open: { name: '体勢を崩している', damage: 0, help: '攻撃の好機。強撃なら大きく削れる。' },
   };
   const copy = s => JSON.parse(JSON.stringify(s));
@@ -231,7 +231,8 @@
     let damage = weapon.attack + x.focus + (action === 'heavy' ? p.heavyBonus : 0);
     if (p.lowHpBonus && x.hp <= Math.ceil(maxHp(s) / 2)) damage += p.lowHpBonus;
     if (p.openBonus && next.id === 'open') damage += p.openBonus;
-    if (next.id === 'guard' && !(p.pierce && action === 'heavy')) damage = Math.max(0, damage - 5);
+    if (action === 'heavy' && next.id === 'open') damage += 3;
+    if (next.id === 'guard' && !(p.pierce && action === 'heavy')) damage = Math.max(0, damage - 3);
     if (enemyProfile(e).trait?.id === 'ironhide' && action === 'strike' && !p.pierce) damage = Math.max(0, damage - 2);
     return damage;
   }
