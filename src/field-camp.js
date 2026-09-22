@@ -68,12 +68,11 @@
   E.act = function (state, action) {
     const x = state?.expedition;
     if (action === 'field-camp') {
-      if (!x || x.stage !== 'path') return state;
+      if (!x || x.stage !== 'path' || !canCamp({ ...x, maxHp: E.maxHp(state) })) return state;
       const next = JSON.parse(JSON.stringify(state));
       next.expedition.maxHp = E.maxHp(next);
       const beforeHp = next.expedition.hp;
       next.expedition = apply(next.expedition);
-      if (!next.expedition.fieldCampUsed) return state;
       next.expedition.log = [`野営で体力 +${next.expedition.hp - beforeHp}。次の遭遇は敵体力 +${RISK_PENALTY}。`];
       return next;
     }
