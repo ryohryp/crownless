@@ -139,6 +139,8 @@ test('camp home presents the atlas as a living map with a compact trace action',
   assert.match(b.html(),/CROWNLESS/);
   assert.match(b.html(),/旅の地図/);
   assert.match(b.html(),/新しい痕跡/);
+  assert.match(b.html(),/map-home-trace/);
+  assert.match(b.html(),/<summary>/);
   assert.match(b.html(),/遠征に出る/);
   assert.match(b.html(),/別の道を探す/);
   b.click('scout','tower');
