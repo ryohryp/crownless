@@ -35,11 +35,34 @@
   if (!E || E.__fieldCampWired) return;
   const originalStart = E.start;
   const originalAct = E.act;
+  const originalParse = E.parse;
 
   E.start = function (state, placeId) {
     const next = originalStart(state, placeId);
     if (next !== state && next.expedition) next.expedition.maxHp = E.maxHp(next);
     return next;
+  };
+
+  E.parse = function (raw) {
+    if (!raw) return originalParse(raw);
+    try {
+      const saved = JSON.parse(raw);
+      const x = saved?.expedition;
+      if (!x) return originalParse(raw);
+      const fieldCampUsed = x.fieldCampUsed === true;
+      const fieldCampRisk = Number(x.fieldCampRisk) === RISK_PENALTY ? RISK_PENALTY : 0;
+      delete x.fieldCampUsed;
+      delete x.fieldCampRisk;
+      delete x.maxHp;
+      const parsed = originalParse(JSON.stringify(saved));
+      if (!parsed?.expedition) return parsed;
+      parsed.expedition.fieldCampUsed = fieldCampUsed;
+      parsed.expedition.fieldCampRisk = fieldCampRisk;
+      parsed.expedition.maxHp = E.maxHp(parsed);
+      return parsed;
+    } catch {
+      return null;
+    }
   };
 
   E.act = function (state, action) {
