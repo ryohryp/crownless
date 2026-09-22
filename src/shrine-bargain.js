@@ -55,12 +55,13 @@
     const decorate = () => {
       const panel = game.querySelector('.path-decision');
       if (!panel || panel.querySelector('.shrine-bargain') || !panel.textContent.includes(MARK)) return;
-      const anchor = panel.querySelector('button[data-action="return"]');
-      if (!anchor) return;
+      const actions = panel.querySelector('.path-actions');
+      if (!actions) return;
+      const secondaryRow = actions.querySelector('.path-secondary-row');
       const box = document.createElement('div');
       box.className = 'shrine-bargain';
       box.innerHTML = '<strong>灰の祠</strong><small>代償と恵みは選ぶ前に分かる。断っても何も失わない。</small><button class="choice" data-action="shrine-offer"><strong>血を捧げる</strong><small>体力 −5 / 薬草 +2（最大3）</small></button><button class="choice" data-action="shrine-decline"><strong>触れずに去る</strong><small>何も失わない</small></button>';
-      anchor.before(box);
+      actions.insertBefore(box, secondaryRow || null);
     };
     new MutationObserver(decorate).observe(game, { childList: true, subtree: true });
     decorate();
