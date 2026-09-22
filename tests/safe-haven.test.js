@@ -2,10 +2,10 @@
 
 const test = require("node:test");
 const assert = require("node:assert/strict");
-const createCore = require("../src/slice-engine");
+const Core = require("../src/slice-engine");
 const installSafeHaven = require("../src/safe-haven");
 
-const Core = installSafeHaven(createCore);
+installSafeHaven(Core);
 
 function playable(cleared = []) {
   const state = Core.initial();
@@ -14,30 +14,31 @@ function playable(cleared = []) {
   return state;
 }
 
-test("a known forest haven gives one extra herb on revisit", () => {
+test("a known forest haven gives a small visible revisit bonus", () => {
   const state = playable(["wood"]);
   const next = Core.start(state, "wood");
 
-  assert.equal(next.expedition.potions, 3);
+  assert.equal(next.expedition.scrap, 2);
   assert.match(next.expedition.log[0], /根洞の火床/);
+  assert.match(next.expedition.log[0], /鉄片 \+2/);
 });
 
-test("the haven benefit does not apply before the forest is cleared", () => {
+test("the haven bonus does not apply before the forest is cleared", () => {
   const next = Core.start(playable(), "wood");
-  assert.equal(next.expedition.potions, 2);
+  assert.equal(next.expedition.scrap, 0);
   assert.doesNotMatch(next.expedition.log.join(" "), /根洞の火床/);
 });
 
-test("the haven benefit is local to the forest", () => {
+test("the haven bonus is local to the forest", () => {
   const state = playable(["wood"]);
   state.unlocked.push("tower");
   const next = Core.start(state, "tower");
-  assert.equal(next.expedition.potions, 2);
+  assert.equal(next.expedition.scrap, 0);
 });
 
-test("safe-haven installation does not add new persistent save fields", () => {
-  const state = playable(["wood"]);
-  const roundTrip = Core.parse(Core.serialize(state));
-  assert.deepEqual(roundTrip, state);
-  assert.equal(Object.prototype.hasOwnProperty.call(state, "safeHavens"), false);
+test("a haven-assisted expedition remains valid through save/load", () => {
+  const next = Core.start(playable(["wood"]), "wood");
+  const roundTrip = Core.parse(Core.serialize(next));
+  assert.deepEqual(roundTrip, next);
+  assert.equal(Object.prototype.hasOwnProperty.call(next, "safeHavens"), false);
 });
