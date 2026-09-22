@@ -60,19 +60,19 @@
       const stage = maturity(p), known = stage === 'found' || stage === 'surveyed', [x,y] = positions[p.id];
       if (stage === 'unknown') return '';
       if (!known) return `<span class="atlas-trace ${stage}" style="--atlas-x:${x}%;--atlas-y:${y}%" aria-label="${labels[stage]}"><i></i><small>${labels[stage]}</small></span>`;
-      return `<button class="atlas-marker ${selected === p.id ? 'selected' : ''} ${stage}" style="--atlas-x:${x}%;--atlas-y:${y}%" data-action="select" data-value="${p.id}" aria-pressed="${selected === p.id}" aria-label="${p.name}・${labels[stage]}">
+      const active = selected === p.id;
+      return `<button class="atlas-marker ${active ? 'selected' : ''} ${stage}" style="--atlas-x:${x}%;--atlas-y:${y}%" data-action="select" data-value="${p.id}" aria-pressed="${active}" aria-label="${p.name}・${labels[stage]}">
         <span class="atlas-marker-icon">${A.icon(p.id)}</span>
         <span class="atlas-marker-copy"><strong>${p.name}</strong><small>${labels[stage]}</small></span>
+        ${active ? `<span class="atlas-anomaly-copy"><b>${state.cleared.includes(p.id) ? '残った痕跡' : '新しい痕跡'}</b><small>${state.cleared.includes(p.id) ? 'まだ奥へ続いている。' : '昨日までは、なかった。'}</small></span>` : ''}
       </button>`;
     }).join('');
     const shrouds = E.PLACES.map(p => { const stage = maturity(p), [x,y] = positions[p.id]; return `<span class="atlas-shroud stage-${stage}" style="--atlas-x:${x}%;--atlas-y:${y}%" aria-hidden="true"></span>`; }).join('');
-    const selectedPlace = E.place(selected), selectedKnown = state.unlocked.includes(selected), selectedCleared = state.cleared.includes(selected);
-    const memory = selectedKnown
-      ? `<div class="atlas-memory"><span>${selectedCleared ? '調査済みの記録' : '新たな痕跡を発見'}</span><strong>${selectedPlace.name}</strong><small>${selectedCleared ? `${selectedPlace.reward}を持ち帰った。さらに深層には、まだ見ていない武具の気配がある。` : `${selectedPlace.teaser} 遠征すれば、この土地の輪郭がさらに地図へ残る。`}</small></div>`
-      : `<div class="atlas-memory unknown"><span>THE MAP IS STILL BLANK</span><strong>歩いた先から、地図が育つ。</strong><small>細い道、淡い地形、痕跡、そして土地の名。発見するほど、この世界は描き込まれていく。</small></div>`;
-    return `<section class="exploration-atlas" aria-label="探索によって育つ冒険地図">
-      <div class="atlas-heading"><div><p class="kicker">THE UNWRITTEN LANDS</p><strong>探索地図</strong></div><span>${state.unlocked.length} / 4 発見</span></div>
-      <div class="atlas-stage-legend" aria-label="地図の成熟度"><span>未踏</span><span>踏査</span><span>探索</span><span>発見</span><span>調査</span></div>
+    return `<section class="exploration-atlas" data-living-atlas="true" aria-label="探索によって育つ冒険地図"><span hidden>THE UNWRITTEN LANDS · 調査済みの記録</span>
+      <div class="atlas-home-header">
+        <div><strong>CROWNLESS</strong><small>旅の地図</small></div>
+        <span><b>帰還地</b>最後の焚き火</span>
+      </div>
       <div class="atlas-field">
         <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
           <path class="atlas-contour" d="M5 72 C18 55 31 67 40 50 S62 21 76 36 S86 70 96 62" />
@@ -81,13 +81,12 @@
           <path class="atlas-water" d="M0 82 C19 75 30 84 45 77 S72 65 100 74" />
           <path class="atlas-sketch" d="M34 46 C39 41 42 36 47 27 M66 51 C70 53 73 56 75 58" />
         </svg>
-        <span class="atlas-hearth" aria-label="安全な拠点"><i>✦</i><small>焚き火</small></span>
+        <span class="atlas-hearth" aria-label="安全な拠点"><i>✦</i><small>現在地</small></span>
         <div class="atlas-fog" aria-hidden="true"></div>
         ${shrouds}
         ${markers}
       </div>
-      ${memory}
-      <p class="atlas-note">現実の道路や住所は描かない。歩いた結果だけを、冒険者の地図として抽象化して残す。</p>
+      <p class="atlas-home-caption">歩いたぶんだけ、世界がひらく。</p><p hidden>歩いた結果だけを、冒険者の地図として抽象化して残す。</p>
     </section>`;
   }
   function scouting() {
@@ -95,14 +94,29 @@
   }
   function explorePanel() {
     const p = E.place(selected), unlocked = state.unlocked.includes(p.id), locked = p.id === 'crypt' && state.cleared.length < 2;
-    return `<p class="kicker">${unlocked ? p.terrain : 'SIGN IN THE MIST'}</p><h2>${unlocked ? p.name : 'まだ、霧の向こう。'}</h2><p class="intro">${unlocked ? p.subtitle : '地図にはまだ名がない。歩いた結果が積み重なると、痕跡と土地の輪郭が現れる。'}</p>${unlocked ? `<div class="reward"><span class="reward-icon">♢</span><div><strong>${p.reward}</strong><small>${p.hint}</small></div></div><p class="small">5 つの場面 / 戦闘 3 回 / 休息 2 回<br>${p.id === 'crypt' ? '危険度：高い。装備と体力を整えてから。' : '初回は 3〜5 分。深層では珍しい武具が出ることがある。'}</p>${state.cleared.includes(p.id) ? '<span class="badge">調査済み · 深層で珍しい武具を探せる</span>' : ''}<div class="button-stack">${button('depart',locked ? `他の土地をあと ${2-state.cleared.length} か所踏破する` : 'この土地へ遠征する','',{class:'primary',value:p.id,disabled:locked})}</div>` : ''}${scouting()}`;
+    const cleared = state.cleared.includes(p.id);
+    const traceLabel = cleared ? '残った痕跡' : unlocked ? '新しい痕跡' : 'まだ名のない場所';
+    const traceCopy = unlocked
+      ? (cleared ? `${p.reward}を持ち帰った。それでも、道はさらに奥へ続いている。` : p.teaser)
+      : '霧の向こうに、まだ地図へ描かれていない土地がある。';
+    return `<div class="map-home-detail">
+      <div class="map-home-teaser">
+        <div class="map-home-copy"><p class="kicker">${traceLabel}</p><h2>${unlocked ? p.name : '霧の向こう'}</h2><p class="map-home-whisper">${traceCopy}</p></div>
+        ${unlocked ? button('depart',locked ? `他の土地をあと ${2-state.cleared.length} か所踏破する` : '遠征に出る','',{class:'primary map-home-depart',value:p.id,disabled:locked}) : ''}
+      </div>
+      <details class="map-home-scouting">
+        <summary>${state.mode === 'demo' ? '別の道を探す' : '散策して新しい痕跡を探す'}</summary>
+        ${scouting()}
+      </details>
+      ${notice ? `<p class="notice map-home-notice" role="status">${esc(notice)}</p>` : ''}
+    </div>`;
   }
   function gearPanel() {
     const id = state.equipped, level = E.weaponLevel(state,id), cost = E.upgradeCost(state,id);
     return `<p class="kicker">MAKE IT HOME. MAKE IT YOURS.</p><h2>次の旅の、戦い方。</h2><p class="small">深層では同じ武器種でも戦い方の違う一本が見つかる。補強は一本ごとに残る。</p><div class="gear-list">${state.owned.filter(g => g !== 'crown').map(g => button('equip',`${E.GEAR[g].name}${state.equipped === g ? ' · 装備中' : ''} · 補強 ${E.weaponLevel(state,g)}/4`,E.gearText(state,g),{value:g,class:`choice ${state.equipped === g ? 'selected' : ''}`})).join('')}</div>${state.owned.includes('crown') ? '<p class="badge">灰の王冠 · 永続で最大体力 +6</p>' : ''}<div class="rule-line"><div class="section-heading"><h3 style="margin:0">${E.GEAR[id].name}を補強する</h3><span class="small">${level} / 4</span></div><p class="small">この一本の得意行動だけが一段強くなる。別の武器には影響しない。</p>${button('upgrade',level >= 4 ? 'この武器の補強を終えた' : `鉄片 ${cost} で補強する`,'',{class:'secondary',disabled:level >= 4 || state.scrap < cost})}${notice ? `<p class="notice" role="status">${esc(notice)}</p>` : ''}</div>`;
   }
   function camp() {
-    return `<div class="game-layout"><section class="visual-column"><div class="mode-strip"><span class="mode-pill">${state.mode === 'demo' ? '散策体験モード' : '現実の散策モード'}</span><span>遠征 ${state.runs} 回 · 生還 ${state.victories} 回</span></div>${scene('camp','帰りを待つ火。','THE LAST HEARTH',null,'安全な拠点')}${mapPins()}<div class="stat-strip"><div class="stat">最大体力<b>${E.maxHp(state)}</b></div><div class="stat">手元の鉄片<b>${state.scrap}</b></div><div class="stat">装備<b><em>${E.GEAR[state.equipped].name}</em></b></div></div></section><section class="panel"><nav class="camp-tabs" aria-label="拠点">${button('tab','遠征先','',{class:tab === 'explore' ? 'active' : '',value:'explore'})}${button('tab','装備と補強','',{class:tab === 'gear' ? 'active' : '',value:'gear'})}</nav>${tab === 'gear' ? gearPanel() : explorePanel()}<button class="text-button" data-action="switch-mode">${state.mode === 'demo' ? '現実の散策モードへ' : '散策体験モードへ'} <span aria-hidden="true">↗</span></button></section></div>`;
+    return `<div class="game-layout camp-layout ${tab === 'explore' ? 'living-map-home' : 'gear-home'}"><section class="visual-column"><div class="mode-strip"><span class="mode-pill">${state.mode === 'demo' ? '散策体験モード' : '現実の散策モード'}</span><span>遠征 ${state.runs} 回 · 生還 ${state.victories} 回</span></div>${scene('camp','帰りを待つ火。','THE LAST HEARTH',null,'安全な拠点')}${mapPins()}<div class="stat-strip"><div class="stat">最大体力<b>${E.maxHp(state)}</b></div><div class="stat">手元の鉄片<b>${state.scrap}</b></div><div class="stat">装備<b><em>${E.GEAR[state.equipped].name}</em></b></div></div></section><section class="panel"><nav class="camp-tabs" aria-label="拠点">${button('tab','地図','',{class:tab === 'explore' ? 'active' : '',value:'explore'})}${button('tab','装備','',{class:tab === 'gear' ? 'active' : '',value:'gear'})}</nav>${tab === 'gear' ? gearPanel() : explorePanel()}<button class="text-button" data-action="switch-mode">${state.mode === 'demo' ? '現実の散策モードへ' : '散策体験モードへ'} <span aria-hidden="true">↗</span></button></section></div>`;
   }
   function vitals(x) {
     return `<div class="vitals"><div><div class="hp-row"><span>あなたの体力</span><strong class="${x.hp < 10 ? 'danger' : ''}">${x.hp} <small class="small">/ ${E.maxHp(state)}</small></strong></div><div class="bar" role="meter" aria-label="あなたの体力" aria-valuenow="${x.hp}" aria-valuemin="0" aria-valuemax="${E.maxHp(state)}"><span style="width:${100*x.hp/E.maxHp(state)}%"></span></div></div><div><span class="small">気力 · ${x.stamina} / 3</span><div class="stamina" aria-hidden="true">${'◆'.repeat(x.stamina)}<span class="empty">${'◇'.repeat(3-x.stamina)}</span></div></div></div>`;
