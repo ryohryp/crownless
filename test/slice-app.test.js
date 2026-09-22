@@ -131,3 +131,19 @@ test('return report compares newly banked variants and sends player to gear tab'
   assert.match(b.html(),/体力半分以下で攻撃 \+2/);
   assert.match(b.html(),/持ち帰った装備を比べる/);
 });
+
+
+test('camp home presents the atlas as a living map with a compact trace action', () => {
+  const b=browser(); b.click('mode','demo');
+  assert.match(b.html(),/living-map-home/);
+  assert.match(b.html(),/CROWNLESS/);
+  assert.match(b.html(),/旅の地図/);
+  assert.match(b.html(),/新しい痕跡/);
+  assert.match(b.html(),/遠征に出る/);
+  assert.match(b.html(),/別の道を探す/);
+  b.click('scout','tower');
+  assert.match(b.html(),/鐘なき塔/);
+  assert.match(b.html(),/昨日までは、なかった。/);
+  b.click('depart','tower');
+  assert.match(b.html(),/最初の足跡/);
+});
