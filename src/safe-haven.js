@@ -1,49 +1,40 @@
-"use strict";
-
-const SAFE_HAVENS = Object.freeze({
-  "whispering-forest": {
-    id: "root-hollow",
-    name: "根洞の火床",
-    cue: "倒木の根元に、雨を避けられる古い火床が残っている。",
-    benefit: "次の遠征では土地勘を頼りに薬草を1つ余分に持ち込める。"
+(function (root, factory) {
+  "use strict";
+  if (typeof module === "object" && module.exports) {
+    module.exports = factory;
+    return;
   }
-});
+  if (root.CrownlessSlice) root.CrownlessSlice = factory(root.CrownlessSlice);
+})(typeof globalThis !== "undefined" ? globalThis : this, function installSafeHaven(Core) {
+  "use strict";
+  if (!Core || Core.__safeHavenInstalled) return Core;
 
-function discoverSafeHaven(state, locationId) {
-  if (!state || !locationId || !SAFE_HAVENS[locationId]) return null;
-  if (!state.safeHavens) state.safeHavens = {};
-  if (state.safeHavens[locationId]) return null;
+  const HAVEN = Object.freeze({
+    place: "wood",
+    name: "根洞の火床",
+    discovery: "倒木の根元に、雨を避けられる古い火床を見つけた。生還すれば次の遠征で使える。",
+    benefit: "根洞の火床で旅支度を整えた。薬草 +1。"
+  });
+  const baseStart = Core.start;
+  const baseAct = Core.act;
 
-  const haven = SAFE_HAVENS[locationId];
-  state.safeHavens[locationId] = { id: haven.id, discovered: true };
-  return { locationId, ...haven };
-}
-
-function expeditionStartBenefit(state, locationId) {
-  const entry = state && state.safeHavens && state.safeHavens[locationId];
-  const haven = SAFE_HAVENS[locationId];
-  if (!entry || !entry.discovered || !haven) return null;
-
-  return {
-    kind: "extra-herb",
-    amount: 1,
-    label: `${haven.name}の土地勘`,
-    description: haven.benefit
+  Core.start = function startWithSafeHaven(state, id) {
+    const next = baseStart(state, id);
+    if (next === state || !next.expedition || id !== HAVEN.place || !state.cleared.includes(HAVEN.place)) return next;
+    next.expedition.potions = Math.min(3, next.expedition.potions + 1);
+    if (next.expedition.potions > 2) next.expedition.log.unshift(HAVEN.benefit);
+    return next;
   };
-}
 
-function applyExpeditionStartBenefit(state, locationId) {
-  const benefit = expeditionStartBenefit(state, locationId);
-  if (!benefit || !state || !state.expedition) return null;
+  Core.act = function actWithSafeHaven(state, action) {
+    const wasEligible = state?.expedition?.place === HAVEN.place && !state.cleared.includes(HAVEN.place);
+    const next = baseAct(state, action);
+    const discovered = wasEligible && next?.expedition?.place === HAVEN.place && next.expedition.stage === "cleared" && next.expedition.seals.includes(HAVEN.place);
+    if (discovered && !next.expedition.log.includes(HAVEN.discovery)) next.expedition.log.push(HAVEN.discovery);
+    return next;
+  };
 
-  const current = Number(state.expedition.herbs || 0);
-  state.expedition.herbs = Math.min(3, current + benefit.amount);
-  return { ...benefit, applied: state.expedition.herbs > current };
-}
-
-module.exports = {
-  SAFE_HAVENS,
-  discoverSafeHaven,
-  expeditionStartBenefit,
-  applyExpeditionStartBenefit
-};
+  Core.SAFE_HAVEN = HAVEN;
+  Core.__safeHavenInstalled = true;
+  return Core;
+});
