@@ -8,7 +8,14 @@
   let activeSupply = null;
   const originalStart = E.start;
   const originalAct = E.act;
+  const originalParse = E.parse;
   const originalLootCue = E.lootCue;
+
+  E.parse = function (...args) {
+    const parsed = originalParse(...args);
+    activeSupply = parsed?.expedition?.supply || null;
+    return parsed;
+  };
 
   E.start = function (state, place) {
     const next = originalStart(state, place);
@@ -33,7 +40,7 @@
     return activeSupply === 'torch' ? `${cue}${S.cueSuffix({ supply: 'torch' })}` : cue;
   };
 
-  function chooser(place) {
+  function chooser() {
     const options = Object.entries(S.SUPPLIES).map(([id, item]) =>
       `<button class="choice" data-supply="${id}"><strong>${item.name}</strong><small>${item.help}</small></button>`
     ).join('');
@@ -47,7 +54,7 @@
       event.stopImmediatePropagation();
       pendingPlace = depart.dataset.value;
       const game = document.querySelector('#game');
-      if (game) game.insertAdjacentHTML('beforeend', chooser(pendingPlace));
+      if (game) game.insertAdjacentHTML('beforeend', chooser());
       document.querySelector('.supply-chooser [data-supply]')?.focus();
       return;
     }
