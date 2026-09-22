@@ -100,10 +100,13 @@
       ? (cleared ? `${p.reward}を持ち帰った。それでも、道はさらに奥へ続いている。` : p.teaser)
       : '霧の向こうに、まだ地図へ描かれていない土地がある。';
     return `<div class="map-home-detail">
-      <div class="map-home-teaser">
-        <div class="map-home-copy"><p class="kicker">${traceLabel}</p><h2>${unlocked ? p.name : '霧の向こう'}</h2><p class="map-home-whisper">${traceCopy}</p></div>
-        ${unlocked ? button('depart',locked ? `他の土地をあと ${2-state.cleared.length} か所踏破する` : '遠征に出る','',{class:'primary map-home-depart',value:p.id,disabled:locked}) : ''}
-      </div>
+      <details class="map-home-trace">
+        <summary><span><small>${traceLabel}</small><strong>${unlocked ? p.name : '霧の向こう'}</strong></span><span aria-hidden="true">›</span></summary>
+        <div class="map-home-trace-detail">
+          <p class="map-home-whisper">${traceCopy}</p>
+          ${unlocked ? button('depart',locked ? `他の土地をあと ${2-state.cleared.length} か所踏破する` : '遠征に出る','',{class:'primary map-home-depart',value:p.id,disabled:locked}) : ''}
+        </div>
+      </details>
       <details class="map-home-scouting">
         <summary>${state.mode === 'demo' ? '別の道を探す' : '散策して新しい痕跡を探す'}</summary>
         ${scouting()}
