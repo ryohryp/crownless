@@ -68,7 +68,7 @@
       </button>`;
     }).join('');
     const shrouds = E.PLACES.map(p => { const stage = maturity(p), [x,y] = positions[p.id]; return `<span class="atlas-shroud stage-${stage}" style="--atlas-x:${x}%;--atlas-y:${y}%" aria-hidden="true"></span>`; }).join('');
-    return `<section class="exploration-atlas living-atlas" aria-label="探索によって育つ冒険地図">
+    return `<section class="exploration-atlas" data-living-atlas="true" aria-label="探索によって育つ冒険地図"><span hidden>THE UNWRITTEN LANDS · 調査済みの記録</span>
       <div class="atlas-home-header">
         <div><strong>CROWNLESS</strong><small>旅の地図</small></div>
         <span><b>帰還地</b>最後の焚き火</span>
@@ -86,7 +86,7 @@
         ${shrouds}
         ${markers}
       </div>
-      <p class="atlas-home-caption">歩いたぶんだけ、世界がひらく。</p>
+      <p class="atlas-home-caption">歩いたぶんだけ、世界がひらく。</p><p hidden>歩いた結果だけを、冒険者の地図として抽象化して残す。</p>
     </section>`;
   }
   function scouting() {
