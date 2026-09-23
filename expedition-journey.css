@@ -54,13 +54,13 @@ html:has(body.expedition-open) { overflow: hidden; }
 }
 
 /* On short portrait phones the room composition moves the map up to the title
-   band. Collapse the CTA into a bottom-center action so it remains reachable
-   without stealing the map, shelf, or Atlas touch targets. */
+   band. Collapse the CTA above the persistent bottom navigation so both remain
+   reachable without stealing the map, shelf, Atlas, or gesture hit regions. */
 @media (max-width: 600px) and (max-height: 760px) {
   .hearth-journey-note {
     left: 50%;
     top: auto;
-    bottom: max(8px, env(safe-area-inset-bottom));
+    bottom: calc(82px + env(safe-area-inset-bottom));
     width: auto;
     max-width: none;
     min-height: 44px;
