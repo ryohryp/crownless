@@ -92,7 +92,11 @@
     const specific = key && Number.isInteger(s?.upgrades?.[key]) ? Math.max(0, Math.min(4, s.upgrades[key])) : 0;
     return Math.max(legacy, specific);
   }
-  const upgradeCost = (s, id = s.equipped) => 8 + weaponLevel(s, id) * 6;
+  const upgradeCost = (s, id = s.equipped) => {
+    const lvl = weaponLevel(s, id);
+    if (id === 'rust' && lvl === 0) return 4;
+    return 8 + lvl * 6;
+  };
   function combatProfile(s, id = s.equipped) {
     const gear = GEAR[id];
     const family = gearFamily(id);

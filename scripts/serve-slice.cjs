@@ -5,9 +5,20 @@ const path = require('node:path');
 const isAllowed = name => !name.includes('..') && (
   ['index.html','expedition.html'].includes(name) ||
   (name.endsWith('.css') && !name.includes('/')) ||
-  (name.startsWith('src/') && name.endsWith('.js') && name.indexOf('/', 4) === -1)
+  (name.startsWith('src/') && name.endsWith('.js') && name.indexOf('/', 4) === -1) ||
+  name.startsWith('assets/')
 );
-const types = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8'};
+const types = {
+  '.html':'text/html; charset=utf-8',
+  '.css':'text/css; charset=utf-8',
+  '.js':'text/javascript; charset=utf-8',
+  '.svg':'image/svg+xml; charset=utf-8',
+  '.png':'image/png',
+  '.jpg':'image/jpeg',
+  '.jpeg':'image/jpeg',
+  '.webp':'image/webp',
+  '.json':'application/json; charset=utf-8'
+};
 const server = http.createServer((req,res) => {
   const name = new URL(req.url,'http://localhost').pathname.slice(1) || 'index.html';
   if (!['GET','HEAD'].includes(req.method) || !isAllowed(name)) { res.writeHead(404); res.end('Not found'); return; }

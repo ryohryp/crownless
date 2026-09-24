@@ -32,6 +32,16 @@ test('complete first loop banks signature gear; a second expedition uses its own
   const before = s.expedition.enemy.hp;
   s = E.act(s,'strike'); assert.equal(before-s.expedition.enemy.hp,11);
 });
+test('starter weapon level 0 reinforcement costs 4 scraps so first safe return allows immediate progression', () => {
+  let s = fresh();
+  assert.equal(E.weaponLevel(s, 'rust'), 0);
+  assert.equal(E.upgradeCost(s, 'rust'), 4);
+  s.scrap = 4;
+  s = E.upgrade(s, 'rust');
+  assert.equal(s.scrap, 0);
+  assert.equal(E.weaponLevel(s, 'rust'), 1);
+  assert.equal(E.upgradeCost(s, 'rust'), 14);
+});
 test('reinforcement is per individual weapon, including loot variants', () => {
   let s=fresh(); s.scrap=100; s.owned.push('fang','fang_blood','shield','bow');
   s=E.equip(s,'fang_blood'); s=E.upgrade(s,'fang_blood');

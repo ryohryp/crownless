@@ -36,8 +36,10 @@ test('serve-slice loopback server correctly allows playable slice assets', async
     assert.equal(await get('/src/slice-app.js'), 200);
     assert.equal(await get('/src/hidden-shortcut-ui.js'), 200);
     assert.equal(await get('/src/return-postcard-ui.js'), 200);
+    assert.equal(await get('/assets/living-map-terrain.svg'), 200);
     assert.equal(await get('/package.json'), 404);
     assert.equal(await get('/../package.json'), 404);
+    assert.equal(await get('/assets/../package.json'), 404);
   } finally {
     child.kill();
   }
