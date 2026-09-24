@@ -75,8 +75,16 @@
     z-index: 3;
     margin-top: .5rem;
     padding: .7rem;
+    color: #23302d;
     background: var(--paper, #f2ead8);
     border-top: 1px solid currentColor;
+  }
+  .game-layout:has(.camp-tabs button.active[data-value="gear"]) .rule-line .small {
+    color: #52635d;
+  }
+  .game-layout:has(.camp-tabs button.active[data-value="gear"]) .rule-line .secondary {
+    color: #314b43;
+    border-color: #6b7c75;
   }
 }
 
