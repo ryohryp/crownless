@@ -22,10 +22,42 @@
     if (panel && !panel.querySelector('.wounded-prey')) panel.innerHTML = html;
   }
 
+  function validWoundedPrey(e) {
+    return e && typeof e.kind === 'string'
+      && Number.isInteger(e.hp) && e.hp > 0
+      && Number.isInteger(e.maxHp) && e.maxHp >= e.hp && e.maxHp <= 80
+      && Number.isInteger(e.depth) && e.depth >= 1 && e.depth <= 3;
+  }
+
+  function parseWithExtension(originalParse, context, raw) {
+    if (typeof raw !== 'string') return originalParse.call(context, raw);
+    let saved;
+    try { saved = JSON.parse(raw); } catch { return originalParse.call(context, raw); }
+    const x = saved?.expedition;
+    const pending = x?.stage === 'wounded-prey' && validWoundedPrey(x.woundedPrey) ? { ...x.woundedPrey } : null;
+    const chased = x?.stage === 'fight' && x.enemy?.woundedChase === true;
+    if (!pending && !chased) return originalParse.call(context, raw);
+
+    const base = JSON.parse(JSON.stringify(saved));
+    if (pending) {
+      delete base.expedition.woundedPrey;
+      base.expedition.stage = 'path';
+    }
+    if (chased) delete base.expedition.enemy.woundedChase;
+    const parsed = originalParse.call(context, JSON.stringify(base));
+    if (!parsed?.expedition) return parsed;
+    if (pending) {
+      parsed.expedition.stage = 'wounded-prey';
+      parsed.expedition.woundedPrey = pending;
+    }
+    if (chased && parsed.expedition.enemy) parsed.expedition.enemy.woundedChase = true;
+    return parsed;
+  }
+
   function wrapEngine(E) {
     if (!E || E.__woundedPreyWrapped) return E;
     const originalAct = E.act, originalStart = E.start, originalParse = E.parse;
-    E.parse = function (...args) { latestState = originalParse.apply(this, args); return latestState; };
+    E.parse = function (...args) { latestState = parseWithExtension(originalParse, this, args[0]); return latestState; };
     E.start = function (...args) { latestState = originalStart.apply(this, args); return latestState; };
     E.act = function (state, action) {
       const pending = state?.expedition?.stage === 'wounded-prey' && state.expedition.woundedPrey;
