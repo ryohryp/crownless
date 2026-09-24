@@ -26,7 +26,8 @@
     return e && typeof e.kind === 'string'
       && Number.isInteger(e.hp) && e.hp > 0
       && Number.isInteger(e.maxHp) && e.maxHp >= e.hp && e.maxHp <= 80
-      && Number.isInteger(e.depth) && e.depth >= 1 && e.depth <= 3;
+      && Number.isInteger(e.depth) && e.depth >= 1 && e.depth <= 3
+      && Number.isInteger(e.turn) && e.turn >= 0 && e.turn <= 1e6;
   }
 
   function parseWithExtension(originalParse, context, raw) {
@@ -64,7 +65,7 @@
       if (pending && action === 'chase') {
         const next = JSON.parse(JSON.stringify(state));
         const x = next.expedition;
-        x.enemy = { ...x.woundedPrey, turn: 0, elite: true, risky: true, woundedChase: true };
+        x.enemy = { ...x.woundedPrey, elite: true, risky: true, woundedChase: true };
         delete x.woundedPrey;
         x.stage = 'fight';
         x.log = ['血の跡を追いつめた。傷ついた強敵が、もう一度こちらを向く。'];
@@ -76,7 +77,7 @@
       const next = originalAct(state, action);
       const x = next?.expedition;
       if (canEscape && x?.enemy && x.enemy.elite && x.enemy.hp > 0 && x.enemy.hp <= Math.ceil(x.enemy.maxHp * THRESHOLD)) {
-        x.woundedPrey = { kind: x.enemy.kind, hp: x.enemy.hp, maxHp: x.enemy.maxHp, depth: x.enemy.depth };
+        x.woundedPrey = { kind: x.enemy.kind, hp: x.enemy.hp, maxHp: x.enemy.maxHp, depth: x.enemy.depth, turn: x.enemy.turn };
         x.enemy = null;
         x.stage = 'wounded-prey';
         x.log = ['土地の主が血の跡を残して逃げた。追えば傷はそのまま。今なら生還を選べる。'];
