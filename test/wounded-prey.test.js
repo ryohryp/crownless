@@ -38,3 +38,26 @@ test('non-elite enemies never enter wounded prey chase', () => {
   assert.equal(next.expedition.stage, 'fight');
   assert.equal(next.expedition.woundedPrey, undefined);
 });
+
+test('wounded prey choice and chased fight survive real engine save reload', () => {
+  const E = require('../src/slice-engine');
+  Wounded.wrapEngine(E);
+  const base = E.initial();
+  base.mode = 'demo';
+  const started = E.start(base, 'wood');
+
+  const escaped = structuredClone(started);
+  escaped.expedition.stage = 'wounded-prey';
+  escaped.expedition.woundedPrey = { kind: 'wolf', hp: 6, maxHp: 24, depth: 1 };
+  const restoredChoice = E.parse(E.serialize(escaped));
+  assert.ok(restoredChoice);
+  assert.equal(restoredChoice.expedition.stage, 'wounded-prey');
+  assert.equal(restoredChoice.expedition.woundedPrey.hp, 6);
+
+  const chased = E.act(restoredChoice, 'chase');
+  const restoredFight = E.parse(E.serialize(chased));
+  assert.ok(restoredFight);
+  assert.equal(restoredFight.expedition.stage, 'fight');
+  assert.equal(restoredFight.expedition.enemy.hp, 6);
+  assert.equal(restoredFight.expedition.enemy.woundedChase, true);
+});
