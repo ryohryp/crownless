@@ -5,9 +5,10 @@ const path = require('node:path');
 const isAllowed = name => !name.includes('..') && (
   ['index.html','expedition.html'].includes(name) ||
   (name.endsWith('.css') && !name.includes('/')) ||
-  (name.startsWith('src/') && name.endsWith('.js') && name.indexOf('/', 4) === -1)
+  (name.startsWith('src/') && name.endsWith('.js') && name.indexOf('/', 4) === -1) ||
+  (name.startsWith('assets/') && name.endsWith('.svg') && name.indexOf('/', 7) === -1)
 );
-const types = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8'};
+const types = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml'};
 const server = http.createServer((req,res) => {
   const name = new URL(req.url,'http://localhost').pathname.slice(1) || 'index.html';
   if (!['GET','HEAD'].includes(req.method) || !isAllowed(name)) { res.writeHead(404); res.end('Not found'); return; }
