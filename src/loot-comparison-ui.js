@@ -8,7 +8,11 @@
     root.querySelectorAll('.loot-comparison-moment').forEach(node => node.remove());
     const ledger = root.querySelector('.loot-ledger');
     if (!ledger) return;
-    const currentName = E.GEAR && Object.entries(E.GEAR).find(([, gear]) => gear.name === ledger.querySelector('small')?.textContent?.split(' · ')[0])?.[0];
+    const currentLine = [...ledger.querySelectorAll('small')]
+      .map(node => node.textContent?.trim() || '')
+      .find(text => text.startsWith('現在装備：'));
+    const currentGearName = currentLine?.slice('現在装備：'.length).split(' · ')[0].trim();
+    const currentName = E.GEAR && Object.entries(E.GEAR).find(([, gear]) => gear.name === currentGearName)?.[0];
     if (!currentName) return;
     const found = [...ledger.querySelectorAll('p')].map(p => p.textContent.trim()).find(text => text.startsWith('＋ '));
     if (!found) return;
