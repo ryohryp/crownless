@@ -1,5 +1,5 @@
 /* #709: primary camp navigation stays reachable without document scrolling. */
-.bottom-navigation {
+#game > .game-layout .camp-tabs.bottom-navigation {
   position: fixed;
   left: 50%;
   bottom: max(10px, env(safe-area-inset-bottom));
@@ -16,7 +16,7 @@
   backdrop-filter: blur(12px);
 }
 
-.bottom-navigation .bottom-navigation-item {
+#game > .game-layout .camp-tabs.bottom-navigation .bottom-navigation-item {
   min-height: 46px;
   margin: 0;
   border-radius: 13px;
@@ -25,7 +25,7 @@
   touch-action: manipulation;
 }
 
-.bottom-navigation .bottom-navigation-item[aria-current="page"] {
+#game > .game-layout .camp-tabs.bottom-navigation .bottom-navigation-item[aria-current="page"] {
   outline: 1px solid rgba(204, 180, 126, .72);
   outline-offset: -2px;
 }
@@ -36,7 +36,7 @@ body:has(.bottom-navigation) .app-shell {
 }
 
 @media (min-width: 760px) {
-  .bottom-navigation {
+  #game > .game-layout .camp-tabs.bottom-navigation {
     width: min(390px, calc(100% - 32px));
   }
 }
