@@ -41,3 +41,21 @@ The harness runs simulated expeditions across 4 player archetypes (`tactician`, 
 - **Loop Status & Warnings** (Choice): Flags issues like `MINDLESS_COMBAT_SURVIVED`, `TACTICIAN_EARLY_WIPEOUT`, or `UNREWARDING_LOOT`.
 
 Use Jev screening to rapidly tune parameters across 20 iterations. Then perform the human playtest to judge real tactile feel and overall fun.
+
+## Fast Jev browser smoke playtest
+
+Use the browser runner when the question is whether a real DOM flow is reachable quickly, not whether the game is fun:
+
+```bash
+TYPESAFE_API_KEY=... npm run playtest:browser
+```
+
+The runner starts the playable slice on an ephemeral loopback port and invokes the pinned `@jkudish/jev-browser@0.5.0` CLI with a small action budget. Its default goal is deliberately narrow: enter the demo, start the Whispering Wood expedition, make at least one combat decision, then stop. It disables model-generated typing because this flow only needs clicks.
+
+Optional overrides:
+
+```bash
+CROWNLESS_JEV_TASK="..." CROWNLESS_JEV_MAX_STEPS=16 CROWNLESS_JEV_MAX_SECONDS=45 npm run playtest:browser
+```
+
+This is a reachability/speed smoke test. Treat the returned step trace, browser errors, and elapsed time as evidence, then still use a 360–430 CSS px browser/phone playtest for tactile UI and fun. Do not use automation alone to claim the 15-minute goal is met.
