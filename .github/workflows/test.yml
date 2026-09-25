@@ -39,12 +39,3 @@ jobs:
           node --check src/expedition-presentation.js
       - name: Unit tests
         run: npm test
-      - name: Jev browser live smoke (temporary PR validation)
-        env:
-          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
-        run: |
-          if [ -z "$TYPESAFE_API_KEY" ]; then
-            echo "::error::TYPESAFE_API_KEY repository secret is unavailable"
-            exit 1
-          fi
-          npm run playtest:browser
