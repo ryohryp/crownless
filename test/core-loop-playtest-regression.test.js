@@ -44,10 +44,13 @@ test("16-run core-loop regression baseline stays bounded and observable", async 
 
     assert.equal(report.summary.totalRuns, 16);
     assert.equal(traces.length, 16);
-    assert.ok(baseline.maxTurns < 100, "no deterministic run should hit the simulator turn cap");
-    assert.ok(Number.isFinite(report.summary.avgMotivation));
-    assert.ok(Number.isFinite(report.summary.avgPacingDragRisk));
-    assert.ok(recoverableDeaths.length <= deaths.length);
+    assert.ok(baseline.avgTurns <= 40, `average run length regressed: ${baseline.avgTurns}`);
+    assert.ok(baseline.maxTurns <= 75, `longest run regressed: ${baseline.maxTurns}`);
+    assert.ok(baseline.avgCombatTurns <= 32, `average combat length regressed: ${baseline.avgCombatTurns}`);
+    assert.ok(report.summary.avgPacingDragRisk <= 0.25, `drag risk regressed: ${report.summary.avgPacingDragRisk}`);
+    assert.ok(report.summary.avgMotivation >= 3.4, `one-more-run motivation regressed: ${report.summary.avgMotivation}`);
+    assert.equal(recoverableDeaths.length, deaths.length, "every defeat in the fixed suite should preserve a recovery hook");
+    assert.deepEqual(report.summary.warnings, []);
   } finally {
     Math.random = originalRandom;
   }
