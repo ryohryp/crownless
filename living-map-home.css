@@ -92,9 +92,10 @@
      The previous caption used a pale-on-pale treatment and leaked status/trace
      copy beneath the dark controls. */
   #game>.living-map-home .atlas-home-caption{
-    color:#51432f;
-    background:rgba(225,211,170,.96);
-    text-shadow:0 1px 0 rgba(255,248,224,.55);
+    /* This atmospheric line was being painted underneath the floating action
+       stack and became a clipped ghost line. The phone home already communicates
+       the same idea through the map itself; remove it from the scarce play surface. */
+    display:none;
   }
   #game>.living-map-home .atlas-anomaly-copy{
     z-index:6;
