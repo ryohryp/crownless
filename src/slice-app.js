@@ -152,8 +152,10 @@
     const retreat = !clear ? button('return','ここで生還する','',{class:'secondary'}) : '';
     const heal = !clear ? `<div class="combat-foot">${button('heal',`薬草を使う（残り ${x.potions}）· 体力 +12`,'',{class:'text-button',disabled:x.potions === 0 || x.hp === E.maxHp(state)})}<span class="small">安全に使える</span></div>` : '';
     return `<div class="path-decision">
-      <div class="path-mobile-status">${vitals(x)}<div class="path-risk"><span>背嚢</span><strong>鉄片 ${x.scrap}</strong><small>${x.gear.length ? `装備 ${x.gear.length} 個 · 生還で確定` : '生還で確定'}</small></div></div>
-      <div class="path-copy"><p class="kicker">${clear ? 'A WAY HOME' : 'ONE MORE ROOM?'}</p><h2>${title}</h2><p class="path-summary">${summary}</p><div class="path-desktop-details"><p class="intro">${detail}</p>${ledger(x)}${cue}${logs(x)}</div></div>
+      <div class="path-scroll">
+        <div class="path-mobile-status">${vitals(x)}<div class="path-risk"><span>背嚢</span><strong>鉄片 ${x.scrap}</strong><small>${x.gear.length ? `装備 ${x.gear.length} 個 · 生還で確定` : '生還で確定'}</small></div></div>
+        <div class="path-copy"><p class="kicker">${clear ? 'A WAY HOME' : 'ONE MORE ROOM?'}</p><h2>${title}</h2><p class="path-summary">${summary}</p><div class="path-desktop-details"><p class="intro">${detail}</p>${ledger(x)}${cue}${logs(x)}</div></div>
+      </div>
       <div class="path-actions"><div class="button-stack">${decisions}</div>${!clear ? `<div class="path-secondary-row">${retreat}${heal}</div>` : ''}</div>
     </div>`;
   }
