@@ -259,8 +259,19 @@
     height: 100%;
     min-height: 0;
     display: grid;
-    grid-template-rows: auto minmax(0, 1fr) auto;
+    grid-template-rows: minmax(0, 1fr) auto;
     gap: .45rem;
+    overflow: hidden;
+  }
+
+  /* #803: reserve the CTA as a real bottom row. Only status/copy may consume
+     the remaining height, so long guardian prose cannot push actions offscreen. */
+  #game > .expedition-layout .path-scroll {
+    min-height: 0;
+    display: grid;
+    grid-template-rows: auto minmax(0, 1fr);
+    gap: .45rem;
+    overflow: hidden;
   }
 
   #game > .expedition-layout .path-mobile-status {
