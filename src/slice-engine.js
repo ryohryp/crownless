@@ -6,10 +6,10 @@
   'use strict';
   const VERSION = 1;
   const PLACES = [
-    { id: 'wood', name: '囁きの森', teaser: '霧の中に、折れた枝と獣の足跡が続いている。', subtitle: '根の下に、誰かの剣が眠る。', terrain: 'FOREST', weapon: 'fang', enemy: 'wolf', reward: '牙の短剣', hint: '回避のあとに、一撃を返す。', color: '#93ae8e' },
-    { id: 'tower', name: '鐘なき塔', teaser: '霧の向こうから、鳴るはずのない鐘の音がする。', subtitle: '鳴らない鐘を、今も守る者。', terrain: 'WATCHTOWER', weapon: 'shield', enemy: 'knight', reward: '番人の盾', hint: '守りを固め、敵の隙を待つ。', color: '#c5ad79' },
-    { id: 'fen', name: '星沈みの湿原', teaser: '水辺の霧の奥で、青い光がゆっくり揺れている。', subtitle: '水面に、消えた星が映る。', terrain: 'WETLAND', weapon: 'bow', enemy: 'wraith', reward: '葦の長弓', hint: '鎧を貫き、狙った獲物を射る。', color: '#91b4bd' },
-    { id: 'crypt', name: '灰冠の廟', teaser: '石の下から、乾いた金属音がかすかに響く。', subtitle: '王冠だけが、主を忘れない。', terrain: 'ROYAL TOMB', weapon: 'crown', enemy: 'king', reward: '灰の王冠', hint: 'この小さな旅の、最初の到達点。', color: '#b1a0ca' },
+    { id: 'wood', name: '囁きの森', teaser: '霧の中に、折れた枝と獣の足跡が続いている。', subtitle: '根の下に、誰かの剣が眠る。', terrain: 'FOREST', weapon: 'fang', enemy: 'wolf', reward: '足跡の主が茨牙の狼だったという答えと、鐘形の刻印という次の手掛かり', hint: '回避のあとに、一撃を返す。', color: '#93ae8e' },
+    { id: 'tower', name: '鐘なき塔', teaser: '霧の向こうから、鳴るはずのない鐘の音がする。', subtitle: '鳴らない鐘を、今も守る者。', terrain: 'WATCHTOWER', weapon: 'shield', enemy: 'knight', reward: '鐘音の正体が亡兵の盾だったという答えと、水辺を示す星形の印', hint: '守りを固め、敵の隙を待つ。', color: '#c5ad79' },
+    { id: 'fen', name: '星沈みの湿原', teaser: '水辺の霧の奥で、青い光がゆっくり揺れている。', subtitle: '水面に、消えた星が映る。', terrain: 'WETLAND', weapon: 'bow', enemy: 'wraith', reward: '青い光が沼灯の亡霊だったという答えと、灰冠へ続く金属音の手掛かり', hint: '鎧を貫き、狙った獲物を射る。', color: '#91b4bd' },
+    { id: 'crypt', name: '灰冠の廟', teaser: '石の下から、乾いた金属音がかすかに響く。', subtitle: '王冠だけが、主を忘れない。', terrain: 'ROYAL TOMB', weapon: 'crown', enemy: 'king', reward: '金属音の正体と、霧へ沈む未知の階段という次の手掛かり', hint: 'この小さな旅の、最初の到達点。', color: '#b1a0ca' },
   ];
   const GEAR = {
     rust: { name: '欠けた鉄剣', short: '鉄剣', family: 'rust', trait: 'balanced', attack: 4 },
