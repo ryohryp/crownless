@@ -1,6 +1,7 @@
 "use strict";
 
 const Engine = require("../src/slice-engine.js");
+const RescueCache = require("../src/rescue-cache.js");
 const EnemyAdaptation = require("../src/enemy-adaptation.js");
 require("../src/enemy-adaptation-runtime.js")(Engine, EnemyAdaptation);
 
@@ -245,6 +246,7 @@ function simulateExpedition(options = {}) {
 
   const report = state.report || {};
   const died = Boolean(report.died);
+  const recoveryCache = died ? RescueCache.cacheFromReport(report, placeId) : null;
   const cleared = Boolean(!died && report.cleared?.length > 0);
   const finalHp = report.hp ?? (state.expedition ? state.expedition.hp : 0);
 
@@ -303,6 +305,7 @@ function simulateExpedition(options = {}) {
       canEquipNew,
       newGearEquipped,
       canUpgrade,
+      recoveryCache,
       scrapRemaining: state.scrap,
       unlockedPlaces: [...state.unlocked],
     },

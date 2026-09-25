@@ -42,6 +42,7 @@ function buildJevState(trace) {
       equipped_weapon: trace.finalWeapon,
       new_gear_equipped: trace.hearthOutcome.newGearEquipped,
       upgraded_weapon: trace.hearthOutcome.canUpgrade,
+      recovery_cache: trace.hearthOutcome.recoveryCache,
       scrap_held: trace.hearthOutcome.scrapRemaining,
       unlocked_destinations: trace.hearthOutcome.unlockedPlaces,
     },
@@ -185,6 +186,7 @@ function fallbackEvaluation(trace) {
   let oneMorePull = 2.0;
   if (trace.hearthOutcome.canEquipNew) oneMorePull += 1.8;
   if (trace.hearthOutcome.canUpgrade) oneMorePull += 0.8;
+  if (trace.hearthOutcome.recoveryCache) oneMorePull += 0.8;
   if (trace.cleared) oneMorePull += 0.5;
 
   let loopStatus = "healthy_loop";
