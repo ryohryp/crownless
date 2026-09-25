@@ -277,8 +277,8 @@ test('heavy attack against open enemy deals bonus damage and enemy guard reduces
   // wolf pattern: quick(0), heavy(1), open(2)
   s.expedition.enemy.turn = 2; // open
   assert.equal(E.intent(s.expedition.enemy).id, 'open');
-  // rust weapon attack = 4, heavyBonus = 4, openBonus = +3 -> 11 damage
-  assert.equal(E.attackPreview(s, 'heavy'), 11);
+  // rust weapon attack = 4, heavyBonus = 4, open punish = +5 -> 13 damage
+  assert.equal(E.attackPreview(s, 'heavy'), 13);
   assert.equal(E.attackPreview(s, 'strike'), 4);
 
   // Set intent to guard
