@@ -45,7 +45,7 @@
     return `<button class="${options.class || 'choice'}" data-action="${action}" ${options.value ? `data-value="${options.value}"` : ''} ${options.disabled ? 'disabled' : ''}>${body ? `<strong>${title}</strong><small>${body}</small>` : title}</button>`;
   }
   function scene(id, title, subtitle, enemy = null, tag = '') {
-    return `<div class="scene">${A.scene(id, enemy, E.gearFamily(state.equipped))}<span class="scene-top">${enemy ? 'HOLD YOUR GROUND' : 'BEYOND THE MIST'}</span>${tag ? `<span class="scene-tag">${tag}</span>` : ''}<div class="scene-caption"><p class="kicker">${subtitle}</p><h2>${title}</h2></div></div>`;
+    return `<div class="scene">${A.scene(id, enemy, state.equipped)}<span class="scene-top">${enemy ? 'HOLD YOUR GROUND' : 'BEYOND THE MIST'}</span>${tag ? `<span class="scene-tag">${tag}</span>` : ''}<div class="scene-caption"><p class="kicker">${subtitle}</p><h2>${title}</h2></div></div>`;
   }
   const logs = x => `<div class="combat-log" role="status" aria-live="polite">${x.log.map(v => `<p>${esc(v)}</p>`).join('')}</div>`;
   const ledger = x => `<div class="loot-ledger"><p class="kicker">AT RISK · 生還で確定</p><strong>${x.scrap}</strong> <small>鉄片 / 背嚢の中</small>${x.gear.length ? `<p><small>現在装備：${E.GEAR[state.equipped].name} · ${E.gearText(state,state.equipped)}</small></p>` : ''}${x.gear.map(g => `<p>＋ ${E.GEAR[g].name}<br><small>未帰還 · ${E.gearText(state,g)}</small></p>`).join('')}</div>`;
