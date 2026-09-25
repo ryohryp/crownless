@@ -5,7 +5,7 @@ const path = require("node:path");
 
 const JEV_BROWSER_PACKAGE = "@jkudish/jev-browser@0.5.0";
 const DEFAULT_TASK =
-  "Crownlessの体験モードを開始し、囁きの森へ遠征する。敵の予兆を読んで少なくとも1回は戦闘行動を選び、戦闘が進行したことを確認したら停止する。現実の散策モードや位置情報/GPSは使わない。";
+  "Crownlessの体験モードを開始し、囁きの森へ遠征する。敵と遭遇したら「斬る」ボタンをクリックして敵にダメージを与え、ダメージ結果が表示されたら完了とする。現実の散策モードや位置情報/GPSは使わない。";
 const DEFAULT_MAX_STEPS = "12";
 const DEFAULT_MAX_SECONDS = "30";
 
@@ -85,7 +85,24 @@ async function main() {
   const task = process.env.CROWNLESS_JEV_TASK || DEFAULT_TASK;
   const maxSteps = process.env.CROWNLESS_JEV_MAX_STEPS || DEFAULT_MAX_STEPS;
   const maxSeconds = process.env.CROWNLESS_JEV_MAX_SECONDS || DEFAULT_MAX_SECONDS;
-  const npx = process.platform === "win32" ? "npx.cmd" : "npx";
+  const npxArgs = [
+    "-y",
+    JEV_BROWSER_PACKAGE,
+    "run",
+    task,
+    startUrl,
+    "--format",
+    "text",
+    "--max-chars",
+    "4000",
+    "--max-steps",
+    String(maxSteps),
+    "--max-seconds",
+    String(maxSeconds),
+    "--no-typing",
+  ];
+  const command = process.platform === "win32" ? (process.env.ComSpec || "cmd.exe") : "npx";
+  const args = process.platform === "win32" ? ["/c", "npx", ...npxArgs] : npxArgs;
 
   console.log(`[jev-browser] start: ${startUrl}`);
   console.log(`[jev-browser] task: ${task}`);
@@ -95,23 +112,8 @@ async function main() {
 
   try {
     const result = await runCommand(
-      npx,
-      [
-        "-y",
-        JEV_BROWSER_PACKAGE,
-        "run",
-        task,
-        startUrl,
-        "--format",
-        "text",
-        "--max-chars",
-        "4000",
-        "--max-steps",
-        String(maxSteps),
-        "--max-seconds",
-        String(maxSeconds),
-        "--no-typing",
-      ],
+      command,
+      args,
       {
         cwd: root,
         env: process.env,

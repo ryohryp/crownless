@@ -1,8 +1,8 @@
 /* #611 Rare Encounter: a small, uncommon decision that makes expeditions less predictable. */
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory();
-  else root.CrownlessRareEncounter = factory();
-})(typeof globalThis === 'object' ? globalThis : this, function () {
+  if (typeof module === 'object' && module.exports) module.exports = factory(root);
+  else root.CrownlessRareEncounter = factory(root);
+})(typeof globalThis === 'object' ? globalThis : this, function (root) {
   'use strict';
 
   const MARK = '【希少遭遇】霧の中に、主のいない荷車が止まっている。';
@@ -50,7 +50,7 @@
   }
 
   function enhance() {
-    const engine = root.CrownlessSlice;
+    const engine = (root && root.CrownlessSlice) || (typeof window !== 'undefined' ? window.CrownlessSlice : null);
     const game = document.querySelector('#game');
     if (!engine || !game) return;
     install(engine);

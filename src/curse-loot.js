@@ -1,8 +1,8 @@
 /* #656 Curse Loot: a strong find that makes the trip home feel dangerous. */
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory();
-  else root.CrownlessCurseLoot = factory();
-})(typeof globalThis === 'object' ? globalThis : this, function () {
+  if (typeof module === 'object' && module.exports) module.exports = factory(root);
+  else root.CrownlessCurseLoot = factory(root);
+})(typeof globalThis === 'object' ? globalThis : this, function (root) {
   'use strict';
 
   const MARK = '【禍具】拾った武具が、掌の中で脈打っている。';
@@ -48,7 +48,7 @@
   }
 
   function enhance() {
-    const engine = root.CrownlessSlice;
+    const engine = (root && root.CrownlessSlice) || (typeof window !== 'undefined' ? window.CrownlessSlice : null);
     const game = document.querySelector('#game');
     if (!engine || !game) return;
     install(engine);
