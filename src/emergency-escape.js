@@ -1,8 +1,8 @@
 /* #621 Emergency Escape: make survival a tactical choice without adding a chase system. */
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory();
-  else root.CrownlessEmergencyEscape = factory();
-})(typeof globalThis === 'object' ? globalThis : this, function () {
+  if (typeof module === 'object' && module.exports) module.exports = factory(root);
+  else root.CrownlessEmergencyEscape = factory(root);
+})(typeof globalThis === 'object' ? globalThis : this, function (root) {
   'use strict';
 
   function escapeCost(state) {
@@ -42,7 +42,7 @@
   }
 
   function enhance() {
-    const engine = root.CrownlessSlice;
+    const engine = (root && root.CrownlessSlice) || (typeof window !== 'undefined' ? window.CrownlessSlice : null);
     if (!engine) return;
     install(engine);
     const renderChoice = () => {

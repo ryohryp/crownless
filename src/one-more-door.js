@@ -1,8 +1,8 @@
 /* #618 One More Door: one optional last temptation before a safe return. */
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory();
-  else root.CrownlessOneMoreDoor = factory();
-})(typeof globalThis === 'object' ? globalThis : this, function () {
+  if (typeof module === 'object' && module.exports) module.exports = factory(root);
+  else root.CrownlessOneMoreDoor = factory(root);
+})(typeof globalThis === 'object' ? globalThis : this, function (root) {
   'use strict';
 
   const MARK = '半開きの扉を調べた。';
@@ -35,7 +35,7 @@
   }
 
   function enhance() {
-    const engine = root.CrownlessSlice;
+    const engine = (root && root.CrownlessSlice) || (typeof window !== 'undefined' ? window.CrownlessSlice : null);
     const game = document.querySelector('#game');
     if (!engine || !game) return;
     install(engine);

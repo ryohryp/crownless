@@ -42,9 +42,9 @@
 
   function chooser() {
     const options = Object.entries(S.SUPPLIES).map(([id, item]) =>
-      `<button class="choice" data-supply="${id}"><strong>${item.name}</strong><small>${item.help}</small></button>`
+      `<button class="choice" data-supply="${id}"><strong>${item.name}を持って遠征へ</strong><small>${item.help}</small></button>`
     ).join('');
-    return `<div class="help supply-chooser" role="dialog" aria-modal="true" aria-label="遠征の持ち物"><p class="kicker">ONE THING FOR THE ROAD</p><h2>ひとつだけ、持っていく。</h2><p class="small">荷物管理はしない。今回の遠征で頼るものを一つ選ぶ。</p><div class="button-stack">${options}</div><button class="text-button" data-supply-cancel>戻る</button></div>`;
+    return `<div class="help supply-chooser" role="dialog" aria-modal="true" aria-label="遠征の持ち物"><p class="kicker">EXPEDITION SUPPLIES</p><h2>遠征の持ち物をひとつ選ぶ</h2><p class="small">荷物管理はしない。今回の遠征で頼るものを一つ選んで出発する。</p><div class="button-stack">${options}</div><button class="text-button" data-supply-cancel>戻る</button></div>`;
   }
 
   document.addEventListener('click', event => {
@@ -54,7 +54,11 @@
       event.stopImmediatePropagation();
       pendingPlace = depart.dataset.value;
       const game = document.querySelector('#game');
-      if (game) game.insertAdjacentHTML('beforeend', chooser());
+      if (game) {
+        const camp = game.querySelector('.camp-layout');
+        if (camp) camp.style.visibility = 'hidden';
+        game.insertAdjacentHTML('beforeend', chooser());
+      }
       document.querySelector('.supply-chooser [data-supply]')?.focus();
       return;
     }
@@ -66,6 +70,8 @@
       const place = pendingPlace;
       pendingPlace = null;
       document.querySelector('.supply-chooser')?.remove();
+      const camp = document.querySelector('#game .camp-layout');
+      if (camp) camp.style.visibility = '';
       const departButton = document.querySelector(`button[data-action="depart"][data-value="${place}"]`);
       if (departButton) {
         departButton.dataset.supplyReady = '1';
@@ -78,6 +84,8 @@
       event.stopImmediatePropagation();
       pendingPlace = null;
       document.querySelector('.supply-chooser')?.remove();
+      const camp = document.querySelector('#game .camp-layout');
+      if (camp) camp.style.visibility = '';
     }
   }, true);
 })();

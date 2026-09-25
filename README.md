@@ -50,6 +50,14 @@ node --test test/slice-engine.test.js test/slice-app.test.js
 
 新規テストは生還と損失、装備差、最終地点への到達、深層、途中保存、GPS精度・移動・遅延応答、保存失敗とタブ競合を確認します。ゲームの面白さは自動テストでは判定できません。
 
+TypeSafe Jev による実ブラウザの高速スモーク確認も任意で実行できます（Node.js 22+ と `TYPESAFE_API_KEY` が必要です）。初回は `npx` が Jev Browser / Chromium を取得する場合があります。
+
+```sh
+npm run playtest:browser
+```
+
+これは DOM 操作経路の到達性と速度を見るための補助です。スマートフォンUIの触感や「もう1回遠征したいか」の判断は、引き続き実画面プレイで確認します。
+
 [今回のプレイ確認記録](docs/playable-slice-playtest.md) に、実画面で確認した範囲と次の実機プレイの問いを記載しています。
 
 旧 `reboot.html` と旧モジュール・設計書は比較用の履歴として残っています。現在の入口では読み込みません。過去のADRや領土システムの設計は今回のプロダクト方針を上書きしません。

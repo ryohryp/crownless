@@ -1,8 +1,8 @@
 /* #615 Shrine Bargain: one clear, optional risk/reward choice in the deep. */
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory();
-  else root.CrownlessShrineBargain = factory();
-})(typeof globalThis === 'object' ? globalThis : this, function () {
+  if (typeof module === 'object' && module.exports) module.exports = factory(root);
+  else root.CrownlessShrineBargain = factory(root);
+})(typeof globalThis === 'object' ? globalThis : this, function (root) {
   'use strict';
 
   const MARK = '【古い祠】欠けた石皿に、まだ温かな灰が残っている。';
@@ -48,7 +48,7 @@
   }
 
   function enhance() {
-    const engine = root.CrownlessSlice;
+    const engine = (root && root.CrownlessSlice) || (typeof window !== 'undefined' ? window.CrownlessSlice : null);
     const game = document.querySelector('#game');
     if (!engine || !game) return;
     install(engine);

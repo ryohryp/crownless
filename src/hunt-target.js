@@ -49,17 +49,26 @@
         let sheet = doc.querySelector('#hunt-target-sheet');
         if (!sheet) {
           sheet = doc.createElement('div'); sheet.id = 'hunt-target-sheet'; sheet.className = 'hunt-target-sheet';
-          sheet.innerHTML = `<div class="hunt-target-card" role="dialog" aria-modal="true" aria-labelledby="hunt-target-title"><p class="kicker">THIS EXPEDITION</p><h2 id="hunt-target-title">今日は、何を狙う？</h2><p class="small">結果を確定する依頼ではない。遠征の傾向を少しだけ寄せる。</p><div class="hunt-target-options">${Object.entries(TARGETS).map(([id,t]) => `<button class="choice" data-hunt-target="${id}"><strong>${t.label}</strong><small>${t.help}</small></button>`).join('')}</div><button class="text-button" data-hunt-cancel>やめる</button></div>`;
+          sheet.innerHTML = `<div class="hunt-target-card" role="dialog" aria-modal="true" aria-labelledby="hunt-target-title"><p class="kicker">THIS EXPEDITION</p><h2 id="hunt-target-title">遠征の狙いを選ぶ</h2><p class="small">結果を確定する依頼ではない。遠征の傾向を少しだけ寄せて出発する。今回の遠征での狙い（フォーカス）を選択してください。深層での武具発見や鉄片獲得など、優先したい狙いを定めて出発します。この選択は今回の遠征のみ有効です。</p><div class="hunt-target-options">${Object.entries(TARGETS).map(([id,t]) => `<button class="choice" data-hunt-target="${id}"><strong>${t.label}（この狙いで遠征へ）</strong><small>${t.help}</small></button>`).join('')}</div><button class="text-button" data-hunt-cancel>やめる</button></div>`;
           doc.body.appendChild(sheet);
         }
-        sheet.hidden = false; sheet.querySelector('[data-hunt-target]')?.focus(); return;
+        sheet.hidden = false;
+        const game = doc.querySelector('#game');
+        if (game) game.style.visibility = 'hidden';
+        sheet.querySelector('[data-hunt-target]')?.focus(); return;
       }
       const choice = event.target.closest?.('[data-hunt-target]');
       if (choice && pending) {
+        const game = doc.querySelector('#game');
+        if (game) game.style.visibility = '';
         setTarget(choice.dataset.huntTarget); doc.querySelector('#hunt-target-sheet').hidden = true;
         bypass = true; pending.click(); bypass = false; pending = null; return;
       }
-      if (event.target.closest?.('[data-hunt-cancel]')) { doc.querySelector('#hunt-target-sheet').hidden = true; pending = null; }
+      if (event.target.closest?.('[data-hunt-cancel]')) {
+        const game = doc.querySelector('#game');
+        if (game) game.style.visibility = '';
+        doc.querySelector('#hunt-target-sheet').hidden = true; pending = null;
+      }
     }, true);
   }
   if (typeof window !== 'undefined' && window.CrownlessSlice) { wrapEngine(window.CrownlessSlice); installUi(document); }
