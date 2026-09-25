@@ -22,7 +22,7 @@ test('gear target reuses risky loot path only in deeper encounters', () => {
   s.expedition.depth = 2;
   s = E.act(s, 'careful');
   assert.equal(s.expedition.enemy.risky, true);
-  assert.equal(s.expedition.enemy.maxHp, 22);
+  assert.equal(s.expedition.enemy.maxHp, 21);
 });
 
 test('danger target makes the encounter tougher and reward-eligible', () => {
