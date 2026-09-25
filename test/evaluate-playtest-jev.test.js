@@ -21,6 +21,8 @@ test("buildJevState formats bounded and structured run data", () => {
   assert.equal(state.destination, "wood");
   assert.equal(typeof state.run_outcome.cleared, "boolean");
   assert.equal(typeof state.health_and_tension.max_hp, "number");
+  assert.ok(Object.hasOwn(trace.hearthOutcome, "recoveryCache"));
+  assert.ok(Object.hasOwn(state.progression_at_hearth, "recovery_cache"));
   assert.ok(Array.isArray(state.narrative_log_excerpt));
 });
 
@@ -86,6 +88,23 @@ test("fallbackEvaluation provides consistent heuristic results offline", () => {
   assert.ok(res.one_more_run_motivation.score >= 3.0);
   assert.equal(res.fun_loop_status.choice, "healthy_loop");
   assert.ok(res.pacing_drag_risk.noul < 0.4);
+});
+
+test("fallbackEvaluation treats a rescue cache as a reason to make one more run", () => {
+  const trace = {
+    archetype: "tactician",
+    cleared: false,
+    died: true,
+    newGearFound: [],
+    scrapGained: 18,
+    depthReached: 2,
+    totalTurns: 45,
+    metrics: { intentResponseAccuracy: 0.8, nearDeathMoments: 1, lootCarriedAtRisk: 18 },
+    hearthOutcome: { canEquipNew: false, canUpgrade: false, recoveryCache: { gear: null, scrap: 8 } },
+  };
+
+  const res = fallbackEvaluation(trace);
+  assert.equal(res.one_more_run_motivation.score, 2.8);
 });
 
 test("evaluatePlaytest runs with custom mock fetch", async () => {
