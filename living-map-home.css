@@ -88,7 +88,31 @@
     background:linear-gradient(180deg,rgba(225,211,170,.08),rgba(225,211,170,.32));
     font-size:9px;
   }
-  #game>.living-map-home .atlas-marker{width:92px;min-height:64px;padding:5px;grid-template-columns:28px 1fr}
+  /* Text on the parchment must remain readable under the bottom overlays.
+     The previous caption used a pale-on-pale treatment and leaked status/trace
+     copy beneath the dark controls. */
+  #game>.living-map-home .atlas-home-caption{
+    color:#51432f;
+    background:rgba(225,211,170,.96);
+    text-shadow:0 1px 0 rgba(255,248,224,.55);
+  }
+  #game>.living-map-home .atlas-anomaly-copy{
+    z-index:6;
+    color:#4d3b25;
+    background:rgba(238,224,187,.96);
+  }
+  #game>.living-map-home .atlas-anomaly-copy b{color:#5c3e18}
+  #game>.living-map-home .atlas-anomaly-copy small{color:#554938}
+  #game>.living-map-home .map-home-notice{
+    position:relative;
+    z-index:2;
+    margin:6px 4px 0;
+    padding:7px 10px;
+    border-radius:9px;
+    color:#d8c28f;
+    background:rgba(14,29,32,.96);
+  }
+    #game>.living-map-home .atlas-marker{width:92px;min-height:64px;padding:5px;grid-template-columns:28px 1fr}
   #game>.living-map-home .atlas-marker-copy strong{font-size:9px}
   #game>.living-map-home .atlas-marker-copy small{font-size:7px}
   #game>.living-map-home .atlas-anomaly-copy{min-width:122px}
