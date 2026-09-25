@@ -175,7 +175,7 @@
   function encounter(x, risky) {
     const elite = x.room === 4;
     const kind = x.place === 'wood' && x.room === 2 ? 'forest_hunter' : place(x.place).enemy;
-    const hp = ENEMIES[kind].hp + (x.depth - 1) * 6 + (elite ? 8 : 0) + (risky ? 3 : 0);
+    const hp = ENEMIES[kind].hp + (x.depth - 1) * 5 + (elite ? 6 : 0) + (risky ? 3 : 0);
     x.enemy = { kind, hp, maxHp: hp, turn: 0, depth: x.depth, elite, risky };
     x.stage = 'fight'; x.stamina = Math.max(2, x.stamina); x.focus = 0;
     const profile = enemyProfile(x.enemy);
@@ -231,7 +231,7 @@
     let damage = weapon.attack + x.focus + (action === 'heavy' ? p.heavyBonus : 0);
     if (p.lowHpBonus && x.hp <= Math.ceil(maxHp(s) / 2)) damage += p.lowHpBonus;
     if (p.openBonus && next.id === 'open') damage += p.openBonus;
-    if (action === 'heavy' && next.id === 'open') damage += 3;
+    if (action === 'heavy' && next.id === 'open') damage += 5;
     if (next.id === 'guard' && !(p.pierce && action === 'heavy')) damage = Math.max(0, damage - 3);
     if (enemyProfile(e).trait?.id === 'ironhide' && action === 'strike' && !p.pierce) damage = Math.max(0, damage - 2);
     return damage;
