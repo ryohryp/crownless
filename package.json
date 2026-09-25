@@ -6,6 +6,7 @@
   "scripts": {
     "start": "node scripts/serve-slice.cjs",
     "test": "node --test",
-    "playtest": "node scripts/evaluate-playtest-jev.cjs"
+    "playtest": "node scripts/evaluate-playtest-jev.cjs",
+    "playtest:browser": "node scripts/playtest-browser-jev.cjs"
   }
 }
