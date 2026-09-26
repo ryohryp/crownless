@@ -1,0 +1,56 @@
+name: Cleanup resolved PR branches
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/cleanup-resolved-pr-branches.yml
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete resolved PR branches
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          branches=(
+            "feat/827-hearth-maintenance"
+            "feat/826-grudge-revenge-v2"
+            "feat/826-grudge-revenge"
+            "playtest/582-browser-gate"
+            "playtest/582-browser-gate-v2"
+            "playtest/582-browser-gate-v3"
+            "playtest/582-browser-gate-v4"
+            "playtest/582-browser-gate-v5"
+            "autopilot/fix-reboot-entrypoint-validation"
+            "finish/reboot-prototype"
+            "fix/482-atlas-expedition-motivation"
+            "fix/482-discover-prepare-motivation"
+            "feat/reforge-report-adapt-482"
+            "fix/issue-410-world-atlas-only"
+            "fix/183-finalize-combat-action-profiles"
+            "codex/issue-166-grey-hearth-visual"
+            "feat/issue-91-real-gps-destinations"
+          )
+
+          deleted=0
+          missing=0
+          for branch in "${branches[@]}"; do
+            if git ls-remote --exit-code --heads "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "refs/heads/$branch" >/dev/null 2>&1; then
+              echo "DELETE $branch"
+              git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" --delete "$branch"
+              deleted=$((deleted + 1))
+            else
+              echo "MISSING $branch"
+              missing=$((missing + 1))
+            fi
+          done
+
+          echo "Deleted: $deleted"
+          echo "Missing: $missing"
