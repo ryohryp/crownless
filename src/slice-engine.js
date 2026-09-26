@@ -29,6 +29,15 @@
   // Post-migration variants must never inherit the old shared `level`.
   const LEGACY_UPGRADEABLE = new Set(['rust', 'fang', 'shield', 'bow']);
   const emptyUpgrades = () => Object.fromEntries(UPGRADEABLE.map(id => [id, 0]));
+  const emptyQualities = () => Object.fromEntries(Object.keys(GEAR).map(id => [id, 0]));
+  const QUALITY_STEPS = [
+    { max: 10, quality: -1 },
+    { max: 65, quality: 0 },
+    { max: 90, quality: 1 },
+    { max: 98, quality: 2 },
+    { max: 100, quality: 3 },
+  ];
+  const DISMANTLE_SCRAP = 2;
   const VARIANT_LOOT = {
     wood: ['fang_blood', 'fang_moon'],
     tower: ['shield_thorn', 'shield_oath'],
@@ -82,7 +91,25 @@
   const place = id => PLACES.find(p => p.id === id);
   const gearFamily = id => GEAR[id]?.family || id;
   const upgradeKey = id => UPGRADEABLE.includes(id) ? id : null;
-  const initial = () => ({ version: VERSION, mode: null, unlocked: ['wood'], cleared: [], owned: ['rust'], equipped: 'rust', scrap: 0, level: 0, upgrades: emptyUpgrades(), runs: 0, victories: 0, expedition: null, report: null });
+  function weaponQuality(s, id = s.equipped) {
+    const q = s?.qualities?.[id];
+    return Number.isInteger(q) ? Math.max(-1, Math.min(3, q)) : 0;
+  }
+  function weaponAttack(s, id = s.equipped, qualityOverride = null) {
+    const gear = GEAR[id];
+    if (!gear) return 0;
+    const q = Number.isInteger(qualityOverride) ? Math.max(-1, Math.min(3, qualityOverride)) : weaponQuality(s, id);
+    return Math.max(1, gear.attack + q);
+  }
+  const qualityLabel = q => `品質 ${q > 0 ? '+' : ''}${q}`;
+  function rollQuality(s, x, id, salt = 0) {
+    if (id === 'crown') return 0;
+    const placeIndex = Math.max(0, PLACES.findIndex(p => p.id === x.place));
+    const gearIndex = Math.max(0, Object.keys(GEAR).indexOf(id));
+    const roll = ((s.runs * 37 + x.depth * 17 + x.room * 13 + placeIndex * 11 + gearIndex * 19 + x.gear.length * 23 + salt * 29) % 100 + 100) % 100;
+    return QUALITY_STEPS.find(step => roll < step.max)?.quality ?? 0;
+  }
+  const initial = () => ({ version: VERSION, mode: null, unlocked: ['wood'], cleared: [], owned: ['rust'], equipped: 'rust', qualities: emptyQualities(), scrap: 0, level: 0, upgrades: emptyUpgrades(), runs: 0, victories: 0, expedition: null, report: null });
   const maxHp = s => 30 + (Number.isInteger(s.level) ? s.level : 0) * 5 + (s.owned.includes('crown') ? 6 : 0);
   function weaponLevel(s, id = s.equipped) {
     const legacy = LEGACY_UPGRADEABLE.has(id) && Number.isInteger(s?.level)
@@ -118,16 +145,16 @@
     if (gear.trait === 'recurve') { p.heavyCost = 1; p.pierce = false; p.heavyBonus = 3 + level; }
     return p;
   }
-  function gearText(s, id) {
+  function gearText(s, id, qualityOverride = null) {
     const gear = GEAR[id];
     if (!gear) return '';
     if (id === 'crown') return '持ち帰った証。すべての装備で最大体力 +6。';
-    const p = combatProfile(s, id);
+    const p = combatProfile(s, id), attack = weaponAttack(s, id, qualityOverride);
     let text = '';
-    if (p.family === 'fang') text = `攻撃 ${gear.attack}。回避後の追撃 +${p.dodgeFocus}。`;
-    else if (p.family === 'shield') text = `攻撃 ${gear.attack}。防御で ${p.block} 軽減${p.counter ? `・${p.counter} 反撃` : ''}。`;
-    else if (p.family === 'bow') text = `攻撃 ${gear.attack}。強撃 ${gear.attack + p.heavyBonus} / 気力 ${p.heavyCost}${p.pierce ? '・守りを貫通' : ''}。`;
-    else text = `攻撃 ${gear.attack}。強撃は気力 ${p.heavyCost} で ${gear.attack + p.heavyBonus} ダメージ。`;
+    if (p.family === 'fang') text = `攻撃 ${attack}。回避後の追撃 +${p.dodgeFocus}。`;
+    else if (p.family === 'shield') text = `攻撃 ${attack}。防御で ${p.block} 軽減${p.counter ? `・${p.counter} 反撃` : ''}。`;
+    else if (p.family === 'bow') text = `攻撃 ${attack}。強撃 ${attack + p.heavyBonus} / 気力 ${p.heavyCost}${p.pierce ? '・守りを貫通' : ''}。`;
+    else text = `攻撃 ${attack}。強撃は気力 ${p.heavyCost} で ${attack + p.heavyBonus} ダメージ。`;
     if (gear.trait === 'bloodrush') text += ' 体力半分以下で攻撃 +2。';
     if (gear.trait === 'moonstep') text += ' 回避の気力消費 0。';
     if (gear.trait === 'thorn') text += ' 受けは薄いが反撃が強い。';
@@ -169,7 +196,7 @@
   function start(s, id) {
     if (s.expedition || !s.mode || !s.unlocked.includes(id) || !place(id) || (id === 'crypt' && s.cleared.length < 2)) return s;
     const n = copy(s); n.report = null; n.runs++;
-    n.expedition = { place: id, depth: 1, room: 0, hp: maxHp(s), stamina: 3, focus: 0, potions: 2, scrap: 0, gear: [], seals: [], enemy: null, stage: 'path', log: ['火はここで待っている。まずは足跡をたどろう。'] };
+    n.expedition = { place: id, depth: 1, room: 0, hp: maxHp(s), stamina: 3, focus: 0, potions: 2, scrap: 0, gear: [], gearQuality: [], seals: [], enemy: null, stage: 'path', log: ['火はここで待っている。まずは足跡をたどろう。'] };
     return n;
   }
   function encounter(x, risky) {
@@ -183,10 +210,26 @@
   }
   function finish(s, died) {
     const x = s.expedition;
-    const found = x.gear.filter(g => !s.owned.includes(g));
-    s.report = { died, place: x.place, depth: x.depth, scrap: x.scrap, gear: [...x.gear], newGear: died ? [] : found, hp: x.hp, cleared: [...x.seals] };
+    const gearQuality = Array.isArray(x.gearQuality) ? x.gearQuality : x.gear.map(() => 0);
+    s.report = { died, place: x.place, depth: x.depth, scrap: x.scrap, gear: [...x.gear], gearQuality: [...gearQuality], newGear: [], duplicates: [], hp: x.hp, cleared: [...x.seals] };
     if (!died) {
-      s.scrap += x.scrap; s.owned = [...new Set([...s.owned, ...x.gear])];
+      s.scrap += x.scrap;
+      const newGear = [];
+      const duplicates = [];
+      for (let i = 0; i < x.gear.length; i++) {
+        const id = x.gear[i], quality = Number.isInteger(gearQuality[i]) ? gearQuality[i] : 0;
+        if (id === 'crown') {
+          if (!s.owned.includes(id)) { s.owned.push(id); s.qualities[id] = 0; newGear.push(id); }
+          continue;
+        }
+        if (!s.owned.includes(id)) {
+          s.owned.push(id); s.qualities[id] = quality; newGear.push(id);
+        } else {
+          duplicates.push({ id, quality, decision: null });
+        }
+      }
+      s.report.newGear = [...new Set(newGear)];
+      s.report.duplicates = duplicates;
       s.cleared = [...new Set([...s.cleared, ...x.seals])]; s.victories++;
     }
     s.expedition = null;
@@ -195,7 +238,7 @@
   function variantDrop(s, x, e) {
     if (x.depth < 2) return null;
     const pool = VARIANT_LOOT[x.place] || [];
-    const available = pool.filter(id => !s.owned.includes(id) && !x.gear.includes(id));
+    const available = pool.filter(id => !x.gear.includes(id));
     if (!available.length) return null;
     if (!e.elite) {
       if (!e.risky) return null;
@@ -211,14 +254,22 @@
     x.log.push(`討伐。鉄片を ${loot} 個、背嚢へ。生還するまで確定しない。`);
     const variant = variantDrop(s, x, e);
     if (variant) {
-      x.gear.push(variant);
-      x.log.push(`${GEAR[variant].name}を発見！ まだ未帰還。今なら帰って確定できる。`);
+      const quality = rollQuality(s, x, variant);
+      x.gear.push(variant); x.gearQuality.push(quality);
+      x.log.push(`${GEAR[variant].name}（${qualityLabel(quality)}）を発見！ まだ未帰還。今なら帰って確定できる。`);
     }
     if (e.elite) {
       if (x.depth === 1) {
         const gear = place(x.place).weapon;
-        if (!x.gear.includes(gear) && !s.owned.includes(gear)) { x.gear.push(gear); x.log.push(`${GEAR[gear].name}を発見！ 焚き火へ持ち帰ろう。`); }
-        else { x.scrap += 4; x.log.push('持っている装備の代わりに、鉄片 +4。'); }
+        if (gear === 'crown' && (x.gear.includes(gear) || s.owned.includes(gear))) {
+          x.scrap += 4; x.log.push('灰冠の廟には、新しい王冠は残っていなかった。鉄片 +4。');
+        } else if (!x.gear.includes(gear)) {
+          const quality = rollQuality(s, x, gear, 1);
+          x.gear.push(gear); x.gearQuality.push(quality);
+          x.log.push(`${GEAR[gear].name}${gear === 'crown' ? '' : `（${qualityLabel(quality)}）`}を発見！ 焚き火へ持ち帰ろう。`);
+        } else {
+          x.scrap += 4; x.log.push('武具の代わりに、鉄片 +4。');
+        }
       } else if (!variant) { x.scrap += 4; x.log.push('珍しい武具は見つからず、鉄片 +4。'); }
       x.seals.push(x.place); x.stage = 'cleared';
     } else { x.room++; x.stage = 'path'; }
@@ -227,8 +278,8 @@
   function attackPreview(s, action) {
     const x = s.expedition;
     if (!x?.enemy || !['strike', 'heavy'].includes(action)) return 0;
-    const e = x.enemy, next = intent(e), weapon = GEAR[s.equipped], p = combatProfile(s);
-    let damage = weapon.attack + x.focus + (action === 'heavy' ? p.heavyBonus : 0);
+    const e = x.enemy, next = intent(e), p = combatProfile(s);
+    let damage = weaponAttack(s, s.equipped) + x.focus + (action === 'heavy' ? p.heavyBonus : 0);
     if (p.lowHpBonus && x.hp <= Math.ceil(maxHp(s) / 2)) damage += p.lowHpBonus;
     if (p.openBonus && next.id === 'open') damage += p.openBonus;
     if (action === 'heavy' && next.id === 'open') damage += 5;
@@ -307,6 +358,16 @@
     if (level >= 4 || s.scrap < cost) return s;
     const n = copy(s); n.scrap -= cost; n.upgrades[key] = level + 1; return n;
   }
+  function resolveDuplicate(s, index, choice) {
+    if (s.expedition || !s.report || s.report.died || !['keep','dismantle'].includes(choice)) return s;
+    const duplicate = s.report.duplicates?.[index];
+    if (!duplicate || duplicate.decision || !s.owned.includes(duplicate.id)) return s;
+    const n = copy(s), item = n.report.duplicates[index];
+    if (choice === 'keep') n.qualities[item.id] = item.quality;
+    else n.scrap += DISMANTLE_SCRAP;
+    item.decision = choice;
+    return n;
+  }
   function locationSession(anchor = null) {
     const latitude = Number(anchor?.latitude), longitude = Number(anchor?.longitude), accuracy = Number(anchor?.accuracy);
     const valid = Number.isFinite(latitude) && Math.abs(latitude) <= 90 && Number.isFinite(longitude) && Math.abs(longitude) <= 180 && Number.isFinite(accuracy) && accuracy >= 0;
@@ -331,15 +392,25 @@
       const s = JSON.parse(raw);
       if (s.version === VERSION && s.upgrades === undefined) s.upgrades = emptyUpgrades();
       else if (s.version === VERSION && s.upgrades && typeof s.upgrades === 'object' && !Array.isArray(s.upgrades)) s.upgrades = {...emptyUpgrades(), ...s.upgrades};
+      if (s.version === VERSION && s.qualities === undefined) s.qualities = emptyQualities();
+      else if (s.version === VERSION && s.qualities && typeof s.qualities === 'object' && !Array.isArray(s.qualities)) s.qualities = {...emptyQualities(), ...s.qualities};
+      if (s.version === VERSION && s.expedition && Array.isArray(s.expedition.gear) && s.expedition.gearQuality === undefined) s.expedition.gearQuality = s.expedition.gear.map(() => 0);
+      if (s.version === VERSION && s.report) {
+        if (Array.isArray(s.report.gear) && s.report.gearQuality === undefined) s.report.gearQuality = s.report.gear.map(() => 0);
+        if (s.report.duplicates === undefined) s.report.duplicates = [];
+      }
       const ids = PLACES.map(p => p.id), keys = Object.keys(initial());
       const validArray = (a, allowed) => Array.isArray(a) && a.length <= allowed.length && new Set(a).size === a.length && a.every(v => allowed.includes(v));
       const int = (v, min, max) => Number.isInteger(v) && v >= min && v <= max;
       const validUpgrades = u => u && typeof u === 'object' && !Array.isArray(u) && Object.keys(u).length === UPGRADEABLE.length && UPGRADEABLE.every(id => Object.prototype.hasOwnProperty.call(u,id) && int(u[id],0,4)) && Object.keys(u).every(id => UPGRADEABLE.includes(id));
-      if (s.version !== VERSION || Object.keys(s).some(k => !keys.includes(k)) || ![null, 'demo', 'walk'].includes(s.mode) || !validArray(s.unlocked, ids) || !s.unlocked.includes('wood') || !validArray(s.cleared, ids) || !validArray(s.owned, Object.keys(GEAR)) || !s.owned.includes('rust') || !s.owned.includes(s.equipped) || s.equipped === 'crown' || !int(s.level, 0, 4) || !validUpgrades(s.upgrades) || !int(s.scrap, 0, 1e9) || !int(s.runs, 0, 1e9) || !int(s.victories, 0, s.runs)) throw Error('save');
+      const validQualities = q => q && typeof q === 'object' && !Array.isArray(q) && Object.keys(q).length === Object.keys(GEAR).length && Object.keys(GEAR).every(id => Object.prototype.hasOwnProperty.call(q,id) && int(q[id],-1,3)) && Object.keys(q).every(id => Object.prototype.hasOwnProperty.call(GEAR,id));
+      const validLoot = (gear, quality) => Array.isArray(gear) && gear.length <= 12 && gear.every(id => Object.prototype.hasOwnProperty.call(GEAR,id)) && Array.isArray(quality) && quality.length === gear.length && quality.every(q => int(q,-1,3));
+      const validDuplicates = d => Array.isArray(d) && d.length <= 12 && d.every(item => item && typeof item === 'object' && !Array.isArray(item) && Object.keys(item).length === 3 && Object.keys(item).every(k => ['id','quality','decision'].includes(k)) && Object.prototype.hasOwnProperty.call(GEAR,item.id) && item.id !== 'crown' && int(item.quality,-1,3) && [null,'keep','dismantle'].includes(item.decision));
+      if (s.version !== VERSION || Object.keys(s).some(k => !keys.includes(k)) || ![null, 'demo', 'walk'].includes(s.mode) || !validArray(s.unlocked, ids) || !s.unlocked.includes('wood') || !validArray(s.cleared, ids) || !validArray(s.owned, Object.keys(GEAR)) || !s.owned.includes('rust') || !s.owned.includes(s.equipped) || s.equipped === 'crown' || !int(s.level, 0, 4) || !validUpgrades(s.upgrades) || !validQualities(s.qualities) || !int(s.scrap, 0, 1e9) || !int(s.runs, 0, 1e9) || !int(s.victories, 0, s.runs)) throw Error('save');
       if (s.expedition) {
         const x = s.expedition;
         const allowedFocus = gearFamily(s.equipped) === 'fang' ? [0,3,4,5,6,7,8,9] : [0,3];
-        if (Object.keys(x).some(k => !['place','depth','room','hp','stamina','focus','potions','scrap','gear','seals','enemy','stage','log'].includes(k)) || !s.unlocked.includes(x.place) || !int(x.depth,1,3) || !int(x.room,0,4) || !int(x.hp,1,maxHp(s)) || !int(x.stamina,0,3) || !allowedFocus.includes(x.focus) || !int(x.potions,0,2) || !int(x.scrap,0,1000) || !validArray(x.gear,Object.keys(GEAR)) || !Array.isArray(x.seals) || x.seals.length > 3 || !x.seals.every(v => ids.includes(v)) || !['path','fight','cleared'].includes(x.stage) || !Array.isArray(x.log) || x.log.length > 10 || !x.log.every(v => typeof v === 'string' && v.length < 250)) throw Error('run');
+        if (Object.keys(x).some(k => !['place','depth','room','hp','stamina','focus','potions','scrap','gear','gearQuality','seals','enemy','stage','log'].includes(k)) || !s.unlocked.includes(x.place) || !int(x.depth,1,3) || !int(x.room,0,4) || !int(x.hp,1,maxHp(s)) || !int(x.stamina,0,3) || !allowedFocus.includes(x.focus) || !int(x.potions,0,2) || !int(x.scrap,0,1000) || !validLoot(x.gear,x.gearQuality) || !Array.isArray(x.seals) || x.seals.length > 3 || !x.seals.every(v => ids.includes(v)) || !['path','fight','cleared'].includes(x.stage) || !Array.isArray(x.log) || x.log.length > 10 || !x.log.every(v => typeof v === 'string' && v.length < 250)) throw Error('run');
         if (x.stage === 'fight') {
           const e = x.enemy;
           if (!e || Object.keys(e).some(k => !['kind','hp','maxHp','turn','depth','elite','risky'].includes(k)) || !ENEMIES[e.kind] || !int(e.maxHp,1,80) || !int(e.hp,1,e.maxHp) || !int(e.turn,0,1e6) || e.depth !== x.depth || typeof e.elite !== 'boolean' || typeof e.risky !== 'boolean') throw Error('enemy');
@@ -347,10 +418,10 @@
       }
       if (s.report) {
         const r = s.report;
-        if (Object.keys(r).some(k => !['died','place','depth','scrap','gear','newGear','hp','cleared'].includes(k)) || typeof r.died !== 'boolean' || !ids.includes(r.place) || !int(r.depth,1,3) || !int(r.scrap,0,1000) || !validArray(r.gear,Object.keys(GEAR)) || !validArray(r.newGear,Object.keys(GEAR)) || !int(r.hp,-30,80) || !Array.isArray(r.cleared) || r.cleared.length > 3 || !r.cleared.every(v => ids.includes(v))) throw Error('report');
+        if (Object.keys(r).some(k => !['died','place','depth','scrap','gear','gearQuality','newGear','duplicates','hp','cleared'].includes(k)) || typeof r.died !== 'boolean' || !ids.includes(r.place) || !int(r.depth,1,3) || !int(r.scrap,0,1000) || !validLoot(r.gear,r.gearQuality) || !validArray(r.newGear,Object.keys(GEAR)) || !validDuplicates(r.duplicates) || !int(r.hp,-30,80) || !Array.isArray(r.cleared) || r.cleared.length > 3 || !r.cleared.every(v => ids.includes(v))) throw Error('report');
       }
       return s;
     } catch { return null; }
   }
-  return { VERSION, PLACES, GEAR, ENEMIES, INTENTS, VARIANT_LOOT, initial, maxHp, gearFamily, weaponLevel, upgradeCost, combatProfile, gearText, enemyProfile, attackPreview, intent, lootCue, place, discover, start, act, equip, upgrade, locationSession, observe, serialize, parse };
+  return { VERSION, PLACES, GEAR, ENEMIES, INTENTS, VARIANT_LOOT, DISMANTLE_SCRAP, initial, maxHp, gearFamily, weaponLevel, weaponQuality, weaponAttack, qualityLabel, rollQuality, upgradeCost, combatProfile, gearText, enemyProfile, attackPreview, intent, lootCue, place, discover, start, act, equip, upgrade, resolveDuplicate, locationSession, observe, serialize, parse };
 });
