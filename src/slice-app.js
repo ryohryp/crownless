@@ -4,7 +4,7 @@
   const E = window.CrownlessSlice, A = window.CrownlessArt;
   const root = document.querySelector('#game');
   const esc = v => String(v).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
-  let state = E.initial(), selected = 'wood', tab = 'explore', notice = '', busy = false;
+  let state = E.initial(), selected = 'wood', tab = 'explore', notice = '', busy = false, lastReturnedPlace = null;
   let session = E.locationSession(), currentKey = null, lastRaw = null, saveBlocked = false, conflict = false, locationRequest = 0;
   const key = mode => `crownless-expedition-v1-${mode}`;
   const walkAnchorKey = 'crownless-expedition-v1-walk-anchor';
@@ -32,7 +32,7 @@
       else { saveBlocked = true; warning('セーブを読み込めませんでした。元データを保持し、この回は保存せずに遊べます。'); }
       localStorage.setItem('crownless-expedition-mode', mode);
     } catch { saveBlocked = true; warning('このブラウザでは保存できません。ページを閉じると今回の進行は失われます。'); }
-    locationRequest++; busy = false; session = restoreWalkSession(); selected = state.expedition?.place || 'wood'; tab = 'explore'; notice = ''; render();
+    locationRequest++; busy = false; session = restoreWalkSession(); selected = state.expedition?.place || 'wood'; tab = 'explore'; notice = ''; lastReturnedPlace = null; render();
   }
   function save() {
     if (!currentKey || saveBlocked) return;
@@ -126,8 +126,29 @@
 
   function gearPanel() {
     const id = state.equipped, level = E.weaponLevel(state,id), cost = E.upgradeCost(state,id);
-    return `<p class="kicker">MAKE IT HOME. MAKE IT YOURS.</p><h2>次の旅の、戦い方。</h2><p class="small">深層では同じ武器種でも戦い方の違う一本が見つかる。補強は一本ごとに残る。</p><div class="gear-list">${state.owned.filter(g => g !== 'crown').map(g => button('equip',`${E.GEAR[g].name}${state.equipped === g ? ' · 装備中' : ''} · 補強 ${E.weaponLevel(state,g)}/4`,E.gearText(state,g),{value:g,class:`choice ${state.equipped === g ? 'selected' : ''}`})).join('')}</div>${state.owned.includes('crown') ? '<p class="badge">灰の王冠 · 永続で最大体力 +6</p>' : ''}<div class="rule-line"><div class="section-heading"><h3 style="margin:0">${E.GEAR[id].name}を補強する</h3><span class="small">${level} / 4</span></div><p class="small">この一本の得意行動だけが一段強くなる。別の武器には影響しない。</p>${button('upgrade',level >= 4 ? 'この武器の補強を終えた' : `鉄片 ${cost} で補強する`,'',{class:'secondary',disabled:level >= 4 || state.scrap < cost})}${notice ? `<p class="notice" role="status">${esc(notice)}</p>` : ''}</div>`;
+    const retryPlace = lastReturnedPlace && state.unlocked.includes(lastReturnedPlace) ? E.place(lastReturnedPlace) : null;
+    const retry = retryPlace
+      ? `<div class="button-stack">${button('depart',`この装備で${retryPlace.name}へもう一度`,`${E.GEAR[id].name}を試す / 遠征準備へ`,{class:'primary',value:retryPlace.id})}</div>`
+      : '';
+    return `<p class="kicker">MAKE IT HOME. MAKE IT YOURS.</p><h2>次の旅の、戦い方。</h2><p class="small">深層では同じ武器種でも戦い方の違う一本が見つかる。補強は一本ごとに残る。</p><div class="gear-list">${state.owned.filter(g => g !== 'crown').map(g => button('equip',`${E.GEAR[g].name}${state.equipped === g ? ' · 装備中' : ''} · 補強 ${E.weaponLevel(state,g)}/4`,E.gearText(state,g),{value:g,class:`choice ${state.equipped === g ? 'selected' : ''}`})).join('')}</div>${state.owned.includes('crown') ? '<p class="badge">灰の王冠 · 永続で最大体力 +6</p>' : ''}<div class="rule-line"><div class="section-heading"><h3 style="margin:0">${E.GEAR[id].name}を補強する</h3><span class="small">${level} / 4</span></div><p class="small">この一本の得意行動だけが一段強くなる。別の武器には影響しない。</p>${button('upgrade',level >= 4 ? 'この武器の補強を終えた' : `鉄片 ${cost} で補強する`,'',{class:'secondary',disabled:level >= 4 || state.scrap < cost})}${notice ? `<p class="notice" role="status">${esc(notice)}</p>` : ''}</div>${retry}`;
   }
+  function reinforcementResult(beforeState, afterState, id) {
+    const gear = E.GEAR[id];
+    const before = E.combatProfile(beforeState, id);
+    const after = E.combatProfile(afterState, id);
+    if (before.family === 'fang' && before.dodgeFocus !== after.dodgeFocus) return `回避後の追撃 +${before.dodgeFocus} → +${after.dodgeFocus}`;
+    if (before.family === 'shield') {
+      const changes = [];
+      if (before.block !== after.block) changes.push(`防御 ${before.block} → ${after.block} 軽減`);
+      if (before.counter !== after.counter) changes.push(`反撃 ${before.counter} → ${after.counter}`);
+      if (changes.length) return changes.join(' / ');
+    }
+    const beforeHeavy = gear.attack + before.heavyBonus;
+    const afterHeavy = gear.attack + after.heavyBonus;
+    if (beforeHeavy !== afterHeavy) return `強撃 ${beforeHeavy} → ${afterHeavy}`;
+    return '得意行動が一段強くなった';
+  }
+
   function camp() {
     return `<div class="game-layout camp-layout ${tab === 'explore' ? 'living-map-home' : 'gear-home'}"><section class="visual-column"><div class="mode-strip"><span class="mode-pill">${state.mode === 'demo' ? '散策体験モード' : '現実の散策モード'}</span><span>遠征 ${state.runs} 回 · 生還 ${state.victories} 回</span></div>${scene('camp','帰りを待つ火。','THE LAST HEARTH',null,'安全な拠点')}${mapPins()}<div class="stat-strip"><div class="stat">最大体力<b>${E.maxHp(state)}</b></div><div class="stat">手元の鉄片<b>${state.scrap}</b></div><div class="stat">装備<b><em>${E.GEAR[state.equipped].name}</em></b></div></div></section><section class="panel"><nav class="camp-tabs" aria-label="拠点">${button('tab','地図','',{class:tab === 'explore' ? 'active' : '',value:'explore'})}${button('tab','装備','',{class:tab === 'gear' ? 'active' : '',value:'gear'})}</nav>${tab === 'gear' ? gearPanel() : explorePanel()}<button class="text-button" data-action="switch-mode">${state.mode === 'demo' ? '現実の散策モードへ' : '散策体験モードへ'} <span aria-hidden="true">↗</span></button></section></div>`;
   }
@@ -190,7 +211,7 @@
     const defeatIntro = recovery
       ? `背嚢は落としたが、${E.place(r.place).name}の敗走跡に${recoveryParts.join('と')}が残っている。次に同じ土地へ出れば回収できる。`
       : '背嚢の中身は霧の中へ。手元の鉄片と装備は無事だ。次は早めに帰るか、別の装備で挑もう。';
-    return `<div class="game-layout report-layout"><section class="visual-column">${scene('camp',r.died ? '火は、まだ消えていない。' : 'おかえり、旅人。',r.died ? 'THE ROAD IS NOT OVER' : 'YOU MADE IT HOME')}</section><section class="panel report-panel"><div class="report-scroll"><p class="kicker">${r.died ? 'EXPEDITION LOST' : 'SAFE RETURN'} / ${E.place(r.place).name}</p><h1>${r.died ? '命だけを、持ち帰った。' : r.newGear.length ? '新しい一本を、火へ。' : '欲張らずに、帰る強さ。'}</h1><p class="intro">${r.died ? defeatIntro : '背嚢の中身は、もうあなたのもの。新しい武具なら、今の装備と比べて次の戦い方を選べる。'}</p><div class="result-number">${r.died ? '' : '+'}${r.scrap} <small>${r.died ? '鉄片を落とした' : '鉄片を確保'}</small></div>${r.gear.map(g => `<div class="reward"><span class="reward-icon">♢</span><div><strong>${r.died ? (recovery?.gear === g ? '敗走跡に残った：' : '失った：') : ''}${E.GEAR[g].name}</strong><small>${r.died ? (recovery?.gear === g ? '次に同じ土地へ出れば背嚢へ戻る。生還で確定。' : 'もう一度、深層で探そう。') : E.gearText(state,g)}</small></div></div>`).join('')}${recovery?.scrap ? `<div class="reward"><span class="reward-icon">↺</span><div><strong>敗走跡：鉄片 ${recovery.scrap}</strong><small>次に同じ土地へ出れば背嚢へ戻る。生還するまで未確定。</small></div></div>` : ''}${!r.died && state.owned.includes('crown') ? '<p class="notice">灰冠の廟を越えた。名もなき旅人の、最初の物語が残った。</p>' : ''}<p class="small rule-line">${r.died ? (recovery ? '敗走は全損ではない。取り戻しに行くか、別の土地へ向かうかを選べる。' : '遠征の失敗で、恒久的な進行は失われません。') : state.cleared.length >= 2 && !state.owned.includes('crown') ? '二つの土地を越えた。次は「灰冠の廟」の主に挑める。' : '同じ土地でも深層へ行けば、別の一本に出会えることがあります。'}</p></div><div class="report-actions">${button('continue',r.died && recovery ? '敗走跡を回収する準備へ' : hasNewBattleGear ? '持ち帰った装備を比べる' : canPowerUp ? `鉄片 ${E.upgradeCost(state, state.equipped)} で今の武器を補強する` : '焚き火で次の準備をする','',{class:'primary'})}</div></section></div>`;
+    return `<div class="game-layout report-layout"><section class="visual-column">${scene('camp',r.died ? '火は、まだ消えていない。' : 'おかえり、旅人。',r.died ? 'THE ROAD IS NOT OVER' : 'YOU MADE IT HOME')}</section><section class="panel report-panel"><div class="report-scroll"><p class="kicker">${r.died ? 'EXPEDITION LOST' : 'SAFE RETURN'} / ${E.place(r.place).name}</p><h1>${r.died ? '命だけを、持ち帰った。' : r.newGear.length ? '新しい一本を、火へ。' : '欲張らずに、帰る強さ。'}</h1><p class="intro">${r.died ? defeatIntro : '背嚢の中身は、もうあなたのもの。新しい武具なら、今の装備と比べて次の戦い方を選べる。'}</p><div class="result-number">${r.died ? '' : '+'}${r.scrap} <small>${r.died ? '鉄片を落とした' : '鉄片を確保'}</small></div>${r.gear.map(g => `<div class="reward"><span class="reward-icon">♢</span><div><strong>${r.died ? (recovery?.gear === g ? '敗走跡に残った：' : '失った：') : ''}${E.GEAR[g].name}</strong><small>${r.died ? (recovery?.gear === g ? '次に同じ土地へ出れば背嚢へ戻る。生還で確定。' : 'もう一度、深層で探そう。') : E.gearText(state,g)}</small></div></div>`).join('')}${recovery?.scrap ? `<div class="reward"><span class="reward-icon">↺</span><div><strong>敗走跡：鉄片 ${recovery.scrap}</strong><small>次に同じ土地へ出れば背嚢へ戻る。生還するまで未確定。</small></div></div>` : ''}${!r.died && state.owned.includes('crown') ? '<p class="notice">灰冠の廟を越えた。名もなき旅人の、最初の物語が残った。</p>' : ''}<p class="small rule-line">${r.died ? (recovery ? '敗走は全損ではない。取り戻しに行くか、別の土地へ向かうかを選べる。' : '遠征の失敗で、恒久的な進行は失われません。') : state.cleared.length >= 2 && !state.owned.includes('crown') ? '二つの土地を越えた。次は「灰冠の廟」の主に挑める。' : '同じ土地でも深層へ行けば、別の一本に出会えることがあります。'}</p></div><div class="report-actions">${button('continue',r.died && recovery ? '敗走跡を回収する準備へ' : hasNewBattleGear ? '持ち帰った装備を比べる' : canPowerUp ? '補強へ進む' : '焚き火で次の準備をする','',{class:'primary'})}</div></section></div>`;
   }
   function render() {
     const help = document.querySelector('#help'), helpToggle = document.querySelector('#help-toggle');
@@ -219,7 +240,7 @@
     const before = state;
     if (action === 'mode') { loadMode(value); save(); return; }
     if (action === 'switch-mode') { loadMode(state.mode === 'demo' ? 'walk' : 'demo'); save(); return; }
-    if (action === 'select') { selected = value; tab = 'explore'; notice = ''; }
+    if (action === 'select') { selected = value; tab = 'explore'; notice = ''; lastReturnedPlace = null; }
     else if (action === 'tab') { tab = value; notice = ''; }
     else if (action === 'scout') {
       const demoSession = E.locationSession(); E.observe(demoSession,{latitude:0,longitude:0,accuracy:5}); session = demoSession;
@@ -234,10 +255,10 @@
         if (request !== locationRequest || state.mode !== 'walk' || state.expedition || conflict) return;
         busy = false; notice = error.code === 1 ? '位置情報は許可されませんでした。設定を変えずに、散策体験モードでも遊べます。' : '現在地を取得できませんでした。後ほど試すか、散策体験モードで続けられます。'; render();
       }, { enableHighAccuracy:true, maximumAge:0, timeout:12000 }); return;
-    } else if (action === 'depart') { locationRequest++; busy = false; state = E.start(state,value); }
+    } else if (action === 'depart') { selected = value; lastReturnedPlace = null; locationRequest++; busy = false; state = E.start(state,value); }
     else if (action === 'equip') { state = E.equip(state,value); notice = `${E.GEAR[value].name}を装備した。`; }
-    else if (action === 'upgrade') { const id=state.equipped; state = E.upgrade(state,id); if (state !== before) notice = `${E.GEAR[id].name}を補強した。得意行動が強くなった。`; }
-    else if (action === 'continue') { const gearStep = !state.report.died && (state.report.newGear.some(g => g !== 'crown') || canReinforceEquipped()); tab = gearStep ? 'gear' : 'explore'; state = {...state,report:null}; notice = ''; }
+    else if (action === 'upgrade') { const id=state.equipped; state = E.upgrade(state,id); if (state !== before) { const delta = reinforcementResult(before,state,id); const destination = lastReturnedPlace ? E.place(lastReturnedPlace)?.name : ''; notice = `${E.GEAR[id].name}を補強した。${delta}。${destination ? `${destination}で` : '次の遠征で'}試してみよう。`; } }
+    else if (action === 'continue') { const gearStep = !state.report.died && (state.report.newGear.some(g => g !== 'crown') || canReinforceEquipped()); lastReturnedPlace = gearStep ? state.report.place : null; tab = gearStep ? 'gear' : 'explore'; state = {...state,report:null}; notice = ''; }
     else state = E.act(state, action);
     if (state !== before) save();
     render();
