@@ -292,3 +292,51 @@ test('heavy attack against open enemy deals bonus damage and enemy guard reduces
   assert.equal(E.attackPreview(s, 'heavy'), 5);
 });
 
+test('quality rolls keep the intended 10/55/25/8/2 distribution over a full deterministic cycle', () => {
+  const base=fresh(), x={place:'wood',depth:2,room:4,gear:[]};
+  const counts={[-1]:0,0:0,1:0,2:0,3:0};
+  for(let runs=1;runs<=100;runs++) counts[E.rollQuality({...base,runs},x,'fang')]++;
+  assert.deepEqual(counts,{[-1]:10,0:55,1:25,2:8,3:2});
+});
+
+test('owned signature gear drops again and can replace or dismantle by quality', () => {
+  let s=complete(fresh(),'wood');
+  assert.equal(E.weaponQuality(s,'fang'),0);
+
+  s=complete(s,'wood');
+  assert.equal(s.report.newGear.length,0);
+  assert.equal(s.report.duplicates.length,1);
+  assert.equal(s.report.duplicates[0].id,'fang');
+  assert.equal(s.report.duplicates[0].quality,2);
+
+  s=E.resolveDuplicate(s,0,'keep');
+  assert.equal(E.weaponQuality(s,'fang'),2);
+  assert.equal(s.report.duplicates[0].decision,'keep');
+
+  s=E.equip(s,'fang');
+  s=E.start(s,'wood'); s=E.act(s,'careful');
+  assert.equal(E.attackPreview(s,'strike'),7);
+
+  while(s.expedition) s=E.act(s,safeAction(s));
+  assert.equal(s.report.duplicates[0].quality,0);
+  const scrap=s.scrap;
+  s=E.resolveDuplicate(s,0,'dismantle');
+  assert.equal(s.scrap,scrap+E.DISMANTLE_SCRAP);
+  assert.equal(E.weaponQuality(s,'fang'),2);
+});
+
+test('legacy saves without quality fields migrate to standard quality zero', () => {
+  const legacy=E.initial();
+  delete legacy.qualities;
+  const parsed=E.parse(JSON.stringify(legacy));
+  assert.ok(parsed);
+  assert.equal(E.weaponQuality(parsed,'rust'),0);
+
+  let running=E.start(fresh(),'wood');
+  delete running.qualities;
+  delete running.expedition.gearQuality;
+  const resumed=E.parse(JSON.stringify(running));
+  assert.ok(resumed);
+  assert.deepEqual(resumed.expedition.gearQuality,[]);
+});
+
