@@ -283,11 +283,11 @@
       const keptDuplicate = !state.report.died && duplicates.some(d => d.decision === 'keep');
       const canPowerUp = !state.report.died && canReinforceEquipped();
       const gearStep = hasNewBattleGear || canPowerUp;
-      const qualityGearStep = gearStep || keptDuplicate;
-      lastReturnedPlace = qualityGearStep ? state.report.place : null;
+      lastReturnedPlace = gearStep ? state.report.place : null;
       prioritizeReinforcement = gearStep && !hasNewBattleGear && canPowerUp;
-      if (keptDuplicate) prioritizeReinforcement = false;
-      tab = qualityGearStep ? 'gear' : 'explore'; state = {...state,report:null}; notice = '';
+      tab = gearStep ? 'gear' : 'explore';
+      if (keptDuplicate) { lastReturnedPlace = state.report.place; prioritizeReinforcement = false; tab = 'gear'; }
+      state = {...state,report:null}; notice = '';
     }
     else state = E.act(state, action);
     if (state !== before) save();
