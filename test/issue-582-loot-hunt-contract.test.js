@@ -146,4 +146,6 @@ test("loot comparison UI reads the explicit equipped gear marker", () => {
   assert.doesNotMatch(ui, /textContent\.trim\(\)/);
   assert.match(ui, /querySelector\('\.loot-comparison-moment'\)\) return/);
   assert.doesNotMatch(ui, /querySelectorAll\('\.loot-comparison-moment'\).*remove/);
+  assert.match(ui, /ledger\.closest\('\.path-desktop-details'\) \|\| ledger/);
+  assert.match(ui, /comparisonAnchor\.insertAdjacentHTML\('afterend'/);
 });
