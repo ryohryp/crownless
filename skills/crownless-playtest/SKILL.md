@@ -22,6 +22,14 @@ Play the game, observe what actually happened, identify the weakest link, make t
 
 Never infer fun from tests, code, or automation alone.
 
+## Run-First Principle (No Speculative Pre-Audit)
+
+When asked to testplay, verify an expedition flow, or evaluate gameplay balance:
+
+- **Do NOT perform speculative code audits first**: Avoid diving into damage calculations, reviewing unrelated test files, or running the entire unit test suite (`npm test`) before launching the game.
+- **Run immediately**: Launch the automated screening (`npm run playtest`) or browser runner (`npm run playtest:browser`) right away.
+- **Inspect actual behavior**: Use the resulting trace, UI states, logs, and metrics to guide inspection. Inspect only the context needed to understand what just happened.
+
 ## Fast Jev Playtest Screening
 
 Before spending 15 minutes in browser/phone playtest, run the automated Jev playtest harness to screen for obvious balance collapses, mindless combat, or progression dead ends:
@@ -50,12 +58,25 @@ Use the browser runner when the question is whether a real DOM flow is reachable
 TYPESAFE_API_KEY=... npm run playtest:browser
 ```
 
-The runner starts the playable slice on an ephemeral loopback port and invokes the pinned `@jkudish/jev-browser@0.5.0` CLI with a small action budget. Its default goal is deliberately narrow: enter the demo, start the Whispering Wood expedition, make at least one combat decision, then stop. It disables model-generated typing because this flow only needs clicks.
+The runner starts the playable slice on an ephemeral loopback port and invokes `@jkudish/jev-browser@0.7.0` (configurable via `CROWNLESS_JEV_PACKAGE`) with a small action budget. It disables model-generated typing because this flow only needs clicks.
 
 Optional overrides:
 
 ```bash
-CROWNLESS_JEV_TASK="..." CROWNLESS_JEV_MAX_STEPS=16 CROWNLESS_JEV_MAX_SECONDS=45 npm run playtest:browser
+CROWNLESS_JEV_TASK="..." CROWNLESS_JEV_MAX_STEPS=30 CROWNLESS_JEV_MAX_SECONDS=90 npm run playtest:browser
 ```
+
+### Jev-Browser Task Prompting Guidelines
+
+`@jkudish/jev-browser` executes autonomously at high speed (~500ms per step). To prevent the agent from getting stuck or misrouting:
+
+1. **Explicit action sequencing**:
+   Specify sequential order when multiple candidate buttons coexist. For example, on the Gear screen where both a secondary action ("鉄片 4 で補強する") and a primary action ("この装備で囁きの森へもう一度") exist, explicitly instruct: "補強ボタンを押して通知を確認した後に、再遠征ボタンを押す".
+2. **Resource and disabled-button constraints**:
+   Heavy attacks cost 2 stamina. When stamina drops below 2, the heavy attack button is disabled. If an agent tries to click a disabled button, Playwright times out and triggers stuck detection. Instruct the agent: "強撃は気力がある時のみ使い、気力不足時は『斬る』で気力を溜めて戦う" or "最初の戦闘は『斬る』で確実に倒す".
+3. **Prevent accidental retreat / fallback**:
+   If identical button clicks register as "no visible change" within the fast polling window, Jev's recovery heuristic may select fallback buttons like "撤退". Explicitly specify: "戦闘中は『撤退』を押さない".
+4. **Budget steps for full loops**:
+   For complex multi-screen flows (expedition → safe return → reinforce at camp → re-expedition), set `CROWNLESS_JEV_MAX_STEPS=30` and `CROWNLESS_JEV_MAX_SECONDS=90~120` to avoid premature step-cap cutoff.
 
 This is a reachability/speed smoke test. Treat the returned step trace, browser errors, and elapsed time as evidence, then still use a 360–430 CSS px browser/phone playtest for tactile UI and fun. Do not use automation alone to claim the 15-minute goal is met.
