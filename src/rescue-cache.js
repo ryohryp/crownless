@@ -21,16 +21,21 @@
   function cacheFromReport(report, placeId) {
     if (!report?.died || report.place !== placeId) return null;
     const gear = Array.isArray(report.gear) && report.gear.length ? report.gear[0] : null;
+    const quality = gear && Array.isArray(report.gearQuality) && Number.isInteger(report.gearQuality[0]) ? report.gearQuality[0] : 0;
     const scrap = Math.min(8, Math.floor(Math.max(0, Number(report.scrap) || 0) / 2));
     if (!gear && scrap === 0) return null;
-    return { gear, scrap };
+    return { gear, quality, scrap };
   }
 
   function applyToExpedition(state, cache) {
     if (!cache || !state?.expedition) return state;
     const next = JSON.parse(JSON.stringify(state));
     const x = next.expedition;
-    if (cache.gear && !x.gear.includes(cache.gear)) x.gear.push(cache.gear);
+    if (cache.gear && !x.gear.includes(cache.gear)) {
+      x.gear.push(cache.gear);
+      if (!Array.isArray(x.gearQuality)) x.gearQuality = x.gear.slice(0,-1).map(() => 0);
+      x.gearQuality.push(Number.isInteger(cache.quality) ? cache.quality : 0);
+    }
     x.scrap += cache.scrap;
     const parts = [];
     if (cache.gear) parts.push('失った武具を1つ');
