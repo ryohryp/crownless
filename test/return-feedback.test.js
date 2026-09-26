@@ -66,7 +66,7 @@ test('defeat never presents a false power-up celebration', () => {
 test('safe return with an affordable upgrade routes the primary continuation to gear', () => {
   const source = fs.readFileSync('src/slice-app.js', 'utf8');
   assert.match(source, /function canReinforceEquipped\(\)/);
-  assert.match(source, /canPowerUp \? `鉄片 \$\{E\.upgradeCost/);
+  assert.match(source, /canPowerUp \? '補強へ進む'/);
   assert.match(source, /const gearStep = !state\.report\.died/);
   assert.match(source, /tab = gearStep \? 'gear' : 'explore'/);
 });
