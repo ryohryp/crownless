@@ -130,7 +130,12 @@
     const retry = retryPlace
       ? `<div class="button-stack">${button('depart',`この装備で${retryPlace.name}へもう一度`,`${E.GEAR[id].name}を試す / 遠征準備へ`,{class:prioritizeReinforcement ? 'secondary' : 'primary',value:retryPlace.id})}</div>`
       : '';
-    return `<p class="kicker">MAKE IT HOME. MAKE IT YOURS.</p><h2>次の旅の、戦い方。</h2><p class="small">深層では同じ武器でも品質の違う一本が見つかる。補強と特性はそのまま、攻撃だけが少し揺れる。</p><div class="gear-list">${state.owned.filter(g => g !== 'crown').map(g => button('equip',`${E.GEAR[g].name}${state.equipped === g ? ' · 装備中' : ''} · 補強 ${E.weaponLevel(state,g)}/4`,`${E.qualityLabel(E.weaponQuality(state,g))} · ${E.gearText(state,g)}`,{value:g,class:`choice ${state.equipped === g ? 'selected' : ''}`})).join('')}</div>${state.owned.includes('crown') ? '<p class="badge">灰の王冠 · 永続で最大体力 +6</p>' : ''}<div class="rule-line"><div class="section-heading"><h3 style="margin:0">${E.GEAR[id].name}を補強する</h3><span class="small">${level} / 4</span></div><p class="small">この一本の得意行動だけが一段強くなる。別の武器には影響しない。</p>${button('upgrade',level >= 4 ? 'この武器の補強を終えた' : `鉄片 ${cost} で補強する`,'',{class:'secondary',disabled:level >= 4 || state.scrap < cost})}${notice ? `<p class="notice" role="status">${esc(notice)}</p>` : ''}</div>${retry}`;
+    const maintenance = state.maintenance === 'ready'
+      ? `<div class="rule-line"><div class="section-heading"><h3 style="margin:0">焚き火で刃を研ぐ</h3><span class="small">次の遠征だけ</span></div><p class="small">生還した勢いを次の旅へ。最初の3戦、それぞれ最初の一撃だけ +3。</p>${button('maintain','刃を研ぐ','鉄片は使わない',{class:'primary'})}</div>`
+      : state.maintenance === 'sharp'
+        ? '<p class="notice">刃は研ぎ澄まされている。次の遠征の最初の3戦で、初撃 +3。</p>'
+        : '';
+    return `<p class="kicker">MAKE IT HOME. MAKE IT YOURS.</p><h2>次の旅の、戦い方。</h2><p class="small">深層では同じ武器でも品質の違う一本が見つかる。補強と特性はそのまま、攻撃だけが少し揺れる。</p>${maintenance}<div class="gear-list">${state.owned.filter(g => g !== 'crown').map(g => button('equip',`${E.GEAR[g].name}${state.equipped === g ? ' · 装備中' : ''} · 補強 ${E.weaponLevel(state,g)}/4`,`${E.qualityLabel(E.weaponQuality(state,g))} · ${E.gearText(state,g)}`,{value:g,class:`choice ${state.equipped === g ? 'selected' : ''}`})).join('')}</div>${state.owned.includes('crown') ? '<p class="badge">灰の王冠 · 永続で最大体力 +6</p>' : ''}<div class="rule-line"><div class="section-heading"><h3 style="margin:0">${E.GEAR[id].name}を補強する</h3><span class="small">${level} / 4</span></div><p class="small">この一本の得意行動だけが一段強くなる。別の武器には影響しない。</p>${button('upgrade',level >= 4 ? 'この武器の補強を終えた' : `鉄片 ${cost} で補強する`,'',{class:'secondary',disabled:level >= 4 || state.scrap < cost})}${notice ? `<p class="notice" role="status">${esc(notice)}</p>` : ''}</div>${retry}`;
   }
   function reinforcementResult(beforeState, afterState, id) {
     const gear = E.GEAR[id];
@@ -273,6 +278,7 @@
       }, { enableHighAccuracy:true, maximumAge:0, timeout:12000 }); return;
     } else if (action === 'depart') { selected = value; lastReturnedPlace = null; prioritizeReinforcement = false; locationRequest++; busy = false; state = E.start(state,value); }
     else if (action === 'equip') { state = E.equip(state,value); notice = `${E.GEAR[value].name}を装備した。`; }
+    else if (action === 'maintain') { state = E.maintain(state); if (state !== before) notice = '刃を研いだ。次の遠征の最初の3戦で、初撃が +3 される。'; }
     else if (action === 'upgrade') { const id=state.equipped; state = E.upgrade(state,id); if (state !== before) { prioritizeReinforcement = false; const delta = reinforcementResult(before,state,id); const destination = lastReturnedPlace ? E.place(lastReturnedPlace)?.name : ''; notice = `${E.GEAR[id].name}を補強した。${delta}。${destination ? `${destination}で` : '次の遠征で'}試してみよう。`; } }
     else if (action === 'loot-keep') { state = E.resolveDuplicate(state,Number(value),'keep'); }
     else if (action === 'loot-dismantle') { state = E.resolveDuplicate(state,Number(value),'dismantle'); }
