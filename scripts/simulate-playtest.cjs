@@ -244,8 +244,19 @@ function simulateExpedition(options = {}) {
     state = nextState;
   }
 
-  const report = state.report || {};
+  let report = state.report || {};
   const died = Boolean(report.died);
+  const duplicateLoot = [];
+  if (!died && Array.isArray(report.duplicates)) {
+    for (let i = 0; i < report.duplicates.length; i++) {
+      const item = state.report.duplicates[i];
+      const previousQuality = Engine.weaponQuality(state,item.id);
+      const choice = item.quality > previousQuality ? 'keep' : 'dismantle';
+      state = Engine.resolveDuplicate(state,i,choice);
+      duplicateLoot.push({ id:item.id, foundQuality:item.quality, previousQuality, choice });
+    }
+    report = state.report;
+  }
   const recoveryCache = died ? RescueCache.cacheFromReport(report, placeId) : null;
   const cleared = Boolean(!died && report.cleared?.length > 0);
   const finalHp = report.hp ?? (state.expedition ? state.expedition.hp : 0);
@@ -287,6 +298,8 @@ function simulateExpedition(options = {}) {
     minHp,
     scrapGained: report.scrap || 0,
     gearGained: report.gear || [],
+    gearQualities: report.gearQuality || [],
+    duplicateLoot,
     newGearFound: foundGear,
     totalTurns,
     combatTurns,
@@ -303,6 +316,9 @@ function simulateExpedition(options = {}) {
     logs: logs.slice(-20), // Last 20 log entries for narrative context
     hearthOutcome: {
       canEquipNew,
+      qualityUpgradeFound: duplicateLoot.some(item => item.choice === 'keep'),
+      equippedQuality: Engine.weaponQuality(state,state.equipped),
+      duplicateLoot,
       newGearEquipped,
       canUpgrade,
       recoveryCache,
