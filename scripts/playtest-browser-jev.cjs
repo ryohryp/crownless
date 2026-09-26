@@ -3,7 +3,7 @@
 const { spawn } = require("node:child_process");
 const path = require("node:path");
 
-const JEV_BROWSER_PACKAGE = "@jkudish/jev-browser@0.5.0";
+const JEV_BROWSER_PACKAGE = process.env.CROWNLESS_JEV_PACKAGE || "@jkudish/jev-browser@0.7.0";
 const DEFAULT_TASK =
   "Crownlessの体験モードを開始し、囁きの森へ遠征する。敵と遭遇したら「斬る」ボタンをクリックして敵にダメージを与え、ダメージ結果が表示されたら完了とする。現実の散策モードや位置情報/GPSは使わない。";
 const DEFAULT_MAX_STEPS = "12";
