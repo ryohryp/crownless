@@ -8,8 +8,8 @@
     root.querySelectorAll('.loot-comparison-moment').forEach(node => node.remove());
     const ledger = root.querySelector('.loot-ledger');
     if (!ledger) return;
-    const currentName = E.GEAR && Object.entries(E.GEAR).find(([, gear]) => gear.name === ledger.querySelector('small')?.textContent?.split(' · ')[0])?.[0];
-    if (!currentName) return;
+    const currentName = ledger.querySelector('[data-current-gear-id]')?.dataset.currentGearId;
+    if (!currentName || !E.GEAR?.[currentName]) return;
     const found = [...ledger.querySelectorAll('p')].map(p => p.textContent.trim()).find(text => text.startsWith('＋ '));
     if (!found) return;
     const foundName = found.slice(2).split('\n')[0].trim();
