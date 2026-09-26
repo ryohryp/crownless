@@ -15,7 +15,8 @@
     const comparison = C.compare(currentName, foundId, E, window.__crownlessState || null);
     if (!comparison) return;
     const rows = comparison.rows.map(row => `<li><small>${row.label}</small><strong>${row.value}</strong></li>`).join('');
-    ledger.insertAdjacentHTML('afterend', `<div class="rule-line loot-comparison-moment" aria-label="拾った装備と現在装備の比較"><p class="kicker">FOUND · 持ち帰る価値</p><h3>${comparison.found}</h3><p class="small">現在：${comparison.current}</p><ul class="loot-comparison-rows">${rows}</ul></div>`);
+    const comparisonAnchor = ledger.closest('.path-desktop-details') || ledger;
+    comparisonAnchor.insertAdjacentHTML('afterend', `<div class="rule-line loot-comparison-moment" aria-label="拾った装備と現在装備の比較"><p class="kicker">FOUND · 持ち帰る価値</p><h3>${comparison.found}</h3><p class="small">現在：${comparison.current}</p><ul class="loot-comparison-rows">${rows}</ul></div>`);
   }
 
   new MutationObserver(enhance).observe(root, { childList: true, subtree: true });
