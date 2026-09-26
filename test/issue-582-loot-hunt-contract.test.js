@@ -132,3 +132,13 @@ test("playable slice loads compact loot comparison UI", () => {
   assert.match(css, /\.loot-comparison-rows/);
   assert.doesNotMatch(css, /min-width\s*:\s*\d{3,}px/);
 });
+
+
+test("loot comparison UI reads the explicit equipped gear marker", () => {
+  const app = fs.readFileSync(path.join(__dirname, "..", "src", "slice-app.js"), "utf8");
+  const ui = fs.readFileSync(path.join(__dirname, "..", "src", "loot-comparison-ui.js"), "utf8");
+
+  assert.match(app, /data-current-gear-id=/);
+  assert.match(ui, /querySelector\('\[data-current-gear-id\]'\)/);
+  assert.doesNotMatch(ui, /ledger\.querySelector\('small'\)/);
+});
