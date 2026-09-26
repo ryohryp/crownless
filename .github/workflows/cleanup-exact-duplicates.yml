@@ -1,0 +1,41 @@
+name: Cleanup exact duplicate branches
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/cleanup-exact-duplicates.yml
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete exact duplicate branches
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          branches=(
+            "ci/return-risk-loot-summary"
+            "feat/loot-choice-ready"
+            "feat/loot-risk-choice"
+            "feat/return-risk-loot-summary-pr"
+            "feat/512-territory-world-trace"
+            "feat/512-territory-world-trace-pr"
+            "merge/deeper-loot-cue-v4"
+            "fix/843-expedition-recap-report-dom"
+          )
+
+          for branch in "${branches[@]}"; do
+            ref="heads/$branch"
+            if gh api --silent "repos/$GITHUB_REPOSITORY/git/ref/$ref" >/dev/null 2>&1; then
+              echo "DELETE $branch"
+              gh api --method DELETE "repos/$GITHUB_REPOSITORY/git/refs/$ref"
+            else
+              echo "MISSING $branch"
+            fi
+          done
