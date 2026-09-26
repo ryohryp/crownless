@@ -44,3 +44,14 @@ test('reinforcement feedback names the concrete gain and invites the just-return
 test('starting a new expedition consumes the contextual retry prompt', () => {
   assert.match(app, /action === 'depart'[^\n]*lastReturnedPlace = null/);
 });
+
+test('upgrade intent makes retry secondary until reinforcement succeeds', () => {
+  assert.match(app, /prioritizeReinforcement = gearStep && !hasNewBattleGear && canPowerUp/);
+  assert.match(app, /class:prioritizeReinforcement \? 'secondary' : 'primary'/);
+  assert.match(app, /action === 'upgrade'[^\n]*prioritizeReinforcement = false/);
+});
+
+test('loot compare intent does not demote the retry CTA', () => {
+  assert.match(app, /const hasNewBattleGear = !state\.report\.died && state\.report\.newGear\.some/);
+  assert.match(app, /prioritizeReinforcement = gearStep && !hasNewBattleGear && canPowerUp/);
+});
