@@ -10,11 +10,8 @@
     if (!ledger) return;
     const currentName = ledger.querySelector('[data-current-gear-id]')?.dataset.currentGearId;
     if (!currentName || !E.GEAR?.[currentName]) return;
-    const found = [...ledger.querySelectorAll('p')].map(p => p.textContent.trim()).find(text => text.startsWith('＋ '));
-    if (!found) return;
-    const foundName = found.slice(2).split('\n')[0].trim();
-    const foundId = Object.entries(E.GEAR).find(([, gear]) => gear.name === foundName)?.[0];
-    if (!foundId) return;
+    const foundId = ledger.querySelector('[data-found-gear-id]')?.dataset.foundGearId;
+    if (!foundId || !E.GEAR?.[foundId]) return;
     const comparison = C.compare(currentName, foundId, E, window.__crownlessState || null);
     if (!comparison) return;
     const rows = comparison.rows.map(row => `<li><small>${row.label}</small><strong>${row.value}</strong></li>`).join('');
