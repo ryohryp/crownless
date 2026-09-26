@@ -131,6 +131,9 @@ test("playable slice loads compact loot comparison UI", () => {
   assert.match(html, /loot-comparison\.css/);
   assert.match(css, /\.loot-comparison-rows/);
   assert.doesNotMatch(css, /min-width\s*:\s*\d{3,}px/);
+  assert.match(css, /@media \(max-width: 480px\)/);
+  assert.match(css, /\.loot-comparison-moment \.kicker\s*\{[\s\S]*?display:\s*none/);
+  assert.match(css, /\.loot-comparison-rows\s*\{[\s\S]*?display:\s*flex/);
 });
 
 
