@@ -210,7 +210,8 @@
   }
   function finish(s, died) {
     const x = s.expedition;
-    const gearQuality = Array.isArray(x.gearQuality) ? x.gearQuality : x.gear.map(() => 0);
+    const gearQuality = Array.isArray(x.gearQuality) ? [...x.gearQuality] : [];
+    while (gearQuality.length < x.gear.length) gearQuality.push(0);
     s.report = { died, place: x.place, depth: x.depth, scrap: x.scrap, gear: [...x.gear], gearQuality: [...gearQuality], newGear: [], duplicates: [], hp: x.hp, cleared: [...x.seals] };
     if (!died) {
       s.scrap += x.scrap;
@@ -249,6 +250,8 @@
   }
   function victory(s) {
     const x = s.expedition, e = x.enemy;
+    if (!Array.isArray(x.gearQuality)) x.gearQuality = [];
+    while (x.gearQuality.length < x.gear.length) x.gearQuality.push(0);
     const loot = (e.elite ? 5 : 2) * x.depth + (e.risky ? 3 : 0);
     x.scrap += loot;
     x.log.push(`討伐。鉄片を ${loot} 個、背嚢へ。生還するまで確定しない。`);
