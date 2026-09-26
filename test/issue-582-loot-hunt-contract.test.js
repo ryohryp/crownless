@@ -144,4 +144,6 @@ test("loot comparison UI reads the explicit equipped gear marker", () => {
   assert.match(ui, /querySelector\('\[data-found-gear-id\]'\)/);
   assert.doesNotMatch(ui, /ledger\.querySelector\('small'\)/);
   assert.doesNotMatch(ui, /textContent\.trim\(\)/);
+  assert.match(ui, /querySelector\('\.loot-comparison-moment'\)\) return/);
+  assert.doesNotMatch(ui, /querySelectorAll\('\.loot-comparison-moment'\).*remove/);
 });
