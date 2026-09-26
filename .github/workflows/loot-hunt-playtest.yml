@@ -1,0 +1,45 @@
+name: loot-hunt-playtest
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: loot-hunt-playtest-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  browser:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install browser test runtime
+        run: |
+          npm install --no-save @playwright/test@1.55.0
+          npx playwright install --with-deps chromium
+      - name: Start Crownless
+        run: |
+          nohup npm start > /tmp/crownless.log 2>&1 &
+          for i in {1..30}; do
+            if curl -fsS http://127.0.0.1:4173/ >/dev/null; then
+              exit 0
+            fi
+            sleep 1
+          done
+          cat /tmp/crownless.log
+          exit 1
+      - name: Run 390x844 Loot Hunt gate
+        run: npx playwright test playtest/issue-582-loot-hunt-browser.spec.cjs --reporter=line
+      - name: Upload playtest evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: issue-582-loot-hunt-playtest
+          path: playtest-artifacts/
+          if-no-files-found: warn
