@@ -25,6 +25,8 @@ function buildJevState(trace) {
       scrap_gained: trace.scrapGained,
       gear_acquired: trace.gearGained,
       new_gear_found: trace.newGearFound,
+      gear_qualities: trace.gearQualities,
+      duplicate_loot: trace.duplicateLoot,
     },
     health_and_tension: {
       max_hp: trace.maxHp,
@@ -42,6 +44,8 @@ function buildJevState(trace) {
       equipped_weapon: trace.finalWeapon,
       new_gear_equipped: trace.hearthOutcome.newGearEquipped,
       upgraded_weapon: trace.hearthOutcome.canUpgrade,
+      quality_upgrade_found: trace.hearthOutcome.qualityUpgradeFound,
+      equipped_quality: trace.hearthOutcome.equippedQuality,
       recovery_cache: trace.hearthOutcome.recoveryCache,
       scrap_held: trace.hearthOutcome.scrapRemaining,
       unlocked_destinations: trace.hearthOutcome.unlockedPlaces,
@@ -82,7 +86,7 @@ function buildJevQuestions() {
     one_more_run_motivation: {
       type: "score",
       instructions:
-        "Does the outcome of this run (gear found, upgrades purchased, next area unlocked) create strong motivation to embark on one more expedition?",
+        "Does the outcome create a strong reason for one more expedition, including the chance to find a better-quality version of a weapon already owned?",
       criteria: [
         "Dead end; no clear progression or reason to explore again.",
         "Weak pull; repetitive outcome with minimal sense of advancement.",
@@ -172,7 +176,7 @@ async function callJevSystemOne(state, questions, options = {}) {
 function fallbackEvaluation(trace) {
   const isTactician = trace.archetype === "tactician";
   const isRusher = trace.archetype === "rusher";
-  const hasLoot = trace.newGearFound.length > 0 || trace.scrapGained >= 15;
+  const hasLoot = (trace.gearGained?.length || 0) > 0 || trace.newGearFound.length > 0 || trace.scrapGained >= 15;
 
   let tacticalDepth = isTactician ? 4.0 : isRusher ? 1.5 : 3.0;
   if (trace.metrics.intentResponseAccuracy > 0.7) tacticalDepth += 0.5;
@@ -185,6 +189,7 @@ function fallbackEvaluation(trace) {
 
   let oneMorePull = 2.0;
   if (trace.hearthOutcome.canEquipNew) oneMorePull += 1.8;
+  if (trace.hearthOutcome.qualityUpgradeFound) oneMorePull += 1.2;
   if (trace.hearthOutcome.canUpgrade) oneMorePull += 0.8;
   if (trace.hearthOutcome.recoveryCache) oneMorePull += 0.8;
   if (trace.cleared) oneMorePull += 0.5;
