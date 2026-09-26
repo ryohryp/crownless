@@ -5,7 +5,7 @@
   if (!C || !E || !root) return;
 
   function enhance() {
-    root.querySelectorAll('.loot-comparison-moment').forEach(node => node.remove());
+    if (root.querySelector('.loot-comparison-moment')) return;
     const ledger = root.querySelector('.loot-ledger');
     if (!ledger) return;
     const currentName = ledger.querySelector('[data-current-gear-id]')?.dataset.currentGearId;
