@@ -86,8 +86,10 @@
     const beforeGear = Engine?.GEAR?.[id];
     if (!beforeGear) return '';
     const before = Engine.combatProfile(state, id);
-    const upgraded = Engine.upgrade(state, id);
-    if (!upgraded || upgraded === state) return '';
+    const cost = Engine.upgradeCost(state, id);
+    const previewState = state.scrap >= cost ? state : { ...state, scrap: cost };
+    const upgraded = Engine.upgrade(previewState, id);
+    if (!upgraded || upgraded === previewState) return '';
     const after = Engine.combatProfile(upgraded, id);
 
     if (before.family === 'fang' && before.dodgeFocus !== after.dodgeFocus) {
