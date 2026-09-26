@@ -114,6 +114,16 @@
       ${notice ? `<p class="notice map-home-notice" role="status">${esc(notice)}</p>` : ''}
     </div>`;
   }
+  function canReinforceEquipped() {
+    const id = state.equipped;
+    return Boolean(
+      id &&
+      state.owned.includes(id) &&
+      E.weaponLevel(state, id) < 4 &&
+      state.scrap >= E.upgradeCost(state, id)
+    );
+  }
+
   function gearPanel() {
     const id = state.equipped, level = E.weaponLevel(state,id), cost = E.upgradeCost(state,id);
     return `<p class="kicker">MAKE IT HOME. MAKE IT YOURS.</p><h2>次の旅の、戦い方。</h2><p class="small">深層では同じ武器種でも戦い方の違う一本が見つかる。補強は一本ごとに残る。</p><div class="gear-list">${state.owned.filter(g => g !== 'crown').map(g => button('equip',`${E.GEAR[g].name}${state.equipped === g ? ' · 装備中' : ''} · 補強 ${E.weaponLevel(state,g)}/4`,E.gearText(state,g),{value:g,class:`choice ${state.equipped === g ? 'selected' : ''}`})).join('')}</div>${state.owned.includes('crown') ? '<p class="badge">灰の王冠 · 永続で最大体力 +6</p>' : ''}<div class="rule-line"><div class="section-heading"><h3 style="margin:0">${E.GEAR[id].name}を補強する</h3><span class="small">${level} / 4</span></div><p class="small">この一本の得意行動だけが一段強くなる。別の武器には影響しない。</p>${button('upgrade',level >= 4 ? 'この武器の補強を終えた' : `鉄片 ${cost} で補強する`,'',{class:'secondary',disabled:level >= 4 || state.scrap < cost})}${notice ? `<p class="notice" role="status">${esc(notice)}</p>` : ''}</div>`;
@@ -169,6 +179,8 @@
   }
   function report() {
     const r = state.report;
+    const hasNewBattleGear = r.newGear.some(g => g !== 'crown');
+    const canPowerUp = !r.died && canReinforceEquipped();
     const recovery = r.died && window.CrownlessRescueCache?.cacheFromReport
       ? window.CrownlessRescueCache.cacheFromReport(r, r.place)
       : null;
@@ -178,7 +190,7 @@
     const defeatIntro = recovery
       ? `背嚢は落としたが、${E.place(r.place).name}の敗走跡に${recoveryParts.join('と')}が残っている。次に同じ土地へ出れば回収できる。`
       : '背嚢の中身は霧の中へ。手元の鉄片と装備は無事だ。次は早めに帰るか、別の装備で挑もう。';
-    return `<div class="game-layout report-layout"><section class="visual-column">${scene('camp',r.died ? '火は、まだ消えていない。' : 'おかえり、旅人。',r.died ? 'THE ROAD IS NOT OVER' : 'YOU MADE IT HOME')}</section><section class="panel report-panel"><div class="report-scroll"><p class="kicker">${r.died ? 'EXPEDITION LOST' : 'SAFE RETURN'} / ${E.place(r.place).name}</p><h1>${r.died ? '命だけを、持ち帰った。' : r.newGear.length ? '新しい一本を、火へ。' : '欲張らずに、帰る強さ。'}</h1><p class="intro">${r.died ? defeatIntro : '背嚢の中身は、もうあなたのもの。新しい武具なら、今の装備と比べて次の戦い方を選べる。'}</p><div class="result-number">${r.died ? '' : '+'}${r.scrap} <small>${r.died ? '鉄片を落とした' : '鉄片を確保'}</small></div>${r.gear.map(g => `<div class="reward"><span class="reward-icon">♢</span><div><strong>${r.died ? (recovery?.gear === g ? '敗走跡に残った：' : '失った：') : ''}${E.GEAR[g].name}</strong><small>${r.died ? (recovery?.gear === g ? '次に同じ土地へ出れば背嚢へ戻る。生還で確定。' : 'もう一度、深層で探そう。') : E.gearText(state,g)}</small></div></div>`).join('')}${recovery?.scrap ? `<div class="reward"><span class="reward-icon">↺</span><div><strong>敗走跡：鉄片 ${recovery.scrap}</strong><small>次に同じ土地へ出れば背嚢へ戻る。生還するまで未確定。</small></div></div>` : ''}${!r.died && state.owned.includes('crown') ? '<p class="notice">灰冠の廟を越えた。名もなき旅人の、最初の物語が残った。</p>' : ''}<p class="small rule-line">${r.died ? (recovery ? '敗走は全損ではない。取り戻しに行くか、別の土地へ向かうかを選べる。' : '遠征の失敗で、恒久的な進行は失われません。') : state.cleared.length >= 2 && !state.owned.includes('crown') ? '二つの土地を越えた。次は「灰冠の廟」の主に挑める。' : '同じ土地でも深層へ行けば、別の一本に出会えることがあります。'}</p></div><div class="report-actions">${button('continue',r.died && recovery ? '敗走跡を回収する準備へ' : r.newGear.some(g => g !== 'crown') ? '持ち帰った装備を比べる' : '焚き火で次の準備をする','',{class:'primary'})}</div></section></div>`;
+    return `<div class="game-layout report-layout"><section class="visual-column">${scene('camp',r.died ? '火は、まだ消えていない。' : 'おかえり、旅人。',r.died ? 'THE ROAD IS NOT OVER' : 'YOU MADE IT HOME')}</section><section class="panel report-panel"><div class="report-scroll"><p class="kicker">${r.died ? 'EXPEDITION LOST' : 'SAFE RETURN'} / ${E.place(r.place).name}</p><h1>${r.died ? '命だけを、持ち帰った。' : r.newGear.length ? '新しい一本を、火へ。' : '欲張らずに、帰る強さ。'}</h1><p class="intro">${r.died ? defeatIntro : '背嚢の中身は、もうあなたのもの。新しい武具なら、今の装備と比べて次の戦い方を選べる。'}</p><div class="result-number">${r.died ? '' : '+'}${r.scrap} <small>${r.died ? '鉄片を落とした' : '鉄片を確保'}</small></div>${r.gear.map(g => `<div class="reward"><span class="reward-icon">♢</span><div><strong>${r.died ? (recovery?.gear === g ? '敗走跡に残った：' : '失った：') : ''}${E.GEAR[g].name}</strong><small>${r.died ? (recovery?.gear === g ? '次に同じ土地へ出れば背嚢へ戻る。生還で確定。' : 'もう一度、深層で探そう。') : E.gearText(state,g)}</small></div></div>`).join('')}${recovery?.scrap ? `<div class="reward"><span class="reward-icon">↺</span><div><strong>敗走跡：鉄片 ${recovery.scrap}</strong><small>次に同じ土地へ出れば背嚢へ戻る。生還するまで未確定。</small></div></div>` : ''}${!r.died && state.owned.includes('crown') ? '<p class="notice">灰冠の廟を越えた。名もなき旅人の、最初の物語が残った。</p>' : ''}<p class="small rule-line">${r.died ? (recovery ? '敗走は全損ではない。取り戻しに行くか、別の土地へ向かうかを選べる。' : '遠征の失敗で、恒久的な進行は失われません。') : state.cleared.length >= 2 && !state.owned.includes('crown') ? '二つの土地を越えた。次は「灰冠の廟」の主に挑める。' : '同じ土地でも深層へ行けば、別の一本に出会えることがあります。'}</p></div><div class="report-actions">${button('continue',r.died && recovery ? '敗走跡を回収する準備へ' : hasNewBattleGear ? '持ち帰った装備を比べる' : canPowerUp ? `鉄片 ${E.upgradeCost(state, state.equipped)} で今の武器を補強する` : '焚き火で次の準備をする','',{class:'primary'})}</div></section></div>`;
   }
   function render() {
     const help = document.querySelector('#help'), helpToggle = document.querySelector('#help-toggle');
@@ -225,7 +237,7 @@
     } else if (action === 'depart') { locationRequest++; busy = false; state = E.start(state,value); }
     else if (action === 'equip') { state = E.equip(state,value); notice = `${E.GEAR[value].name}を装備した。`; }
     else if (action === 'upgrade') { const id=state.equipped; state = E.upgrade(state,id); if (state !== before) notice = `${E.GEAR[id].name}を補強した。得意行動が強くなった。`; }
-    else if (action === 'continue') { tab = state.report.newGear.some(g => g !== 'crown') ? 'gear' : 'explore'; state = {...state,report:null}; notice = ''; }
+    else if (action === 'continue') { const gearStep = !state.report.died && (state.report.newGear.some(g => g !== 'crown') || canReinforceEquipped()); tab = gearStep ? 'gear' : 'explore'; state = {...state,report:null}; notice = ''; }
     else state = E.act(state, action);
     if (state !== before) save();
     render();
