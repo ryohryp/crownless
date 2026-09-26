@@ -77,6 +77,9 @@ test("simulateExpedition runs to completion and produces valid trace structure",
   assert.ok(trace.metrics.intentResponseAccuracy >= 0 && trace.metrics.intentResponseAccuracy <= 1);
   assert.ok(Array.isArray(trace.logs));
   assert.equal(typeof trace.hearthOutcome, "object");
+  assert.ok(Array.isArray(trace.gearQualities));
+  assert.ok(Array.isArray(trace.duplicateLoot));
+  assert.equal(typeof trace.hearthOutcome.equippedQuality, "number");
 });
 
 test("runPlaytestSuite executes specified number of runs for all archetypes", () => {
