@@ -139,6 +139,9 @@ test("loot comparison UI reads the explicit equipped gear marker", () => {
   const ui = fs.readFileSync(path.join(__dirname, "..", "src", "loot-comparison-ui.js"), "utf8");
 
   assert.match(app, /data-current-gear-id=/);
+  assert.match(app, /data-found-gear-id=/);
   assert.match(ui, /querySelector\('\[data-current-gear-id\]'\)/);
+  assert.match(ui, /querySelector\('\[data-found-gear-id\]'\)/);
   assert.doesNotMatch(ui, /ledger\.querySelector\('small'\)/);
+  assert.doesNotMatch(ui, /textContent\.trim\(\)/);
 });
