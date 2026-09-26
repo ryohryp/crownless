@@ -4,7 +4,7 @@
   const E = window.CrownlessSlice, A = window.CrownlessArt;
   const root = document.querySelector('#game');
   const esc = v => String(v).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
-  let state = E.initial(), selected = 'wood', tab = 'explore', notice = '', busy = false, lastReturnedPlace = null;
+  let state = E.initial(), selected = 'wood', tab = 'explore', notice = '', busy = false, lastReturnedPlace = null, prioritizeReinforcement = false;
   let session = E.locationSession(), currentKey = null, lastRaw = null, saveBlocked = false, conflict = false, locationRequest = 0;
   const key = mode => `crownless-expedition-v1-${mode}`;
   const walkAnchorKey = 'crownless-expedition-v1-walk-anchor';
@@ -32,7 +32,7 @@
       else { saveBlocked = true; warning('セーブを読み込めませんでした。元データを保持し、この回は保存せずに遊べます。'); }
       localStorage.setItem('crownless-expedition-mode', mode);
     } catch { saveBlocked = true; warning('このブラウザでは保存できません。ページを閉じると今回の進行は失われます。'); }
-    locationRequest++; busy = false; session = restoreWalkSession(); selected = state.expedition?.place || 'wood'; tab = 'explore'; notice = ''; lastReturnedPlace = null; render();
+    locationRequest++; busy = false; session = restoreWalkSession(); selected = state.expedition?.place || 'wood'; tab = 'explore'; notice = ''; lastReturnedPlace = null; prioritizeReinforcement = false; render();
   }
   function save() {
     if (!currentKey || saveBlocked) return;
@@ -128,7 +128,7 @@
     const id = state.equipped, level = E.weaponLevel(state,id), cost = E.upgradeCost(state,id);
     const retryPlace = lastReturnedPlace && state.unlocked.includes(lastReturnedPlace) ? E.place(lastReturnedPlace) : null;
     const retry = retryPlace
-      ? `<div class="button-stack">${button('depart',`この装備で${retryPlace.name}へもう一度`,`${E.GEAR[id].name}を試す / 遠征準備へ`,{class:'primary',value:retryPlace.id})}</div>`
+      ? `<div class="button-stack">${button('depart',`この装備で${retryPlace.name}へもう一度`,`${E.GEAR[id].name}を試す / 遠征準備へ`,{class:prioritizeReinforcement ? 'secondary' : 'primary',value:retryPlace.id})}</div>`
       : '';
     return `<p class="kicker">MAKE IT HOME. MAKE IT YOURS.</p><h2>次の旅の、戦い方。</h2><p class="small">深層では同じ武器種でも戦い方の違う一本が見つかる。補強は一本ごとに残る。</p><div class="gear-list">${state.owned.filter(g => g !== 'crown').map(g => button('equip',`${E.GEAR[g].name}${state.equipped === g ? ' · 装備中' : ''} · 補強 ${E.weaponLevel(state,g)}/4`,E.gearText(state,g),{value:g,class:`choice ${state.equipped === g ? 'selected' : ''}`})).join('')}</div>${state.owned.includes('crown') ? '<p class="badge">灰の王冠 · 永続で最大体力 +6</p>' : ''}<div class="rule-line"><div class="section-heading"><h3 style="margin:0">${E.GEAR[id].name}を補強する</h3><span class="small">${level} / 4</span></div><p class="small">この一本の得意行動だけが一段強くなる。別の武器には影響しない。</p>${button('upgrade',level >= 4 ? 'この武器の補強を終えた' : `鉄片 ${cost} で補強する`,'',{class:'secondary',disabled:level >= 4 || state.scrap < cost})}${notice ? `<p class="notice" role="status">${esc(notice)}</p>` : ''}</div>${retry}`;
   }
@@ -240,7 +240,7 @@
     const before = state;
     if (action === 'mode') { loadMode(value); save(); return; }
     if (action === 'switch-mode') { loadMode(state.mode === 'demo' ? 'walk' : 'demo'); save(); return; }
-    if (action === 'select') { selected = value; tab = 'explore'; notice = ''; lastReturnedPlace = null; }
+    if (action === 'select') { selected = value; tab = 'explore'; notice = ''; lastReturnedPlace = null; prioritizeReinforcement = false; }
     else if (action === 'tab') { tab = value; notice = ''; }
     else if (action === 'scout') {
       const demoSession = E.locationSession(); E.observe(demoSession,{latitude:0,longitude:0,accuracy:5}); session = demoSession;
@@ -255,10 +255,10 @@
         if (request !== locationRequest || state.mode !== 'walk' || state.expedition || conflict) return;
         busy = false; notice = error.code === 1 ? '位置情報は許可されませんでした。設定を変えずに、散策体験モードでも遊べます。' : '現在地を取得できませんでした。後ほど試すか、散策体験モードで続けられます。'; render();
       }, { enableHighAccuracy:true, maximumAge:0, timeout:12000 }); return;
-    } else if (action === 'depart') { selected = value; lastReturnedPlace = null; locationRequest++; busy = false; state = E.start(state,value); }
+    } else if (action === 'depart') { selected = value; lastReturnedPlace = null; prioritizeReinforcement = false; locationRequest++; busy = false; state = E.start(state,value); }
     else if (action === 'equip') { state = E.equip(state,value); notice = `${E.GEAR[value].name}を装備した。`; }
-    else if (action === 'upgrade') { const id=state.equipped; state = E.upgrade(state,id); if (state !== before) { const delta = reinforcementResult(before,state,id); const destination = lastReturnedPlace ? E.place(lastReturnedPlace)?.name : ''; notice = `${E.GEAR[id].name}を補強した。${delta}。${destination ? `${destination}で` : '次の遠征で'}試してみよう。`; } }
-    else if (action === 'continue') { const gearStep = !state.report.died && (state.report.newGear.some(g => g !== 'crown') || canReinforceEquipped()); lastReturnedPlace = gearStep ? state.report.place : null; tab = gearStep ? 'gear' : 'explore'; state = {...state,report:null}; notice = ''; }
+    else if (action === 'upgrade') { const id=state.equipped; state = E.upgrade(state,id); if (state !== before) { prioritizeReinforcement = false; const delta = reinforcementResult(before,state,id); const destination = lastReturnedPlace ? E.place(lastReturnedPlace)?.name : ''; notice = `${E.GEAR[id].name}を補強した。${delta}。${destination ? `${destination}で` : '次の遠征で'}試してみよう。`; } }
+    else if (action === 'continue') { const hasNewBattleGear = !state.report.died && state.report.newGear.some(g => g !== 'crown'); const canPowerUp = !state.report.died && canReinforceEquipped(); const gearStep = hasNewBattleGear || canPowerUp; lastReturnedPlace = gearStep ? state.report.place : null; prioritizeReinforcement = gearStep && !hasNewBattleGear && canPowerUp; tab = gearStep ? 'gear' : 'explore'; state = {...state,report:null}; notice = ''; }
     else state = E.act(state, action);
     if (state !== before) save();
     render();
