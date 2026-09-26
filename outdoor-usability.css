@@ -1,0 +1,33 @@
+/* #842 Outdoor usability: a manually selected high-contrast palette and a
+   glanceable bearing guide. No heading sensor or precise location is stored. */
+.sunlight-toggle{white-space:nowrap}
+.atlas-compass{position:absolute;right:10px;bottom:10px;z-index:5;width:min(230px,58%);padding:10px 11px;border:1px solid var(--line);background:#10272be8;box-shadow:0 8px 24px #0005;pointer-events:none}
+.atlas-compass>strong{display:block;color:var(--gold);font:13px Georgia,serif;letter-spacing:.06em}
+.atlas-compass>small{display:block;margin:3px 0 7px;color:var(--muted);font-size:9px;line-height:1.45}
+.atlas-compass>div{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.atlas-compass span{display:grid;grid-template-columns:24px 1fr;column-gap:5px;align-items:center}
+.atlas-compass b{grid-row:1/3;color:var(--gold);font:700 12px Georgia,serif}
+.atlas-compass i{color:var(--ink);font-size:9px;font-style:normal;line-height:1.25}
+.atlas-compass em{color:var(--muted);font-size:8px;font-style:normal}
+
+html.sunlight-mode{color-scheme:light;--bg:#f4efe2;--panel:#fffaf0;--gold:#684c13;--ink:#171914;--muted:#3f463c;--line:#17191455;--green:#315f3c;--danger:#8b2f20}
+html.sunlight-mode body{background:linear-gradient(180deg,#fffdf6,#e9e0cb);color:var(--ink)}
+html.sunlight-mode .masthead,html.sunlight-mode .footer{border-color:#17191466}
+html.sunlight-mode .help,html.sunlight-mode .save-warning,html.sunlight-mode .discovery,html.sunlight-mode .stat-strip,html.sunlight-mode .vitals,html.sunlight-mode .choice,html.sunlight-mode .place-pin,html.sunlight-mode .loot-ledger{background:#fffaf0;color:var(--ink);border-color:#17191466}
+html.sunlight-mode .primary{background:#684c13;color:#fffdf6;border-color:#684c13}
+html.sunlight-mode .secondary{background:#fffdf6;color:#3b2b0d;border-color:#17191499}
+html.sunlight-mode .atlas-compass{background:#fffdf6f2;border-color:#17191499;box-shadow:0 6px 18px #6b5a3426}
+html.sunlight-mode .exploration-atlas{filter:contrast(1.12) saturate(.82)}
+html.sunlight-mode .text-button,html.sunlight-mode .small,html.sunlight-mode p{color:var(--muted)}
+html.sunlight-mode button:focus-visible,html.sunlight-mode a:focus-visible{outline-color:#171914}
+
+@media(max-width:620px){
+  .masthead{gap:7px}
+  .sunlight-toggle{font-size:10px;padding:6px 3px}
+  .atlas-compass{right:7px;bottom:7px;width:min(250px,72%);padding:8px}
+  .atlas-compass>small{display:none}
+  .atlas-compass>div{gap:3px}
+  .atlas-compass i{font-size:8px}
+  .atlas-compass em{display:none}
+}
+@media(max-width:360px){.sunlight-toggle{font-size:0}.sunlight-toggle:before{content:'☀';font-size:18px}.atlas-compass{width:76%}}
