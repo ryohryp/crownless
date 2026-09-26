@@ -59,8 +59,7 @@ test("issue #582 Loot Hunt phone-size runtime gate", async ({ page }) => {
     };
   });
 
-  await page.reload();
-  await page.waitForLoadState("domcontentloaded");
+  await page.reload({ waitUntil: "domcontentloaded", timeout: 10000 });
 
   const comparison = page.locator(".loot-comparison-moment");
   await expect(comparison).toBeVisible();
