@@ -109,7 +109,7 @@
     const roll = ((s.runs * 37 + x.depth * 17 + x.room * 13 + placeIndex * 11 + gearIndex * 19 + x.gear.length * 23 + salt * 29) % 100 + 100) % 100;
     return QUALITY_STEPS.find(step => roll < step.max)?.quality ?? 0;
   }
-  const initial = () => ({ version: VERSION, mode: null, unlocked: ['wood'], cleared: [], owned: ['rust'], equipped: 'rust', qualities: emptyQualities(), scrap: 0, level: 0, upgrades: emptyUpgrades(), runs: 0, victories: 0, maintenance: null, expedition: null, report: null });
+  const initial = () => ({ version: VERSION, mode: null, unlocked: ['wood'], cleared: [], owned: ['rust'], equipped: 'rust', qualities: emptyQualities(), scrap: 0, level: 0, upgrades: emptyUpgrades(), runs: 0, victories: 0, grudge: null, maintenance: null, expedition: null, report: null });
   const maxHp = s => 30 + (Number.isInteger(s.level) ? s.level : 0) * 5 + (s.owned.includes('crown') ? 6 : 0);
   function weaponLevel(s, id = s.equipped) {
     const legacy = LEGACY_UPGRADEABLE.has(id) && Number.isInteger(s?.level)
@@ -197,7 +197,12 @@
     if (s.expedition || !s.mode || !s.unlocked.includes(id) || !place(id) || (id === 'crypt' && s.cleared.length < 2)) return s;
     const n = copy(s); n.report = null; n.runs++;
     const sharpened = n.maintenance === 'sharp' ? 3 : 0; n.maintenance = null;
-    n.expedition = { place: id, depth: 1, room: 0, hp: maxHp(s), stamina: 3, focus: 0, sharpened, sharpenedApplied: false, potions: 2, scrap: 0, gear: [], gearQuality: [], seals: [], enemy: null, stage: 'path', log: [sharpened ? '研いだ刃はまだ鋭い。次の三戦、初撃が強くなる。' : '火はここで待っている。まずは足跡をたどろう。'] };
+    const grudge = n.grudge?.place === id && ENEMIES[n.grudge.enemy] ? { ...n.grudge, used: false } : null;
+    const intro = [
+      sharpened ? '研いだ刃はまだ鋭い。次の三戦、初撃が強くなる。' : null,
+      grudge ? `敗走の記憶が残っている。${ENEMIES[grudge.enemy].name}への一撃に執念を乗せられる。` : null,
+    ].filter(Boolean).join(' ') || '火はここで待っている。まずは足跡をたどろう。';
+    n.expedition = { place: id, depth: 1, room: 0, hp: maxHp(s), stamina: 3, focus: 0, sharpened, sharpenedApplied: false, potions: 2, scrap: 0, gear: [], gearQuality: [], seals: [], grudge, enemy: null, stage: 'path', log: [intro] };
     return n;
   }
   function encounter(x, risky) {
@@ -213,7 +218,8 @@
     const x = s.expedition;
     const gearQuality = Array.isArray(x.gearQuality) ? [...x.gearQuality] : [];
     while (gearQuality.length < x.gear.length) gearQuality.push(0);
-    s.report = { died, place: x.place, depth: x.depth, scrap: x.scrap, gear: [...x.gear], gearQuality: [...gearQuality], newGear: [], duplicates: [], hp: x.hp, cleared: [...x.seals] };
+    s.report = { died, place: x.place, depth: x.depth, scrap: x.scrap, gear: [...x.gear], gearQuality: [...gearQuality], newGear: [], duplicates: [], hp: x.hp, cleared: [...x.seals], defeatedBy: died && x.enemy ? x.enemy.kind : null };
+    if (died && x.enemy) s.grudge = { place: x.place, enemy: x.enemy.kind };
     if (!died) {
       s.scrap += x.scrap;
       const newGear = [];
@@ -285,6 +291,7 @@
     const e = x.enemy, next = intent(e), p = combatProfile(s);
     let damage = weaponAttack(s, s.equipped) + x.focus + (action === 'heavy' ? p.heavyBonus : 0);
     if (x.sharpened > 0 && !x.sharpenedApplied) damage += 3;
+    if (x.grudge && !x.grudge.used && x.grudge.enemy === e.kind) damage += 3;
     if (p.lowHpBonus && x.hp <= Math.ceil(maxHp(s) / 2)) damage += p.lowHpBonus;
     if (p.openBonus && next.id === 'open') damage += p.openBonus;
     if (action === 'heavy' && next.id === 'open') damage += 5;
@@ -327,6 +334,7 @@
     if (action === 'strike' || action === 'heavy') {
       damage = attackPreview(n, action);
       if (x.sharpened > 0 && !x.sharpenedApplied) { x.sharpened--; x.sharpenedApplied = true; }
+      if (x.grudge && !x.grudge.used && x.grudge.enemy === e.kind) { x.grudge.used = true; n.grudge = null; x.log.push('敗走の執念を一撃に乗せた。与えるダメージ +3。'); }
       x.stamina = Math.min(3, x.stamina + (action === 'heavy' ? -p.heavyCost : 1)); x.focus = 0;
     }
     if (action === 'guard') { x.stamina = Math.min(3, x.stamina + 1); if (p.counter && next.damage > 0) damage = p.counter; }
@@ -402,6 +410,7 @@
       const s = JSON.parse(raw);
       if (s.version === VERSION && s.upgrades === undefined) s.upgrades = emptyUpgrades();
       else if (s.version === VERSION && s.upgrades && typeof s.upgrades === 'object' && !Array.isArray(s.upgrades)) s.upgrades = {...emptyUpgrades(), ...s.upgrades};
+      if (s.version === VERSION && s.grudge === undefined) s.grudge = null;
       if (s.version === VERSION && s.maintenance === undefined) s.maintenance = null;
       if (s.version === VERSION && s.qualities === undefined) s.qualities = emptyQualities();
       else if (s.version === VERSION && s.qualities && typeof s.qualities === 'object' && !Array.isArray(s.qualities)) s.qualities = {...emptyQualities(), ...s.qualities};
@@ -409,10 +418,12 @@
         if (Array.isArray(s.expedition.gear) && s.expedition.gearQuality === undefined) s.expedition.gearQuality = s.expedition.gear.map(() => 0);
         if (s.expedition.sharpened === undefined) s.expedition.sharpened = 0;
         if (s.expedition.sharpenedApplied === undefined) s.expedition.sharpenedApplied = false;
+        if (s.expedition.grudge === undefined) s.expedition.grudge = null;
       }
       if (s.version === VERSION && s.report) {
         if (Array.isArray(s.report.gear) && s.report.gearQuality === undefined) s.report.gearQuality = s.report.gear.map(() => 0);
         if (s.report.duplicates === undefined) s.report.duplicates = [];
+        if (s.report.defeatedBy === undefined) s.report.defeatedBy = null;
       }
       const ids = PLACES.map(p => p.id), keys = Object.keys(initial());
       const validArray = (a, allowed) => Array.isArray(a) && a.length <= allowed.length && new Set(a).size === a.length && a.every(v => allowed.includes(v));
@@ -421,11 +432,13 @@
       const validQualities = q => q && typeof q === 'object' && !Array.isArray(q) && Object.keys(q).length === Object.keys(GEAR).length && Object.keys(GEAR).every(id => Object.prototype.hasOwnProperty.call(q,id) && int(q[id],-1,3)) && Object.keys(q).every(id => Object.prototype.hasOwnProperty.call(GEAR,id));
       const validLoot = (gear, quality) => Array.isArray(gear) && gear.length <= 12 && gear.every(id => Object.prototype.hasOwnProperty.call(GEAR,id)) && Array.isArray(quality) && quality.length === gear.length && quality.every(q => int(q,-1,3));
       const validDuplicates = d => Array.isArray(d) && d.length <= 12 && d.every(item => item && typeof item === 'object' && !Array.isArray(item) && Object.keys(item).length === 3 && Object.keys(item).every(k => ['id','quality','decision'].includes(k)) && Object.prototype.hasOwnProperty.call(GEAR,item.id) && item.id !== 'crown' && int(item.quality,-1,3) && [null,'keep','dismantle'].includes(item.decision));
-      if (s.version !== VERSION || Object.keys(s).some(k => !keys.includes(k)) || ![null, 'demo', 'walk'].includes(s.mode) || !validArray(s.unlocked, ids) || !s.unlocked.includes('wood') || !validArray(s.cleared, ids) || !validArray(s.owned, Object.keys(GEAR)) || !s.owned.includes('rust') || !s.owned.includes(s.equipped) || s.equipped === 'crown' || !int(s.level, 0, 4) || !validUpgrades(s.upgrades) || !validQualities(s.qualities) || ![null,'ready','sharp'].includes(s.maintenance) || !int(s.scrap, 0, 1e9) || !int(s.runs, 0, 1e9) || !int(s.victories, 0, s.runs)) throw Error('save');
+      const validGrudge = g => g === null || (g && typeof g === 'object' && !Array.isArray(g) && Object.keys(g).length === 2 && ids.includes(g.place) && Object.prototype.hasOwnProperty.call(ENEMIES,g.enemy));
+      const validExpeditionGrudge = g => g === null || (g && typeof g === 'object' && !Array.isArray(g) && Object.keys(g).length === 3 && ids.includes(g.place) && Object.prototype.hasOwnProperty.call(ENEMIES,g.enemy) && typeof g.used === 'boolean');
+      if (s.version !== VERSION || Object.keys(s).some(k => !keys.includes(k)) || ![null, 'demo', 'walk'].includes(s.mode) || !validArray(s.unlocked, ids) || !s.unlocked.includes('wood') || !validArray(s.cleared, ids) || !validArray(s.owned, Object.keys(GEAR)) || !s.owned.includes('rust') || !s.owned.includes(s.equipped) || s.equipped === 'crown' || !int(s.level, 0, 4) || !validUpgrades(s.upgrades) || !validQualities(s.qualities) || !validGrudge(s.grudge) || ![null,'ready','sharp'].includes(s.maintenance) || !int(s.scrap, 0, 1e9) || !int(s.runs, 0, 1e9) || !int(s.victories, 0, s.runs)) throw Error('save');
       if (s.expedition) {
         const x = s.expedition;
         const allowedFocus = gearFamily(s.equipped) === 'fang' ? [0,3,4,5,6,7,8,9] : [0,3];
-        if (Object.keys(x).some(k => !['place','depth','room','hp','stamina','focus','sharpened','sharpenedApplied','potions','scrap','gear','gearQuality','seals','enemy','stage','log'].includes(k)) || !s.unlocked.includes(x.place) || !int(x.depth,1,3) || !int(x.room,0,4) || !int(x.hp,1,maxHp(s)) || !int(x.stamina,0,3) || !allowedFocus.includes(x.focus) || !int(x.sharpened,0,3) || typeof x.sharpenedApplied !== 'boolean' || !int(x.potions,0,2) || !int(x.scrap,0,1000) || !validLoot(x.gear,x.gearQuality) || !Array.isArray(x.seals) || x.seals.length > 3 || !x.seals.every(v => ids.includes(v)) || !['path','fight','cleared'].includes(x.stage) || !Array.isArray(x.log) || x.log.length > 10 || !x.log.every(v => typeof v === 'string' && v.length < 250)) throw Error('run');
+        if (Object.keys(x).some(k => !['place','depth','room','hp','stamina','focus','sharpened','sharpenedApplied','potions','scrap','gear','gearQuality','seals','grudge','enemy','stage','log'].includes(k)) || !s.unlocked.includes(x.place) || !int(x.depth,1,3) || !int(x.room,0,4) || !int(x.hp,1,maxHp(s)) || !int(x.stamina,0,3) || !allowedFocus.includes(x.focus) || !int(x.sharpened,0,3) || typeof x.sharpenedApplied !== 'boolean' || !validExpeditionGrudge(x.grudge) || !int(x.potions,0,2) || !int(x.scrap,0,1000) || !validLoot(x.gear,x.gearQuality) || !Array.isArray(x.seals) || x.seals.length > 3 || !x.seals.every(v => ids.includes(v)) || !['path','fight','cleared'].includes(x.stage) || !Array.isArray(x.log) || x.log.length > 10 || !x.log.every(v => typeof v === 'string' && v.length < 250)) throw Error('run');
         if (x.stage === 'fight') {
           const e = x.enemy;
           if (!e || Object.keys(e).some(k => !['kind','hp','maxHp','turn','depth','elite','risky'].includes(k)) || !ENEMIES[e.kind] || !int(e.maxHp,1,80) || !int(e.hp,1,e.maxHp) || !int(e.turn,0,1e6) || e.depth !== x.depth || typeof e.elite !== 'boolean' || typeof e.risky !== 'boolean') throw Error('enemy');
@@ -433,7 +446,7 @@
       }
       if (s.report) {
         const r = s.report;
-        if (Object.keys(r).some(k => !['died','place','depth','scrap','gear','gearQuality','newGear','duplicates','hp','cleared'].includes(k)) || typeof r.died !== 'boolean' || !ids.includes(r.place) || !int(r.depth,1,3) || !int(r.scrap,0,1000) || !validLoot(r.gear,r.gearQuality) || !validArray(r.newGear,Object.keys(GEAR)) || !validDuplicates(r.duplicates) || !int(r.hp,-30,80) || !Array.isArray(r.cleared) || r.cleared.length > 3 || !r.cleared.every(v => ids.includes(v))) throw Error('report');
+        if (Object.keys(r).some(k => !['died','place','depth','scrap','gear','gearQuality','newGear','duplicates','hp','cleared','defeatedBy'].includes(k)) || typeof r.died !== 'boolean' || !ids.includes(r.place) || !int(r.depth,1,3) || !int(r.scrap,0,1000) || !validLoot(r.gear,r.gearQuality) || !validArray(r.newGear,Object.keys(GEAR)) || !validDuplicates(r.duplicates) || !(r.defeatedBy === null || Object.prototype.hasOwnProperty.call(ENEMIES,r.defeatedBy)) || !int(r.hp,-30,80) || !Array.isArray(r.cleared) || r.cleared.length > 3 || !r.cleared.every(v => ids.includes(v))) throw Error('report');
       }
       return s;
     } catch { return null; }
