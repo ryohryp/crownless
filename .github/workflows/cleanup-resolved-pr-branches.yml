@@ -42,9 +42,10 @@ jobs:
           deleted=0
           missing=0
           for branch in "${branches[@]}"; do
-            if git ls-remote --exit-code --heads "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" "refs/heads/$branch" >/dev/null 2>&1; then
+            ref="heads/$branch"
+            if gh api --silent "repos/$GITHUB_REPOSITORY/git/ref/$ref" >/dev/null 2>&1; then
               echo "DELETE $branch"
-              git push "https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" --delete "$branch"
+              gh api --method DELETE "repos/$GITHUB_REPOSITORY/git/refs/$ref"
               deleted=$((deleted + 1))
             else
               echo "MISSING $branch"
