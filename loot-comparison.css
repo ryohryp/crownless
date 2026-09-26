@@ -4,3 +4,54 @@
 .loot-comparison-rows li { display: grid; grid-template-columns: 4.5rem 1fr; gap: 8px; align-items: baseline; }
 .loot-comparison-rows small { opacity: .72; }
 .loot-comparison-rows strong { font-size: .92rem; font-weight: 600; }
+
+
+@media (max-width: 480px) {
+  .loot-comparison-moment {
+    margin-top: .25rem;
+    padding-top: .35rem;
+  }
+
+  .loot-comparison-moment .kicker {
+    display: none;
+  }
+
+  .loot-comparison-moment h3 {
+    margin: 0;
+    font-size: 16px;
+    line-height: 1.25;
+  }
+
+  .loot-comparison-moment > .small {
+    margin: .1rem 0 0;
+    font-size: 9px;
+    line-height: 1.2;
+  }
+
+  .loot-comparison-rows {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .1rem .35rem;
+    margin: .2rem 0 0;
+  }
+
+  .loot-comparison-rows li {
+    display: inline-flex;
+    gap: 0;
+    align-items: baseline;
+  }
+
+  .loot-comparison-rows small {
+    display: none;
+  }
+
+  .loot-comparison-rows strong {
+    font-size: 9.5px;
+    line-height: 1.25;
+  }
+
+  .loot-comparison-rows li:not(:last-child) strong::after {
+    content: " ·";
+    color: var(--muted);
+  }
+}
