@@ -1,0 +1,19 @@
+{
+  "name": "Crownless — 霧の向こうへ",
+  "short_name": "Crownless",
+  "description": "歩いて未知の土地を発見し、戦利品を持ち帰る小さな遠征RPG。",
+  "start_url": "./expedition.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#13272b",
+  "theme_color": "#13272b",
+  "icons": [
+    {
+      "src": "./crownless-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
+}
