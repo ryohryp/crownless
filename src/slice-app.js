@@ -203,6 +203,9 @@
     const enemyArt = x.enemy ? (E.ENEMIES[x.enemy.kind].art || x.enemy.kind) : null;
     return `<div class="game-layout expedition-layout ${isFight ? 'battle-layout' : ''}"><section class="visual-column">${scene(x.place,p.name,`DEPTH ${String(x.depth).padStart(2,'0')} · ${x.stage === 'cleared' ? '踏破' : `${x.room+1} / 5`}`,enemyArt,`${E.GEAR[state.equipped].name}`)}${route(x)}${vitals(x)}<div class="journey-note"><b>${String(x.depth).padStart(2,'0')}</b><span>深層 ${x.depth} · 戦利品を失っても、持ち込んだ装備は残る。<br>深層ほど敵の型が変わり、珍しい武具を期待できる。</span></div></section><section class="panel ${isFight ? 'combat-panel' : 'path-panel'}">${isFight ? fight(x) : pathPanel(x)}</section></div>`;
   }
+  function ending() {
+    return `<div class="game-layout report-layout"><section class="visual-column">${scene('camp','灰の冠は、火のそばに。','THE CROWN CAME HOME',null,'旅の到達点')}</section><section class="panel report-panel"><div class="report-scroll"><p class="kicker">EPILOGUE · 名もなき旅人</p><h1>冠を持ち帰った。<br>それでも、旅は続く。</h1><p class="intro">霧の王墓から持ち帰った灰の冠を、あなたは焚き火のそばへ置いた。名は刻まれない。けれど、歩いた土地と、生きて帰った夜だけは残る。</p><div class="result-number">${state.victories} <small>回の生還 / 遠征 ${state.runs} 回</small></div><p class="notice">灰の王冠 · 最大体力 +6。ここから先も、まだ見ていない一本と深層が残っている。</p><p class="small rule-line">これは終わりではなく、最初の物語の区切り。地図へ戻れば、踏破した土地にも再び遠征できる。</p></div><div class="report-actions">${button('ending-continue','旅の地図へ戻る','',{class:'primary'})}</div></section></div>`;
+  }
   function report() {
     const r = state.report;
     const duplicates = Array.isArray(r.duplicates) ? r.duplicates : [];
@@ -238,7 +241,7 @@
     const help = document.querySelector('#help'), helpToggle = document.querySelector('#help-toggle');
     if (help && !help.hidden) { help.hidden = true; helpToggle?.setAttribute('aria-expanded', 'false'); }
     if (conflict) { root.innerHTML = '<div class="help"><h2>別のタブで旅が進んでいます。</h2><p>最新のセーブを読み直してください。</p><button class="primary" data-action="reload">再読み込み</button></div>'; return; }
-    root.innerHTML = !state.mode ? onboard() : state.expedition ? expedition() : state.report ? report() : camp();
+    root.innerHTML = !state.mode ? onboard() : state.expedition ? expedition() : state.report?.ending ? ending() : state.report ? report() : camp();
   }
   function locationResult(coords) {
     const result = E.observe(session,coords);
@@ -282,6 +285,9 @@
     else if (action === 'upgrade') { const id=state.equipped; state = E.upgrade(state,id); if (state !== before) { prioritizeReinforcement = false; const delta = reinforcementResult(before,state,id); const destination = lastReturnedPlace ? E.place(lastReturnedPlace)?.name : ''; notice = `${E.GEAR[id].name}を補強した。${delta}。${destination ? `${destination}で` : '次の遠征で'}試してみよう。`; } }
     else if (action === 'loot-keep') { state = E.resolveDuplicate(state,Number(value),'keep'); }
     else if (action === 'loot-dismantle') { state = E.resolveDuplicate(state,Number(value),'dismantle'); }
+    else if (action === 'ending-continue') {
+      state = {...state,report:null}; tab = 'explore'; notice = '';
+    }
     else if (action === 'continue') {
       const duplicates = state.report.duplicates || [];
       if (duplicates.some(d => !d.decision)) return;
@@ -293,7 +299,8 @@
       prioritizeReinforcement = gearStep && !hasNewBattleGear && canPowerUp;
       tab = gearStep ? 'gear' : 'explore';
       if (keptDuplicate) { lastReturnedPlace = state.report.place; prioritizeReinforcement = false; tab = 'gear'; }
-      state = {...state,report:null}; notice = '';
+      const crownEnding = !state.report.died && state.report.newGear.includes('crown');
+      state = crownEnding ? {...state,report:{ending:true}} : {...state,report:null}; notice = '';
     }
     else state = E.act(state, action);
     if (state !== before) save();
