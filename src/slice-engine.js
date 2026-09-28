@@ -202,7 +202,7 @@
       sharpened ? '研いだ刃はまだ鋭い。次の三戦、初撃が強くなる。' : null,
       grudge ? `敗走の記憶が残っている。${ENEMIES[grudge.enemy].name}への一撃に執念を乗せられる。` : null,
     ].filter(Boolean).join(' ') || '火はここで待っている。まずは足跡をたどろう。';
-    n.expedition = { place: id, depth: 1, room: 0, hp: maxHp(s), stamina: 3, focus: 0, sharpened, sharpenedApplied: false, potions: 2, scrap: 0, gear: [], gearQuality: [], seals: [], grudge, enemy: null, stage: 'path', log: [intro] };
+    n.expedition = { place: id, depth: 1, room: 0, hp: maxHp(s), stamina: 3, focus: 0, stagger: false, sharpened, sharpenedApplied: false, potions: 2, scrap: 0, gear: [], gearQuality: [], seals: [], grudge, enemy: null, stage: 'path', log: [intro] };
     return n;
   }
   function encounter(x, risky) {
@@ -210,7 +210,7 @@
     const kind = x.place === 'wood' && x.room === 2 ? 'forest_hunter' : place(x.place).enemy;
     const hp = ENEMIES[kind].hp + (x.depth - 1) * 5 + (elite ? 6 : 0) + (risky ? 3 : 0);
     x.enemy = { kind, hp, maxHp: hp, turn: 0, depth: x.depth, elite, risky };
-    x.stage = 'fight'; x.stamina = Math.max(2, x.stamina); x.focus = 0; x.sharpenedApplied = false;
+    x.stage = 'fight'; x.stamina = Math.max(2, x.stamina); x.focus = 0; x.stagger = false; x.sharpenedApplied = false;
     const profile = enemyProfile(x.enemy);
     x.log = [elite ? `土地の主が、帰り道を塞いだ。${profile.trait ? `《${profile.trait.name}》の気配。` : ''}` : risky ? '宝の気配を追った。獲物も、こちらを見ている。' : '足音が止んだ。敵の構えをよく見よう。'];
   }
@@ -292,6 +292,7 @@
     let damage = weaponAttack(s, s.equipped) + x.focus + (action === 'heavy' ? p.heavyBonus : 0);
     if (x.sharpened > 0 && !x.sharpenedApplied) damage += 3;
     if (x.grudge && !x.grudge.used && x.grudge.enemy === e.kind) damage += 3;
+    if (x.stagger) damage += weaponAttack(s, s.equipped);
     if (p.lowHpBonus && x.hp <= Math.ceil(maxHp(s) / 2)) damage += p.lowHpBonus;
     if (p.openBonus && next.id === 'open') damage += p.openBonus;
     if (action === 'heavy' && next.id === 'open') damage += 5;
@@ -335,6 +336,8 @@
       damage = attackPreview(n, action);
       if (x.sharpened > 0 && !x.sharpenedApplied) { x.sharpened--; x.sharpenedApplied = true; }
       if (x.grudge && !x.grudge.used && x.grudge.enemy === e.kind) { x.grudge.used = true; n.grudge = null; x.log.push('敗走の執念を一撃に乗せた。与えるダメージ +3。'); }
+      if (x.stagger) { x.stagger = false; x.log.push('崩し追撃！ 体勢の崩れへ必殺の一撃を叩き込んだ。'); }
+      if (action === 'heavy' && next.id === 'guard' && p.pierce) { x.stagger = true; x.log.push('守りを貫いた。敵の体勢が崩れた！ 次の一撃が必殺追撃になる。'); }
       x.stamina = Math.min(3, x.stamina + (action === 'heavy' ? -p.heavyCost : 1)); x.focus = 0;
     }
     if (action === 'guard') { x.stamina = Math.min(3, x.stamina + 1); if (p.counter && next.damage > 0) damage = p.counter; }
@@ -352,7 +355,10 @@
     x.hp -= taken;
     if (action === 'dodge') {
       if (next.id === 'quick') x.log.push(`${next.name}をかわしきれない。体力 −${taken}。追撃の好機は作れない。`);
-      else if (next.damage) x.log.push(`身をかわした。次の攻撃 +${x.focus}。`);
+      else if (next.damage) {
+        if (['heavy', 'pounce'].includes(next.id)) { x.stagger = true; x.log.push(`身をかわした。${next.name}の隙を突き、敵の体勢が崩れた！ 次の一撃が必殺追撃になる。`); }
+        else x.log.push(`身をかわした。次の攻撃 +${x.focus}。`);
+      }
       else x.log.push('攻撃は来ない。回避に気力を使った。');
     } else {
       x.log.push(taken ? `${next.name}。体力 −${taken}。` : next.damage ? '攻撃を受け止めた。体力消費なし。' : '敵は攻撃してこない。');
@@ -419,6 +425,7 @@
         if (s.expedition.sharpened === undefined) s.expedition.sharpened = 0;
         if (s.expedition.sharpenedApplied === undefined) s.expedition.sharpenedApplied = false;
         if (s.expedition.grudge === undefined) s.expedition.grudge = null;
+        if (s.expedition.stagger === undefined) s.expedition.stagger = false;
       }
       if (s.version === VERSION && s.report) {
         if (Array.isArray(s.report.gear) && s.report.gearQuality === undefined) s.report.gearQuality = s.report.gear.map(() => 0);
@@ -438,7 +445,7 @@
       if (s.expedition) {
         const x = s.expedition;
         const allowedFocus = gearFamily(s.equipped) === 'fang' ? [0,3,4,5,6,7,8,9] : [0,3];
-        if (Object.keys(x).some(k => !['place','depth','room','hp','stamina','focus','sharpened','sharpenedApplied','potions','scrap','gear','gearQuality','seals','grudge','enemy','stage','log'].includes(k)) || !s.unlocked.includes(x.place) || !int(x.depth,1,3) || !int(x.room,0,4) || !int(x.hp,1,maxHp(s)) || !int(x.stamina,0,3) || !allowedFocus.includes(x.focus) || !int(x.sharpened,0,3) || typeof x.sharpenedApplied !== 'boolean' || !validExpeditionGrudge(x.grudge) || !int(x.potions,0,2) || !int(x.scrap,0,1000) || !validLoot(x.gear,x.gearQuality) || !Array.isArray(x.seals) || x.seals.length > 3 || !x.seals.every(v => ids.includes(v)) || !['path','fight','cleared'].includes(x.stage) || !Array.isArray(x.log) || x.log.length > 10 || !x.log.every(v => typeof v === 'string' && v.length < 250)) throw Error('run');
+        if (Object.keys(x).some(k => !['place','depth','room','hp','stamina','focus','stagger','sharpened','sharpenedApplied','potions','scrap','gear','gearQuality','seals','grudge','enemy','stage','log'].includes(k)) || !s.unlocked.includes(x.place) || !int(x.depth,1,3) || !int(x.room,0,4) || !int(x.hp,1,maxHp(s)) || !int(x.stamina,0,3) || !allowedFocus.includes(x.focus) || typeof x.stagger !== 'boolean' || !int(x.sharpened,0,3) || typeof x.sharpenedApplied !== 'boolean' || !validExpeditionGrudge(x.grudge) || !int(x.potions,0,2) || !int(x.scrap,0,1000) || !validLoot(x.gear,x.gearQuality) || !Array.isArray(x.seals) || x.seals.length > 3 || !x.seals.every(v => ids.includes(v)) || !['path','fight','cleared'].includes(x.stage) || !Array.isArray(x.log) || x.log.length > 10 || !x.log.every(v => typeof v === 'string' && v.length < 250)) throw Error('run');
         if (x.stage === 'fight') {
           const e = x.enemy;
           if (!e || Object.keys(e).some(k => !['kind','hp','maxHp','turn','depth','elite','risky'].includes(k)) || !ENEMIES[e.kind] || !int(e.maxHp,1,80) || !int(e.hp,1,e.maxHp) || !int(e.turn,0,1e6) || e.depth !== x.depth || typeof e.elite !== 'boolean' || typeof e.risky !== 'boolean') throw Error('enemy');
