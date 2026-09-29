@@ -1,0 +1,36 @@
+name: Cleanup final resolved branches
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/cleanup-final-resolved.yml
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete resolved branches
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          branches=(
+            "feat/840-pwa-offline-shell"
+            "feat/869-jev-decision-gate-v1"
+            "feat/871-decision-gate-calibration-log"
+            "fix/843-recap-report-regression-test"
+            "test/843-recap-report-regression-v2"
+            "fix/846-combat-feedback-visibility"
+          )
+          for branch in "${branches[@]}"; do
+            ref="heads/$branch"
+            if gh api --silent "repos/$GITHUB_REPOSITORY/git/ref/$ref" >/dev/null 2>&1; then
+              gh api --method DELETE "repos/$GITHUB_REPOSITORY/git/refs/$ref"
+              echo "DELETE $branch"
+            fi
+          done
