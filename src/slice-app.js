@@ -4,7 +4,7 @@
   const E = window.CrownlessSlice, A = window.CrownlessArt;
   const root = document.querySelector('#game');
   const esc = v => String(v).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
-  let state = E.initial(), selected = 'wood', tab = 'explore', notice = '', busy = false, lastReturnedPlace = null, prioritizeReinforcement = false;
+  let state = E.initial(), selected = 'wood', tab = 'explore', notice = '', busy = false, lastReturnedPlace = null, prioritizeReinforcement = false, endingOpen = false;
   let session = E.locationSession(), currentKey = null, lastRaw = null, saveBlocked = false, conflict = false, locationRequest = 0;
   const key = mode => `crownless-expedition-v1-${mode}`;
   const walkAnchorKey = 'crownless-expedition-v1-walk-anchor';
@@ -32,7 +32,7 @@
       else { saveBlocked = true; warning('セーブを読み込めませんでした。元データを保持し、この回は保存せずに遊べます。'); }
       localStorage.setItem('crownless-expedition-mode', mode);
     } catch { saveBlocked = true; warning('このブラウザでは保存できません。ページを閉じると今回の進行は失われます。'); }
-    locationRequest++; busy = false; session = restoreWalkSession(); selected = state.expedition?.place || 'wood'; tab = 'explore'; notice = ''; lastReturnedPlace = null; prioritizeReinforcement = false; render();
+    locationRequest++; busy = false; session = restoreWalkSession(); selected = state.expedition?.place || 'wood'; tab = 'explore'; notice = ''; lastReturnedPlace = null; prioritizeReinforcement = false; endingOpen = false; render();
   }
   function save() {
     if (!currentKey || saveBlocked) return;
@@ -241,7 +241,7 @@
     const help = document.querySelector('#help'), helpToggle = document.querySelector('#help-toggle');
     if (help && !help.hidden) { help.hidden = true; helpToggle?.setAttribute('aria-expanded', 'false'); }
     if (conflict) { root.innerHTML = '<div class="help"><h2>別のタブで旅が進んでいます。</h2><p>最新のセーブを読み直してください。</p><button class="primary" data-action="reload">再読み込み</button></div>'; return; }
-    root.innerHTML = !state.mode ? onboard() : state.expedition ? expedition() : state.report?.ending ? ending() : state.report ? report() : camp();
+    root.innerHTML = !state.mode ? onboard() : state.expedition ? expedition() : endingOpen ? ending() : state.report ? report() : camp();
   }
   function locationResult(coords) {
     const result = E.observe(session,coords);
@@ -286,7 +286,7 @@
     else if (action === 'loot-keep') { state = E.resolveDuplicate(state,Number(value),'keep'); }
     else if (action === 'loot-dismantle') { state = E.resolveDuplicate(state,Number(value),'dismantle'); }
     else if (action === 'ending-continue') {
-      state = {...state,report:null}; tab = 'explore'; notice = '';
+      endingOpen = false; tab = 'explore'; notice = '';
     }
     else if (action === 'continue') {
       const duplicates = state.report.duplicates || [];
@@ -300,7 +300,8 @@
       tab = gearStep ? 'gear' : 'explore';
       if (keptDuplicate) { lastReturnedPlace = state.report.place; prioritizeReinforcement = false; tab = 'gear'; }
       const crownEnding = !state.report.died && state.report.newGear.includes('crown');
-      state = crownEnding ? {...state,report:{ending:true}} : {...state,report:null}; notice = '';
+      endingOpen = crownEnding;
+      state = {...state,report:null}; notice = '';
     }
     else state = E.act(state, action);
     if (state !== before) save();
