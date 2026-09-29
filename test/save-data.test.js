@@ -10,7 +10,7 @@ function memory(seed = {}) {
 
 test('backup moves validated saves but not the walk anchor', () => {
   const demo = Engine.initial(); demo.mode = 'demo'; demo.scrap = 12;
-  const walk = Engine.initial(); walk.mode = 'walk'; walk.victories = 3;
+  const walk = Engine.initial(); walk.mode = 'walk'; walk.runs = 3; walk.victories = 3;
   const source = memory({
     'crownless-expedition-v1-demo': Engine.serialize(demo),
     'crownless-expedition-v1-walk': Engine.serialize(walk),
