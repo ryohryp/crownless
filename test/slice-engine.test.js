@@ -28,9 +28,12 @@ test('complete first loop banks signature gear; a second expedition uses its own
   s = E.equip(s,'fang'); s = E.upgrade(s,'fang');
   assert.equal(s.scrap,1); assert.equal(E.weaponLevel(s,'fang'),1); assert.equal(E.weaponLevel(s,'rust'),0); assert.equal(E.maxHp(s),30);
   s = E.start(s,'wood'); s = E.act(s,'careful'); s = E.act(s,'guard'); s = E.act(s,'dodge');
-  assert.equal(s.expedition.focus,6); assert.equal(s.expedition.hp,30);
+  assert.equal(s.expedition.focus,6); assert.equal(s.expedition.hp,30); assert.equal(s.expedition.stagger,true);
   const before = s.expedition.enemy.hp;
-  s = E.act(s,'strike'); assert.equal(before-s.expedition.enemy.hp,11);
+  assert.equal(E.attackPreview(s,'strike'),16);
+  s = E.act(s,'strike');
+  assert.ok(before <= 16);
+  assert.equal(s.expedition.enemy,null);
 });
 test('reinforcement is per individual weapon, including loot variants', () => {
   let s=fresh(); s.scrap=100; s.owned.push('fang','fang_blood','shield','bow');
