@@ -340,3 +340,26 @@ test('legacy saves without quality fields migrate to standard quality zero', () 
   assert.deepEqual(resumed.expedition.gearQuality,[]);
 });
 
+
+
+test('safe return enables free blade maintenance for the next expedition first three fights', () => {
+  let s=complete(fresh(),'wood');
+  assert.equal(s.maintenance,'ready');
+  const scrap=s.scrap;
+  s=E.maintain(s);
+  assert.equal(s.maintenance,'sharp');
+  assert.equal(s.scrap,scrap);
+  assert.deepEqual(E.parse(E.serialize(s)),s);
+  s=E.start(s,'wood');
+  assert.equal(s.maintenance,null);
+  assert.equal(s.expedition.sharpened,3);
+  for(let fight=0;fight<3;fight++) {
+    while(s.expedition.stage==='path') s=E.act(s,[1,3].includes(s.expedition.room)?'rest':'careful');
+    assert.equal(s.expedition.stage,'fight');
+    assert.equal(E.attackPreview(s,'strike'),E.weaponAttack(s,s.equipped)+3);
+    s=E.act(s,'strike');
+    assert.equal(s.expedition.sharpened,2-fight);
+    assert.equal(s.expedition.sharpenedApplied,true);
+    while(s.expedition?.stage==='fight') s=E.act(s,safeAction(s));
+  }
+});
