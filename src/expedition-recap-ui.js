@@ -24,7 +24,8 @@
 
   function render() {
     const panel = root.querySelector(".panel");
-    const kicker = text(".panel > .kicker");
+    const reportScroll = panel?.querySelector(".report-scroll");
+    const kicker = text(".kicker", reportScroll || panel || root);
     if (!panel || (!kicker.startsWith("SAFE RETURN") && !kicker.startsWith("EXPEDITION LOST"))) return;
     if (panel.querySelector(".expedition-recap")) return;
 
@@ -40,8 +41,8 @@
     section.className = "expedition-recap rule-line";
     section.setAttribute("aria-label", "今回の遠征記録");
     section.innerHTML = `<p class="kicker">EXPEDITION RECAP · 今回の物語</p>${lines.map((line) => `<p>${line}</p>`).join("")}`;
-    const actions = panel.querySelector(".button-stack");
-    panel.insertBefore(section, actions || null);
+    const reportBody = reportScroll || panel;
+    reportBody.appendChild(section);
     const fragment = mapFragment(place, died, scrap, gear);
     if (fragment) section.insertAdjacentHTML("afterend", fragment);
   }
