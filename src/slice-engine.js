@@ -312,9 +312,21 @@
       x.depth++; x.room = 0; x.stage = 'path'; x.log = [`さらに深く。${lootCue(x.place, x.depth)}`]; return n;
     } else if (x.stage === 'path') {
       if ([1, 3].includes(x.room)) {
-        if (!['rest', 'search'].includes(action)) return s;
-        if (action === 'rest') { x.hp = Math.min(maxHp(n), x.hp + 6); x.log = ['小さな灯りのそばで休んだ。体力 +6。']; }
-        else { x.hp -= 4; x.scrap += 5 * x.depth; x.log = [`茨の中の遺品を拾う。体力 −4 / 鉄片 +${5 * x.depth}。`]; }
+        const roadside = (n.runs + x.depth + x.room + PLACES.findIndex(p => p.id === x.place)) % 2 === 1;
+        if (roadside) {
+          if (!['trade', 'pray'].includes(action)) return s;
+          if (action === 'trade') {
+            if (x.scrap < 3 || x.potions >= 2) return s;
+            x.scrap -= 3; x.potions += 1; x.log = ['朽ちた行商人の荷車から、使える薬草を見つけた。鉄片 −3 / 薬草 +1。'];
+          } else {
+            if (x.hp <= 3) return s;
+            x.hp -= 3; x.focus = Math.max(x.focus, 3); x.log = ['古い道標へ血を捧げた。体力 −3 / 次の一撃 +3。'];
+          }
+        } else {
+          if (!['rest', 'search'].includes(action)) return s;
+          if (action === 'rest') { x.hp = Math.min(maxHp(n), x.hp + 6); x.log = ['小さな灯りのそばで休んだ。体力 +6。']; }
+          else { x.hp -= 4; x.scrap += 5 * x.depth; x.log = [`茨の中の遺品を拾う。体力 −4 / 鉄片 +${5 * x.depth}。`]; }
+        }
         x.room++; if (x.hp <= 0) return finish(n, true); return n;
       }
       if (!['careful', 'risky'].includes(action)) return s;
