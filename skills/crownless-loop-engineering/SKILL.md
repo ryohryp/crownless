@@ -107,19 +107,29 @@ Jev transport failed
 
 Thresholds belong to Crownless policy, not to the generic Jev skill. Do not invent a universal confidence cutoff.
 
-### Calibration log
+### Calibration log: end-of-cycle invariant
 
-For meaningful autonomous decisions, leave a compact record in the relevant PR/Issue and, for development-cycle decisions, #367 when appropriate:
+If an autonomous development cycle reaches this Decision Gate, append exactly one compact calibration record to #367 before the cycle is considered complete. This is required even when the cycle makes no code, Issue, PR, or merge mutation.
 
-- immutable identity such as head/merge SHA;
-- compact state/evidence version or summary;
-- question names and criteria version;
+Record all of the following that are available:
+
+- cycle trigger and immutable starting `main` SHA;
+- compact evidence/state summary and explicit candidates, if any;
+- Jev call count for the cycle;
+- heads actually evaluated and their criteria version or concise criteria;
+- Jev transport status separately from evaluator output;
 - Jev model/version when returned;
 - raw choice/score/noul, confidence, and probabilities when returned;
-- deterministic action taken;
-- later observed outcome or human override when available.
+- deterministic action taken: `proceed`, `retry`, `escalate`, `no_action`, or `stop`;
+- Issue / PR / commit / merge identities created by the cycle, or `none`;
+- final verification state and the next observation needed;
+- later observed outcome or human override when available in a later record.
 
-This is calibration data. Do not rewrite old judgments to make them look correct. Preserve disagreements, false positives, false negatives, retries, and `no_action` outcomes.
+A deterministic skip is still calibration evidence: record `jev_calls: 0`, the reason Jev was unnecessary, and the deterministic action. A transport/auth/rate-limit/timeout/parsing failure must be recorded as `jev_status: failed` or `skipped`, never converted into an evaluator verdict. Evidence-insufficient outcomes must say what evidence is missing.
+
+Use the starting main SHA plus the cycle trigger/run identity when available as the deduplication key. Before appending, check the recent #367 records for that immutable identity; do not create a second record for the same completed cycle.
+
+This is calibration data, not a success report. Preserve `no_action`, skips, failures, uncertainty, disagreements, false positives, false negatives, retries, and human overrides. Do not rewrite old judgments to make them look correct. A cycle that exercised the Decision Gate but did not append this record is incomplete.
 
 ### Efficiency rule
 
