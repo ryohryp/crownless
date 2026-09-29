@@ -1,0 +1,51 @@
+name: Cleanup Jev-retired branches
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/cleanup-jev-retired-branches.yml
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete Jev-retired branches
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          branches=(
+            "chatgpt/reboot-territory-road-control"
+            "ci/deeper-loot-cue-v4-full"
+            "ci/deeper-loot-cue-v4-run"
+            "codex/autopilot-status-classification"
+            "feat/828-roadside-cart"
+            "feat/838-traveler-codex-slice"
+            "issue-535-reboot-phase4"
+            "feat/replayability-enemies-events"
+            "feat/512-territory-world-trace-final"
+            "feat/602-kamishibai-viewport"
+            "fix/combat-feedback-visibility-ready"
+            "fix/noncombat-presentation"
+            "fix/582-loot-comparison-current-gear"
+            "fix/582-loot-hunt-comparison"
+            "fix-797-starter-reinforce-gear-ui"
+          )
+
+          deleted=0
+          for branch in "${branches[@]}"; do
+            ref="heads/$branch"
+            if gh api --silent "repos/$GITHUB_REPOSITORY/git/ref/$ref" >/dev/null 2>&1; then
+              echo "DELETE $branch"
+              gh api --method DELETE "repos/$GITHUB_REPOSITORY/git/refs/$ref"
+              deleted=$((deleted + 1))
+            else
+              echo "MISSING $branch"
+            fi
+          done
+          echo "Deleted: $deleted"
