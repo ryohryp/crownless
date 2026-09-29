@@ -1,0 +1,60 @@
+name: Cleanup resolved branches
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/cleanup-resolved-branches.yml
+
+permissions:
+  contents: write
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Delete resolved branches
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          branches=(
+            "feat/exploration-mystery-chain"
+            "feat/loot-variant-visuals"
+            "feat/loot-variant-visuals-v2"
+            "feat/return-risk-loot-summary-v2"
+            "feat/484-place-memory"
+            "feat/580-fog-discovery-map"
+            "feat/825-stagger-followup"
+            "feat/826-grudge-revenge-ui"
+            "feat/826-grudge-revenge-ui-v2"
+            "feat/828-roadside-encounters"
+            "feat/836-crown-ending-scene"
+            "feat/836-crown-ending-scene-v2"
+            "feat/837-combat-audio-feedback"
+            "feat/837-combat-audio-feedback-v2"
+            "feat/838-traveler-codex-arsenal"
+            "feat/838-traveler-codex-arsenal-v2"
+            "feat/838-traveler-codex-arsenal-v3"
+            "feat/840-pwa-offline-shell"
+            "feat/841-save-data-portability"
+            "feat/841-save-data-portability-v2"
+            "feat/842-outdoor-usability"
+            "feat/842-outdoor-usability-v2"
+            "fix/843-expedition-recap-report-dom"
+            "fix/843-expedition-recap-report-dom-v2"
+            "fix/843-expedition-recap-report-dom-v3"
+          )
+          deleted=0
+          for branch in "${branches[@]}"; do
+            ref="heads/$branch"
+            if gh api --silent "repos/$GITHUB_REPOSITORY/git/ref/$ref" >/dev/null 2>&1; then
+              gh api --method DELETE "repos/$GITHUB_REPOSITORY/git/refs/$ref"
+              echo "DELETE $branch"
+              deleted=$((deleted + 1))
+            else
+              echo "MISSING $branch"
+            fi
+          done
+          echo "Deleted: $deleted"
