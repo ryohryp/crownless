@@ -63,7 +63,7 @@
       const active = selected === p.id;
       return `<button class="atlas-marker ${active ? 'selected' : ''} ${stage}" style="--atlas-x:${x}%;--atlas-y:${y}%" data-action="select" data-value="${p.id}" aria-pressed="${active}" aria-label="${p.name}・${labels[stage]}">
         <span class="atlas-marker-icon">${A.icon(p.id)}</span>
-        <span class="atlas-marker-copy"><strong>${p.name}</strong><small>${labels[stage]}</small></span>
+        <span class="atlas-marker-copy"><strong>${p.name}</strong><small>${state.grudge?.place === p.id ? '因縁の敵が待っている' : labels[stage]}</small></span>
         ${active ? `<span class="atlas-anomaly-copy"><b>${state.cleared.includes(p.id) ? '残った痕跡' : '新しい痕跡'}</b><small>${state.cleared.includes(p.id) ? 'まだ奥へ続いている。' : '昨日までは、なかった。'}</small></span>` : ''}
       </button>`;
     }).join('');
@@ -216,9 +216,11 @@
     const recoveryParts = recovery
       ? [recovery.gear ? `${E.GEAR[recovery.gear]?.name}（${E.qualityLabel(recovery.quality ?? 0)}）` : '', recovery.scrap ? `鉄片 ${recovery.scrap}` : ''].filter(Boolean)
       : [];
+    const grudgeEnemy = r.died && r.defeatedBy ? E.ENEMIES?.[r.defeatedBy] : null;
+    const grudgeHook = grudgeEnemy ? ` 奴の間合いは見切った。次に${grudgeEnemy.name}と戦えば、最初の一撃に執念を乗せられる。` : '';
     const defeatIntro = recovery
-      ? `背嚢は落としたが、${E.place(r.place).name}の敗走跡に${recoveryParts.join('と')}が残っている。次に同じ土地へ出れば回収できる。`
-      : '背嚢の中身は霧の中へ。手元の鉄片と装備は無事だ。次は早めに帰るか、別の装備で挑もう。';
+      ? `背嚢は落としたが、${E.place(r.place).name}の敗走跡に${recoveryParts.join('と')}が残っている。次に同じ土地へ出れば回収できる。${grudgeHook}`
+      : `背嚢の中身は霧の中へ。手元の鉄片と装備は無事だ。次は早めに帰るか、別の装備で挑もう。${grudgeHook}`;
     const lootRows = r.gear.map((g,i) => {
       const q = r.gearQuality?.[i] ?? 0;
       return `<div class='reward'><span class='reward-icon'>♢</span><div><strong>${r.died ? (recovery?.gear === g ? '敗走跡に残った：' : '失った：') : ''}${E.GEAR[g].name} ${g === 'crown' ? '' : `· ${E.qualityLabel(q)}`}</strong><small>${r.died ? (recovery?.gear === g ? '次に同じ土地へ出れば背嚢へ戻る。生還で確定。' : 'もう一度、深層で探そう。') : E.gearText(state,g,q)}</small></div></div>`;
