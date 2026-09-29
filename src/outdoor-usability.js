@@ -1,7 +1,7 @@
 (() => {
   'use strict';
   const storageKey = 'crownless-sunlight-mode';
-  const places = [['N','鐘なき塔','北に鐘の気配'],['E','灰青の湿原','東に湿原の青い光'],['SW','灰冠の廟','南西に廟の重い気配'],['W','囁きの森','西に森のざわめき']];
+  const places = [['N','鐘なき塔','北に鐘の気配'],['E','星沈みの湿原','東に湿原の青い光'],['S','灰冠の廟','南に廟の重い気配'],['W','囁きの森','西に森のざわめき']];
   const stored = () => { try { return localStorage.getItem(storageKey) === '1'; } catch { return false; } };
   function apply(enabled) {
     document.documentElement.classList.toggle('sunlight-mode', enabled);
