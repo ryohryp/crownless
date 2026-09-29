@@ -22,75 +22,105 @@ Prefer changes that connect multiple anchors, especially:
 
 Do not add a large new system when a smaller change can make this loop more compelling.
 
-## Jev advisory checkpoints
+## Jev Decision Gate v1
 
-Use Jev to reduce expensive agent work, not to add another approval layer.
+Use Jev to remove bounded semantic branches from expensive agent reasoning. Jev is an evaluator, not an approval authority or execution agent.
 
-### Before implementation: narrow the path
+The standard autonomous-development flow is:
 
-When there are 2–4 genuinely reasonable next tasks or implementation strategies, call `jevDecide` once before deep investigation or coding.
+1. gather cheap deterministic evidence;
+2. reduce the next step to a small candidate set when a semantic choice remains;
+3. run at most one bounded Jev preflight over that shared state;
+4. implement the smallest coherent change;
+5. verify with deterministic checks, CI, browser/runtime evidence, and playtest where relevant;
+6. run one bounded Jev completion evaluation only when semantic acceptance still matters;
+7. let deterministic project policy choose proceed, retry, escalate, merge, or stop.
 
-Give it bounded evidence only:
+### Preflight: offload early, not after deep reasoning
 
-- the current player-facing problem,
-- the relevant AGENTS.md / Issue constraints,
-- a short summary of recent related changes,
-- the small set of candidate tasks or strategies,
-- known blockers or CI/playtest evidence.
+Skip Jev when the next action is deterministic or explicitly requested. Examples: one reproducible blocker, one failing assertion with a clear cause, a concrete user-requested implementation, or a required CI repair.
 
-Do not send full repositories, long raw logs, secrets, or large source dumps.
+When 2–4 genuinely reasonable paths remain, collect only decision-relevant facts and batch the useful heads into one request:
 
-Use the result to decide **what to inspect first and what not to spend agent context on**. Jev is advisory: repository evidence, tests, CI, playtest, and explicit user direction remain authoritative.
+- `next_action` — Choice among the explicit candidates;
+- `risk` — Score using concrete standalone risk levels;
+- `evidence_sufficient` — Noul for whether the supplied evidence is enough to act.
 
-Skip preflight Jev when the next action is already obvious, such as a single reproducible blocker, a requested concrete implementation, or a deterministic test failure with a clear cause.
+Omit heads that cannot change the next action. Do not ask Jev to reconfirm a decision the primary agent already spent substantial reasoning on.
 
-### Route work to the cheapest sufficient execution target
+Good state contains the player-facing objective, relevant AGENTS.md / Issue constraints, concise recent evidence, explicit candidates, and known blockers. Do not send full repositories, full diffs, long logs, secrets, credentials, or unrelated history.
 
-Choose the execution target before doing broad investigation.
+### Transport boundary
 
-Prefer this order when it is sufficient:
+Follow the shared `typesafe-jev` transport contract:
 
-1. **GitHub connector/API** — repository files, Issues, PRs, diffs, CI status/logs, branch/commit/PR operations.
-2. **Public web** — current public documentation or external facts not already present in the repository.
-3. **Local worker / local CLI** — running the app, tests, build tools, browser automation, or inspecting local-only files.
-4. **Remote desktop / interactive GUI** — only when the task truly requires desktop interaction that APIs or CLI cannot perform.
+1. **Direct TypeSafe System One API** is the normal path for trusted runtimes, CI, and coding agents that can safely receive `TYPESAFE_API_KEY`.
+2. **Generic Remote MCP** is the credential bridge for ChatGPT or other clients that should not receive the API key.
+3. If neither transport is available, record Jev as failed/skipped and continue according to deterministic project policy when safe.
 
-Do not open a browser, remote desktop, or local environment merely to inspect data already available through GitHub APIs.
+Transport choice does not change Jev authority. Keep transport/auth/rate-limit/timeout/parsing failure separate from evaluator judgment. Never treat a failed Jev call as a negative semantic verdict.
 
-When two or more execution targets are genuinely plausible and the choice materially changes cost or context size, use a bounded Jev routing decision before dispatch.
+### Execution routing
 
-Use Jev transport in this order:
+Choose the cheapest sufficient execution target from known capabilities. Prefer GitHub/API for repository facts and mutations, public web for current external documentation, local CLI/browser for runtime verification, and interactive GUI only when APIs or CLI are insufficient.
 
-1. **Advisor MCP/tool**, when `jevChooseExecutionTarget` / `jevDecide` is exposed in the active environment.
-2. **Personal Orbit Jev REST**, when MCP/tool exposure is unavailable:
-   - `POST /api/chat/secretary/jev/execution-target`
-   - `POST /api/chat/secretary/jev/decide`
-   - base URL from the configured Personal Orbit Jev/Public base URL
-   - authenticated with the existing Secretary REST bearer; never copy the bearer into prompts, logs, commits, Issues, or PRs.
-3. **Deterministic routing fallback** only when neither Jev transport is available or the Jev request fails.
+Use Jev for execution-target selection only when multiple plausible targets materially differ in cost or capability. Skip it when the target is obvious.
 
-For execution-target selection, prefer the dedicated execution-target contract. Use `decide` with execution targets as bounded choices only when the dedicated contract is unavailable.
+### Failure recovery
 
-Jev transport availability must never block the development cycle.
+Read the actual failing assertion, stack trace, workflow step, or runtime observation first. If that evidence still leaves 2–4 plausible diagnostic branches, use one bounded Jev Choice to decide which branch to inspect first.
 
-Provide only a short task summary, required capabilities, and available target names. Do not send tool arguments, secrets, raw logs, or source dumps.
+Do not use Jev instead of deterministic diagnosis.
 
-Skip Jev routing when the target is obvious. The purpose is to avoid expensive detours, not to require a routing decision for every tool call.
+### Completion semantic gate
 
-### During failure recovery: reduce diagnostic branching
+After implementation, deterministic evidence comes first: relevant tests, CI, mergeability, runtime/browser observations, and required phone-size/playtest evidence.
 
-If the first direct inspection does not make a CI/test failure obvious, summarize 2–4 plausible causes or next diagnostic actions and use Jev `decide` to choose which branch to investigate first, via MCP/tool or the Personal Orbit REST endpoint.
+If acceptance still contains a bounded semantic judgment, evaluate only the materially changed final head. Typical heads are:
 
-Do not use Jev instead of reading the actual failing assertion, stack trace, or workflow step.
+- `semantic_acceptance` — Noul: does the supplied evidence support the explicit player-facing objective / acceptance condition?
+- `follow_up` — optional Choice among `keep`, `change`, and `investigate` when playtest semantics require it.
 
-### After implementation: keep shadow evaluation bounded
+Do not repeat the same evaluation unless implementation, evidence, questions, or policy changed materially.
 
-Keep completion evaluation shadow-only. Prefer one Jev evaluation for the final materially changed head of a cycle. If the MCP/tool is not exposed, use the Personal Orbit `/api/chat/secretary/jev/decide` REST endpoint before falling back to no Jev evaluation.
+### Deterministic action policy
 
-Do not repeat the same evaluation unless the implementation or evidence changed materially.
+Jev never authorizes merge, deploy, publish, Issue closure, test skipping, or any other side effect.
 
-A Jev result must never authorize merge, skip tests, override CI, replace phone-size playtest, or close an Issue by itself.
+Compose actions deterministically from repository facts plus configured semantic thresholds. Conceptually:
+
+```
+tests/CI/mergeability required by the task are green
+AND required runtime/playtest evidence exists
+AND semantic gate is absent OR satisfies project threshold
+=> action may proceed
+
+deterministic requirement failed
+=> fix/retry without asking Jev to override it
+
+semantic evidence missing or Jev uncertainty exceeds policy
+=> gather evidence or escalate
+
+Jev transport failed
+=> record failed/skipped; follow the project's safe fallback
+```
+
+Thresholds belong to Crownless policy, not to the generic Jev skill. Do not invent a universal confidence cutoff.
+
+### Calibration log
+
+For meaningful autonomous decisions, leave a compact record in the relevant PR/Issue and, for development-cycle decisions, #367 when appropriate:
+
+- immutable identity such as head/merge SHA;
+- compact state/evidence version or summary;
+- question names and criteria version;
+- Jev model/version when returned;
+- raw choice/score/noul, confidence, and probabilities when returned;
+- deterministic action taken;
+- later observed outcome or human override when available.
+
+This is calibration data. Do not rewrite old judgments to make them look correct. Preserve disagreements, false positives, false negatives, retries, and `no_action` outcomes.
 
 ### Efficiency rule
 
-Jev is useful when it removes branches from expensive reasoning. If calling it does not reduce what the coding agent needs to read, run, or implement, skip the call.
+A Jev call should reduce branches, context, or expensive reasoning. If it does not change what the agent needs to inspect, run, implement, or verify, skip it. Batch independent questions that share the same state, and do not make a second call without materially new evidence.
