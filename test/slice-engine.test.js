@@ -5,7 +5,13 @@ const fresh = () => ({...E.initial(), mode:'demo'});
 function safeAction(s) {
   const x = s.expedition;
   if (x.stage === 'cleared') return 'return';
-  if (x.stage === 'path') return [1,3].includes(x.room) ? 'rest' : 'careful';
+  if (x.stage === 'path') {
+    if (![1,3].includes(x.room)) return 'careful';
+    const roadside = (s.runs + x.depth + x.room + E.PLACES.findIndex(p => p.id === x.place)) % 2 === 1;
+    if (!roadside) return 'rest';
+    if (x.potions < 2 && x.scrap >= 3) return 'trade';
+    return x.hp > 3 ? 'pray' : 'return';
+  }
   const i = E.intent(x.enemy);
   const attack = E.attackPreview(s,'strike');
   if (x.enemy.hp <= attack && i.id !== 'guard') return 'strike';
@@ -22,6 +28,18 @@ function complete(s,id) {
   }
   assert.equal(s.expedition,null); assert.equal(s.report.died,false); return s;
 }
+test('roadside encounter offers bounded tradeoffs and advances the path', () => {
+  let s=E.start(fresh(),'wood'); s.expedition.room=1; s.expedition.scrap=3; s.expedition.potions=1;
+  let n=E.act(s,'trade'); assert.equal(n.expedition.room,2); assert.equal(n.expedition.scrap,0); assert.equal(n.expedition.potions,2);
+  s=E.start(fresh(),'wood'); s.expedition.room=1; s.expedition.hp=10;
+  n=E.act(s,'pray'); assert.equal(n.expedition.room,2); assert.equal(n.expedition.hp,7); assert.equal(n.expedition.focus,3);
+});
+test('roadside encounter refuses wasteful or unaffordable choices', () => {
+  let s=E.start(fresh(),'wood'); s.expedition.room=1; s.expedition.scrap=3; s.expedition.potions=2;
+  assert.deepEqual(E.act(s,'trade'),s);
+  s.expedition.potions=1; s.expedition.scrap=2; assert.deepEqual(E.act(s,'trade'),s);
+  s.expedition.scrap=3; s.expedition.hp=3; assert.deepEqual(E.act(s,'pray'),s);
+});
 test('complete first loop banks signature gear; a second expedition uses its own upgrade', () => {
   let s = complete(fresh(),'wood');
   assert.ok(s.owned.includes('fang')); assert.equal(s.scrap,9); assert.deepEqual(s.cleared,['wood']);
