@@ -288,7 +288,8 @@
       const hasNewBattleGear = !state.report.died && state.report.newGear.some(g => g !== 'crown');
       const keptDuplicate = !state.report.died && duplicates.some(d => d.decision === 'keep');
       const canPowerUp = !state.report.died && canReinforceEquipped();
-      const gearStep = hasNewBattleGear || canPowerUp;
+      const canMaintain = !state.report.died && state.maintenance === 'ready';
+      const gearStep = hasNewBattleGear || canPowerUp || canMaintain;
       lastReturnedPlace = gearStep ? state.report.place : null;
       prioritizeReinforcement = gearStep && !hasNewBattleGear && canPowerUp;
       tab = gearStep ? 'gear' : 'explore';
