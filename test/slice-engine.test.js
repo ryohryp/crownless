@@ -356,7 +356,8 @@ test('safe return enables free blade maintenance for the next expedition first t
   for(let fight=0;fight<3;fight++) {
     while(s.expedition.stage==='path') s=E.act(s,[1,3].includes(s.expedition.room)?'rest':'careful');
     assert.equal(s.expedition.stage,'fight');
-    assert.equal(E.attackPreview(s,'strike'),E.weaponAttack(s,s.equipped)+3);
+    const baseline=E.attackPreview({...s,expedition:{...s.expedition,sharpened:0}},'strike');
+    assert.equal(E.attackPreview(s,'strike'),baseline+3);
     s=E.act(s,'strike');
     assert.equal(s.expedition.sharpened,2-fight);
     assert.equal(s.expedition.sharpenedApplied,true);
