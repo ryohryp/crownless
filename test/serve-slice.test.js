@@ -3,32 +3,19 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('node:http');
-const { spawn } = require('node:child_process');
 const path = require('node:path');
 
+const sliceServer = require('../scripts/serve-slice.cjs');
+
 test('serve-slice loopback server correctly allows playable slice assets', async () => {
-  const port = 4188;
-  const scriptPath = path.join(__dirname, '..', 'scripts', 'serve-slice.cjs');
-  const child = spawn(process.execPath, [scriptPath], {
-    env: { ...process.env, PORT: String(port) },
-    stdio: ['ignore', 'pipe', 'pipe'],
+  const server = sliceServer.listen(0, '127.0.0.1');
+  await new Promise((resolve, reject) => {
+    server.once('listening', resolve);
+    server.once('error', reject);
   });
 
   try {
-    await new Promise((resolve, reject) => {
-      const timer = setTimeout(() => reject(new Error('Server start timed out')), 4000);
-      child.stdout.on('data', data => {
-        if (data.toString().includes('Crownless playable slice')) {
-          clearTimeout(timer);
-          resolve();
-        }
-      });
-      child.on('error', error => {
-        clearTimeout(timer);
-        reject(error);
-      });
-    });
-
+    const { port } = server.address();
     const get = uri => new Promise((resolve, reject) => {
       http.get(`http://127.0.0.1:${port}${uri}`, res => {
         res.resume();
@@ -45,10 +32,8 @@ test('serve-slice loopback server correctly allows playable slice assets', async
     assert.equal(await get('/package.json'), 404);
     assert.equal(await get('/../package.json'), 404);
   } finally {
-    if (child.exitCode === null) {
-      const exited = new Promise(resolve => child.once('exit', resolve));
-      child.kill();
-      await exited;
-    }
+    await new Promise((resolve, reject) => {
+      server.close(error => error ? reject(error) : resolve());
+    });
   }
 });
