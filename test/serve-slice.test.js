@@ -16,11 +16,17 @@ test('serve-slice loopback server correctly allows playable slice assets', async
 
   try {
     await new Promise((resolve, reject) => {
+      const timer = setTimeout(() => reject(new Error('Server start timed out')), 4000);
       child.stdout.on('data', data => {
-        if (data.toString().includes('Crownless playable slice')) resolve();
+        if (data.toString().includes('Crownless playable slice')) {
+          clearTimeout(timer);
+          resolve();
+        }
       });
-      child.on('error', reject);
-      setTimeout(() => reject(new Error('Server start timed out')), 4000);
+      child.on('error', error => {
+        clearTimeout(timer);
+        reject(error);
+      });
     });
 
     const get = uri => new Promise((resolve, reject) => {
@@ -39,6 +45,10 @@ test('serve-slice loopback server correctly allows playable slice assets', async
     assert.equal(await get('/package.json'), 404);
     assert.equal(await get('/../package.json'), 404);
   } finally {
-    child.kill();
+    if (child.exitCode === null) {
+      const exited = new Promise(resolve => child.once('exit', resolve));
+      child.kill();
+      await exited;
+    }
   }
 });
