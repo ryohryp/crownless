@@ -2,35 +2,44 @@
 .battle-layout .panel,
 .battle-layout .combat-vitals{will-change:transform,filter,box-shadow}
 
-.combat-feedback-hit .scene{animation:crownless-enemy-hit .22s ease-out}
+.combat-feedback-hit .scene{animation:crownless-enemy-hit .24s ease-out}
+.combat-feedback-hurt .scene{animation:crownless-player-hurt-scene .28s ease-out}
 .combat-feedback-hurt .panel,
-.combat-feedback-hurt .combat-vitals{animation:crownless-player-hurt .26s ease-out}
-.combat-feedback-dodge .scene{animation:crownless-dodge .24s ease-out}
+.combat-feedback-hurt .combat-vitals{animation:crownless-player-hurt .28s ease-out}
+.combat-feedback-dodge .scene{animation:crownless-dodge .26s ease-out}
 
 @keyframes crownless-enemy-hit{
   0%{filter:brightness(1);transform:translateX(0)}
-  35%{filter:brightness(1.3);transform:translateX(4px)}
+  32%{filter:brightness(1.55);transform:translateX(8px);box-shadow:inset 0 0 0 3px #f0d4a1}
   100%{filter:brightness(1);transform:translateX(0)}
 }
+@keyframes crownless-player-hurt-scene{
+  0%{filter:brightness(1)}
+  30%{filter:brightness(.78);box-shadow:inset 0 0 0 4px #e9826d}
+  100%{filter:brightness(1)}
+}
 @keyframes crownless-player-hurt{
-  0%{filter:brightness(1);transform:translateX(0)}
-  28%{filter:brightness(1.16);transform:translateX(-3px)}
-  55%{transform:translateX(3px)}
+  0%{transform:translateX(0)}
+  22%{filter:brightness(1.3);transform:translateX(-7px)}
+  48%{transform:translateX(6px)}
+  70%{transform:translateX(-3px)}
   100%{filter:brightness(1);transform:translateX(0)}
 }
 @keyframes crownless-dodge{
   0%{filter:brightness(1);transform:translateX(0)}
-  45%{filter:brightness(1.12);transform:translateX(-5px)}
+  42%{filter:brightness(1.28);transform:translateX(-10px);box-shadow:inset 0 0 0 3px #9bd8b3}
   100%{filter:brightness(1);transform:translateX(0)}
 }
 
 @media(prefers-reduced-motion:reduce){
   .combat-feedback-hit .scene,
+  .combat-feedback-hurt .scene,
   .combat-feedback-hurt .panel,
   .combat-feedback-hurt .combat-vitals,
   .combat-feedback-dodge .scene{animation:none!important}
-  .combat-feedback-hit .scene{box-shadow:inset 0 0 0 2px #d2b98155}
+  .combat-feedback-hit .scene{box-shadow:inset 0 0 0 3px #f0d4a1;filter:brightness(1.28)}
+  .combat-feedback-hurt .scene,
   .combat-feedback-hurt .panel,
-  .combat-feedback-hurt .combat-vitals{box-shadow:inset 0 0 0 2px #e2a28b55}
-  .combat-feedback-dodge .scene{box-shadow:inset 0 0 0 2px #97b59b55}
+  .combat-feedback-hurt .combat-vitals{box-shadow:inset 0 0 0 3px #e9826d;filter:brightness(.86)}
+  .combat-feedback-dodge .scene{box-shadow:inset 0 0 0 3px #9bd8b3;filter:brightness(1.16)}
 }
