@@ -16,3 +16,12 @@
   .battle-layout .combat-vitals .vitals{margin:0;padding:10px 12px}
   #help:not([hidden]){position:fixed;z-index:100;top:76px;left:18px;right:18px;max-height:calc(100dvh - 94px);overflow:auto;margin:0;box-shadow:0 20px 50px #0008}
 }
+
+/* Non-combat expedition states: make the choice itself read like a scene, not a form. */
+.path-decision .path-copy{border-left:2px solid #d2b98166;padding-left:16px}
+.path-decision .path-summary{font-family:"Yu Mincho","Hiragino Mincho ProN",Georgia,serif;font-size:15px;line-height:1.8;color:var(--ink);margin-bottom:12px}
+.path-decision .path-risk{border:1px solid #c0ab7140;background:#b79f4b0a;padding:10px 12px}
+.path-decision .path-risk span,.path-decision .path-risk small{display:block;color:var(--muted);font-size:10px}
+.path-decision .path-risk strong{display:block;color:var(--gold);font:18px Georgia,serif;margin:2px 0}
+.path-decision .path-actions{border-top:1px solid var(--line);margin-top:16px;padding-top:14px}
+@media(max-width:620px){.path-decision .path-copy{padding-left:12px}.path-decision .path-summary{font-size:14px;line-height:1.65}.path-decision .path-actions{position:sticky;bottom:0;background:linear-gradient(180deg,#14282ee8,#14282e 18%);padding:12px 0 max(10px,env(safe-area-inset-bottom));z-index:3}}
