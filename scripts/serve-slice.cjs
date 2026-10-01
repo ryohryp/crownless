@@ -9,7 +9,7 @@ const isAllowed = name => !name.includes('..') && (
   (name.startsWith('assets/') && name.endsWith('.svg') && name.indexOf('/', 7) === -1)
 );
 const types = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml'};
-const server = http.createServer((req,res) => {
+const createSliceServer = () => http.createServer((req,res) => {
   const name = new URL(req.url,'http://localhost').pathname.slice(1) || 'index.html';
   if (!['GET','HEAD'].includes(req.method) || !isAllowed(name)) { res.writeHead(404); res.end('Not found'); return; }
   fs.readFile(path.join(__dirname,'..',name),(error,data) => {
@@ -18,5 +18,9 @@ const server = http.createServer((req,res) => {
     res.end(req.method === 'HEAD' ? undefined : data);
   });
 });
-server.on('error',error => { console.error(`Cannot start Crownless: ${error.message}`); process.exitCode=1; });
-server.listen(Number(process.env.PORT || 4173),'127.0.0.1',() => console.log(`Crownless playable slice: http://localhost:${server.address().port}`));
+if (require.main === module) {
+  const server = createSliceServer();
+  server.on('error',error => { console.error(`Cannot start Crownless: ${error.message}`); process.exitCode=1; });
+  server.listen(Number(process.env.PORT || 4173),'127.0.0.1',() => console.log(`Crownless playable slice: http://localhost:${server.address().port}`));
+}
+module.exports = { createSliceServer };
