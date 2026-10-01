@@ -47,7 +47,7 @@ test('serve-slice loopback server correctly allows playable slice assets', async
   } finally {
     if (child.exitCode === null) {
       const exited = new Promise(resolve => child.once('exit', resolve));
-      child.kill();
+      child.kill('SIGKILL');
       await exited;
     }
   }
