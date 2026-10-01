@@ -32,7 +32,7 @@ test('serve-slice loopback server correctly allows playable slice assets', async
     const get = uri => new Promise((resolve, reject) => {
       http.get(`http://127.0.0.1:${port}${uri}`, res => {
         res.resume();
-        resolve(res.statusCode);
+        res.once('end', () => resolve(res.statusCode));
       }).on('error', reject);
     });
 
