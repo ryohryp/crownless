@@ -34,5 +34,7 @@ test('serve-slice loopback server correctly allows playable slice assets', async
     assert.equal(await getStatus(port, '/../package.json'), 404);
   } finally {
     await new Promise((resolve, reject) => server.close(error => error ? reject(error) : resolve()));
+    server.closeAllConnections?.();
+    server.unref();
   }
 });
