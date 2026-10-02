@@ -7,6 +7,19 @@
 .combat-feedback-hurt .panel,
 .combat-feedback-hurt .combat-vitals{animation:crownless-player-hurt .28s ease-out}
 .combat-feedback-dodge .scene{animation:crownless-dodge .26s ease-out}
+.combat-feedback-break .scene{animation:crownless-break .3s ease-out}
+
+.combat-opening{display:flex;flex-direction:column;gap:.15rem;padding:.6rem .75rem;border-left:3px solid #edc777;background:#302f21;color:#ffe1a2}
+.combat-opening span{font-size:12px;line-height:1.35}
+.combat-choice-grid[data-opening="true"] [data-action="strike"],
+.combat-choice-grid[data-opening="true"] [data-action="heavy"]{border-color:#edc777;background:#333725;color:#ffe1a2}
+
+@keyframes crownless-break{
+  0%{filter:brightness(1);transform:translateX(0)}
+  25%{filter:brightness(1.65);transform:translateX(6px);box-shadow:inset 0 0 0 4px #edc777}
+  60%{transform:translateX(-3px)}
+  100%{filter:brightness(1);transform:translateX(0)}
+}
 
 @keyframes crownless-enemy-hit{
   0%{filter:brightness(1);transform:translateX(0)}
@@ -36,7 +49,9 @@
   .combat-feedback-hurt .scene,
   .combat-feedback-hurt .panel,
   .combat-feedback-hurt .combat-vitals,
-  .combat-feedback-dodge .scene{animation:none!important}
+  .combat-feedback-dodge .scene,
+  .combat-feedback-break .scene{animation:none!important}
+  .combat-feedback-break .scene{box-shadow:inset 0 0 0 3px #edc777;filter:brightness(1.2)}
   .combat-feedback-hit .scene{box-shadow:inset 0 0 0 3px #f0d4a1;filter:brightness(1.28)}
   .combat-feedback-hurt .scene,
   .combat-feedback-hurt .panel,
