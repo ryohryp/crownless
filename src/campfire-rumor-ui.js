@@ -9,7 +9,8 @@
 
   function render() {
     const panel = root.querySelector(".panel");
-    const kicker = text(".panel > .kicker");
+    const reportScroll = panel?.querySelector(".report-scroll");
+    const kicker = text(".kicker", reportScroll || panel || root);
     if (!panel || (!kicker.startsWith("SAFE RETURN") && !kicker.startsWith("EXPEDITION LOST"))) return;
     if (panel.querySelector(".campfire-rumor")) return;
 
@@ -23,8 +24,8 @@
     section.className = "campfire-rumor rule-line";
     section.setAttribute("aria-label", "焚き火の噂");
     section.innerHTML = `<p class="kicker">CAMPFIRE RUMOR · 次の未知</p><p>${rumor.text}</p><p><small>手掛かり：${rumor.cue}</small></p>`;
-    const actions = panel.querySelector(".button-stack");
-    panel.insertBefore(section, actions || null);
+    const reportBody = reportScroll || panel;
+    reportBody.appendChild(section);
   }
 
   const observer = new MutationObserver(render);
