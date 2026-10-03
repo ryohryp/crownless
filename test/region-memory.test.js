@@ -21,9 +21,10 @@ test('keeps only the newest 24 coarse regions', () => {
   assert.equal(memory.at(-1).region, 'region-29');
 });
 
-test('playable slice loads persistence and player-facing wiring', () => {
+test('playable slice uses district saves instead of the legacy coordinate-note decorator', () => {
   const html = fs.readFileSync(path.join(__dirname, '..', 'expedition.html'), 'utf8');
   assert.match(html, /src\/region-memory\.js/);
-  assert.match(html, /src\/region-memory-ui\.js/);
-  assert.ok(html.indexOf('src/region-memory.js') < html.indexOf('src/region-memory-ui.js'));
+  assert.match(html, /src\/neighborhood\.js/);
+  assert.doesNotMatch(html, /src\/region-memory-ui\.js|src\/neighboring-lands-ui\.js/);
+  assert.ok(html.indexOf('src/neighborhood.js') < html.indexOf('src/slice-engine.js'));
 });

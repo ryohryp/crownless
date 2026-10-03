@@ -70,5 +70,5 @@ test('safe return with an affordable upgrade routes the primary continuation to 
   assert.match(source, /const hasNewBattleGear = !state\.report\.died/);
   assert.match(source, /const canPowerUp = !state\.report\.died && canReinforceEquipped\(\)/);
   assert.match(source, /const gearStep = hasNewBattleGear \|\| canPowerUp/);
-  assert.match(source, /tab = gearStep \? 'gear' : 'explore'/);
+  assert.match(source, /tab = homeOpportunity \? 'home' : gearStep \? 'gear' : 'explore'/);
 });

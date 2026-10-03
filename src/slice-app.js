@@ -1,7 +1,7 @@
 /* UI deliberately has no network client, telemetry, background GPS, or precise-location storage. */
 (() => {
   'use strict';
-  const E = window.CrownlessSlice, A = window.CrownlessArt;
+  const E = window.CrownlessSlice, A = window.CrownlessArt, N = window.CrownlessNeighborhood;
   const root = document.querySelector('#game');
   const esc = v => String(v).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
   let state = E.initial(), selected = 'wood', tab = 'explore', notice = '', busy = false, lastReturnedPlace = null, prioritizeReinforcement = false, endingOpen = false;
@@ -32,7 +32,7 @@
       else { saveBlocked = true; warning('セーブを読み込めませんでした。元データを保持し、この回は保存せずに遊べます。'); }
       localStorage.setItem('crownless-expedition-mode', mode);
     } catch { saveBlocked = true; warning('このブラウザでは保存できません。ページを閉じると今回の進行は失われます。'); }
-    locationRequest++; busy = false; session = restoreWalkSession(); selected = state.expedition?.place || 'wood'; tab = 'explore'; notice = ''; lastReturnedPlace = null; prioritizeReinforcement = false; endingOpen = false; render();
+    locationRequest++; busy = false; session = restoreWalkSession(); selected = state.expedition?.place || N.get(state.neighborhood).biome; tab = 'explore'; notice = ''; lastReturnedPlace = null; prioritizeReinforcement = false; endingOpen = false; render();
   }
   function save() {
     if (!currentKey || saveBlocked) return;
@@ -50,69 +50,34 @@
   const logs = x => `<div class="combat-log" role="status" aria-live="polite">${x.log.map(v => `<p>${esc(v)}</p>`).join('')}</div>`;
   const ledger = x => `<div class='loot-ledger'><p class='kicker'>AT RISK · 生還で確定</p><strong>${x.scrap}</strong> <small>鉄片 / 背嚢の中</small>${x.gear.length ? `<p><small data-current-gear-id='${state.equipped}'>現在装備：${E.GEAR[state.equipped].name} · ${E.qualityLabel(E.weaponQuality(state,state.equipped))} · ${E.gearText(state,state.equipped)}</small></p>` : ''}${x.gear.map((g,i) => { const q=x.gearQuality?.[i] ?? 0; const current=state.owned.includes(g) ? ` / 所持 ${E.qualityLabel(E.weaponQuality(state,g))}` : ''; return `<p data-found-gear-id='${g}'>＋ ${E.GEAR[g].name} · ${E.qualityLabel(q)}<br><small>未帰還 · ${E.gearText(state,g,q)}${current}</small></p>`; }).join('')}</div>`;
   function onboard() {
-    return `<div class="game-layout onboard"><section class="visual-column">${scene('camp','まだ、名もなき旅人。','A FIRE WORTH RETURNING TO')}<div class="journey-note"><b>01</b><span>霧の先には、まだ知らない場所。<br>その手の戦利品を、この火まで持ち帰ろう。</span></div></section><section class="panel"><p class="kicker">A SMALL JOURNEY. SOMETHING TO LOSE.</p><h1>霧の向こうへ。<br>生きて、帰ろう。</h1><p class="intro">欠けた剣と、ふた束の薬草。<br>あなたの旅は、それだけで始まる。<br>踏み込むか、引き返すか。<br>持ち帰った一本の剣が、次の旅を変える。</p><div class="button-stack">${button('mode','まずは体験する <span>約 15 分</span>','',{class:'primary',value:'demo'})}${button('mode','現実の散策で発見する','',{class:'secondary',value:'walk'})}</div><p class="small rule-line">体験モードは、室内で移動を再現します。<br>散策モードは、安全に立ち止まって現在地を確認。<br>位置情報を送信せず、移動履歴も残しません。</p></section></div>`;
+    return `<div class="game-layout onboard"><section class="visual-column">${scene('camp','まだ、名もなき旅人。','A FIRE WORTH RETURNING TO')}<div class="journey-note"><b>01</b><span>霧の先には、まだ知らない場所。<br>戦利品を持ち帰り、ここに自分の拠点を育てよう。</span></div></section><section class="panel"><p class="kicker">A SMALL JOURNEY. SOMETHING TO LOSE.</p><h1>霧の向こうへ。<br>生きて、帰ろう。</h1><p class="intro">欠けた剣と、ふた束の薬草。<br>あなたの旅は、それだけで始まる。<br>踏み込むか、引き返すか。<br>持ち帰った一本の剣が、次の旅を変える。<br>建材を集め、自分の拠点と領域を育てよう。</p><div class="button-stack">${button('mode','まずは体験する <span>約 15 分</span>','',{class:'primary',value:'demo'})}${button('mode','現実の散策で発見する','',{class:'secondary',value:'walk'})}</div><p class="small rule-line">体験モードは、室内で移動を再現します。<br>散策モードは、安全に立ち止まって現在地を確認。<br>位置情報を送信せず、移動履歴も残しません。</p></section></div>`;
+  }
+  function homeArt() {
+    const n = state.neighborhood, forge = n.buildings.includes('forge'), lodge = n.buildings.includes('lodge');
+    return '<svg class="homestead-art" viewBox="0 0 240 150" aria-label="' + (lodge ? '鍛冶小屋と窓明かりのある集落' : forge ? '焚き火に鍛冶小屋が建った拠点' : '小さな焚き火だけの野営地') + '" role="img"><ellipse cx="120" cy="121" rx="105" ry="20" fill="#6d8060" opacity=".25"/><path d="M20 120 Q80 108 120 124 T220 116" fill="none" stroke="#7e7655" stroke-width="2"/>' +
+      (forge ? '<path d="M25 88H85V119H25Z" fill="#897451"/><path d="M18 88L55 60L93 88Z" fill="#5a5e4e"/><path d="M73 62V47H82V74" fill="#6c6a5a"/><rect x="43" y="99" width="15" height="20" fill="#423d31"/><path d="M75 41Q87 34 77 25" fill="none" stroke="#adb099" stroke-width="4"/><circle cx="52" cy="108" r="4" fill="#e1a65d"/>' : '<path d="M33 114L57 81L80 114Z" fill="#928464"/><path d="M50 114L57 98L65 114" fill="#4c503f"/>') +
+      (lodge ? '<path d="M151 79H210V119H151Z" fill="#a18a63"/><path d="M141 80L181 50L220 80Z" fill="#685c46"/><rect x="175" y="96" width="12" height="23" fill="#494437"/><rect x="156" y="91" width="11" height="13" fill="#efd291"/><rect x="195" y="91" width="10" height="13" fill="#efd291"/><path d="M138 116H224M139 108V123M219 108V123" stroke="#776747" stroke-width="3"/>' : '<path d="M161 117L178 99L191 117M186 118L201 103L216 118" fill="#8d9073" opacity=".45"/>') +
+      '<path d="M105 122L128 121M108 126L130 116" stroke="#62523a" stroke-width="4"/><path d="M116 118Q106 107 118 96Q115 108 124 110Q134 119 116 123" fill="#db9850"/><path d="M118 119Q114 113 120 107Q125 117 118 119" fill="#f4d888"/></svg>';
   }
   function mapPins() {
-    const positions = { wood:[22,68], tower:[47,27], fen:[75,58], crypt:[58,82] };
-    const maturity = p => state.cleared.includes(p.id) ? 'surveyed' : state.unlocked.includes(p.id) ? 'found' : p.id === 'tower' ? 'exploring' : p.id === 'fen' ? 'traced' : 'unknown';
-    const labels = { unknown:'未踏', traced:'踏査', exploring:'探索', found:'発見', surveyed:'調査済み' };
-    const markers = E.PLACES.map(p => {
-      const stage = maturity(p), known = stage === 'found' || stage === 'surveyed', [x,y] = positions[p.id];
-      if (stage === 'unknown') return '';
-      if (!known) return `<span class="atlas-trace ${stage}" style="--atlas-x:${x}%;--atlas-y:${y}%" aria-label="${labels[stage]}"><i></i><small>${labels[stage]}</small></span>`;
-      const active = selected === p.id;
-      return `<button class="atlas-marker ${active ? 'selected' : ''} ${stage}" style="--atlas-x:${x}%;--atlas-y:${y}%" data-action="select" data-value="${p.id}" aria-pressed="${active}" aria-label="${p.name}・${labels[stage]}">
-        <span class="atlas-marker-icon">${A.icon(p.id)}</span>
-        <span class="atlas-marker-copy"><strong>${p.name}</strong><small>${state.grudge?.place === p.id ? '因縁の敵が待っている' : labels[stage]}</small></span>
-        ${active ? `<span class="atlas-anomaly-copy"><b>${state.cleared.includes(p.id) ? '残った痕跡' : '新しい痕跡'}</b><small>${state.cleared.includes(p.id) ? 'まだ奥へ続いている。' : '昨日までは、なかった。'}</small></span>` : ''}
-      </button>`;
-    }).join('');
-    const shrouds = E.PLACES.map(p => { const stage = maturity(p), [x,y] = positions[p.id]; return `<span class="atlas-shroud stage-${stage}" style="--atlas-x:${x}%;--atlas-y:${y}%" aria-hidden="true"></span>`; }).join('');
-    return `<section class="exploration-atlas" data-living-atlas="true" aria-label="探索によって育つ冒険地図"><span hidden>THE UNWRITTEN LANDS · 調査済みの記録</span>
-      <div class="atlas-home-header">
-        <div><strong>CROWNLESS</strong><small>旅の地図</small></div>
-        <span><b>帰還地</b>最後の焚き火</span>
-      </div>
-      <div class="atlas-field">
-        <svg viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
-          <path class="atlas-contour" d="M5 72 C18 55 31 67 40 50 S62 21 76 36 S86 70 96 62" />
-          <path class="atlas-contour secondary" d="M12 28 C28 16 37 38 55 26 S80 16 91 31" />
-          <path class="atlas-trail" d="M22 68 C31 55 37 43 47 27 M47 27 C59 35 66 44 75 58 M75 58 C68 68 63 76 58 82" />
-          <path class="atlas-water" d="M0 82 C19 75 30 84 45 77 S72 65 100 74" />
-          <path class="atlas-sketch" d="M34 46 C39 41 42 36 47 27 M66 51 C70 53 73 56 75 58" />
-        </svg>
-        <span class="atlas-hearth" aria-label="安全な拠点"><i>✦</i><small>現在地</small></span>
-        <div class="atlas-fog" aria-hidden="true"></div>
-        ${shrouds}
-        ${markers}
-      </div>
-      <p class="atlas-home-caption">歩いたぶんだけ、世界がひらく。</p><p hidden>歩いた結果だけを、冒険者の地図として抽象化して残す。</p>
-    </section>`;
+    const n = state.neighborhood, chosen = N.get(n);
+    const districts = [...n.districts];
+    const rx = Math.max(1,...districts.map(d=>Math.abs(d.x))), ry = Math.max(1,...districts.map(d=>Math.abs(d.y)));
+    const pos = d => [50+d.x/(rx*2+1)*100,50-d.y/(ry*2+1)*100];
+    const paths = districts.map(d => { const [x,y]=pos(d); return '<path class="district-road '+(d.claimed ? 'claimed' : '')+'" d="M50 50L'+x+' '+y+'"/>'; }).join('');
+    const markers = districts.map(d => { const [x,y]=pos(d); return '<button class="district-pin '+(d.claimed ? 'claimed ' : '')+(d.id===n.selected ? 'selected' : '')+'" style="left:'+x+'%;top:'+y+'%" data-action="district" data-value="'+d.id+'" aria-pressed="'+(d.id===n.selected)+'"><span aria-hidden="true">'+(d.claimed ? '⚑' : {wood:'♣',tower:'♜',fen:'≈',crypt:'◇'}[d.biome])+'</span><strong>'+N.title(d)+'</strong><small>'+(d.claimed ? 'あなたの領域' : '土地の主が潜む')+'</small></button>'; }).join('');
+    return '<section class="exploration-atlas neighborhood-atlas" data-living-atlas="true" aria-label="拠点と近所の領域"><div class="atlas-home-header"><div><strong>'+esc(n.name)+'</strong><small>'+ (state.mode==='demo' ? '体験の近所' : '散策の起点の近所')+' · 発見 '+n.districts.length+' / 開拓 '+N.claims(n)+'</small></div><span><b>建材</b>木材 '+n.wood+' · 石材 '+n.stone+'</span></div><div class="atlas-field neighborhood-field"><div class="neighborhood-canvas" style="width:'+((rx*2+1)*140)+'px;height:'+((ry*2+1)*140)+'px"><svg class="district-roads" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">'+paths+'</svg><button class="district-home" data-action="tab" data-value="home" aria-label="'+esc(n.name)+'の拠点を育てる">'+homeArt()+'<strong>'+esc(n.name)+'</strong><small>'+ (n.buildings.length ? '建物 '+n.buildings.length+' · 拠点を育てる' : 'まだ小さな野営地')+'</small></button>'+markers+'</div></div><p class="atlas-home-caption">主を倒し、帰還した土地に、あなたの旗が立つ。</p></section>';
+  }
+  function homePanel() {
+    const n = state.neighborhood;
+    return '<div class="homestead-panel"><p class="kicker">A PLACE TO CALL YOUR OWN</p><h2>'+esc(n.name)+'</h2><p class="home-materials">木材 <b>'+n.wood+'</b> · 石材 <b>'+n.stone+'</b> · 領域 <b>'+N.claims(n)+'</b></p><p class="small">建材は遠征から生還すると持ち帰れる。土地の主を倒して帰ると、その土地にあなたの旗が立つ。</p><div class="home-buildings">'+Object.entries(N.BUILDINGS).map(([id,b]) => { const built=n.buildings.includes(id); return '<section class="home-building '+(built ? 'built' : '')+'"><div><h3>'+(built ? '✓ ' : '')+b.name+'</h3><p>'+b.benefit+'</p></div>'+ (built ? '<small>建設済み · '+b.story+'</small>' : button('home-build',b.name+'を建てる','木材 '+b.wood+' · 石材 '+b.stone+(b.claims ? ' · 領域 '+b.claims+' が必要' : ''),{class:'secondary',value:id,disabled:!N.canBuild(n,id)}))+'</section>'; }).join('')+'</div><div class="home-name"><label for="home-name">この拠点に名前をつける</label><div><input id="home-name" maxlength="16" value="'+esc(n.name)+'" autocomplete="off">'+button('home-name','名付ける','',{class:'secondary'})+'</div></div>'+ (notice ? '<p class="notice" role="status">'+esc(notice)+'</p>' : '')+'</div>';
   }
   function scouting() {
     return `<div class="discovery"><p>${state.mode === 'demo' ? '散策を体験する — 歩くほど、地図の線と色が増えていく。' : '画面を閉じて散策し、安全に止まれる場所で発見する。'}</p>${state.mode === 'demo' ? `<div class="choice-grid">${button('scout','丘の道を歩いた','',{value:'tower'})}${button('scout','水辺の道を歩いた','',{value:'fen'})}${button('scout','南の小道を歩いた','',{value:'crypt'})}${button('scout','森の道を歩いた','',{value:'wood'})}</div>` : `${button('gps',busy ? '現在地を確認中…' : session.anchor ? '立ち止まった場所で発見する' : 'ここを散策の起点にする','',{class:'secondary',disabled:busy})}<p class="small" style="margin-top:10px">現在地そのものは地図に表示しません。安全に立ち止まって観測すると、その移動結果だけがゲーム世界へ反映されます。</p>`}${notice ? `<p class="notice" role="status">${esc(notice)}</p>` : ''}</div>`;
   }
   function explorePanel() {
-    const p = E.place(selected), unlocked = state.unlocked.includes(p.id), locked = p.id === 'crypt' && state.cleared.length < 2;
-    const cleared = state.cleared.includes(p.id);
-    const traceLabel = cleared ? '残った痕跡' : unlocked ? '新しい痕跡' : 'まだ名のない場所';
-    const traceCopy = unlocked
-      ? (cleared ? `${p.reward}を持ち帰った。それでも、道はさらに奥へ続いている。` : p.teaser)
-      : '霧の向こうに、まだ地図へ描かれていない土地がある。';
-    return `<div class="map-home-detail">
-      <details class="map-home-trace" open>
-        <summary><span><small>${traceLabel}</small><strong>${unlocked ? p.name : '霧の向こう'}</strong></span><span aria-hidden="true">›</span></summary>
-        <div class="map-home-trace-detail">
-          <p class="map-home-whisper">${traceCopy}</p>
-          ${unlocked ? button('depart',locked ? `他の土地をあと ${2-state.cleared.length} か所踏破する` : '遠征に出る','',{class:'primary map-home-depart',value:p.id,disabled:locked}) : ''}
-        </div>
-      </details>
-      <details class="map-home-scouting">
-        <summary>${state.mode === 'demo' ? '別の道を探す' : '散策して新しい痕跡を探す'}</summary>
-        ${scouting()}
-      </details>
-      ${notice ? `<p class="notice map-home-notice" role="status">${esc(notice)}</p>` : ''}
-    </div>`;
+    const d = N.get(state.neighborhood), p = E.place(d.biome), locked = p.id==='crypt' && state.cleared.length<2;
+    return '<div class="map-home-detail"><div class="district-detail"><div><small>'+ (d.claimed ? '⚑ あなたの領域 · 生還 '+d.returns+' 回' : '未開拓 · 主を倒して帰還すると領域になる')+'</small><h2>'+N.title(d)+'</h2><p>'+p.name+' · '+ (d.claimed ? '開拓済みの道から、帰還時の木材・石材が各 +1。' : '最初の戦闘だけでも、帰れば建材を持ち帰れる。')+'</p></div>'+button('depart',locked ? '他の土地を2か所踏破' : 'この土地へ遠征','',{class:'primary',value:p.id,disabled:locked})+'</div><details class="map-home-scouting"><summary>'+ (state.mode==='demo' ? '近所を歩く · 室内で体験' : '立ち止まって近所を発見')+'</summary>'+scouting()+'</details>'+ (state.neighborhood.districts.length>6 ? '<details class="district-list"><summary>発見した土地をすべて見る</summary>'+state.neighborhood.districts.map(v=>button('district',N.title(v),v.claimed ? 'あなたの領域' : '未開拓',{value:v.id})).join('')+'</details>' : '')+ (notice ? '<p class="notice map-home-notice" role="status">'+esc(notice)+'</p>' : '')+'</div>';
   }
   function canReinforceEquipped() {
     const id = state.equipped;
@@ -155,7 +120,7 @@
   }
 
   function camp() {
-    return `<div class="game-layout camp-layout ${tab === 'explore' ? 'living-map-home' : 'gear-home'}"><section class="visual-column"><div class="mode-strip"><span class="mode-pill">${state.mode === 'demo' ? '散策体験モード' : '現実の散策モード'}</span><span>遠征 ${state.runs} 回 · 生還 ${state.victories} 回</span></div>${scene('camp','帰りを待つ火。','THE LAST HEARTH',null,'安全な拠点')}${mapPins()}<div class="stat-strip"><div class="stat">最大体力<b>${E.maxHp(state)}</b></div><div class="stat">手元の鉄片<b>${state.scrap}</b></div><div class="stat">装備<b><em>${E.GEAR[state.equipped].name}<small> · ${E.qualityLabel(E.weaponQuality(state,state.equipped))}</small></em></b></div></div></section><section class="panel"><nav class="camp-tabs" aria-label="拠点">${button('tab','地図','',{class:tab === 'explore' ? 'active' : '',value:'explore'})}${button('tab','装備','',{class:tab === 'gear' ? 'active' : '',value:'gear'})}${button('settings','設定','',{class:'bottom-navigation-item'})}</nav>${tab === 'gear' ? gearPanel() : explorePanel()}<button class="text-button" data-action="switch-mode">${state.mode === 'demo' ? '現実の散策モードへ' : '散策体験モードへ'} <span aria-hidden="true">↗</span></button></section></div>`;
+    return `<div class="game-layout camp-layout ${tab === 'explore' ? 'living-map-home' : tab === 'home' ? 'homestead-home' : 'gear-home'}"><section class="visual-column"><div class="mode-strip"><span class="mode-pill">${state.mode === 'demo' ? '散策体験モード' : '現実の散策モード'}</span><span>遠征 ${state.runs} 回 · 生還 ${state.victories} 回</span></div>${tab === 'home' ? '<div class="home-portrait">'+homeArt()+'<p>'+esc(state.neighborhood.name)+' · '+(state.neighborhood.buildings.length ? '育ち始めた集落' : '野営地')+'</p></div>' : scene('camp','帰りを待つ火。','THE LAST HEARTH',null,'安全な拠点')}${mapPins()}<div class="stat-strip"><div class="stat">最大体力<b>${E.maxHp(state)}</b></div><div class="stat">手元の鉄片<b>${state.scrap}</b></div><div class="stat">装備<b><em>${E.GEAR[state.equipped].name}<small> · ${E.qualityLabel(E.weaponQuality(state,state.equipped))}</small></em></b></div></div></section><section class="panel"><nav class="camp-tabs" aria-label="拠点">${button('tab','近所','',{class:tab === 'explore' ? 'active' : '',value:'explore'})}${button('tab','拠点','',{class:tab === 'home' ? 'active' : '',value:'home'})}${button('tab','装備','',{class:tab === 'gear' ? 'active' : '',value:'gear'})}${button('settings','設定','',{class:'bottom-navigation-item'})}</nav>${tab === 'gear' ? gearPanel() : tab === 'home' ? homePanel() : explorePanel()}<button class="text-button" data-action="switch-mode">${state.mode === 'demo' ? '現実の散策モードへ' : '散策体験モードへ'} <span aria-hidden="true">↗</span></button></section></div>`;
   }
   function vitals(x) {
     return `<div class="vitals"><div><div class="hp-row"><span>あなたの体力</span><strong class="${x.hp < 10 ? 'danger' : ''}">${x.hp} <small class="small">/ ${E.maxHp(state)}</small></strong></div><div class="bar" role="meter" aria-label="あなたの体力" aria-valuenow="${x.hp}" aria-valuemin="0" aria-valuemax="${E.maxHp(state)}"><span style="width:${100*x.hp/E.maxHp(state)}%"></span></div></div><div><span class="small">気力 · ${x.stamina} / 3</span><div class="stamina" aria-hidden="true">${'◆'.repeat(x.stamina)}<span class="empty">${'◇'.repeat(3-x.stamina)}</span></div></div></div>`;
@@ -202,8 +167,9 @@
   }
   function expedition() {
     const x = state.expedition, p = E.place(x.place), isFight = x.stage === 'fight';
+    const localDistrict = N.get(state.neighborhood,state.neighborhood.active);
     const enemyArt = x.enemy ? (E.ENEMIES[x.enemy.kind].art || x.enemy.kind) : null;
-    return `<div class="game-layout expedition-layout ${isFight ? 'battle-layout' : ''}" data-combat-result="${x.log.some(line => line.startsWith('崩し追撃！')) ? 'follow-up' : ''}" data-combat-turn="${x.depth}:${x.room}:${x.enemy?.turn ?? 'path'}"><section class="visual-column">${scene(x.place,p.name,`DEPTH ${String(x.depth).padStart(2,'0')} · ${x.stage === 'cleared' ? '踏破' : `${x.room+1} / 5`}`,enemyArt,`${E.GEAR[state.equipped].name}`)}${route(x)}${vitals(x)}<div class="journey-note"><b>${String(x.depth).padStart(2,'0')}</b><span>深層 ${x.depth} · 戦利品を失っても、持ち込んだ装備は残る。<br>深層ほど敵の型が変わり、珍しい武具を期待できる。</span></div></section><section class="panel ${isFight ? 'combat-panel' : 'path-panel'}">${isFight ? fight(x) : pathPanel(x)}</section></div>`;
+    return `<div class="game-layout expedition-layout ${isFight ? 'battle-layout' : ''}" data-combat-result="${x.log.some(line => line.startsWith('崩し追撃！')) ? 'follow-up' : ''}" data-combat-turn="${x.depth}:${x.room}:${x.enemy?.turn ?? 'path'}"><section class="visual-column">${scene(x.place,localDistrict ? N.title(localDistrict) : p.name,`DEPTH ${String(x.depth).padStart(2,'0')} · ${x.stage === 'cleared' ? '踏破' : `${x.room+1} / 5`}`,enemyArt,`${E.GEAR[state.equipped].name}`)}${route(x)}${vitals(x)}<div class="journey-note"><b>${String(x.depth).padStart(2,'0')}</b><span>深層 ${x.depth} · 戦利品を失っても、持ち込んだ装備は残る。<br>深層ほど敵の型が変わり、珍しい武具を期待できる。</span></div></section><section class="panel ${isFight ? 'combat-panel' : 'path-panel'}">${isFight ? fight(x) : pathPanel(x)}</section></div>`;
   }
   function ending() {
     return `<div class="game-layout report-layout"><section class="visual-column">${scene('camp','灰の冠は、火のそばに。','THE CROWN CAME HOME',null,'旅の到達点')}</section><section class="panel report-panel"><div class="report-scroll"><p class="kicker">EPILOGUE · 名もなき旅人</p><h1>冠を持ち帰った。<br>それでも、旅は続く。</h1><p class="intro">霧の王墓から持ち帰った灰の冠を、あなたは焚き火のそばへ置いた。名は刻まれない。けれど、歩いた土地と、生きて帰った夜だけは残る。</p><div class="result-number">${state.victories} <small>回の生還 / 遠征 ${state.runs} 回</small></div><p class="notice">灰の王冠 · 最大体力 +6。ここから先も、まだ見ていない一本と深層が残っている。</p><p class="small rule-line">これは終わりではなく、最初の物語の区切り。地図へ戻れば、踏破した土地にも再び遠征できる。</p></div><div class="report-actions">${button('ending-continue','旅の地図へ戻る','',{class:'primary'})}</div></section></div>`;
@@ -238,23 +204,29 @@
       const actions = d.decision ? done : `<div class='choice-grid'>${button('loot-keep','この一本に入れ替える',`${E.qualityLabel(d.quality)} / 攻撃 ${foundAttack}`,{value:String(i)})}${button('loot-dismantle',`鉄片 ${E.DISMANTLE_SCRAP} に分解`,`今の一本 ${E.qualityLabel(currentQ)} / 攻撃 ${currentAttack}`,{value:String(i)})}</div>`;
       return `<div class='reward loot-compare'><span class='reward-icon'>↔</span><div><strong>${E.GEAR[d.id].name} · ${E.qualityLabel(d.quality)}</strong><small>今の一本 ${E.qualityLabel(currentQ)} / 攻撃 ${currentAttack} → 発見品 攻撃 ${foundAttack}。${compare}。</small>${actions}</div></div>`;
     }).join('')}</div>` : '';
-    const nextLabel = unresolved ? `同名武器をあと ${unresolved} 本整理する` : keptDuplicate ? '入れ替えた装備を確認する' : hasNewBattleGear ? '持ち帰った装備を比べる' : canPowerUp ? '補強へ進む' : '焚き火で次の準備をする';
-    return `<div class="game-layout report-layout"><section class="visual-column">${scene('camp',r.died ? '火は、まだ消えていない。' : 'おかえり、旅人。',r.died ? 'THE ROAD IS NOT OVER' : 'YOU MADE IT HOME')}</section><section class="panel report-panel"><div class="report-scroll"><p class='kicker'>${r.died ? 'EXPEDITION LOST' : 'SAFE RETURN'} / ${E.place(r.place).name}</p><h1>${r.died ? '命だけを、持ち帰った。' : duplicates.length ? '持ち帰った一本を、比べる。' : r.newGear.length ? '新しい一本を、火へ。' : '欲張らずに、帰る強さ。'}</h1><p class='intro'>${r.died ? defeatIntro : '背嚢の中身は、もうあなたのもの。同じ名の武器でも品質が違う。今の一本と比べて、残すか鉄片にするかを決めよう。'}</p><div class='result-number'>${r.died ? '' : '+'}${r.scrap} <small>${r.died ? '鉄片を落とした' : '鉄片を確保'}</small></div>${lootRows}${duplicateRows}${recovery?.scrap ? `<div class='reward'><span class='reward-icon'>↺</span><div><strong>敗走跡：鉄片 ${recovery.scrap}</strong><small>次に同じ土地へ出れば背嚢へ戻る。生還するまで未確定。</small></div></div>` : ''}${!r.died && state.owned.includes('crown') ? `<p class='notice'>灰冠の廟を越えた。名もなき旅人の、最初の物語が残った。</p>` : ''}<p class='small rule-line'>${r.died ? (recovery ? '敗走は全損ではない。取り戻しに行くか、別の土地へ向かうかを選べる。' : '遠征の失敗で、恒久的な進行は失われません。') : state.cleared.length >= 2 && !state.owned.includes('crown') ? '二つの土地を越えた。次は「灰冠の廟」の主に挑める。' : '同じ土地へ戻れば、同じ武器でももっと良い品質に出会えることがある。'}</p></div><div class="report-actions">${button('continue',r.died && recovery ? '敗走跡を回収する準備へ' : nextLabel,'',{class:'primary',disabled:unresolved > 0})}</div></section></div>`;
+    const homeOpportunity = state.neighborhood.result && !r.died && (state.neighborhood.result.claimed || Object.keys(N.BUILDINGS).some(id => N.canBuild(state.neighborhood,id)));
+    const nextLabel = unresolved ? `同名武器をあと ${unresolved} 本整理する` : keptDuplicate ? '入れ替えた装備を確認する' : homeOpportunity ? '拠点を育てる' : hasNewBattleGear ? '持ち帰った装備を比べる' : canPowerUp ? '補強へ進む' : '焚き火で次の準備をする';
+    return `<div class="game-layout report-layout"><section class="visual-column">${scene('camp',r.died ? '火は、まだ消えていない。' : 'おかえり、旅人。',r.died ? 'THE ROAD IS NOT OVER' : 'YOU MADE IT HOME')}</section><section class="panel report-panel"><div class="report-scroll"><p class='kicker'>${r.died ? 'EXPEDITION LOST' : 'SAFE RETURN'} / ${E.place(r.place).name}</p><h1>${r.died ? '命だけを、持ち帰った。' : duplicates.length ? '持ち帰った一本を、比べる。' : r.newGear.length ? '新しい一本を、火へ。' : '欲張らずに、帰る強さ。'}</h1><p class='intro'>${r.died ? defeatIntro : '背嚢の中身は、もうあなたのもの。同じ名の武器でも品質が違う。今の一本と比べて、残すか鉄片にするかを決めよう。'}</p><div class='result-number'>${r.died ? '' : '+'}${r.scrap} <small>${r.died ? '鉄片を落とした' : '鉄片を確保'}</small></div>${state.neighborhood.result ? `<div class="home-return"><strong>${state.neighborhood.result.claimed ? '⚑ '+N.title(N.get(state.neighborhood,state.neighborhood.result.id))+'を開拓！' : state.neighborhood.result.died ? '土地と拠点は残っている。' : '拠点へ建材を持ち帰った。'}</strong><p>木材 +${state.neighborhood.result.wood} · 石材 +${state.neighborhood.result.stone}</p><small>${state.neighborhood.result.claimed ? 'この土地に、あなたの旗が立つ。' : '持ち帰った建材で、拠点に建物を増やせる。'}</small></div>` : ''}${lootRows}${duplicateRows}${recovery?.scrap ? `<div class='reward'><span class='reward-icon'>↺</span><div><strong>敗走跡：鉄片 ${recovery.scrap}</strong><small>次に同じ土地へ出れば背嚢へ戻る。生還するまで未確定。</small></div></div>` : ''}${!r.died && state.owned.includes('crown') ? `<p class='notice'>灰冠の廟を越えた。名もなき旅人の、最初の物語が残った。</p>` : ''}<p class='small rule-line'>${r.died ? (recovery ? '敗走は全損ではない。取り戻しに行くか、別の土地へ向かうかを選べる。' : '遠征の失敗で、恒久的な進行は失われません。') : state.cleared.length >= 2 && !state.owned.includes('crown') ? '二つの土地を越えた。次は「灰冠の廟」の主に挑める。' : '同じ土地へ戻れば、同じ武器でももっと良い品質に出会えることがある。'}</p></div><div class="report-actions">${button('continue',r.died && recovery ? '敗走跡を回収する準備へ' : nextLabel,'',{class:'primary',disabled:unresolved > 0})}</div></section></div>`;
   }
   function render() {
     const help = document.querySelector('#help'), helpToggle = document.querySelector('#help-toggle');
     if (help && !help.hidden) { help.hidden = true; helpToggle?.setAttribute('aria-expanded', 'false'); }
     if (conflict) { root.innerHTML = '<div class="help"><h2>別のタブで旅が進んでいます。</h2><p>最新のセーブを読み直してください。</p><button class="primary" data-action="reload">再読み込み</button></div>'; return; }
     root.innerHTML = !state.mode ? onboard() : state.expedition ? expedition() : endingOpen ? ending() : state.report ? report() : camp();
+    const mapWindow = root.querySelector?.('.neighborhood-field'), marker = root.querySelector?.('.district-pin.selected');
+    if (mapWindow && marker) {
+      mapWindow.scrollLeft = marker.offsetLeft-mapWindow.clientWidth/2;
+      mapWindow.scrollTop = marker.offsetTop-mapWindow.clientHeight/2;
+    }
   }
   function locationResult(coords) {
     const result = E.observe(session,coords);
-    const messages = { anchored:'ここを散策の起点にしました。少し場所を変えてから、また安全に立ち止まって発見してください。', nearby:'まだ同じ土地の中です。距離を稼ぐ必要はありません。別の安全な場所へ移動した日に、また試せます。', inaccurate:'位置の精度が足りませんでした。屋外の開けた場所で再度試すか、散策体験モードで続けられます。', moving:'移動中のようです。安全な場所で立ち止まってから再度試してください。' };
-    if (result.status === 'anchored') saveWalkAnchor();
+    const messages = { anchored:'ここを散策の起点にしました。少し場所を変えてから、また安全に立ち止まって発見してください。', nearby:'まだ同じ土地の中です。距離を稼ぐ必要はありません。別の安全な場所へ移動した日に、また試せます。', inaccurate:'位置の精度が足りませんでした。屋外の開けた場所で再度試すか、散策体験モードで続けられます。', boundary:'土地の境目で、位置の誤差が残っています。無理に移動せず、別の安全な場所に立ち寄った時にまた確認できます。', faraway:'今の拠点から離れた地域です。この版では拠点周辺の開拓を体験できます。', moving:'移動中のようです。安全な場所で立ち止まってから再度試してください。' };
+    if (result.status === 'anchored') { session.anchor = coarseAnchor(session.anchor); saveWalkAnchor(); }
     if (result.status === 'discovered') {
-      const known = state.unlocked.includes(result.place);
-      state = E.discover(state, result.place); selected = result.place;
-      notice = known ? `この地域では「${E.place(result.place).name}」を発見済み。いつでも再訪できます。` : `霧が晴れた。「${E.place(result.place).name}」を発見。以後はその場にいなくても遠征できます。`;
+      const known = Boolean(N.get(state.neighborhood,result.district.id));
+      state = E.discoverDistrict(state,result.district); selected = result.place;
+      notice = known ? `${N.title(result.district)}に戻った。開拓の記録が残っています。` : state.neighborhood.selected === result.district.id ? `${N.title(result.district)}を発見。主を倒して生還すると、自分の領域になります。` : 'この近所の地図はいっぱいです。発見済みの土地で開拓を続けられます。';
       save();
     } else notice = messages[result.status];
     busy = false; render();
@@ -274,11 +246,17 @@
     const before = state;
     if (action === 'mode') { loadMode(value); save(); return; }
     if (action === 'switch-mode') { loadMode(state.mode === 'demo' ? 'walk' : 'demo'); save(); return; }
-    if (action === 'select') { selected = value; tab = 'explore'; notice = ''; lastReturnedPlace = null; prioritizeReinforcement = false; }
+    if (action === 'district') { state = E.selectDistrict(state,value); selected = N.get(state.neighborhood).biome; tab = 'explore'; notice = ''; }
+    else if (action === 'home-build') { state = E.buildHome(state,value); if (state !== before) notice = N.BUILDINGS[value].story; }
+    else if (action === 'home-name') { state = E.renameHome(state,document.querySelector('#home-name').value); }
+    else if (action === 'select') { selected = value; tab = 'explore'; notice = ''; lastReturnedPlace = null; prioritizeReinforcement = false; }
     else if (action === 'tab') { tab = value; notice = ''; }
     else if (action === 'scout') {
       const demoSession = E.locationSession(); E.observe(demoSession,{latitude:0,longitude:0,accuracy:5}); session = demoSession;
-      const offsets = { tower:[.003,0],fen:[0,.003],crypt:[-.003,0],wood:[0,-.003] };
+      const current = N.get(state.neighborhood);
+      const cells = {tower:[0,Math.max(1,current.y+1)],fen:[Math.max(1,current.x+1),0],crypt:[0,Math.min(-1,current.y-1)],wood:[Math.min(-1,current.x-1),0]};
+      const [dx,dy] = cells[value];
+      const offsets = { [value]:[dy*N.CELL_METERS/111320,dx*N.CELL_METERS/111320] };
       locationResult({latitude:offsets[value][0],longitude:offsets[value][1],accuracy:5,speed:0}); return;
     } else if (action === 'gps') {
       if (!navigator.geolocation || !window.isSecureContext) { notice = 'この環境では位置情報を使えません。HTTPS または localhost で開くか、散策体験モードで遊べます。'; render(); return; }
@@ -307,11 +285,13 @@
       const gearStep = hasNewBattleGear || canPowerUp || canMaintain;
       lastReturnedPlace = gearStep ? state.report.place : null;
       prioritizeReinforcement = gearStep && !hasNewBattleGear && canPowerUp;
-      tab = gearStep ? 'gear' : 'explore';
+      const homeOpportunity = state.neighborhood.result && !state.report.died && (state.neighborhood.result.claimed || Object.keys(N.BUILDINGS).some(id => N.canBuild(state.neighborhood,id)));
+      tab = homeOpportunity ? 'home' : gearStep ? 'gear' : 'explore';
       if (keptDuplicate) { lastReturnedPlace = state.report.place; prioritizeReinforcement = false; tab = 'gear'; }
       const crownEnding = !state.report.died && state.report.newGear.includes('crown');
       endingOpen = crownEnding;
-      state = {...state,report:null}; notice = '';
+      const homeResult = state.neighborhood.result;
+      state = {...state,report:null}; notice = homeOpportunity ? `${homeResult.claimed ? '新しい領域を開拓した。' : ''}木材 ${homeResult.wood}・石材 ${homeResult.stone} を拠点に持ち帰った。` : '';
     }
     else state = E.act(state, action);
     if (state !== before) save();

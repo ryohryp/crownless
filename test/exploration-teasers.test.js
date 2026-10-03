@@ -10,19 +10,18 @@ test('undiscovered locations keep identity-safe source teasers but render as bla
   for (const id of ['wood', 'tower', 'fen', 'crypt']) {
     assert.match(engine, new RegExp(`id: '${id}'[\\s\\S]+?teaser:`));
   }
-  assert.match(app, /atlas-trace/);
-  assert.match(app, /stage-\$\{stage\}/);
-  assert.match(app, /unknown:'未踏'/);
+  assert.match(app, /n\.districts/);
+  assert.match(app, /district-pin/);
+  assert.match(app, /d\.claimed/);
   assert.doesNotMatch(app, /予兆あり|未知の気配/);
   assert.doesNotMatch(engine.match(/teaser: '[^']+'/g).join('\n'), /番人の盾|牙の短剣|灰の王冠/);
 });
 
 test('map maturity renders without the obsolete teaser bootstrap', () => {
-  assert.match(app, /未踏/);
-  assert.match(app, /踏査/);
-  assert.match(app, /探索/);
+  assert.match(app, /未開拓/);
+  assert.match(app, /領域/);
   assert.match(app, /発見/);
-  assert.match(app, /調査済み/);
+  assert.match(app, /開拓/);
   assert.doesNotMatch(html, /src\/exploration-teasers\.js/);
   assert.doesNotMatch(app, /MutationObserver/);
 });

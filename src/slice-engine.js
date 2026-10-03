@@ -1,8 +1,8 @@
 /* Pure game rules. The browser and node:test use the same deterministic transitions. */
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory();
-  else root.CrownlessSlice = factory();
-})(typeof globalThis === 'object' ? globalThis : this, function () {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./neighborhood.js'));
+  else root.CrownlessSlice = factory(root.CrownlessNeighborhood);
+})(typeof globalThis === 'object' ? globalThis : this, function (N) {
   'use strict';
   const VERSION = 1;
   const PLACES = [
@@ -109,8 +109,8 @@
     const roll = ((s.runs * 37 + x.depth * 17 + x.room * 13 + placeIndex * 11 + gearIndex * 19 + x.gear.length * 23 + salt * 29) % 100 + 100) % 100;
     return QUALITY_STEPS.find(step => roll < step.max)?.quality ?? 0;
   }
-  const initial = () => ({ version: VERSION, mode: null, unlocked: ['wood'], cleared: [], owned: ['rust'], equipped: 'rust', qualities: emptyQualities(), scrap: 0, level: 0, upgrades: emptyUpgrades(), runs: 0, victories: 0, grudge: null, maintenance: null, expedition: null, report: null });
-  const maxHp = s => 30 + (Number.isInteger(s.level) ? s.level : 0) * 5 + (s.owned.includes('crown') ? 6 : 0);
+  const initial = () => ({ version: VERSION, mode: null, unlocked: ['wood'], cleared: [], owned: ['rust'], equipped: 'rust', qualities: emptyQualities(), scrap: 0, level: 0, upgrades: emptyUpgrades(), runs: 0, victories: 0, grudge: null, maintenance: null, expedition: null, report: null, neighborhood:N.initial() });
+  const maxHp = s => 30 + (Number.isInteger(s.level) ? s.level : 0) * 5 + (s.owned.includes('crown') ? 6 : 0) + (s.neighborhood?.buildings.includes('lodge') ? 4 : 0);
   function weaponLevel(s, id = s.equipped) {
     const legacy = LEGACY_UPGRADEABLE.has(id) && Number.isInteger(s?.level)
       ? Math.max(0, Math.min(4, s.level))
@@ -119,7 +119,7 @@
     const specific = key && Number.isInteger(s?.upgrades?.[key]) ? Math.max(0, Math.min(4, s.upgrades[key])) : 0;
     return Math.max(legacy, specific);
   }
-  const upgradeCost = (s, id = s.equipped) => (id === 'rust' && weaponLevel(s, id) === 0 ? 4 : 8 + weaponLevel(s, id) * 6);
+  const upgradeCost = (s, id = s.equipped) => Math.max(2, (id === 'rust' && weaponLevel(s, id) === 0 ? 4 : 8 + weaponLevel(s, id) * 6) - (s.neighborhood?.buildings.includes('forge') ? 2 : 0));
   function combatProfile(s, id = s.equipped) {
     const gear = GEAR[id];
     const family = gearFamily(id);
@@ -196,6 +196,7 @@
   function start(s, id) {
     if (s.expedition || !s.mode || !s.unlocked.includes(id) || !place(id) || (id === 'crypt' && s.cleared.length < 2)) return s;
     const n = copy(s); n.report = null; n.runs++;
+    n.neighborhood = N.begin(n.neighborhood || N.migrate(n),id);
     const sharpened = n.maintenance === 'sharp' ? 3 : 0; n.maintenance = null;
     const grudge = n.grudge?.place === id && ENEMIES[n.grudge.enemy] ? { ...n.grudge, used: false } : null;
     const intro = [
@@ -240,6 +241,7 @@
       s.report.duplicates = duplicates;
       s.cleared = [...new Set([...s.cleared, ...x.seals])]; s.victories++; s.maintenance = 'ready';
     }
+    s.neighborhood = N.settle(s.neighborhood || N.migrate(s),x,died);
     s.expedition = null;
     return s;
   }
@@ -407,6 +409,27 @@
     const valid = Number.isFinite(latitude) && Math.abs(latitude) <= 90 && Number.isFinite(longitude) && Math.abs(longitude) <= 180 && Number.isFinite(accuracy) && accuracy >= 0;
     return { anchor: valid ? { latitude, longitude, accuracy } : null };
   }
+  function discoverDistrict(s,d) {
+    if (s.expedition || s.report) return s;
+    const neighborhood = N.discover(s.neighborhood,d);
+    if (neighborhood === s.neighborhood) return s;
+    return {...s,neighborhood,unlocked:[...new Set([...s.unlocked,d.biome])]};
+  }
+  function selectDistrict(s,id) {
+    if (s.expedition || s.report) return s;
+    const neighborhood = N.select(s.neighborhood,id);
+    return neighborhood === s.neighborhood ? s : {...s,neighborhood};
+  }
+  function buildHome(s,id) {
+    if (s.expedition || s.report) return s;
+    const neighborhood = N.build(s.neighborhood,id);
+    return neighborhood === s.neighborhood ? s : {...s,neighborhood};
+  }
+  function renameHome(s,name) {
+    if (s.expedition || s.report) return s;
+    const neighborhood = N.rename(s.neighborhood,name);
+    return neighborhood === s.neighborhood ? s : {...s,neighborhood};
+  }
   function observe(session, fix) {
     if (!fix || !Number.isFinite(fix.latitude) || Math.abs(fix.latitude) > 90 || !Number.isFinite(fix.longitude) || Math.abs(fix.longitude) > 180 || !Number.isFinite(fix.accuracy) || fix.accuracy < 0 || fix.accuracy > 60) return { status: 'inaccurate' };
     if (Number.isFinite(fix.speed) && fix.speed > 1.5) return { status: 'moving' };
@@ -416,14 +439,17 @@
     const east = deltaLongitude * 111320 * Math.cos(a.latitude * Math.PI / 180);
     const distance = Math.hypot(north, east);
     if (distance < 150 + a.accuracy + fix.accuracy) return { status: 'nearby' };
-    const id = Math.abs(north) > Math.abs(east) ? (north > 0 ? 'tower' : 'crypt') : (east > 0 ? 'fen' : 'wood');
-    return { status: 'discovered', place: id };
+    const district = N.cell(north,east,a.accuracy+fix.accuracy);
+    if (!district) return { status:Math.max(Math.abs(north),Math.abs(east)) > N.RANGE*N.CELL_METERS ? 'faraway' : 'boundary' };
+    return { status: 'discovered', place: district.biome, district };
   }
   function serialize(s) { return JSON.stringify(s); }
   function parse(raw) {
     if (!raw) return initial();
     try {
       const s = JSON.parse(raw);
+      if (s.version === VERSION && s.neighborhood === undefined) s.neighborhood = N.migrate(s);
+      if (!N.valid(s.neighborhood)) throw Error('neighborhood');
       if (s.version === VERSION && s.upgrades === undefined) s.upgrades = emptyUpgrades();
       else if (s.version === VERSION && s.upgrades && typeof s.upgrades === 'object' && !Array.isArray(s.upgrades)) s.upgrades = {...emptyUpgrades(), ...s.upgrades};
       if (s.version === VERSION && s.grudge === undefined) s.grudge = null;
@@ -465,9 +491,11 @@
         const r = s.report;
         if (Object.keys(r).some(k => !['died','place','depth','scrap','gear','gearQuality','newGear','duplicates','hp','cleared','defeatedBy'].includes(k)) || typeof r.died !== 'boolean' || !ids.includes(r.place) || !int(r.depth,1,3) || !int(r.scrap,0,1000) || !validLoot(r.gear,r.gearQuality) || !validArray(r.newGear,Object.keys(GEAR)) || !validDuplicates(r.duplicates) || !(r.defeatedBy === null || Object.prototype.hasOwnProperty.call(ENEMIES,r.defeatedBy)) || !int(r.hp,-30,80) || !Array.isArray(r.cleared) || r.cleared.length > 3 || !r.cleared.every(v => ids.includes(v))) throw Error('report');
       }
+      if (s.neighborhood.active !== null && (!s.expedition || N.get(s.neighborhood,s.neighborhood.active).biome !== s.expedition.place)) throw Error('district');
+      if (s.neighborhood.districts.some(d => !s.unlocked.includes(d.biome))) throw Error('district');
       return s;
     } catch { return null; }
   }
-  const api = { VERSION, PLACES, GEAR, ENEMIES, INTENTS, VARIANT_LOOT, DISMANTLE_SCRAP, initial, maxHp, gearFamily, weaponLevel, weaponQuality, weaponAttack, qualityLabel, rollQuality, upgradeCost, combatProfile, gearText, enemyProfile, attackPreview, intent, lootCue, place, discover, start, act, maintain, equip, upgrade, resolveDuplicate, locationSession, observe, serialize, parse };
+  const api = { VERSION, PLACES, GEAR, ENEMIES, INTENTS, VARIANT_LOOT, DISMANTLE_SCRAP, initial, maxHp, gearFamily, weaponLevel, weaponQuality, weaponAttack, qualityLabel, rollQuality, upgradeCost, combatProfile, gearText, enemyProfile, attackPreview, intent, lootCue, place, discover, start, act, maintain, equip, upgrade, resolveDuplicate, locationSession, observe, serialize, parse, discoverDistrict,selectDistrict,buildHome,renameHome };
   return api;
 });

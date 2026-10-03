@@ -6,8 +6,8 @@ const E = require('../src/slice-engine.js');
 const code = fs.readFileSync(require('node:path').join(__dirname,'../src/slice-app.js'),'utf8');
 function browser(seed = {}, storageFails = false) {
   const store = new Map(Object.entries(seed)), callbacks = {}, elements = {};
-  for (const id of ['#game','#save-status','#save-label','#help-toggle','#help']) elements[id] = {innerHTML:'',hidden:true,textContent:'',addEventListener(type,fn){this[type]=fn;},setAttribute(){}};
-  const context = {CrownlessSlice:E,CrownlessArt:{scene:()=>'<svg></svg>',icon:()=>'<svg></svg>'},isSecureContext:true,
+  for (const id of ['#game','#save-status','#save-label','#help-toggle','#help','#home-name']) elements[id] = {innerHTML:'',hidden:true,textContent:'',value:'',addEventListener(type,fn){this[type]=fn;},setAttribute(){}};
+  const context = {CrownlessSlice:E,CrownlessNeighborhood:require('../src/neighborhood.js'),CrownlessArt:{scene:()=>'<svg></svg>',icon:()=>'<svg></svg>'},isSecureContext:true,
     document:{querySelector:selector=>elements[selector] || null},
     localStorage:{getItem:k=>{if(storageFails)throw Error('blocked');return store.get(k)??null;},setItem:(k,v)=>{if(storageFails)throw Error('blocked');store.set(k,v);}},
     navigator:{geolocation:{getCurrentPosition(ok,error){callbacks.ok=ok;callbacks.error=error;}}},
@@ -65,7 +65,7 @@ test('banked crown epilogue can be revisited without restarting or advancing the
   assert.match(b.html(),/EPILOGUE/);
   assert.match(b.html(),/3 <small>回の生還 \/ 遠征 4 回/);
   b.click('ending-continue');
-  assert.match(b.html(),/旅の地図/);
+  assert.match(b.html(),/neighborhood-atlas/);
   assert.equal(b.store.get(key),saved);
   const unearned = browser(); unearned.click('mode','demo'); unearned.click('ending-open');
   assert.doesNotMatch(unearned.html(),/EPILOGUE/);
@@ -188,19 +188,52 @@ test('return report compares newly banked variants and sends player to gear tab'
 });
 
 
-test('camp home presents the atlas as a living map with a compact trace action', () => {
+test('camp home presents a persistent neighborhood and local expedition action', () => {
   const b=browser(); b.click('mode','demo');
   assert.match(b.html(),/living-map-home/);
-  assert.match(b.html(),/CROWNLESS/);
-  assert.match(b.html(),/旅の地図/);
-  assert.match(b.html(),/新しい痕跡/);
-  assert.match(b.html(),/map-home-trace/);
-  assert.match(b.html(),/<summary>/);
-  assert.match(b.html(),/遠征に出る/);
-  assert.match(b.html(),/別の道を探す/);
+  assert.match(b.html(),/最後の焚き火/);
+  assert.match(b.html(),/西の木立/);
+  assert.match(b.html(),/未開拓/);
+  assert.match(b.html(),/data-action="district"/);
+  assert.match(b.html(),/この土地へ遠征/);
+  assert.match(b.html(),/近所を歩く/);
   b.click('scout','tower');
   assert.match(b.html(),/鐘なき塔/);
-  assert.match(b.html(),/昨日までは、なかった。/);
+  assert.match(b.html(),/北の見張り跡/);
   b.click('depart','tower');
   assert.match(b.html(),/最初の足跡/);
+});
+
+test('home UI builds from banked materials, changes the map picture and safely renames the saved home', () => {
+  const s={...E.initial(),mode:'demo'}; s.neighborhood.wood=2; s.neighborhood.stone=1;
+  const key='crownless-expedition-v1-demo';
+  const b=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(s)});
+  b.click('tab','home'); b.click('home-build','forge');
+  const built=E.parse(b.store.get(key));
+  assert.deepEqual(built.neighborhood.buildings,['forge']);
+  assert.equal(built.neighborhood.wood,0);
+  assert.match(b.html(),/焚き火に鍛冶小屋が建った拠点/);
+  b.elements['#home-name'].value='<旅人の村>';
+  b.click('home-name');
+  assert.match(b.html(),/&lt;旅人の村&gt;/);
+  assert.equal(E.parse(b.store.get(key)).neighborhood.name,'<旅人の村>');
+  b.click('tab','explore');
+  assert.match(b.html(),/建物 1/);
+  b.click('tab','gear');
+  assert.match(b.html(),/鉄片 2 で補強する/);
+});
+
+test('walk district identity survives reload using the same rounded origin, with no precise fix saved', () => {
+  const b=browser(); b.click('mode','walk'); b.click('gps');
+  b.callbacks.ok({coords:{latitude:35.00041,longitude:139.00047,accuracy:10,speed:0}});
+  b.click('gps'); b.callbacks.ok({coords:{latitude:35.0004,longitude:139.005,accuracy:10,speed:0}});
+  const first=E.parse(b.store.get('crownless-expedition-v1-walk')).neighborhood;
+  const anchor=b.store.get('crownless-expedition-v1-walk-anchor');
+  assert.doesNotMatch(anchor,/35\.00041|139\.00047/);
+  const reloaded=browser(Object.fromEntries(b.store));
+  reloaded.click('gps'); reloaded.callbacks.ok({coords:{latitude:35.0004,longitude:139.005,accuracy:10,speed:0}});
+  const again=E.parse(reloaded.store.get('crownless-expedition-v1-walk')).neighborhood;
+  assert.equal(again.selected,first.selected);
+  assert.equal(again.districts.length,first.districts.length);
+  assert.equal(reloaded.store.get('crownless-expedition-v1-walk-anchor'),anchor);
 });
