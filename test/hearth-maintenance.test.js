@@ -7,7 +7,12 @@ const fresh = () => ({ ...E.initial(), mode: 'demo' });
 function safeAction(s) {
   const x = s.expedition;
   if (x.stage === 'cleared') return 'return';
-  if (x.stage === 'path') return [1, 3].includes(x.room) ? 'rest' : 'careful';
+  if (x.stage === 'path') {
+    if (![1, 3].includes(x.room)) return 'careful';
+    if (!E.isRoadsideEvent(s, x)) return 'rest';
+    if (x.potions < 2 && x.scrap >= 3) return 'trade';
+    return x.hp > 3 ? 'pray' : 'return';
+  }
   const intent = E.intent(x.enemy);
   const attack = E.attackPreview(s, 'strike');
   if (x.enemy.hp <= attack && intent.id !== 'guard') return 'strike';

@@ -183,7 +183,7 @@
   }
   function pathPanel(x) {
     const event = [1,3].includes(x.room), clear = x.stage === 'cleared';
-    const roadside = event && (state.runs + x.depth + x.room + E.PLACES.findIndex(p => p.id === x.place)) % 2 === 1;
+    const roadside = event && E.isRoadsideEvent(state, x);
     const title = clear ? (x.place === 'crypt' ? '灰の冠は、あなたの手に。' : '土地の主を越えた。') : roadside ? '朽ちた荷車が、道を塞ぐ。' : event ? (x.room === 1 ? '消えかけの灯り。' : '茨の奥に、銀の光。') : x.room === 4 ? 'この先に、主がいる。' : x.room === 0 ? '最初の足跡をたどる。' : '奥から、息づかい。';
     const detail = clear ? '手に入れたものを、焚き火へ。まだ余力があるなら、より危険な深層へ進むこともできる。' : roadside ? '荷台には乾いた薬草が残る。傍らの古い道標には、血を捧げた旅人の傷跡が刻まれている。' : event ? '息を整えるか、傷を引き受けて遺品を拾うか。引き返す道も、まだ残っている。' : x.room === 4 ? `この土地の主が奥を守っている。深層では、まだ見ていない武具を持つ主もいる。` : '静かな道をたどるか、宝の気配を追うか。深く踏み込むほど、敵の読み方も変わる。';
     const summary = clear ? '戦利品を確定して帰るか、さらに深層へ踏み込むか。' : roadside ? '鉄片を薬草へ替えるか、体力を代価に次の一撃を研ぎ澄ますか。' : event ? '休息するか、傷を負って遺品を拾うか。' : x.room === 4 ? '土地の主へ挑む。生還できる余力を残そう。' : '静かな道をたどるか、宝の気配を追うか。';

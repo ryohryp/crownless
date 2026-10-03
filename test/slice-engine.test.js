@@ -7,7 +7,7 @@ function safeAction(s) {
   if (x.stage === 'cleared') return 'return';
   if (x.stage === 'path') {
     if (![1,3].includes(x.room)) return 'careful';
-    const roadside = (s.runs + x.depth + x.room + E.PLACES.findIndex(p => p.id === x.place)) % 2 === 1;
+    const roadside = E.isRoadsideEvent(s, x);
     if (!roadside) return 'rest';
     if (x.potions < 2 && x.scrap >= 3) return 'trade';
     return x.hp > 3 ? 'pray' : 'return';
@@ -33,6 +33,14 @@ test('roadside encounter offers bounded tradeoffs and advances the path', () => 
   let n=E.act(s,'trade'); assert.equal(n.expedition.room,2); assert.equal(n.expedition.scrap,0); assert.equal(n.expedition.potions,2);
   s=E.start(fresh(),'wood'); s.expedition.room=1; s.expedition.hp=10;
   n=E.act(s,'pray'); assert.equal(n.expedition.room,2); assert.equal(n.expedition.hp,7); assert.equal(n.expedition.focus,3);
+  n=E.act(n,'careful');
+  const baseline=E.attackPreview({...n,expedition:{...n.expedition,focus:0}},'strike');
+  const attack=E.attackPreview(n,'strike');
+  assert.equal(attack,baseline+3);
+  const enemyHp=n.expedition.enemy.hp;
+  n=E.act(n,'strike');
+  assert.equal(enemyHp-n.expedition.enemy.hp,attack);
+  assert.equal(n.expedition.focus,0);
 });
 test('roadside encounter refuses wasteful or unaffordable choices', () => {
   let s=E.start(fresh(),'wood'); s.expedition.room=1; s.expedition.scrap=3; s.expedition.potions=2;
@@ -119,8 +127,13 @@ test('loot and clearing are unbanked until extraction; dying preserves owned gea
   s = E.start(s,'wood'); s = E.act(s,'careful');
   while(s.expedition?.stage === 'fight') s = E.act(s,safeAction(s));
   assert.equal(s.scrap,10); assert.equal(s.expedition.scrap,2);
-  s = E.act(s,'search'); s = E.act(s,'risky');
-  while (s.expedition) s = E.act(s,s.expedition.stage==='fight' ? 'strike' : s.expedition.stage==='cleared' ? 'deeper' : [1,3].includes(s.expedition.room) ? 'search' : 'risky');
+  s = E.act(s,safeAction(s)); s = E.act(s,'risky');
+  for (let turn=0; turn<150 && s.expedition; turn++) {
+    const x=s.expedition;
+    const action=x.stage==='fight' ? 'strike' : x.stage==='cleared' ? 'deeper' : [1,3].includes(x.room) ? safeAction(s) : 'risky';
+    s=E.act(s,action);
+  }
+  assert.equal(s.expedition,null);
   assert.equal(s.report.died,true); assert.equal(s.scrap,10); assert.deepEqual(s.owned,['rust']); assert.deepEqual(s.cleared,[]);
 });
 test('deep elites drop unbanked weapon variants and extraction banks them', () => {
@@ -150,7 +163,7 @@ test('whispering wood changes enemy archetype mid-expedition and gives its guard
   while(s.expedition.stage==='fight') s=E.act(s,safeAction(s));
 
   assert.equal(s.expedition.room,1);
-  s=E.act(s,'rest');
+  s=E.act(s,safeAction(s));
   s=E.act(s,'careful');
   assert.equal(s.expedition.enemy.kind,'forest_hunter');
   assert.equal(E.ENEMIES.forest_hunter.name,'苔鎧の狩人');
@@ -159,7 +172,7 @@ test('whispering wood changes enemy archetype mid-expedition and gives its guard
   while(s.expedition.stage==='fight') s=E.act(s,safeAction(s));
 
   assert.equal(s.expedition.room,3);
-  s=E.act(s,'rest');
+  s=E.act(s,safeAction(s));
   s=E.act(s,'careful');
   assert.equal(s.expedition.enemy.kind,'wolf');
   assert.equal(s.expedition.enemy.elite,true);
@@ -375,7 +388,7 @@ test('safe return enables free blade maintenance for the next expedition first t
   assert.equal(s.maintenance,null);
   assert.equal(s.expedition.sharpened,3);
   for(let fight=0;fight<3;fight++) {
-    while(s.expedition.stage==='path') s=E.act(s,[1,3].includes(s.expedition.room)?'rest':'careful');
+    while(s.expedition?.stage==='path') s=E.act(s,safeAction(s));
     assert.equal(s.expedition.stage,'fight');
     const baseline=E.attackPreview({...s,expedition:{...s.expedition,sharpened:0}},'strike');
     assert.equal(E.attackPreview(s,'strike'),baseline+3);

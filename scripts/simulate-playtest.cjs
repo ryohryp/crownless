@@ -24,8 +24,17 @@ function chooseAction(archetype, gameState) {
   }
 
   if (x.stage === "path") {
-    // Room 1 or 3: rest (+6 HP) vs search (-4 HP, +5*depth scrap)
+    // Room 1 or 3: resolve the roadside choice or the existing rest/search choice.
     if ([1, 3].includes(x.room)) {
+      if (Engine.isRoadsideEvent(gameState, x)) {
+        const canTrade = x.scrap >= 3 && x.potions < 2;
+        if (archetype === "greedy" || archetype === "rusher") {
+          if (x.hp > 3) return "pray";
+          return canTrade ? "trade" : "return";
+        }
+        if (canTrade) return "trade";
+        return x.hp > 3 ? "pray" : "return";
+      }
       if (archetype === "cautious") return "rest";
       if (archetype === "greedy") return x.hp > 5 ? "search" : "rest";
       if (archetype === "rusher") return "search";
@@ -200,7 +209,9 @@ function simulateExpedition(options = {}) {
       intent = Engine.intent(x.enemy);
       dilemmaType = "combat";
     } else if (stage === "path") {
-      dilemmaType = [1, 3].includes(x.room) ? "rest_or_search" : "path_risk";
+      dilemmaType = [1, 3].includes(x.room)
+        ? Engine.isRoadsideEvent(state, x) ? "roadside_trade_or_pray" : "rest_or_search"
+        : "path_risk";
     } else if (stage === "cleared") {
       dilemmaType = "push_or_return";
     }

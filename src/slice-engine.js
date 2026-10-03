@@ -89,6 +89,11 @@
   };
   const copy = s => JSON.parse(JSON.stringify(s));
   const place = id => PLACES.find(p => p.id === id);
+  function isRoadsideEvent(s, x = s?.expedition) {
+    if (!x || x.stage !== 'path' || ![1, 3].includes(x.room)) return false;
+    const placeIndex = PLACES.findIndex(p => p.id === x.place);
+    return placeIndex >= 0 && (s.runs + x.depth + x.room + placeIndex) % 2 === 1;
+  }
   const gearFamily = id => GEAR[id]?.family || id;
   const upgradeKey = id => UPGRADEABLE.includes(id) ? id : null;
   function weaponQuality(s, id = s.equipped) {
@@ -210,7 +215,7 @@
     const kind = x.place === 'wood' && x.room === 2 ? 'forest_hunter' : place(x.place).enemy;
     const hp = ENEMIES[kind].hp + (x.depth - 1) * 5 + (elite ? 6 : 0) + (risky ? 3 : 0);
     x.enemy = { kind, hp, maxHp: hp, turn: 0, depth: x.depth, elite, risky };
-    x.stage = 'fight'; x.stamina = Math.max(2, x.stamina); x.focus = 0; x.stagger = false; x.sharpenedApplied = false;
+    x.stage = 'fight'; x.stamina = Math.max(2, x.stamina); x.stagger = false; x.sharpenedApplied = false;
     const profile = enemyProfile(x.enemy);
     x.log = [elite ? `土地の主が、帰り道を塞いだ。${profile.trait ? `《${profile.trait.name}》の気配。` : ''}` : risky ? '宝の気配を追った。獲物も、こちらを見ている。' : '足音が止んだ。敵の構えをよく見よう。'];
   }
@@ -312,7 +317,7 @@
       x.depth++; x.room = 0; x.stage = 'path'; x.log = [`さらに深く。${lootCue(x.place, x.depth)}`]; return n;
     } else if (x.stage === 'path') {
       if ([1, 3].includes(x.room)) {
-        const roadside = (n.runs + x.depth + x.room + PLACES.findIndex(p => p.id === x.place)) % 2 === 1;
+        const roadside = isRoadsideEvent(n, x);
         if (roadside) {
           if (!['trade', 'pray'].includes(action)) return s;
           if (action === 'trade') {
@@ -470,5 +475,5 @@
       return s;
     } catch { return null; }
   }
-  return { VERSION, PLACES, GEAR, ENEMIES, INTENTS, VARIANT_LOOT, DISMANTLE_SCRAP, initial, maxHp, gearFamily, weaponLevel, weaponQuality, weaponAttack, qualityLabel, rollQuality, upgradeCost, combatProfile, gearText, enemyProfile, attackPreview, intent, lootCue, place, discover, start, act, maintain, equip, upgrade, resolveDuplicate, locationSession, observe, serialize, parse };
+  return { VERSION, PLACES, GEAR, ENEMIES, INTENTS, VARIANT_LOOT, DISMANTLE_SCRAP, initial, maxHp, gearFamily, weaponLevel, weaponQuality, weaponAttack, qualityLabel, rollQuality, upgradeCost, combatProfile, gearText, enemyProfile, attackPreview, intent, lootCue, place, isRoadsideEvent, discover, start, act, maintain, equip, upgrade, resolveDuplicate, locationSession, observe, serialize, parse };
 });
