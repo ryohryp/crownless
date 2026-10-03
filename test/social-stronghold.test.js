@@ -1,3 +1,4 @@
+const fs = require('node:fs');
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const T = require('../src/social-stronghold.js');
@@ -30,4 +31,13 @@ test('simulated rival can take the stronghold once and the player can retake it'
 test('invalid local fixture falls back safely', () => {
   assert.deepEqual(T.parse('{bad'), T.fresh());
   assert.deepEqual(T.parse(JSON.stringify({ ...T.fresh(), owner:'invalid' })), T.fresh());
+});
+
+
+test('stronghold scripts wrap the current slice app in load order', () => {
+  const html = fs.readFileSync('expedition.html', 'utf8');
+  const state = html.indexOf('src/social-stronghold.js');
+  const app = html.indexOf('src/slice-app.js');
+  const ui = html.indexOf('src/social-stronghold-ui.js');
+  assert.ok(state >= 0 && app > state && ui > app);
 });
