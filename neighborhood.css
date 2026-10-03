@@ -1,0 +1,73 @@
+/* The local map remains one viewport; construction is a bounded browsing task. */
+.neighborhood-atlas .atlas-home-header strong{font-family:inherit;font-size:19px;letter-spacing:0;font-weight:750}
+.neighborhood-atlas .atlas-home-header small{font-size:12px;letter-spacing:0;margin-top:6px}
+.neighborhood-atlas .atlas-home-header>span{font-size:12px;white-space:nowrap}
+.neighborhood-field{position:relative;isolation:isolate;margin-bottom:190px;overflow:auto;overscroll-behavior:contain;scrollbar-width:thin}
+.neighborhood-canvas{position:relative;min-width:100%;min-height:100%}
+.neighborhood-atlas .atlas-field::after{display:none}
+.neighborhood-atlas .atlas-field .homestead-art{position:static;width:100%;height:66px}
+.district-roads{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
+.district-road{fill:none;stroke:#8c8665;stroke-width:.7;stroke-dasharray:1.5 2;opacity:.6}
+.district-road.claimed{stroke:#63815d;stroke-width:1.2;stroke-dasharray:none;opacity:.85}
+.district-pin,.district-home{position:absolute;transform:translate(-50%,-50%);border:1px solid rgba(78,68,43,.3);background:rgba(238,226,188,.9);color:#403824;cursor:pointer;border-radius:12px;text-align:center;padding:6px;min-height:58px;min-width:86px;max-width:112px;z-index:3;touch-action:manipulation}
+.district-pin>span{display:block;font-size:24px;line-height:1.1;color:#5f7250}
+.district-pin strong,.district-pin small,.district-home strong,.district-home small{display:block}
+.district-pin strong{font-size:12px;line-height:1.5}
+.district-pin small,.district-home small{font-size:10px;line-height:1.4}
+.district-pin.claimed{background:#dbe5bf;border:2px solid #71815a;box-shadow:0 0 0 5px rgba(123,147,84,.13)}
+.district-pin.selected{outline:2px solid #a77c33;outline-offset:3px}
+.district-home{left:50%;top:50%;width:118px;max-width:118px;padding:0 3px 6px;background:rgba(247,229,177,.92);border-color:#b8914e;z-index:4}
+.district-home strong{font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.homestead-art{display:block;width:100%;height:auto}
+.district-home .homestead-art{height:66px}
+.district-detail{padding:12px;background:rgba(14,29,32,.96);border:1px solid rgba(204,180,126,.3);border-radius:14px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
+.district-detail h2{margin:4px 0;font-size:19px}
+.district-detail p{margin:0;font-size:12px;color:var(--muted);line-height:1.5}
+.district-detail small{font-size:11px;color:var(--gold)}
+.district-detail .primary{font-size:14px;padding:12px;min-height:50px;max-width:120px}
+.home-portrait{display:grid;place-content:center;background:radial-gradient(ellipse at center,#b6bb88 0,#e1d3aa 70%);border-radius:12px;min-height:180px;color:#403824}
+.home-portrait .homestead-art{width:min(320px,90vw)}
+.home-portrait p{text-align:center;font-size:14px;margin:0 0 10px}
+.homestead-panel h2{font-size:24px;margin:0 0 8px}
+.home-materials{font-size:15px;color:var(--gold)}
+.home-buildings{display:grid;gap:10px;margin:12px 0}
+.home-building{border:1px solid var(--line);border-radius:12px;padding:12px;background:rgba(255,255,255,.025)}
+.home-building h3{margin:0;font-size:17px}
+.home-building p{margin:5px 0 10px;color:var(--muted);font-size:13px;line-height:1.5}
+.home-building .secondary{width:100%;min-height:48px}
+.home-building.built{border-color:#71815a;background:rgba(120,148,95,.09)}
+.home-building>small{color:#afb99a;line-height:1.5}
+.home-name{padding:10px 0}
+.home-name label{font-size:13px;display:block;margin-bottom:7px}
+.home-name>div{display:flex;gap:8px}
+.home-name input{font:inherit;font-size:16px;min-width:0;width:100%;min-height:48px;background:#172b2c;color:var(--paper);border:1px solid var(--line);border-radius:8px;padding:8px}
+.home-name button{flex:0 0 auto;width:auto;min-height:48px}
+.home-return{border:1px solid #77865c;border-radius:12px;background:rgba(134,154,103,.1);padding:12px;margin:12px 0}
+.home-return strong{color:var(--gold);font-size:17px}
+.home-return p{margin:8px 0}
+.home-return small{color:var(--muted)}
+.district-list{background:#172d30;border-radius:12px;padding:8px;max-height:200px;overflow:auto}
+.district-list summary{min-height:44px;cursor:pointer;display:grid;place-content:center}
+.district-list button{width:100%;margin:5px 0;min-height:48px}
+#game>.homestead-home .visual-column>.exploration-atlas,#game>.homestead-home .visual-column>.stat-strip,#game>.homestead-home .visual-column>.mode-strip{display:none}
+#game>.homestead-home .visual-column{display:block;overflow:hidden;min-height:0}
+#game>.homestead-home .home-portrait{height:100%;min-height:0;display:flex;flex-direction:column;align-items:center;justify-content:center}
+#game>.homestead-home .home-portrait .homestead-art{position:static;width:min(320px,85%);max-height:calc(100% - 38px)}
+#game>.homestead-home>.panel{display:block;overflow:auto;overscroll-behavior:contain;padding-bottom:20px}
+@media(max-width:480px){
+  #game>.homestead-home{grid-template-rows:minmax(150px,26dvh) minmax(0,1fr)}
+  #game>.living-map-home .neighborhood-atlas .atlas-home-header{padding:12px}
+  #game>.living-map-home .neighborhood-atlas .atlas-home-header strong{font-size:19px}
+  #game>.living-map-home .neighborhood-atlas .atlas-home-header small{font-size:11px}
+  #game>.living-map-home .neighborhood-field{margin-bottom:190px}
+  #game>.living-map-home .map-home-scouting summary{min-height:44px;font-size:13px}
+  #game>.living-map-home .map-home-scouting .discovery p{font-size:13px}
+  #game>.living-map-home .map-home-notice{font-size:12px}
+  .camp-tabs.bottom-navigation{display:flex}
+  .camp-tabs.bottom-navigation>button{flex:1;min-width:0;padding:6px 3px}
+  .home-portrait{height:100%;min-height:0;overflow:hidden}
+  .home-portrait .homestead-art{width:min(260px,90vw);max-height:22dvh}
+  .homestead-panel>.kicker{margin-bottom:5px}
+  .homestead-panel>.small{font-size:13px;line-height:1.5}
+  .home-buildings{margin:10px 0}
+}

@@ -5,7 +5,8 @@ const path = require('node:path');
 const nav = require('../src/bottom-navigation.js');
 
 test('bottom navigation exposes short thumb-friendly labels', () => {
-  assert.equal(nav.navLabel('explore'), '遠征');
+  assert.equal(nav.navLabel('explore'), '近所');
+  assert.equal(nav.navLabel('home'), '拠点');
   assert.equal(nav.navLabel('gear'), '装備');
 });
 

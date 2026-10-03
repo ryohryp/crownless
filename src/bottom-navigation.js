@@ -6,7 +6,7 @@
   'use strict';
 
   function navLabel(value) {
-    return value === 'gear' ? '装備' : '遠征';
+    return value === 'gear' ? '装備' : value === 'home' ? '拠点' : '近所';
   }
 
   function enhance(rootEl) {

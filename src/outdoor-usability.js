@@ -24,7 +24,7 @@
   }
   function ensureCompass() {
     const field = document.querySelector('.atlas-field');
-    if (!field || field.querySelector('.atlas-compass')) return;
+    if (!field || field.classList.contains('neighborhood-field') || field.querySelector('.atlas-compass')) return;
     const compass = document.createElement('aside');
     compass.className = 'atlas-compass'; compass.setAttribute('aria-label', '次に歩く方角の手がかり');
     compass.innerHTML = '<strong>方角の導き</strong><small>歩く前に方角を決め、移動中は画面を見ない。</small><div>' + places.map(([bearing,name,hint]) => '<span><b>'+bearing+'</b><i>'+hint+'</i><em>'+name+'</em></span>').join('') + '</div>';

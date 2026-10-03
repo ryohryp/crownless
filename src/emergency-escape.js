@@ -4,6 +4,7 @@
   else root.CrownlessEmergencyEscape = factory(root);
 })(typeof globalThis === 'object' ? globalThis : this, function (root) {
   'use strict';
+  const N = typeof module === 'object' && module.exports ? require('./neighborhood.js') : root.CrownlessNeighborhood;
 
   function escapeCost(state) {
     const x = state?.expedition;
@@ -26,6 +27,7 @@
     n.owned = [...new Set([...n.owned, ...x.gear])];
     n.cleared = [...new Set([...n.cleared, ...x.seals])];
     n.victories++;
+    if (n.neighborhood && N) n.neighborhood = N.settle(n.neighborhood,x,false);
     n.expedition = null;
     return n;
   }
