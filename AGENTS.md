@@ -6,7 +6,7 @@ Crownless is a location-driven medieval-fantasy RPG being rebooted around one go
 
 Keep these unless the user changes them:
 
-- Core loop: **Explore → Fight → Loot → Return alive → Improve → Explore farther**.
+- Immediate core loop: **Explore → Fight → Loot → Return alive → Improve → Explore farther**.\n- Social meta-loop: **Discover a stronghold → Conquer it → Leave a visible mark → See rival activity → Retake or expand**.
 - Real-world movement discovers and opens the game world; it is not a step-count reward system.
 - Equipment should visibly change the character and meaningfully change later choices.
 - Combat should reward strategy and meaningful decisions.
@@ -17,7 +17,7 @@ Keep these unless the user changes them:
 
 The first milestone is simple:
 
-> **Can someone play for about 15 minutes and want one more expedition?**
+> **Can someone play for about 15 minutes and want one more expedition because there is a stronghold, rival trace, or nearby target they care about?**
 
 Prefer work that strengthens the loop above.
 
@@ -49,7 +49,7 @@ Related implementation work: #602, #708, #709, #710.
 - Prefer **Design → smallest implementation → run → play/inspect → improve**.
 - Make reasonable product and technical decisions without stopping for approval.
 
-Territory control, factions, politics, war, large economies, PvP, guilds, seasons, and other historical or future systems can wait until the core loop is fun.
+Social territory control is now part of the current product hypothesis. Start with the smallest asynchronous slice: one stronghold, ownership, control history, one simulated rival, and a retake path. Generic factions, politics, war, large economies, real-time PvP, guilds, seasons, rankings, and general-purpose social features can wait.
 
 ## Completion boundary
 
