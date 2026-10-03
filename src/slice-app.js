@@ -135,7 +135,7 @@
       : state.maintenance === 'sharp'
         ? '<p class="notice">刃は研ぎ澄まされている。次の遠征の最初の3戦で、初撃 +3。</p>'
         : '';
-    return `<p class="kicker">MAKE IT HOME. MAKE IT YOURS.</p><h2>次の旅の、戦い方。</h2><p class="small">深層では同じ武器でも品質の違う一本が見つかる。補強と特性はそのまま、攻撃だけが少し揺れる。</p>${maintenance}<div class="gear-list">${state.owned.filter(g => g !== 'crown').map(g => button('equip',`${E.GEAR[g].name}${state.equipped === g ? ' · 装備中' : ''} · 補強 ${E.weaponLevel(state,g)}/4`,`${E.qualityLabel(E.weaponQuality(state,g))} · ${E.gearText(state,g)}`,{value:g,class:`choice ${state.equipped === g ? 'selected' : ''}`})).join('')}</div>${state.owned.includes('crown') ? '<p class="badge">灰の王冠 · 永続で最大体力 +6</p>' : ''}<div class="rule-line"><div class="section-heading"><h3 style="margin:0">${E.GEAR[id].name}を補強する</h3><span class="small">${level} / 4</span></div><p class="small">この一本の得意行動だけが一段強くなる。別の武器には影響しない。</p>${button('upgrade',level >= 4 ? 'この武器の補強を終えた' : `鉄片 ${cost} で補強する`,'',{class:'secondary',disabled:level >= 4 || state.scrap < cost})}${notice ? `<p class="notice" role="status">${esc(notice)}</p>` : ''}</div>${retry}`;
+    return `<p class="kicker">MAKE IT HOME. MAKE IT YOURS.</p><h2>次の旅の、戦い方。</h2><p class="small">深層では同じ武器でも品質の違う一本が見つかる。補強と特性はそのまま、攻撃だけが少し揺れる。</p>${maintenance}<div class="gear-list">${state.owned.filter(g => g !== 'crown').map(g => button('equip',`${E.GEAR[g].name}${state.equipped === g ? ' · 装備中' : ''} · 補強 ${E.weaponLevel(state,g)}/4`,`${E.qualityLabel(E.weaponQuality(state,g))} · ${E.gearText(state,g)}`,{value:g,class:`choice ${state.equipped === g ? 'selected' : ''}`})).join('')}</div>${state.owned.includes('crown') ? '<p class="badge">灰の王冠 · 永続で最大体力 +6</p>' + button('ending-open','最初の物語を振り返る','',{class:'secondary'}) : ''}<div class="rule-line"><div class="section-heading"><h3 style="margin:0">${E.GEAR[id].name}を補強する</h3><span class="small">${level} / 4</span></div><p class="small">この一本の得意行動だけが一段強くなる。別の武器には影響しない。</p>${button('upgrade',level >= 4 ? 'この武器の補強を終えた' : `鉄片 ${cost} で補強する`,'',{class:'secondary',disabled:level >= 4 || state.scrap < cost})}${notice ? `<p class="notice" role="status">${esc(notice)}</p>` : ''}</div>${retry}`;
   }
   function reinforcementResult(beforeState, afterState, id) {
     const gear = E.GEAR[id];
@@ -155,7 +155,7 @@
   }
 
   function camp() {
-    return `<div class="game-layout camp-layout ${tab === 'explore' ? 'living-map-home' : 'gear-home'}"><section class="visual-column"><div class="mode-strip"><span class="mode-pill">${state.mode === 'demo' ? '散策体験モード' : '現実の散策モード'}</span><span>遠征 ${state.runs} 回 · 生還 ${state.victories} 回</span></div>${scene('camp','帰りを待つ火。','THE LAST HEARTH',null,'安全な拠点')}${mapPins()}<div class="stat-strip"><div class="stat">最大体力<b>${E.maxHp(state)}</b></div><div class="stat">手元の鉄片<b>${state.scrap}</b></div><div class="stat">装備<b><em>${E.GEAR[state.equipped].name}<small> · ${E.qualityLabel(E.weaponQuality(state,state.equipped))}</small></em></b></div></div></section><section class="panel"><nav class="camp-tabs" aria-label="拠点">${button('tab','地図','',{class:tab === 'explore' ? 'active' : '',value:'explore'})}${button('tab','装備','',{class:tab === 'gear' ? 'active' : '',value:'gear'})}</nav>${tab === 'gear' ? gearPanel() : explorePanel()}<button class="text-button" data-action="switch-mode">${state.mode === 'demo' ? '現実の散策モードへ' : '散策体験モードへ'} <span aria-hidden="true">↗</span></button></section></div>`;
+    return `<div class="game-layout camp-layout ${tab === 'explore' ? 'living-map-home' : 'gear-home'}"><section class="visual-column"><div class="mode-strip"><span class="mode-pill">${state.mode === 'demo' ? '散策体験モード' : '現実の散策モード'}</span><span>遠征 ${state.runs} 回 · 生還 ${state.victories} 回</span></div>${scene('camp','帰りを待つ火。','THE LAST HEARTH',null,'安全な拠点')}${mapPins()}<div class="stat-strip"><div class="stat">最大体力<b>${E.maxHp(state)}</b></div><div class="stat">手元の鉄片<b>${state.scrap}</b></div><div class="stat">装備<b><em>${E.GEAR[state.equipped].name}<small> · ${E.qualityLabel(E.weaponQuality(state,state.equipped))}</small></em></b></div></div></section><section class="panel"><nav class="camp-tabs" aria-label="拠点">${button('tab','地図','',{class:tab === 'explore' ? 'active' : '',value:'explore'})}${button('tab','装備','',{class:tab === 'gear' ? 'active' : '',value:'gear'})}${button('settings','設定','',{class:'bottom-navigation-item'})}</nav>${tab === 'gear' ? gearPanel() : explorePanel()}<button class="text-button" data-action="switch-mode">${state.mode === 'demo' ? '現実の散策モードへ' : '散策体験モードへ'} <span aria-hidden="true">↗</span></button></section></div>`;
   }
   function vitals(x) {
     return `<div class="vitals"><div><div class="hp-row"><span>あなたの体力</span><strong class="${x.hp < 10 ? 'danger' : ''}">${x.hp} <small class="small">/ ${E.maxHp(state)}</small></strong></div><div class="bar" role="meter" aria-label="あなたの体力" aria-valuenow="${x.hp}" aria-valuemin="0" aria-valuemax="${E.maxHp(state)}"><span style="width:${100*x.hp/E.maxHp(state)}%"></span></div></div><div><span class="small">気力 · ${x.stamina} / 3</span><div class="stamina" aria-hidden="true">${'◆'.repeat(x.stamina)}<span class="empty">${'◇'.repeat(3-x.stamina)}</span></div></div></div>`;
@@ -166,6 +166,8 @@
   function fight(x) {
     const e = x.enemy, next = E.intent(e), profile = E.combatProfile(state), info = E.enemyProfile(e);
     const strike = E.attackPreview(state,'strike'), strong = E.attackPreview(state,'heavy');
+    const opening = x.stagger ? `<div class="combat-opening" role="status"><strong>体勢を崩した！</strong><span>今の一手だけ、攻撃に追加ダメージ。${next.damage ? '敵の反撃にも注意。' : '敵は攻撃してこない。'}</span></div>` : '';
+    const strikeLabel = x.stagger ? '崩し追撃' : E.gearFamily(state.equipped) === 'bow' ? '射る' : '斬る';
     const enemyTag = `${info.archetype}${info.trait ? ` · 《${info.trait.name}》${info.trait.help}` : ''}`;
     const dodgeHelp = next.adaptive
       ? next.id === 'feint'
@@ -174,12 +176,12 @@
       : next.id === 'quick'
         ? `気力 −${profile.dodgeCost} / 薙ぎ払いは半分被弾・追撃なし`
         : next.damage
-          ? `気力 −${profile.dodgeCost} / 無傷・次の攻撃 +${profile.dodgeFocus}`
+          ? `気力 −${profile.dodgeCost} / 無傷・次の攻撃 +${profile.dodgeFocus}${['heavy','pounce'].includes(next.id) ? '・体勢崩し' : ''}`
           : `気力 −${profile.dodgeCost} / 攻撃なし・追撃なし`;
     const combatNote = e.turn === 0
       ? ''
-      : `<div class="combat-turn-note"><p class="small"><strong>【第 ${e.turn} 巡の行動結果】</strong></p>${logs(x)}<p class="small">戦闘行動が実行され、ダメージ結果が反映されました。次の戦術を選択できます。</p></div>`;
-    return `<div class="combat-vitals">${vitals(x)}</div><div class="combat-enemy-summary"><p class="kicker">${e.elite ? 'GUARDIAN' : 'ENCOUNTER'} / ${E.GEAR[state.equipped].name} · ${E.qualityLabel(E.weaponQuality(state,state.equipped))}</p><div class="hp-row"><h2 style="margin:0">${e.elite ? '主・' : ''}${E.ENEMIES[e.kind].name}</h2><span>${e.hp} <small class="small">/ ${e.maxHp}</small></span></div><p class="small combat-enemy-tag">${enemyTag}</p><div class="bar enemy-bar" role="meter" aria-label="敵の体力" aria-valuenow="${e.hp}" aria-valuemin="0" aria-valuemax="${e.maxHp}"><span style="width:${e.hp/e.maxHp*100}%"></span></div></div><div class="intent"><p class="kicker">次の行動 · 行動を選ぶまで時間は進まない</p><span class="damage">${next.damage ? next.damage : '—'}</span><strong>${next.name}</strong><small>${next.help}</small></div><div class="choice-grid combat-choice-grid">${button('strike',`${E.gearFamily(state.equipped) === 'bow' ? '射る' : '斬る'} <span class="cost">${strike}</span>`,'気力 +1 / 表示は与えるダメージ')}${button('heavy',`強撃 <span class="cost">${strong}</span>`,`気力 −${profile.heavyCost} / 大きな一撃`,{disabled:x.stamina < profile.heavyCost})}${button('guard','防御',`気力 +1 / ${profile.counter ? `${profile.block} 軽減・${profile.counter} 反撃` : `${profile.block} ダメージ軽減`}`)}${button('dodge','回避',dodgeHelp,{disabled:x.stamina < profile.dodgeCost})}</div>${combatNote}<div class="combat-foot">${button('heal',`薬草 ${x.potions} · 体力 +12`,'敵も行動する',{class:'choice',disabled:x.potions === 0 || x.hp === E.maxHp(state)})}${button('flee',`撤退 · 体力 −${Math.max(2,next.damage)}`,x.hp <= Math.max(2,next.damage) ? '生還できない' : '残れば戦利品を持ち帰れる',{class:'choice',disabled:x.hp <= Math.max(2,next.damage)})}</div><p class="small combat-bagline">背嚢：鉄片 ${x.scrap}${x.gear.length ? ' / 装備 '+x.gear.length+' 個' : ''} · 生還で確定${x.focus ? ` / 追撃 +${x.focus}` : ''}</p>`;
+      : `<div class="combat-turn-note">${logs(x)}</div>`;
+    return `<div class="combat-vitals">${vitals(x)}</div><div class="combat-enemy-summary"><p class="kicker">${e.elite ? 'GUARDIAN' : 'ENCOUNTER'} / ${E.GEAR[state.equipped].name} · ${E.qualityLabel(E.weaponQuality(state,state.equipped))}</p><div class="hp-row"><h2 style="margin:0">${e.elite ? '主・' : ''}${E.ENEMIES[e.kind].name}</h2><span>${e.hp} <small class="small">/ ${e.maxHp}</small></span></div><p class="small combat-enemy-tag">${enemyTag}</p><div class="bar enemy-bar" role="meter" aria-label="敵の体力" aria-valuenow="${e.hp}" aria-valuemin="0" aria-valuemax="${e.maxHp}"><span style="width:${e.hp/e.maxHp*100}%"></span></div></div><div class="intent"><p class="kicker">次の行動 · 行動を選ぶまで時間は進まない</p><span class="damage">${next.damage ? next.damage : '—'}</span><strong>${next.name}</strong><small>${next.help}</small></div>${opening}<div class="choice-grid combat-choice-grid" data-opening="${x.stagger}">${button('strike',`${strikeLabel} <span class="cost">${strike}</span>`,'気力 +1 / 表示は与えるダメージ')}${button('heavy',`${x.stagger ? '崩し強撃' : '強撃'} <span class="cost">${strong}</span>`,`気力 −${profile.heavyCost} / 大きな一撃`,{disabled:x.stamina < profile.heavyCost})}${button('guard','防御',`気力 +1 / ${profile.counter ? `${profile.block} 軽減・${profile.counter} 反撃` : `${profile.block} ダメージ軽減`}`)}${button('dodge','回避',dodgeHelp,{disabled:x.stamina < profile.dodgeCost})}</div>${combatNote}<div class="combat-foot">${button('heal',`薬草 ${x.potions} · 体力 +12`,'敵も行動する',{class:'choice',disabled:x.potions === 0 || x.hp === E.maxHp(state)})}${button('flee',`撤退 · 体力 −${Math.max(2,next.damage)}`,x.hp <= Math.max(2,next.damage) ? '生還できない' : '残れば戦利品を持ち帰れる',{class:'choice',disabled:x.hp <= Math.max(2,next.damage)})}</div><p class="small combat-bagline">背嚢：鉄片 ${x.scrap}${x.gear.length ? ' / 装備 '+x.gear.length+' 個' : ''} · 生還で確定${x.focus ? ` / 追撃 +${x.focus}` : ''}</p>`;
   }
   function pathPanel(x) {
     const event = [1,3].includes(x.room), clear = x.stage === 'cleared';
@@ -202,7 +204,7 @@
   function expedition() {
     const x = state.expedition, p = E.place(x.place), isFight = x.stage === 'fight';
     const enemyArt = x.enemy ? (E.ENEMIES[x.enemy.kind].art || x.enemy.kind) : null;
-    return `<div class="game-layout expedition-layout ${isFight ? 'battle-layout' : ''}"><section class="visual-column">${scene(x.place,p.name,`DEPTH ${String(x.depth).padStart(2,'0')} · ${x.stage === 'cleared' ? '踏破' : `${x.room+1} / 5`}`,enemyArt,`${E.GEAR[state.equipped].name}`)}${route(x)}${vitals(x)}<div class="journey-note"><b>${String(x.depth).padStart(2,'0')}</b><span>深層 ${x.depth} · 戦利品を失っても、持ち込んだ装備は残る。<br>深層ほど敵の型が変わり、珍しい武具を期待できる。</span></div></section><section class="panel ${isFight ? 'combat-panel' : 'path-panel'}">${isFight ? fight(x) : pathPanel(x)}</section></div>`;
+    return `<div class="game-layout expedition-layout ${isFight ? 'battle-layout' : ''}" data-combat-result="${x.log.some(line => line.startsWith('崩し追撃！')) ? 'follow-up' : ''}" data-combat-turn="${x.depth}:${x.room}:${x.enemy?.turn ?? 'path'}"><section class="visual-column">${scene(x.place,p.name,`DEPTH ${String(x.depth).padStart(2,'0')} · ${x.stage === 'cleared' ? '踏破' : `${x.room+1} / 5`}`,enemyArt,`${E.GEAR[state.equipped].name}`)}${route(x)}${vitals(x)}<div class="journey-note"><b>${String(x.depth).padStart(2,'0')}</b><span>深層 ${x.depth} · 戦利品を失っても、持ち込んだ装備は残る。<br>深層ほど敵の型が変わり、珍しい武具を期待できる。</span></div></section><section class="panel ${isFight ? 'combat-panel' : 'path-panel'}">${isFight ? fight(x) : pathPanel(x)}</section></div>`;
   }
   function ending() {
     return `<div class="game-layout report-layout"><section class="visual-column">${scene('camp','灰の冠は、火のそばに。','THE CROWN CAME HOME',null,'旅の到達点')}</section><section class="panel report-panel"><div class="report-scroll"><p class="kicker">EPILOGUE · 名もなき旅人</p><h1>冠を持ち帰った。<br>それでも、旅は続く。</h1><p class="intro">霧の王墓から持ち帰った灰の冠を、あなたは焚き火のそばへ置いた。名は刻まれない。けれど、歩いた土地と、生きて帰った夜だけは残る。</p><div class="result-number">${state.victories} <small>回の生還 / 遠征 ${state.runs} 回</small></div><p class="notice">灰の王冠 · 最大体力 +6。ここから先も、まだ見ていない一本と深層が残っている。</p><p class="small rule-line">これは終わりではなく、最初の物語の区切り。地図へ戻れば、踏破した土地にも再び遠征できる。</p></div><div class="report-actions">${button('ending-continue','旅の地図へ戻る','',{class:'primary'})}</div></section></div>`;
@@ -264,6 +266,12 @@
     const { action, value } = target.dataset;
     if (action === 'reload') { location.reload(); return; }
     if (conflict) return;
+    if (action === 'settings') {
+      const help = document.querySelector('#help');
+      help.hidden = false;
+      document.querySelector('#help-toggle').setAttribute('aria-expanded','true');
+      return;
+    }
     const before = state;
     if (action === 'mode') { loadMode(value); save(); return; }
     if (action === 'switch-mode') { loadMode(state.mode === 'demo' ? 'walk' : 'demo'); save(); return; }
@@ -288,6 +296,7 @@
     else if (action === 'upgrade') { const id=state.equipped; state = E.upgrade(state,id); if (state !== before) { prioritizeReinforcement = false; const delta = reinforcementResult(before,state,id); const destination = lastReturnedPlace ? E.place(lastReturnedPlace)?.name : ''; notice = `${E.GEAR[id].name}を補強した。${delta}。${destination ? `${destination}で` : '次の遠征で'}試してみよう。`; } }
     else if (action === 'loot-keep') { state = E.resolveDuplicate(state,Number(value),'keep'); }
     else if (action === 'loot-dismantle') { state = E.resolveDuplicate(state,Number(value),'dismantle'); }
+    else if (action === 'ending-open' && !state.expedition && !state.report && state.owned.includes('crown')) { endingOpen = true; }
     else if (action === 'ending-continue') { endingOpen = false; tab = 'explore'; notice = ''; }
     else if (action === 'continue') {
       const duplicates = state.report.duplicates || [];

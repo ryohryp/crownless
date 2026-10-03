@@ -288,12 +288,12 @@
       } else if (!variant) { x.scrap += 4; x.log.push('珍しい武具は見つからず、鉄片 +4。'); }
       x.seals.push(x.place); x.stage = 'cleared';
     } else { x.room++; x.stage = 'path'; }
-    x.enemy = null;
+    x.enemy = null; x.stagger = false; x.focus = 0;
   }
   function attackPreview(s, action) {
     const x = s.expedition;
     if (!x?.enemy || !['strike', 'heavy'].includes(action)) return 0;
-    const e = x.enemy, next = intent(e), p = combatProfile(s);
+    const e = x.enemy, next = api.intent(e), p = combatProfile(s);
     let damage = weaponAttack(s, s.equipped) + x.focus + (action === 'heavy' ? p.heavyBonus : 0);
     if (x.sharpened > 0 && !x.sharpenedApplied) damage += 3;
     if (x.grudge && !x.grudge.used && x.grudge.enemy === e.kind) damage += 3;
@@ -342,11 +342,18 @@
       if ((action === 'heavy' && x.stamina < p.heavyCost) || (action === 'dodge' && x.stamina < p.dodgeCost)) return s;
       x.log = [];
     } else return s;
-    const e = x.enemy, next = intent(e), p = combatProfile(n);
+    const e = x.enemy, next = api.intent(e), p = combatProfile(n);
     if (action === 'flee') {
       const damage = Math.max(2, next.damage);
       x.hp -= damage;
       return finish(n, x.hp <= 0);
+    }
+    const followUp = x.stagger;
+    // A break is an opening for this choice, not a bonus banked for later.
+    // Rejected actions return above, so they cannot consume the opening.
+    if (!['strike', 'heavy'].includes(action)) {
+      x.stagger = false;
+      if (followUp) x.log.push('攻める機会を見送った。敵が体勢を立て直す。');
     }
     let damage = 0;
     if (action === 'strike' || action === 'heavy') {
@@ -360,18 +367,21 @@
     if (action === 'guard') { x.stamina = Math.min(3, x.stamina + 1); if (p.counter && next.damage > 0) damage = p.counter; }
     if (action === 'dodge') {
       x.stamina -= p.dodgeCost;
-      x.focus = next.damage > 0 && next.id !== 'quick' ? p.dodgeFocus : 0;
+      x.focus = next.damage > 0 && !['quick', 'feint'].includes(next.id) ? p.dodgeFocus : 0;
     }
     e.hp = Math.max(0, e.hp - damage);
     if (damage > 0) x.log.push(`こちらの一撃。${damage} ダメージ。`);
     if (e.hp <= 0) { victory(n); return n; }
     const block = action === 'guard' ? p.block : 0;
     const taken = action === 'dodge'
-      ? (next.id === 'quick' ? Math.max(1, Math.ceil(next.damage / 2)) : 0)
-      : Math.max(0, next.damage - block);
+      ? (next.id === 'feint' ? next.damage : next.id === 'quick' ? Math.max(1, Math.ceil(next.damage / 2)) : 0)
+      : next.id === 'break' && action === 'guard'
+        ? Math.max(2, next.damage - Math.floor(block / 2))
+        : next.id === 'intercept' && action === 'heavy'
+          ? next.damage + 4 : Math.max(0, next.damage - block);
     x.hp -= taken;
     if (action === 'dodge') {
-      if (next.id === 'quick') x.log.push(`${next.name}をかわしきれない。体力 −${taken}。追撃の好機は作れない。`);
+      if (['quick', 'feint'].includes(next.id)) x.log.push(`${next.name}をかわしきれない。体力 −${taken}。追撃の好機は作れない。`);
       else if (next.damage) {
         if (['heavy', 'pounce'].includes(next.id)) { x.stagger = true; x.log.push(`身をかわした。${next.name}の隙を突き、敵の体勢が崩れた！ 次の一撃が必殺追撃になる。`); }
         else x.log.push(`身をかわした。次の攻撃 +${x.focus}。`);
@@ -475,5 +485,6 @@
       return s;
     } catch { return null; }
   }
-  return { VERSION, PLACES, GEAR, ENEMIES, INTENTS, VARIANT_LOOT, DISMANTLE_SCRAP, initial, maxHp, gearFamily, weaponLevel, weaponQuality, weaponAttack, qualityLabel, rollQuality, upgradeCost, combatProfile, gearText, enemyProfile, attackPreview, intent, lootCue, place, isRoadsideEvent, discover, start, act, maintain, equip, upgrade, resolveDuplicate, locationSession, observe, serialize, parse };
+  const api = { VERSION, PLACES, GEAR, ENEMIES, INTENTS, VARIANT_LOOT, DISMANTLE_SCRAP, initial, maxHp, gearFamily, weaponLevel, weaponQuality, weaponAttack, qualityLabel, rollQuality, upgradeCost, combatProfile, gearText, enemyProfile, attackPreview, intent, lootCue, place, isRoadsideEvent, discover, start, act, maintain, equip, upgrade, resolveDuplicate, locationSession, observe, serialize, parse };
+  return api;
 });

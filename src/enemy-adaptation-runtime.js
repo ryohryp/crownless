@@ -9,7 +9,6 @@
   const baseIntent = E.intent;
   const baseAct = E.act;
   const baseParse = E.parse;
-  const baseAttackPreview = E.attackPreview;
   const history = e => Array.isArray(e?.history) ? e.history : [];
 
   // #740: the winning shallow-wolf routine alternates guard -> dodge -> attack,
@@ -49,39 +48,13 @@
     return { ...counter, help: `${counter.reason} ${counter.help}`, adaptive: true };
   };
 
-  E.attackPreview = (s, action) => {
-    const e = s?.expedition?.enemy;
-    const counter = e && adaptation(e);
-    if (!counter) return baseAttackPreview(s, action);
-    const shadow = JSON.parse(JSON.stringify(s));
-    shadow.expedition.enemy.history = [];
-    return baseAttackPreview(shadow, action);
-  };
-
   E.act = (s, action) => {
     const before = s?.expedition?.stage === 'fight' ? JSON.parse(JSON.stringify(s.expedition.enemy)) : null;
-    const counter = before && adaptation(before);
-    const oldHp = s?.expedition?.hp;
-    const oldFocus = s?.expedition?.focus;
-    let n = baseAct(s, action);
-    if (!before || !n?.expedition || n.expedition.stage !== 'fight') return n;
-
+    const n = baseAct(s, action);
+    if (n === s || !before || !n?.expedition || n.expedition.stage !== 'fight') return n;
     const e = n.expedition.enemy;
     const prior = history(before);
     e.history = [...prior, action].slice(-3);
-    if (!counter) return n;
-
-    const base = baseIntent(before);
-    const block = E.combatProfile(s).block;
-    let counterTaken = 0;
-    if (counter.id === 'feint') counterTaken = action === 'dodge' ? counter.damage : Math.max(0, counter.damage - (action === 'guard' ? block : 0));
-    if (counter.id === 'break') counterTaken = action === 'dodge' ? 0 : action === 'guard' ? Math.max(2, counter.damage - Math.floor(block / 2)) : counter.damage;
-    if (counter.id === 'intercept') counterTaken = action === 'heavy' ? counter.damage + 4 : action === 'guard' ? Math.max(0, counter.damage - block) : action === 'dodge' ? 0 : counter.damage;
-    n.expedition.hp = oldHp - counterTaken;
-    if (counter.id === 'feint' && action === 'dodge') n.expedition.focus = oldFocus;
-    n.expedition.log = n.expedition.log.filter(line => !line.includes(base.name) && !line.includes('身をかわした') && !line.includes('攻撃を受け止めた') && line !== '敵は攻撃してこない。');
-    n.expedition.log.push(counterTaken ? `${counter.name}。体力 −${counterTaken}。` : `${counter.name}をしのいだ。`);
-    if (n.expedition.hp <= 0) return baseAct({ ...n, expedition: { ...n.expedition, hp: 1 } }, 'flee');
     return n;
   };
 

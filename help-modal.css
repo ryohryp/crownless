@@ -2,7 +2,7 @@
 .help:not([hidden]) {
   position: fixed;
   inset: max(4.5rem, env(safe-area-inset-top)) 1rem max(1rem, env(safe-area-inset-bottom));
-  z-index: 40;
+  z-index: 60;
   max-width: 38rem;
   margin: 0 auto;
   padding: 1rem;
@@ -12,6 +12,10 @@
   background: var(--bg);
   box-shadow: 0 18px 60px rgb(0 0 0 / .55);
 }
+
+.journey-settings-controls [data-settings-close]{position:sticky;top:0;z-index:1;width:100%;min-height:48px;background:var(--bg)}
+.journey-settings-controls h2{margin:.75rem 0}
+.journey-settings-controls [data-preference]{min-height:48px}
 
 @media (max-width: 480px) {
   .help:not([hidden]) {
