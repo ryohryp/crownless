@@ -15,6 +15,61 @@ function browser(seed = {}, storageFails = false) {
   context.window=context; vm.runInNewContext(code,context);
   return {store,elements,callbacks,click(action,value){elements['#game'].click({target:{closest:()=>({dataset:{action,value},disabled:false})}});},html:()=>elements['#game'].innerHTML};
 }
+
+test('a saved combat opening exposes the actual follow-up damage and disappears after guarding', () => {
+  let s = E.act(E.start({...E.initial(),mode:'demo'},'wood'),'careful');
+  s = E.act(E.act(s,'guard'),'dodge');
+  const damage = E.attackPreview(s,'strike');
+  const seed = {'crownless-expedition-mode':'demo','crownless-expedition-v1-demo':E.serialize(s)};
+  const b = browser(seed);
+  assert.match(b.html(),/体勢を崩した！/);
+  assert.match(b.html(),new RegExp(`崩し追撃 <span class="cost">${damage}</span>`));
+  assert.match(b.html(),/今の一手だけ/);
+  assert.match(b.html(),/敵は攻撃してこない。<\/span>/);
+  b.click('guard');
+  assert.doesNotMatch(b.html(),/class="combat-opening"/);
+  assert.doesNotMatch(b.html(),/崩し追撃 <span/);
+});
+
+test('follow-up finish is marked for feedback and banks loot only on return', () => {
+  let s = E.act(E.start({...E.initial(),mode:'demo'},'wood'),'careful');
+  s = E.act(E.act(s,'guard'),'dodge');
+  s.expedition.enemy.hp = E.attackPreview(s,'strike');
+  const b = browser({'crownless-expedition-mode':'demo','crownless-expedition-v1-demo':E.serialize(s)});
+  b.click('strike');
+  assert.match(b.html(),/data-combat-result="follow-up"/);
+  const key = 'crownless-expedition-v1-demo';
+  assert.equal(JSON.parse(b.store.get(key)).scrap,0);
+  b.click('return');
+  assert.equal(JSON.parse(b.store.get(key)).scrap,2);
+  assert.doesNotMatch(b.html(),/data-combat-result="follow-up"/);
+});
+
+test('settings opens above camp without changing its save or current screen', () => {
+  const b = browser(); b.click('mode','demo');
+  const html = b.html(), saved = b.store.get('crownless-expedition-v1-demo');
+  b.click('settings');
+  assert.equal(b.elements['#help'].hidden,false);
+  assert.equal(b.html(),html);
+  assert.equal(b.store.get('crownless-expedition-v1-demo'),saved);
+});
+
+test('banked crown epilogue can be revisited without restarting or advancing the journey', () => {
+  const s = {...E.initial(),mode:'demo',runs:4,victories:3,owned:['rust','crown'],cleared:['wood','tower','crypt']};
+  const key = 'crownless-expedition-v1-demo';
+  const b = browser({'crownless-expedition-mode':'demo',[key]:E.serialize(s)});
+  b.click('tab','gear');
+  assert.match(b.html(),/最初の物語を振り返る/);
+  const saved = b.store.get(key);
+  b.click('ending-open');
+  assert.match(b.html(),/EPILOGUE/);
+  assert.match(b.html(),/3 <small>回の生還 \/ 遠征 4 回/);
+  b.click('ending-continue');
+  assert.match(b.html(),/旅の地図/);
+  assert.equal(b.store.get(key),saved);
+  const unearned = browser(); unearned.click('mode','demo'); unearned.click('ending-open');
+  assert.doesNotMatch(unearned.html(),/EPILOGUE/);
+});
 test('late GPS completion cannot mutate the other mode or a started expedition', () => {
   const b=browser(); b.click('mode','walk'); b.click('gps'); const late=b.callbacks.ok;
   b.click('switch-mode'); late({coords:{latitude:35,longitude:139,accuracy:10,speed:0}});

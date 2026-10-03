@@ -29,7 +29,8 @@ test('feint makes a third dodge costly while switching to guard is a practical a
   const hp=s.expedition.hp;
   const dodged=E.act(s,'dodge');
   assert.equal(dodged.expedition.hp,hp-4);
-  assert.equal(dodged.expedition.focus,s.expedition.focus);
+  assert.equal(dodged.expedition.focus,0, 'a feint cannot grant a dodge follow-up');
+  assert.equal(dodged.expedition.stagger,false);
   const guarded=E.act(s,'guard');
   assert.equal(guarded.expedition.hp,hp);
 });

@@ -28,7 +28,7 @@
       [...panel.children].forEach(x => { if (x !== nav && !x.matches('.text-button')) x.remove(); });
       const body = document.createElement('div'); body.className = 'codex-panel'; nav.after(body); renderCodex(body);
     });
-    nav.append(button);
+    nav.insertBefore(button, nav.querySelector('[data-action="settings"]'));
   };
   new MutationObserver(enhance).observe(root, { childList: true, subtree: true }); enhance();
 })();
