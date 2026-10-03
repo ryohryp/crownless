@@ -25,3 +25,10 @@
 .path-decision .path-risk strong{display:block;color:var(--gold);font:18px Georgia,serif;margin:2px 0}
 .path-decision .path-actions{border-top:1px solid var(--line);margin-top:16px;padding-top:14px}
 @media(max-width:620px){.path-decision .path-copy{padding-left:12px}.path-decision .path-summary{font-size:14px;line-height:1.65}.path-decision .path-actions{position:sticky;bottom:0;background:linear-gradient(180deg,#14282ee8,#14282e 18%);padding:12px 0 max(10px,env(safe-area-inset-bottom));z-index:3}}
+
+/* Current-loop clarity: keep active gear and its next reinforcement obvious on phone. */
+.gear-home .gear-list .choice.selected{border-color:var(--gold);background:#2b4038;box-shadow:inset 3px 0 0 var(--gold)}
+.gear-home .gear-list .choice.selected strong,.gear-home .gear-list .choice.selected .cost{color:var(--gold)}
+.gear-home .rule-line{border:1px solid #d2b98138;background:#172d30;padding:14px 16px;margin-top:16px}
+.gear-home .rule-line .section-heading{margin-bottom:8px}.gear-home .rule-line>p{margin-bottom:10px}
+@media(max-width:620px){.gear-home .gear-list{gap:6px}.gear-home .gear-list .choice{min-height:48px;padding:10px 12px}.gear-home .rule-line{padding:12px;margin-top:12px}.gear-home .rule-line .secondary{min-height:48px}}
