@@ -20,17 +20,33 @@ jobs:
         run: |
           set -euo pipefail
           branches=(
+            "codex/finish-combat-climax"
+            "feat/current-loop-clarity"
+            "feat/roadside-cart-encounter"
+            "feat/484-next-unknown-cue"
+            "feat/828-roadside-encounters-v2"
+            "feat/828-roadside-encounters-v3"
+            "feat/836-travel-chronicle"
+            "feat/837-audio-loop-feedback"
+            "feat/838-travelers-codex"
+            "feat/840-pwa-offline"
             "feat/840-pwa-offline-shell"
-            "feat/869-jev-decision-gate-v1"
-            "feat/871-decision-gate-calibration-log"
-            "fix/843-recap-report-regression-test"
-            "test/843-recap-report-regression-v2"
-            "fix/846-combat-feedback-visibility"
+            "feat/846-carried-loot-comparison"
+            "fix/current-loop-regressions"
+            "fix/484-campfire-rumor-report-dom"
+            "fix/842-outdoor-mode-scope"
+            "fix/846-noncombat-presentation-v2"
+            "fix/846-starter-gear-clarity"
           )
+          deleted=0
           for branch in "${branches[@]}"; do
             ref="heads/$branch"
             if gh api --silent "repos/$GITHUB_REPOSITORY/git/ref/$ref" >/dev/null 2>&1; then
               gh api --method DELETE "repos/$GITHUB_REPOSITORY/git/refs/$ref"
               echo "DELETE $branch"
+              deleted=$((deleted + 1))
+            else
+              echo "MISSING $branch"
             fi
           done
+          echo "Deleted: $deleted"
