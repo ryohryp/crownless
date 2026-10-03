@@ -115,6 +115,7 @@ test('a finishing blow consumes the break and the next encounter starts clean', 
   assert.equal(s.expedition.stage,'path');
   assert.equal(s.expedition.stagger,false);
   assert.equal(s.expedition.focus,0);
+  s.runs++;
   s = E.act(E.act(s,'rest'),'careful');
   assert.equal(s.expedition.stagger,false);
   assert.equal(s.expedition.focus,0);

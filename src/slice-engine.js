@@ -89,6 +89,11 @@
   };
   const copy = s => JSON.parse(JSON.stringify(s));
   const place = id => PLACES.find(p => p.id === id);
+  function isRoadsideEvent(s, x = s?.expedition) {
+    if (!x || x.stage !== 'path' || ![1, 3].includes(x.room)) return false;
+    const placeIndex = PLACES.findIndex(p => p.id === x.place);
+    return placeIndex >= 0 && (s.runs + x.depth + x.room + placeIndex) % 2 === 1;
+  }
   const gearFamily = id => GEAR[id]?.family || id;
   const upgradeKey = id => UPGRADEABLE.includes(id) ? id : null;
   function weaponQuality(s, id = s.equipped) {
@@ -211,7 +216,7 @@
     const kind = x.place === 'wood' && x.room === 2 ? 'forest_hunter' : place(x.place).enemy;
     const hp = ENEMIES[kind].hp + (x.depth - 1) * 5 + (elite ? 6 : 0) + (risky ? 3 : 0);
     x.enemy = { kind, hp, maxHp: hp, turn: 0, depth: x.depth, elite, risky };
-    x.stage = 'fight'; x.stamina = Math.max(2, x.stamina); x.focus = 0; x.stagger = false; x.sharpenedApplied = false;
+    x.stage = 'fight'; x.stamina = Math.max(2, x.stamina); x.stagger = false; x.sharpenedApplied = false;
     const profile = enemyProfile(x.enemy);
     x.log = [elite ? `土地の主が、帰り道を塞いだ。${profile.trait ? `《${profile.trait.name}》の気配。` : ''}` : risky ? '宝の気配を追った。獲物も、こちらを見ている。' : '足音が止んだ。敵の構えをよく見よう。'];
   }
@@ -314,9 +319,21 @@
       x.depth++; x.room = 0; x.stage = 'path'; x.log = [`さらに深く。${lootCue(x.place, x.depth)}`]; return n;
     } else if (x.stage === 'path') {
       if ([1, 3].includes(x.room)) {
-        if (!['rest', 'search'].includes(action)) return s;
-        if (action === 'rest') { x.hp = Math.min(maxHp(n), x.hp + 6); x.log = ['小さな灯りのそばで休んだ。体力 +6。']; }
-        else { x.hp -= 4; x.scrap += 5 * x.depth; x.log = [`茨の中の遺品を拾う。体力 −4 / 鉄片 +${5 * x.depth}。`]; }
+        const roadside = isRoadsideEvent(n, x);
+        if (roadside) {
+          if (!['trade', 'pray'].includes(action)) return s;
+          if (action === 'trade') {
+            if (x.scrap < 3 || x.potions >= 2) return s;
+            x.scrap -= 3; x.potions += 1; x.log = ['朽ちた行商人の荷車から、使える薬草を見つけた。鉄片 −3 / 薬草 +1。'];
+          } else {
+            if (x.hp <= 3) return s;
+            x.hp -= 3; x.focus = Math.max(x.focus, 3); x.log = ['古い道標へ血を捧げた。体力 −3 / 次の一撃 +3。'];
+          }
+        } else {
+          if (!['rest', 'search'].includes(action)) return s;
+          if (action === 'rest') { x.hp = Math.min(maxHp(n), x.hp + 6); x.log = ['小さな灯りのそばで休んだ。体力 +6。']; }
+          else { x.hp -= 4; x.scrap += 5 * x.depth; x.log = [`茨の中の遺品を拾う。体力 −4 / 鉄片 +${5 * x.depth}。`]; }
+        }
         x.room++; if (x.hp <= 0) return finish(n, true); return n;
       }
       if (!['careful', 'risky'].includes(action)) return s;
@@ -496,6 +513,6 @@
       return s;
     } catch { return null; }
   }
-  const api = { VERSION, PLACES, GEAR, ENEMIES, INTENTS, VARIANT_LOOT, DISMANTLE_SCRAP, initial, maxHp, gearFamily, weaponLevel, weaponQuality, weaponAttack, qualityLabel, rollQuality, upgradeCost, combatProfile, gearText, enemyProfile, attackPreview, intent, lootCue, place, discover, start, act, maintain, equip, upgrade, resolveDuplicate, locationSession, observe, serialize, parse, discoverDistrict,selectDistrict,buildHome,renameHome };
+  const api = { VERSION, PLACES, GEAR, ENEMIES, INTENTS, VARIANT_LOOT, DISMANTLE_SCRAP, initial, maxHp, gearFamily, weaponLevel, weaponQuality, weaponAttack, qualityLabel, rollQuality, upgradeCost, combatProfile, gearText, enemyProfile, attackPreview, intent, lootCue, place, isRoadsideEvent, discover, start, act, maintain, equip, upgrade, resolveDuplicate, locationSession, observe, serialize, parse, discoverDistrict,selectDistrict,buildHome,renameHome };
   return api;
 });

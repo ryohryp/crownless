@@ -7,7 +7,7 @@ function clear(s) {
   s = E.start(s,'wood');
   for (let i=0; i<80 && s.expedition?.stage!=='cleared'; i++) {
     const x = s.expedition;
-    if (x.stage==='path') s = E.act(s,[1,3].includes(x.room) ? 'rest' : 'careful');
+    if (x.stage==='path') s = E.act(s,[1,3].includes(x.room) ? E.isRoadsideEvent(s,x) ? 'pray' : 'rest' : 'careful');
     else {
       const intent=E.intent(x.enemy);
       const action = x.hp<13 && x.potions ? 'heal' : intent.id==='heavy' ? 'dodge' : intent.id==='quick' ? 'guard' : x.stamina>=2 ? 'heavy' : 'strike';

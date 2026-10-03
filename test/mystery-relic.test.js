@@ -38,6 +38,7 @@ test('later tower exploration reveals meaning and a small at-risk reward', () =>
   const s = E.initial();
   s.mode = 'demo';
   s.unlocked = ['wood', 'tower'];
+  s.runs = 1;
   s.owned.push(SEALED);
   s.expedition = {
     place: 'tower', depth: 1, room: 1, hp: 30, stamina: 3, focus: 0,
