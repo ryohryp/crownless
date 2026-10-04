@@ -8,6 +8,6 @@
     "test": "node --test",
     "playtest": "node scripts/evaluate-playtest-jev.cjs",
     "playtest:browser": "node scripts/playtest-browser-jev.cjs",
-    "playtest:browser:full": "CROWNLESS_JEV_MODE=full node scripts/playtest-browser-jev.cjs"
+    "playtest:browser:full": "node scripts/playtest-browser-jev.cjs --full"
   }
 }
