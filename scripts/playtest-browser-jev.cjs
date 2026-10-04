@@ -70,7 +70,7 @@ async function main() {
     return;
   }
 
-  const mode = process.env.CROWNLESS_JEV_MODE || "smoke";
+  const mode = process.argv.includes("--full") ? "full" : (process.env.CROWNLESS_JEV_MODE || "smoke");
   const defaults = MODE_DEFAULTS[mode];
   if (!defaults) {
     fail(`Unknown CROWNLESS_JEV_MODE "${mode}". Use "smoke" or "full".`);
