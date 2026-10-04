@@ -4,10 +4,14 @@ const { spawn } = require("node:child_process");
 const path = require("node:path");
 
 const JEV_BROWSER_PACKAGE = process.env.CROWNLESS_JEV_PACKAGE || "@jkudish/jev-browser@0.7.0";
-const DEFAULT_TASK =
+const SMOKE_TASK =
   "Crownlessの体験モードを開始し、囁きの森へ遠征する。敵と遭遇したら「斬る」ボタンをクリックして敵にダメージを与え、ダメージ結果が表示されたら完了とする。現実の散策モードや位置情報/GPSは使わない。";
-const DEFAULT_MAX_STEPS = "12";
-const DEFAULT_MAX_SECONDS = "30";
+const FULL_LOOP_TASK =
+  "Crownlessの体験モードを開始し、囁きの森へ遠征する。戦闘中は撤退せず、敵の予兆を見て戦う。強撃は気力が2以上ある時だけ使い、気力不足なら「斬る」で気力を回復する。遠征を生還して帰還画面まで進み、入手装備や鉄片を確認する。Gearで補強できる場合は補強ボタンを押して結果を確認し、その後「この装備で囁きの森へもう一度」から同じ土地へ再遠征する。再遠征先で最初の戦闘行動を行い、強化後の攻撃結果または再遠征が成立したことを確認したら完了とする。現実の散策モードや位置情報/GPSは使わない。";
+const MODE_DEFAULTS = {
+  smoke: { task: SMOKE_TASK, maxSteps: "12", maxSeconds: "30" },
+  full: { task: FULL_LOOP_TASK, maxSteps: "30", maxSeconds: "120" },
+};
 
 function fail(message) {
   console.error(`[jev-browser] ${message}`);
@@ -66,6 +70,13 @@ async function main() {
     return;
   }
 
+  const mode = process.argv.includes("--full") ? "full" : (process.env.CROWNLESS_JEV_MODE || "smoke");
+  const defaults = MODE_DEFAULTS[mode];
+  if (!defaults) {
+    fail(`Unknown CROWNLESS_JEV_MODE "${mode}". Use "smoke" or "full".`);
+    return;
+  }
+
   const root = path.resolve(__dirname, "..");
   const server = spawn(process.execPath, ["scripts/serve-slice.cjs"], {
     cwd: root,
@@ -82,9 +93,9 @@ async function main() {
   }
 
   const startUrl = `http://127.0.0.1:${port}/`;
-  const task = process.env.CROWNLESS_JEV_TASK || DEFAULT_TASK;
-  const maxSteps = process.env.CROWNLESS_JEV_MAX_STEPS || DEFAULT_MAX_STEPS;
-  const maxSeconds = process.env.CROWNLESS_JEV_MAX_SECONDS || DEFAULT_MAX_SECONDS;
+  const task = process.env.CROWNLESS_JEV_TASK || defaults.task;
+  const maxSteps = process.env.CROWNLESS_JEV_MAX_STEPS || defaults.maxSteps;
+  const maxSeconds = process.env.CROWNLESS_JEV_MAX_SECONDS || defaults.maxSeconds;
   const npxArgs = [
     "-y",
     JEV_BROWSER_PACKAGE,
@@ -104,6 +115,7 @@ async function main() {
   const command = process.platform === "win32" ? (process.env.ComSpec || "cmd.exe") : "npx";
   const args = process.platform === "win32" ? ["/c", "npx", ...npxArgs] : npxArgs;
 
+  console.log(`[jev-browser] mode: ${mode}`);
   console.log(`[jev-browser] start: ${startUrl}`);
   console.log(`[jev-browser] task: ${task}`);
   console.log(`[jev-browser] package: ${JEV_BROWSER_PACKAGE}`);
@@ -111,15 +123,11 @@ async function main() {
   const startedAt = Date.now();
 
   try {
-    const result = await runCommand(
-      command,
-      args,
-      {
-        cwd: root,
-        env: process.env,
-        stdio: "inherit",
-      }
-    );
+    const result = await runCommand(command, args, {
+      cwd: root,
+      env: process.env,
+      stdio: "inherit",
+    });
 
     const elapsedMs = Date.now() - startedAt;
     console.log(`[jev-browser] elapsed: ${elapsedMs}ms`);
