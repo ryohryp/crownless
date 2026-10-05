@@ -1,5 +1,7 @@
 # Crownless — Game System Design v0.1
 
+> **Status: Historical / non-Canon.** This is the original action hack-and-slash design. Use [`../AGENTS.md`](../AGENTS.md) and [`README.md`](README.md) to resolve current product direction.
+
 ## 1. Vision
 
 Crownless is a location-based medieval fantasy action hack-and-slash RPG where real-world movement reveals and expands a dangerous game world.
