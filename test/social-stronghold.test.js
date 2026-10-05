@@ -13,6 +13,19 @@ test('first claimed district becomes the only MVP stronghold', () => {
   assert.deepEqual(moved, s);
 });
 
+test('next objective prefers the nearest unclaimed district', () => {
+  const s = T.claim(T.fresh(), '0,0', '中央の砦');
+  const districts = [
+    { id:'0,0', x:0, y:0, claimed:true },
+    { id:'2,0', x:2, y:0, claimed:false },
+    { id:'0,1', x:0, y:1, claimed:false },
+    { id:'1,0', x:1, y:0, claimed:true },
+  ];
+
+  assert.equal(T.nextObjective(s, districts)?.id, '0,1');
+  assert.equal(T.nextObjective(s, districts.map(d => ({ ...d, claimed:true }))), null);
+});
+
 test('simulated rival can take the stronghold once and the player can retake it', () => {
   let s = T.claim(T.fresh(), '-1,0', '西の木立');
   s = T.simulateRival(s, '西の木立');
