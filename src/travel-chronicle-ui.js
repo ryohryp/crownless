@@ -31,21 +31,21 @@
   function getChronicle() {
     const TC = window.CrownlessTravelChronicle;
     const initial = TC ? TC.createInitialChronicle() : { version: 1, stamps: [], cards: [], collectedRelics: [] };
-    const data = readJson(STORAGE_KEY_CHRONICLE, initial);
+    let data = readJson(STORAGE_KEY_CHRONICLE, initial);
 
     // Seed initial demo landmarks if chronicle is empty so the player immediately enjoys the experience
     if (data.stamps.length === 0 && TC) {
-      TC.recordVisitAndStamp(data, '囁きの森・大樹の祠', 'sacred');
-      TC.recordVisitAndStamp(data, '鐘なき塔・見張り台', 'height');
-      TC.recordVisitAndStamp(data, '星沈みの湿原・渡し場', 'water');
+      data = TC.recordVisitAndStamp(data, '囁きの森・大樹の祠', 'sacred');
+      data = TC.recordVisitAndStamp(data, '鐘なき塔・見張り台', 'height');
+      data = TC.recordVisitAndStamp(data, '星沈みの湿原・渡し場', 'water');
 
       const RR = window.CrownlessRegionalRelics;
       if (RR) {
         const relic1 = RR.createRegionalRelicInstance('relic_sacred_exorcist_dagger', '囁きの森・大樹の祠');
-        TC.recordCollectedRelic(data, relic1);
+        data = TC.recordCollectedRelic(data, relic1);
       }
 
-      TC.recordExpeditionCard(data, {
+      data = TC.recordExpeditionCard(data, {
         landmarkName: '囁きの森・大樹の祠',
         signal: 'sacred',
         summary: '古木の根元で魔物を払い、最初の開拓旗を立てた。',
@@ -61,14 +61,12 @@
   function getOutposts() {
     const FO = window.CrownlessFrontierOutpost;
     const initial = FO ? FO.createInitialState() : { version: 1, outposts: {} };
-    const data = readJson(STORAGE_KEY_OUTPOSTS, initial);
+    let data = readJson(STORAGE_KEY_OUTPOSTS, initial);
 
     // Seed initial demo outpost if empty
     if (Object.keys(data.outposts).length === 0 && FO) {
-      const s = FO.claimOutpost(data, 'wood_outpost', '囁きの森・前哨拠点', 'woods');
-      FO.buildFacility(s, 'wood_outpost', 'watchtower', 100);
-      writeJson(STORAGE_KEY_OUTPOSTS, s);
-      return s;
+      data = FO.claimOutpost(data, 'wood_outpost', '囁きの森・前哨拠点', 'woods');
+      writeJson(STORAGE_KEY_OUTPOSTS, data);
     }
 
     return data;
@@ -76,14 +74,22 @@
 
   function getPlayerScrap() {
     const E = window.CrownlessSlice;
-    if (!E) return 0;
+    if (!E) return 12;
     try {
       const mode = localStorage.getItem('crownless-expedition-mode') || 'demo';
       const key = `crownless-expedition-v1-${mode}`;
-      const state = E.parse(localStorage.getItem(key));
-      return Number(state && state.scrap) || 0;
+      const raw = localStorage.getItem(key);
+      const state = E.parse(raw);
+      if (!state) return 12;
+      // In demo mode for first time play, grant starter pioneer grant (12 iron scraps)
+      if (mode === 'demo' && Number(state.scrap) === 0 && Number(state.runs) === 0 && !localStorage.getItem('crownless-pioneer-grant-v1')) {
+        state.scrap = 12;
+        localStorage.setItem(key, JSON.stringify(state));
+        localStorage.setItem('crownless-pioneer-grant-v1', 'true');
+      }
+      return Number(state.scrap) || 0;
     } catch (_) {
-      return 0;
+      return 12;
     }
   }
 
