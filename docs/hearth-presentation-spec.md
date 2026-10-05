@@ -1,5 +1,7 @@
 # Grey Hearth Presentation Spec
 
+> **Authority note (2026-10-06):** Supporting expedition-era presentation reference. Current runtime, [`../AGENTS.md`](../AGENTS.md), and newer accepted ADRs take precedence.
+
 > **Status:** current presentation specification  
 > **Updated:** 2026-08-27  
 > **Parent design:** [`game-system-design.md`](game-system-design.md)
