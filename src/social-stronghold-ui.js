@@ -68,6 +68,7 @@
     if (!detail || !s.stronghold || detail.querySelector('.stronghold-status')) return;
 
     const title = districtTitle(g, s.stronghold);
+    const nextTarget = T.nextObjective(s, g?.neighborhood?.districts || []);
     const selected = g?.neighborhood?.selected === s.stronghold;
     const card = document.createElement('section');
     card.className = 'stronghold-status rule-line';
@@ -83,6 +84,7 @@
       <p class="kicker">STRONGHOLD · ${title}</p>
       <h3>${T.ownerLabel(s)}</h3>
       <p class="small">${stateCopy}</p>
+      ${nextTarget ? `<p class="notice"><strong>次の標的 · ${districtTitle(g, nextTarget.id)}</strong><br>未制圧の近隣。地図から選んで次の遠征へ。</p>` : ''}
       <details>
         <summary>支配の記録</summary>
         ${s.history.slice().reverse().map(v => `<p class="small">${v.text}</p>`).join('')}
