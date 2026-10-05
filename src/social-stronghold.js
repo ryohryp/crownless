@@ -72,11 +72,23 @@
     }, `${RIVAL}が${title}を奪った。`);
   }
 
+  function nextObjective(s, districts = []) {
+    if (!s?.stronghold || !Array.isArray(districts)) return null;
+    const current = districts.find(d => d?.id === s.stronghold);
+    if (!current) return null;
+    const claimed = new Set(districts.filter(d => d?.claimed).map(d => d.id));
+    const candidates = districts
+      .filter(d => d && d.id !== s.stronghold && !claimed.has(d.id))
+      .map(d => ({ ...d, distance: Math.abs((d.x || 0) - (current.x || 0)) + Math.abs((d.y || 0) - (current.y || 0)) }))
+      .sort((a, b) => a.distance - b.distance || String(a.id).localeCompare(String(b.id)));
+    return candidates[0] || null;
+  }
+
   function ownerLabel(s) {
     if (s.owner === 'player') return 'あなたの旗';
     if (s.owner === 'rival') return `${RIVAL}の旗`;
     return '主なき砦';
   }
 
-  return { RIVAL, fresh, valid, parse, claim, simulateRival, ownerLabel };
+  return { RIVAL, fresh, valid, parse, claim, simulateRival, nextObjective, ownerLabel };
 });
