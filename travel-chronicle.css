@@ -1,0 +1,353 @@
+/* Travel Chronicle & Frontier Outpost UI Styling */
+.chronicle-container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 10px 4px 60px;
+  animation: fadeIn 0.25s ease-out;
+}
+
+.chronicle-header {
+  border-bottom: 1px solid rgba(204, 180, 126, 0.25);
+  padding-bottom: 8px;
+}
+
+.chronicle-kicker {
+  font-size: 0.72rem;
+  letter-spacing: 0.12em;
+  color: #c5ad79;
+  text-transform: uppercase;
+  margin: 0 0 2px;
+}
+
+.chronicle-title {
+  font-size: 1.25rem;
+  margin: 0 0 4px;
+  color: #f1ebd8;
+  font-family: serif;
+}
+
+.chronicle-subtitle {
+  font-size: 0.8rem;
+  color: #9da09b;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.chronicle-stats-ribbon {
+  display: flex;
+  justify-content: space-around;
+  background: rgba(28, 38, 36, 0.75);
+  border: 1px solid rgba(204, 180, 126, 0.2);
+  border-radius: 6px;
+  padding: 8px 6px;
+  margin-top: 4px;
+}
+
+.stat-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
+
+.stat-item .stat-num {
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #f5eedc;
+}
+
+.stat-item .stat-label {
+  font-size: 0.68rem;
+  color: #929994;
+}
+
+/* Sub tabs */
+.chronicle-subtabs {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 4px;
+  background: rgba(15, 22, 21, 0.6);
+  padding: 3px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.subtab-btn {
+  background: transparent;
+  border: none;
+  color: #8c9691;
+  font-size: 0.78rem;
+  padding: 6px 2px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.subtab-btn.active {
+  background: #2b3a37;
+  color: #f1ebd8;
+  font-weight: bold;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+}
+
+/* Passport Stamps Grid */
+.stamps-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+}
+
+.stamp-card {
+  background: rgba(26, 32, 28, 0.85);
+  border: 1px dashed rgba(204, 180, 126, 0.4);
+  border-radius: 6px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  position: relative;
+  overflow: hidden;
+}
+
+.stamp-card::before {
+  content: '';
+  position: absolute;
+  top: -15px;
+  right: -15px;
+  width: 45px;
+  height: 45px;
+  border-radius: 50%;
+  border: 1px solid rgba(204, 180, 126, 0.15);
+  pointer-events: none;
+}
+
+.stamp-icon-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.stamp-icon {
+  font-size: 1.4rem;
+}
+
+.stamp-badge {
+  font-size: 0.65rem;
+  background: rgba(197, 173, 121, 0.15);
+  color: #ccb47e;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(197, 173, 121, 0.3);
+}
+
+.stamp-name {
+  font-size: 0.88rem;
+  font-weight: bold;
+  color: #f1ebd8;
+  margin-top: 2px;
+}
+
+.stamp-seal {
+  font-size: 0.72rem;
+  color: #ccb47e;
+  font-family: serif;
+}
+
+.stamp-date {
+  font-size: 0.68rem;
+  color: #7b837e;
+  margin-top: auto;
+}
+
+/* Regional Relics Cards */
+.relics-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.relic-card {
+  background: rgba(24, 30, 28, 0.9);
+  border: 1px solid rgba(204, 180, 126, 0.25);
+  border-radius: 6px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.relic-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.relic-title {
+  font-size: 0.95rem;
+  font-weight: bold;
+  color: #f3efe6;
+}
+
+.relic-origin {
+  font-size: 0.72rem;
+  background: #172b26;
+  color: #92bfae;
+  padding: 2px 6px;
+  border-radius: 4px;
+  border: 1px solid rgba(146, 191, 174, 0.3);
+}
+
+.relic-trait {
+  font-size: 0.78rem;
+  color: #ccb47e;
+  line-height: 1.35;
+  margin: 2px 0;
+}
+
+.relic-flavor {
+  font-size: 0.72rem;
+  color: #8c948e;
+  font-style: italic;
+  line-height: 1.3;
+}
+
+/* Frontier Outposts List */
+.outposts-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.outpost-card {
+  background: rgba(22, 32, 29, 0.95);
+  border: 1px solid rgba(197, 173, 121, 0.35);
+  border-radius: 6px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.outpost-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.outpost-title {
+  font-size: 1rem;
+  font-weight: bold;
+  color: #f1ebd8;
+}
+
+.outpost-owner {
+  font-size: 0.72rem;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-weight: bold;
+}
+
+.outpost-owner.player {
+  background: #244439;
+  color: #a4e2cc;
+  border: 1px solid #3c6e5d;
+}
+
+.outpost-owner.rival {
+  background: #442424;
+  color: #e2a4a4;
+  border: 1px solid #6e3c3c;
+}
+
+.outpost-stats {
+  display: flex;
+  gap: 12px;
+  font-size: 0.75rem;
+  color: #abb2ad;
+  background: rgba(0, 0, 0, 0.2);
+  padding: 4px 8px;
+  border-radius: 4px;
+}
+
+.outpost-facilities {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 4px;
+}
+
+.facility-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: rgba(30, 42, 39, 0.6);
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 0.78rem;
+}
+
+.facility-name {
+  color: #e2ded0;
+}
+
+.facility-upgrade-btn {
+  background: #394b46;
+  color: #f3efe6;
+  border: 1px solid rgba(204, 180, 126, 0.4);
+  padding: 3px 8px;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.facility-upgrade-btn:hover:not(:disabled) {
+  background: #4e635d;
+  border-color: #ccb47e;
+}
+
+.facility-upgrade-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Travelog Journal Cards */
+.travelog-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.travelog-card {
+  background: rgba(24, 28, 26, 0.85);
+  border-left: 3px solid #ccb47e;
+  border-radius: 0 6px 6px 0;
+  padding: 8px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.travelog-meta {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.7rem;
+  color: #8f9792;
+}
+
+.travelog-summary {
+  font-size: 0.82rem;
+  color: #ded9cc;
+  line-height: 1.4;
+}
+
+.empty-state {
+  text-align: center;
+  padding: 24px 12px;
+  color: #7b837e;
+  font-size: 0.82rem;
+  border: 1px dashed rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+}
