@@ -1,5 +1,7 @@
 # Issue #55 implementation summary
 
+> **Status: Historical implementation note / non-Canon.** Retained as evidence for Issue #55; it does not define the current exploration product direction.
+
 The exploration interaction has been simplified around direct discovered destinations.
 
 Removed from the active presentation:
