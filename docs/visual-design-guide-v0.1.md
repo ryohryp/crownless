@@ -1,5 +1,7 @@
 # Crownless — Visual Design Guide v0.1
 
+> **Status: Historical / superseded visual reference.** Use [`visual-canon.md`](visual-canon.md), [`visual/`](visual/), and the Crownless visual-design skill for current work.
+
 > **Status:** global visual baseline / living document  
 > **Updated:** 2026-08-12  
 > **Scope:** Grey Hearth, exploration, combat, inventory, reports, image generation, UI implementation
