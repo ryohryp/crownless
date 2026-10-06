@@ -26,7 +26,7 @@ Start here:
 - [ADR 0005 — reject real-time player-controlled combat](adr/0005-realtime-combat-rejected.md) — this rejects real-time action combat, not the current deliberate choice-based fight loop.
 - [ADR 0006 — social territory control](adr/0006-social-territory-control.md)
 - [ADR 0008 — frontier and chronicle](adr/0008-frontier-and-chronicle.md)
-- [Visual Canon](visual-canon.md)
+- [Visual Canon](visual-canon.md) — single global visual authority; specialized `visual/` documents must conform to it
 - [Deployment strategy](deployment-strategy.md)
 
 ADR 0002 is retained because later decisions preserve some of its location/privacy and deterministic-expedition boundaries, but its product identity and North Star are superseded.
@@ -47,13 +47,6 @@ These are useful subsystem references, not independent product Canon:
 Files named `playtest-*.md` and `playable-slice-playtest.md` record what was tested in a particular build. Keep them as evidence. Do not infer current product requirements from an old playtest.
 
 The most recent dated playtest should normally be consulted first when investigating actual player-visible behavior.
-
-## Historical / experiment references
-
-Only references with ongoing comparison/calibration value remain here. Obsolete task snapshots and superseded designs should be recovered from Git history instead of kept in the active documentation tree:
-
-- [`visual-design-guide-v0.1.md`](visual-design-guide-v0.1.md) — superseded visual baseline.
-- [`visual-design-guide-v0.2.md`](visual-design-guide-v0.2.md) — older combat-actor visual baseline; use current Visual Canon and visual skill first.
 
 Do not add new one-off design documents when an existing current document can be updated. Prefer:
 
