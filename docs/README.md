@@ -35,11 +35,9 @@ ADR 0002 is retained because later decisions preserve some of its location/priva
 
 These are useful subsystem references, not independent product Canon:
 
-- [Game system design](game-system-design.md) — September territory-era design; useful context, but `AGENTS.md` now owns the current core loop and milestone.
-- [Expedition system](expedition-system-spec.md) — deterministic expedition concepts; its claim that expeditions are “the gameplay center” is historical.
+- [Active gameplay specification](gameplay-spec.md) — current supporting gameplay contract for exploration, combat, loot, territory/frontier development, rivals, Hearth, Chronicle, persistence, and smartphone validation.
 - [Exploration/location](exploration-location-spec.md)
 - [Exploration discovery contract](exploration-discovery-contract.md)
-- [Grey Hearth presentation](hearth-presentation-spec.md) — expedition-era Hearth reference; current runtime and `AGENTS.md` take precedence.
 - [Geography production operations](geography-production-operations.md)
 - Character specifications under [`characters/`](characters/).
 - Visual implementation references under [`visual/`](visual/).
@@ -72,7 +70,7 @@ When a product direction changes:
 1. update `AGENTS.md` if the current playable goal/invariant changes;
 2. add or supersede an ADR only for a durable decision;
 3. update affected active specs;
-4. mark displaced documents historical instead of leaving two files claiming to be Canon;
+4. remove fully displaced design/spec documents once still-useful rules have been absorbed into an active spec or ADR; use Git history for obsolete versions instead of keeping parallel pseudo-Canon;
 5. keep task progress in GitHub rather than creating another design file.
 
 The goal is a small, navigable set of current documents—not a complete archive of every idea at the same authority level.
