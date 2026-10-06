@@ -4,8 +4,8 @@ The approved world-direction visual reference is `docs/assets/crownless-visual-d
 
 - The approved World Direction reference is `docs/assets/crownless-visual-design-reference-v0.1.jpg`; generated visual work must remain in the same manuscript/woodcut world across map, battle, base, characters, enemies, effects, UI, items, palette, and texture.
 - Crownless is a playable medieval manuscript whose world gains knowledge and restrained color through exploration and survival.
-- Combat uses a fixed oblique top-down battlefield and must remain readable at phone scale.
-- The player moves manually, stops to auto-strike, and explicitly uses only Technique and Evade; visuals must not imply different controls.
+- When a current combat asset uses the accepted oblique actor presentation, preserve its camera and phone-scale readability; do not infer gameplay controls from that presentation.
+- Gameplay controls come from `AGENTS.md` and `docs/gameplay-spec.md`. Historical manual-movement / stop-to-auto-strike / Technique / Evade assumptions are not current control Canon.
 - The unarmed player is an unknown survivor, and bare-handed combat is a legitimate build rather than missing equipment.
 - Rusher, Guard, and Skirmisher must read from silhouette and posture before labels.
 - Temporary dropped weapons are immediate battlefield state and must remain visually distinct from scenery and expedition loot.
