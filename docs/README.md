@@ -26,6 +26,7 @@ Start here:
 - [ADR 0005 — reject real-time player-controlled combat](adr/0005-realtime-combat-rejected.md) — this rejects real-time action combat, not the current deliberate choice-based fight loop.
 - [ADR 0006 — social territory control](adr/0006-social-territory-control.md)
 - [ADR 0008 — frontier and chronicle](adr/0008-frontier-and-chronicle.md)
+- [ADR 0009 — smartphone combat viewport and tactical information density](adr/0009-smartphone-combat-viewport-and-tactical-density.md)
 - [Visual Canon](visual-canon.md) — single global visual authority; specialized `visual/` documents must conform to it
 - [Deployment strategy](deployment-strategy.md)
 
