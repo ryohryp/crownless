@@ -40,11 +40,11 @@ These are useful subsystem references, not independent product Canon:
 - [Exploration discovery contract](exploration-discovery-contract.md)
 - [Geography production operations](geography-production-operations.md)
 - Character specifications under [`characters/`](characters/).
-- Visual implementation references under [`visual/`](visual/).
+- Visual implementation references under [`visual/`](visual/). Keep only active Canon adapters, production pipelines, and specialized asset contracts; Issue-specific visual handoffs belong in Git/Issue history once completed.
 
 ## Playtest evidence
 
-Files named `playtest-*.md` and `playable-slice-playtest.md` record what was tested in a particular build. Keep them as evidence. Do not infer current product requirements from an old playtest.
+Dated playtest files and `playable-slice-playtest.md` record meaningful end-to-end evidence from particular builds. Keep useful behavioral evidence, but remove one-off implementation checklists once the corresponding Issue/PR and Git history are sufficient. Do not infer current product requirements from an old playtest.
 
 The most recent dated playtest should normally be consulted first when investigating actual player-visible behavior.
 

@@ -1,8 +1,8 @@
 # Crownless Global Visual Style
 
 This file is the Visual Director adapter view of the canonical rules in
-[`../visual-design-guide-v0.2.md`](../visual-design-guide-v0.2.md). The guide and
-the canonical reference image remain authoritative.
+[`../visual-canon.md`](../visual-canon.md). The Visual Canon and the canonical
+reference image remain authoritative.
 
 ## Global Visual Canon
 
@@ -31,10 +31,10 @@ For exploration and maps in particular, do not interpret "dark fantasy" as a bla
 
 When references disagree, use this order:
 
-1. current gameplay / subsystem specification for behavior and composition
-2. `docs/visual-design-guide-v0.2.md` for current global rules
+1. `AGENTS.md` and `docs/gameplay-spec.md` for behavior and composition
+2. `docs/visual-canon.md` for current global visual rules
 3. `docs/assets/crownless-visual-design-reference-v0.1.jpg` for global illustration-family, material, palette, map/UI and physical-ink calibration
-4. `assets/combat/minimal-v0.1/actors/` for current combat-character proportion, silhouette and viewpoint
+4. `docs/visual/CHARACTER_VISUAL_CANON.md` and its Approved Visual Anchors for current combat-character proportion, silhouette and viewpoint
 5. older supporting boards only where they do not conflict with the above
 
 A generated image is always a candidate. Do not promote it to Canon or use it as the parent of later generations merely because it was generated successfully.
