@@ -6,7 +6,7 @@ Explore → Fight → Loot → Return alive → Improve → Explore farther
 
 `AGENTS.md` を基準にした、スマートフォン向けの小さな遠征RPGです。霧の中の土地を見つけ、敵の予兆を読み、戦利品を生きて持ち帰ります。
 
-設計・ADR・プレイテスト記録の権威関係は [`docs/README.md`](docs/README.md) に整理しています。古い文書が `canonical` と名乗っていても、現在方針は `AGENTS.md` と新しい未supersede ADRを優先します。
+設計・ADR・プレイテスト記録の権威関係は [`docs/README.md`](docs/README.md) に整理しています。現行ゲームプレイの補助仕様は [`docs/gameplay-spec.md`](docs/gameplay-spec.md) に集約しています。古い文書が `canonical` と名乗っていても、現在方針は `AGENTS.md` と新しい未supersede ADRを優先します。
 
 ## 遊ぶ
 
