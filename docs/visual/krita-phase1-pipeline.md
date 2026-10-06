@@ -12,7 +12,7 @@ The representative asset is `assets/locations/ruined-watchtower.png`.
 
 ## Canon and provenance rules
 
-- `AGENTS.md`, `docs/visual-design-guide-v0.2.md`, and `skills/crownless-visual-design/SKILL.md` remain the SSOT.
+- `AGENTS.md`, `docs/gameplay-spec.md`, `docs/visual-canon.md`, and `skills/crownless-visual-design/SKILL.md` remain the governing sources.
 - The ruined watchtower is still a **Candidate**, not an Approved Anchor.
 - This pipeline performs a non-generative edit of that Candidate. It must not be supplied as a parent/reference to a new image-generation call.
 - Phase 1 intentionally does not promote the asset or create a generic remote-control service.
