@@ -1,5 +1,7 @@
 # Crownless — Visual Design Guide v0.2
 
+> **Status: Historical calibration reference.** This document contains older combat-actor assumptions. Use [`visual-canon.md`](visual-canon.md), [`visual/`](visual/), and the Crownless visual-design skill first; current gameplay comes from [`../AGENTS.md`](../AGENTS.md).
+
 > **Status:** canonical global visual baseline  
 > **Updated:** 2026-08-14  
 > **Scope:** characters, enemies, combat, exploration, Grey Hearth, UI, loot, image generation, implementation

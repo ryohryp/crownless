@@ -1,5 +1,7 @@
 # Crownless — Game System Design
 
+> **Authority note (2026-10-06):** This is a territory-era supporting design, not the highest-level current Canon. [`../AGENTS.md`](../AGENTS.md) now owns the current core loop and milestone; see [`README.md`](README.md) for document precedence.
+
 > **Status:** current canonical gameplay design  
 > **Updated:** 2026-09-06  
 > **Decision:** [`adr/0004-territory-driven-reforge.md`](adr/0004-territory-driven-reforge.md)  

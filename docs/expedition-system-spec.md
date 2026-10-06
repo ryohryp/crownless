@@ -1,5 +1,7 @@
 # Crownless — Expedition System Specification
 
+> **Authority note (2026-10-06):** Supporting / legacy subsystem reference. The statement that expeditions are “the gameplay center” is superseded. Use [`../AGENTS.md`](../AGENTS.md) for the current product loop and [`README.md`](README.md) for precedence.
+
 > **Status:** canonical subsystem specification / target for the next playable slice  
 > **Updated:** 2026-08-27  
 > **Parent design:** [`game-system-design.md`](game-system-design.md)  
