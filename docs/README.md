@@ -52,12 +52,10 @@ The most recent dated playtest should normally be consulted first when investiga
 
 ## Historical / experiment references
 
-These remain in place for traceability but are explicitly non-Canon:
+Only references with ongoing comparison/calibration value remain here. Obsolete task snapshots and superseded designs should be recovered from Git history instead of kept in the active documentation tree:
 
-- [`game-system-design-v0.1.md`](game-system-design-v0.1.md) — original action hack-and-slash direction.
 - [`visual-design-guide-v0.1.md`](visual-design-guide-v0.1.md) — superseded visual baseline.
 - [`visual-design-guide-v0.2.md`](visual-design-guide-v0.2.md) — older combat-actor visual baseline; use current Visual Canon and visual skill first.
-- [`issue-55-implementation.md`](issue-55-implementation.md) — implementation snapshot for one historical issue.
 
 Do not add new one-off design documents when an existing current document can be updated. Prefer:
 
