@@ -1,6 +1,8 @@
 # Crownless Visual Canon
 
-Crownless の現在の playable slice で使うビジュアル基準。
+Crownless の現在の playable slice で使う**唯一の全体Visual Canon**。
+
+`docs/visual/` はキャラクター、世界方向、画像生成、制作パイプラインなどの専門資料であり、この文書と `AGENTS.md` / accepted ADR / `gameplay-spec.md` に従う。古いVisual Design Guideの版番号を新しい判断の根拠にしない。
 
 この文書は「将来の完成アート」を決めるものではない。まず現在のコアループを実際に遊びながら、画面ごとの世界観と判断材料がぶれないための基準を固定する。
 
@@ -15,6 +17,33 @@ Crownless の現在の playable slice で使うビジュアル基準。
 - `slice.css` — dark / muted green / aged gold を中心としたスマートフォン向けUI
 
 これらは既に最小Playable Sliceで使用中であり、Visual Canonのためだけに別の完成画像を重複生成しない。
+
+## Visual thesis
+
+Crownless は **living medieval manuscript / woodcut / field map** が遊べる世界として見えることを狙う。
+
+- rough hand-inked line, restrained hatching, worn material, imperfect stamp/mark
+- unknown = ink / ash / fog
+- discovered = restrained blue-green and local natural color
+- danger = muted vermilion
+- home / secured progress = ember warmth
+- exceptional significance = small aged-gold / ochre accents
+- glossy fantasy chrome, photoreal AAA rendering, anime-gacha rarity framing, neon magicを全体言語にしない
+
+画面は原則 **one large spatial/illustrated surface + one primary focal action + restrained annotations**。装飾よりphone-sizeの判断性を優先する。
+
+### Character calibration
+
+現行combat actorを扱う場合は `visual/CHARACTER_VISUAL_CANON.md` のApproved Visual Anchorとruntime acceptanceを使う。キャラクター比率やbattlefield cameraを全体Visual Canonから推測しない。現在のactor系はcompact folk-art silhouetteを基準とし、旧4–5 heads guideへ戻さない。
+
+### Gameplay lock
+
+Visual資料は操作方式を決めない。戦闘・探索・Hearthの挙動は `AGENTS.md` と `gameplay-spec.md` が正本。
+
+- 現在は短いtactical encounterと明確な選択を視覚的に支える
+- 旧manual movement / stop-to-auto-strike / Technique / Evade前提を新規画面へ持ち込まない
+- 旧dispatch/wait/report UIをHearthの必須構造として復活させない
+- Visualは地域武具、開拓拠点、陣取り履歴、冒険録が「次へ行きたい理由」として読めることを優先する
 
 ## Tone
 
