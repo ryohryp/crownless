@@ -4,7 +4,7 @@ Read this only when the current task explicitly authorizes maintenance or repurp
 
 Before any real-time combat change, establish that the current issue and Canon decision satisfy the Historical combat rule in AGENTS.md. An old asset or renderer alone is not authorization.
 
-[AGENTS.md](../../../AGENTS.md) and the [current gameplay Canon](../../../docs/game-system-design.md) control scope. [The old combat presentation spec](../../../docs/combat-presentation-spec.md) is historical implementation context only. Apply each check only where that rendering mode exists; Hearth companions, portraits, and expedition reports do not inherit a battlefield camera or enemy HUD.
+[AGENTS.md](../../../AGENTS.md) and the [active gameplay specification](../../../docs/gameplay-spec.md) control scope. This file is historical actor-rendering context only; it does not define current combat controls. Apply each check only where that rendering mode exists; Hearth companions, portraits, and expedition reports do not inherit a battlefield camera or enemy HUD.
 
 Resolve current asset roles in [Character Visual Canon](../../../docs/visual/CHARACTER_VISUAL_CANON.md) before using a file. Being stored under `assets/combat/minimal-v0.1/actors/` does not make every file an Approved Anchor or runtime-eligible.
 
