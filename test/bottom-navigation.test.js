@@ -21,5 +21,7 @@ test('bottom navigation is fixed and reserves iOS safe area', () => {
   assert.match(css, /position:\s*fixed/);
   assert.match(css, /safe-area-inset-bottom/);
   assert.match(css, /min-height:\s*46px/);
+  assert.match(css, /flex:\s*1 1 0/);
+  assert.match(css, /border-radius:\s*2px/);
   assert.match(css, /padding-bottom:/);
 });
