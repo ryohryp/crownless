@@ -125,4 +125,6 @@ test('neighborhood visual shell keeps stronghold status compact and map landmark
   assert.match(css, /stronghold-status\{display:grid/);
   assert.match(css, /district-pin>\.district-landmark\{[^}]*border:0/);
   assert.match(css, /district-detail\{[^}]*border-radius:2px/);
+  assert.match(css, /neighborhood-field::-webkit-scrollbar\{display:none\}/);
+  assert.match(css, /scrollbar-width:none/);
 });
