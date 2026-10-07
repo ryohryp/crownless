@@ -136,11 +136,12 @@ test('neighborhood visual shell keeps stronghold status compact and map landmark
 test('each discovered district exposes one deterministic local POI without new persisted location state', () => {
   const a=N.pointOfInterest(N.cell(0,-800));
   const again=N.pointOfInterest(N.cell(0,-800));
-  const b=N.pointOfInterest(N.cell(800,0));
+  const b=N.pointOfInterest(N.cell(0,400));
   assert.deepEqual(a,again);
   assert.equal(a.id,'poi:-2,0');
   assert.ok(['shop','event'].includes(a.family));
   assert.ok(['shop','event'].includes(b.family));
+  assert.notEqual(a.family,b.family);
   assert.notEqual(a.name,b.name);
   const saved=E.serialize(E.discoverDistrict(fresh(),N.cell(0,-800)));
   assert.ok(!saved.includes('poi:'));
