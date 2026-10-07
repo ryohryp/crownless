@@ -132,3 +132,28 @@ test('neighborhood visual shell keeps stronghold status compact and map landmark
   assert.match(css, /district-pin\.selected small,\.district-pin\.claimed small\{display:block\}/);
   assert.match(css, /district-home strong\{[^}]*background:transparent/);
 });
+
+test('each discovered district exposes one deterministic local POI without new persisted location state', () => {
+  const a=N.pointOfInterest(N.cell(0,-800));
+  const again=N.pointOfInterest(N.cell(0,-800));
+  const b=N.pointOfInterest(N.cell(800,0));
+  assert.deepEqual(a,again);
+  assert.equal(a.id,'poi:-2,0');
+  assert.ok(['shop','event'].includes(a.family));
+  assert.ok(['shop','event'].includes(b.family));
+  assert.notEqual(a.name,b.name);
+  const saved=E.serialize(E.discoverDistrict(fresh(),N.cell(0,-800)));
+  assert.ok(!saved.includes('poi:'));
+  assert.deepEqual(E.parse(saved),E.discoverDistrict(fresh(),N.cell(0,-800)));
+});
+
+test('neighborhood UI presents local POI marker, detail card, and action without adding a separate map screen', () => {
+  const app=fs.readFileSync(path.join(__dirname,'..','src','slice-app.js'),'utf8');
+  const css=fs.readFileSync(path.join(__dirname,'..','neighborhood.css'),'utf8');
+  assert.match(app,/district-poi-mark/);
+  assert.match(app,/district-poi-card/);
+  assert.match(app,/data-action/);
+  assert.match(app,/action === 'poi'/);
+  assert.match(css,/district-poi-card\{display:grid/);
+  assert.match(css,/@media\(max-width:430px\)\{\.district-poi-card/);
+});
