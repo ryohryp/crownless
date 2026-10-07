@@ -22,7 +22,8 @@ The first milestone remains the one in `AGENTS.md`: after roughly 15 minutes, do
 - Use coarse, game-facing place identity. Do not persist exact movement tracks as territory state.
 - A discovered place should remain useful later from a safe stationary context.
 - Real and simulated location must exercise the same gameplay contract.
-- Landmark categories may influence stronghold identity, regional materials, relics, and Chronicle records.
+- Landmark categories may influence stronghold identity, regional materials, relics, local shops/events, and Chronicle records.
+- Discovering a new district should reveal a stable local POI (initially a small shop or short event) so the reward for walking somewhere new is immediately visible and creates a reason to inspect or revisit that place.
 - Never encourage trespassing, dangerous travel, or prolonged phone attention while walking.
 
 Detailed location/privacy behavior remains in `exploration-location-spec.md` and `exploration-discovery-contract.md`.
