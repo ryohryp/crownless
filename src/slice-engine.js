@@ -408,8 +408,9 @@
     let damage = 0;
     if (action === 'strike' || action === 'heavy') {
       damage = attackPreview(n, action);
-      if (x.sharpened > 0 && !x.sharpenedApplied) { x.sharpened--; x.sharpenedApplied = true; }
+      if (x.sharpened > 0 && !x.sharpenedApplied) { x.sharpened--; x.sharpenedApplied = true; x.log.push('研ぎ澄まされた刃が走る！ 初撃に勢いが乗った（与えるダメージ +3）。'); }
       if (x.grudge && !x.grudge.used && x.grudge.enemy === e.kind) { x.grudge.used = true; n.grudge = null; x.log.push('敗走の執念を一撃に乗せた。与えるダメージ +3。'); }
+      if (action === 'heavy' && p.heavyBonus > 4) { x.log.push(`補強の重み！ 強撃の威力が ${p.heavyBonus - 4} 底上げされた。`); }
       if (x.stagger) { x.stagger = false; x.log.push('崩し追撃！ 体勢の崩れへ必殺の一撃を叩き込んだ。'); }
       if (action === 'heavy' && next.id === 'guard' && p.pierce) { x.stagger = true; x.log.push('守りを貫いた。敵の体勢が崩れた！ 次の一撃が必殺追撃になる。'); }
       x.stamina = Math.min(3, x.stamina + (action === 'heavy' ? -p.heavyCost : 1)); x.focus = 0;
