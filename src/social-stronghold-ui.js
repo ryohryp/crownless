@@ -63,44 +63,40 @@
     const g = game();
     let s = load();
     s = recordClaim(g, s);
-
-    const detail = root.querySelector('.map-home-detail');
-    if (!detail || !s.stronghold || detail.querySelector('.stronghold-status')) return;
+    if (!s.stronghold) return;
 
     const title = districtTitle(g, s.stronghold);
     const selected = g?.neighborhood?.selected === s.stronghold;
+    const selector = `.district-pin[data-value="${CSS.escape(s.stronghold)}"]`;
+    const pin = root.querySelector(selector);
+    if (pin) {
+      pin.classList.add('stronghold-pin');
+      pin.classList.toggle('rival-held', s.owner === 'rival');
+      pin.classList.toggle('rival-scouted', s.owner !== 'rival' && s.rivalArmed);
+      pin.dataset.strongholdOwner = s.owner || 'none';
+      const pinState = pin.querySelector('small');
+      if (pinState) pinState.textContent = s.owner === 'rival'
+        ? `${T.RIVAL}が占拠`
+        : s.rivalArmed
+          ? `${T.RIVAL}の偵察痕`
+          : 'あなたの砦';
+    }
+
+    const detail = root.querySelector('.map-home-detail');
+    if (!detail || !selected || detail.querySelector('.stronghold-status')) return;
+
     const card = document.createElement('section');
-    card.className = 'stronghold-status rule-line';
+    card.className = 'stronghold-status';
     card.dataset.strongholdOwner = s.owner || 'none';
-
-    const stateCopy = s.owner === 'rival'
-      ? '奪われた砦へ遠征し、土地の主を越えて生還すれば奪い返せる。'
-      : s.rivalArmed
-        ? `${T.RIVAL}の偵察痕が残っている。次に戻った時、この砦がどうなっているか分からない。`
-        : 'この場所には、あなたの遠征の痕跡が残っている。';
-
     card.innerHTML = `
       <p class="kicker">STRONGHOLD · ${title}</p>
       <h3>${T.ownerLabel(s)}</h3>
-      <p class="small">${stateCopy}</p>
       <details>
         <summary>支配の記録</summary>
         ${s.history.slice().reverse().map(v => `<p class="small">${v.text}</p>`).join('')}
       </details>
-      ${s.owner === 'rival' && !selected
-        ? '<p class="notice">地図でこの砦を選ぶと、再奪取へ向かえる。</p>'
-        : ''}
     `;
-
     detail.prepend(card);
-
-    const selector = `.district-pin[data-value="${CSS.escape(s.stronghold)}"] small`;
-    const pin = root.querySelector(selector);
-    if (pin) pin.textContent = s.owner === 'rival'
-      ? `${T.RIVAL}が占拠`
-      : s.rivalArmed
-        ? `${T.RIVAL}の偵察痕`
-        : 'あなたの砦';
   }
 
   new MutationObserver(render).observe(root, { childList:true, subtree:true });
