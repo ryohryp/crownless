@@ -77,7 +77,7 @@
     const paths = districts.map(d => { const [x,y]=pos(d); return '<path class="district-road '+(d.claimed ? 'claimed' : '')+'" d="M50 43L'+x+' '+y+'"/>'; }).join('');
     const markers = districts.map(d => {
       const [x,y]=pos(d);
-      return '<button class="district-pin biome-'+d.biome+' '+(d.claimed ? 'claimed ' : '')+(d.id===n.selected ? 'selected' : '')+'" style="left:'+x+'%;top:'+y+'%" data-action="district" data-value="'+d.id+'" aria-pressed="'+(d.id===n.selected)+'"><span class="district-landmark" aria-hidden="true">'+landmark(d)+'</span><strong>'+N.title(d)+'</strong><small>'+(d.claimed ? 'あなたの領域' : '土地の主が潜む')+'</small></button>';
+      const poi=N.pointOfInterest(d); return '<button class="district-pin biome-'+d.biome+' '+(d.claimed ? 'claimed ' : '')+(d.id===n.selected ? 'selected' : '')+'" style="left:'+x+'%;top:'+y+'%" data-action="district" data-value="'+d.id+'" aria-pressed="'+(d.id===n.selected)+'"><span class="district-landmark" aria-hidden="true">'+landmark(d)+'</span><span class="district-poi-mark" aria-label="'+esc(poi.label)+'">'+poi.icon+'</span><strong>'+N.title(d)+'</strong><small>'+(d.claimed ? 'あなたの領域' : poi.name)+'</small></button>';
     }).join('');
     const frontier = '<div class="district-frontier-fog" aria-hidden="true"></div><span class="district-frontier-mark district-frontier-mark--nw" aria-hidden="true">?</span><span class="district-frontier-mark district-frontier-mark--se" aria-hidden="true">?</span>';
     return '<section class="exploration-atlas neighborhood-atlas" data-living-atlas="true" aria-label="拠点と近所の領域"><div class="atlas-home-header"><div><strong>'+esc(n.name)+'</strong><small>'+ (state.mode==='demo' ? '体験の近所' : '散策の起点の近所')+' · 発見 '+n.districts.length+' / 開拓 '+N.claims(n)+'</small></div><span><b>建材</b>木材 '+n.wood+' · 石材 '+n.stone+'</span></div><div class="atlas-field neighborhood-field"><div class="neighborhood-canvas" style="width:'+((rx*2+1)*140)+'px;height:'+((ry*2+1)*140)+'px"><svg class="district-roads" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">'+paths+'</svg>'+frontier+'<button class="district-home" data-action="tab" data-value="home" aria-label="'+esc(n.name)+'の拠点を育てる">'+homeArt()+'<strong>'+esc(n.name)+'</strong><small>'+ (n.buildings.length ? '建物 '+n.buildings.length+' · 拠点を育てる' : 'まだ小さな野営地')+'</small></button>'+markers+'</div></div><p class="atlas-home-caption">主を倒し、帰還した土地に、あなたの旗が立つ。</p></section>';
@@ -90,8 +90,9 @@
     return `<div class="discovery"><p>${state.mode === 'demo' ? '散策を体験する — 歩くほど、地図の線と色が増えていく。' : '画面を閉じて散策し、安全に止まれる場所で発見する。'}</p>${state.mode === 'demo' ? `<div class="choice-grid">${button('scout','丘の道を歩いた','',{value:'tower'})}${button('scout','水辺の道を歩いた','',{value:'fen'})}${button('scout','南の小道を歩いた','',{value:'crypt'})}${button('scout','森の道を歩いた','',{value:'wood'})}</div>` : `${button('gps',busy ? '現在地を確認中…' : session.anchor ? '立ち止まった場所で発見する' : 'ここを散策の起点にする','',{class:'secondary',disabled:busy})}<p class="small" style="margin-top:10px">現在地そのものは地図に表示しません。安全に立ち止まって観測すると、その移動結果だけがゲーム世界へ反映されます。</p>`}${notice ? `<p class="notice" role="status">${esc(notice)}</p>` : ''}</div>`;
   }
   function explorePanel() {
-    const d = N.get(state.neighborhood), p = E.place(d.biome), locked = p.id==='crypt' && state.cleared.length<2;
-    return '<div class="map-home-detail"><div class="district-detail"><div><small>'+ (d.claimed ? '⚑ あなたの領域 · 生還 '+d.returns+' 回' : '未開拓 · 主を倒して帰還すると領域になる')+'</small><h2>'+N.title(d)+'</h2><p>'+p.name+' · '+ (d.claimed ? '開拓済みの道から、帰還時の木材・石材が各 +1。' : '最初の戦闘だけでも、帰れば建材を持ち帰れる。')+'</p></div>'+button('depart',locked ? '他の土地を2か所踏破' : 'この土地へ遠征','',{class:'primary',value:p.id,disabled:locked})+'</div><details class="map-home-scouting"><summary>'+ (state.mode==='demo' ? '近所を歩く · 室内で体験' : '立ち止まって近所を発見')+'</summary>'+scouting()+'</details>'+ (state.neighborhood.districts.length>6 ? '<details class="district-list"><summary>発見した土地をすべて見る</summary>'+state.neighborhood.districts.map(v=>button('district',N.title(v),v.claimed ? 'あなたの領域' : '未開拓',{value:v.id})).join('')+'</details>' : '')+ (notice ? '<p class="notice map-home-notice" role="status">'+esc(notice)+'</p>' : '')+'</div>';
+    const d = N.get(state.neighborhood), p = E.place(d.biome), poi=N.pointOfInterest(d), locked = p.id==='crypt' && state.cleared.length<2;
+    const poiCard='<div class="district-poi-card"><span class="district-poi-icon" aria-hidden="true">'+poi.icon+'</span><div><small>'+esc(poi.label)+'</small><strong>'+esc(poi.name)+'</strong><p>'+esc(poi.description)+'</p></div>'+button('poi',poi.actionLabel,'',{class:'secondary',value:poi.action,disabled:poi.action==='depart' && locked})+'</div>';
+    return '<div class="map-home-detail"><div class="district-detail"><div><small>'+ (d.claimed ? '⚑ あなたの領域 · 生還 '+d.returns+' 回' : '未開拓 · 主を倒して帰還すると領域になる')+'</small><h2>'+N.title(d)+'</h2><p>'+p.name+' · '+ (d.claimed ? '開拓済みの道から、帰還時の木材・石材が各 +1。' : '最初の戦闘だけでも、帰れば建材を持ち帰れる。')+'</p></div>'+button('depart',locked ? '他の土地を2か所踏破' : 'この土地へ遠征','',{class:'primary',value:p.id,disabled:locked})+'</div>'+poiCard<details class="map-home-scouting"><summary>'+ (state.mode==='demo' ? '近所を歩く · 室内で体験' : '立ち止まって近所を発見')+'</summary>'+scouting()+'</details>'+ (state.neighborhood.districts.length>6 ? '<details class="district-list"><summary>発見した土地をすべて見る</summary>'+state.neighborhood.districts.map(v=>button('district',N.title(v),v.claimed ? 'あなたの領域' : '未開拓',{value:v.id})).join('')+'</details>' : '')+ (notice ? '<p class="notice map-home-notice" role="status">'+esc(notice)+'</p>' : '')+'</div>';
   }
   function canReinforceEquipped() {
     const id = state.equipped;
@@ -250,7 +251,7 @@
     if (result.status === 'discovered') {
       const known = Boolean(N.get(state.neighborhood,result.district.id));
       state = E.discoverDistrict(state,result.district); selected = result.place;
-      notice = known ? `${N.title(result.district)}に戻った。開拓の記録が残っています。` : state.neighborhood.selected === result.district.id ? `${N.title(result.district)}を発見。主を倒して生還すると、自分の領域になります。` : 'この近所の地図はいっぱいです。発見済みの土地で開拓を続けられます。';
+      const poi=N.pointOfInterest(result.district); notice = known ? `${N.title(result.district)}に戻った。${poi.name}も地図に残っています。` : state.neighborhood.selected === result.district.id ? `${N.title(result.district)}を発見。さらに「${poi.name}」を見つけた。` : 'この近所の地図はいっぱいです。発見済みの土地で開拓を続けられます。';
       save();
     } else notice = messages[result.status];
     busy = false; render();
@@ -271,6 +272,7 @@
     if (action === 'mode') { loadMode(value); save(); return; }
     if (action === 'switch-mode') { loadMode(state.mode === 'demo' ? 'walk' : 'demo'); save(); return; }
     if (action === 'district') { state = E.selectDistrict(state,value); selected = N.get(state.neighborhood).biome; tab = 'explore'; notice = ''; }
+    else if (action === 'poi') { const d=N.get(state.neighborhood), poi=N.pointOfInterest(d); if (value==='gear') { tab='gear'; notice=`${poi.name}で旅支度を見直す。`; } else if (value==='depart') { selected=d.biome; lastReturnedPlace=null; prioritizeReinforcement=false; locationRequest++; busy=false; state=E.start(state,d.biome); } }
     else if (action === 'home-build') { state = E.buildHome(state,value); if (state !== before) notice = N.BUILDINGS[value].story; }
     else if (action === 'home-name') { state = E.renameHome(state,document.querySelector('#home-name').value); }
     else if (action === 'select') { selected = value; tab = 'explore'; notice = ''; lastReturnedPlace = null; prioritizeReinforcement = false; }
