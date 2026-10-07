@@ -33,6 +33,29 @@
     if (!known && n.districts.length >= LIMIT) return n;
     return {...n, districts:known ? n.districts : [...n.districts,district(d.x,d.y,d.biome)], selected:d.id};
   }
+  const POIS = {
+    wood: {
+      shop: { icon:'♜', name:'枝角の露店', label:'森の行商', description:'猟師と薬師が、森を越える旅人向けの道具を並べている。', action:'gear', actionLabel:'装備を見直す' },
+      event: { icon:'✦', name:'囁き樹の噂', label:'土地の噂', description:'古木の根元に、牙の獣を見たという旅人の印が残っている。', action:'depart', actionLabel:'噂を追って遠征する' }
+    },
+    tower: {
+      shop: { icon:'♜', name:'鐘守の鍛冶台', label:'旅の鍛冶屋', description:'塔を巡る旅人が、風に負けない武具の手入れを請け負っている。', action:'gear', actionLabel:'装備を見直す' },
+      event: { icon:'✦', name:'鳴らない鐘の刻', label:'小さな異変', description:'鐘のない塔から一度だけ音がした。主の気配が濃くなっている。', action:'depart', actionLabel:'音の正体を探る' }
+    },
+    fen: {
+      shop: { icon:'♜', name:'葦舟の薬売り', label:'水辺の露店', description:'湿地で採れた薬草を束ねる旅商人が、遠征の話を聞かせてくれる。', action:'gear', actionLabel:'旅支度を見直す' },
+      event: { icon:'✦', name:'青火の水鏡', label:'土地の異変', description:'日暮れ前なのに、水面へ青い火が映った。湿原の奥へ続いている。', action:'depart', actionLabel:'青火を追う' }
+    },
+    crypt: {
+      shop: { icon:'♜', name:'墓守の古物卓', label:'古物商', description:'石塚から拾われた品を扱う無口な商人が、王墓の噂を知っている。', action:'gear', actionLabel:'装備を見直す' },
+      event: { icon:'✦', name:'灰冠の供物跡', label:'古い儀式跡', description:'新しい灰だけが石の前に残る。誰かが今も王へ供物を運んでいる。', action:'depart', actionLabel:'供物跡を調べる' }
+    }
+  };
+  function pointOfInterest(d) {
+    if (!d || !BIOMES.includes(d.biome)) return null;
+    const family = (Math.abs(d.x) + Math.abs(d.y)) % 2 === 0 ? 'shop' : 'event';
+    return { id:`poi:${d.id}`, family, ...POIS[d.biome][family] };
+  }
   function select(n,id) { return get(n,id) ? {...n,selected:id} : n; }
   function begin(n,biome) {
     const selected = get(n), target = selected?.biome === biome ? selected : n.districts.find(d => d.biome === biome);
@@ -80,5 +103,5 @@
     n.active = state.expedition ? n.districts.find(d => d.biome===state.expedition.place)?.id || null : null;
     return n;
   }
-  return { CELL_METERS,LIMIT,RANGE,BUILDINGS,initial,claims,get,title,cell,discover,select,begin,settle,canBuild,build,rename,valid,migrate };
+  return { CELL_METERS,LIMIT,RANGE,BUILDINGS,POIS,initial,claims,get,title,pointOfInterest,cell,discover,select,begin,settle,canBuild,build,rename,valid,migrate };
 });
