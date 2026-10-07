@@ -197,6 +197,7 @@ test('camp home presents a persistent neighborhood and local expedition action',
   assert.match(b.html(),/data-action="district"/);
   assert.match(b.html(),/district-landmark-svg/);
   assert.match(b.html(),/district-frontier-fog/);
+  assert.match(b.html(),/<\/section><nav class="camp-tabs"/);
   assert.match(b.html(),/この土地へ遠征/);
   assert.match(b.html(),/近所を歩く/);
   b.click('scout','tower');
