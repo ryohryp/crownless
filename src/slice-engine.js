@@ -179,16 +179,46 @@
     }
     return { archetype, trait };
   }
+  function generatedIntentId(e) {
+    const enemy = ENEMIES[e.kind];
+    const patterns = e.elite && enemy.elitePatterns ? enemy.elitePatterns : enemy.patterns;
+    const pattern = patterns[Math.max(0, Math.min(2, e.depth - 1))];
+    const base = [...new Set(pattern)], history = [];
+    const random = turn => {
+      let x = ((e.seed + 1) * 2654435761 + (turn + 1) * 2246822519) >>> 0;
+      x ^= x >>> 16; x = Math.imul(x, 2146121005) >>> 0;
+      x ^= x >>> 15; x = Math.imul(x, 2221713035) >>> 0;
+      return ((x ^ (x >>> 16)) >>> 0) / 4294967296;
+    };
+    for (let turn = 0; turn <= e.turn; turn++) {
+      const prev = history.at(-1), prev2 = history.at(-2);
+      const sinceOpen = history.length - 1 - history.lastIndexOf('open');
+      let choices = base.filter(id => !(id === 'open' && (turn === 0 || prev === 'open')) && !(id === 'heavy' && prev === 'heavy') && !(id === prev && id === prev2));
+      if (!choices.length) choices = base.filter(id => id !== 'open' || turn > 0);
+      const weights = choices.map(id => {
+        const frequency = Math.max(1, pattern.filter(v => v === id).length);
+        if (id === 'open' && prev === 'heavy') return frequency * 4;
+        if (id === 'open' && sinceOpen >= 3) return frequency * 5;
+        return frequency;
+      });
+      const total = weights.reduce((sum, weight) => sum + weight, 0);
+      let pick = random(turn) * total, chosen = choices[choices.length - 1];
+      for (let i = 0; i < choices.length; i++) {
+        pick -= weights[i];
+        if (pick < 0) { chosen = choices[i]; break; }
+      }
+      history.push(chosen);
+    }
+    return history[e.turn];
+  }
   const intent = e => {
     const enemy = ENEMIES[e.kind];
     const patterns = e.elite && enemy.elitePatterns ? enemy.elitePatterns : enemy.patterns;
     const pattern = patterns[Math.max(0, Math.min(2, e.depth - 1))];
-    // Break the memorised loop: from the second room on, each encounter starts at a
-    // different (never 'open') point of the pattern. The first room stays canonical.
-    let start = Number.isInteger(e.seed) ? e.seed % pattern.length : 0;
-    while (pattern[start] === 'open') start = (start + 1) % pattern.length;
-    let id = pattern[(start + e.turn) % pattern.length];
-    // A wounded enemy fakes an opening once: the next 'open' becomes a telegraphed counter.
+    let id;
+    if (!Number.isInteger(e.seed)) id = pattern[e.turn % pattern.length];
+    else if (e.elite && e.turn === 0) id = pattern[0];
+    else id = generatedIntentId(e);
     if (e.frenzy && id === 'open') id = 'frenzy';
     let damage = INTENTS[id].damage ? INTENTS[id].damage + e.depth - 1 + (e.elite ? 2 : 0) : 0;
     const trait = enemyProfile(e).trait?.id;
@@ -223,7 +253,7 @@
     const kind = x.place === 'wood' && x.room === 2 ? 'forest_hunter' : place(x.place).enemy;
     const hp = ENEMIES[kind].hp + (x.depth - 1) * 5 + (elite ? 6 : 0) + (risky ? 3 : 0);
     x.enemy = { kind, hp, maxHp: hp, turn: 0, depth: x.depth, elite, risky };
-    if (x.room > 0 && !elite) x.enemy.seed = (runs * 7 + x.depth * 3 + x.room * 5 + (risky ? 1 : 0)) % 12;
+    if (!(runs === 1 && x.room === 0)) x.enemy.seed = (runs * 17 + x.depth * 31 + x.room * 43 + (risky ? 7 : 0) + (elite ? 11 : 0)) % 997;
     x.stage = 'fight'; x.stamina = Math.max(2, x.stamina); x.stagger = false; x.sharpenedApplied = false;
     const profile = enemyProfile(x.enemy);
     x.log = [elite ? `土地の主が、帰り道を塞いだ。${profile.trait ? `《${profile.trait.name}》の気配。` : ''}` : risky ? '宝の気配を追った。獲物も、こちらを見ている。' : '足音が止んだ。敵の構えをよく見よう。'];
@@ -511,7 +541,7 @@
         if (Object.keys(x).some(k => !['place','depth','room','hp','stamina','focus','stagger','sharpened','sharpenedApplied','potions','scrap','gear','gearQuality','seals','grudge','enemy','stage','log'].includes(k)) || !s.unlocked.includes(x.place) || !int(x.depth,1,3) || !int(x.room,0,4) || !int(x.hp,1,maxHp(s)) || !int(x.stamina,0,3) || !allowedFocus.includes(x.focus) || typeof x.stagger !== 'boolean' || !int(x.sharpened,0,3) || typeof x.sharpenedApplied !== 'boolean' || !validExpeditionGrudge(x.grudge) || !int(x.potions,0,2) || !int(x.scrap,0,1000) || !validLoot(x.gear,x.gearQuality) || !Array.isArray(x.seals) || x.seals.length > 3 || !x.seals.every(v => ids.includes(v)) || !['path','fight','cleared'].includes(x.stage) || !Array.isArray(x.log) || x.log.length > 10 || !x.log.every(v => typeof v === 'string' && v.length < 250)) throw Error('run');
         if (x.stage === 'fight') {
           const e = x.enemy;
-          if (!e || Object.keys(e).some(k => !['kind','hp','maxHp','turn','depth','elite','risky','seed','frenzy','wounded'].includes(k)) || !(e.seed === undefined || int(e.seed,0,11)) || !(e.frenzy === undefined || typeof e.frenzy === 'boolean') || !(e.wounded === undefined || typeof e.wounded === 'boolean') || !ENEMIES[e.kind] || !int(e.maxHp,1,80) || !int(e.hp,1,e.maxHp) || !int(e.turn,0,1e6) || e.depth !== x.depth || typeof e.elite !== 'boolean' || typeof e.risky !== 'boolean') throw Error('enemy');
+          if (!e || Object.keys(e).some(k => !['kind','hp','maxHp','turn','depth','elite','risky','seed','frenzy','wounded'].includes(k)) || !(e.seed === undefined || int(e.seed,0,996)) || !(e.frenzy === undefined || typeof e.frenzy === 'boolean') || !(e.wounded === undefined || typeof e.wounded === 'boolean') || !ENEMIES[e.kind] || !int(e.maxHp,1,80) || !int(e.hp,1,e.maxHp) || !int(e.turn,0,1e6) || e.depth !== x.depth || typeof e.elite !== 'boolean' || typeof e.risky !== 'boolean') throw Error('enemy');
         } else if (x.enemy !== null) throw Error('enemy');
       }
       if (s.report) {
