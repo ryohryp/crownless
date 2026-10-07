@@ -33,6 +33,16 @@ Using existing OpenStreetMap (OSM/Overpass) signals and simulated discovery prov
 - `height` / `tower` (展望・高台・塔): Watch peaks, high towers, windy bluffs.
 - `historic` / `castle` (城跡・旧跡): Ancient keeps, forgotten dynasties, warlord ruins.
 
+### 1.1 Local Discovery POIs — make revealing land itself rewarding
+
+A newly discovered district should reveal at least one stable, game-facing local point of interest so that exploration answers **“what is here?”**, not only “which territory did I unlock?”.
+
+- Derive POI identity deterministically from coarse game-world district/landmark identity; do not persist raw coordinates or route history.
+- Start with lightweight local shops and short events that connect into existing preparation, combat, relic, outpost, or Chronicle play.
+- Real geographic signals may weight flavor and category, but private homes or individual real businesses must not be copied into dangerous fantasy targets.
+- The first validation question is whether seeing one local discovery makes the player curious to reveal one more nearby district.
+- Do not build a generalized economy, quest engine, procedural content platform, or live-event backend until this small discovery reward proves motivating.
+
 ### 2. Frontier Outposts (開拓基地)
 
 When a player conquers an outpost:
