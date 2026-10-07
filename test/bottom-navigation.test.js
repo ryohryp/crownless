@@ -23,5 +23,13 @@ test('bottom navigation is fixed and reserves iOS safe area', () => {
   assert.match(css, /min-height:\s*46px/);
   assert.match(css, /flex:\s*1 1 0/);
   assert.match(css, /border-radius:\s*2px/);
+  assert.match(css, /@media \(max-width:\s*480px\)[\s\S]*body:has\(\.bottom-navigation\)/);
   assert.match(css, /padding-bottom:/);
+});
+
+
+test('desktop living-map preview anchors the dock inside the phone frame', () => {
+  const css = fs.readFileSync(path.join(__dirname, '..', 'living-map-home.css'), 'utf8');
+  assert.match(css, />\.camp-tabs\.bottom-navigation\{position:absolute/);
+  assert.match(css, /atlas-home-caption\{display:none\}/);
 });
