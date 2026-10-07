@@ -26,6 +26,11 @@
 .district-pin.biome-tower>.district-landmark{color:#59614d}.district-pin.biome-fen>.district-landmark{color:#526f6c}.district-pin.biome-crypt>.district-landmark{color:#675f54}.district-pin.biome-wood>.district-landmark{color:#536448}
 .district-pin.claimed>.district-landmark{background:radial-gradient(circle at 50% 48%,rgba(199,214,164,.56),rgba(199,214,164,.13) 56%,transparent 74%);color:#506644;filter:drop-shadow(0 2px 0 rgba(73,92,55,.12))}
 .district-claim-flag{color:#72542f}
+.district-pin.rival-held>.district-landmark{outline:2px solid rgba(142,73,55,.78);outline-offset:2px;background:radial-gradient(circle at 50% 48%,rgba(195,128,99,.32),rgba(195,128,99,.08) 58%,transparent 74%);color:#6c493b;filter:drop-shadow(0 4px 8px rgba(82,38,30,.18))}
+.district-pin.rival-held strong{color:#6f3d32}
+.district-pin.rival-held small{color:#7c4638;font-weight:700}
+.district-pin.rival-scouted>.district-landmark{outline:1px dashed rgba(155,111,54,.82);outline-offset:3px}
+.district-pin.rival-scouted small{color:#76552c}
 .district-pin.selected{z-index:7;outline:0}
 .district-pin.selected>.district-landmark{border-radius:46% 54% 49% 51%;outline:1px dashed rgba(143,101,47,.9);outline-offset:1px;background:radial-gradient(circle at 50% 48%,rgba(241,221,167,.66),rgba(241,221,167,.12) 58%,transparent 74%);filter:drop-shadow(0 4px 7px rgba(67,48,24,.18));transform:rotate(2deg) scale(1.06)}
 .district-pin.selected strong{color:#2f261a;font-weight:800;text-shadow:0 1px rgba(250,232,184,.98),1px 0 rgba(250,232,184,.82),-1px 0 rgba(250,232,184,.82)}
@@ -43,14 +48,12 @@
 .district-detail small{font-size:11px;color:var(--gold)}
 .district-detail .primary{font-size:14px;padding:12px;min-height:50px;max-width:120px}
 
-#game>.living-map-home .stronghold-status{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto;gap:1px 10px;margin:0 0 6px;padding:7px 10px;border:1px solid rgba(204,180,126,.28);border-left:2px solid rgba(204,180,126,.62);border-radius:2px;background:rgba(14,29,32,.97);color:var(--ink);box-shadow:0 6px 18px rgba(0,0,0,.18)}
+#game>.living-map-home .stronghold-status{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto;gap:1px 10px;margin:0 0 6px;padding:6px 10px;border:1px solid rgba(204,180,126,.28);border-left:2px solid rgba(204,180,126,.62);border-radius:2px;background:rgba(14,29,32,.97);color:var(--ink);box-shadow:0 5px 14px rgba(0,0,0,.16)}
 #game>.living-map-home .stronghold-status>.kicker{grid-column:1;grid-row:1;margin:0;color:var(--gold);font-size:8px;letter-spacing:.08em;line-height:1.2}
 #game>.living-map-home .stronghold-status>h3{grid-column:1;grid-row:2;margin:2px 0 0;font:600 15px/1.2 Georgia,"Yu Mincho",serif;color:var(--ink)}
-#game>.living-map-home .stronghold-status>.small{display:none}
 #game>.living-map-home .stronghold-status>details{grid-column:2;grid-row:1/3;align-self:center;margin:0}
-#game>.living-map-home .stronghold-status>details>summary{display:flex;align-items:center;min-height:40px;padding:0 6px;color:var(--gold);font-size:10px;white-space:nowrap;cursor:pointer}
+#game>.living-map-home .stronghold-status>details>summary{display:flex;align-items:center;min-height:38px;padding:0 4px;color:var(--gold);font-size:10px;white-space:nowrap;cursor:pointer}
 #game>.living-map-home .stronghold-status>details>p{margin:4px 0 0;max-width:28ch;color:var(--muted);font-size:9px;line-height:1.4}
-#game>.living-map-home .stronghold-status>.notice{grid-column:1/-1;margin:6px 0 0;font-size:10px;line-height:1.4}
 .home-portrait{display:grid;place-content:center;background:radial-gradient(ellipse at center,#b6bb88 0,#e1d3aa 70%);border-radius:12px;min-height:180px;color:#403824}
 .home-portrait .homestead-art{width:min(320px,90vw)}
 .home-portrait p{text-align:center;font-size:14px;margin:0 0 10px}
@@ -108,8 +111,13 @@
   .home-buildings{margin:10px 0}
 }
 
-/* Local discovery POIs: small map annotation + one compact detail card. */
+/* Local discovery POIs: map annotation + collapsed contextual detail. */
 .district-poi-mark{position:absolute;right:4px;top:4px;display:grid;place-items:center;width:20px;height:20px;border:1px solid rgba(92,68,37,.42);border-radius:50%;background:rgba(241,222,172,.94);color:#604b2d;font:700 11px/1 Georgia,"Yu Mincho",serif;box-shadow:0 2px 5px rgba(54,39,20,.16)}
-.district-poi-card{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:9px;align-items:center;margin-top:8px;padding:9px 10px;border:1px solid rgba(204,180,126,.28);background:rgba(18,34,35,.94)}
-.district-poi-icon{display:grid;place-items:center;width:32px;height:32px;border:1px solid rgba(204,180,126,.46);border-radius:50%;font-size:16px}.district-poi-card small,.district-poi-card strong{display:block}.district-poi-card strong{margin:1px 0 2px}.district-poi-card p{margin:0;font-size:11px;line-height:1.35;color:var(--muted,#c8c0aa)}.district-poi-card .secondary{min-width:112px}
-@media(max-width:430px){.district-poi-card{grid-template-columns:30px minmax(0,1fr);padding:8px}.district-poi-icon{width:28px;height:28px}.district-poi-card .secondary{grid-column:1/-1;min-height:44px;width:100%}}
+.district-poi-card{margin-top:6px;border:1px solid rgba(204,180,126,.24);background:rgba(18,34,35,.95)}
+.district-poi-card>summary{display:grid;grid-template-columns:30px minmax(0,1fr) auto;gap:8px;align-items:center;min-height:42px;padding:5px 9px;list-style:none;cursor:pointer}
+.district-poi-card>summary::-webkit-details-marker{display:none}
+.district-poi-icon{display:grid;place-items:center;width:28px;height:28px;border:1px solid rgba(204,180,126,.42);border-radius:50%;font-size:14px}
+.district-poi-copy{min-width:0}.district-poi-copy small,.district-poi-copy strong{display:block}.district-poi-copy small{color:var(--gold);font-size:8px;letter-spacing:.06em}.district-poi-copy strong{overflow:hidden;margin-top:1px;font-size:12px;text-overflow:ellipsis;white-space:nowrap}
+.district-poi-expand{color:var(--gold);font-size:16px;transition:transform .16s ease}.district-poi-card[open] .district-poi-expand{transform:rotate(45deg)}
+.district-poi-detail{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;padding:0 9px 9px}.district-poi-detail p{margin:0;font-size:10px;line-height:1.4;color:var(--muted,#c8c0aa)}.district-poi-detail .secondary{min-width:110px;min-height:42px;padding:8px 10px}
+@media(max-width:430px){.district-poi-card>summary{grid-template-columns:28px minmax(0,1fr) auto}.district-poi-detail{grid-template-columns:1fr}.district-poi-detail .secondary{width:100%}}
