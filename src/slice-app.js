@@ -63,10 +63,24 @@
     const n = state.neighborhood, chosen = N.get(n);
     const districts = [...n.districts];
     const rx = Math.max(1,...districts.map(d=>Math.abs(d.x))), ry = Math.max(1,...districts.map(d=>Math.abs(d.y)));
-    const pos = d => [50+d.x/(rx*2+1)*100,50-d.y/(ry*2+1)*100];
-    const paths = districts.map(d => { const [x,y]=pos(d); return '<path class="district-road '+(d.claimed ? 'claimed' : '')+'" d="M50 50L'+x+' '+y+'"/>'; }).join('');
-    const markers = districts.map(d => { const [x,y]=pos(d); return '<button class="district-pin '+(d.claimed ? 'claimed ' : '')+(d.id===n.selected ? 'selected' : '')+'" style="left:'+x+'%;top:'+y+'%" data-action="district" data-value="'+d.id+'" aria-pressed="'+(d.id===n.selected)+'"><span aria-hidden="true">'+(d.claimed ? '⚑' : {wood:'♣',tower:'♜',fen:'≈',crypt:'◇'}[d.biome])+'</span><strong>'+N.title(d)+'</strong><small>'+(d.claimed ? 'あなたの領域' : '土地の主が潜む')+'</small></button>'; }).join('');
-    return '<section class="exploration-atlas neighborhood-atlas" data-living-atlas="true" aria-label="拠点と近所の領域"><div class="atlas-home-header"><div><strong>'+esc(n.name)+'</strong><small>'+ (state.mode==='demo' ? '体験の近所' : '散策の起点の近所')+' · 発見 '+n.districts.length+' / 開拓 '+N.claims(n)+'</small></div><span><b>建材</b>木材 '+n.wood+' · 石材 '+n.stone+'</span></div><div class="atlas-field neighborhood-field"><div class="neighborhood-canvas" style="width:'+((rx*2+1)*140)+'px;height:'+((ry*2+1)*140)+'px"><svg class="district-roads" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">'+paths+'</svg><button class="district-home" data-action="tab" data-value="home" aria-label="'+esc(n.name)+'の拠点を育てる">'+homeArt()+'<strong>'+esc(n.name)+'</strong><small>'+ (n.buildings.length ? '建物 '+n.buildings.length+' · 拠点を育てる' : 'まだ小さな野営地')+'</small></button>'+markers+'</div></div><p class="atlas-home-caption">主を倒し、帰還した土地に、あなたの旗が立つ。</p></section>';
+    const pos = d => [50+d.x/(rx*2+1)*96,46-d.y/(ry*2+1)*72];
+    const landmark = d => {
+      const art = {
+        wood:'<path d="M12 35l7-11 7 11M7 38l9-14 9 14M23 37l7-12 8 12M16 39v4M30 38v5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+        tower:'<path d="M15 39h19M18 37V19h13v18M15 19h19M18 15h13v4M21 25h7M23 31h5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
+        fen:'<path d="M7 33c7-4 12 4 19 0s10 3 15 0M8 38c6-3 11 3 17 0s11 3 15 0M16 29V18M16 21l-4-4M16 24l5-5M31 30V17M31 21l4-4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>',
+        crypt:'<path d="M11 39h27M15 35l5-17h11l4 17M20 18l5-6 6 6M20 28h11M24 23h4" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>'
+      }[d.biome];
+      const flag = d.claimed ? '<path class="district-claim-flag" d="M34 12v16M35 13l7 3-7 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' : '';
+      return '<svg class="district-landmark-svg" viewBox="0 0 48 48" focusable="false" aria-hidden="true">'+art+flag+'</svg>';
+    };
+    const paths = districts.map(d => { const [x,y]=pos(d); return '<path class="district-road '+(d.claimed ? 'claimed' : '')+'" d="M50 46L'+x+' '+y+'"/>'; }).join('');
+    const markers = districts.map(d => {
+      const [x,y]=pos(d);
+      return '<button class="district-pin biome-'+d.biome+' '+(d.claimed ? 'claimed ' : '')+(d.id===n.selected ? 'selected' : '')+'" style="left:'+x+'%;top:'+y+'%" data-action="district" data-value="'+d.id+'" aria-pressed="'+(d.id===n.selected)+'"><span class="district-landmark" aria-hidden="true">'+landmark(d)+'</span><strong>'+N.title(d)+'</strong><small>'+(d.claimed ? 'あなたの領域' : '土地の主が潜む')+'</small></button>';
+    }).join('');
+    const frontier = '<div class="district-frontier-fog" aria-hidden="true"></div><span class="district-frontier-mark district-frontier-mark--nw" aria-hidden="true">?</span><span class="district-frontier-mark district-frontier-mark--se" aria-hidden="true">?</span>';
+    return '<section class="exploration-atlas neighborhood-atlas" data-living-atlas="true" aria-label="拠点と近所の領域"><div class="atlas-home-header"><div><strong>'+esc(n.name)+'</strong><small>'+ (state.mode==='demo' ? '体験の近所' : '散策の起点の近所')+' · 発見 '+n.districts.length+' / 開拓 '+N.claims(n)+'</small></div><span><b>建材</b>木材 '+n.wood+' · 石材 '+n.stone+'</span></div><div class="atlas-field neighborhood-field"><div class="neighborhood-canvas" style="width:'+((rx*2+1)*140)+'px;height:'+((ry*2+1)*140)+'px"><svg class="district-roads" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">'+paths+'</svg>'+frontier+'<button class="district-home" data-action="tab" data-value="home" aria-label="'+esc(n.name)+'の拠点を育てる">'+homeArt()+'<strong>'+esc(n.name)+'</strong><small>'+ (n.buildings.length ? '建物 '+n.buildings.length+' · 拠点を育てる' : 'まだ小さな野営地')+'</small></button>'+markers+'</div></div><p class="atlas-home-caption">主を倒し、帰還した土地に、あなたの旗が立つ。</p></section>';
   }
   function homePanel() {
     const n = state.neighborhood;
