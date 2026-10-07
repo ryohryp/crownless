@@ -11,32 +11,41 @@
 .district-road.claimed{stroke:#4f7258;stroke-width:1.15;stroke-dasharray:none;opacity:.92}
 .district-frontier-fog{position:absolute;inset:-1px;z-index:2;pointer-events:none;background:radial-gradient(ellipse at 50% 45%,transparent 0 48%,rgba(231,219,181,.12) 61%,rgba(90,79,55,.22) 100%),linear-gradient(90deg,rgba(224,211,171,.27),transparent 12% 88%,rgba(224,211,171,.3));mix-blend-mode:multiply}
 .district-frontier-mark{position:absolute;z-index:2;display:grid;place-items:center;width:30px;height:30px;border:1px dashed rgba(72,58,38,.35);border-radius:47% 53% 45% 55%;background:rgba(226,211,169,.46);color:rgba(63,51,34,.52);font:700 15px/1 Georgia,"Yu Mincho",serif;transform:rotate(-8deg);pointer-events:none;box-shadow:0 0 0 5px rgba(226,211,169,.12)}
-.district-frontier-mark--nw{left:8%;top:11%}.district-frontier-mark--se{right:7%;bottom:9%;transform:rotate(7deg)}
+.district-frontier-mark--nw{left:8%;top:11%}.district-frontier-mark--se{right:7%;top:14%;bottom:auto;transform:rotate(7deg)}
 .district-pin,.district-home{position:absolute;transform:translate(-50%,-50%);color:#403824;cursor:pointer;text-align:center;z-index:4;touch-action:manipulation;-webkit-tap-highlight-color:transparent}
 .district-pin{display:flex;flex-direction:column;align-items:center;width:118px;min-width:0;min-height:0;max-width:none;padding:0;border:0;border-radius:0;background:transparent;gap:2px}
-.district-pin>.district-landmark{display:grid;place-items:center;width:58px;height:58px;border:1px solid rgba(75,61,39,.42);border-radius:46% 54% 49% 51%;background:radial-gradient(circle at 45% 36%,rgba(244,230,187,.96),rgba(215,196,143,.9));color:#536448;box-shadow:0 3px 0 rgba(89,68,40,.11),0 0 0 4px rgba(235,220,178,.32);transform:rotate(-2deg);transition:transform .16s ease,box-shadow .16s ease,background .16s ease}
+.district-pin>.district-landmark{display:grid;place-items:center;width:62px;height:62px;border:0;border-radius:0;background:radial-gradient(circle at 50% 48%,rgba(239,224,184,.46),rgba(239,224,184,.12) 54%,transparent 72%);color:#536448;box-shadow:none;transform:rotate(-2deg);transition:transform .16s ease,filter .16s ease,background .16s ease}
 .district-landmark-svg{display:block;width:48px;height:48px;overflow:visible}
 .district-pin strong,.district-pin small,.district-home strong,.district-home small{display:block}
 .district-pin strong{max-width:116px;margin-top:1px;padding:2px 6px 1px;border-bottom:1px solid rgba(78,61,39,.18);background:rgba(235,221,181,.8);font:700 12px/1.35 Georgia,"Yu Mincho",serif;box-shadow:0 1px 7px rgba(73,53,28,.08)}
 .district-pin small{max-width:116px;padding:1px 5px 2px;background:rgba(235,221,181,.67);color:#665d49;font-size:9px;line-height:1.3}
 .district-pin.biome-tower>.district-landmark{color:#59614d}.district-pin.biome-fen>.district-landmark{color:#526f6c}.district-pin.biome-crypt>.district-landmark{color:#675f54}.district-pin.biome-wood>.district-landmark{color:#536448}
-.district-pin.claimed>.district-landmark{background:radial-gradient(circle at 45% 36%,#e2e7c5,#bdcb9d);border-color:#617553;color:#506644;box-shadow:0 0 0 3px rgba(105,131,80,.17),0 4px 0 rgba(73,92,55,.11)}
+.district-pin.claimed>.district-landmark{background:radial-gradient(circle at 50% 48%,rgba(199,214,164,.56),rgba(199,214,164,.13) 56%,transparent 74%);color:#506644;filter:drop-shadow(0 2px 0 rgba(73,92,55,.12))}
 .district-claim-flag{color:#72542f}
 .district-pin.selected{z-index:7;outline:0}
-.district-pin.selected>.district-landmark{border-color:#9f7838;box-shadow:0 0 0 2px rgba(169,124,51,.72),0 0 0 8px rgba(169,124,51,.13),0 5px 15px rgba(67,48,24,.16);transform:rotate(2deg) scale(1.06)}
+.district-pin.selected>.district-landmark{border-radius:46% 54% 49% 51%;outline:1px dashed rgba(143,101,47,.9);outline-offset:1px;background:radial-gradient(circle at 50% 48%,rgba(241,221,167,.66),rgba(241,221,167,.12) 58%,transparent 74%);filter:drop-shadow(0 4px 7px rgba(67,48,24,.18));transform:rotate(2deg) scale(1.06)}
 .district-pin.selected strong{color:#2f261a;background:rgba(244,226,176,.94)}
 .district-pin:focus-visible{outline:0}.district-pin:focus-visible>.district-landmark{outline:2px solid #6d5937;outline-offset:4px}
-.district-home{left:50%;top:46%;width:126px;max-width:126px;min-height:0;padding:0 4px 4px;border:0;background:transparent;z-index:5}
+.district-home{left:50%;top:43%;width:126px;max-width:126px;min-height:0;padding:0 4px 4px;border:0;background:transparent;z-index:5}
 .district-home::before{content:"";position:absolute;left:50%;top:32px;z-index:-1;width:86px;height:54px;transform:translate(-50%,-50%);border-radius:50%;background:radial-gradient(ellipse,rgba(218,158,78,.3),rgba(217,195,132,.10) 54%,transparent 72%);filter:blur(.3px)}
 .district-home .homestead-art{width:108px;height:70px;margin:0 auto -3px;filter:saturate(.72) contrast(1.02) sepia(.08)}
 .district-home strong{width:max-content;max-width:122px;margin:0 auto;padding:2px 6px;background:rgba(242,224,176,.88);font:700 12px/1.35 Georgia,"Yu Mincho",serif;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .district-home small{width:max-content;max-width:122px;margin:1px auto 0;padding:1px 5px;background:rgba(236,220,178,.7);color:#655a45;font-size:9px;line-height:1.3}
 .district-home:focus-visible{outline:2px solid #8d6f37;outline-offset:3px}
-.district-detail{padding:12px;background:rgba(14,29,32,.96);border:1px solid rgba(204,180,126,.3);border-radius:14px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center}
+.district-detail{padding:12px;background:rgba(14,29,32,.97);border:1px solid rgba(204,180,126,.32);border-left:2px solid rgba(204,180,126,.72);border-radius:2px;display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;align-items:center;box-shadow:0 8px 20px rgba(0,0,0,.2)}
 .district-detail h2{margin:4px 0;font-size:19px}
 .district-detail p{margin:0;font-size:12px;color:var(--muted);line-height:1.5}
 .district-detail small{font-size:11px;color:var(--gold)}
 .district-detail .primary{font-size:14px;padding:12px;min-height:50px;max-width:120px}
+
+#game>.living-map-home .stronghold-status{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto;gap:1px 10px;margin:0 0 6px;padding:7px 10px;border:1px solid rgba(204,180,126,.28);border-left:2px solid rgba(204,180,126,.62);border-radius:2px;background:rgba(14,29,32,.97);color:var(--ink);box-shadow:0 6px 18px rgba(0,0,0,.18)}
+#game>.living-map-home .stronghold-status>.kicker{grid-column:1;grid-row:1;margin:0;color:var(--gold);font-size:8px;letter-spacing:.08em;line-height:1.2}
+#game>.living-map-home .stronghold-status>h3{grid-column:1;grid-row:2;margin:2px 0 0;font:600 15px/1.2 Georgia,"Yu Mincho",serif;color:var(--ink)}
+#game>.living-map-home .stronghold-status>.small{display:none}
+#game>.living-map-home .stronghold-status>details{grid-column:2;grid-row:1/3;align-self:center;margin:0}
+#game>.living-map-home .stronghold-status>details>summary{display:flex;align-items:center;min-height:40px;padding:0 6px;color:var(--gold);font-size:10px;white-space:nowrap;cursor:pointer}
+#game>.living-map-home .stronghold-status>details>p{margin:4px 0 0;max-width:28ch;color:var(--muted);font-size:9px;line-height:1.4}
+#game>.living-map-home .stronghold-status>.notice{grid-column:1/-1;margin:6px 0 0;font-size:10px;line-height:1.4}
 .home-portrait{display:grid;place-content:center;background:radial-gradient(ellipse at center,#b6bb88 0,#e1d3aa 70%);border-radius:12px;min-height:180px;color:#403824}
 .home-portrait .homestead-art{width:min(320px,90vw)}
 .home-portrait p{text-align:center;font-size:14px;margin:0 0 10px}
