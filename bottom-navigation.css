@@ -35,9 +35,12 @@
   background: rgba(204, 180, 126, .08);
 }
 
-/* Reserve room so the fixed control never covers the last camp action. */
-body:has(.bottom-navigation) .app-shell {
-  padding-bottom: calc(82px + env(safe-area-inset-bottom));
+/* Reserve room only on real phone-width layouts. Desktop phone previews
+   keep the dock inside their own frame and must not push the whole page down. */
+@media (max-width: 480px) {
+  body:has(.bottom-navigation) .app-shell {
+    padding-bottom: calc(82px + env(safe-area-inset-bottom));
+  }
 }
 
 @media (min-width: 760px) {
