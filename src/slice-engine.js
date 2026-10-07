@@ -86,6 +86,7 @@
     heavy: { name: '大振り', damage: 12, help: '回避がおすすめ。防御だけでは削られる。' },
     guard: { name: '守りを固める', damage: 0, help: '攻撃を 3 軽減する。防御で気力を整える。' },
     open: { name: '体勢を崩している', damage: 0, help: '攻撃の好機。強撃なら大きく削れる。' },
+    frenzy: { name: '窮鼠の一撃', damage: 8, help: '手負いの反撃。隙を見せたふりだ。回避なら無傷で追撃、防御なら軽減できる。' },
   };
   const copy = s => JSON.parse(JSON.stringify(s));
   const place = id => PLACES.find(p => p.id === id);
@@ -182,7 +183,13 @@
     const enemy = ENEMIES[e.kind];
     const patterns = e.elite && enemy.elitePatterns ? enemy.elitePatterns : enemy.patterns;
     const pattern = patterns[Math.max(0, Math.min(2, e.depth - 1))];
-    const id = pattern[e.turn % pattern.length];
+    // Break the memorised loop: from the second room on, each encounter starts at a
+    // different (never 'open') point of the pattern. The first room stays canonical.
+    let start = Number.isInteger(e.seed) ? e.seed % pattern.length : 0;
+    while (pattern[start] === 'open') start = (start + 1) % pattern.length;
+    let id = pattern[(start + e.turn) % pattern.length];
+    // A wounded enemy fakes an opening once: the next 'open' becomes a telegraphed counter.
+    if (e.frenzy && id === 'open') id = 'frenzy';
     let damage = INTENTS[id].damage ? INTENTS[id].damage + e.depth - 1 + (e.elite ? 2 : 0) : 0;
     const trait = enemyProfile(e).trait?.id;
     if (damage && trait === 'feral') damage += 2;
@@ -211,11 +218,12 @@
     n.expedition = { place: id, depth: 1, room: 0, hp: maxHp(s), stamina: 3, focus: 0, stagger: false, sharpened, sharpenedApplied: false, potions: 2, scrap: 0, gear: [], gearQuality: [], seals: [], grudge, enemy: null, stage: 'path', log: [intro] };
     return n;
   }
-  function encounter(x, risky) {
+  function encounter(x, risky, runs = 0) {
     const elite = x.room === 4;
     const kind = x.place === 'wood' && x.room === 2 ? 'forest_hunter' : place(x.place).enemy;
     const hp = ENEMIES[kind].hp + (x.depth - 1) * 5 + (elite ? 6 : 0) + (risky ? 3 : 0);
     x.enemy = { kind, hp, maxHp: hp, turn: 0, depth: x.depth, elite, risky };
+    if (x.room > 0 && !elite) x.enemy.seed = (runs * 7 + x.depth * 3 + x.room * 5 + (risky ? 1 : 0)) % 12;
     x.stage = 'fight'; x.stamina = Math.max(2, x.stamina); x.stagger = false; x.sharpenedApplied = false;
     const profile = enemyProfile(x.enemy);
     x.log = [elite ? `土地の主が、帰り道を塞いだ。${profile.trait ? `《${profile.trait.name}》の気配。` : ''}` : risky ? '宝の気配を追った。獲物も、こちらを見ている。' : '足音が止んだ。敵の構えをよく見よう。'];
@@ -337,7 +345,7 @@
         x.room++; if (x.hp <= 0) return finish(n, true); return n;
       }
       if (!['careful', 'risky'].includes(action)) return s;
-      encounter(x, action === 'risky'); return n;
+      encounter(x, action === 'risky', n.runs); return n;
     } else if (x.stage === 'fight') {
       if (!['strike', 'heavy', 'guard', 'dodge', 'flee'].includes(action)) return s;
       const p = combatProfile(n);
@@ -374,6 +382,8 @@
     e.hp = Math.max(0, e.hp - damage);
     if (damage > 0) x.log.push(`こちらの一撃。${damage} ダメージ。`);
     if (e.hp <= 0) { victory(n); return n; }
+    if (next.id === 'frenzy') e.frenzy = false;
+    else if (!e.frenzy && !e.wounded && e.hp * 2 <= e.maxHp) { e.frenzy = true; e.wounded = true; x.log.push('傷ついた敵が、牙を剥く。次の隙は罠かもしれない。'); }
     const block = action === 'guard' ? p.block : 0;
     const taken = action === 'dodge'
       ? (next.id === 'feint' ? next.damage : next.id === 'quick' ? Math.max(1, Math.ceil(next.damage / 2)) : 0)
@@ -501,7 +511,7 @@
         if (Object.keys(x).some(k => !['place','depth','room','hp','stamina','focus','stagger','sharpened','sharpenedApplied','potions','scrap','gear','gearQuality','seals','grudge','enemy','stage','log'].includes(k)) || !s.unlocked.includes(x.place) || !int(x.depth,1,3) || !int(x.room,0,4) || !int(x.hp,1,maxHp(s)) || !int(x.stamina,0,3) || !allowedFocus.includes(x.focus) || typeof x.stagger !== 'boolean' || !int(x.sharpened,0,3) || typeof x.sharpenedApplied !== 'boolean' || !validExpeditionGrudge(x.grudge) || !int(x.potions,0,2) || !int(x.scrap,0,1000) || !validLoot(x.gear,x.gearQuality) || !Array.isArray(x.seals) || x.seals.length > 3 || !x.seals.every(v => ids.includes(v)) || !['path','fight','cleared'].includes(x.stage) || !Array.isArray(x.log) || x.log.length > 10 || !x.log.every(v => typeof v === 'string' && v.length < 250)) throw Error('run');
         if (x.stage === 'fight') {
           const e = x.enemy;
-          if (!e || Object.keys(e).some(k => !['kind','hp','maxHp','turn','depth','elite','risky'].includes(k)) || !ENEMIES[e.kind] || !int(e.maxHp,1,80) || !int(e.hp,1,e.maxHp) || !int(e.turn,0,1e6) || e.depth !== x.depth || typeof e.elite !== 'boolean' || typeof e.risky !== 'boolean') throw Error('enemy');
+          if (!e || Object.keys(e).some(k => !['kind','hp','maxHp','turn','depth','elite','risky','seed','frenzy','wounded'].includes(k)) || !(e.seed === undefined || int(e.seed,0,11)) || !(e.frenzy === undefined || typeof e.frenzy === 'boolean') || !(e.wounded === undefined || typeof e.wounded === 'boolean') || !ENEMIES[e.kind] || !int(e.maxHp,1,80) || !int(e.hp,1,e.maxHp) || !int(e.turn,0,1e6) || e.depth !== x.depth || typeof e.elite !== 'boolean' || typeof e.risky !== 'boolean') throw Error('enemy');
         } else if (x.enemy !== null) throw Error('enemy');
       }
       if (s.report) {
