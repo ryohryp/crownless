@@ -11,8 +11,8 @@ test('#904: first room stays canonical, later encounters start at varied points'
   assert.equal(s.expedition.enemy.seed, undefined);
   assert.equal(E.intent(s.expedition.enemy).id, 'quick');
 
-  const starts = new Set([0, 1, 2, 3, 4, 5].map(seed => firstIntent('wolf', seed)));
-  assert.ok(starts.size >= 2, 'wolf loop start must vary');
+  const turn1Intents = new Set([0, 1, 2, 3, 4, 5].map(seed => E.intent({ kind: 'wolf', hp: 10, maxHp: 10, turn: 1, depth: 1, elite: false, risky: false, seed }).id));
+  assert.ok(turn1Intents.size >= 2, 'subsequent turns must dynamically vary across encounters');
   for (let seed = 0; seed < 12; seed++) {
     for (const kind of ['wolf', 'knight', 'wraith', 'king']) assert.notEqual(firstIntent(kind, seed), 'open');
   }

@@ -15,9 +15,8 @@ function safeAction(s) {
   const i = E.intent(x.enemy);
   const attack = E.attackPreview(s,'strike');
   if (x.enemy.hp <= attack && i.id !== 'guard') return 'strike';
-  if (['heavy','pounce'].includes(i.id) && x.stamina >= E.combatProfile(s).dodgeCost) return 'dodge';
-  if (i.id === 'quick') return 'guard';
-  if (i.id === 'guard') return 'guard';
+  if (['heavy','pounce','break','frenzy'].includes(i.id) && x.stamina >= E.combatProfile(s).dodgeCost) return 'dodge';
+  if (['quick','feint','intercept','guard'].includes(i.id)) return 'guard';
   return x.stamina >= E.combatProfile(s).heavyCost ? 'heavy' : 'strike';
 }
 function complete(s,id) {

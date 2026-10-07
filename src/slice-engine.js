@@ -86,6 +86,9 @@
     heavy: { name: '大振り', damage: 12, help: '回避がおすすめ。防御だけでは削られる。' },
     guard: { name: '守りを固める', damage: 0, help: '攻撃を 3 軽減する。防御で気力を整える。' },
     open: { name: '体勢を崩している', damage: 0, help: '攻撃の好機。強撃なら大きく削れる。' },
+    feint: { name: 'フェイント', damage: 4, help: '回避を誘う牽制。防御で受けるか、通常攻撃で先に崩せる。回避すると被弾。' },
+    break: { name: '崩し', damage: 7, help: '守りを崩す一撃。回避するか、通常攻撃で先に削れる。防御すると崩される。' },
+    intercept: { name: '迎撃', damage: 6, help: '強撃を待ち構える。通常攻撃へ切り替えるか、防御で整えられる。' },
     frenzy: { name: '窮鼠の一撃', damage: 8, help: '手負いの反撃。隙を見せたふりだ。回避なら無傷で追撃、防御なら軽減できる。' },
   };
   const copy = s => JSON.parse(JSON.stringify(s));
@@ -179,16 +182,53 @@
     }
     return { archetype, trait };
   }
+  const hash01 = (seed, t) => {
+    let h = Math.imul((seed + 1) * 2654435761 ^ (t + 1) * 40503, 2246822519);
+    h ^= h >>> 13; h = Math.imul(h, 3266489917); h ^= h >>> 16;
+    return (h >>> 0) / 4294967296;
+  };
+  function proceduralId(e, pattern) {
+    if (e.turn === 0) return pattern[0];
+    const pools = {
+      wolf: ['quick', 'heavy', 'feint', 'open'],
+      forest_hunter: ['guard', 'quick', 'feint', 'heavy', 'open'],
+      knight: ['guard', 'heavy', 'break', 'intercept', 'quick', 'open'],
+      wraith: ['quick', 'feint', 'heavy', 'guard', 'open'],
+      king: ['guard', 'heavy', 'break', 'quick', 'open'],
+    };
+    const pool = pools[e.kind] || pattern;
+    const seq = [pattern[0]];
+    for (let t = 1; t <= e.turn; t++) {
+      const prev = seq[t - 1];
+      const prev2 = seq[t - 2];
+      const sinceOpen = seq.length - 1 - seq.lastIndexOf('open');
+      const weights = pool.map(id => {
+        let w = 1.0;
+        if (id === 'open') {
+          if (prev === 'open' || (sinceOpen < 2 && seq.includes('open'))) w = 0;
+          else if (prev === 'heavy' || prev === 'pounce') w = 2.5;
+          else if (sinceOpen >= 3 || (!seq.includes('open') && t >= 3)) w = 3.0;
+          else w = 0.4;
+        }
+        if (['heavy', 'pounce', 'guard', 'break', 'intercept'].includes(id) && id === prev) w = 0;
+        if (id === prev && id === prev2) w = 0;
+        return [id, w];
+      });
+      const total = weights.reduce((a, [, w]) => a + w, 0);
+      let r = hash01(e.seed, t) * total, pick = weights[0][0];
+      for (const [id, w] of weights) {
+        if (w > 0 && r < w) { pick = id; break; }
+        r -= w;
+      }
+      seq.push(pick);
+    }
+    return seq[e.turn];
+  }
   const intent = e => {
     const enemy = ENEMIES[e.kind];
     const patterns = e.elite && enemy.elitePatterns ? enemy.elitePatterns : enemy.patterns;
     const pattern = patterns[Math.max(0, Math.min(2, e.depth - 1))];
-    // Break the memorised loop: from the second room on, each encounter starts at a
-    // different (never 'open') point of the pattern. The first room stays canonical.
-    let start = Number.isInteger(e.seed) ? e.seed % pattern.length : 0;
-    while (pattern[start] === 'open') start = (start + 1) % pattern.length;
-    let id = pattern[(start + e.turn) % pattern.length];
-    // A wounded enemy fakes an opening once: the next 'open' becomes a telegraphed counter.
+    let id = Number.isInteger(e.seed) ? proceduralId(e, pattern) : pattern[e.turn % pattern.length];
     if (e.frenzy && id === 'open') id = 'frenzy';
     let damage = INTENTS[id].damage ? INTENTS[id].damage + e.depth - 1 + (e.elite ? 2 : 0) : 0;
     const trait = enemyProfile(e).trait?.id;
@@ -223,7 +263,7 @@
     const kind = x.place === 'wood' && x.room === 2 ? 'forest_hunter' : place(x.place).enemy;
     const hp = ENEMIES[kind].hp + (x.depth - 1) * 5 + (elite ? 6 : 0) + (risky ? 3 : 0);
     x.enemy = { kind, hp, maxHp: hp, turn: 0, depth: x.depth, elite, risky };
-    if (x.room > 0 && !elite) x.enemy.seed = (runs * 7 + x.depth * 3 + x.room * 5 + (risky ? 1 : 0)) % 12;
+    if (x.room > 0 && !elite) x.enemy.seed = Math.abs(runs * 7919 + x.depth * 131 + x.room * 17 + (risky ? 5 : 0)) % 99991;
     x.stage = 'fight'; x.stamina = Math.max(2, x.stamina); x.stagger = false; x.sharpenedApplied = false;
     const profile = enemyProfile(x.enemy);
     x.log = [elite ? `土地の主が、帰り道を塞いだ。${profile.trait ? `《${profile.trait.name}》の気配。` : ''}` : risky ? '宝の気配を追った。獲物も、こちらを見ている。' : '足音が止んだ。敵の構えをよく見よう。'];
@@ -511,7 +551,7 @@
         if (Object.keys(x).some(k => !['place','depth','room','hp','stamina','focus','stagger','sharpened','sharpenedApplied','potions','scrap','gear','gearQuality','seals','grudge','enemy','stage','log'].includes(k)) || !s.unlocked.includes(x.place) || !int(x.depth,1,3) || !int(x.room,0,4) || !int(x.hp,1,maxHp(s)) || !int(x.stamina,0,3) || !allowedFocus.includes(x.focus) || typeof x.stagger !== 'boolean' || !int(x.sharpened,0,3) || typeof x.sharpenedApplied !== 'boolean' || !validExpeditionGrudge(x.grudge) || !int(x.potions,0,2) || !int(x.scrap,0,1000) || !validLoot(x.gear,x.gearQuality) || !Array.isArray(x.seals) || x.seals.length > 3 || !x.seals.every(v => ids.includes(v)) || !['path','fight','cleared'].includes(x.stage) || !Array.isArray(x.log) || x.log.length > 10 || !x.log.every(v => typeof v === 'string' && v.length < 250)) throw Error('run');
         if (x.stage === 'fight') {
           const e = x.enemy;
-          if (!e || Object.keys(e).some(k => !['kind','hp','maxHp','turn','depth','elite','risky','seed','frenzy','wounded'].includes(k)) || !(e.seed === undefined || int(e.seed,0,11)) || !(e.frenzy === undefined || typeof e.frenzy === 'boolean') || !(e.wounded === undefined || typeof e.wounded === 'boolean') || !ENEMIES[e.kind] || !int(e.maxHp,1,80) || !int(e.hp,1,e.maxHp) || !int(e.turn,0,1e6) || e.depth !== x.depth || typeof e.elite !== 'boolean' || typeof e.risky !== 'boolean') throw Error('enemy');
+          if (!e || Object.keys(e).some(k => !['kind','hp','maxHp','turn','depth','elite','risky','seed','frenzy','wounded'].includes(k)) || !(e.seed === undefined || int(e.seed,0,99990)) || !(e.frenzy === undefined || typeof e.frenzy === 'boolean') || !(e.wounded === undefined || typeof e.wounded === 'boolean') || !ENEMIES[e.kind] || !int(e.maxHp,1,80) || !int(e.hp,1,e.maxHp) || !int(e.turn,0,1e6) || e.depth !== x.depth || typeof e.elite !== 'boolean' || typeof e.risky !== 'boolean') throw Error('enemy');
         } else if (x.enemy !== null) throw Error('enemy');
       }
       if (s.report) {
