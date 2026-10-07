@@ -52,3 +52,37 @@ test('#904: crossing half HP arms frenzy exactly once and the save round-trips',
   assert.ok(Number.isInteger(fight.expedition.enemy.seed));
   assert.ok(E.parse(E.serialize(fight)));
 });
+
+
+test('#906: seeded encounters generate varied deterministic sequences without unfair repeats', () => {
+  const sequence = seed => Array.from({ length: 12 }, (_, turn) =>
+    E.intent({ kind: 'wolf', hp: 16, maxHp: 16, turn, depth: 2, elite: false, risky: false, seed }).id
+  );
+  const a = sequence(101), again = sequence(101), b = sequence(102);
+  assert.deepEqual(a, again, 'same encounter seed must restore the same future');
+  assert.notDeepEqual(a, b, 'different encounters should not collapse to one loop');
+  assert.notEqual(a[0], 'open');
+  for (let i = 1; i < a.length; i++) {
+    assert.ok(!(a[i] === 'open' && a[i - 1] === 'open'), 'open cannot repeat');
+    assert.ok(!(a[i] === 'heavy' && a[i - 1] === 'heavy'), 'heavy cannot repeat');
+    if (i >= 2) assert.ok(!(a[i] === a[i - 1] && a[i] === a[i - 2]), 'same action cannot repeat three times');
+  }
+});
+
+test('#906: only the first fight of the first expedition keeps the authored loop; boss keeps only its opener', () => {
+  let first = E.start(demo(), 'wood');
+  first = E.act(first, 'careful');
+  assert.equal(first.expedition.enemy.seed, undefined);
+
+  let laterRun = E.start(demo(4), 'wood');
+  laterRun = E.act(laterRun, 'careful');
+  assert.ok(Number.isInteger(laterRun.expedition.enemy.seed));
+
+  let boss = E.start(demo(2), 'wood');
+  boss.expedition.room = 4;
+  boss = E.act(boss, 'careful');
+  assert.equal(E.intent(boss.expedition.enemy).id, E.ENEMIES.wolf.elitePatterns[0][0]);
+  boss.expedition.enemy.turn = 1;
+  assert.ok(E.INTENTS[E.intent(boss.expedition.enemy).id]);
+  assert.ok(E.parse(E.serialize(boss)), 'generated boss encounter must round-trip through save');
+});
