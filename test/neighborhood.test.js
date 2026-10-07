@@ -2,6 +2,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const E = require('../src/slice-engine.js');
 const N = require('../src/neighborhood.js');
+const fs = require('node:fs');
+const path = require('node:path');
 const fresh = () => ({...E.initial(),mode:'demo'});
 function clear(s) {
   s = E.start(s,'wood');
@@ -115,4 +117,12 @@ test('renamed home and replayed claimed district preserve ownership and cannot c
   assert.equal(s.neighborhood.wood,5,'claimed territory improves actively returned construction loot');
   assert.equal(s.neighborhood.stone,3);
   assert.deepEqual(E.parse(E.serialize(s)),s);
+});
+
+
+test('neighborhood visual shell keeps stronghold status compact and map landmarks unboxed', () => {
+  const css = fs.readFileSync(path.join(__dirname, '..', 'neighborhood.css'), 'utf8');
+  assert.match(css, /stronghold-status\{display:grid/);
+  assert.match(css, /district-pin>\.district-landmark\{[^}]*border:0/);
+  assert.match(css, /district-detail\{[^}]*border-radius:2px/);
 });
