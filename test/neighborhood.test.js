@@ -10,7 +10,7 @@ function clear(s) {
     if (x.stage==='path') s = E.act(s,[1,3].includes(x.room) ? E.isRoadsideEvent(s,x) ? 'pray' : 'rest' : 'careful');
     else {
       const intent=E.intent(x.enemy);
-      const action = x.hp<13 && x.potions ? 'heal' : ['heavy','frenzy'].includes(intent.id) ? (x.stamina>=1 ? 'dodge' : 'guard') : intent.id==='quick' ? 'guard' : x.stamina>=2 ? 'heavy' : 'strike';
+      const action = x.hp<13 && x.potions ? 'heal' : ['heavy','frenzy','pounce','break'].includes(intent.id) ? (x.stamina>=1 ? 'dodge' : 'guard') : ['quick','feint','intercept','guard'].includes(intent.id) ? 'guard' : x.stamina>=2 ? 'heavy' : 'strike';
       s=E.act(s,action);
     }
   }
