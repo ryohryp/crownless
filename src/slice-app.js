@@ -63,7 +63,7 @@
     const n = state.neighborhood, chosen = N.get(n);
     const districts = [...n.districts];
     const rx = Math.max(1,...districts.map(d=>Math.abs(d.x))), ry = Math.max(1,...districts.map(d=>Math.abs(d.y)));
-    const pos = d => [50+d.x/(rx*2+1)*96,46-d.y/(ry*2+1)*72];
+    const pos = d => [50+d.x/(rx*2+1)*96,43-d.y/(ry*2+1)*52];
     const landmark = d => {
       const art = {
         wood:'<path d="M12 35l7-11 7 11M7 38l9-14 9 14M23 37l7-12 8 12M16 39v4M30 38v5" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>',
@@ -74,7 +74,7 @@
       const flag = d.claimed ? '<path class="district-claim-flag" d="M34 12v16M35 13l7 3-7 3" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>' : '';
       return '<svg class="district-landmark-svg" viewBox="0 0 48 48" focusable="false" aria-hidden="true">'+art+flag+'</svg>';
     };
-    const paths = districts.map(d => { const [x,y]=pos(d); return '<path class="district-road '+(d.claimed ? 'claimed' : '')+'" d="M50 46L'+x+' '+y+'"/>'; }).join('');
+    const paths = districts.map(d => { const [x,y]=pos(d); return '<path class="district-road '+(d.claimed ? 'claimed' : '')+'" d="M50 43L'+x+' '+y+'"/>'; }).join('');
     const markers = districts.map(d => {
       const [x,y]=pos(d);
       return '<button class="district-pin biome-'+d.biome+' '+(d.claimed ? 'claimed ' : '')+(d.id===n.selected ? 'selected' : '')+'" style="left:'+x+'%;top:'+y+'%" data-action="district" data-value="'+d.id+'" aria-pressed="'+(d.id===n.selected)+'"><span class="district-landmark" aria-hidden="true">'+landmark(d)+'</span><strong>'+N.title(d)+'</strong><small>'+(d.claimed ? 'あなたの領域' : '土地の主が潜む')+'</small></button>';
