@@ -24,8 +24,8 @@
   #game>.living-map-home .atlas-home-caption{padding:7px 10px 132px}
   #game>.living-map-home>.panel{position:absolute;left:.6rem;right:.6rem;bottom:76px;z-index:16;display:block;height:auto;max-height:420px;padding:0;overflow:auto;background:transparent;overscroll-behavior:contain}
   #game>.living-map-home>.panel>.camp-tabs{position:fixed;left:50%;bottom:10px;transform:translateX(-50%);width:min(406px,calc(100% - 24px));margin:0;order:initial}
-  #game>.living-map-home .map-home-trace{border-color:rgba(204,180,126,.30);border-radius:14px;background:rgba(14,29,32,.94);box-shadow:0 10px 28px rgba(0,0,0,.28);backdrop-filter:blur(10px);overflow:hidden}
-  #game>.living-map-home .map-home-scouting{margin:6px 4px 0;border:1px solid rgba(204,180,126,.22);border-radius:12px;background:rgba(14,29,32,.96)}
+  #game>.living-map-home .map-home-trace{border-color:rgba(204,180,126,.30);border-radius:2px;background:rgba(14,29,32,.97);box-shadow:0 8px 22px rgba(0,0,0,.24);overflow:hidden}
+  #game>.living-map-home .map-home-scouting{margin:6px 0 0;border:1px solid rgba(204,180,126,.22);border-radius:2px;background:rgba(14,29,32,.97)}
   #game>.living-map-home>.panel>.text-button{display:none}
   #game>.living-map-home .bottom-navigation{background:rgba(14,29,32,.97)}
 }
@@ -125,7 +125,7 @@
     z-index:16;
     display:block;
     height:auto;
-    max-height:min(42dvh,350px);
+    max-height:min(36dvh,300px);
     padding:0;
     overflow:auto;
     background:transparent;
@@ -147,7 +147,7 @@
   #game>.living-map-home .map-home-trace-detail{grid-template-columns:1fr auto;gap:10px;padding:0 12px 11px}
   #game>.living-map-home .map-home-whisper{max-width:34ch;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;font-size:10px}
   #game>.living-map-home .map-home-depart{width:auto;min-width:112px;min-height:48px;padding:10px 12px;white-space:nowrap}
-  #game>.living-map-home .map-home-scouting{margin:6px 4px 0;border:1px solid rgba(204,180,126,.22);border-radius:12px;background:rgba(14,29,32,.96)}
+  #game>.living-map-home .map-home-scouting{margin:6px 0 0;border:1px solid rgba(204,180,126,.22);border-radius:2px;background:rgba(14,29,32,.97)}
   #game>.living-map-home .map-home-scouting summary{min-height:40px}
   #game>.living-map-home .map-home-scouting .discovery{max-height:31dvh;overflow:auto;border:0;padding:10px}
   #game>.living-map-home>.panel>.text-button{display:none}
