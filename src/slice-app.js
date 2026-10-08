@@ -120,10 +120,27 @@
       : state.maintenance === 'sharp'
         ? '<p class="notice">刃は研ぎ澄まされている。次の遠征の最初の3戦で、初撃 +3。</p>'
         : '';
+    const fangCount = state.materials?.wolfFang ?? 0;
+    const roleChoices = state.characters.map((c,i) =>
+      button('character', `${c.name}${state.activeCharacter === i ? ' · 操作中' : ''}`,
+        c.role === 'smith' ? `鍛冶熟練 ${c.experience}` : c.role === 'merchant' ? '交易（今後の実験）' : '遠征と素材採集',
+        {class:state.activeCharacter === i ? 'choice selected' : 'secondary',value:String(i)})).join('');
+    const craftReady = state.activeCharacter === 1 && fangCount >= 2 && state.scrap >= 4 && !state.owned.includes('forged_fang');
+    const crafted = state.owned.includes('forged_fang');
+    const workshop = `<section class="rule-line" aria-label="職人の試作">
+      <h3>冒険者と職人の仕事</h3><p class="small">同じ倉庫を使う3人。遠征は旅人、製作は鍛冶師が担当。切り替えは安全な拠点だけ。</p>
+      <div class="choice-grid">${roleChoices}</div>
+      <p class="small">共同倉庫：狼牙 ${fangCount} 個 · 鉄片 ${state.scrap} 個</p>
+      <h3>鍛ち牙の短剣</h3><p class="small">狼牙 2個＋鉄片 4個。鍛冶師が作る品質 +1 の短剣。製作品は冒険者も装備できる。</p>
+      ${crafted ? '<p class="notice">鍛ち牙の短剣を製作済み。旅人に切り替えて装備を試そう。</p>' :
+         state.activeCharacter === 1 ? button('craft-wolf-fang','鍛ち牙の短剣を製作','鍛冶師専用',{class:'primary',disabled:!craftReady}) :
+         '<p class="notice">鍛冶師に切り替えると製作できる。</p>'}
+      ${notice ? `<p class="notice" role="status">${esc(notice)}</p>` : ''}
+    </section>`;
     const previewState = {...state, scrap: Math.max(state.scrap, cost)};
     const nextPower = level < 4 ? reinforcementResult(state, E.upgrade(previewState, id), id) : '';
     const powerPreview = nextPower ? `<p class="small reinforcement-preview"><strong>補強後の成果：</strong>${nextPower}</p>` : '';
-    return `<p class="kicker">MAKE IT HOME. MAKE IT YOURS.</p><h2>次の旅の、戦い方。</h2><p class="small">深層では同じ武器でも品質の違う一本が見つかる。補強と特性はそのまま、攻撃だけが少し揺れる。</p>${maintenance}<div class="gear-list">${state.owned.filter(g => g !== 'crown').map(g => button('equip',`${E.GEAR[g].name}${state.equipped === g ? ' · 装備中' : ''} · 補強 ${E.weaponLevel(state,g)}/4`,`${E.qualityLabel(E.weaponQuality(state,g))} · ${E.gearText(state,g)}`,{value:g,class:`choice ${state.equipped === g ? 'selected' : ''}`})).join('')}</div>${state.owned.includes('crown') ? '<p class="badge">灰の王冠 · 永続で最大体力 +6</p>' + button('ending-open','最初の物語を振り返る','',{class:'secondary'}) : ''}<div class="rule-line"><div class="section-heading"><h3 style="margin:0">${E.GEAR[id].name}を補強する</h3><span class="small">${level} / 4</span></div><p class="small">この一本の得意行動だけが一段強くなる。別の武器には影響しない。</p>${powerPreview}${button('upgrade',level >= 4 ? 'この武器の補強を終えた' : `鉄片 ${cost} で補強する`,'',{class:'secondary',disabled:level >= 4 || state.scrap < cost})}${notice ? `<p class="notice" role="status">${esc(notice)}</p>` : ''}</div>${retry}`;
+    return `<p class="kicker">MAKE IT HOME. MAKE IT YOURS.</p><h2>次の旅の、戦い方。</h2>${workshop}<p class="small">深層では同じ武器でも品質の違う一本が見つかる。補強と特性はそのまま、攻撃だけが少し揺れる。</p>${maintenance}<div class="gear-list">${state.owned.filter(g => g !== 'crown').map(g => button('equip',`${E.GEAR[g].name}${state.equipped === g ? ' · 装備中' : ''} · 補強 ${E.weaponLevel(state,g)}/4`,`${E.qualityLabel(E.weaponQuality(state,g))} · ${E.gearText(state,g)}`,{value:g,class:`choice ${state.equipped === g ? 'selected' : ''}`})).join('')}</div>${state.owned.includes('crown') ? '<p class="badge">灰の王冠 · 永続で最大体力 +6</p>' + button('ending-open','最初の物語を振り返る','',{class:'secondary'}) : ''}<div class="rule-line"><div class="section-heading"><h3 style="margin:0">${E.GEAR[id].name}を補強する</h3><span class="small">${level} / 4</span></div><p class="small">この一本の得意行動だけが一段強くなる。別の武器には影響しない。</p>${powerPreview}${button('upgrade',level >= 4 ? 'この武器の補強を終えた' : `鉄片 ${cost} で補強する`,'',{class:'secondary',disabled:level >= 4 || state.scrap < cost})}${notice ? `<p class="notice" role="status">${esc(notice)}</p>` : ''}</div>${retry}`;
   }
   function reinforcementResult(beforeState, afterState, id) {
     const gear = E.GEAR[id];
@@ -235,8 +252,9 @@
       return `<div class='reward loot-compare'><span class='reward-icon'>↔</span><div><strong>${E.GEAR[d.id].name} · ${E.qualityLabel(d.quality)}</strong><small>今の一本 ${E.qualityLabel(currentQ)} / 攻撃 ${currentAttack} → 発見品 攻撃 ${foundAttack}。${compare}。</small>${actions}</div></div>`;
     }).join('')}</div>` : '';
     const homeOpportunity = state.neighborhood.result && !r.died && (state.neighborhood.result.claimed || Object.keys(N.BUILDINGS).some(id => N.canBuild(state.neighborhood,id)));
-    const nextLabel = unresolved ? `同名武器をあと ${unresolved} 本整理する` : keptDuplicate ? '入れ替えた装備を確認する' : homeOpportunity ? '拠点を育てる' : hasNewBattleGear ? '持ち帰った装備を比べる' : canPowerUp ? '補強へ進む' : '焚き火で次の準備をする';
-    return `<div class="game-layout report-layout"><section class="visual-column">${scene('camp',r.died ? '火は、まだ消えていない。' : 'おかえり、旅人。',r.died ? 'THE ROAD IS NOT OVER' : 'YOU MADE IT HOME')}</section><section class="panel report-panel"><div class="report-scroll"><p class='kicker'>${r.died ? 'EXPEDITION LOST' : 'SAFE RETURN'} / ${E.place(r.place).name}</p><h1>${r.died ? '命だけを、持ち帰った。' : duplicates.length ? '持ち帰った一本を、比べる。' : r.newGear.length ? '新しい一本を、火へ。' : '欲張らずに、帰る強さ。'}</h1><p class='intro'>${r.died ? defeatIntro : '背嚢の中身は、もうあなたのもの。同じ名の武器でも品質が違う。今の一本と比べて、残すか鉄片にするかを決めよう。'}</p><div class='result-number'>${r.died ? '' : '+'}${r.scrap} <small>${r.died ? '鉄片を落とした' : '鉄片を確保'}</small></div>${state.neighborhood.result ? `<div class="home-return"><strong>${state.neighborhood.result.claimed ? '⚑ '+N.title(N.get(state.neighborhood,state.neighborhood.result.id))+'を開拓！' : state.neighborhood.result.died ? '土地と拠点は残っている。' : '拠点へ建材を持ち帰った。'}</strong><p>木材 +${state.neighborhood.result.wood} · 石材 +${state.neighborhood.result.stone}</p><small>${state.neighborhood.result.claimed ? 'この土地に、あなたの旗が立つ。' : '持ち帰った建材で、拠点に建物を増やせる。'}</small></div>` : ''}${lootRows}${duplicateRows}${recovery?.scrap ? `<div class='reward'><span class='reward-icon'>↺</span><div><strong>敗走跡：鉄片 ${recovery.scrap}</strong><small>次に同じ土地へ出れば背嚢へ戻る。生還するまで未確定。</small></div></div>` : ''}${!r.died && state.owned.includes('crown') ? `<p class='notice'>灰冠の廟を越えた。名もなき旅人の、最初の物語が残った。</p>` : ''}<p class='small rule-line'>${r.died ? (recovery ? '敗走は全損ではない。取り戻しに行くか、別の土地へ向かうかを選べる。' : '遠征の失敗で、恒久的な進行は失われません。') : state.cleared.length >= 2 && !state.owned.includes('crown') ? '二つの土地を越えた。次は「灰冠の廟」の主に挑める。' : '同じ土地へ戻れば、同じ武器でももっと良い品質に出会えることがある。'}</p></div><div class="report-actions">${button('continue',r.died && recovery ? '敗走跡を回収する準備へ' : nextLabel,'',{class:'primary',disabled:unresolved > 0})}</div></section></div>`;
+    const readyToCraft = !r.died && state.materials?.wolfFang >= 2 && state.scrap >= 4 && !state.owned.includes('forged_fang');
+    const nextLabel = readyToCraft ? '職人に素材を渡す' : unresolved ? `同名武器をあと ${unresolved} 本整理する` : keptDuplicate ? '入れ替えた装備を確認する' : homeOpportunity ? '拠点を育てる' : hasNewBattleGear ? '持ち帰った装備を比べる' : canPowerUp ? '補強へ進む' : '焚き火で次の準備をする';
+    return `<div class="game-layout report-layout"><section class="visual-column">${scene('camp',r.died ? '火は、まだ消えていない。' : 'おかえり、旅人。',r.died ? 'THE ROAD IS NOT OVER' : 'YOU MADE IT HOME')}</section><section class="panel report-panel"><div class="report-scroll"><p class='kicker'>${r.died ? 'EXPEDITION LOST' : 'SAFE RETURN'} / ${E.place(r.place).name}</p><h1>${r.died ? '命だけを、持ち帰った。' : duplicates.length ? '持ち帰った一本を、比べる。' : r.newGear.length ? '新しい一本を、火へ。' : '欲張らずに、帰る強さ。'}</h1><p class='intro'>${r.died ? defeatIntro : '背嚢の中身は、もうあなたのもの。同じ名の武器でも品質が違う。今の一本と比べて、残すか鉄片にするかを決めよう。'}</p><div class='result-number'>${r.died ? '' : '+'}${r.scrap} <small>${r.died ? '鉄片を落とした' : '鉄片を確保'}</small></div>${r.materials?.wolfFang ? `<p class='notice'>${r.died ? '失った素材' : '持ち帰った素材'}：狼牙 ${r.materials.wolfFang} 個。鍛冶師の仕事に使える。</p>` : ''}${state.neighborhood.result ? `<div class="home-return"><strong>${state.neighborhood.result.claimed ? '⚑ '+N.title(N.get(state.neighborhood,state.neighborhood.result.id))+'を開拓！' : state.neighborhood.result.died ? '土地と拠点は残っている。' : '拠点へ建材を持ち帰った。'}</strong><p>木材 +${state.neighborhood.result.wood} · 石材 +${state.neighborhood.result.stone}</p><small>${state.neighborhood.result.claimed ? 'この土地に、あなたの旗が立つ。' : '持ち帰った建材で、拠点に建物を増やせる。'}</small></div>` : ''}${lootRows}${duplicateRows}${recovery?.scrap ? `<div class='reward'><span class='reward-icon'>↺</span><div><strong>敗走跡：鉄片 ${recovery.scrap}</strong><small>次に同じ土地へ出れば背嚢へ戻る。生還するまで未確定。</small></div></div>` : ''}${!r.died && state.owned.includes('crown') ? `<p class='notice'>灰冠の廟を越えた。名もなき旅人の、最初の物語が残った。</p>` : ''}<p class='small rule-line'>${r.died ? (recovery ? '敗走は全損ではない。取り戻しに行くか、別の土地へ向かうかを選べる。' : '遠征の失敗で、恒久的な進行は失われません。') : state.cleared.length >= 2 && !state.owned.includes('crown') ? '二つの土地を越えた。次は「灰冠の廟」の主に挑める。' : '同じ土地へ戻れば、同じ武器でももっと良い品質に出会えることがある。'}</p></div><div class="report-actions">${button('continue',r.died && recovery ? '敗走跡を回収する準備へ' : nextLabel,'',{class:'primary',disabled:unresolved > 0})}</div></section></div>`;
   }
   function render() {
     const help = document.querySelector('#help'), helpToggle = document.querySelector('#help-toggle');
@@ -303,6 +321,8 @@
         busy = false; notice = error.code === 1 ? '位置情報は許可されませんでした。設定を変えずに、散策体験モードでも遊べます。' : '現在地を取得できませんでした。後ほど試すか、散策体験モードで続けられます。'; render();
       }, { enableHighAccuracy:true, maximumAge:0, timeout:12000 }); return;
     } else if (action === 'depart') { selected = value; lastReturnedPlace = null; prioritizeReinforcement = false; locationRequest++; busy = false; state = E.start(state,value); }
+    else if (action === 'character') { state = E.switchCharacter(state,Number(value)); notice = state !== before ? `${state.characters[state.activeCharacter].name}に切り替えた。` : ''; tab='gear'; }
+    else if (action === 'craft-wolf-fang') { state = E.craftWolfFang(state); notice = state !== before ? '鍛冶師が鍛ち牙の短剣を完成させた。旅人に切り替えて装備しよう。' : ''; tab='gear'; }
     else if (action === 'equip') { state = E.equip(state,value); notice = `${E.GEAR[value].name}を装備した。`; }
     else if (action === 'maintain') { state = E.maintain(state); if (state !== before) notice = '刃を研いだ。次の遠征の最初の3戦で、初撃が +3 される。'; }
     else if (action === 'upgrade') { const id=state.equipped; state = E.upgrade(state,id); if (state !== before) { prioritizeReinforcement = false; const delta = reinforcementResult(before,state,id); const destination = lastReturnedPlace ? E.place(lastReturnedPlace)?.name : ''; notice = `${E.GEAR[id].name}を補強した。${delta}。${destination ? `${destination}で` : '次の遠征で'}試してみよう。`; } }
@@ -321,7 +341,8 @@
       lastReturnedPlace = gearStep ? state.report.place : null;
       prioritizeReinforcement = gearStep && !hasNewBattleGear && canPowerUp;
       const homeOpportunity = state.neighborhood.result && !state.report.died && (state.neighborhood.result.claimed || Object.keys(N.BUILDINGS).some(id => N.canBuild(state.neighborhood,id)));
-      tab = homeOpportunity ? 'home' : gearStep ? 'gear' : 'explore';
+      const forgeReady = !state.report.died && state.materials?.wolfFang >= 2 && state.scrap >= 4 && !state.owned.includes('forged_fang');
+      tab = forgeReady ? 'gear' : homeOpportunity ? 'home' : gearStep ? 'gear' : 'explore';
       if (keptDuplicate) { lastReturnedPlace = state.report.place; prioritizeReinforcement = false; tab = 'gear'; }
       const crownEnding = !state.report.died && state.report.newGear.includes('crown');
       endingOpen = crownEnding;
