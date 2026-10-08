@@ -329,14 +329,15 @@
       if (!nav || !panel || nav.querySelector('[data-chronicle-tab]')) return;
 
       const button = document.createElement('button');
-      button.className = 'choice';
+      button.className = 'choice bottom-navigation-item';
       button.dataset.chronicleTab = 'true';
       button.textContent = '冒険録';
       button.setAttribute('aria-label', '旅の冒険録と開拓手帳');
+      button.setAttribute('aria-current', 'false');
 
       button.addEventListener('click', () => {
-        nav.querySelectorAll('button').forEach(x => x.classList.remove('active'));
-        button.classList.add('active');
+        nav.querySelectorAll('button').forEach(x => { x.classList.remove('active'); x.setAttribute('aria-current','false'); });
+        button.classList.add('active'); button.setAttribute('aria-current','page');
         [...panel.children].forEach(x => {
           if (x !== nav && !x.matches('.text-button')) x.remove();
         });
