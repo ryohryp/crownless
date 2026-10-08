@@ -42,7 +42,7 @@
     } catch { saveBlocked = true; warning('保存に失敗しました。この画面では続けられますが、再読み込みで進行が戻る場合があります。'); }
   }
   function button(action, title, body = '', options = {}) {
-    return `<button class="${options.class || 'choice'}" data-action="${action}" ${options.value ? `data-value="${options.value}"` : ''} ${options.disabled ? 'disabled' : ''}>${body ? `<strong>${title}</strong><small>${body}</small>` : title}</button>`;
+    return `<button class="${options.class || 'choice'}" data-action="${action}" ${options.value ? `data-value="${options.value}"` : ''} ${typeof options.current === 'boolean' ? `aria-current="${options.current ? 'page' : 'false'}"` : ''} ${options.disabled ? 'disabled' : ''}>${body ? `<strong>${title}</strong><small>${body}</small>` : title}</button>`;
   }
   function scene(id, title, subtitle, enemy = null, tag = '') {
     return `<div class="scene">${A.scene(id, enemy, state.equipped)}<span class="scene-top">${enemy ? 'HOLD YOUR GROUND' : 'BEYOND THE MIST'}</span><div class="scene-top-actions">${tag ? `<span class="scene-tag">${tag}</span>` : ''}<button class="scene-settings" data-action="settings" aria-label="旅の設定と遊び方">⚙ 設定</button></div><div class="scene-caption"><p class="kicker">${subtitle}</p><h2>${title}</h2></div></div>`;
@@ -139,7 +139,7 @@
 
   function camp() {
     const level = E.weaponLevel(state, state.equipped);
-    const nav = `<nav class="camp-tabs" aria-label="拠点">${button('tab','近所','',{class:tab === 'explore' ? 'active' : '',value:'explore'})}${button('tab','拠点','',{class:tab === 'home' ? 'active' : '',value:'home'})}${button('tab','装備','',{class:tab === 'gear' ? 'active' : '',value:'gear'})}${button('settings','設定','',{class:'bottom-navigation-item'})}</nav>`;
+    const nav = `<nav class="camp-tabs bottom-navigation" aria-label="主要ナビゲーション">${button('tab','近所','',{class:'bottom-navigation-item'+(tab === 'explore' ? ' active' : ''),value:'explore',current:tab === 'explore'})}${button('tab','拠点','',{class:'bottom-navigation-item'+(tab === 'home' ? ' active' : ''),value:'home',current:tab === 'home'})}${button('tab','装備','',{class:'bottom-navigation-item'+(tab === 'gear' ? ' active' : ''),value:'gear',current:tab === 'gear'})}${button('settings','設定','',{class:'bottom-navigation-item'})}</nav>`;
     return `<div class="game-layout camp-layout ${tab === 'explore' ? 'living-map-home' : tab === 'home' ? 'homestead-home' : 'gear-home'}"><section class="visual-column"><div class="mode-strip"><span class="mode-pill">${state.mode === 'demo' ? '散策体験モード' : '現実の散策モード'}</span><span>遠征 ${state.runs} 回 · 生還 ${state.victories} 回</span></div>${tab === 'home' ? '<div class="home-portrait">'+homeArt()+'<p>'+esc(state.neighborhood.name)+' · '+(state.neighborhood.buildings.length ? '育ち始めた集落' : '野営地')+'</p></div>' : scene('camp','帰りを待つ火。','THE LAST HEARTH',null,'安全な拠点')}${mapPins()}<div class="stat-strip"><div class="stat">最大体力<b>${E.maxHp(state)}</b></div><div class="stat">手元の鉄片<b>${state.scrap}</b></div><div class="stat">装備<b><em>${E.GEAR[state.equipped].name}<small> · ${E.qualityLabel(E.weaponQuality(state,state.equipped))}${level > 0 ? ` · 補強 ${level}/4` : ''}</small></em></b></div></div></section><section class="panel">${tab === 'gear' ? gearPanel() : tab === 'home' ? homePanel() : explorePanel()}<button class="text-button" data-action="switch-mode">${state.mode === 'demo' ? '現実の散策モードへ' : '散策体験モードへ'} <span aria-hidden="true">↗</span></button></section>${nav}</div>`;
   }
   function vitals(x) {
