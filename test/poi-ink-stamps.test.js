@@ -32,7 +32,7 @@ test('the map and expanded POI card share the same art without creating a second
   for (const district of [
     N.cell(0, -800), N.cell(400, 0), N.cell(800, 0),
     N.cell(0, 400), N.cell(0, 800), N.cell(-400, 0), N.cell(-800, 0)
-  ]) s.neighborhood = N.discover(s.neighborhood, district);
+  ]) s = E.discoverDistrict(s, district);
   assert.ok(E.parse(E.serialize(s)), 'ordinary save shape remains valid');
   const store = new Map([
     ['crownless-expedition-mode', 'demo'],
