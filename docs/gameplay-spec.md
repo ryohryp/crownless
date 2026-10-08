@@ -1,20 +1,20 @@
 # Crownless — Active Gameplay Specification
 
 > **Status:** Active supporting specification
-> **Updated:** 2026-10-06
+> **Updated:** 2026-10-09
 > **Authority:** `AGENTS.md` and accepted ADRs take precedence. This file describes the smallest current gameplay contract without creating a second product vision.
 
 ## 1. Current playable loop
 
 The immediate loop is:
 
-> **Explore → Fight → Loot → Return alive → Improve → Explore farther**
+> **Explore → Fight/Gather → Return alive with materials → Craft/Trade/Equip → Explore farther**
 
 The surrounding location/meta loop is:
 
-> **Discover a landmark → Conquer it → Develop the frontier → Collect regional relics → See rival activity → Retake or expand → Preserve the journey in the Chronicle**
+> **Discover a place → Gather resources / affect the place → Leave a trace or create an item → Another character/player benefits → Revisit or expand**
 
-The first milestone remains the one in `AGENTS.md`: after roughly 15 minutes, does the player voluntarily want one more expedition because of a stronghold, rival trace, regional reward, or nearby target?
+The first milestone is the one in `AGENTS.md`: after roughly 15 minutes, does the player want to seek another material, craft another item, or inspect an effect they left in the world? The older stronghold/relic goals remain as playable systems, not the sole North Star.
 
 ## 2. Exploration and location
 
@@ -39,15 +39,18 @@ Combat is a short tactical decision loop, not real-time action combat.
 - Failure must have understandable consequences without turning play into punitive grind.
 - Do not reintroduce joystick/twitch/platforming combat.
 
-## 4. Loot, equipment, and regional relics
+## 4. Materials, production, equipment, and provenance
 
-Equipment is a reason to explore again, not only a number increase.
+The target rule is **all equippable weapons and armor are crafted by appropriate artisan skills**.
 
-- Equipment should visibly and mechanically affect later choices.
-- Regional relics remember where they came from (`originPlace` or the current equivalent).
-- Geography/landmark identity should create collectible distinctions where that makes the next exploration decision more interesting.
-- Avoid generic rarity inflation, loot floods, and rewards whose only purpose is feeding an economy.
-- Secured inventory is authoritative game state; presentation must not invent a parallel inventory model.
+- Enemies can drop materials, currency, recipes, and non-equippable story relics, **not ready-made weapons or armor**.
+- A returning adventurer deposits resources in the account warehouse; a smith turns them into usable gear. Starting loan gear is a non-tradeable exception.
+- Multiple characters (initial target three slots) share storage but grow independent skills and cannot be active simultaneously. Changing characters never creates a remote physical presence.
+- Crafting should offer decisions and identity: which material, design, recipient, and place; crafted equipment should meaningfully change expedition options.
+- Finished products should eventually preserve maker identity and coarse origin and may be traded asynchronously.
+- Existing saves and legacy loot must be migrated carefully. The current legacy drop code does not yet satisfy the target rule; no claim of completed migration is implied.
+
+Do not add multiple recipe tiers, global prices, or punishment through wear before the single material→craft→equip loop demonstrates fun.
 
 ## 5. Territory and frontier development
 
@@ -63,9 +66,9 @@ Outpost development should produce visible or strategic consequences. Current ex
 
 Territory is not renamed XP. Avoid repetitive control bars, mandatory chores, daily defense upkeep, large passive economies, or arbitrary repetition of solved encounters.
 
-## 6. Asynchronous rival activity
+## 6. Asynchronous world traces and rival activity
 
-Social territory control is place-centered and asynchronous.
+Asynchronous social interaction is place-centered and can be cooperative or competitive. Territory control is one existing prototype of a broader living-world idea. A place might retain a defeated adventurer's remnant, a built camp, a crafted facility, or a control change; the later visitor's choices and results should change because of it.\n\nSocial territory control is place-centered and asynchronous.
 
 The minimum slice is:
 1. conquer a stronghold,
@@ -135,7 +138,7 @@ Until play proves a need, do not add:
 - real-time action/platforming combat,
 - a generic expedition timer/waiting game,
 - stamina/energy/dailies,
-- generalized faction politics or economy simulation,
+- generalized faction politics or economy simulation before the production slice proves fun,
 - large multiplayer infrastructure,
 - guilds/seasons/leaderboards,
 - speculative nationwide territory engines,
