@@ -268,7 +268,7 @@
     if (n === s) return s;
     n.scrap -= LOCAL_HERB_COST;
     n.expedition.potions = 3;
-    n.expedition.log = ['枝角の露店の薬師から、森の薬草を一束買った。鉄片 −2 / 今回の遠征の薬草 +1。'];
+    n.expedition.log.unshift('枝角の露店の薬師から、森の薬草を一束買った。鉄片 −2 / 今回の遠征の薬草 +1。');
     return n;
   }
   function encounter(x, risky, runs = 0) {
