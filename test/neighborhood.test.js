@@ -158,3 +158,20 @@ test('neighborhood UI presents local POI marker, detail card, and action without
   assert.match(css,/district-poi-card\{display:grid/);
   assert.match(css,/@media\(max-width:430px\)\{\.district-poi-card/);
 });
+
+
+test('approved sumi-e neighborhood uses ink landmarks and washi panels without changing map controls', () => {
+  const css=fs.readFileSync(path.join(__dirname,'..','neighborhood.css'),'utf8');
+  const app=fs.readFileSync(path.join(__dirname,'..','src','slice-app.js'),'utf8');
+  assert.match(css,/#921: ink-and-washi neighborhood calibration/);
+  assert.match(css,/district-pin>\.district-landmark::before\{/);
+  assert.match(css,/district-pin\.selected>\.district-landmark::after\{/);
+  assert.match(css,/district-pin\[data-stronghold-state="rival"\]>.district-landmark::before/);
+  assert.match(css,/\.district-detail,\s*\n#game>\.living-map-home \.stronghold-status/);
+  assert.match(css,/\.district-detail \.primary\{\s*\n  background:#252624/);
+  assert.match(css,/camp-tabs\.bottom-navigation \.bottom-navigation-item::before/);
+  assert.match(app,/data-action="district"/);
+  assert.match(app,/class="district-poi-card"/);
+  assert.match(app,/data-action="tab"/);
+  assert.match(app,/button\('depart'/);
+});
