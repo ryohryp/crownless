@@ -12,7 +12,7 @@ function buildJevState(trace) {
     game: "Crownless",
     genre: "Location-discovery medieval fantasy expedition RPG",
     core_loop_objective:
-      "Explore -> Fight -> Loot -> Return alive -> Improve -> Explore farther. AGENTS.md goal: Can someone play for 15 minutes and want one more expedition?",
+      "Explore -> Fight/Gather -> Return with materials -> Smith crafts gear -> Equip -> Explore farther. AGENTS.md goal: desire one more gathering trip or craft.",
     player_archetype: trace.archetype,
     destination: trace.place,
     run_outcome: {
@@ -23,6 +23,8 @@ function buildJevState(trace) {
       total_turns: trace.totalTurns,
       combat_turns: trace.combatTurns,
       scrap_gained: trace.scrapGained,
+      materials_returned: trace.materialGained,
+      gear_crafted_at_home: trace.craftedGear,
       gear_acquired: trace.gearGained,
       new_gear_found: trace.newGearFound,
       gear_qualities: trace.gearQualities,
@@ -43,6 +45,7 @@ function buildJevState(trace) {
     progression_at_hearth: {
       equipped_weapon: trace.finalWeapon,
       new_gear_equipped: trace.hearthOutcome.newGearEquipped,
+      smith_crafted_gear: trace.hearthOutcome.craftedGear,
       upgraded_weapon: trace.hearthOutcome.canUpgrade,
       quality_upgrade_found: trace.hearthOutcome.qualityUpgradeFound,
       equipped_quality: trace.hearthOutcome.equippedQuality,
@@ -86,7 +89,7 @@ function buildJevQuestions() {
     one_more_run_motivation: {
       type: "score",
       instructions:
-        "Does the outcome create a strong reason for one more expedition, including the chance to find a better-quality version of a weapon already owned?",
+        "Does collecting materials, converting them into artisan-made equipment, or scouting a new resource source create a strong reason for one more expedition or craft?",
       criteria: [
         "Dead end; no clear progression or reason to explore again.",
         "Weak pull; repetitive outcome with minimal sense of advancement.",
@@ -176,7 +179,7 @@ async function callJevSystemOne(state, questions, options = {}) {
 function fallbackEvaluation(trace) {
   const isTactician = trace.archetype === "tactician";
   const isRusher = trace.archetype === "rusher";
-  const hasLoot = (trace.gearGained?.length || 0) > 0 || trace.newGearFound.length > 0 || trace.scrapGained >= 15;
+  const hasLoot = Object.values(trace.materialGained || {}).some(q => q > 0) || !!trace.craftedGear || trace.scrapGained >= 15 || trace.newGearFound.length > 0;
 
   let tacticalDepth = isTactician ? 4.0 : isRusher ? 1.5 : 3.0;
   if (trace.metrics.intentResponseAccuracy > 0.7) tacticalDepth += 0.5;
@@ -189,6 +192,7 @@ function fallbackEvaluation(trace) {
 
   let oneMorePull = 2.0;
   if (trace.hearthOutcome.canEquipNew) oneMorePull += 1.8;
+  else if (Object.values(trace.materialGained || {}).some(q => q > 0)) oneMorePull += 0.6;
   if (trace.hearthOutcome.qualityUpgradeFound) oneMorePull += 1.2;
   if (trace.hearthOutcome.canUpgrade) oneMorePull += 0.8;
   if (trace.hearthOutcome.recoveryCache) oneMorePull += 0.8;
@@ -240,7 +244,7 @@ function detectLoopAnomalies(runEvaluations) {
       warnings.push({
         severity: "P2",
         code: "UNREWARDING_LOOT",
-        message: `遠征成功後の報酬感（新装備・強化可能鉄片）が不足しています。次の遠征への動機付けを強化してください。`,
+        message: `遠征成功後の報酬感（素材・製作機会・強化）が不足しています。次の遠征への動機付けを強化してください。`,
       });
     }
 
