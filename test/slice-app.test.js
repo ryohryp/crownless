@@ -207,18 +207,33 @@ test('camp home presents a persistent neighborhood and local expedition action',
   assert.match(b.html(),/最初の足跡/);
 });
 
-test('camp nav is four equal-ready buttons on first render without the enhancer', () => {
+test('core camp nav owns six stable buttons and journal views are reversible', () => {
   const b=browser(); b.click('mode','demo');
   const nav=b.html().match(/<nav class="camp-tabs bottom-navigation"[^>]*>([\s\S]*?)<\/nav>/);
   assert.ok(nav,'dock must be included in initial camp markup');
   const buttons=[...nav[1].matchAll(/<button\b[^>]*>/g)].map(m=>m[0]);
-  assert.equal(buttons.length,4);
+  assert.equal(buttons.length,6);
   for(const button of buttons) assert.match(button,/class="[^"]*bottom-navigation-item/);
-  assert.deepEqual(buttons.map(v=>(v.match(/data-action="([^"]+)"/)||[])[1]),['tab','tab','tab','settings']);
-  assert.deepEqual(buttons.slice(0,3).map(v=>(v.match(/aria-current="([^"]+)"/)||[])[1]),['page','false','false']);
+  assert.deepEqual(buttons.map(v=>(v.match(/data-action="([^"]+)"/)||[])[1]),['tab','tab','tab','tab','tab','settings']);
+  assert.deepEqual(buttons.slice(0,5).map(v=>(v.match(/aria-current="([^"]+)"/)||[])[1]),['page','false','false','false','false']);
+  assert.deepEqual(buttons.slice(0,5).map(v=>(v.match(/data-value="([^"]+)"/)||[])[1]),
+    ['explore','home','gear','codex','chronicle']);
   b.click('tab','gear');
   const gear=b.html().match(/<nav class="camp-tabs bottom-navigation"[^>]*>([\s\S]*?)<\/nav>/)[1];
   assert.match(gear,/data-value="gear" aria-current="page"/);
+  b.click('tab','codex');
+  assert.match(b.html(),/class="codex-panel"/);
+  assert.match(b.html(),/data-value="codex" aria-current="page"/);
+  b.click('tab','chronicle');
+  assert.match(b.html(),/class="chronicle-panel"/);
+  assert.match(b.html(),/data-value="chronicle" aria-current="page"/);
+  b.click('tab','explore');
+  assert.match(b.html(),/class="neighborhood-field"/);
+  assert.match(b.html(),/この土地へ遠征/);
+  b.click('tab','home');
+  assert.match(b.html(),/class="home-portrait"/);
+  b.click('tab','gear');
+  assert.match(b.html(),/class="gear-list"/);
 });
 
 test('home UI builds from banked materials, changes the map picture and safely renames the saved home', () => {
