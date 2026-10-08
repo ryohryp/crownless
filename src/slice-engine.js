@@ -25,12 +25,13 @@
     bow_recurve: { name: '骨角の短弓', short: '骨角弓', family: 'bow', trait: 'recurve', attack: 5 },
     crown: { name: '灰の王冠', short: '王冠', family: 'crown', trait: 'crown', attack: 4 },
   };
-  const UPGRADEABLE = Object.keys(GEAR).filter(id => id !== 'crown');
+  const GEAR_IDS = Object.freeze(Object.keys(GEAR));
+  const UPGRADEABLE = GEAR_IDS.filter(id => id !== 'crown');
   // Only these weapons existed before reinforcement became per-weapon (#577).
   // Post-migration variants must never inherit the old shared `level`.
   const LEGACY_UPGRADEABLE = new Set(['rust', 'fang', 'shield', 'bow']);
   const emptyUpgrades = () => Object.fromEntries(UPGRADEABLE.map(id => [id, 0]));
-  const emptyQualities = () => Object.fromEntries(Object.keys(GEAR).map(id => [id, 0]));
+  const emptyQualities = () => Object.fromEntries(GEAR_IDS.map(id => [id, 0]));
   const QUALITY_STEPS = [
     { max: 10, quality: -1 },
     { max: 65, quality: 0 },
@@ -51,7 +52,8 @@
     watchIron: { name:'鐘鉄', source:'鐘なき塔' },
     marshFiber: { name:'霧葦', source:'星沈みの湿原' }
   });
-  const emptyMaterials = () => Object.fromEntries(Object.keys(MATERIALS).map(id => [id,0]));
+  const MATERIAL_IDS = Object.freeze(Object.keys(MATERIALS));
+  const emptyMaterials = () => Object.fromEntries(MATERIAL_IDS.map(id => [id,0]));
   const RECIPES = Object.freeze({
     forged_fang: { materials:{wolfFang:2}, scrap:4, quality:1, origin:'囁きの森' },
     shield: { materials:{watchIron:2}, scrap:4, quality:0, origin:'鐘なき塔' },
@@ -107,6 +109,11 @@
     frenzy: { name: '窮鼠の一撃', damage: 8, help: '手負いの反撃。隙を見せたふりだ。回避なら無傷で追撃、防御なら軽減できる。' },
   };
   const copy = s => JSON.parse(JSON.stringify(s));
+  function hydrateKnownRecord(value, defaultsFactory) {
+    if (value === undefined) return defaultsFactory();
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return value;
+    return { ...defaultsFactory(), ...value };
+  }
   const place = id => PLACES.find(p => p.id === id);
   function isRoadsideEvent(s, x = s?.expedition) {
     if (!x || x.stage !== 'path' || ![1, 3].includes(x.room)) return false;
@@ -308,7 +315,7 @@
     if (died && x.enemy) s.grudge = { place: x.place, enemy: x.enemy.kind };
     if (!died) {
       s.scrap += x.scrap;
-      for (const id of Object.keys(MATERIALS)) s.materials[id] += x.materials?.[id] ?? 0;
+      for (const id of MATERIAL_IDS) s.materials[id] += x.materials?.[id] ?? 0;
       const newGear = [];
       const duplicates = [];
       for (let i = 0; i < x.gear.length; i++) {
@@ -564,19 +571,15 @@
       const s = JSON.parse(raw);
       if (s.version === VERSION && s.neighborhood === undefined) s.neighborhood = N.migrate(s);
       if (!N.valid(s.neighborhood)) throw Error('neighborhood');
-      if (s.version === VERSION && s.upgrades === undefined) s.upgrades = emptyUpgrades();
-      else if (s.version === VERSION && s.upgrades && typeof s.upgrades === 'object' && !Array.isArray(s.upgrades)) s.upgrades = {...emptyUpgrades(), ...s.upgrades};
-      if (s.version === VERSION && s.materials === undefined) s.materials = emptyMaterials();
-      else if (s.version === VERSION && s.materials && typeof s.materials === 'object' && !Array.isArray(s.materials)) s.materials = {...emptyMaterials(),...s.materials};
+      if (s.version === VERSION) s.upgrades = hydrateKnownRecord(s.upgrades, emptyUpgrades);
+      if (s.version === VERSION) s.materials = hydrateKnownRecord(s.materials, emptyMaterials);
       if (s.version === VERSION && s.characters === undefined) { s.characters = startingCharacters(); s.characters[0].equipped = s.equipped; }
       if (s.version === VERSION && s.activeCharacter === undefined) s.activeCharacter = 0;
       if (s.version === VERSION && s.grudge === undefined) s.grudge = null;
       if (s.version === VERSION && s.maintenance === undefined) s.maintenance = null;
-      if (s.version === VERSION && s.qualities === undefined) s.qualities = emptyQualities();
-      else if (s.version === VERSION && s.qualities && typeof s.qualities === 'object' && !Array.isArray(s.qualities)) s.qualities = {...emptyQualities(), ...s.qualities};
+      if (s.version === VERSION) s.qualities = hydrateKnownRecord(s.qualities, emptyQualities);
       if (s.version === VERSION && s.expedition) {
-        if (s.expedition.materials === undefined) s.expedition.materials = emptyMaterials();
-        else if (s.expedition.materials && typeof s.expedition.materials === 'object' && !Array.isArray(s.expedition.materials)) s.expedition.materials = {...emptyMaterials(),...s.expedition.materials};
+        s.expedition.materials = hydrateKnownRecord(s.expedition.materials, emptyMaterials);
         if (Array.isArray(s.expedition.gear) && s.expedition.gearQuality === undefined) s.expedition.gearQuality = s.expedition.gear.map(() => 0);
         if (s.expedition.sharpened === undefined) s.expedition.sharpened = 0;
         if (s.expedition.sharpenedApplied === undefined) s.expedition.sharpenedApplied = false;
@@ -584,8 +587,7 @@
         if (s.expedition.stagger === undefined) s.expedition.stagger = false;
       }
       if (s.version === VERSION && s.report) {
-        if (s.report.materials === undefined) s.report.materials = emptyMaterials();
-        else if (s.report.materials && typeof s.report.materials === 'object' && !Array.isArray(s.report.materials)) s.report.materials = {...emptyMaterials(),...s.report.materials};
+        s.report.materials = hydrateKnownRecord(s.report.materials, emptyMaterials);
         if (Array.isArray(s.report.gear) && s.report.gearQuality === undefined) s.report.gearQuality = s.report.gear.map(() => 0);
         if (s.report.duplicates === undefined) s.report.duplicates = [];
         if (s.report.defeatedBy === undefined) s.report.defeatedBy = null;
@@ -594,8 +596,8 @@
       const validArray = (a, allowed) => Array.isArray(a) && a.length <= allowed.length && new Set(a).size === a.length && a.every(v => allowed.includes(v));
       const int = (v, min, max) => Number.isInteger(v) && v >= min && v <= max;
       const validUpgrades = u => u && typeof u === 'object' && !Array.isArray(u) && Object.keys(u).length === UPGRADEABLE.length && UPGRADEABLE.every(id => Object.prototype.hasOwnProperty.call(u,id) && int(u[id],0,4)) && Object.keys(u).every(id => UPGRADEABLE.includes(id));
-      const validQualities = q => q && typeof q === 'object' && !Array.isArray(q) && Object.keys(q).length === Object.keys(GEAR).length && Object.keys(GEAR).every(id => Object.prototype.hasOwnProperty.call(q,id) && int(q[id],-1,3)) && Object.keys(q).every(id => Object.prototype.hasOwnProperty.call(GEAR,id));
-      const validMaterials = m => m && typeof m === 'object' && !Array.isArray(m) && Object.keys(m).length === Object.keys(MATERIALS).length && Object.keys(MATERIALS).every(id => int(m[id],0,1e6)) && Object.keys(m).every(id => Object.hasOwn(MATERIALS,id));
+      const validQualities = q => q && typeof q === 'object' && !Array.isArray(q) && Object.keys(q).length === GEAR_IDS.length && GEAR_IDS.every(id => Object.prototype.hasOwnProperty.call(q,id) && int(q[id],-1,3)) && Object.keys(q).every(id => Object.prototype.hasOwnProperty.call(GEAR,id));
+      const validMaterials = m => m && typeof m === 'object' && !Array.isArray(m) && Object.keys(m).length === MATERIAL_IDS.length && MATERIAL_IDS.every(id => int(m[id],0,1e6)) && Object.keys(m).every(id => Object.hasOwn(MATERIALS,id));
       const validCharacters = (c,active) => Array.isArray(c) && c.length === 3 && int(active,0,2) && c.every((v,i) => v && typeof v === 'object' && Object.keys(v).length === 5 && v.id === ['traveler','smith','merchant'][i] && v.role === ['adventurer','smith','merchant'][i] && typeof v.name === 'string' && v.name.length < 30 && s.owned.includes(v.equipped) && v.equipped !== 'crown' && int(v.experience,0,1e6));
       const validLoot = (gear, quality) => Array.isArray(gear) && gear.length <= 12 && gear.every(id => Object.prototype.hasOwnProperty.call(GEAR,id)) && Array.isArray(quality) && quality.length === gear.length && quality.every(q => int(q,-1,3));
       const validDuplicates = d => Array.isArray(d) && d.length <= 12 && d.every(item => item && typeof item === 'object' && !Array.isArray(item) && Object.keys(item).length === 3 && Object.keys(item).every(k => ['id','quality','decision'].includes(k)) && Object.prototype.hasOwnProperty.call(GEAR,item.id) && item.id !== 'crown' && int(item.quality,-1,3) && [null,'keep','dismantle'].includes(item.decision));
