@@ -145,12 +145,25 @@
           : `<p class="small">必要素材：${info}</p>`;
       return `<div class="home-building"><div><h3>${E.GEAR[recipeId].name}</h3><p>${E.gearText(state,recipeId,recipe.quality)}</p></div>${progress}${make}</div>`;
     }).join('');
+    const commissionRows = Object.entries(E.COMMISSIONS).filter(([placeId]) => state.unlocked.includes(placeId)).map(([placeId,job]) => {
+      const recipe=E.RECIPES[job.recipe];
+      const material=Object.entries(recipe.materials).map(([id,n])=>E.MATERIALS[id].name+' '+n+'個').join('・');
+      const unavailable=state.activeCharacter!==1 || state.commission.pending!==null || state.scrap<recipe.scrap || Object.entries(recipe.materials).some(([id,n])=>(state.materials[id]||0)<n);
+      return button('commission',job.requester+'に装備を納品',material+'＋鉄片 '+recipe.scrap+' ／ 報酬：鉄片 +'+job.reward+'と次回地域支援',{class:'secondary',value:placeId,disabled:unavailable});
+    }).join('');
+    const commissioned = state.commission.pending ? E.COMMISSIONS[state.commission.pending].requester+'への納品は完了。該当地域からの生還で報告が届く。' : 'どのNPCを助けるか選ぼう。';
+    const commissionNews = state.commission.lastResult ? E.COMMISSIONS[state.commission.lastResult].outcome+' 次の同地域遠征は薬草 +1。' : '';
+    const commissionSection = '<details class="rule-line" '+(state.commission.pending || state.commission.lastResult ? 'open' : '')+'><summary>工房への依頼 · 架空のNPC</summary>'+
+      '<p class="small">実プレイヤーではない依頼主に、素材から装備を作って渡す。結果は同じ土地への次の生還時に届く。持ち物に武器は複製されない。</p>'+
+      '<p class="small">完了 '+state.commission.completed+' 件 · '+commissioned+'</p>'+
+      (commissionNews ? '<p class="notice">'+commissionNews+'</p>' : '')+'<div class="choice-grid">'+commissionRows+'</div></details>';
     const workshop = `<section class="rule-line" aria-label="冒険者と鍛冶師の製作">
       <h3>冒険者と職人の仕事</h3>
       <p class="small">戦闘で得るのは素材。遠征は旅人、装備を生み出すのは鍛冶師。安全な拠点で交代し、倉庫を共有する。</p>
       <div class="choice-grid">${roleChoices}</div>
       <p class="small">共同倉庫：${materialList(state.materials) || '素材なし'} · 鉄片 ${state.scrap}</p>
       <div class="home-buildings">${recipes}</div>
+      ${commissionSection}
       ${notice ? `<p class="notice" role="status">${esc(notice)}</p>` : ''}
     </section>`;
     const previewState = {...state, scrap: Math.max(state.scrap, cost)};
