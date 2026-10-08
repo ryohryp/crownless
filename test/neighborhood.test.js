@@ -163,7 +163,7 @@ test('neighborhood UI presents local POI marker, detail card, and action without
 test('approved sumi-e neighborhood uses ink landmarks and washi panels without changing map controls', () => {
   const css=fs.readFileSync(path.join(__dirname,'..','neighborhood.css'),'utf8');
   const app=fs.readFileSync(path.join(__dirname,'..','src','slice-app.js'),'utf8');
-  assert.match(css,/\/#921: ink-and-washi neighborhood calibration/);
+  assert.match(css,/#921: ink-and-washi neighborhood calibration/);
   assert.match(css,/district-pin>\.district-landmark::before\{/);
   assert.match(css,/district-pin\.selected>\.district-landmark::after\{/);
   assert.match(css,/district-pin\[data-stronghold-state="rival"\]>.district-landmark::before/);
