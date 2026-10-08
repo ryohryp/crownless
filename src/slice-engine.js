@@ -38,6 +38,7 @@
     { max: 100, quality: 3 },
   ];
   const DISMANTLE_SCRAP = 2;
+  const LOCAL_HERB_COST = 2;
   const VARIANT_LOOT = {
     wood: ['fang_blood', 'fang_moon'],
     tower: ['shield_thorn', 'shield_oath'],
@@ -256,6 +257,18 @@
       grudge ? `敗走の記憶が残っている。${ENEMIES[grudge.enemy].name}への一撃に執念を乗せられる。` : null,
     ].filter(Boolean).join(' ') || '火はここで待っている。まずは足跡をたどろう。';
     n.expedition = { place: id, depth: 1, room: 0, hp: maxHp(s), stamina: 3, focus: 0, stagger: false, sharpened, sharpenedApplied: false, potions: 2, scrap: 0, gear: [], gearQuality: [], seals: [], grudge, enemy: null, stage: 'path', log: [intro] };
+    return n;
+  }
+  // One local trade creates a tangible expedition advantage without new save fields.
+  // The selected district must actually contain the woodland herbalist's shop.
+  function startWithLocalHerb(s) {
+    const d = s?.neighborhood && N.get(s.neighborhood);
+    if (!d || d.biome !== 'wood' || N.pointOfInterest(d)?.family !== 'shop' || s.scrap < LOCAL_HERB_COST) return s;
+    const n = start(s, 'wood');
+    if (n === s) return s;
+    n.scrap -= LOCAL_HERB_COST;
+    n.expedition.potions = 3;
+    n.expedition.log = ['枝角の露店の薬師から、森の薬草を一束買った。鉄片 −2 / 今回の遠征の薬草 +1。'];
     return n;
   }
   function encounter(x, risky, runs = 0) {
@@ -549,7 +562,7 @@
       if (s.expedition) {
         const x = s.expedition;
         const allowedFocus = gearFamily(s.equipped) === 'fang' ? [0,3,4,5,6,7,8,9] : [0,3];
-        if (Object.keys(x).some(k => !['place','depth','room','hp','stamina','focus','stagger','sharpened','sharpenedApplied','potions','scrap','gear','gearQuality','seals','grudge','enemy','stage','log'].includes(k)) || !s.unlocked.includes(x.place) || !int(x.depth,1,3) || !int(x.room,0,4) || !int(x.hp,1,maxHp(s)) || !int(x.stamina,0,3) || !allowedFocus.includes(x.focus) || typeof x.stagger !== 'boolean' || !int(x.sharpened,0,3) || typeof x.sharpenedApplied !== 'boolean' || !validExpeditionGrudge(x.grudge) || !int(x.potions,0,2) || !int(x.scrap,0,1000) || !validLoot(x.gear,x.gearQuality) || !Array.isArray(x.seals) || x.seals.length > 3 || !x.seals.every(v => ids.includes(v)) || !['path','fight','cleared'].includes(x.stage) || !Array.isArray(x.log) || x.log.length > 10 || !x.log.every(v => typeof v === 'string' && v.length < 250)) throw Error('run');
+        if (Object.keys(x).some(k => !['place','depth','room','hp','stamina','focus','stagger','sharpened','sharpenedApplied','potions','scrap','gear','gearQuality','seals','grudge','enemy','stage','log'].includes(k)) || !s.unlocked.includes(x.place) || !int(x.depth,1,3) || !int(x.room,0,4) || !int(x.hp,1,maxHp(s)) || !int(x.stamina,0,3) || !allowedFocus.includes(x.focus) || typeof x.stagger !== 'boolean' || !int(x.sharpened,0,3) || typeof x.sharpenedApplied !== 'boolean' || !validExpeditionGrudge(x.grudge) || !int(x.potions,0,3) || !int(x.scrap,0,1000) || !validLoot(x.gear,x.gearQuality) || !Array.isArray(x.seals) || x.seals.length > 3 || !x.seals.every(v => ids.includes(v)) || !['path','fight','cleared'].includes(x.stage) || !Array.isArray(x.log) || x.log.length > 10 || !x.log.every(v => typeof v === 'string' && v.length < 250)) throw Error('run');
         if (x.stage === 'fight') {
           const e = x.enemy;
           if (!e || Object.keys(e).some(k => !['kind','hp','maxHp','turn','depth','elite','risky','seed','frenzy','wounded'].includes(k)) || !(e.seed === undefined || int(e.seed,0,99990)) || !(e.frenzy === undefined || typeof e.frenzy === 'boolean') || !(e.wounded === undefined || typeof e.wounded === 'boolean') || !ENEMIES[e.kind] || !int(e.maxHp,1,80) || !int(e.hp,1,e.maxHp) || !int(e.turn,0,1e6) || e.depth !== x.depth || typeof e.elite !== 'boolean' || typeof e.risky !== 'boolean') throw Error('enemy');
@@ -564,6 +577,6 @@
       return s;
     } catch { return null; }
   }
-  const api = { VERSION, PLACES, GEAR, ENEMIES, INTENTS, VARIANT_LOOT, DISMANTLE_SCRAP, initial, maxHp, gearFamily, weaponLevel, weaponQuality, weaponAttack, qualityLabel, rollQuality, upgradeCost, combatProfile, gearText, enemyProfile, attackPreview, intent, lootCue, place, isRoadsideEvent, discover, start, act, maintain, equip, upgrade, resolveDuplicate, locationSession, observe, serialize, parse, discoverDistrict,selectDistrict,buildHome,renameHome };
+  const api = { VERSION, PLACES, GEAR, ENEMIES, INTENTS, VARIANT_LOOT, DISMANTLE_SCRAP, LOCAL_HERB_COST, initial, maxHp, gearFamily, weaponLevel, weaponQuality, weaponAttack, qualityLabel, rollQuality, upgradeCost, combatProfile, gearText, enemyProfile, attackPreview, intent, lootCue, place, isRoadsideEvent, discover, start, startWithLocalHerb, act, maintain, equip, upgrade, resolveDuplicate, locationSession, observe, serialize, parse, discoverDistrict,selectDistrict,buildHome,renameHome };
   return api;
 });
