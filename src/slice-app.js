@@ -342,7 +342,8 @@
       prioritizeReinforcement = gearStep && !hasNewBattleGear && canPowerUp;
       const homeOpportunity = state.neighborhood.result && !state.report.died && (state.neighborhood.result.claimed || Object.keys(N.BUILDINGS).some(id => N.canBuild(state.neighborhood,id)));
       const forgeReady = !state.report.died && state.materials?.wolfFang >= 2 && state.scrap >= 4 && !state.owned.includes('forged_fang');
-      tab = forgeReady ? 'gear' : homeOpportunity ? 'home' : gearStep ? 'gear' : 'explore';
+      tab = homeOpportunity ? 'home' : gearStep ? 'gear' : 'explore';
+      if (forgeReady) tab = 'gear';
       if (keptDuplicate) { lastReturnedPlace = state.report.place; prioritizeReinforcement = false; tab = 'gear'; }
       const crownEnding = !state.report.died && state.report.newGear.includes('crown');
       endingOpen = crownEnding;
