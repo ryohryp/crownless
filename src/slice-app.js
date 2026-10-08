@@ -130,11 +130,20 @@
       const materials = Object.entries(recipe.materials).map(([materialId,count]) => `${E.MATERIALS[materialId].name} ${count}個`).join(' · ');
       const done = state.owned.includes(recipeId);
       const info = `${materials} + 鉄片 ${recipe.scrap} · 産地：${recipe.origin}`;
+      const missing = Object.entries(recipe.materials)
+        .map(([materialId,count]) => ({materialId,needed:Math.max(0,count-(state.materials?.[materialId] || 0))}))
+        .filter(({needed}) => needed > 0)
+        .map(({materialId,needed}) => `${E.MATERIALS[materialId].name} あと${needed}個（${E.MATERIALS[materialId].source}）`);
+      const scrapGap = Math.max(0,recipe.scrap-state.scrap);
+      if (scrapGap) missing.push(`鉄片 あと${scrapGap}個`);
+      const progress = done ? '' : missing.length
+        ? `<p class="small" data-recipe-progress="${recipeId}">不足：${missing.join(' · ')}</p>`
+        : `<p class="small" data-recipe-progress="${recipeId}">${state.activeCharacter === 1 ? '素材が揃った。製作できる。' : '素材が揃った。鍛冶師に交代して製作しよう。'}</p>`;
       const make = done ? '<p class="notice">製作済み · 倉庫から装備できる</p>'
         : state.activeCharacter === 1
           ? button('craft-item',`${E.GEAR[recipeId].name}を製作`,info,{class:'secondary',value:recipeId,disabled:!canCraft(state,recipeId)})
           : `<p class="small">必要素材：${info}</p>`;
-      return `<div class="home-building"><div><h3>${E.GEAR[recipeId].name}</h3><p>${E.gearText(state,recipeId,recipe.quality)}</p></div>${make}</div>`;
+      return `<div class="home-building"><div><h3>${E.GEAR[recipeId].name}</h3><p>${E.gearText(state,recipeId,recipe.quality)}</p></div>${progress}${make}</div>`;
     }).join('');
     const workshop = `<section class="rule-line" aria-label="冒険者と鍛冶師の製作">
       <h3>冒険者と職人の仕事</h3>
