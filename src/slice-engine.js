@@ -59,6 +59,13 @@
     shield: { materials:{watchIron:2}, scrap:4, quality:0, origin:'鐘なき塔' },
     bow: { materials:{marshFiber:2}, scrap:4, quality:0, origin:'星沈みの湿原' }
   });
+  // These clients are simulated NPCs. This is NOT a networked player marketplace.
+  const COMMISSIONS = Object.freeze({
+    wood: { recipe:'forged_fang', requester:'森の斥候', outcome:'斥候が鍛えた短剣で獣道を切り開いた。', reward:6 },
+    tower: { recipe:'shield', requester:'塔の見張り', outcome:'見張りが新しい盾で塔への道を守り抜いた。', reward:6 },
+    fen: { recipe:'bow', requester:'湿原の案内人', outcome:'案内人が製作された弓で旅人の退路を確保した。', reward:6 }
+  });
+  const emptyCommission = () => ({ pending:null, completed:0, support:null, lastResult:null });
   const ENEMY_MATERIAL = Object.freeze({ wolf:'wolfFang', forest_hunter:'wolfFang', knight:'watchIron', wraith:'marshFiber' });
   const LOOT_CUES = {
     wood: ['枝の下に鋭い牙の跡がある。鍛冶師なら使えそうだ。', '霧の奥には、より大きな獣の牙が眠る。'],
@@ -145,7 +152,7 @@
     { id:'smith', name:'見習い鍛冶師', role:'smith', equipped:'rust', experience:0 },
     { id:'merchant', name:'行商人', role:'merchant', equipped:'rust', experience:0 }
   ];
-  const initial = () => ({ version: VERSION, mode: null, unlocked: ['wood'], cleared: [], owned: ['rust'], equipped: 'rust', qualities: emptyQualities(), scrap: 0, materials:emptyMaterials(), characters:startingCharacters(), activeCharacter:0, level: 0, upgrades: emptyUpgrades(), runs: 0, victories: 0, grudge: null, maintenance: null, expedition: null, report: null, neighborhood:N.initial() });
+  const initial = () => ({ version: VERSION, mode: null, unlocked: ['wood'], cleared: [], owned: ['rust'], equipped: 'rust', qualities: emptyQualities(), scrap: 0, materials:emptyMaterials(), characters:startingCharacters(), activeCharacter:0, commission:emptyCommission(), level: 0, upgrades: emptyUpgrades(), runs: 0, victories: 0, grudge: null, maintenance: null, expedition: null, report: null, neighborhood:N.initial() });
   const maxHp = s => 30 + (Number.isInteger(s.level) ? s.level : 0) * 5 + (s.owned.includes('crown') ? 6 : 0) + (s.neighborhood?.buildings.includes('lodge') ? 4 : 0);
   function weaponLevel(s, id = s.equipped) {
     const legacy = LEGACY_UPGRADEABLE.has(id) && Number.isInteger(s?.level)
@@ -275,14 +282,19 @@
   function start(s, id) {
     if (s.activeCharacter !== 0 || s.expedition || !s.mode || !s.unlocked.includes(id) || !place(id) || (id === 'crypt' && s.cleared.length < 2)) return s;
     const n = copy(s); n.report = null; n.runs++;
+    // Help earned through a past NPC commission is a one-expedition, same-region benefit.
+    const supported = n.commission.support === id;
+    if (supported) n.commission.support = null;
+    n.commission.lastResult = null;
     n.neighborhood = N.begin(n.neighborhood || N.migrate(n),id);
     const sharpened = n.maintenance === 'sharp' ? 3 : 0; n.maintenance = null;
     const grudge = n.grudge?.place === id && ENEMIES[n.grudge.enemy] ? { ...n.grudge, used: false } : null;
     const intro = [
       sharpened ? '研いだ刃はまだ鋭い。次の三戦、初撃が強くなる。' : null,
       grudge ? `敗走の記憶が残っている。${ENEMIES[grudge.enemy].name}への一撃に執念を乗せられる。` : null,
+      supported ? `${COMMISSIONS[id].requester}の支援で薬草 +1。鍛冶師の納品が帰ってきた。` : null,
     ].filter(Boolean).join(' ') || '火はここで待っている。まずは足跡をたどろう。';
-    n.expedition = { place: id, depth: 1, room: 0, hp: maxHp(s), stamina: 3, focus: 0, stagger: false, sharpened, sharpenedApplied: false, potions: 2, scrap: 0, materials:emptyMaterials(), gear: [], gearQuality: [], seals: [], grudge, enemy: null, stage: 'path', log: [intro] };
+    n.expedition = { place: id, depth: 1, room: 0, hp: maxHp(s), stamina: 3, focus: 0, stagger: false, sharpened, sharpenedApplied: false, potions: supported ? 3 : 2, scrap: 0, materials:emptyMaterials(), gear: [], gearQuality: [], seals: [], grudge, enemy: null, stage: 'path', log: [intro] };
     return n;
   }
   // One local trade creates a tangible expedition advantage without new save fields.
@@ -292,8 +304,13 @@
     if (!d || d.biome !== 'wood' || N.pointOfInterest(d)?.family !== 'shop' || s.scrap < LOCAL_HERB_COST) return s;
     const n = start(s, 'wood');
     if (n === s) return s;
+    // Two separate assistance sources may overlap; never charge for a potion that cannot fit.
+    if (n.expedition.potions >= 3) {
+      n.expedition.log.unshift('地域の支援で薬草は十分。露店での追加購入は見送った。');
+      return n;
+    }
     n.scrap -= LOCAL_HERB_COST;
-    n.expedition.potions = 3;
+    n.expedition.potions = Math.min(3,n.expedition.potions+1);
     n.expedition.log.unshift('枝角の露店の薬師から、森の薬草を一束買った。鉄片 −2 / 今回の遠征の薬草 +1。');
     return n;
   }
@@ -329,6 +346,15 @@
         } else {
           duplicates.push({ id, quality, decision: null });
         }
+      }
+      // The NPC's report reaches camp only after a safe return to the supplied region.
+      if (s.commission.pending === x.place && COMMISSIONS[x.place] && (x.room > 0 || x.stage === 'cleared')) {
+        const job = COMMISSIONS[x.place];
+        s.commission.pending = null;
+        s.commission.completed++;
+        s.commission.support = x.place;
+        s.commission.lastResult = x.place;
+        s.scrap += job.reward;
       }
       s.report.newGear = [...new Set(newGear)];
       s.report.duplicates = duplicates;
@@ -508,6 +534,20 @@
     return n;
   }
   function craftWolfFang(s) { return craftItem(s,'forged_fang'); }
+  // Repeatable commission: consumes real materials but produces a simulated NPC's gear,
+  // never an extra player-owned copy of the unique equipment ID.
+  function supplyCommission(s, placeId) {
+    const job = COMMISSIONS[placeId];
+    if (!job || !s.unlocked.includes(placeId) || s.expedition || s.report || s.activeCharacter !== 1 || s.commission.pending !== null) return s;
+    const recipe = RECIPES[job.recipe];
+    if (s.scrap < recipe.scrap || Object.entries(recipe.materials).some(([id,q]) => (s.materials[id] ?? 0) < q)) return s;
+    const n = copy(s);
+    for (const [id,q] of Object.entries(recipe.materials)) n.materials[id] -= q;
+    n.scrap -= recipe.scrap;
+    n.characters[1].experience++;
+    n.commission.pending = placeId;
+    return n;
+  }
   function upgrade(s, id = s.equipped) {
     const key = upgradeKey(id);
     if (s.expedition || !key || !s.owned.includes(id)) return s;
@@ -575,6 +615,7 @@
       if (s.version === VERSION) s.materials = hydrateKnownRecord(s.materials, emptyMaterials);
       if (s.version === VERSION && s.characters === undefined) { s.characters = startingCharacters(); s.characters[0].equipped = s.equipped; }
       if (s.version === VERSION && s.activeCharacter === undefined) s.activeCharacter = 0;
+      if (s.version === VERSION && s.commission === undefined) s.commission = emptyCommission();
       if (s.version === VERSION && s.grudge === undefined) s.grudge = null;
       if (s.version === VERSION && s.maintenance === undefined) s.maintenance = null;
       if (s.version === VERSION) s.qualities = hydrateKnownRecord(s.qualities, emptyQualities);
@@ -598,12 +639,18 @@
       const validUpgrades = u => u && typeof u === 'object' && !Array.isArray(u) && Object.keys(u).length === UPGRADEABLE.length && UPGRADEABLE.every(id => Object.prototype.hasOwnProperty.call(u,id) && int(u[id],0,4)) && Object.keys(u).every(id => UPGRADEABLE.includes(id));
       const validQualities = q => q && typeof q === 'object' && !Array.isArray(q) && Object.keys(q).length === GEAR_IDS.length && GEAR_IDS.every(id => Object.prototype.hasOwnProperty.call(q,id) && int(q[id],-1,3)) && Object.keys(q).every(id => Object.prototype.hasOwnProperty.call(GEAR,id));
       const validMaterials = m => m && typeof m === 'object' && !Array.isArray(m) && Object.keys(m).length === MATERIAL_IDS.length && MATERIAL_IDS.every(id => int(m[id],0,1e6)) && Object.keys(m).every(id => Object.hasOwn(MATERIALS,id));
+      const validCommission = c => c && typeof c === 'object' && !Array.isArray(c)
+        && Object.keys(c).length === 4 && Object.keys(c).every(id => ['pending','completed','support','lastResult'].includes(id))
+        && (c.pending === null || Object.hasOwn(COMMISSIONS,c.pending))
+        && (c.support === null || Object.hasOwn(COMMISSIONS,c.support))
+        && (c.lastResult === null || Object.hasOwn(COMMISSIONS,c.lastResult))
+        && int(c.completed,0,1e6);
       const validCharacters = (c,active) => Array.isArray(c) && c.length === 3 && int(active,0,2) && c.every((v,i) => v && typeof v === 'object' && Object.keys(v).length === 5 && v.id === ['traveler','smith','merchant'][i] && v.role === ['adventurer','smith','merchant'][i] && typeof v.name === 'string' && v.name.length < 30 && s.owned.includes(v.equipped) && v.equipped !== 'crown' && int(v.experience,0,1e6));
       const validLoot = (gear, quality) => Array.isArray(gear) && gear.length <= 12 && gear.every(id => Object.prototype.hasOwnProperty.call(GEAR,id)) && Array.isArray(quality) && quality.length === gear.length && quality.every(q => int(q,-1,3));
       const validDuplicates = d => Array.isArray(d) && d.length <= 12 && d.every(item => item && typeof item === 'object' && !Array.isArray(item) && Object.keys(item).length === 3 && Object.keys(item).every(k => ['id','quality','decision'].includes(k)) && Object.prototype.hasOwnProperty.call(GEAR,item.id) && item.id !== 'crown' && int(item.quality,-1,3) && [null,'keep','dismantle'].includes(item.decision));
       const validGrudge = g => g === null || (g && typeof g === 'object' && !Array.isArray(g) && Object.keys(g).length === 2 && ids.includes(g.place) && Object.prototype.hasOwnProperty.call(ENEMIES,g.enemy));
       const validExpeditionGrudge = g => g === null || (g && typeof g === 'object' && !Array.isArray(g) && Object.keys(g).length === 3 && ids.includes(g.place) && Object.prototype.hasOwnProperty.call(ENEMIES,g.enemy) && typeof g.used === 'boolean');
-      if (s.version !== VERSION || Object.keys(s).some(k => !keys.includes(k)) || ![null, 'demo', 'walk'].includes(s.mode) || !validArray(s.unlocked, ids) || !s.unlocked.includes('wood') || !validArray(s.cleared, ids) || !validArray(s.owned, Object.keys(GEAR)) || !s.owned.includes('rust') || !s.owned.includes(s.equipped) || s.equipped === 'crown' || !int(s.level, 0, 4) || !validUpgrades(s.upgrades) || !validQualities(s.qualities) || !validGrudge(s.grudge) || ![null,'ready','sharp'].includes(s.maintenance) || !int(s.scrap, 0, 1e9) || !validMaterials(s.materials) || !validCharacters(s.characters,s.activeCharacter) || !int(s.runs, 0, 1e9) || !int(s.victories, 0, s.runs)) throw Error('save');
+      if (s.version !== VERSION || Object.keys(s).some(k => !keys.includes(k)) || ![null, 'demo', 'walk'].includes(s.mode) || !validArray(s.unlocked, ids) || !s.unlocked.includes('wood') || !validArray(s.cleared, ids) || !validArray(s.owned, Object.keys(GEAR)) || !s.owned.includes('rust') || !s.owned.includes(s.equipped) || s.equipped === 'crown' || !int(s.level, 0, 4) || !validUpgrades(s.upgrades) || !validQualities(s.qualities) || !validGrudge(s.grudge) || ![null,'ready','sharp'].includes(s.maintenance) || !int(s.scrap, 0, 1e9) || !validMaterials(s.materials) || !validCharacters(s.characters,s.activeCharacter) || !validCommission(s.commission) || !int(s.runs, 0, 1e9) || !int(s.victories, 0, s.runs)) throw Error('save');
       if (s.expedition) {
         const x = s.expedition;
         const allowedFocus = gearFamily(s.equipped) === 'fang' ? [0,3,4,5,6,7,8,9] : [0,3];
@@ -622,6 +669,6 @@
       return s;
     } catch { return null; }
   }
-  const api = { VERSION, PLACES, GEAR, ENEMIES, INTENTS, VARIANT_LOOT, MATERIALS, RECIPES, DISMANTLE_SCRAP, LOCAL_HERB_COST, initial, maxHp, gearFamily, weaponLevel, weaponQuality, weaponAttack, qualityLabel, rollQuality, upgradeCost, combatProfile, gearText, enemyProfile, attackPreview, intent, lootCue, place, isRoadsideEvent, discover, start, startWithLocalHerb, act, maintain, equip, switchCharacter, craftItem, craftWolfFang, upgrade, resolveDuplicate, locationSession, observe, serialize, parse, discoverDistrict,selectDistrict,buildHome,renameHome };
+  const api = { VERSION, PLACES, GEAR, ENEMIES, INTENTS, VARIANT_LOOT, MATERIALS, RECIPES, COMMISSIONS, DISMANTLE_SCRAP, LOCAL_HERB_COST, initial, maxHp, gearFamily, weaponLevel, weaponQuality, weaponAttack, qualityLabel, rollQuality, upgradeCost, combatProfile, gearText, enemyProfile, attackPreview, intent, lootCue, place, isRoadsideEvent, discover, start, startWithLocalHerb, act, maintain, equip, switchCharacter, craftItem, craftWolfFang, supplyCommission, upgrade, resolveDuplicate, locationSession, observe, serialize, parse, discoverDistrict,selectDistrict,buildHome,renameHome };
   return api;
 });

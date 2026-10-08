@@ -286,3 +286,28 @@ test('smith recipes show exact missing materials, source and ready-to-craft next
   ready.click('craft-item','forged_fang');
   assert.match(ready.html(),/製作済み · 倉庫から装備できる/);
 });
+
+test('smith commission is accessible in the gear UI and saves as a single pending NPC job', () => {
+  const k='crownless-expedition-v1-demo';
+  const s={...E.initial(),mode:'demo',scrap:10};
+  s.materials.wolfFang=2;
+  const b=browser({[k]:E.serialize(s),'crownless-expedition-mode':'demo'});
+  b.click('tab','gear');
+  assert.match(b.html(),/工房への依頼 · 架空のNPC/);
+  assert.match(b.html(),/森の斥候に装備を納品/);
+  b.click('character','1');
+  b.click('commission','wood');
+  let saved=JSON.parse(b.store.get(k));
+  assert.equal(saved.commission.pending,'wood');
+  assert.equal(saved.materials.wolfFang,0);
+  assert.equal(saved.scrap,6);
+  assert.deepEqual(saved.owned,['rust']);
+  const prev=b.store.get(k);
+  b.click('commission','wood');
+  assert.equal(b.store.get(k),prev,'same commission cannot drain twice');
+  assert.match(b.html(),/納品は完了/);
+  b.click('character','0');
+  b.click('depart','wood');
+  saved=JSON.parse(b.store.get(k));
+  assert.equal(saved.expedition.place,'wood');
+});
