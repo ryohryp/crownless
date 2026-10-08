@@ -50,6 +50,7 @@ test('three characters share materials but only the smith can craft', () => {
   assert.equal(s.characters.length,3);
   assert.equal(s.characters[1].role,'smith');
   assert.equal(E.start(s,'wood'),s,'smith cannot act as remote adventurer');
+  s={...s,scrap:0};
   const short=E.craftWolfFang(s);
   assert.equal(short,s,'insufficient iron scraps must not consume material');
   s={...s,scrap:20};
