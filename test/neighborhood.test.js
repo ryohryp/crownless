@@ -169,7 +169,7 @@ test('approved sumi-e neighborhood uses ink landmarks and washi panels without c
   assert.match(css,/district-pin\[data-stronghold-state="rival"\]>.district-landmark::before/);
   assert.match(css,/\.district-detail,\s*\n#game>\.living-map-home \.stronghold-status/);
   assert.match(css,/\.district-detail \.primary\{\s*\n  background:#252624/);
-  assert.match(css,/camp-tabs\.bottom-navigation \.bottom-navigation-item::before/);
+  assert.match(css,/camp-tabs\.bottom-navigation>button::before/);
   assert.match(app,/data-action="district"/);
   assert.match(app,/class="district-poi-card"/);
   assert.match(app,/data-action="tab"/);
