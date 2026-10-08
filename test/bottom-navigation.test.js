@@ -89,6 +89,7 @@ test('Codex and Chronicle injection results in six equal-ready dock items on one
     createElement(tag) {
       const el=item('');
       el.tagName=tag; el.querySelectorAll=()=>[]; el.matches=()=>false;
+      el.remove=()=>{ const index=parent.children.indexOf(el); if(index>=0) parent.children.splice(index,1); };
       return el;
     },
   };
