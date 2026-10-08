@@ -45,72 +45,23 @@ test('sumi-e dock has equal columns even before its optional JS enhancer', () =>
 });
 
 
-test('Codex and Chronicle injection results in six equal-ready dock items on one row', () => {
-  const vm = require('node:vm');
-  const classes = value => {
-    const values = new Set(value.split(' ').filter(Boolean));
-    return {
-      values,
-      add(name) { values.add(name); },
-      remove(name) { values.delete(name); },
-      contains(name) { return values.has(name); },
-    };
-  };
-  const item = (text, active = false) => ({
-    textContent: text, dataset: {}, classList: classes('bottom-navigation-item'+(active ? ' active' : '')),
-    attributes: { 'aria-current': active ? 'page' : 'false' },
-    setAttribute(name, value) { this.attributes[name] = value; },
-    addEventListener(event, fn) { this[event] = fn; },
-  });
-  const initial = ['近所','拠点','装備','設定'].map((x, i) => item(x,i===0));
-  initial[3].dataset.action='settings';
-  const nav = {
-    children:initial,
-    querySelector(selector) {
-      if(selector === '[data-action="settings"]') return this.children.find(x=>x.dataset.action==='settings') || null;
-      if(selector === '[data-codex-tab]') return this.children.find(x=>x.dataset.codexTab) || null;
-      if(selector === '[data-chronicle-tab]') return this.children.find(x=>x.dataset.chronicleTab) || null;
-      return null;
-    },
-    querySelectorAll(selector) { return selector==='button' ? this.children : []; },
-    insertBefore(element, before) {
-      const index=this.children.indexOf(before);
-      this.children.splice(index<0 ? this.children.length : index,0,element);
-    },
-    appendChild(element) { this.children.push(element); },
-    after(element) { this.parentElement.children.push(element); },
-  };
-  const parent = { children:[nav] };
-  nav.parentElement=parent;
-  const game = { querySelector(selector) { return selector==='.camp-tabs' ? nav : null; } };
-  const document = {
-    readyState:'complete',
-    querySelector(selector) { return selector==='#game' ? game : null; },
-    createElement(tag) {
-      const el=item('');
-      el.tagName=tag; el.querySelectorAll=()=>[]; el.matches=()=>false;
-      el.remove=()=>{ const index=parent.children.indexOf(el); if(index>=0) parent.children.splice(index,1); };
-      return el;
-    },
-  };
-  const context = {
-    document,
-    localStorage:{ getItem(){return null;},setItem(){} },
-    CrownlessSlice:{parse(){return null;}},
-    MutationObserver:class { observe(){} },
-  };
-  context.window=context;
-  for(const file of ['src/codex-ui.js','src/travel-chronicle-ui.js']) {
-    vm.runInNewContext(fs.readFileSync(path.join(__dirname,'..',file),'utf8'),context,{filename:file});
+test('all six dock entries are declared in core and extensions never remove app layout', () => {
+  const app=fs.readFileSync(path.join(__dirname,'..','src','slice-app.js'),'utf8');
+  const codex=fs.readFileSync(path.join(__dirname,'..','src','codex-ui.js'),'utf8');
+  const chronicle=fs.readFileSync(path.join(__dirname,'..','src','travel-chronicle-ui.js'),'utf8');
+  const css=fs.readFileSync(path.join(__dirname,'..','neighborhood.css'),'utf8');
+
+  for (const name of ['近所','拠点','装備','手記','冒険録']) {
+    assert.match(app,new RegExp("button\\('tab','"+name+"'"));
   }
-  assert.deepEqual(nav.children.map(x=>x.textContent),
-    ['近所','拠点','装備','手記','冒険録','設定']);
-  assert.equal(nav.children.length,6);
-  for(const x of nav.children) {
-    assert.ok(x.classList.contains('bottom-navigation-item'),x.textContent);
-  }
-  nav.children[3].click();
-  assert.deepEqual(nav.children.filter(x=>x.attributes['aria-current']==='page').map(x=>x.textContent),['手記']);
-  nav.children[4].click();
-  assert.deepEqual(nav.children.filter(x=>x.attributes['aria-current']==='page').map(x=>x.textContent),['冒険録']);
+  assert.match(app,/button\('settings','設定'/);
+  assert.match(app,/CrownlessCodexUI\?\.renderCodex/);
+  assert.match(app,/CrownlessTravelChronicleUI\?\.renderChronicle/);
+  assert.match(codex,/CrownlessCodexUI = \{ renderCodex \}/);
+  assert.doesNotMatch(codex,/MutationObserver|nav\.insertBefore|x\.remove\(/);
+  assert.doesNotMatch(chronicle,/MutationObserver|nav\.insertBefore|x\.remove\(/);
+  assert.match(css,/grid-auto-flow:column/);
+  assert.match(css,/grid-auto-columns:minmax\(0,1fr\)/);
+  assert.match(css,/#game>\.journal-home>\.visual-column\{display:none\}/);
+  assert.match(css,/#game>\.journal-home>\.panel\{/);
 });
