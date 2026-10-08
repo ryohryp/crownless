@@ -6,9 +6,9 @@
   'use strict';
   const VERSION = 1;
   const PLACES = [
-    { id: 'wood', name: '囁きの森', teaser: '霧の中に、折れた枝と獣の足跡が続いている。', subtitle: '根の下に、誰かの剣が眠る。', terrain: 'FOREST', weapon: 'fang', enemy: 'wolf', reward: '牙の短剣', hint: '回避のあとに、一撃を返す。', color: '#93ae8e' },
-    { id: 'tower', name: '鐘なき塔', teaser: '霧の向こうから、鳴るはずのない鐘の音がする。', subtitle: '鳴らない鐘を、今も守る者。', terrain: 'WATCHTOWER', weapon: 'shield', enemy: 'knight', reward: '番人の盾', hint: '守りを固め、敵の隙を待つ。', color: '#c5ad79' },
-    { id: 'fen', name: '星沈みの湿原', teaser: '水辺の霧の奥で、青い光がゆっくり揺れている。', subtitle: '水面に、消えた星が映る。', terrain: 'WETLAND', weapon: 'bow', enemy: 'wraith', reward: '葦の長弓', hint: '鎧を貫き、狙った獲物を射る。', color: '#91b4bd' },
+    { id: 'wood', name: '囁きの森', teaser: '霧の中に、折れた枝と獣の足跡が続いている。', subtitle: '根の下に、誰かの剣が眠る。', terrain: 'FOREST', weapon: 'fang', enemy: 'wolf', reward: '狼牙と鍛冶素材', hint: '回避のあとに、一撃を返す。', color: '#93ae8e' },
+    { id: 'tower', name: '鐘なき塔', teaser: '霧の向こうから、鳴るはずのない鐘の音がする。', subtitle: '鳴らない鐘を、今も守る者。', terrain: 'WATCHTOWER', weapon: 'shield', enemy: 'knight', reward: '鐘鉄と鍛冶素材', hint: '守りを固め、敵の隙を待つ。', color: '#c5ad79' },
+    { id: 'fen', name: '星沈みの湿原', teaser: '水辺の霧の奥で、青い光がゆっくり揺れている。', subtitle: '水面に、消えた星が映る。', terrain: 'WETLAND', weapon: 'bow', enemy: 'wraith', reward: '霧葦と鍛冶素材', hint: '鎧を貫き、狙った獲物を射る。', color: '#91b4bd' },
     { id: 'crypt', name: '灰冠の廟', teaser: '石の下から、乾いた金属音がかすかに響く。', subtitle: '王冠だけが、主を忘れない。', terrain: 'ROYAL TOMB', weapon: 'crown', enemy: 'king', reward: '灰の王冠', hint: 'この小さな旅の、最初の到達点。', color: '#b1a0ca' },
   ];
   const GEAR = {
@@ -40,16 +40,29 @@
   ];
   const DISMANTLE_SCRAP = 2;
   const LOCAL_HERB_COST = 2;
+  // Legacy catalog retained for saved weapon IDs and older test fixtures; no new expedition drops equippable gear.
   const VARIANT_LOOT = {
     wood: ['fang_blood', 'fang_moon'],
     tower: ['shield_thorn', 'shield_oath'],
     fen: ['bow_hunter', 'bow_recurve'],
   };
+  const MATERIALS = Object.freeze({
+    wolfFang: { name:'狼牙', source:'囁きの森' },
+    watchIron: { name:'鐘鉄', source:'鐘なき塔' },
+    marshFiber: { name:'霧葦', source:'星沈みの湿原' }
+  });
+  const emptyMaterials = () => Object.fromEntries(Object.keys(MATERIALS).map(id => [id,0]));
+  const RECIPES = Object.freeze({
+    forged_fang: { materials:{wolfFang:2}, scrap:4, quality:1, origin:'囁きの森' },
+    shield: { materials:{watchIron:2}, scrap:4, quality:0, origin:'鐘なき塔' },
+    bow: { materials:{marshFiber:2}, scrap:4, quality:0, origin:'星沈みの湿原' }
+  });
+  const ENEMY_MATERIAL = Object.freeze({ wolf:'wolfFang', forest_hunter:'wolfFang', knight:'watchIron', wraith:'marshFiber' });
   const LOOT_CUES = {
-    wood: ['細身の刃が、根の隙間で一瞬だけ光った。', '赤黒い染みのある刃と、月色の柄が見える。'],
-    tower: ['古い紋章入りの盾が、崩れた壁の奥に立てかけられている。', '縁に棘のある盾と、白い誓印の盾影が見える。'],
-    fen: ['普通の葦弓とは違う弦鳴りが、霧の奥から返ってくる。', '灰色の羽根と骨角の弓身が、水面の向こうに見える。'],
-    crypt: ['王墓の奥から、鉄ではない乾いた響きが返る。', '灰冠の主の近くに、まだ何かが残されている気配がある。'],
+    wood: ['枝の下に鋭い牙の跡がある。鍛冶師なら使えそうだ。', '霧の奥には、より大きな獣の牙が眠る。'],
+    tower: ['朽ちた鐘に珍しい鉄の響きがある。', '鎧の残骸に、鍛ち直せる鐘鉄が混じっている。'],
+    fen: ['水辺にしなやかな霧葦が群生している。', '奥の亡霊のまわりで、特別な霧葦が揺れる。'],
+    crypt: ['王墓には灰冠の記憶が残る。', '王冠以外に武具はないが、帰還のための鉄片が見つかる。']
   };
   const ENEMIES = {
     wolf: { name: '茨牙の狼', art: 'wolf', hp: 16, archetype: '速攻型', patterns: [
@@ -125,7 +138,7 @@
     { id:'smith', name:'見習い鍛冶師', role:'smith', equipped:'rust', experience:0 },
     { id:'merchant', name:'行商人', role:'merchant', equipped:'rust', experience:0 }
   ];
-  const initial = () => ({ version: VERSION, mode: null, unlocked: ['wood'], cleared: [], owned: ['rust'], equipped: 'rust', qualities: emptyQualities(), scrap: 0, materials:{wolfFang:0}, characters:startingCharacters(), activeCharacter:0, level: 0, upgrades: emptyUpgrades(), runs: 0, victories: 0, grudge: null, maintenance: null, expedition: null, report: null, neighborhood:N.initial() });
+  const initial = () => ({ version: VERSION, mode: null, unlocked: ['wood'], cleared: [], owned: ['rust'], equipped: 'rust', qualities: emptyQualities(), scrap: 0, materials:emptyMaterials(), characters:startingCharacters(), activeCharacter:0, level: 0, upgrades: emptyUpgrades(), runs: 0, victories: 0, grudge: null, maintenance: null, expedition: null, report: null, neighborhood:N.initial() });
   const maxHp = s => 30 + (Number.isInteger(s.level) ? s.level : 0) * 5 + (s.owned.includes('crown') ? 6 : 0) + (s.neighborhood?.buildings.includes('lodge') ? 4 : 0);
   function weaponLevel(s, id = s.equipped) {
     const legacy = LEGACY_UPGRADEABLE.has(id) && Number.isInteger(s?.level)
@@ -245,7 +258,7 @@
   };
   function lootCue(placeId, depth) {
     const cues = LOOT_CUES[placeId] || LOOT_CUES.crypt;
-    if (depth <= 1) return '奥ほど鉄の気配が濃い。何が残っているかは、まだ分からない。';
+    if (depth <= 1) return '奥ほど希少素材の気配が濃い。命がけで持ち帰り、職人に託そう。';
     return cues[Math.min(cues.length - 1, depth - 2)];
   }
   function discover(s, id) {
@@ -262,7 +275,7 @@
       sharpened ? '研いだ刃はまだ鋭い。次の三戦、初撃が強くなる。' : null,
       grudge ? `敗走の記憶が残っている。${ENEMIES[grudge.enemy].name}への一撃に執念を乗せられる。` : null,
     ].filter(Boolean).join(' ') || '火はここで待っている。まずは足跡をたどろう。';
-    n.expedition = { place: id, depth: 1, room: 0, hp: maxHp(s), stamina: 3, focus: 0, stagger: false, sharpened, sharpenedApplied: false, potions: 2, scrap: 0, materials:{wolfFang:0}, gear: [], gearQuality: [], seals: [], grudge, enemy: null, stage: 'path', log: [intro] };
+    n.expedition = { place: id, depth: 1, room: 0, hp: maxHp(s), stamina: 3, focus: 0, stagger: false, sharpened, sharpenedApplied: false, potions: 2, scrap: 0, materials:emptyMaterials(), gear: [], gearQuality: [], seals: [], grudge, enemy: null, stage: 'path', log: [intro] };
     return n;
   }
   // One local trade creates a tangible expedition advantage without new save fields.
@@ -291,11 +304,11 @@
     const x = s.expedition;
     const gearQuality = Array.isArray(x.gearQuality) ? [...x.gearQuality] : [];
     while (gearQuality.length < x.gear.length) gearQuality.push(0);
-    s.report = { died, place: x.place, depth: x.depth, scrap: x.scrap, gear: [...x.gear], gearQuality: [...gearQuality], materials:{wolfFang:x.materials?.wolfFang ?? 0}, newGear: [], duplicates: [], hp: x.hp, cleared: [...x.seals], defeatedBy: died && x.enemy ? x.enemy.kind : null };
+    s.report = { died, place: x.place, depth: x.depth, scrap: x.scrap, gear: [...x.gear], gearQuality: [...gearQuality], materials:{...emptyMaterials(),...(x.materials||{})}, newGear: [], duplicates: [], hp: x.hp, cleared: [...x.seals], defeatedBy: died && x.enemy ? x.enemy.kind : null };
     if (died && x.enemy) s.grudge = { place: x.place, enemy: x.enemy.kind };
     if (!died) {
       s.scrap += x.scrap;
-      s.materials.wolfFang += x.materials?.wolfFang ?? 0;
+      for (const id of Object.keys(MATERIALS)) s.materials[id] += x.materials?.[id] ?? 0;
       const newGear = [];
       const duplicates = [];
       for (let i = 0; i < x.gear.length; i++) {
@@ -318,49 +331,35 @@
     s.expedition = null;
     return s;
   }
-  function variantDrop(s, x, e) {
-    if (x.depth < 2) return null;
-    const pool = VARIANT_LOOT[x.place] || [];
-    const available = pool.filter(id => !x.gear.includes(id));
-    if (!available.length) return null;
-    if (!e.elite) {
-      if (!e.risky) return null;
-      const roll = (s.runs + x.depth + x.room + PLACES.findIndex(p => p.id === x.place)) % 2;
-      if (roll !== 0) return null;
-    }
-    return available[(s.runs + x.depth + x.room) % available.length];
-  }
+  // New adventures yield raw resources; legacy in-progress gear is still honored by finish().
   function victory(s) {
     const x = s.expedition, e = x.enemy;
+    if (!x.materials) x.materials = emptyMaterials(); // Older combat fixtures.
+    x.materials = {...emptyMaterials(),...x.materials};
     if (!Array.isArray(x.gearQuality)) x.gearQuality = [];
     while (x.gearQuality.length < x.gear.length) x.gearQuality.push(0);
     const loot = (e.elite ? 5 : 2) * x.depth + (e.risky ? 3 : 0);
     x.scrap += loot;
     x.log.push(`討伐。鉄片を ${loot} 個、背嚢へ。生還するまで確定しない。`);
-    if (e.kind === 'wolf') {
-      if (!x.materials) x.materials = {wolfFang:0}; // Historical combat fixtures may omit the new field.
-      x.materials.wolfFang += 1;
-      x.log.push('狼牙の素材 +1。生還すれば鍛冶師に渡せる。');
-    }
-    const variant = variantDrop(s, x, e);
-    if (variant) {
-      const quality = rollQuality(s, x, variant);
-      x.gear.push(variant); x.gearQuality.push(quality);
-      x.log.push(`${GEAR[variant].name}（${qualityLabel(quality)}）を発見！ まだ未帰還。今なら帰って確定できる。`);
+    const materialId = ENEMY_MATERIAL[e.kind];
+    if (materialId) {
+      const amount = e.elite ? Math.min(3,x.depth+1) : 1;
+      x.materials[materialId] += amount;
+      x.log.push(`${MATERIALS[materialId].name} +${amount}。装備そのものは落ちない。素材を持ち帰って鍛冶師に託そう。`);
     }
     if (e.elite) {
-      if (x.depth === 1) {
-        const gear = place(x.place).weapon;
-        if (gear === 'crown' && (x.gear.includes(gear) || s.owned.includes(gear))) {
-          x.scrap += 4; x.log.push('灰冠の廟には、新しい王冠は残っていなかった。鉄片 +4。');
-        } else if (!x.gear.includes(gear)) {
-          const quality = rollQuality(s, x, gear, 1);
-          x.gear.push(gear); x.gearQuality.push(quality);
-          x.log.push(`${GEAR[gear].name}${gear === 'crown' ? '' : `（${qualityLabel(quality)}）`}を発見！ 焚き火へ持ち帰ろう。`);
+      if (x.depth === 1 && x.place === 'crypt') {
+        if (x.gear.includes('crown') || s.owned.includes('crown')) {
+          x.scrap += 4;
+          x.log.push('灰の王冠はすでに持ち帰った。新たな鉄片 +4。');
         } else {
-          x.scrap += 4; x.log.push('武具の代わりに、鉄片 +4。');
+          x.gear.push('crown'); x.gearQuality.push(0);
+          x.log.push('灰の王冠を見つけた。これは装備ではなく、旅の到達を記す遺物だ。');
         }
-      } else if (!variant) { x.scrap += 4; x.log.push('珍しい武具は見つからず、鉄片 +4。'); }
+      } else if (!materialId) {
+        x.scrap += 4;
+        x.log.push('古い武具はもう使えない。鉄片 +4。');
+      }
       x.seals.push(x.place); x.stage = 'cleared';
     } else { x.room++; x.stage = 'path'; }
     x.enemy = null; x.stagger = false; x.focus = 0;
@@ -488,17 +487,20 @@
     n.equipped = n.characters[index].equipped;
     return n;
   }
-  // First local production vertical slice: the special blade enters the game ONLY via smith crafting.
-  function craftWolfFang(s) {
-    if (s.expedition || s.report || s.activeCharacter !== 1 || s.owned.includes('forged_fang') || s.materials.wolfFang < 2 || s.scrap < 4) return s;
+  // A smith supplies all new equippable gear; item IDs are unique in this small local prototype.
+  function craftItem(s, id) {
+    const recipe = RECIPES[id];
+    if (!recipe || s.expedition || s.report || s.activeCharacter !== 1 || s.owned.includes(id) || s.scrap < recipe.scrap) return s;
+    if (Object.entries(recipe.materials).some(([material,count]) => (s.materials?.[material] ?? 0) < count)) return s;
     const n = copy(s);
-    n.materials.wolfFang -= 2;
-    n.scrap -= 4;
-    n.owned.push('forged_fang');
-    n.qualities.forged_fang = 1;
+    for (const [material,count] of Object.entries(recipe.materials)) n.materials[material] -= count;
+    n.scrap -= recipe.scrap;
+    n.owned.push(id);
+    n.qualities[id] = recipe.quality;
     n.characters[1].experience += 1;
     return n;
   }
+  function craftWolfFang(s) { return craftItem(s,'forged_fang'); }
   function upgrade(s, id = s.equipped) {
     const key = upgradeKey(id);
     if (s.expedition || !key || !s.owned.includes(id)) return s;
@@ -564,7 +566,8 @@
       if (!N.valid(s.neighborhood)) throw Error('neighborhood');
       if (s.version === VERSION && s.upgrades === undefined) s.upgrades = emptyUpgrades();
       else if (s.version === VERSION && s.upgrades && typeof s.upgrades === 'object' && !Array.isArray(s.upgrades)) s.upgrades = {...emptyUpgrades(), ...s.upgrades};
-      if (s.version === VERSION && s.materials === undefined) s.materials = {wolfFang:0};
+      if (s.version === VERSION && s.materials === undefined) s.materials = emptyMaterials();
+      else if (s.version === VERSION && s.materials && typeof s.materials === 'object' && !Array.isArray(s.materials)) s.materials = {...emptyMaterials(),...s.materials};
       if (s.version === VERSION && s.characters === undefined) { s.characters = startingCharacters(); s.characters[0].equipped = s.equipped; }
       if (s.version === VERSION && s.activeCharacter === undefined) s.activeCharacter = 0;
       if (s.version === VERSION && s.grudge === undefined) s.grudge = null;
@@ -572,7 +575,8 @@
       if (s.version === VERSION && s.qualities === undefined) s.qualities = emptyQualities();
       else if (s.version === VERSION && s.qualities && typeof s.qualities === 'object' && !Array.isArray(s.qualities)) s.qualities = {...emptyQualities(), ...s.qualities};
       if (s.version === VERSION && s.expedition) {
-        if (s.expedition.materials === undefined) s.expedition.materials = {wolfFang:0};
+        if (s.expedition.materials === undefined) s.expedition.materials = emptyMaterials();
+        else if (s.expedition.materials && typeof s.expedition.materials === 'object' && !Array.isArray(s.expedition.materials)) s.expedition.materials = {...emptyMaterials(),...s.expedition.materials};
         if (Array.isArray(s.expedition.gear) && s.expedition.gearQuality === undefined) s.expedition.gearQuality = s.expedition.gear.map(() => 0);
         if (s.expedition.sharpened === undefined) s.expedition.sharpened = 0;
         if (s.expedition.sharpenedApplied === undefined) s.expedition.sharpenedApplied = false;
@@ -580,7 +584,8 @@
         if (s.expedition.stagger === undefined) s.expedition.stagger = false;
       }
       if (s.version === VERSION && s.report) {
-        if (s.report.materials === undefined) s.report.materials = {wolfFang:0};
+        if (s.report.materials === undefined) s.report.materials = emptyMaterials();
+        else if (s.report.materials && typeof s.report.materials === 'object' && !Array.isArray(s.report.materials)) s.report.materials = {...emptyMaterials(),...s.report.materials};
         if (Array.isArray(s.report.gear) && s.report.gearQuality === undefined) s.report.gearQuality = s.report.gear.map(() => 0);
         if (s.report.duplicates === undefined) s.report.duplicates = [];
         if (s.report.defeatedBy === undefined) s.report.defeatedBy = null;
@@ -590,7 +595,7 @@
       const int = (v, min, max) => Number.isInteger(v) && v >= min && v <= max;
       const validUpgrades = u => u && typeof u === 'object' && !Array.isArray(u) && Object.keys(u).length === UPGRADEABLE.length && UPGRADEABLE.every(id => Object.prototype.hasOwnProperty.call(u,id) && int(u[id],0,4)) && Object.keys(u).every(id => UPGRADEABLE.includes(id));
       const validQualities = q => q && typeof q === 'object' && !Array.isArray(q) && Object.keys(q).length === Object.keys(GEAR).length && Object.keys(GEAR).every(id => Object.prototype.hasOwnProperty.call(q,id) && int(q[id],-1,3)) && Object.keys(q).every(id => Object.prototype.hasOwnProperty.call(GEAR,id));
-      const validMaterials = m => m && typeof m === 'object' && !Array.isArray(m) && Object.keys(m).length === 1 && int(m.wolfFang,0,1e6);
+      const validMaterials = m => m && typeof m === 'object' && !Array.isArray(m) && Object.keys(m).length === Object.keys(MATERIALS).length && Object.keys(MATERIALS).every(id => int(m[id],0,1e6)) && Object.keys(m).every(id => Object.hasOwn(MATERIALS,id));
       const validCharacters = (c,active) => Array.isArray(c) && c.length === 3 && int(active,0,2) && c.every((v,i) => v && typeof v === 'object' && Object.keys(v).length === 5 && v.id === ['traveler','smith','merchant'][i] && v.role === ['adventurer','smith','merchant'][i] && typeof v.name === 'string' && v.name.length < 30 && s.owned.includes(v.equipped) && v.equipped !== 'crown' && int(v.experience,0,1e6));
       const validLoot = (gear, quality) => Array.isArray(gear) && gear.length <= 12 && gear.every(id => Object.prototype.hasOwnProperty.call(GEAR,id)) && Array.isArray(quality) && quality.length === gear.length && quality.every(q => int(q,-1,3));
       const validDuplicates = d => Array.isArray(d) && d.length <= 12 && d.every(item => item && typeof item === 'object' && !Array.isArray(item) && Object.keys(item).length === 3 && Object.keys(item).every(k => ['id','quality','decision'].includes(k)) && Object.prototype.hasOwnProperty.call(GEAR,item.id) && item.id !== 'crown' && int(item.quality,-1,3) && [null,'keep','dismantle'].includes(item.decision));
@@ -615,6 +620,6 @@
       return s;
     } catch { return null; }
   }
-  const api = { VERSION, PLACES, GEAR, ENEMIES, INTENTS, VARIANT_LOOT, DISMANTLE_SCRAP, LOCAL_HERB_COST, initial, maxHp, gearFamily, weaponLevel, weaponQuality, weaponAttack, qualityLabel, rollQuality, upgradeCost, combatProfile, gearText, enemyProfile, attackPreview, intent, lootCue, place, isRoadsideEvent, discover, start, startWithLocalHerb, act, maintain, equip, switchCharacter, craftWolfFang, upgrade, resolveDuplicate, locationSession, observe, serialize, parse, discoverDistrict,selectDistrict,buildHome,renameHome };
+  const api = { VERSION, PLACES, GEAR, ENEMIES, INTENTS, VARIANT_LOOT, MATERIALS, RECIPES, DISMANTLE_SCRAP, LOCAL_HERB_COST, initial, maxHp, gearFamily, weaponLevel, weaponQuality, weaponAttack, qualityLabel, rollQuality, upgradeCost, combatProfile, gearText, enemyProfile, attackPreview, intent, lootCue, place, isRoadsideEvent, discover, start, startWithLocalHerb, act, maintain, equip, switchCharacter, craftItem, craftWolfFang, upgrade, resolveDuplicate, locationSession, observe, serialize, parse, discoverDistrict,selectDistrict,buildHome,renameHome };
   return api;
 });
