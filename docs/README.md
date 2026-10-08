@@ -27,6 +27,7 @@ Start here:
 - [ADR 0006 — social territory control](adr/0006-social-territory-control.md)
 - [ADR 0008 — frontier and chronicle](adr/0008-frontier-and-chronicle.md)
 - [ADR 0009 — smartphone combat viewport and tactical information density](adr/0009-smartphone-combat-viewport-and-tactical-density.md)
+- [ADR 0010 — selective game-development tooling before engine migration](adr/0010-selective-game-tooling-before-engine-migration.md)
 - [Visual Canon](visual-canon.md) — single global visual authority; specialized `visual/` documents must conform to it
 - [Deployment strategy](deployment-strategy.md)
 
