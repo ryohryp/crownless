@@ -1,50 +1,41 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 430 700" fill="none">
-  <g stroke="#6f604a" stroke-linecap="round" stroke-linejoin="round">
-    <g opacity=".28" stroke-width="1.3">
-      <path d="M18 170 62 118l25 28 31-48 46 63 34-27 42 36"/>
-      <path d="m260 150 33-44 20 24 31-48 23 36 18-20 29 52"/>
-      <path d="M9 185c64-12 127-4 189 2s127 17 223 0"/>
-      <path d="M28 292c66-30 137-28 204 2s124 39 188 15"/>
-      <path d="M15 442c72-27 142-21 206 4s130 35 199 11"/>
-      <path d="M31 603c82-23 157-15 224 12s116 22 155 8"/>
-    </g>
-
-    <g opacity=".34" stroke-width="1.15">
-      <path d="M232 0c-13 66-22 115-19 166s20 99 8 154-34 98-28 160 30 130 18 220" stroke="#677878" stroke-width="6"/>
-      <path d="M232 0c-13 66-22 115-19 166s20 99 8 154-34 98-28 160 30 130 18 220" stroke="#a99b79" stroke-width="2"/>
-      <path d="M28 420c54-34 98-54 150-67s93-37 130-75" stroke-dasharray="6 8"/>
-      <path d="M95 574c41-47 70-80 103-103s70-33 109-45" stroke-dasharray="4 7"/>
-    </g>
-
-    <g opacity=".3" stroke-width="1.1">
-      <path d="M52 465l11-22 11 22m-4-8 10-19 10 19m-60 32 12-24 12 24m38 7 10-21 10 21"/>
-      <path d="M35 521l9-18 9 18m18 10 12-25 12 25m22-6 10-21 10 21"/>
-      <path d="M312 375l10-20 10 20m16 11 8-17 8 17m14-28 10-21 10 21"/>
-      <path d="M330 426l10-20 10 20m18 10 9-18 9 18"/>
-    </g>
-
-    <g opacity=".38" stroke-width="1.4">
-      <path d="M178 208h35v39h-35z"/>
-      <path d="m173 208 23-28 23 28"/>
-      <path d="M189 225h11v22m-16-50v-16m24 17v-20"/>
-      <path d="M254 574h38v31h-38z"/>
-      <path d="m248 574 25-25 25 25"/>
-      <path d="M267 590h11v15"/>
-      <path d="M348 456c22 4 38 10 55 23m-61-4c23 2 38 7 53 17"/>
-      <path d="M340 493c22-8 44-8 66 2"/>
-    </g>
-
-    <g opacity=".24" stroke-width="1">
-      <path d="M118 122c14-14 28-14 42 0m-35 19c12-11 24-11 36 0"/>
-      <path d="M297 121c15-15 30-15 45 0m-35 20c12-12 24-12 36 0"/>
-      <path d="M63 378c20-11 40-11 60 0m-49 17c17-8 34-8 51 0"/>
-      <path d="M302 514c19-10 38-10 57 0m-44 17c16-8 32-8 48 0"/>
-    </g>
-
-    <g opacity=".24" stroke-width=".9">
-      <circle cx="88" cy="335" r="4"/><circle cx="106" cy="347" r="3"/><circle cx="124" cy="330" r="4"/>
-      <circle cx="333" cy="329" r="5"/><circle cx="355" cy="341" r="4"/><circle cx="376" cy="325" r="3"/>
-      <circle cx="143" cy="545" r="4"/><circle cx="160" cy="557" r="3"/><circle cx="179" cy="540" r="4"/>
-    </g>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 430 700" fill="none" aria-hidden="true">
+  <defs>
+    <linearGradient id="wash" x1="0" y1="0" x2=".9" y2="1">
+      <stop stop-color="#45433f" stop-opacity=".18"/>
+      <stop offset=".55" stop-color="#595650" stop-opacity=".07"/>
+      <stop offset="1" stop-color="#45413c" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="river" x1="0" y1="0" x2="1" y2=".4">
+      <stop stop-color="#514f4b" stop-opacity=".22"/>
+      <stop offset="1" stop-color="#514f4b" stop-opacity=".04"/>
+    </linearGradient>
+  </defs>
+  <!-- Atmospheric mountain washes: intentionally leave paper visible. -->
+  <path d="M-24 192 35 121 65 146 116 72 169 158 206 121 257 183 303 129 347 169 383 109 455 181v68H-24z" fill="url(#wash)"/>
+  <g stroke="#34332f" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m-16 183 48-58 30 23 53-76 53 85 39-36 50 63m19-18 28-36 40 40 39-61 47 72" stroke-width="2.8" opacity=".47"/>
+    <path d="m80 133 34-55 18 30m-32-8 12-14m51 72 38-33 14 20m121 3 43-42 19 29" stroke-width="1.1" opacity=".4"/>
+    <path d="M-15 202c76-17 143-12 209 2s150 19 251-4M0 216c80-8 133-5 187 4s145 10 244-6" stroke-width="1.8" opacity=".18"/>
+  </g>
+  <!-- Ink-wash river and bank: organic, not a satellite map. -->
+  <path d="M268-25c-65 94-36 154-62 224-28 78-68 99-59 182 7 64 77 89 59 160-15 62-58 109-32 188" stroke="url(#river)" stroke-width="37" stroke-linecap="round"/>
+  <path d="M268-25c-65 94-36 154-62 224-28 78-68 99-59 182 7 64 77 89 59 160-15 62-58 109-32 188" stroke="#3b3a36" stroke-opacity=".32" stroke-width="2.4" stroke-linecap="round"/>
+  <path d="M280-20c-59 91-35 149-60 224-25 74-68 99-55 175 12 72 74 90 58 160" stroke="#56534e" stroke-opacity=".18" stroke-width="1.2" stroke-linecap="round"/>
+  <!-- Distant trees, each with varied dry-brush weight. -->
+  <g stroke="#34342f" stroke-linecap="round" stroke-linejoin="round" opacity=".43">
+    <path d="m25 340 16-31 16 31m-13-11 10-27 14 27m-30 20 15-28 17 28m9 6 15-34 18 34m-61 20v-20m31 20v-19m-48 20v-17" stroke-width="2.5"/>
+    <path d="m292 396 14-30 16 30m-8-10 16-37 20 37m-9 10 13-29 16 29m-49 13v-16m29 20v-22" stroke-width="2.3"/>
+    <path d="m43 514 18-40 18 40m-11-12 18-36 16 36m-54 21 15-30 16 30m12 9 17-31 17 31m-53 13v-30m25 27v-22" stroke-width="2.8"/>
+    <path d="m288 575 15-31 15 31m-6-10 15-35 17 35m-35 17v-20m31 18v-18" stroke-width="2.1"/>
+  </g>
+  <!-- Faint village, bridge, and road motifs leave the real interactive pins unobstructed. -->
+  <g stroke="#3e3a34" stroke-linecap="round" stroke-linejoin="round" opacity=".38">
+    <path d="m299 266 29-22 29 22m-52-2v29h46v-29m-34 29v-19h15v19m37-14 19-14 19 14m-35 0v21h32v-21" stroke-width="2.4"/>
+    <path d="M128 440q40-17 81-4m-81 11q40-17 81-4m-70-15v23m19-28v22m20-20v20m20-15v18" stroke-width="2.1"/>
+    <path d="M14 633q90-38 165-8t250 3M-12 645q88-35 163-9t278 5" stroke-width="1.6" stroke-dasharray="6 8"/>
+  </g>
+  <g stroke="#3e3b36" stroke-linecap="round" opacity=".15" stroke-width="1.4">
+    <path d="M15 263q45-16 89-5m188 59q52-19 115-4M7 576q70-10 119 5m164 73q61-14 125-3"/>
+    <path d="M33 270q27-5 55-1m220 55q38-10 77-7M25 584q45-4 85 4"/>
   </g>
 </svg>

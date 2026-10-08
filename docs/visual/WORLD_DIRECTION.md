@@ -1,14 +1,12 @@
 # Crownless Visual World Direction
 
-The approved world-direction visual reference is `docs/assets/crownless-visual-design-reference-v0.1.jpg`. Treat it as the primary visual board for the world map, battle presentation, Grey Hearth/base growth, character and enemy drawing grammar, ink effects, sparse UI, item-rarity framing, restrained palette, parchment/woodcut texture, and the principle that every screen should feel like a page of the same manuscript. If a detail conflicts with current gameplay/control rules, character anatomy/viewpoint, or accepted runtime actors, the more specific current textual Canon wins.
+The active global direction is **Western medieval fantasy × Japanese sumi-e on warm washi**, explicitly approved by the user on 2026-10-08 for a map, town, forge and local-event composite. See [Visual Canon](../visual-canon.md) and [Global Visual Style](GLOBAL_VISUAL_STYLE.md).
 
-- The approved World Direction reference is `docs/assets/crownless-visual-design-reference-v0.1.jpg`; generated visual work must remain in the same manuscript/woodcut world across map, battle, base, characters, enemies, effects, UI, items, palette, and texture.
-- Crownless is a playable medieval manuscript whose world gains knowledge and restrained color through exploration and survival.
-- When a current combat asset uses the accepted oblique actor presentation, preserve its camera and phone-scale readability; do not infer gameplay controls from that presentation.
-- Gameplay controls come from `AGENTS.md` and `docs/gameplay-spec.md`. Historical manual-movement / stop-to-auto-strike / Technique / Evade assumptions are not current control Canon.
-- The unarmed player is an unknown survivor, and bare-handed combat is a legitimate build rather than missing equipment.
-- Rusher, Guard, and Skirmisher must read from silhouette and posture before labels.
-- Temporary dropped weapons are immediate battlefield state and must remain visually distinct from scenery and expedition loot.
-- Normal attacks use short black ink marks; impact uses ink scatter and broken hatching; danger telegraphs use muted vermilion marks.
+The former `docs/assets/crownless-visual-design-reference-v0.1.jpg` is a historical manuscript/woodcut board, not the newly approved image. The new composite awaits in-repo archival. Do not use the old blue-green/aged-gold palette to override the current black-ink, warm-paper, limited-vermilion direction.
 
-Generated outputs are candidates for review and never replace an Approved Visual Anchor automatically.
+- Expressive ink washes, dry-brush contours, negative space, and paper unify map, town, shops, events, relics and UI.
+- Distinct landmark silhouettes and legible stronghold/POI states matter more than decorative panels at 360–430px.
+- Muted vermilion is a meaningful signal (rival, danger, seal), not an all-over tint.
+- Existing accepted combat actor anchors retain their geometry, fixed camera, pivot, animation and readability until separately reviewed.
+- Gameplay and safe outdoor interaction are governed by `AGENTS.md`, accepted ADRs and `docs/gameplay-spec.md`.
+- Generated images remain candidates until checked in the actual game.

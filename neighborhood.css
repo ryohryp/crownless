@@ -2,14 +2,14 @@
 .neighborhood-atlas .atlas-home-header strong{font-family:inherit;font-size:19px;letter-spacing:0;font-weight:750}
 .neighborhood-atlas .atlas-home-header small{font-size:12px;letter-spacing:0;margin-top:6px}
 .neighborhood-atlas .atlas-home-header>span{font-size:12px;white-space:nowrap}
-.neighborhood-field{position:relative;isolation:isolate;margin-bottom:0;overflow:auto;overscroll-behavior:contain;scrollbar-width:none;background-color:#d7c594;background-image:linear-gradient(180deg,rgba(255,250,227,.18),rgba(79,58,31,.08)),url("assets/living-map-terrain.svg"),radial-gradient(circle at 20% 68%,rgba(79,103,76,.12),transparent 28%),radial-gradient(circle at 77% 58%,rgba(70,101,99,.12),transparent 31%),repeating-linear-gradient(7deg,rgba(75,51,27,.028) 0 1px,transparent 1px 9px);background-repeat:no-repeat,no-repeat,no-repeat,no-repeat,repeat;background-position:center;background-size:auto,100% 100%,auto,auto,auto;background-blend-mode:multiply,multiply,normal,normal,normal;box-shadow:inset 0 0 42px rgba(66,45,24,.18)}
+.neighborhood-field{position:relative;isolation:isolate;margin-bottom:0;overflow:auto;overscroll-behavior:contain;scrollbar-width:none;background-color:#e8ddc7;background-image:linear-gradient(180deg,rgba(255,252,242,.16),rgba(48,43,37,.04)),url("assets/living-map-terrain.svg"),radial-gradient(circle at 20% 68%,rgba(55,51,47,.08),transparent 28%),radial-gradient(circle at 77% 58%,rgba(61,56,51,.08),transparent 31%),repeating-linear-gradient(7deg,rgba(55,50,45,.022) 0 1px,transparent 1px 9px);background-repeat:no-repeat,no-repeat,no-repeat,no-repeat,repeat;background-position:center;background-size:auto,100% 100%,auto,auto,auto;background-blend-mode:multiply,multiply,normal,normal,normal;box-shadow:inset 0 0 42px rgba(51,45,40,.13)}
 .neighborhood-field::-webkit-scrollbar{display:none}
 .neighborhood-canvas{position:relative;min-width:100%;min-height:100%;overflow:hidden}
 .neighborhood-atlas .atlas-field::after{display:none}
 .neighborhood-atlas .atlas-field .homestead-art{position:static;width:100%;height:66px}
 .district-roads{position:absolute;inset:0;z-index:1;width:100%;height:100%;pointer-events:none;filter:drop-shadow(0 1px rgba(248,236,199,.35))}
 .district-road{fill:none;stroke:#746847;stroke-width:.62;stroke-dasharray:1.25 2.15;opacity:.64;vector-effect:non-scaling-stroke}
-.district-road.claimed{stroke:#4f7258;stroke-width:1.15;stroke-dasharray:none;opacity:.92}
+.district-road.claimed{stroke:#3f3d39;stroke-width:1.15;stroke-dasharray:none;opacity:.92}
 .district-frontier-fog{position:absolute;inset:-1px;z-index:2;pointer-events:none;background:radial-gradient(ellipse at 50% 45%,transparent 0 48%,rgba(231,219,181,.12) 61%,rgba(90,79,55,.22) 100%),linear-gradient(90deg,rgba(224,211,171,.27),transparent 12% 88%,rgba(224,211,171,.3));mix-blend-mode:multiply}
 .district-frontier-mark{position:absolute;z-index:2;display:grid;place-items:center;width:30px;height:30px;border:1px dashed rgba(72,58,38,.35);border-radius:47% 53% 45% 55%;background:rgba(226,211,169,.46);color:rgba(63,51,34,.52);font:700 15px/1 Georgia,"Yu Mincho",serif;transform:rotate(-8deg);pointer-events:none;box-shadow:0 0 0 5px rgba(226,211,169,.12)}
 .district-frontier-mark--nw{left:8%;top:11%}.district-frontier-mark--se{right:7%;top:14%;bottom:auto;transform:rotate(7deg)}
@@ -23,8 +23,8 @@
 .district-pin small{display:none;max-width:116px;margin-top:1px;padding:0 3px;background:transparent;color:#655943;font:8.5px/1.3 Georgia,"Yu Mincho",serif;text-shadow:0 1px rgba(246,231,192,.9)}
 .district-pin.selected small,.district-pin.claimed small{display:block}
 .district-pin.biome-wood strong{transform:rotate(-.7deg)}.district-pin.biome-tower strong{transform:rotate(.45deg)}.district-pin.biome-fen strong{transform:rotate(-.35deg)}.district-pin.biome-crypt strong{transform:rotate(.65deg)}
-.district-pin.biome-tower>.district-landmark{color:#59614d}.district-pin.biome-fen>.district-landmark{color:#526f6c}.district-pin.biome-crypt>.district-landmark{color:#675f54}.district-pin.biome-wood>.district-landmark{color:#536448}
-.district-pin.claimed>.district-landmark{background:radial-gradient(circle at 50% 48%,rgba(199,214,164,.56),rgba(199,214,164,.13) 56%,transparent 74%);color:#506644;filter:drop-shadow(0 2px 0 rgba(73,92,55,.12))}
+.district-pin.biome-tower>.district-landmark{color:#4d4b47}.district-pin.biome-fen>.district-landmark{color:#595650}.district-pin.biome-crypt>.district-landmark{color:#46433e}.district-pin.biome-wood>.district-landmark{color:#3d3b36}
+.district-pin.claimed>.district-landmark{background:radial-gradient(circle at 50% 48%,rgba(205,198,176,.56),rgba(205,198,176,.13) 56%,transparent 74%);color:#363631;filter:drop-shadow(0 2px 0 rgba(73,92,55,.12))}
 .district-claim-flag{color:#72542f}
 .district-pin.selected{z-index:7;outline:0}
 .district-pin.selected>.district-landmark{border-radius:46% 54% 49% 51%;outline:1px dashed rgba(143,101,47,.9);outline-offset:1px;background:radial-gradient(circle at 50% 48%,rgba(241,221,167,.66),rgba(241,221,167,.12) 58%,transparent 74%);filter:drop-shadow(0 4px 7px rgba(67,48,24,.18));transform:rotate(2deg) scale(1.06)}
