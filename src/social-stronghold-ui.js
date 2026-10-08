@@ -65,10 +65,26 @@
     s = recordClaim(g, s);
 
     const detail = root.querySelector('.map-home-detail');
-    if (!detail || !s.stronghold || detail.querySelector('.stronghold-status')) return;
+    if (!detail || !s.stronghold) return;
 
+    // The stronghold's ownership belongs on its map landmark, even when
+    // another district is selected. Avoid redundant DOM writes in the observer.
+    const pin = root.querySelector(`.district-pin[data-value="${CSS.escape(s.stronghold)}"]`);
+    if (pin) {
+      const status = s.owner === 'rival' ? 'rival' : s.rivalArmed ? 'scouted' : 'player';
+      const label = s.owner === 'rival'
+        ? `${T.RIVAL}が占拠`
+        : s.rivalArmed ? `${T.RIVAL}の偵察痕` : 'あなたの砦';
+      pin.dataset.strongholdState = status;
+      const small = pin.querySelector('small');
+      if (small && small.textContent !== label) small.textContent = label;
+      const accessibleLabel = `${districtTitle(g, s.stronghold)}、${label}`;
+      if (pin.getAttribute('aria-label') !== accessibleLabel) pin.setAttribute('aria-label', accessibleLabel);
+    }
+
+    // History is contextual, not a permanent card obscuring the map.
+    if (g?.neighborhood?.selected !== s.stronghold || detail.querySelector('.stronghold-status')) return;
     const title = districtTitle(g, s.stronghold);
-    const selected = g?.neighborhood?.selected === s.stronghold;
     const card = document.createElement('section');
     card.className = 'stronghold-status rule-line';
     card.dataset.strongholdOwner = s.owner || 'none';
@@ -94,13 +110,6 @@
 
     detail.prepend(card);
 
-    const selector = `.district-pin[data-value="${CSS.escape(s.stronghold)}"] small`;
-    const pin = root.querySelector(selector);
-    if (pin) pin.textContent = s.owner === 'rival'
-      ? `${T.RIVAL}が占拠`
-      : s.rivalArmed
-        ? `${T.RIVAL}の偵察痕`
-        : 'あなたの砦';
   }
 
   new MutationObserver(render).observe(root, { childList:true, subtree:true });
