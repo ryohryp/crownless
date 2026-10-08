@@ -338,6 +338,7 @@
       }, { enableHighAccuracy:true, maximumAge:0, timeout:12000 }); return;
     } else if (action === 'depart') { selected = value; lastReturnedPlace = null; prioritizeReinforcement = false; locationRequest++; busy = false; state = E.start(state,value); }
     else if (action === 'character') { state = E.switchCharacter(state,Number(value)); notice = state !== before ? `${state.characters[state.activeCharacter].name}に切り替えた。` : ''; tab='gear'; }
+    else if (action === 'commission') { state = E.supplyCommission(state,value); notice = state !== before ? E.COMMISSIONS[value].requester+'へ装備を納品した。旅人に切り替え、'+E.place(value).name+'から生還すると報告が届く。' : ''; tab='gear'; }
     else if (action === 'craft-item' || action === 'craft-wolf-fang') { const recipeId = action === 'craft-item' ? value : 'forged_fang'; state = E.craftItem(state,recipeId); notice = state !== before ? `鍛冶師が${E.GEAR[recipeId].name}を完成させた。旅人に切り替えて試そう。` : ''; tab='gear'; }
     else if (action === 'equip') { state = E.equip(state,value); notice = `${E.GEAR[value].name}を装備した。`; }
     else if (action === 'maintain') { state = E.maintain(state); if (state !== before) notice = '刃を研いだ。次の遠征の最初の3戦で、初撃が +3 される。'; }
