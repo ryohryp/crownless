@@ -103,9 +103,7 @@
         <summary>支配の記録</summary>
         ${s.history.slice().reverse().map(v => `<p class="small">${v.text}</p>`).join('')}
       </details>
-      ${s.owner === 'rival' && !selected
-        ? '<p class="notice">地図でこの砦を選ぶと、再奪取へ向かえる。</p>'
-        : ''}
+
     `;
 
     detail.prepend(card);
