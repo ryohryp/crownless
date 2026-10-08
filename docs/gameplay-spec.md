@@ -48,7 +48,8 @@ The target rule is **all equippable weapons and armor are crafted by appropriate
 - Multiple characters (initial target three slots) share storage but grow independent skills and cannot be active simultaneously. Changing characters never creates a remote physical presence.
 - Crafting should offer decisions and identity: which material, design, recipient, and place; crafted equipment should meaningfully change expedition options.
 - Finished products should eventually preserve maker identity and coarse origin and may be traded asynchronously.
-- Existing saves and legacy loot must be migrated carefully. The current legacy drop code does not yet satisfy the target rule; no claim of completed migration is implied.
+- Current `src/slice-engine.js` new expeditions grant regional materials (wolf fangs, watch iron, marsh fiber), scraps, and non-equippable story relics; no newly awarded ready-made weapons. The local smith can craft the first dagger, shield and bow recipes. Existing saved equipment and pre-migration backpack gear are grandfathered.
+- The source of truth is still browser-local for this playable slice. It is **not yet** a networked economy; artisan-made item provenance and exchanges between real accounts await later validation.
 
 Do not add multiple recipe tiers, global prices, or punishment through wear before the single material→craft→equip loop demonstrates fun.
 
