@@ -1,140 +1,38 @@
 # Crownless Visual Canon
 
-Crownless の現在の playable slice で使う**唯一の全体Visual Canon**。
+> **Status:** Active. User-approved visual direction on 2026-10-08.
+> **Authority:** AGENTS.md and accepted ADRs govern gameplay; this file governs the global visual language. Specialized character/runtime anchors govern their own anatomy, camera, and animation contracts.
 
-`docs/visual/` はキャラクター、世界方向、画像生成、制作パイプラインなどの専門資料であり、この文書と `AGENTS.md` / accepted ADR / `gameplay-spec.md` に従う。古いVisual Design Guideの版番号を新しい判断の根拠にしない。
+## Approved direction — Western medieval fantasy × sumi-e
 
-この文書は「将来の完成アート」を決めるものではない。まず現在のコアループを実際に遊びながら、画面ごとの世界観と判断材料がぶれないための基準を固定する。
+The user explicitly approved the **ink-wash map / town / forge / local-event composite** on 2026-10-08. It replaces the former blue-green/aged-gold medieval manuscript board as the **global style direction**. The approved chat reference is **not yet archived as a repository binary**: do not claim an older `docs/assets/*` board is that image, and do not substitute a new generated candidate for it without review.
 
-## Canon image
+A Crownless screen should feel like **the same illustrated page of a medieval travel journal painted in Japanese sumi-e**, not a conventional glossy fantasy UI.
 
-現時点の第一Visual Canonは、Playable Slice の **探索地図＋遠征シーン**。
+- **Materials:** warm washi/parchment, imperfect fibers, dry-brush ink, soft bleeding wash, hand-drawn silhouettes, deliberate negative space.
+- **Palette:** warm ivory / parchment; charcoal and layered black-gray ink; **small muted vermilion** only for danger, rival control, seals, and important focal points. Natural gray-brown washes are permitted. Avoid teal or gold as the default world color.
+- **Map:** atmospheric mountain, river, forest, tower, bridge, road, and village forms painted in uneven ink; discovered POIs should have distinct silhouettes, not identical abstract dots.
+- **Town / shop / event:** the same ink and paper grammar across buildings, traders, forge, notices, inventory and short local events. A place should make the player curious about what is there.
+- **UI:** quiet, legible annotations and restrained paper/ink panels. Avoid stacking large opaque cards over the world. Text and controls must remain readable at 360–430 CSS px, including sunlight use.
+- **Equipment / character:** worn medieval shapes with recognizably different silhouettes. Existing accepted actor anchors, frame geometry and combat readability remain binding until separately reviewed.
 
-実装上の正本は以下。
+### Avoid
 
-- `src/slice-art.js` — 霧、森、塔、湿原、廟、旅人、敵、装備差を1つのSVG言語で描く
-- `src/slice-app.js` — 探索地図、未発見領域、発見地点、遠征への導線
-- `slice.css` — dark / muted green / aged gold を中心としたスマートフォン向けUI
+Glossy 3D, cinematic fantasy key art, generic western RPG brown-gold chrome, neon effects, gacha rarity gradients, anime-style hero art, uniform vector-clean iconography, oversaturated blue-green terrain, large ornamental frames, and texture that overwhelms labels.
 
-これらは既に最小Playable Sliceで使用中であり、Visual Canonのためだけに別の完成画像を重複生成しない。
+## First implementation slice
 
-## Visual thesis
+Start with **the living neighborhood map**, where the player discovers a new place and sees a shop/event or rival mark. `assets/living-map-terrain.svg` and the scoped rules in `neighborhood.css` are the first runtime calibration, **not** a replacement for the approved composite. Reuse SVG where it stays light and crisp; do not pre-generate a giant asset catalog.
 
-Crownless は **living medieval manuscript / woodcut / field map** が遊べる世界として見えることを狙う。
+When adding assets, prioritize the first player-visible deficit: distinguishable landmark silhouettes, then shop/event scenes, then a regional relic. Produce one asset at a time, integrate it, inspect on a 390×844 viewport, and only keep it if the place is easier to recognize or more intriguing.
 
-- rough hand-inked line, restrained hatching, worn material, imperfect stamp/mark
-- unknown = ink / ash / fog
-- discovered = restrained blue-green and local natural color
-- danger = muted vermilion
-- home / secured progress = ember warmth
-- exceptional significance = small aged-gold / ochre accents
-- glossy fantasy chrome, photoreal AAA rendering, anime-gacha rarity framing, neon magicを全体言語にしない
+## Gameplay and visual acceptance
 
-画面は原則 **one large spatial/illustrated surface + one primary focal action + restrained annotations**。装飾よりphone-sizeの判断性を優先する。
+The current playable loop is governed by ADR-0008 / ADR-0009, AGENTS.md, and `docs/gameplay-spec.md`: location discovery, conquest, frontier growth, regional relics, Chronicle, and brief tactical combat. Visual work must not resurrect superseded side-scrolling controls or hide tactical information to fit a mockup.
 
-### Character calibration
+For a new visual, review separately:
+1. **Deterministic:** asset loads, correct sizing/contrast, existing controls/POIs and safe areas intact, tests/CI green.
+2. **Visual:** ink/paper/limited-vermilion family consistent across map and detail, not merely a sepia CSS filter.
+3. **Human playtest:** on a phone, does a discovered place make the player want to inspect or reveal the next one?
 
-現行combat actorを扱う場合は `visual/CHARACTER_VISUAL_CANON.md` のApproved Visual Anchorとruntime acceptanceを使う。キャラクター比率やbattlefield cameraを全体Visual Canonから推測しない。現在のactor系はcompact folk-art silhouetteを基準とし、旧4–5 heads guideへ戻さない。
-
-### Gameplay lock
-
-Visual資料は操作方式を決めない。戦闘・探索・Hearthの挙動は `AGENTS.md` と `gameplay-spec.md` が正本。
-
-- 現在は短いtactical encounterと明確な選択を視覚的に支える
-- 旧manual movement / stop-to-auto-strike / Technique / Evade前提を新規画面へ持ち込まない
-- 旧dispatch/wait/report UIをHearthの必須構造として復活させない
-- Visualは地域武具、開拓拠点、陣取り履歴、冒険録が「次へ行きたい理由」として読めることを優先する
-
-## Tone
-
-### World
-
-- 中世ダークファンタジー
-- 深い青緑、灰緑、古びた金を基調にする
-- 高彩度のrarity色や派手なネオン表現は避ける
-- 霧・遠景・余白で「まだ知らない土地」を感じさせる
-- UIは豪華さより読みやすさと静かな緊張感を優先する
-
-### Exploration
-
-地図は現実の道路地図ではなく、**プレイヤーが発見した架空世界の記録**として見せる。
-
-- 未発見は霧で隠す
-- 発見済み地点は少数の明確なmarkerで示す
-- 現実の正確な座標、住所、移動軌跡は描かない
-- 画面を見続けながら歩くことを要求しない
-- phone-sizeで「次に遠征できる場所」が一目で分かることを優先する
-
-### Expedition / Combat
-
-- 同じ土地の色調とランドマークを維持し、地図と遠征が同じ世界に見えるようにする
-- 旅人と装備はシルエットでも違いが分かること
-- 敵は種類やelite特性の判断をUIと合わせて読み取れること
-- 戦闘演出より enemy intent / HP / 気力 / 選択肢の可読性を優先する
-
-### Loot / Equipment
-
-- 装備は単なるrarity色ではなく、形と戦闘特性で差を出す
-- 大量のアイコン生成を先行しない
-- プレイヤーが実際に「比べたい」と感じる装備だけ、必要に応じて個別素材を追加する
-
-## Current reusable motifs
-
-現在の実装で再利用してよい基準モチーフ。
-
-- 霧に沈む山並み
-- 古い塔
-- 焚き火
-- 針葉樹と湿地
-- 廃墟・廟
-- muted green / charcoal / aged gold
-- 細い線と簡略化したvector silhouette
-- 装備で変化する旅人のシルエット
-
-新しい画面を作るときは、この語彙から外れる理由がない限り同じ表現を使う。
-
-## Asset inventory after playable review
-
-現時点で優先して追加生成すべき大量素材はない。
-
-次に個別素材を追加する条件は、実プレイで以下の不足が確認された場合だけ。
-
-1. 地図上で地点の違いが判別しにくい
-2. 遠征シーンで土地の違いが弱い
-3. 装備変更が見た目で分からない
-4. elite / boss を見た瞬間の期待感が弱い
-5. Lootを拾った瞬間の喜びがUIだけでは足りない
-
-追加する場合も、まず1点だけ作って実機で確認する。武器・敵・防具の大量生成はしない。
-
-## Keep / Change / Kill
-
-### Keep
-
-- 現在のSVGベースの軽量表現
-- 地図と遠征で共通する青緑・霧・古金のトーン
-- スマートフォンで情報を優先するレイアウト
-- 装備差を旅人のシルエットへ反映する方向
-
-### Change when validated
-
-- 地点や敵の識別が弱い場合のみ、個別のvisual cueを増やす
-- Lootの喜びが不足する場合のみ、報酬表示へ固有ビジュアルを足す
-
-### Kill / avoid
-
-- playable確認前の素材大量生成
-- rarity色だけで価値を伝えるUI
-- 現実地図のコピー
-- 装飾のために判断情報を隠す演出
-- 既存Canonと別方向の画風を画面ごとに増やすこと
-
-## Review rule
-
-新しい素材や画面を追加する前に、
-
-> 15分遊んだあと、もう1回遠征したくなる判断を強くするか？
-
-を確認する。
-
-答えが弱い場合、素材を増やすより gameplay loop の改善を優先する。
+Old manuscript/woodcut and blue-green boards under `docs/assets/` and older supporting docs remain **historical calibration only** where they disagree with this approved direction. Never automatically promote generated candidates to Canon.
