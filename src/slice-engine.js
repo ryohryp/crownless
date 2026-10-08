@@ -343,7 +343,7 @@
         }
       }
       // The NPC's report reaches camp only after a safe return to the supplied region.
-      if (s.commission.pending === x.place && COMMISSIONS[x.place]) {
+      if (s.commission.pending === x.place && COMMISSIONS[x.place] && (x.room > 0 || x.stage === 'cleared')) {
         const job = COMMISSIONS[x.place];
         s.commission.pending = null;
         s.commission.completed++;
