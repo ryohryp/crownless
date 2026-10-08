@@ -179,7 +179,7 @@ async function callJevSystemOne(state, questions, options = {}) {
 function fallbackEvaluation(trace) {
   const isTactician = trace.archetype === "tactician";
   const isRusher = trace.archetype === "rusher";
-  const hasLoot = Object.values(trace.materialGained || {}).some(q => q > 0) || !!trace.craftedGear || trace.scrapGained >= 15 || trace.newGearFound.length > 0;
+  const hasLoot = Object.values(trace.materialGained || {}).some(q => q > 0) || !!trace.craftedGear || (trace.gearGained?.length || 0) > 0 || !!trace.hearthOutcome?.qualityUpgradeFound || trace.scrapGained >= 15 || trace.newGearFound.length > 0;
 
   let tacticalDepth = isTactician ? 4.0 : isRusher ? 1.5 : 3.0;
   if (trace.metrics.intentResponseAccuracy > 0.7) tacticalDepth += 0.5;
