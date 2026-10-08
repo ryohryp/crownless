@@ -8,6 +8,8 @@ test('bottom navigation exposes short thumb-friendly labels', () => {
   assert.equal(nav.navLabel('explore'), '近所');
   assert.equal(nav.navLabel('home'), '拠点');
   assert.equal(nav.navLabel('gear'), '装備');
+  assert.equal(nav.navLabel('codex'), '手記');
+  assert.equal(nav.navLabel('chronicle'), '冒険録');
 });
 
 test('expedition page loads bottom navigation assets', () => {
@@ -64,4 +66,23 @@ test('all six dock entries are declared in core and extensions never remove app 
   assert.match(css,/grid-auto-columns:minmax\(0,1fr\)/);
   assert.match(css,/#game>\.journal-home>\.visual-column\{display:none\}/);
   assert.match(css,/#game>\.journal-home>\.panel\{/);
+});
+
+
+test('dock enhancer keeps journal tabs distinct for screen readers', () => {
+  const attributes = {};
+  const button = value => ({
+    dataset: { value },
+    classList: { add() {}, contains() { return value === 'chronicle'; } },
+    setAttribute(key, val) { attributes[value + ':' + key] = val; }
+  });
+  const tabs = {
+    classList: { add() {} },
+    setAttribute() {},
+    querySelectorAll() { return [button('codex'), button('chronicle')]; }
+  };
+  assert.equal(nav.enhance({ querySelector() { return tabs; } }), true);
+  assert.equal(attributes['codex:aria-label'], '手記');
+  assert.equal(attributes['chronicle:aria-label'], '冒険録');
+  assert.equal(attributes['chronicle:aria-current'], 'page');
 });
