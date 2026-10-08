@@ -197,7 +197,7 @@ test('camp home presents a persistent neighborhood and local expedition action',
   assert.match(b.html(),/data-action="district"/);
   assert.match(b.html(),/district-landmark-svg/);
   assert.match(b.html(),/district-frontier-fog/);
-  assert.match(b.html(),/<\/section><nav class="camp-tabs"/);
+  assert.match(b.html(),/<\/section><nav class="camp-tabs bottom-navigation"/);
   assert.match(b.html(),/この土地へ遠征/);
   assert.match(b.html(),/近所を歩く/);
   b.click('scout','tower');
@@ -205,6 +205,20 @@ test('camp home presents a persistent neighborhood and local expedition action',
   assert.match(b.html(),/北の見張り跡/);
   b.click('depart','tower');
   assert.match(b.html(),/最初の足跡/);
+});
+
+test('camp nav is four equal-ready buttons on first render without the enhancer', () => {
+  const b=browser(); b.click('mode','demo');
+  const nav=b.html().match(/<nav class="camp-tabs bottom-navigation"[^>]*>([\s\S]*?)<\/nav>/);
+  assert.ok(nav,'dock must be included in initial camp markup');
+  const buttons=[...nav[1].matchAll(/<button\b[^>]*>/g)].map(m=>m[0]);
+  assert.equal(buttons.length,4);
+  for(const button of buttons) assert.match(button,/class="[^"]*bottom-navigation-item/);
+  assert.deepEqual(buttons.map(v=>(v.match(/data-action="([^"]+)"/)||[])[1]),['tab','tab','tab','settings']);
+  assert.deepEqual(buttons.slice(0,3).map(v=>(v.match(/aria-current="([^"]+)"/)||[])[1]),['page','false','false']);
+  b.click('tab','gear');
+  const gear=b.html().match(/<nav class="camp-tabs bottom-navigation"[^>]*>([\s\S]*?)<\/nav>/)[1];
+  assert.match(gear,/data-value="gear" aria-current="page"/);
 });
 
 test('home UI builds from banked materials, changes the map picture and safely renames the saved home', () => {

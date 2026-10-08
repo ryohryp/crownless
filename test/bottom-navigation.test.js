@@ -33,3 +33,12 @@ test('desktop living-map preview anchors the dock inside the phone frame', () =>
   assert.match(css, />\.camp-tabs\.bottom-navigation\{position:absolute/);
   assert.match(css, /atlas-home-caption\{display:none\}/);
 });
+
+test('sumi-e dock has equal columns even before its optional JS enhancer', () => {
+  const app = fs.readFileSync(path.join(__dirname,'..','src','slice-app.js'),'utf8');
+  const css = fs.readFileSync(path.join(__dirname,'..','neighborhood.css'),'utf8');
+  assert.match(app,/class="camp-tabs bottom-navigation"/);
+  assert.match(css,/grid-template-columns:repeat\(4,minmax\(0,1fr\)\)/);
+  assert.match(css,/>button\{\s*\n  display:flex/);
+  assert.match(css,/min-width:0;min-height:48px/);
+});
