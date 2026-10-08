@@ -432,3 +432,53 @@ test('safe return enables free blade maintenance for the next expedition first t
     while(s.expedition?.stage==='fight') s=E.act(s,safeAction(s));
   }
 });
+
+test('guarding a fast sweep earns a visible riposte rather than only preventing damage', () => {
+  const s=E.act(E.start(fresh(),'wood'),'careful');
+  assert.equal(E.intent(s.expedition.enemy).id,'quick');
+  const guarded=E.act(s,'guard');
+  assert.equal(guarded.expedition.hp,s.expedition.hp);
+  assert.equal(guarded.expedition.stagger,true);
+  assert.match(guarded.expedition.log.join(' '),/受け流した.*崩し追撃/);
+  const bonus=E.attackPreview(guarded,'strike');
+  const without=E.attackPreview({...guarded,expedition:{...guarded.expedition,stagger:false}},'strike');
+  assert.equal(bonus,without+E.weaponAttack(guarded));
+  const riposte=E.act(guarded,'strike');
+  assert.equal(riposte.expedition.stagger,false);
+  assert.match(riposte.expedition.log.join(' '),/崩し追撃/);
+});
+
+function encounterWithIntent(kind,target) {
+  let s=E.act(E.start(fresh(),'wood'),'careful');
+  const enemy={kind,hp:20,maxHp:20,turn:1,depth:1,elite:false,risky:false};
+  for(let seed=0;seed<1000;seed++) {
+    if(E.intent({...enemy,seed}).id===target) {
+      s.expedition.enemy={...enemy,seed};
+      return s;
+    }
+  }
+  throw new Error(`No seeded ${kind} intent ${target}`);
+}
+
+test('striking into a feint interrupts it; guessing dodge instead is punished', () => {
+  const s=encounterWithIntent('wraith','feint');
+  const strike=E.act(s,'strike');
+  assert.equal(strike.expedition.hp,s.expedition.hp);
+  assert.equal(strike.expedition.stagger,true);
+  assert.match(strike.expedition.log.join(' '),/先手でフェイントを潰した/);
+  assert.deepEqual(E.parse(E.serialize(strike)),strike,'riposte remains save compatible');
+  const dodge=E.act(s,'dodge');
+  assert.ok(dodge.expedition.hp < s.expedition.hp);
+  assert.equal(dodge.expedition.stagger,false);
+});
+
+test('guard-break intent rewards striking first instead of passive blocking', () => {
+  const s=encounterWithIntent('knight','break');
+  const strike=E.act(s,'strike');
+  const guard=E.act(s,'guard');
+  assert.equal(strike.expedition.hp,s.expedition.hp);
+  assert.equal(strike.expedition.stagger,true);
+  assert.ok(guard.expedition.hp < strike.expedition.hp);
+  assert.equal(guard.expedition.stagger,false);
+  assert.match(strike.expedition.log.join(' '),/先手で崩しを潰した/);
+});
