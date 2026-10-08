@@ -228,7 +228,7 @@ test('core camp nav owns six stable buttons and journal views are reversible', (
   assert.match(b.html(),/class="chronicle-panel"/);
   assert.match(b.html(),/data-value="chronicle" aria-current="page"/);
   b.click('tab','explore');
-  assert.match(b.html(),/class="neighborhood-field"/);
+  assert.match(b.html(),/class="atlas-field neighborhood-field"/);
   assert.match(b.html(),/この土地へ遠征/);
   b.click('tab','home');
   assert.match(b.html(),/class="home-portrait"/);
