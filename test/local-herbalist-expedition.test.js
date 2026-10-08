@@ -95,6 +95,6 @@ test('discovered shop shows the trade action and spending starts the boosted run
   const saved = E.parse(store.get('crownless-expedition-v1-demo'));
   assert.equal(saved.scrap, 1);
   assert.equal(saved.expedition.potions, 3);
-  assert.match(el['#game'].innerHTML,/薬草 3/);
+  assert.match(el['#game'].innerHTML,/薬草を使う（残り 3）/);
   assert.doesNotMatch(el['#game'].innerHTML,/data-value="herb"/);
 });
