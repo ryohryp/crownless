@@ -124,3 +124,37 @@
 .district-pin[data-stronghold-state="scouted"]>.district-landmark{color:#946b35;background:radial-gradient(circle,rgba(178,135,66,.22),transparent 72%)}
 .district-pin[data-stronghold-state="scouted"] small{color:#85602f}
 .district-pin[data-stronghold-state="rival"] small,.district-pin[data-stronghold-state="scouted"] small{display:block;font-weight:700}
+
+/* Approved sumi-e map: floating detail, scouting and navigation share one paper/ink surface. */
+#game>.living-map-home .district-detail,
+#game>.living-map-home .stronghold-status,
+#game>.living-map-home .map-home-trace,
+#game>.living-map-home .map-home-scouting,
+#game>.living-map-home .district-poi-card,
+#game>.living-map-home .bottom-navigation{
+  --ink:#292722;
+  --muted:#5c5147;
+  --gold:#694832;
+  --line:rgba(69,59,46,.36);
+  color:var(--ink);
+  background:rgba(247,239,222,.97);
+  border-color:rgba(68,57,43,.46);
+  box-shadow:0 8px 22px rgba(43,35,27,.16);
+}
+#game>.living-map-home .district-detail,
+#game>.living-map-home .stronghold-status{border-left-color:#735a48}
+#game>.living-map-home .district-poi-icon{border-color:rgba(68,57,43,.46)}
+#game>.living-map-home .map-home-trace>summary,
+#game>.living-map-home .map-home-scouting>summary{color:var(--ink)}
+#game>.living-map-home .map-home-trace>summary small,
+#game>.living-map-home .map-home-scouting>summary,
+#game>.living-map-home .district-poi-title small{color:var(--gold)}
+#game>.living-map-home .map-home-notice{background:rgba(237,224,198,.97);color:#4c3b2f;border:1px solid rgba(68,57,43,.35)}
+#game>.living-map-home .map-home-scouting .discovery{background:rgba(236,225,203,.92);color:var(--ink);border-color:var(--line)}
+#game>.living-map-home .map-home-scouting .discovery .secondary,
+#game>.living-map-home .district-poi-content .secondary{color:#4c3b2f;background:rgba(255,250,238,.7);border-color:rgba(68,57,43,.48)}
+#game>.living-map-home .district-detail .primary,
+#game>.living-map-home .map-home-depart,
+#game>.living-map-home .map-home-scouting .primary{background:#403b34;color:#fff6e6;border-color:#403b34}
+#game>.living-map-home .bottom-navigation .bottom-navigation-item{color:#5c5147}
+#game>.living-map-home .bottom-navigation .bottom-navigation-item:is(.active,[aria-current="page"]){color:#34291f;outline-color:rgba(93,66,44,.75);background:rgba(111,78,54,.12)}
