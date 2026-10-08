@@ -3,6 +3,16 @@ name: deploy-pages
 on:
   push:
     branches: [main]
+    paths-ignore:
+      - 'docs/**'
+      - 'art-source/**'
+      - 'qa-output/**'
+      - 'skills/**'
+      - 'test/**'
+      - 'tests/**'
+      - 'test-support/**'
+      - 'tools/**'
+      - '**/*.md'
   workflow_dispatch:
 
 permissions:
