@@ -78,34 +78,32 @@ test("same-family variants change combat behavior instead of only gear score", (
   assert.equal(recurve.pierce, false);
 });
 
-test("depth 2 guardian can drop a variant that remains at risk until safe return", () => {
+test("depth 2 guardian yields regional smith material, not finished gear", () => {
   const s = deepGuardianState("wood");
   const afterWin = E.act(s, "strike");
-
   assert.equal(afterWin.expedition.stage, "cleared");
-  assert.equal(afterWin.expedition.gear.length, 1);
-  const found = afterWin.expedition.gear[0];
-  assert.ok(E.VARIANT_LOOT.wood.includes(found));
-  assert.equal(afterWin.owned.includes(found), false);
-
+  assert.deepEqual(afterWin.expedition.gear, []);
+  assert.equal(afterWin.expedition.materials.wolfFang, 3);
+  assert.equal(afterWin.materials.wolfFang,0);
   const returned = E.act(afterWin, "return");
   assert.equal(returned.expedition, null);
-  assert.equal(returned.owned.includes(found), true);
-  assert.ok(returned.report.newGear.includes(found));
+  assert.equal(returned.materials.wolfFang,3);
+  assert.deepEqual(returned.report.newGear,[]);
 });
 
-test("returned variant and its reinforcement survive save/load", () => {
+test("grandfathered in-flight weapon and its reinforcement survive safe return and reload", () => {
   let s = deepGuardianState("wood");
+  s.expedition.gear=['fang_blood'];
+  s.expedition.gearQuality=[1];
   s = E.act(s, "strike");
-  const found = s.expedition.gear[0];
+  assert.equal(s.expedition.gear.length,1, "old backpack must not be destroyed");
   s = E.act(s, "return");
   s.scrap = 100;
-  s = E.upgrade(s, found);
-
+  s = E.upgrade(s, 'fang_blood');
   const restored = E.parse(E.serialize(s));
   assert.ok(restored);
-  assert.ok(restored.owned.includes(found));
-  assert.equal(E.weaponLevel(restored, found), 1);
+  assert.ok(restored.owned.includes('fang_blood'));
+  assert.equal(E.weaponLevel(restored, 'fang_blood'), 1);
 });
 
 test("loot cue hides the exact item while comparison explains the tactical difference", () => {
