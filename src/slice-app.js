@@ -92,7 +92,11 @@
   function explorePanel() {
     const d = N.get(state.neighborhood), p = E.place(d.biome), poi=N.pointOfInterest(d), locked = p.id==='crypt' && state.cleared.length<2;
     const poiArt=A.poiStamp?.(d.biome,poi.family) || poi.icon;
-    const poiCard='<details class="district-poi-card"><summary><span class="district-poi-icon" aria-hidden="true">'+poiArt+'</span><span class="district-poi-title"><small>'+esc(poi.label)+'</small><strong>'+esc(poi.name)+'</strong></span><span class="district-poi-toggle" aria-hidden="true">＋</span></summary><div class="district-poi-content"><p>'+esc(poi.description)+'</p>'+button('poi',poi.actionLabel,'',{class:'secondary',value:poi.action,disabled:poi.action==='depart' && locked})+'</div></details>';
+    const herbalist = d.biome === 'wood' && poi.family === 'shop'
+      ? '<p class="small">森の薬草を一束買うと、今回の遠征は薬草3つで出発できる。使わなければ鉄片は装備の強化に残せる。</p>'
+        + button('poi','薬草を買って、この森へ遠征','鉄片 '+E.LOCAL_HERB_COST+' / 薬草 +1',{class:'secondary',value:'herb',disabled:state.scrap < E.LOCAL_HERB_COST})
+      : '';
+    const poiCard='<details class="district-poi-card"><summary><span class="district-poi-icon" aria-hidden="true">'+poiArt+'</span><span class="district-poi-title"><small>'+esc(poi.label)+'</small><strong>'+esc(poi.name)+'</strong></span><span class="district-poi-toggle" aria-hidden="true">＋</span></summary><div class="district-poi-content"><p>'+esc(poi.description)+'</p>'+button('poi',poi.actionLabel,'',{class:'secondary',value:poi.action,disabled:poi.action==='depart' && locked})+herbalist+'</div></details>';
     return '<div class="map-home-detail"><div class="district-detail"><div><small>'+ (d.claimed ? '⚑ あなたの領域 · 生還 '+d.returns+' 回' : '未開拓 · 主を倒して帰還すると領域になる')+'</small><h2>'+N.title(d)+'</h2><p>'+p.name+' · '+ (d.claimed ? '開拓済みの道から、帰還時の木材・石材が各 +1。' : '最初の戦闘だけでも、帰れば建材を持ち帰れる。')+'</p></div>'+button('depart',locked ? '他の土地を2か所踏破' : 'この土地へ遠征','',{class:'primary',value:p.id,disabled:locked})+'</div>'+poiCard+'<details class="map-home-scouting"><summary>'+ (state.mode==='demo' ? '近所を歩く · 室内で体験' : '立ち止まって近所を発見')+'</summary>'+scouting()+'</details>'+ (state.neighborhood.districts.length>6 ? '<details class="district-list"><summary>発見した土地をすべて見る</summary>'+state.neighborhood.districts.map(v=>button('district',N.title(v),v.claimed ? 'あなたの領域' : '未開拓',{value:v.id})).join('')+'</details>' : '')+ (notice ? '<p class="notice map-home-notice" role="status">'+esc(notice)+'</p>' : '')+'</div>';
   }
   function canReinforceEquipped() {
@@ -277,7 +281,7 @@
     if (action === 'mode') { loadMode(value); save(); return; }
     if (action === 'switch-mode') { loadMode(state.mode === 'demo' ? 'walk' : 'demo'); save(); return; }
     if (action === 'district') { state = E.selectDistrict(state,value); selected = N.get(state.neighborhood).biome; tab = 'explore'; notice = ''; }
-    else if (action === 'poi') { const d=N.get(state.neighborhood), poi=N.pointOfInterest(d); if (value==='gear') { tab='gear'; notice=`${poi.name}で旅支度を見直す。`; } else if (value==='depart') { selected=d.biome; lastReturnedPlace=null; prioritizeReinforcement=false; locationRequest++; busy=false; state=E.start(state,d.biome); } }
+    else if (action === 'poi') { const d=N.get(state.neighborhood), poi=N.pointOfInterest(d); if (value==='gear') { tab='gear'; notice=`${poi.name}で旅支度を見直す。`; } else if (value==='depart' || value==='herb') { const next=value==='herb' ? E.startWithLocalHerb(state) : E.start(state,d.biome); if (next!==state) { selected=d.biome; lastReturnedPlace=null; prioritizeReinforcement=false; locationRequest++; busy=false; state=next; } } }
     else if (action === 'home-build') { state = E.buildHome(state,value); if (state !== before) notice = N.BUILDINGS[value].story; }
     else if (action === 'home-name') { state = E.renameHome(state,document.querySelector('#home-name').value); }
     else if (action === 'select') { selected = value; tab = 'explore'; notice = ''; lastReturnedPlace = null; prioritizeReinforcement = false; }
