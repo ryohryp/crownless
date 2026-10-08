@@ -476,7 +476,7 @@
     const n = copy(s); n.maintenance = 'sharp'; return n;
   }
   function equip(s, id) {
-    if (s.expedition || !s.owned.includes(id) || !GEAR[id] || id === 'crown') return s;
+    if (s.expedition || !s.owned.includes(id) || !GEAR[id] || id === 'crown' || GEAR[id].family === 'relic') return s;
     const n = copy(s); n.equipped = id; n.characters[n.activeCharacter].equipped = id; return n;
   }
   function switchCharacter(s, index) {
