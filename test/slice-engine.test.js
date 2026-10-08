@@ -47,20 +47,29 @@ test('roadside encounter refuses wasteful or unaffordable choices', () => {
   s.expedition.potions=1; s.expedition.scrap=2; assert.deepEqual(E.act(s,'trade'),s);
   s.expedition.scrap=3; s.expedition.hp=3; assert.deepEqual(E.act(s,'pray'),s);
 });
-test('complete first loop banks signature gear; a second expedition uses its own upgrade', () => {
-  let s = complete(fresh(),'wood');
-  assert.ok(s.owned.includes('fang')); assert.equal(s.scrap,9); assert.deepEqual(s.cleared,['wood']);
-  s = E.equip(s,'fang'); s = E.upgrade(s,'fang');
-  assert.equal(s.scrap,1); assert.equal(E.weaponLevel(s,'fang'),1); assert.equal(E.weaponLevel(s,'rust'),0); assert.equal(E.maxHp(s),30);
-  s = E.start(s,'wood'); s = E.act(s,'careful'); s = E.act(s,'guard'); s = E.act(s,'dodge');
-  assert.equal(s.expedition.focus,6); assert.equal(s.expedition.hp,30); assert.equal(s.expedition.stagger,true);
-  const before = s.expedition.enemy.hp;
-  assert.equal(E.attackPreview(s,'strike'),16);
-  s = E.act(s,'strike');
-  assert.ok(before <= 16);
-  assert.equal(s.expedition.enemy,null);
-});
-test('reinforcement is per individual weapon, including loot variants', () => {
+test('first loop banks materials; crafted weapon changes the next expedition', () => {
+  let s=complete(fresh(),'wood');
+  assert.deepEqual(s.owned,['rust']);
+  assert.ok(s.materials.wolfFang>=2);
+  assert.equal(s.scrap,9);
+  assert.deepEqual(s.cleared,['wood']);
+  s={...s,report:null};
+  s=E.switchCharacter(s,1);
+  s=E.craftItem(s,'forged_fang');
+  assert.ok(s.owned.includes('forged_fang'));
+  s=E.switchCharacter(s,0);
+  s=E.equip(s,'forged_fang');
+  assert.ok(E.weaponAttack(s)>E.weaponAttack(s,'rust'));
+  s=complete(s,'wood');
+  const beforeUpgrade=E.weaponLevel(s,'forged_fang');
+  s=E.upgrade(s,'forged_fang');
+  assert.equal(E.weaponLevel(s,'forged_fang'),beforeUpgrade+1);
+  assert.equal(E.weaponLevel(s,'rust'),0);
+  s=E.start(s,'wood');
+  s=E.act(s,'careful');
+  assert.equal(s.expedition.stage,'fight');
+  assert.ok(E.attackPreview(s,'strike') > E.weaponAttack(s,'rust'));
+});test('reinforcement is per individual weapon, including loot variants', () => {
   let s=fresh(); s.scrap=100; s.owned.push('fang','fang_blood','shield','bow');
   s=E.equip(s,'fang_blood'); s=E.upgrade(s,'fang_blood');
   assert.equal(E.weaponLevel(s,'fang_blood'),1);
@@ -135,25 +144,27 @@ test('loot and clearing are unbanked until extraction; dying preserves owned gea
   assert.equal(s.expedition,null);
   assert.equal(s.report.died,true); assert.equal(s.scrap,10); assert.deepEqual(s.owned,['rust']); assert.deepEqual(s.cleared,[]);
 });
-test('deep elites drop unbanked weapon variants and extraction banks them', () => {
+test('deep elites reward extra regional materials instead of completed weapons', () => {
   let s=fresh(); s.owned.push('shield'); s=E.equip(s,'shield'); s.upgrades.shield=4;
   s=E.start(s,'wood');
   while(s.expedition.stage!=='cleared') s=E.act(s,safeAction(s));
+  const first=s.expedition.materials.wolfFang;
   s=E.act(s,'deeper');
   while(s.expedition.stage!=='cleared') s=E.act(s,safeAction(s));
   assert.equal(s.expedition.depth,2);
-  assert.ok(s.expedition.gear.some(g=>['fang_blood','fang_moon'].includes(g)));
-  const found=s.expedition.gear.find(g=>g.startsWith('fang_'));
-  assert.ok(found); assert.ok(!s.owned.includes(found));
-  const saved=E.parse(E.serialize(s)); assert.ok(saved.expedition.gear.includes(found));
-  s=E.act(s,'return'); assert.ok(s.owned.includes(found)); assert.ok(s.report.newGear.includes(found));
-});
-test('loot cues tease weapon families without naming the exact drop', () => {
+  assert.deepEqual(s.expedition.gear,[]);
+  assert.ok(s.expedition.materials.wolfFang > first);
+  const before=s.expedition.materials.wolfFang;
+  const saved=E.parse(E.serialize(s)); assert.equal(saved.expedition.materials.wolfFang,before);
+  s=E.act(s,'return');
+  assert.equal(s.materials.wolfFang,before);
+  assert.deepEqual(s.report.newGear,[]);
+});test('loot cues tease regional crafting materials without offering weapons', () => {
   const cue2=E.lootCue('wood',2), cue3=E.lootCue('tower',3);
-  assert.match(cue2,/刃/); assert.doesNotMatch(cue2,/血染めの短剣|月影の短剣/);
-  assert.match(cue3,/盾/); assert.doesNotMatch(cue3,/返し棘の盾|誓壁の盾/);
-});
-test('whispering wood changes enemy archetype mid-expedition and gives its guardian a unique opener', () => {
+  assert.match(cue2,/牙/);
+  assert.match(cue3,/鐘鉄/);
+  assert.doesNotMatch(cue2+cue3,/血染めの短剣|月影の短剣|番人の盾/);
+});test('whispering wood changes enemy archetype mid-expedition and gives its guardian a unique opener', () => {
   let s=E.start(fresh(),'wood');
 
   s=E.act(s,'careful');
@@ -332,32 +343,30 @@ test('quality rolls keep the intended 10/55/25/8/2 distribution over a full dete
   assert.deepEqual(counts,{[-1]:10,0:55,1:25,2:8,3:2});
 });
 
-test('owned signature gear drops again and can replace or dismantle by quality', () => {
-  let s=complete(fresh(),'wood');
-  assert.equal(E.weaponQuality(s,'fang'),0);
-
-  s=complete(s,'wood');
+test('grandfathered duplicate weapons keep quality comparison and dismantle choices', () => {
+  let s=fresh();
+  s.owned.push('fang');
+  s=E.start(s,'wood');
+  // Only a backpack from a pre-migration save can still contain finished equipment.
+  s.expedition.gear=['fang']; s.expedition.gearQuality=[2];
+  s=E.act(s,'return');
   assert.equal(s.report.newGear.length,0);
   assert.equal(s.report.duplicates.length,1);
   assert.equal(s.report.duplicates[0].id,'fang');
-  assert.equal(s.report.duplicates[0].quality,2);
-
   s=E.resolveDuplicate(s,0,'keep');
   assert.equal(E.weaponQuality(s,'fang'),2);
   assert.equal(s.report.duplicates[0].decision,'keep');
 
   s=E.equip(s,'fang');
-  s=E.start(s,'wood'); s=E.act(s,'careful');
-  assert.equal(E.attackPreview(s,'strike'),7);
-
-  while(s.expedition) s=E.act(s,safeAction(s));
+  s=E.start(s,'wood');
+  s.expedition.gear=['fang']; s.expedition.gearQuality=[0];
+  s=E.act(s,'return');
   assert.equal(s.report.duplicates[0].quality,0);
   const scrap=s.scrap;
   s=E.resolveDuplicate(s,0,'dismantle');
   assert.equal(s.scrap,scrap+E.DISMANTLE_SCRAP);
   assert.equal(E.weaponQuality(s,'fang'),2);
 });
-
 test('legacy saves without quality fields migrate to standard quality zero', () => {
   const legacy=E.initial();
   delete legacy.qualities;

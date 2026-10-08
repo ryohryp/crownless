@@ -39,3 +39,13 @@ test('the encounter is bounded to once per expedition', () => {
   const seeded = curse.seed(state());
   assert.equal(curse.shouldAppear(seeded), false);
 });
+
+test('story relics alone never trigger cursed gear; mixed legacy bag keeps relic and quality aligned', () => {
+  assert.equal(curse.shouldAppear(state({gear:['crown']})),false);
+  assert.equal(curse.shouldAppear(state({gear:['relic_moon_shard']})),false);
+  const mixed=state({gear:['fang_blood','crown'],gearQuality:[2,0]});
+  const seeded=curse.seed(mixed);
+  const after=curse.resolve(seeded,'curse-discard');
+  assert.deepEqual(after.expedition.gear,['crown']);
+  assert.deepEqual(after.expedition.gearQuality,[0]);
+});

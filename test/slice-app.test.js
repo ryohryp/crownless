@@ -129,13 +129,13 @@ test('new variant gear is shown at reinforcement zero despite a maxed legacy jou
   assert.match(b.html(),/誓壁の盾を補強する/);
 });
 
-test('deeper choice renders a specific but non-spoiling weapon cue', () => {
+test('deeper choice hints at regional crafting material without awarding a weapon', () => {
   const k='crownless-expedition-v1-demo';
   const state={...E.initial(),mode:'demo',runs:1,expedition:{place:'wood',depth:1,room:4,hp:30,stamina:3,focus:0,potions:2,scrap:9,gear:['fang'],seals:['wood'],enemy:null,stage:'cleared',log:[]}};
   const b=browser({[k]:E.serialize(state),'crownless-expedition-mode':'demo'});
-  assert.match(b.html(),/細身の刃/);
+  assert.match(b.html(),/鋭い牙/);
   assert.match(b.html(),/深層 2 へ踏み込む/);
-  assert.match(b.html(),/珍しい武具の可能性/);
+  assert.match(b.html(),/追加素材の可能性/);
   assert.doesNotMatch(b.html(),/血染めの短剣|月影の短剣/);
 });
 test('forest mid-run encounter surfaces a different enemy and archetype', () => {

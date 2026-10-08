@@ -9,7 +9,7 @@
 
   function shouldAppear(state) {
     const x = state?.expedition;
-    return !!(x && x.stage === 'cleared' && x.depth >= 2 && x.hp > 4 && x.gear?.length && state.runs % 5 === 3 && !x.curseLootSeen);
+    return !!(x && x.stage === 'cleared' && x.depth >= 2 && x.hp > 4 && x.gear?.some(id => id !== 'crown' && !id.startsWith('relic_')) && state.runs % 5 === 3 && !x.curseLootSeen);
   }
 
   function seed(state) {
@@ -30,7 +30,9 @@
       x.hp = Math.max(1, x.hp - 4);
       x.log = ['禍具を抱えて進む。冷気が腕を這う。体力 −4。生還できれば武具はそのまま持ち帰れる。'];
     } else {
-      const abandoned = x.gear.pop();
+      const index = x.gear.findLastIndex(id => id !== 'crown' && !id.startsWith('relic_'));
+      const abandoned = index >= 0 ? x.gear.splice(index,1)[0] : null;
+      if (index >= 0 && Array.isArray(x.gearQuality)) x.gearQuality.splice(index,1);
       x.log = [`禍具${abandoned ? `（${abandoned}）` : ''}を霧へ捨てた。体力は失わない。`];
     }
     return n;
