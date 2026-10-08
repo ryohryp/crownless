@@ -6,18 +6,18 @@ Crownless is a location-driven medieval-fantasy RPG being rebooted around one go
 
 Keep these unless the user changes them:
 
-- Immediate core loop: **Explore → Fight → Loot → Return alive → Improve → Explore farther**.\n- Social meta-loop: **Discover a stronghold → Conquer it → Leave a visible mark → See rival activity → Retake or expand**.
+- Immediate core loop: **Explore → Fight/Gather → Return alive with materials → Craft/Trade/Equip → Explore farther**.\n- Shared-world meta-loop: **Discover a place → Leave a useful trace → Affect another character or player → See the consequence → Revisit or expand**.
 - Real-world movement discovers and opens the game world; it is not a step-count reward system.
 - Equipment should visibly change the character and meaningfully change later choices.
 - Combat should reward strategy and meaningful decisions.
 - Exploration should make the world feel larger and open new possibilities.
-- Stronger equipment should create motivation to explore again.
+- Stronger player-crafted equipment should create motivation to explore again.\n- Monsters and treasure do not create finished equippable weapons or armor; they provide materials, currency, recipes, or non-equippable relics. Craft professions produce equippable gear; preserve existing saves during migration.\n- One account may develop multiple characters (initial target: three slots); only one is active, skills belong to each character, and a shared warehouse connects their activities.\n- Non-combat artisan, gathering, and trade play must be viable, not merely a side activity for combat.\n- Other players affect the world asynchronously through coarse place-bound gameplay events; do not expose precise whereabouts.
 - The player starts unknown and poorly equipped, then develops different builds and combat styles.
 - Design for real smartphone play.
 
 The first milestone is simple:
 
-> **Can someone play for about 15 minutes and want one more expedition because there is a stronghold, rival trace, or nearby target they care about?**
+> **After about 15 minutes, does someone voluntarily want one more expedition for ingredients, one more craft, or to see what happened to an object/place they affected?**
 
 Prefer work that strengthens the loop above.
 
@@ -49,7 +49,7 @@ Related implementation work: #602, #708, #709, #710.
 - Prefer **Design → smallest implementation → run → play/inspect → improve**.
 - Make reasonable product and technical decisions without stopping for approval.
 
-Social territory control is now part of the current product hypothesis. Start with the smallest asynchronous slice: one stronghold, ownership, control history, one simulated rival, and a retake path. Generic factions, politics, war, large economies, real-time PvP, guilds, seasons, rankings, and general-purpose social features can wait.
+Location-based asynchronous sandbox play is the current product hypothesis (ADR 0011). First validate one complete **material-only drop → safe return → smith-crafted usable weapon → next expedition** loop, with safe account-level character switching and save compatibility. Territory control remains one possible player trace, not the entire game's purpose. Do not build multiplayer infrastructure or a general economy before the small local slice is fun.
 
 ## Completion boundary
 
