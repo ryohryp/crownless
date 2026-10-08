@@ -4,6 +4,7 @@ const test = require("node:test");
 const assert = require("node:assert/strict");
 const {
   ARCHETYPES,
+  safelyReturnedMaterials,
   chooseAction,
   simulateExpedition,
   runPlaytestSuite,
@@ -57,6 +58,13 @@ test("cautious heals when wounded and flees at critical low HP", () => {
 
   const action = chooseAction("cautious", state);
   assert.equal(action, "flee");
+});
+
+test("failed expeditions do not count lost backpack materials as returned", () => {
+  const report = { died: true, materials: { wolfFang: 3, watchIron: 1, marshFiber: 0 } };
+  assert.deepEqual(safelyReturnedMaterials(report), { wolfFang: 0, watchIron: 0, marshFiber: 0 });
+  assert.deepEqual(report.materials, { wolfFang: 3, watchIron: 1, marshFiber: 0 });
+  assert.deepEqual(safelyReturnedMaterials({ ...report, died: false }), report.materials);
 });
 
 test("simulateExpedition runs to completion and produces valid trace structure", () => {
