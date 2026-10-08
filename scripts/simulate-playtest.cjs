@@ -283,6 +283,28 @@ function simulateExpedition(options = {}) {
     state = Engine.equip(state, newGearEquipped);
   }
 
+  // Model the real camp action after the expedition: switch to the smith, make a weapon,
+  // return to the adventurer and equip it. No fake item is awarded by combat.
+  const materialGained = {...(report.materials || {})};
+  let craftedGear = null;
+  if (!died && state.report && state.activeCharacter === 0) {
+    for (const recipeId of Object.keys(Engine.RECIPES)) {
+      const recipe = Engine.RECIPES[recipeId];
+      if (state.owned.includes(recipeId) || state.scrap < recipe.scrap ||
+          Object.entries(recipe.materials).some(([material, count]) => (state.materials[material] || 0) < count)) continue;
+      const camp = {...state,report:null}; // Mirrors the user pressing Continue.
+      const smith = Engine.switchCharacter(camp,1);
+      const crafted = Engine.craftItem(smith,recipeId);
+      if (crafted !== smith) {
+        state = Engine.equip(Engine.switchCharacter(crafted,0),recipeId);
+        craftedGear = recipeId;
+        canEquipNew = true;
+        newGearEquipped = recipeId;
+      }
+      break;
+    }
+  }
+
   const upgradeKey = Engine.upgradeKey ? Engine.upgradeKey(state.equipped) : state.equipped;
   if (state.scrap >= Engine.upgradeCost(state, state.equipped)) {
     canUpgrade = true;
@@ -308,6 +330,8 @@ function simulateExpedition(options = {}) {
     maxHp,
     minHp,
     scrapGained: report.scrap || 0,
+    materialGained,
+    craftedGear,
     gearGained: report.gear || [],
     gearQualities: report.gearQuality || [],
     duplicateLoot,
@@ -331,6 +355,7 @@ function simulateExpedition(options = {}) {
       equippedQuality: Engine.weaponQuality(state,state.equipped),
       duplicateLoot,
       newGearEquipped,
+      craftedGear,
       canUpgrade,
       recoveryCache,
       scrapRemaining: state.scrap,
