@@ -264,27 +264,26 @@
   color:#36332c;background:transparent;
 }
 #game>.living-map-home .map-home-scouting .discovery p{color:#4e483f}
-/* The base 4 dock actions gain Codex and Chronicle at runtime. Auto-columns
-   keep all 6 (or only the initial 4) on ONE row in the phone preview. */
-#game>.living-map-home>.camp-tabs.bottom-navigation{
+/* The core draws six stable actions. One row across all camp tabs. */
+#game>.camp-layout>.camp-tabs.bottom-navigation{
   display:grid;grid-template-columns:none;grid-auto-flow:column;
   grid-auto-columns:minmax(0,1fr);gap:0;
   border-color:#59564e;background:#212624;box-shadow:0 5px 14px rgba(0,0,0,.22);
 }
-#game>.living-map-home>.camp-tabs.bottom-navigation>button{
+#game>.camp-layout>.camp-tabs.bottom-navigation>button{
   display:flex;flex-direction:column;align-items:center;justify-content:center;
   width:100%;min-width:0;min-height:48px;gap:2px;padding:4px 3px;
   overflow:hidden;white-space:nowrap;font-size:11px;line-height:1.15;
 }
-#game>.living-map-home>.camp-tabs.bottom-navigation>button::before{
+#game>.camp-layout>.camp-tabs.bottom-navigation>button::before{
   content:"◇";color:#d5cbb7;font:18px/1 Georgia,"Yu Mincho",serif;
 }
-#game>.living-map-home>.camp-tabs.bottom-navigation [data-value="home"]::before{content:"⌂"}
-#game>.living-map-home>.camp-tabs.bottom-navigation [data-value="gear"]::before{content:"⚔"}
-#game>.living-map-home>.camp-tabs.bottom-navigation [data-action="settings"]::before{content:"⚙"}
-#game>.living-map-home>.camp-tabs.bottom-navigation [data-codex-tab]::before{content:"✎"}
-#game>.living-map-home>.camp-tabs.bottom-navigation [data-chronicle-tab]::before{content:"▤"}
-#game>.living-map-home>.camp-tabs.bottom-navigation>button[aria-current="page"]{
+#game>.camp-layout>.camp-tabs.bottom-navigation [data-value="home"]::before{content:"⌂"}
+#game>.camp-layout>.camp-tabs.bottom-navigation [data-value="gear"]::before{content:"⚔"}
+#game>.camp-layout>.camp-tabs.bottom-navigation [data-action="settings"]::before{content:"⚙"}
+#game>.camp-layout>.camp-tabs.bottom-navigation [data-value="codex"]::before{content:"✎"}
+#game>.camp-layout>.camp-tabs.bottom-navigation [data-value="chronicle"]::before{content:"▤"}
+#game>.camp-layout>.camp-tabs.bottom-navigation>button[aria-current="page"]{
   background:rgba(226,215,192,.13);outline-color:#c6b79a;color:#f5e8cc;
 }
 @media(max-width:480px){
@@ -293,4 +292,34 @@
   #game>.living-map-home .district-pin strong{font-size:11px;min-width:72px;max-width:106px;padding:3px 5px}
   #game>.living-map-home .district-detail{border-radius:2px}
   #game>.living-map-home .district-detail .primary{min-height:48px}
+}
+
+/* Journal subviews are bounded reading surfaces; never delete the game layout
+   to open Codex or Chronicle. Keep the dock independently thumb-reachable. */
+#game>.journal-home{
+  display:block;
+  min-height:0;
+  max-width:100%;
+}
+#game>.journal-home>.visual-column{display:none}
+#game>.journal-home>.panel{
+  display:block;
+  width:min(100%,660px);
+  max-height:calc(100dvh - 172px);
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  margin:0 auto;
+  padding:14px 13px 94px;
+  background:#f0e6d2;
+  color:#282721;
+  border:1px solid rgba(62,56,47,.6);
+}
+#game>.journal-home>.panel .codex-panel>.small{color:#50483e}
+#game>.journal-home>.panel .codex-panel h2{color:#282721}
+#game>.journal-home>.panel .text-button{color:#4c4036}
+@media(max-width:480px){
+  #game>.journal-home>.panel{
+    max-height:calc(100dvh - 160px);
+    padding:10px 10px calc(100px + env(safe-area-inset-bottom));
+  }
 }
