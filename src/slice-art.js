@@ -28,7 +28,24 @@ window.CrownlessArt = (() => {
     return `<svg viewBox="0 0 960 600" preserveAspectRatio="xMidYMid slice" role="img" aria-label="${enemy ? '霧の中で敵と向き合う旅人' : place === 'camp' ? '霧深い山並みと古い塔、帰りを待つ焚き火' : '霧の奥にある架空の土地を探索する旅人'}"><defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="${isCrypt ? '#333141' : '#395557'}"/><stop offset="1" stop-color="#b6b6a0"/></linearGradient><linearGradient id="ground" x2="0" y2="1"><stop stop-color="#455e55"/><stop offset="1" stop-color="#12252a"/></linearGradient><radialGradient id="glow"><stop stop-color="#e1a35a" stop-opacity=".5"/><stop offset="1" stop-color="#e1a35a" stop-opacity="0"/></radialGradient><linearGradient id="mist"><stop stop-color="#c6ccaf" stop-opacity="0"/><stop offset=".5" stop-color="#c6ccaf" stop-opacity=".23"/><stop offset="1" stop-color="#c6ccaf" stop-opacity="0"/></linearGradient></defs><path fill="url(#sky)" d="M0 0h960v600H0z"/><circle cx="685" cy="111" r="44" fill="#ddd8b7" opacity=".72"/><circle cx="670" cy="97" r="42" fill="#688080" opacity=".35"/><path d="M0 268L102 142l69 64L310 95l111 137 123-104 124 103 135-141 157 169v200H0z" fill="#536c66"/><path d="M206 190L310 95l76 94-74-51-30 42-14-20zM692 189L803 90l79 110-68-61-21 26-17-20z" fill="#bec5af" opacity=".28"/><path d="M0 256l139-38 161 101 168-91 186 52 139-81 167 82v220H0z" fill="#49645c"/><g color="#344f47">${forest}</g><path d="M0 375q140-90 307-35t298-8 355 25v243H0z" fill="url(#ground)"/><g transform="translate(${place==='tower' ? 530 : 673} 324) scale(${place==='tower' ? 1.2 : .7})">${tower}</g><path d="M557 342C440 411 710 405 483 475S364 548 399 600h217c-147-81 119-109 66-152S482 394 566 342" fill="${isFen ? '#829a8d' : '#7c8270'}" opacity=".4"/><path d="M0 350q290-25 590 13t370-12v39H0zM0 257q312-20 635 12t325 0v21H0z" fill="url(#mist)"/><g color="#172f30">${near}</g>${landmark}<g opacity=".65" stroke="#95a396" fill="none"><path d="M189 435l7-18 5 19m547 59l8-24 3 27m-587 68l13-32 3 35M803 410l5-15 5 18"/></g><path d="M0 581q203-57 335 3t294-15 331 6v25H0z" fill="#102329"/>${enemy ? `<ellipse cx="574" cy="490" rx="133" ry="20" fill="#10272a" opacity=".6"/><g class="enemy-art" transform="translate(601 489) scale(1.32)">${foes[enemy]}</g><g transform="translate(294 510) scale(1.08)">${hero}</g>` : place !== 'camp' ? `<g transform="translate(430 489) scale(.85)">${hero}</g>` : `<circle cx="464" cy="469" r="145" fill="url(#glow)"/><path d="M297 475l43-94 62 89z" fill="#756d53"/><path d="M340 381l10 91h52z" fill="#a0936c"/><path d="M322 475l17-49 18 48z" fill="#1e3030"/><g transform="translate(468 485)">${fire}</g><g transform="translate(409 478) scale(.64)">${hero}</g>`}<g fill="#d2c394" opacity=".65"><circle cx="540" cy="432" r="1.7"/><circle cx="381" cy="392" r="1"/><circle cx="758" cy="368" r="1.3"/><circle cx="217" cy="433" r="1"/></g></svg>`;
   }
   const icon = (type) => `<svg viewBox="0 0 80 80" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2">${type === 'wood' ? '<path d="M40 8L19 43h12L16 64h48L49 43h12zM40 64v10"/>' : type === 'tower' ? '<path d="M20 69l3-45V12h9v12h16V12h9v12l3 45zM34 69V49h12v20M32 35h5m7 0h5"/>' : type === 'fen' ? '<path d="M11 59q13-9 28 0t30 0M15 69q12-8 24 0t26 0M40 52V21m0 13L27 19m13 25 14-20"/><circle cx="59" cy="15" r="7"/>' : '<path d="M14 61h52V35L40 15 14 35zM30 61V42q10-14 20 0v19M24 28l-3-13 12 7 7-13 7 13 12-7-3 13"/>'}</svg>`;
-  return { scene, icon };
+  // Small ink illustrations identify the *place*, not merely whether it is a shop/event.
+  // Same 32px composition is reused on the map and the expanded place card.
+  const localPoiPaths = Object.freeze({
+    'wood:shop': '<path d="M5 15h22l-3-8H8zM8 16v10h16V16M10 25v-6m12 6v-6M12 11h8M13 20l2 3 2-3m2-3 2 3 2-3"/>',
+    'wood:event': '<path d="M16 28V15m0 5-7 5m7-6 8 6M16 16l-7-5m7 2 6-7M9 12 6 8m15-1 4-1M6 28c6-3 14-3 20 0M13 25l-3 4m9-5 4 5"/>',
+    'tower:shop': '<path d="M5 15h22l-3 6H11zM13 21l-2 7h14l-4-7M8 15l-3-5h8M19 15l5-7M9 7l4 4m-3-7 1 4"/>',
+    'tower:event': '<path d="M12 9q4-4 8 0l3 12H9zM10 23h12M16 5v3m-3 17q3 4 6 0M5 12q-3 5 0 9m22-9q3 5 0 9"/>',
+    'fen:shop': '<path d="M5 22q10 4 22 0l-4 6H10zM9 22l4-9h9l2 9M7 18V7m0 5-3-3m3 0 4-4M27 18V8m-3 4 3-4m0 3 3-2"/>',
+    'fen:event': '<path d="M7 23q4-3 8 0t10 0M5 27q6-3 11 0t11 0M17 4q7 7 0 13-6-5 0-13zM17 17v5m-6-5 2-2m8 0 2 2"/>',
+    'crypt:shop': '<path d="M5 22h22M8 22v6m16-6v6M12 21v-7q-4-3 0-6h8q4 3 0 6v7M14 8V5h4v3M10 28h14"/>',
+    'crypt:event': '<path d="M7 25h18M10 22l3-12h6l3 12M16 6l-3 4m3-4 3 4M13 17h6M9 29h14M7 25l-2 4m20-4 2 4"/>'
+  });
+  function poiStamp(biome, family) {
+    const art = localPoiPaths[biome + ':' + family];
+    if (!art) return '';
+    return '<svg class="district-poi-stamp" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">' + art + '</svg>';
+  }
+  return { scene, icon, poiStamp };
 })();
 
 

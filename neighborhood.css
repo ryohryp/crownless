@@ -109,7 +109,9 @@
 }
 
 /* Local discovery POIs: small map annotation + one compact detail card. */
-.district-poi-mark{position:absolute;right:4px;top:4px;display:grid;place-items:center;width:20px;height:20px;border:1px solid rgba(92,68,37,.42);border-radius:50%;background:rgba(241,222,172,.94);color:#604b2d;font:700 11px/1 Georgia,"Yu Mincho",serif;box-shadow:0 2px 5px rgba(54,39,20,.16)}
+.district-poi-mark{position:absolute;right:4px;top:4px;display:grid;place-items:center;width:24px;height:24px;border:1px solid rgba(71,66,59,.5);border-radius:50%;background:rgba(240,232,214,.96);color:#393733;box-shadow:0 2px 5px rgba(54,48,39,.13)}
+.district-poi-stamp{display:block;width:20px;height:20px;flex:none;overflow:visible}
+.district-poi-icon .district-poi-stamp{width:24px;height:24px}
 .district-poi-card{display:grid;grid-template-columns:minmax(0,1fr);margin-top:6px;border:1px solid rgba(204,180,126,.28);background:rgba(18,34,35,.94)}
 .district-poi-card>summary{display:grid;grid-template-columns:30px minmax(0,1fr) 24px;gap:8px;align-items:center;min-height:48px;padding:6px 10px;cursor:pointer;list-style:none}
 .district-poi-card>summary::-webkit-details-marker{display:none}
