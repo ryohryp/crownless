@@ -304,6 +304,11 @@
     if (!d || d.biome !== 'wood' || N.pointOfInterest(d)?.family !== 'shop' || s.scrap < LOCAL_HERB_COST) return s;
     const n = start(s, 'wood');
     if (n === s) return s;
+    // Two separate assistance sources may overlap; never charge for a potion that cannot fit.
+    if (n.expedition.potions >= 3) {
+      n.expedition.log.unshift('地域の支援で薬草は十分。露店での追加購入は見送った。');
+      return n;
+    }
     n.scrap -= LOCAL_HERB_COST;
     n.expedition.potions = Math.min(3,n.expedition.potions+1);
     n.expedition.log.unshift('枝角の露店の薬師から、森の薬草を一束買った。鉄片 −2 / 今回の遠征の薬草 +1。');
