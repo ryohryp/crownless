@@ -338,6 +338,7 @@
     x.scrap += loot;
     x.log.push(`討伐。鉄片を ${loot} 個、背嚢へ。生還するまで確定しない。`);
     if (e.kind === 'wolf') {
+      if (!x.materials) x.materials = {wolfFang:0}; // Historical combat fixtures may omit the new field.
       x.materials.wolfFang += 1;
       x.log.push('狼牙の素材 +1。生還すれば鍛冶師に渡せる。');
     }
