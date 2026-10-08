@@ -13,25 +13,11 @@
   };
   const renderCodex = panel => {
     const s = readState();
-    if (!s) return;
+    if (!s) { panel.innerHTML = '<p class="small">遠征の記録はまだありません。</p>'; return; }
     const ids = Object.keys(E.GEAR).filter(id => id !== 'crown');
     const found = new Set(s.owned || []);
     panel.innerHTML = `<p class="kicker">TRAVELER'S CODEX · ARSENAL</p><h2>旅人の手記 · 武具録</h2><p class="small">焚き火まで持ち帰った武具だけが、この頁に刻まれる。 ${ids.filter(id => found.has(id)).length}/${ids.length}</p><div class="gear-list">${ids.map(id => found.has(id) ? `<div class="choice"><strong>${E.GEAR[id].name} · ${E.qualityLabel(E.weaponQuality(s,id))}</strong><small>補強 ${E.weaponLevel(s,id)}/4 · ${E.gearText(s,id)}</small></div>` : '<div class="choice" aria-label="未発見の武具"><strong>？ 未発見の武具</strong><small>霧の向こうで、まだ名を持たない。</small></div>').join('')}</div>`;
   };
-  const enhance = () => {
-    const nav = root.querySelector('.camp-tabs'), panel = nav?.parentElement;
-    if (!nav || !panel || nav.querySelector('[data-codex-tab]')) return;
-    const button = document.createElement('button');
-    button.className = 'choice bottom-navigation-item'; button.dataset.codexTab = 'true'; button.textContent = '手記';
-    button.setAttribute('aria-label', '旅人の手記と武具録');
-    button.setAttribute('aria-current', 'false');
-    button.addEventListener('click', () => {
-      nav.querySelectorAll('button').forEach(x => { x.classList.remove('active'); x.setAttribute('aria-current','false'); });
-      button.classList.add('active'); button.setAttribute('aria-current','page');
-      [...panel.children].forEach(x => { if (x !== nav && !x.matches('.text-button')) x.remove(); });
-      const body = document.createElement('div'); body.className = 'codex-panel'; nav.after(body); renderCodex(body);
-    });
-    nav.insertBefore(button, nav.querySelector('[data-action="settings"]'));
-  };
-  new MutationObserver(enhance).observe(root, { childList: true, subtree: true }); enhance();
+  // The core owns all navigation. This module only paints journal content.
+  window.CrownlessCodexUI = { renderCodex };
 })();
