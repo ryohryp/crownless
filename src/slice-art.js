@@ -15,8 +15,9 @@ window.CrownlessArt = (() => {
     const forest = Array.from({length:22},(_,i) => tree((i*137+27)%1000,310+(i%4)*12,.37+(i%3)*.11)).join('');
     const near = [tree(12,567,2.7),tree(104,526,1.4),tree(851,565,1.8),tree(983,590,2.9)].join('');
     const blade = '<path d="M26-57L50-6" stroke="#a0b4ae" stroke-width="5"/><path d="M34-34l13-7" stroke="#c5ab70" stroke-width="4"/>';
-    const family = gear.startsWith('fang') ? 'fang' : gear.startsWith('shield') ? 'shield' : gear.startsWith('bow') ? 'bow' : gear;
-    const accent = gear === 'fang_blood' ? '<circle cx="38" cy="-34" r="5" fill="#a45b50"/>'
+    const family = (gear === 'forged_fang' || gear.startsWith('fang')) ? 'fang' : gear.startsWith('shield') ? 'shield' : gear.startsWith('bow') ? 'bow' : gear;
+    const accent = gear === 'forged_fang' ? '<path d="M32-44l5-6 3 8" fill="none" stroke="#d6b17f" stroke-width="3"/>'
+      : gear === 'fang_blood' ? '<circle cx="38" cy="-34" r="5" fill="#a45b50"/>'
       : gear === 'fang_moon' ? '<path d="M23-56q13-10 25 0" stroke="#d9e0df" stroke-width="4" fill="none"/>'
       : gear === 'shield_thorn' ? '<path d="M12-37l-9-8m43 7 10-8" stroke="#d0b17b" stroke-width="5"/>'
       : gear === 'shield_oath' ? '<path d="M30-69v39M20-55h20" stroke="#e1d8b2" stroke-width="4"/>'
