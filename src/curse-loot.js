@@ -9,7 +9,7 @@
 
   function shouldAppear(state) {
     const x = state?.expedition;
-    return !!(x && x.stage === 'cleared' && x.depth >= 2 && x.hp > 4 && x.gear?.length && state.runs % 5 === 3 && !x.curseLootSeen);
+    return !!(x && x.stage === 'cleared' && x.depth >= 2 && x.hp > 4 && x.gear?.some(id => id !== 'crown' && !id.startsWith('relic_')) && state.runs % 5 === 3 && !x.curseLootSeen);
   }
 
   function seed(state) {
