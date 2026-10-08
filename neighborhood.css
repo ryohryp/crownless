@@ -266,19 +266,21 @@
 #game>.living-map-home .map-home-scouting .discovery p{color:#4e483f}
 /* Keep the proven four-tile dock geometry, simply give it ink icons. */
 #game>.living-map-home>.camp-tabs.bottom-navigation{
+  display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:0;
   border-color:#59564e;background:#212624;box-shadow:0 5px 14px rgba(0,0,0,.22);
 }
-#game>.living-map-home>.camp-tabs.bottom-navigation .bottom-navigation-item{
+#game>.living-map-home>.camp-tabs.bottom-navigation>button{
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  gap:1px;padding:3px 4px;font-size:11px;line-height:1.15;
+  width:100%;min-width:0;min-height:48px;gap:2px;padding:4px 3px;
+  overflow:hidden;white-space:nowrap;font-size:11px;line-height:1.15;
 }
-#game>.living-map-home>.camp-tabs.bottom-navigation .bottom-navigation-item::before{
+#game>.living-map-home>.camp-tabs.bottom-navigation>button::before{
   content:"◇";color:#d5cbb7;font:18px/1 Georgia,"Yu Mincho",serif;
 }
 #game>.living-map-home>.camp-tabs.bottom-navigation [data-value="home"]::before{content:"⌂"}
 #game>.living-map-home>.camp-tabs.bottom-navigation [data-value="gear"]::before{content:"⚔"}
 #game>.living-map-home>.camp-tabs.bottom-navigation [data-action="settings"]::before{content:"⚙"}
-#game>.living-map-home>.camp-tabs.bottom-navigation .bottom-navigation-item[aria-current="page"]{
+#game>.living-map-home>.camp-tabs.bottom-navigation>button[aria-current="page"]{
   background:rgba(226,215,192,.13);outline-color:#c6b79a;color:#f5e8cc;
 }
 @media(max-width:480px){
