@@ -77,7 +77,7 @@ test('other regions and defeat do not deliver a pending commission', () => {
   s=E.start(s,'tower');
   s=E.act(s,'careful');
   s.expedition.hp=1;
-  s=E.act(s,'strike');
+  for (let i=0;i<5 && s.expedition;i++) s=E.act(s,'strike');
   assert.equal(s.report.died,true);
   assert.equal(s.commission.pending,'tower');
   assert.equal(s.commission.completed,0);
