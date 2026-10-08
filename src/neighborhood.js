@@ -35,7 +35,7 @@
   }
   const POIS = {
     wood: {
-      shop: { icon:'♜', name:'枝角の露店', label:'森の行商', description:'猟師と薬師が、森を越える旅人向けの道具を並べている。', action:'gear', actionLabel:'装備を見直す' },
+      shop: { icon:'♜', name:'枝角の露店', label:'森の行商', description:'猟師と薬師が森の道具を並べている。薬師の薬草は鉄片2個で一束。持って行けば、次の遠征を少し長く戦い抜ける。', action:'gear', actionLabel:'装備を見直す' },
       event: { icon:'✦', name:'囁き樹の噂', label:'土地の噂', description:'古木の根元に、牙の獣を見たという旅人の印が残っている。', action:'depart', actionLabel:'噂を追って遠征する' }
     },
     tower: {
