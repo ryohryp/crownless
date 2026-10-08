@@ -269,3 +269,20 @@ test('walk district identity survives reload using the same rounded origin, with
   assert.equal(again.districts.length,first.districts.length);
   assert.equal(reloaded.store.get('crownless-expedition-v1-walk-anchor'),anchor);
 });
+
+test('smith recipes show exact missing materials, source and ready-to-craft next action', () => {
+  const key='crownless-expedition-v1-demo';
+  const base={...E.initial(),mode:'demo',scrap:2};
+  base.materials.wolfFang=1;
+  const missing=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(base)});
+  missing.click('tab','gear');
+  assert.match(missing.html(),/data-recipe-progress="forged_fang">不足：狼牙 あと1個（囁きの森） · 鉄片 あと2個/);
+  base.materials.wolfFang=2; base.scrap=4;
+  const ready=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(base)});
+  ready.click('tab','gear');
+  assert.match(ready.html(),/素材が揃った。鍛冶師に交代して製作しよう。/);
+  ready.click('character','1');
+  assert.match(ready.html(),/素材が揃った。製作できる。/);
+  ready.click('craft-item','forged_fang');
+  assert.match(ready.html(),/製作済み · 倉庫から装備できる/);
+});
