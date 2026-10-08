@@ -7,6 +7,13 @@ require("../src/enemy-adaptation-runtime.js")(Engine, EnemyAdaptation);
 
 const ARCHETYPES = ["tactician", "cautious", "greedy", "rusher"];
 
+function safelyReturnedMaterials(report = {}) {
+  const materials = { ...(report.materials || {}) };
+  if (!report.died) return materials;
+  for (const id of Object.keys(materials)) materials[id] = 0;
+  return materials;
+}
+
 /**
  * Choose an action for the given player archetype and current expedition state.
  */
@@ -285,7 +292,7 @@ function simulateExpedition(options = {}) {
 
   // Model the real camp action after the expedition: switch to the smith, make a weapon,
   // return to the adventurer and equip it. No fake item is awarded by combat.
-  const materialGained = {...(report.materials || {})};
+  const materialGained = safelyReturnedMaterials(report);
   let craftedGear = null;
   if (!died && state.report && state.activeCharacter === 0) {
     for (const recipeId of Object.keys(Engine.RECIPES)) {
@@ -410,6 +417,7 @@ if (require.main === module) {
 
 module.exports = {
   ARCHETYPES,
+  safelyReturnedMaterials,
   chooseAction,
   simulateExpedition,
   runPlaytestSuite,
