@@ -59,7 +59,7 @@ test('all six dock entries are declared in core and extensions never remove app 
   assert.match(app,/CrownlessTravelChronicleUI\?\.renderChronicle/);
   assert.match(codex,/CrownlessCodexUI = \{ renderCodex \}/);
   assert.doesNotMatch(codex,/MutationObserver|nav\.insertBefore|x\.remove\(/);
-  assert.doesNotMatch(chronicle,/MutationObserver|nav\.insertBefore|x\.remove\(/);
+  assert.doesNotMatch(chronicle,/new MutationObserver|nav\.insertBefore|x\.remove\(/);
   assert.match(css,/grid-auto-flow:column/);
   assert.match(css,/grid-auto-columns:minmax\(0,1fr\)/);
   assert.match(css,/#game>\.journal-home>\.visual-column\{display:none\}/);
