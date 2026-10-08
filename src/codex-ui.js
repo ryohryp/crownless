@@ -22,9 +22,12 @@
     const nav = root.querySelector('.camp-tabs'), panel = nav?.parentElement;
     if (!nav || !panel || nav.querySelector('[data-codex-tab]')) return;
     const button = document.createElement('button');
-    button.className = 'choice'; button.dataset.codexTab = 'true'; button.textContent = '手記';
+    button.className = 'choice bottom-navigation-item'; button.dataset.codexTab = 'true'; button.textContent = '手記';
+    button.setAttribute('aria-label', '旅人の手記と武具録');
+    button.setAttribute('aria-current', 'false');
     button.addEventListener('click', () => {
-      nav.querySelectorAll('button').forEach(x => x.classList.remove('active')); button.classList.add('active');
+      nav.querySelectorAll('button').forEach(x => { x.classList.remove('active'); x.setAttribute('aria-current','false'); });
+      button.classList.add('active'); button.setAttribute('aria-current','page');
       [...panel.children].forEach(x => { if (x !== nav && !x.matches('.text-button')) x.remove(); });
       const body = document.createElement('div'); body.className = 'codex-panel'; nav.after(body); renderCodex(body);
     });
