@@ -123,7 +123,7 @@
     const id = state.equipped;
     if (!id || !Engine.GEAR?.[id]) return '';
     const level = Engine.weaponLevel(state, id);
-    if (level >= 4) return `${Engine.GEAR[id].name}は最大補強。次は深層で別の武具を探すと戦い方を増やせる。`;
+    if (level >= 4) return `${Engine.GEAR[id].name}は最大補強。次は別の土地の素材を持ち帰り、鍛冶師に別の武具を作ってもらおう。`;
 
     const cost = Engine.upgradeCost(state, id);
     const gap = Math.max(0, cost - state.scrap);
