@@ -154,7 +154,7 @@
     const commissioned = state.commission.pending ? E.COMMISSIONS[state.commission.pending].requester+'への納品は完了。該当地域からの生還で報告が届く。' : 'どのNPCを助けるか選ぼう。';
     const commissionNews = state.commission.lastResult ? E.COMMISSIONS[state.commission.lastResult].outcome+' 次の同地域遠征は薬草 +1。' : '';
     const commissionSection = '<details class="rule-line" '+(state.commission.pending || state.commission.lastResult ? 'open' : '')+'><summary>工房への依頼 · 架空のNPC</summary>'+
-      '<p class="small">実プレイヤーではない依頼主に、素材から装備を作って渡す。結果は同じ土地への次の生還時に届く。持ち物に武器は複製されない。</p>'+
+      '<p class="small">実プレイヤーではない依頼主に、素材から装備を作って渡す。同じ土地で1戦以上して生還すると結果が届く。持ち物に武器は複製されない。</p>'+
       '<p class="small">完了 '+state.commission.completed+' 件 · '+commissioned+'</p>'+
       (commissionNews ? '<p class="notice">'+commissionNews+'</p>' : '')+'<div class="choice-grid">'+commissionRows+'</div></details>';
     const workshop = `<section class="rule-line" aria-label="冒険者と鍛冶師の製作">
