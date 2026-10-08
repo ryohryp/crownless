@@ -69,7 +69,9 @@ test('first loop banks materials; crafted weapon changes the next expedition', (
   s=E.act(s,'careful');
   assert.equal(s.expedition.stage,'fight');
   assert.ok(E.attackPreview(s,'strike') > E.weaponAttack(s,'rust'));
-});test('reinforcement is per individual weapon, including loot variants', () => {
+});
+
+test('reinforcement is per individual weapon, including loot variants', () => {
   let s=fresh(); s.scrap=100; s.owned.push('fang','fang_blood','shield','bow');
   s=E.equip(s,'fang_blood'); s=E.upgrade(s,'fang_blood');
   assert.equal(E.weaponLevel(s,'fang_blood'),1);
@@ -159,12 +161,16 @@ test('deep elites reward extra regional materials instead of completed weapons',
   s=E.act(s,'return');
   assert.equal(s.materials.wolfFang,before);
   assert.deepEqual(s.report.newGear,[]);
-});test('loot cues tease regional crafting materials without offering weapons', () => {
+});
+
+test('loot cues tease regional crafting materials without offering weapons', () => {
   const cue2=E.lootCue('wood',2), cue3=E.lootCue('tower',3);
   assert.match(cue2,/牙/);
   assert.match(cue3,/鐘鉄/);
   assert.doesNotMatch(cue2+cue3,/血染めの短剣|月影の短剣|番人の盾/);
-});test('whispering wood changes enemy archetype mid-expedition and gives its guardian a unique opener', () => {
+});
+
+test('whispering wood changes enemy archetype mid-expedition and gives its guardian a unique opener', () => {
   let s=E.start(fresh(),'wood');
 
   s=E.act(s,'careful');
@@ -383,6 +389,26 @@ test('legacy saves without quality fields migrate to standard quality zero', () 
 });
 
 
+
+test('save migration hydrates partial keyed records without accepting invalid shapes', () => {
+  let running=E.start(fresh(),'wood');
+  running.upgrades={rust:2};
+  running.qualities={rust:1};
+  running.materials={wolfFang:2};
+  running.expedition.materials={wolfFang:1};
+
+  const parsed=E.parse(JSON.stringify(running));
+  assert.ok(parsed);
+  assert.equal(parsed.upgrades.rust,2);
+  assert.equal(parsed.upgrades.fang_blood,0);
+  assert.equal(parsed.qualities.rust,1);
+  assert.equal(parsed.qualities.fang_blood,0);
+  assert.deepEqual(parsed.materials,{wolfFang:2,watchIron:0,marshFiber:0});
+  assert.deepEqual(parsed.expedition.materials,{wolfFang:1,watchIron:0,marshFiber:0});
+
+  const malformed={...fresh(),materials:[]};
+  assert.equal(E.parse(JSON.stringify(malformed)),null);
+});
 
 test('safe return enables free blade maintenance for the next expedition first three fights', () => {
   let s=complete(fresh(),'wood');

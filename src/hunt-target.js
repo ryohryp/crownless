@@ -6,7 +6,7 @@
 })(typeof globalThis === 'object' ? globalThis : this, function () {
   'use strict';
   const TARGETS = {
-    gear: { label: '武具を探す', help: '深層で武具を見つけやすくする' },
+    gear: { label: '鍛冶素材を探す', help: '深層の討伐で地域素材を1つ余分に見つける' },
     scrap: { label: '鉄片を集める', help: '討伐時の鉄片を少し増やす' },
     danger: { label: '強敵を探す', help: '敵を強くする代わりに戦利品も増える' },
   };
@@ -22,13 +22,18 @@
       return next;
     };
     E.act = function (state, action) {
-      const beforeScrap = state?.expedition?.scrap || 0;
-      const hadEnemy = !!state?.expedition?.enemy;
+      const beforeExpedition = state?.expedition;
+      const beforeScrap = beforeExpedition?.scrap || 0;
+      const beforeMaterials = { ...(beforeExpedition?.materials || {}) };
+      const hadEnemy = !!beforeExpedition?.enemy;
       let next = originalAct(state, action);
       if (target === 'scrap' && next?.expedition && next.expedition.scrap > beforeScrap) next.expedition.scrap += 2;
-      if (next?.expedition?.enemy && !hadEnemy && target === 'gear' && next.expedition.depth >= 2) {
-        /* Reuse the engine's existing risky-loot path; no new drop table or guaranteed reward. */
-        next.expedition.enemy.risky = true;
+      if (target === 'gear' && hadEnemy && beforeExpedition.depth >= 2 && next?.expedition?.materials) {
+        const materialId = Object.keys(next.expedition.materials).find(id => next.expedition.materials[id] > (beforeMaterials[id] || 0));
+        if (materialId) {
+          next.expedition.materials[materialId] += 1;
+          next.expedition.log?.push('狙いが当たった。鍛冶に使える地域素材をもう1つ確保した。');
+        }
       }
       if (next?.expedition?.enemy && !hadEnemy && target === 'danger') {
         next.expedition.enemy.hp += 3; next.expedition.enemy.maxHp += 3; next.expedition.enemy.risky = true;
@@ -49,7 +54,7 @@
         let sheet = doc.querySelector('#hunt-target-sheet');
         if (!sheet) {
           sheet = doc.createElement('div'); sheet.id = 'hunt-target-sheet'; sheet.className = 'hunt-target-sheet';
-          sheet.innerHTML = `<div class="hunt-target-card" role="dialog" aria-modal="true" aria-labelledby="hunt-target-title"><p class="kicker">THIS EXPEDITION</p><h2 id="hunt-target-title">遠征の狙いを選ぶ</h2><p class="small">結果を確定する依頼ではない。遠征の傾向を少しだけ寄せて出発する。今回の遠征での狙い（フォーカス）を選択してください。深層での武具発見や鉄片獲得など、優先したい狙いを定めて出発します。この選択は今回の遠征のみ有効です。</p><div class="hunt-target-options">${Object.entries(TARGETS).map(([id,t]) => `<button class="choice" data-hunt-target="${id}"><strong>${t.label}（この狙いで遠征へ）</strong><small>${t.help}</small></button>`).join('')}</div><button class="text-button" data-hunt-cancel>やめる</button></div>`;
+          sheet.innerHTML = `<div class="hunt-target-card" role="dialog" aria-modal="true" aria-labelledby="hunt-target-title"><p class="kicker">THIS EXPEDITION</p><h2 id="hunt-target-title">遠征の狙いを選ぶ</h2><p class="small">結果を確定する依頼ではない。遠征の傾向を少しだけ寄せて出発する。今回の遠征での狙い（フォーカス）を選択してください。深層での鍛冶素材や鉄片獲得など、優先したい狙いを定めて出発します。この選択は今回の遠征のみ有効です。</p><div class="hunt-target-options">${Object.entries(TARGETS).map(([id,t]) => `<button class="choice" data-hunt-target="${id}"><strong>${t.label}（この狙いで遠征へ）</strong><small>${t.help}</small></button>`).join('')}</div><button class="text-button" data-hunt-cancel>やめる</button></div>`;
           doc.body.appendChild(sheet);
         }
         sheet.hidden = false;
