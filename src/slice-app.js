@@ -207,8 +207,8 @@
     const strikeLabel = x.stagger ? '崩し追撃' : E.gearFamily(state.equipped) === 'bow' ? '射る' : '斬る';
     const enemyTag = `${info.archetype}${info.trait ? ` · 《${info.trait.name}》${info.trait.help}` : ''}`;
     const strongHelp = `気力 −${profile.heavyCost} / 大きな一撃${profile.heavyBonus > 4 ? ` · 補強 +${profile.heavyBonus - 4}` : ''}`;
-    const guardHelp = `気力 +1 / ${profile.counter ? `${profile.block} 軽減・${profile.counter} 反撃` : `${profile.block} ダメージ軽減`}${level > 0 && profile.family === 'shield' ? ` · 補強 +${level}` : ''}`;
-    const strikeHelp = `気力 +1 / 表示は与えるダメージ${x.sharpened > 0 && !x.sharpenedApplied ? ' · 研ぎ澄まし +3' : ''}`;
+    const guardHelp = `気力 +1 / ${profile.counter ? `${profile.block} 軽減・${profile.counter} 反撃` : `${profile.block} ダメージ軽減`}${next.id === 'quick' ? ' · 受け流し→崩し追撃' : ''}${level > 0 && profile.family === 'shield' ? ` · 補強 +${level}` : ''}`;
+    const strikeHelp = `気力 +1 / ${['feint','break'].includes(next.id) ? `${next.name}を阻止→崩し追撃` : '表示は与えるダメージ'}${x.sharpened > 0 && !x.sharpenedApplied ? ' · 研ぎ澄まし +3' : ''}`;
     const dodgeHelp = next.adaptive
       ? next.id === 'feint'
         ? `気力 −${profile.dodgeCost} / 足運びを読まれている・被弾・追撃なし`
