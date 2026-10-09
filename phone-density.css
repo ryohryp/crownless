@@ -559,6 +559,12 @@
     padding-bottom: max(.4rem, env(safe-area-inset-bottom));
   }
 
+  /* Expanded manual controls are secondary: scroll inside the scene instead of clipping retreat. */
+  #game > .battle-layout .combat-panel:has(.combat-manual[open]) {
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+
   #game > .battle-layout .combat-vitals {
     position: static;
     display: block;
