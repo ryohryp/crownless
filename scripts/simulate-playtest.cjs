@@ -109,11 +109,12 @@ function chooseAction(archetype, gameState) {
 
     // Tactician: strategic match of player action to enemy intent & weapon traits
     if (archetype === "tactician") {
-      // Adaptive counter intents
-      if (nextIntent.id === "break") {
-        if (x.stamina >= p.dodgeCost) return "dodge";
-        return "strike";
-      }
+      // An opening is worth cashing in when the next blow is lethal or survivable.
+      // This screening agent must test the new read/counter flow, not discard every parry.
+      if (e.hp <= Engine.attackPreview(gameState, "strike")) return "strike";
+      if (x.stagger && x.hp >= nextIntent.damage + 8 && nextIntent.id !== "intercept") return "strike";
+      // Adaptive guard-break: dodge is safe, but a normal strike interrupts and earns a riposte.
+      if (nextIntent.id === "break") return "strike";
 
       if (nextIntent.id === "feint") {
         return "strike";
@@ -234,6 +235,7 @@ function simulateExpedition(options = {}) {
       if (
         (intent.id === "heavy" && action === "dodge") ||
         (intent.id === "quick" && action === "guard") ||
+        (["feint","break"].includes(intent.id) && action === "strike") ||
         (intent.id === "open" && ["heavy", "strike"].includes(action)) ||
         (intent.id === "guard" && (action === "guard" || (action === "heavy" && Engine.combatProfile(state).pierce)))
       ) {

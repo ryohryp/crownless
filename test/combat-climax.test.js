@@ -75,11 +75,13 @@ test('adaptive preview, counters and fatal damage all resolve the telegraphed mo
   assert.equal(damage,E.weaponAttack(s),'the replaced guard must not reduce damage');
   const n = E.act(s,'strike');
   assert.equal(s.expedition.enemy.hp-n.expedition.enemy.hp,damage);
-  assert.equal(n.expedition.hp,s.expedition.hp-7);
+  assert.equal(n.expedition.hp,s.expedition.hp,'reading the guard-break cancels retaliation');
+  assert.equal(n.expedition.stagger,true);
+  assert.match(n.expedition.log.join(' '),/先手で崩しを潰した/);
 
   s.expedition.hp = 4;
   s.expedition.scrap = 9;
-  const dead = E.act(s,'strike');
+  const dead = E.act(s,'heavy'); // Wrong read: breaking an enemy's guard needs a normal strike.
   assert.equal(dead.expedition,null);
   assert.equal(dead.report.died,true);
   assert.equal(dead.report.hp,-3);

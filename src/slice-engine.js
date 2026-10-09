@@ -105,13 +105,13 @@
     ] },
   };
   const INTENTS = {
-    quick: { name: '薙ぎ払い', damage: 6, help: '横薙ぎ。防御なら安定。回避しても半分は受け、追撃の好機は作れない。' },
+    quick: { name: '薙ぎ払い', damage: 6, help: '横薙ぎ。防御で受け流せば反撃の好機。回避では半分受け、追撃できない。' },
     pounce: { name: '飛びかかり', damage: 10, help: '主だけの鋭い踏み込み。回避なら無傷と追撃、防御では少し削られる。' },
     heavy: { name: '大振り', damage: 12, help: '回避がおすすめ。防御だけでは削られる。' },
     guard: { name: '守りを固める', damage: 0, help: '攻撃を 3 軽減する。防御で気力を整える。' },
     open: { name: '体勢を崩している', damage: 0, help: '攻撃の好機。強撃なら大きく削れる。' },
-    feint: { name: 'フェイント', damage: 4, help: '回避を誘う牽制。防御で受けるか、通常攻撃で先に崩せる。回避すると被弾。' },
-    break: { name: '崩し', damage: 7, help: '守りを崩す一撃。回避するか、通常攻撃で先に削れる。防御すると崩される。' },
+    feint: { name: 'フェイント', damage: 4, help: '回避を誘う牽制。通常攻撃で先手を取れば技を潰して追撃できる。回避すると被弾。' },
+    break: { name: '崩し', damage: 7, help: '守りを崩す一撃。通常攻撃で技を潰すか、回避する。防御すると崩される。' },
     intercept: { name: '迎撃', damage: 6, help: '強撃を待ち構える。通常攻撃へ切り替えるか、防御で整えられる。' },
     frenzy: { name: '窮鼠の一撃', damage: 8, help: '手負いの反撃。隙を見せたふりだ。回避なら無傷で追撃、防御なら軽減できる。' },
   };
@@ -482,8 +482,18 @@
     if (e.hp <= 0) { victory(n); return n; }
     if (next.id === 'frenzy') e.frenzy = false;
     else if (!e.frenzy && !e.wounded && e.hp * 2 <= e.maxHp) { e.frenzy = true; e.wounded = true; x.log.push('傷ついた敵が、牙を剥く。次の隙は罠かもしれない。'); }
+    // A correct read must do more than save HP: it sets up the next decisive blow.
+    // Keep this inside existing stagger/save/UI mechanics; no extra command or resource.
+    const interrupted = action === 'strike' && (next.id === 'feint' || next.id === 'break');
+    const parried = action === 'guard' && next.id === 'quick';
+    if (interrupted || parried) {
+      x.stagger = true;
+      x.log.push(interrupted
+        ? `先手で${next.name}を潰した！ 次の一撃が崩し追撃になる。`
+        : '薙ぎ払いを受け流した！ 次の一撃が崩し追撃になる。');
+    }
     const block = action === 'guard' ? p.block : 0;
-    const taken = action === 'dodge'
+    const taken = interrupted ? 0 : action === 'dodge'
       ? (next.id === 'feint' ? next.damage : next.id === 'quick' ? Math.max(1, Math.ceil(next.damage / 2)) : 0)
       : next.id === 'break' && action === 'guard'
         ? Math.max(2, next.damage - Math.floor(block / 2))
