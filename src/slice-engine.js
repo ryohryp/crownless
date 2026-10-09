@@ -514,6 +514,42 @@
     if (x.hp <= 0) return finish(n, true);
     return n;
   }
+  // A fight is an obstacle on the expedition, not a requirement to tap through
+  // a dozen predictable counters. Reuse the exact same rules, loot and death.
+  // Call api.act (not the closed-over act) so installed gameplay wrappers apply.
+  function resolveFight(s) {
+    if (s?.expedition?.stage !== 'fight') return s;
+    let current = s, turns = 0;
+    const startingHp = s.expedition.hp;
+    const startingPotions = s.expedition.potions;
+    while (current.expedition?.stage === 'fight' && turns < 48) {
+      const x = current.expedition, next = api.intent(x.enemy), p = combatProfile(current);
+      const strike = attackPreview(current, 'strike');
+      let action;
+      if (strike >= x.enemy.hp) action = 'strike';
+      else if (x.potions > 0 && x.hp <= maxHp(current) - 12 && x.hp > Math.max(0, next.damage)) action = 'heal';
+      else if (x.stagger && (next.damage === 0 || x.hp > next.damage + 7)) action = 'strike';
+      else if (['heavy', 'pounce', 'frenzy'].includes(next.id)) action = x.stamina >= p.dodgeCost ? 'dodge' : 'guard';
+      else if (next.id === 'quick') action = 'guard';
+      else if (['feint', 'break', 'intercept'].includes(next.id)) action = 'strike';
+      else if (next.id === 'open' || (next.id === 'guard' && p.pierce))
+        action = x.stamina >= p.heavyCost ? 'heavy' : 'strike';
+      else action = 'strike';
+      const after = api.act(current, action);
+      if (after === current) break; // Defensive against invalid or intercepted actions.
+      current = after;
+      turns++;
+    }
+    if (current === s) return s;
+    if (current.expedition) {
+      const x = current.expedition;
+      const summary = x.stage === 'fight'
+        ? '決着はまだつかない。残りは手動で進めるか撤退できる。'
+        : `戦闘をまとめて決着（${turns}手）。体力 ${startingHp} → ${x.hp}、薬草 ${startingPotions} → ${x.potions}。`;
+      x.log = [summary, ...x.log].slice(0, 10);
+    }
+    return current;
+  }
   function maintain(s) {
     if (s.expedition || s.maintenance !== 'ready') return s;
     const n = copy(s); n.maintenance = 'sharp'; return n;
@@ -679,6 +715,6 @@
       return s;
     } catch { return null; }
   }
-  const api = { VERSION, PLACES, GEAR, ENEMIES, INTENTS, VARIANT_LOOT, MATERIALS, RECIPES, COMMISSIONS, DISMANTLE_SCRAP, LOCAL_HERB_COST, initial, maxHp, gearFamily, weaponLevel, weaponQuality, weaponAttack, qualityLabel, rollQuality, upgradeCost, combatProfile, gearText, enemyProfile, attackPreview, intent, lootCue, place, isRoadsideEvent, discover, start, startWithLocalHerb, act, maintain, equip, switchCharacter, craftItem, craftWolfFang, supplyCommission, upgrade, resolveDuplicate, locationSession, observe, serialize, parse, discoverDistrict,selectDistrict,buildHome,renameHome };
+  const api = { VERSION, PLACES, GEAR, ENEMIES, INTENTS, VARIANT_LOOT, MATERIALS, RECIPES, COMMISSIONS, DISMANTLE_SCRAP, LOCAL_HERB_COST, initial, maxHp, gearFamily, weaponLevel, weaponQuality, weaponAttack, qualityLabel, rollQuality, upgradeCost, combatProfile, gearText, enemyProfile, attackPreview, intent, lootCue, place, isRoadsideEvent, discover, start, startWithLocalHerb, act, resolveFight, maintain, equip, switchCharacter, craftItem, craftWolfFang, supplyCommission, upgrade, resolveDuplicate, locationSession, observe, serialize, parse, discoverDistrict,selectDistrict,buildHome,renameHome };
   return api;
 });
