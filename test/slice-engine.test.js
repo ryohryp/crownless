@@ -482,3 +482,43 @@ test('guard-break intent rewards striking first instead of passive blocking', ()
   assert.equal(guard.expedition.stagger,false);
   assert.match(strike.expedition.log.join(' '),/先手で崩しを潰した/);
 });
+
+test('one-tap encounter resolution reuses real combat loot, damage and save rules', () => {
+  const s=E.act(E.start(fresh(),'wood'),'careful');
+  const result=E.resolveFight(s);
+  assert.equal(s.expedition.stage,'fight','previous save remains untouched');
+  assert.equal(result.expedition.stage,'path');
+  assert.equal(result.expedition.room,1,'one call resolves only one encounter');
+  assert.equal(result.expedition.materials.wolfFang,1);
+  assert.equal(result.expedition.scrap,2);
+  assert.equal(result.materials.wolfFang,0,'loot is still unbanked');
+  assert.equal(result.scrap,0);
+  assert.ok(result.expedition.hp<30 || result.expedition.potions<2,'combat has a real survival cost');
+  assert.match(result.expedition.log.join(' '),/戦闘をまとめて決着/);
+  assert.deepEqual(E.parse(E.serialize(result)),result);
+  assert.equal(E.resolveFight(result),result,'cannot farm the cleared encounter twice');
+});
+
+test('one-tap resolution is deterministic and retains defeat consequences', () => {
+  const s=E.act(E.start(fresh(),'wood'),'careful');
+  assert.deepEqual(E.resolveFight(s),E.resolveFight(s),'same fight produces same outcome');
+  s.expedition.hp=1; s.expedition.potions=0; s.expedition.stamina=0;
+  // Deep elite's sweeping blow exceeds even a clean guard; autopilot is not invincible.
+  s.expedition.depth=3; s.expedition.room=4;
+  Object.assign(s.expedition.enemy,{depth:3,elite:true,turn:1,hp:36,maxHp:36});
+  assert.equal(E.intent(s.expedition.enemy).id,'quick');
+  const lost=E.resolveFight(s);
+  assert.equal(lost.expedition,null);
+  assert.equal(lost.report.died,true);
+  assert.equal(lost.materials.wolfFang,0,'no banked drop after death');
+  assert.deepEqual(E.parse(E.serialize(lost)),lost);
+});
+
+test('manual encounter remains available and no auto action runs without a fight', () => {
+  let s=E.start(fresh(),'wood');
+  assert.equal(E.resolveFight(s),s);
+  s=E.act(s,'careful');
+  const manually=E.act(s,'guard');
+  assert.equal(manually.expedition.stage,'fight');
+  assert.equal(manually.expedition.enemy.turn,1);
+});

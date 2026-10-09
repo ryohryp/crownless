@@ -311,3 +311,22 @@ test('smith commission is accessible in the gear UI and saves as a single pendin
   saved=JSON.parse(b.store.get(k));
   assert.equal(saved.expedition.place,'wood');
 });
+
+test('combat offers one prominent resolution choice with manual controls optional', () => {
+  const b=browser();
+  b.click('mode','demo');
+  b.click('depart','wood');
+  b.click('careful');
+  assert.match(b.html(),/data-action="auto-fight"/);
+  assert.match(b.html(),/決着まで任せる/);
+  assert.match(b.html(),/<details class="combat-manual"><summary>一手ずつ戦う（任意）<\/summary>/);
+  assert.match(b.html(),/data-action="flee"/,'retreat remains available without opening manual controls');
+  b.click('auto-fight');
+  assert.match(b.html(),/戦闘をまとめて決着/);
+  assert.doesNotMatch(b.html(),/data-action="auto-fight"/);
+  const saved=JSON.parse(b.store.get('crownless-expedition-v1-demo'));
+  assert.equal(saved.expedition.room,1);
+  assert.equal(saved.expedition.materials.wolfFang,1);
+  assert.equal(saved.materials.wolfFang,0);
+  assert.deepEqual(E.parse(E.serialize(saved)),saved);
+});
