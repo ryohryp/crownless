@@ -1,0 +1,117 @@
+name: Prune superseded Pages artifacts
+
+on:
+  workflow_dispatch:
+    inputs:
+      mode:
+        description: 'Preview first; delete only after explicitly choosing delete'
+        type: choice
+        required: true
+        default: preview
+        options:
+          - preview
+          - delete
+
+permissions:
+  actions: write
+
+concurrency:
+  group: manual-pages-artifact-prune
+  cancel-in-progress: false
+
+jobs:
+  prune:
+    if: github.actor == 'ryohryp'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Preview or remove old completed Pages artifacts
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          PRUNE_MODE: ${{ inputs.mode }}
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          import datetime as dt
+          import json
+          import os
+          import urllib.error
+          import urllib.request
+
+          token = os.environ["GH_TOKEN"]
+          repo = os.environ["REPOSITORY"]
+          mode = os.environ["PRUNE_MODE"]
+          if repo != "ryohryp/crownless" or mode not in ("preview", "delete"):
+              raise SystemExit("Unexpected repository or mode; refusing cleanup")
+
+          root = f"https://api.github.com/repos/{repo}"
+          headers = {
+              "Accept": "application/vnd.github+json",
+              "Authorization": f"Bearer {token}",
+              "X-GitHub-Api-Version": "2022-11-28",
+          }
+
+          def api(path, method="GET"):
+              request = urllib.request.Request(root + path, headers=headers, method=method)
+              with urllib.request.urlopen(request, timeout=20) as response:
+                  raw = response.read()
+              return json.loads(raw) if raw else None
+
+          # Enumerate completely before deleting anything; fail closed if truncated.
+          artifacts = []
+          for page in range(1, 12):
+              result = api(f"/actions/artifacts?per_page=100&page={page}")
+              batch = result.get("artifacts", [])
+              if not isinstance(batch, list):
+                  raise SystemExit("Invalid artifact list; refusing cleanup")
+              if page == 11 and batch:
+                  raise SystemExit("More than 1000 artifacts; refusing incomplete scan")
+              if page <= 10:
+                  artifacts.extend(batch)
+              if len(batch) < 100:
+                  break
+
+          pages = sorted(
+              (artifact for artifact in artifacts
+               if artifact.get("name") == "github-pages"
+               and artifact.get("expired") is False),
+              key=lambda artifact: (artifact.get("created_at", ""), artifact.get("id", 0)),
+              reverse=True,
+          )
+          protected = {artifact["id"] for artifact in pages[:2]}
+          cutoff = dt.datetime.now(dt.timezone.utc) - dt.timedelta(hours=6)
+          candidates = []
+          for artifact in pages:
+              if artifact["id"] in protected:
+                  continue
+              created = dt.datetime.fromisoformat(artifact["created_at"].replace("Z", "+00:00"))
+              if created >= cutoff:
+                  continue
+              run_id = (artifact.get("workflow_run") or {}).get("id")
+              if not isinstance(run_id, int):
+                  continue
+              run = api(f"/actions/runs/{run_id}")
+              if (run.get("status") != "completed"
+                      or run.get("conclusion") != "success"
+                      or run.get("path") != ".github/workflows/pages.yml"):
+                  continue
+              candidates.append(artifact)
+
+          # One invocation has a bounded blast radius.
+          candidates = candidates[:25]
+          bytes_to_free = sum(artifact.get("size_in_bytes", 0) for artifact in candidates)
+          print(f"mode={mode} pages_found={len(pages)} protected_newest={len(protected)}")
+          print(f"eligible={len(candidates)} estimated_bytes={bytes_to_free}")
+          for artifact in candidates:
+              print(f"candidate id={artifact['id']} size={artifact.get('size_in_bytes')} created={artifact['created_at']}")
+
+          if mode == "delete":
+              for artifact in candidates:
+                  api(f"/actions/artifacts/{artifact['id']}", "DELETE")
+                  print(f"deleted id={artifact['id']}")
+              print("Cleanup request completed; billing quota updates may lag.")
+          else:
+              print("Preview only: no artifacts deleted.")
+          PY
