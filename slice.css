@@ -32,3 +32,12 @@
 .gear-home .rule-line{border:1px solid #d2b98138;background:#172d30;padding:14px 16px;margin-top:16px}
 .gear-home .rule-line .section-heading{margin-bottom:8px}.gear-home .rule-line>p{margin-bottom:10px}
 @media(max-width:620px){.gear-home .gear-list{gap:6px}.gear-home .gear-list .choice{min-height:48px;padding:10px 12px}.gear-home .rule-line{padding:12px;margin-top:12px}.gear-home .rule-line .secondary{min-height:48px}}
+
+/* Friction-first combat: a single intentional choice, manual taps only on demand. */
+.combat-fast-choice{margin:10px 0 8px}
+.combat-fast-choice>.primary{width:100%;min-height:64px;position:relative;display:flex;flex-direction:column;align-items:flex-start;justify-content:center;gap:3px;padding-right:42px;text-align:left}
+.combat-fast-choice>.primary:after{position:absolute;right:14px;top:50%;transform:translateY(-50%)}
+.combat-fast-choice>.primary small{font-size:12px;line-height:1.5;opacity:.82}
+.combat-manual{border-top:1px solid var(--line);margin-top:7px}
+.combat-manual>summary{padding:12px 4px;min-height:44px;color:var(--muted);font-size:13px;cursor:pointer}
+.combat-manual>.combat-choice-grid{margin:6px 0 10px}
