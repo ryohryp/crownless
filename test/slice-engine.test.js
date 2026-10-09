@@ -503,6 +503,10 @@ test('one-tap resolution is deterministic and retains defeat consequences', () =
   const s=E.act(E.start(fresh(),'wood'),'careful');
   assert.deepEqual(E.resolveFight(s),E.resolveFight(s),'same fight produces same outcome');
   s.expedition.hp=1; s.expedition.potions=0; s.expedition.stamina=0;
+  // Deep elite's sweeping blow exceeds even a clean guard; autopilot is not invincible.
+  s.expedition.depth=3; s.expedition.room=4;
+  Object.assign(s.expedition.enemy,{depth:3,elite:true,turn:1,hp:36,maxHp:36});
+  assert.equal(E.intent(s.expedition.enemy).id,'quick');
   const lost=E.resolveFight(s);
   assert.equal(lost.expedition,null);
   assert.equal(lost.report.died,true);
