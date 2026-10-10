@@ -35,8 +35,8 @@
       return next;
     } catch { return {status:'save-failed'}; }
   }
-  function recordFootprint(coords,mode = footprintMode()) {
-    return modifyFootprints(mode,journal=>window.CrownlessTravelFootprints.record(journal,coords));
+  function recordFootprint(coords,mode = footprintMode(),day) {
+    return modifyFootprints(mode,journal=>window.CrownlessTravelFootprints.record(journal,coords,day));
   }
   function showFootprints() { currentSubtab='footprints'; }
 
