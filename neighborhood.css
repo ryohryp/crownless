@@ -371,3 +371,22 @@
     right:4px;top:2px;
   }
 }
+
+/* Discovery must change the next decision, not just the map decoration. */
+#game>.living-map-home .district-detail .poi-reveal-line{
+  margin:.3rem 0 0;color:#694b40;font-weight:700;font-size:11px;
+}
+#game>.living-map-home .district-poi-card .poi-unlock{
+  margin:.6rem 0 0;padding:.65rem .7rem;
+  border-left:3px solid #87594b;
+  background:rgba(247,237,216,.88);color:#302b27;
+}
+#game>.living-map-home .district-poi-card .poi-unlock strong{
+  display:block;font-size:12px;color:#302b27;line-height:1.4;
+}
+#game>.living-map-home .district-poi-card .poi-unlock p{
+  margin:.3rem 0 .55rem;color:#4c433b;font-size:11px;line-height:1.55;
+}
+#game>.living-map-home .district-poi-card .poi-unlock button{
+  width:100%;min-height:48px;margin:0;
+}
