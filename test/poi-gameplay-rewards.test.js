@@ -30,7 +30,8 @@ test('revealing an event unlocks a saved, harder clue hunt with real crafting ma
 });
 test('retreat, unrelated shops and other characters cannot counterfeit clue rewards', () => {
   const found=startEvent();
-  assert.equal(E.startWithLocalClue({...found,activeCharacter:1}),found.activeCharacter===1 ? found : E.startWithLocalClue({...found,activeCharacter:1}));
+  const smith={...found,activeCharacter:1};
+  assert.equal(E.startWithLocalClue(smith),smith,'non-adventurers cannot follow a combat clue');
   const plain=E.start(found,'tower');
   assert.equal(E.startWithLocalClue(plain),plain,'no nested expedition');
   const withdrawn=E.act(plain,'return');
