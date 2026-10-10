@@ -5,7 +5,7 @@
   if (typeof root === 'object') root.CrownlessTravelFootprints = api;
 })(typeof globalThis === 'object' ? globalThis : this, function () {
   'use strict';
-  const VERSION = 1, METERS = 2000, EARTH = 6378137;
+  const VERSION = 2, METERS = 2000, EARTH = 6378137;
   const THEMES = [
     { name: '霧深き森', seal: '木霊の印', icon: '🌲', biome: 'wood' },
     { name: '忘れられた塔', seal: '鐘の印', icon: '🏰', biome: 'tower' },
@@ -41,11 +41,10 @@
       const data=typeof raw==='string' ? JSON.parse(raw) : raw;
       if (!data || data.version!==VERSION || !Array.isArray(data.places) || data.places.length>5000) return initial();
       if (!data.places.every(p => p && /^f1:-?\d+:-?\d+$/.test(p.id) && typeof p.name==='string' &&
-        p.name.length<=60 && typeof p.label==='string' && p.label.length<=60 &&
-        typeof p.seal==='string' && typeof p.icon==='string' && typeof p.biome==='string' &&
+        p.name.length<=60 && typeof p.seal==='string' && typeof p.icon==='string' && typeof p.biome==='string' &&
         validDay(p.firstDate) && Array.isArray(p.visits) && p.visits.length>0 &&
-        p.visits.every(v=>validDay(v.date) && typeof v.note==='string' && v.note.length<=180) &&
-        new Set(p.visits.map(v=>v.date)).size===p.visits.length)) return initial();
+        p.visits.every(validDay) && p.visits[0]===p.firstDate &&
+        new Set(p.visits).size===p.visits.length)) return initial();
       if (new Set(data.places.map(p=>p.id)).size!==data.places.length) return initial();
       return data;
     } catch { return initial(); }
@@ -55,24 +54,13 @@
     if (place.status!=='ok') return { status:place.status, journal };
     if (!validDay(day)) return { status:'invalid-date', journal };
     const current=journal?.places?.find(p=>p.id===place.id);
-    if (current?.visits?.some(v=>v.date===day)) return { status:'same-day', journal, place:current };
+    if (current?.visits?.includes(day)) return { status:'same-day', journal, place:current };
     const next=current
-      ? {...current,visits:[...current.visits,{date:day,note:''}]}
-      : {id:place.id,name:place.theme.name,label:'',seal:place.theme.seal,
-         icon:place.theme.icon,biome:place.theme.biome,firstDate:day,visits:[{date:day,note:''}]};
+      ? {...current,visits:[...current.visits,day]}
+      : {id:place.id,name:place.theme.name,seal:place.theme.seal,
+         icon:place.theme.icon,biome:place.theme.biome,firstDate:day,visits:[day]};
     const places=current ? journal.places.map(p=>p.id===next.id?next:p) : [next,...(journal?.places||[])];
     return { status:current?'revisited':'first', journal:{version:VERSION,places}, place:next };
   }
-  function annotate(journal,id,date,note) {
-    if (!journal?.places?.some(p=>p.id===id) || !validDay(date)) return journal;
-    const clean=String(note||'').trim().replace(/[\u0000-\u001f\u007f]/g,'').slice(0,180);
-    return {...journal,places:journal.places.map(p=>p.id===id
-      ? {...p,visits:p.visits.map(v=>v.date===date?{...v,note:clean}:v)} : p)};
-  }
-  function rename(journal,id,label) {
-    if (!journal?.places?.some(p=>p.id===id)) return journal;
-    const clean=String(label||'').trim().replace(/[\u0000-\u001f\u007f]/g,'').slice(0,60);
-    return {...journal,places:journal.places.map(p=>p.id===id?{...p,label:clean}:p)};
-  }
-  return {VERSION,METERS,initial,dayString,locate,parse,record,annotate,rename};
+  return {VERSION,METERS,initial,dayString,locate,parse,record};
 });
