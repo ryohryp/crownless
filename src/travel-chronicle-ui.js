@@ -274,7 +274,7 @@
       <div class="footprints-list">${found.map(p=>`<article class="footprint-card">
         <div class="footprint-heading"><span class="footprint-seal" aria-hidden="true">${esc(p.icon)}</span><div><strong>${esc(p.name)}</strong><small>${esc(p.realName)} 付近で発見</small></div></div>
         <p class="small">${esc(p.description)}</p>
-        <p class="footprint-acquired">${control.status!=='ok'?'⚠ 支配情報を確認できません':owned.has(p.id)?'⚑ あなたの支配拠点':'👣 発見済み・未支配'} · ${esc(p.seal)}</p>
+        <p class="footprint-acquired">${control.status!=='ok'?'👣 発見済み · ⚠ 支配情報を確認できません':owned.has(p.id)?'⚑ あなたの支配拠点':'👣 発見済み・未支配'} · ${esc(p.seal)}</p>
         <p class="small">初発見 ${esc(p.firstDate)} · 訪問 ${p.visits.length}日${p.visits.length>1?' · 再訪済み':''}</p>
         <p class="small">${owned.has(p.id)?'支配の効果：この名所からの遠征に薬草 +1（最大3個）':'攻略条件：この名所の主を倒し、旗を立てて帰還する'}</p>
         ${!owned.has(p.id) ? (()=>{const progress=landmarkProgress(p,control);return `<p class="landmark-control-status landmark-control-status--${progress.type}" role="status">${esc(progress.message)}</p>`;})() : ''}
