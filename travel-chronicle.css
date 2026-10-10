@@ -434,3 +434,5 @@
   padding:10px 12px;margin:0 0 10px;color:#f5e2a8;
   font-size:.93rem;font-weight:700;line-height:1.5;
 }
+
+.landmark-generic-warning {font-size:.83rem;line-height:1.5;color:#ffe3a8;background:#453629;border-left:3px solid #dfb570;border-radius:6px;padding:9px 10px;margin:9px 0;}
