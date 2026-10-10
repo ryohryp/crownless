@@ -344,3 +344,23 @@ test('revisited district reveals a named persistent NPC trace in its main detail
   const before=b.store.get('crownless-expedition-v1-demo');
   assert.deepEqual(E.parse(before),state);
 });
+
+test('fictional traveler supplies appear on selected district and vanish when used once',()=>{
+  const s={...E.initial(),mode:'demo'};
+  s.neighborhood.districts[0].visitor='supplies';
+  const key='crownless-expedition-v1-demo';
+  const b=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(s)});
+  assert.match(b.html(),/架空NPCが残したもの：薬師の補給袋/);
+  assert.match(b.html(),/この地点から出発すると受け取れる/);
+  assert.match(b.html(),/NPC 薬師の補給袋/);
+  b.click('depart','wood');
+  const departed=JSON.parse(b.store.get(key));
+  assert.equal(departed.expedition.potions,3);
+  assert.equal(departed.neighborhood.districts[0].visitor,'used');
+  assert.match(departed.expedition.log.join(' '),/架空NPC/);
+  assert.deepEqual(E.parse(E.serialize(departed)),departed);
+  b.click('return');
+  b.click('continue');
+  assert.doesNotMatch(b.html(),/架空NPCが残したもの：薬師の補給袋/);
+  assert.match(b.html(),/補給袋は受け取った/);
+});
