@@ -11,6 +11,7 @@ Keep these unless the user changes them:
 - Real-world movement discovers and opens the game world; it is not a step-count reward system.
 - Landmark discovery/conquest loop: **Approach a real landmark → Reveal its fantasy counterpart and leave a footprint → Defeat its guardian on a later optional expedition → Return alive to claim the specific outpost → Revisit or use its supply benefit**. It is gameplay, not diary keeping.
 - Discovery alone never grants ownership. Each real landmark has its own claim identity, even if two landmarks share an existing expedition biome. The pilot is private/local, not multiplayer territory ownership.
+- **ADR 0012 (accepted, not yet implemented):** Each controlled landmark should grant an automatic, distinct passive blessing wherever the player later adventures. Same-kind bonuses do not stack without limit; ownership (not footprint count) is authoritative. Verify real combat/exploration effects before adding more buff systems.
 - No text input, nicknames, diaries or daily check-in chores for discoveries. Visiting a landmark is valuable without mandatory combat.
 - Real-world location checks happen only on explicit stationary foreground action for now. Store earned landmark IDs and visit days, not raw coordinates or route history. Keep dates private; expose only deliberately published fictional gameplay effects.
 - Recognized landmarks count even when far beyond the player's home neighborhood. Do not mint meaningless random map stamps at arbitrary GPS cells.
