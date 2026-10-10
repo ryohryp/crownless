@@ -27,7 +27,7 @@ test('each of four regions has distinct ink POI stamps for its shop and event', 
   assert.equal(art.poiStamp('wood', '__proto__'), '');
 });
 
-test('the map and expanded POI card share the same art without creating a second state model', () => {
+test('map pixel signs and expanded ink POI detail use the same canonical district state', () => {
   let s = {...E.initial(), mode: 'demo'};
   for (const district of [
     N.cell(0, -800), N.cell(400, 0), N.cell(800, 0),
@@ -44,6 +44,7 @@ test('the map and expanded POI card share the same art without creating a second
   }
   const window = {
     CrownlessArt: art, CrownlessNeighborhood: N, CrownlessSlice: E,
+    CrownlessMapPixelArt: require('../src/map-pixel-art.js'),
     addEventListener(){}, isSecureContext:true
   };
   window.window = window;
@@ -52,9 +53,10 @@ test('the map and expanded POI card share the same art without creating a second
   window.navigator = {geolocation: null};
   vm.runInNewContext(read('src/slice-app.js'), window);
   const html = elements['#game'].innerHTML;
-  assert.equal((html.match(/class="district-poi-stamp"/g) || []).length, 9);
-  assert.match(html, /aria-label="西の木立：囁き樹の噂"/);
-  assert.match(html, /class="district-poi-mark" aria-hidden="true"><svg class="district-poi-stamp"/);
+  assert.equal((html.match(/class="district-pixel-art"/g) || []).length, 8);
+  assert.equal((html.match(/class="district-poi-stamp"/g) || []).length, 1);
+  assert.match(html, /aria-label="西の木立：異変・囁き樹の噂"/);
+  assert.match(html, /class="district-poi-mark" aria-hidden="true"><svg class="district-pixel-art"/);
   assert.match(html, /class="district-poi-icon" aria-hidden="true"><svg class="district-poi-stamp"/);
   assert.match(html, /data-action="district"/);
   assert.match(html, /data-action="poi"/);

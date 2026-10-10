@@ -340,3 +340,34 @@
 @media(max-width:430px){
   #game .district-trace{margin:8px 0;padding:10px 12px}
 }
+
+/* Ink-wash + tiny pixel silhouettes: shops/events must be identifiable
+   before tapping a pin. Scope to the living map; keep the old hit target. */
+#game>.living-map-home .district-pin .district-poi-mark{
+  top:0;right:5px;z-index:5;display:grid;place-items:center;
+  width:32px;height:32px;padding:2px;
+  border:1px solid #605a51;border-radius:1px;
+  background:#f0e6d3;box-shadow:2px 2px 0 rgba(50,46,40,.30);
+}
+#game>.living-map-home .district-pin.poi-event .district-poi-mark{
+  border-color:#925b4e;
+}
+#game>.living-map-home .district-pin .district-pixel-art{
+  display:block;position:static;width:26px;height:26px;
+  image-rendering:pixelated;filter:none;
+}
+#game>.living-map-home .district-pin:not(.selected):not(.claimed) small{
+  display:block;max-width:116px;
+  overflow:hidden;text-overflow:ellipsis;white-space:nowrap;
+  background:rgba(243,235,217,.90);color:#3f3b35;
+  border:1px solid rgba(70,64,56,.24);
+  font-size:9px;line-height:1.35;
+}
+#game>.living-map-home .district-pin:focus-visible .district-poi-mark{
+  outline:2px solid #784e42;outline-offset:2px;
+}
+@media(max-width:480px){
+  #game>.living-map-home .district-pin .district-poi-mark{
+    right:4px;top:2px;
+  }
+}
