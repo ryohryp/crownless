@@ -26,8 +26,11 @@ Start here:
 - [ADR 0005 — reject real-time player-controlled combat](adr/0005-realtime-combat-rejected.md) — this rejects real-time action combat, not the current deliberate choice-based fight loop.
 - [ADR 0006 — social territory control](adr/0006-social-territory-control.md)
 - [ADR 0008 — frontier and chronicle](adr/0008-frontier-and-chronicle.md)
-- [ADR 0011 — location-based asynchronous sandbox economy](adr/0011-async-sandbox-economy.md) — active product pivot; replaces finished-gear drop and territory-only motivation.\n- [ADR 0009 — smartphone combat viewport and tactical information density](adr/0009-smartphone-combat-viewport-and-tactical-density.md)
+- [ADR 0009 — smartphone combat viewport and tactical information density](adr/0009-smartphone-combat-viewport-and-tactical-density.md)
 - [ADR 0010 — selective game-development tooling before engine migration](adr/0010-selective-game-tooling-before-engine-migration.md)
+- [ADR 0011 — location-based asynchronous sandbox economy](adr/0011-async-sandbox-economy.md) — active product pivot; replaces finished-gear drop and territory-only motivation.
+- [ADR 0012 — landmark control grants passive blessings](adr/0012-landmark-control-passive-buffs.md) — accepted decision, **not yet implemented**; automatic passive benefits with stacking limits.
+
 - [Visual Canon](visual-canon.md) — single global visual authority; specialized `visual/` documents must conform to it
 - [Deployment strategy](deployment-strategy.md)
 
