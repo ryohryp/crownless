@@ -1,57 +1,67 @@
 const test=require('node:test');
 const assert=require('node:assert/strict');
 const T=require('../src/travel-footprints.js');
-const home={latitude:35.7521,longitude:139.8623,accuracy:8,speed:0};
-const far={latitude:34.7123,longitude:135.4872,accuracy:8,speed:0};
+const tower={latitude:35.658656,longitude:139.745364,accuracy:8,speed:0};
+const skytree={latitude:35.7101,longitude:139.8107,accuracy:8,speed:0};
+const osaka={latitude:34.68734,longitude:135.526,accuracy:8,speed:0};
+const other={latitude:35.7521,longitude:139.8623,accuracy:8,speed:0};
 const day='2026-10-10';
-test('first footprint, same-day idempotency and later revisit share a single stamp',()=>{
-  const first=T.record(T.initial(),home,day);
+
+test('Tokyo Tower reveals named fantasy tower rather than random grid cell',()=>{
+  const found=T.locate(tower);
+  assert.equal(found.status,'ok');
+  assert.equal(found.place.realName,'東京タワー');
+  assert.equal(found.place.name,'紅蓮の望楼');
+  assert.equal(found.place.biome,'tower');
+  assert.equal(T.locate({...tower,latitude:tower.latitude+0.001}).status,'ok');
+});
+test('first nearby visit earns one permanent seal, repeated same day does not farm stamps',()=>{
+  const first=T.record(T.initial(),tower,day);
   assert.equal(first.status,'first');
+  assert.equal(first.place.seal,'紅蓮の塔印');
   assert.equal(first.journal.places.length,1);
-  assert.equal(first.place.visits[0].date,day);
-  const duplicate=T.record(first.journal,home,day);
-  assert.equal(duplicate.status,'same-day');
-  assert.equal(duplicate.journal,first.journal);
-  const later=T.record(first.journal,home,'2027-03-12');
-  assert.equal(later.status,'revisited');
-  assert.equal(later.journal.places.length,1);
-  assert.equal(later.place.visits.length,2);
-  assert.equal(later.place.firstDate,day);
+  assert.deepEqual(first.place.visits,[day]);
+  const twice=T.record(first.journal,tower,day);
+  assert.equal(twice.status,'same-day');
+  assert.equal(twice.journal,first.journal);
+  const again=T.record(first.journal,tower,'2026-10-12');
+  assert.equal(again.status,'revisited');
+  assert.equal(again.journal.places.length,1);
+  assert.deepEqual(again.journal.places[0].visits,[day,'2026-10-12']);
 });
-test('distant journey creates a second stable land without an anchor',()=>{
-  const a=T.record(T.initial(),home,day);
-  assert.equal(a.status,'first');
-  const b=T.record(a.journal,far,day);
-  assert.equal(b.status,'first');
-  assert.equal(b.journal.places.length,2);
-  assert.notEqual(a.place.id,b.place.id);
-  assert.equal(T.record(b.journal,home,'2026-10-11').status,'revisited');
+test('different landmarks create distinct fantasy pins including remote travel',()=>{
+  const a=T.record(T.initial(),tower,day);
+  const b=T.record(a.journal,skytree,day);
+  const c=T.record(b.journal,osaka,day);
+  const names=T.discovered(c.journal).map(p=>p.name);
+  assert.equal(c.journal.places.length,3);
+  assert.ok(names.includes('紅蓮の望楼'));
+  assert.ok(names.includes('天穿つ白塔'));
+  assert.ok(names.includes('翠冠の王城'));
 });
-test('visit notes and labels are private user-entered annotations',()=>{
-  const a=T.record(T.initial(),home,day);
-  const b=T.rename(T.annotate(a.journal,a.place.id,day,'家族の旅行'),a.place.id,'旅先の港');
-  assert.equal(b.places[0].label,'旅先の港');
-  assert.equal(b.places[0].visits[0].note,'家族の旅行');
-  assert.equal(a.journal.places[0].visits[0].note,'');
-  assert.deepEqual(T.parse(JSON.stringify(b)),b);
+test('no known landmark means no invented generic stamp',()=>{
+  const empty=T.initial();
+  assert.equal(T.record(empty,other,day).status,'no-landmark');
+  assert.equal(T.record(empty,other,day).journal,empty);
 });
-test('inaccurate, moving and boundary observations cannot record',()=>{
+test('quality, motion and incorrect GPS are rejected',()=>{
   const base=T.initial();
-  for(const fix of [{...home,accuracy:90},{...home,speed:3},{...home,latitude:Infinity},{...home,longitude:999}]){
-    const r=T.record(base,fix,day);
-    assert.equal(r.journal,base);
-    assert.notEqual(r.status,'first');
+  for(const fix of [{...tower,accuracy:90},{...tower,speed:3},{...tower,latitude:Infinity},{...tower,longitude:999}]) {
+    const result=T.record(base,fix,day);
+    assert.equal(result.journal,base);
+    assert.notEqual(result.status,'first');
   }
-  const nearGrid={latitude:0,longitude:0,accuracy:10,speed:0};
-  assert.equal(T.record(base,nearGrid,day).status,'boundary');
 });
-test('stored record has no raw coordinates, route or time-of-day',()=>{
-  const saved=JSON.stringify(T.record(T.initial(),home,day).journal);
-  assert.ok(!saved.includes('latitude')&&!saved.includes('longitude')&&!saved.includes('accuracy'));
-  assert.ok(!saved.includes('35.7521')&&!saved.includes('139.8623'));
-  assert.ok(!saved.includes('speed')&&!saved.includes('route'));
+test('only earned landmark IDs and visit days are stored, no notes or precise GPS',()=>{
+  const saved=JSON.stringify(T.record(T.initial(),tower,day).journal);
+  assert.deepEqual(Object.keys(T.parse(saved).places[0]).sort(),['firstDate','id','visits']);
+  for(const forbidden of ['latitude','longitude','accuracy','note','label','東京タワー','35.658656','139.745364'])
+    assert.ok(!saved.includes(forbidden),forbidden);
+  assert.deepEqual(T.parse(saved),T.record(T.initial(),tower,day).journal);
 });
-test('malformed stored data resets safely',()=>{
+test('legacy diary saves are deliberately rejected and start a new game journal',()=>{
   assert.deepEqual(T.parse('oops'),T.initial());
-  assert.deepEqual(T.parse(JSON.stringify({version:1,places:[{id:'<img src=x>',visits:[]}]})),T.initial());
+  assert.deepEqual(T.parse('{"version":1,"places":[]}'),T.initial());
+  assert.deepEqual(T.parse('{"version":2,"places":[]}'),T.initial());
+  assert.deepEqual(T.parse(JSON.stringify({version:3,places:[{id:'<script>',visits:[]}]})),T.initial());
 });
