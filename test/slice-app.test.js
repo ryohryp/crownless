@@ -544,6 +544,6 @@ test('generic tower guardian victory cannot silently masquerade as a named landm
     'crownless-travel-footprints-v1-demo':JSON.stringify(footprint)},false,true);
   b.click('continue');
   b.click('tab','chronicle');
-  assert.match(b.chronicleHTML(),/通常の土地の主を倒しても、名所の支配は別/);
+  assert.match(b.chronicleHTML(),/この地域種別の主を倒した履歴はありますが、この名所の攻略記録ではありません/);
   assert.doesNotMatch(b.chronicleHTML(),/⚑ あなたの支配拠点/);
 });
