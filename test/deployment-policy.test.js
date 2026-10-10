@@ -14,16 +14,23 @@ test('Vercel automatic Git deployments stay disabled', () => {
   assert.equal(config.git?.deploymentEnabled, false);
 });
 
-test('CI validates pull requests once and Pages publishes merged main directly', () => {
+test('CI validates pull requests and main; Pages waits for a successful main test run', () => {
   const testWorkflow = read('.github/workflows/test.yml');
   const pagesWorkflow = read('.github/workflows/pages.yml');
 
   assert.match(testWorkflow, /pull_request:/);
-  assert.doesNotMatch(testWorkflow, /\n\s*push:/);
+  assert.match(testWorkflow, /\n\s*push:/);
+  assert.match(testWorkflow, /branches:\s*\[main\]/);
+  assert.match(testWorkflow, /mobile-browser:/);
+  assert.match(testWorkflow, /npm run playtest:smoke/);
 
-  assert.match(pagesWorkflow, /\n\s*push:/);
-  assert.match(pagesWorkflow, /branches:\s*\[main\]/);
-  assert.doesNotMatch(pagesWorkflow, /workflow_run:/);
+  assert.match(pagesWorkflow, /workflow_run:/);
+  assert.match(pagesWorkflow, /workflows:\s*\[test\]/);
+  assert.match(pagesWorkflow, /types:\s*\[completed\]/);
+  assert.match(pagesWorkflow, /workflow_run\.conclusion == 'success'/);
+  assert.match(pagesWorkflow, /workflow_run\.event == 'push'/);
+  assert.match(pagesWorkflow, /workflow_run\.head_repository\.full_name == github\.repository/);
+  assert.doesNotMatch(pagesWorkflow, /\n\s*push:/);
   assert.doesNotMatch(pagesWorkflow, /enablement:\s*true/);
 });
 
@@ -42,7 +49,8 @@ test('GitHub Pages fingerprints local CSS and JS assets with the deployed commit
   const workflow = read('.github/workflows/pages.yml');
 
   assert.match(workflow, /DEPLOY_SHA:/);
-  assert.match(workflow, /DEPLOY_SHA:\s*\$\{\{ github\.sha \}\}/);
+  assert.match(workflow, /DEPLOY_SHA:\s*\$\{\{ github\.event\.workflow_run\.head_sha \|\| github\.sha \}\}/);
+  assert.match(workflow, /ref:\s*\$\{\{ github\.event\.workflow_run\.head_sha \|\| github\.sha \}\}/);
   assert.match(workflow, /mkdir -p _site/);
   assert.match(workflow, /rsync -a --delete/);
   assert.match(workflow, /sha\.slice\(0, 12\)/);
