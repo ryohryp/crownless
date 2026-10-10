@@ -40,6 +40,13 @@
   }
   let lastDiscovery = '';
   function showFootprints(message = '') { currentSubtab='footprints'; lastDiscovery=String(message); }
+  function controlledLandmarks(mode = footprintMode()) {
+    try {
+      const E=window.CrownlessSlice;
+      const raw=localStorage.getItem('crownless-expedition-v1-'+mode);
+      return E?.parse(raw)?.claimedLandmarks || [];
+    } catch { return []; }
+  }
 
   let currentSubtab = 'footprints';
 
@@ -126,6 +133,7 @@
 
     const stats = TC ? TC.getChronicleStats(chronicle) : { totalStamps: 0, totalRelics: 0, totalCards: 0 };
     const outpostsList = Object.values(outpostsState.outposts || {});
+    const controlled=controlledLandmarks();
 
     container.innerHTML = `
       <div class="chronicle-container">
@@ -143,7 +151,7 @@
               <span class="stat-label">⚔️ ご当地遺物</span>
             </div>
             <div class="stat-item">
-              <span class="stat-num">${outpostsList.length}</span>
+              <span class="stat-num">${outpostsList.length + controlled.length}</span>
               <span class="stat-label">🚩 開拓拠点</span>
             </div>
             <div class="stat-item">
@@ -218,11 +226,12 @@
     if (subtab === 'footprints') {
       const F=window.CrownlessTravelFootprints;
       const found=F ? F.discovered(getFootprints()) : [];
+      const owned=new Set(controlledLandmarks());
       if (!found.length) return '<div class="empty-state">まだ幻想の名所は見つかっていない。<p>現実のランドマークの近くで、安全に立ち止まって現在地を確認しよう。訪問すると地図に発見の印が付く。文字入力はいらない。</p></div>';
       // Illustration only: coordinates below are fantasy-map placements and are
       // intentionally NOT a precise representation of real-world locations.
-      const pins=found.map((p,i)=>`<div class="fantasy-landmark-pin" style="left:${14+(i%3)*36}%;top:${24+(Math.floor(i/3)%2)*44}%;" aria-label="${esc(p.name)}、発見済み">
-          <span class="fantasy-landmark-icon" aria-hidden="true">${esc(p.icon)}</span><span class="fantasy-landmark-footstep" aria-hidden="true">👣</span>
+      const pins=found.map((p,i)=>`<div class="fantasy-landmark-pin" style="left:${14+(i%3)*36}%;top:${24+(Math.floor(i/3)%2)*44}%;" aria-label="${esc(p.name)}、${owned.has(p.id)?'支配済み':'発見済み'}">
+          <span class="fantasy-landmark-icon" aria-hidden="true">${esc(p.icon)}</span><span class="fantasy-landmark-footstep" aria-hidden="true">${owned.has(p.id)?'⚑':'👣'}</span>
           <span class="fantasy-landmark-pin-title">${esc(p.name)}</span></div>`).join('');
       return `<section class="fantasy-landmark-map" aria-label="発見した幻想の名所を表示した旅の地図">
         <div class="fantasy-landmark-map-title">発見した土地 · ${found.length}か所</div>
@@ -232,9 +241,10 @@
       <div class="footprints-list">${found.map(p=>`<article class="footprint-card">
         <div class="footprint-heading"><span class="footprint-seal" aria-hidden="true">${esc(p.icon)}</span><div><strong>${esc(p.name)}</strong><small>${esc(p.realName)} 付近で発見</small></div></div>
         <p class="small">${esc(p.description)}</p>
-        <p class="footprint-acquired">👣 発見済み · ${esc(p.seal)}</p>
+        <p class="footprint-acquired">${owned.has(p.id)?'⚑ あなたの支配拠点':'👣 発見済み・未支配'} · ${esc(p.seal)}</p>
         <p class="small">初発見 ${esc(p.firstDate)} · 訪問 ${p.visits.length}日${p.visits.length>1?' · 再訪済み':''}</p>
-        <p class="small">開放された冒険系統：${p.biome==='tower'?'鐘なき塔':'囁きの森'}</p>
+        <p class="small">${owned.has(p.id)?'支配の効果：この名所からの遠征に薬草 +1（最大3個）':'攻略条件：土地の主を倒し、戦利品を持って生還する'}</p>
+        <button class="landmark-siege-btn" type="button" data-action="landmark-siege" data-value="${esc(p.id)}">${owned.has(p.id)?'この支配拠点から再遠征':'このランドマークを攻略する'}</button>
       </article>`).join('')}</div>`;
     }
     if (subtab === 'stamps') {
@@ -363,6 +373,7 @@
     getChronicle,
     getOutposts,
     getFootprints,
+    controlledLandmarks,
     recordFootprint,
     showFootprints,
     renderChronicle,
