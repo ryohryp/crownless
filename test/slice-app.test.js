@@ -16,6 +16,9 @@ function browser(seed = {}, storageFails = false) {
   context.window=context;
   context.CrownlessTravelFootprints=F;
   context.CrownlessTravelChronicleUI={
+    getFootprints(mode='walk'){
+      return F.parse(context.localStorage.getItem('crownless-travel-footprints-v1-'+mode));
+    },
     recordFootprint(coords,mode='walk',day=F.dayString()){
       const k='crownless-travel-footprints-v1-'+mode;
       try {
@@ -413,3 +416,27 @@ test('an unregistered GPS area does not create a fake landmark',()=>{
   assert.match(b.html(),/まだ登録済みの名所がない/);
 });
 
+
+test('discovering Tokyo Tower enables entering its own named siege after returning home',()=>{
+  const b=browser();b.click('mode','demo');b.click('travel-demo','home');
+  b.click('landmark-siege','tokyo-tower');
+  const saved=E.parse(b.store.get('crownless-expedition-v1-demo'));
+  assert.equal(saved.expedition.landmarkId,'tokyo-tower');
+  assert.equal(saved.expedition.place,'tower');
+  assert.match(b.html(),/最初の足跡/);
+  // Entered siege is not captured yet.
+  assert.deepEqual(saved.claimedLandmarks,[]);
+});
+test('landmark conquest feedback is displayed after real boss victory and safe return',()=>{
+  const key='crownless-expedition-v1-demo';
+  let s=E.startLandmark(E.discover({...E.initial(),mode:'demo'},'tower'),'tower','tokyo-tower');
+  s.expedition.stage='cleared';
+  s.expedition.room=4;
+  s.expedition.seals=['tower'];
+  const b=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(s)});
+  b.click('return');
+  assert.deepEqual(E.parse(b.store.get(key)).claimedLandmarks,['tokyo-tower']);
+  assert.match(b.html(),/紅蓮の望楼を支配！/);
+  assert.match(b.html(),/あなたの旗が旅の地図に刻まれた/);
+  assert.match(b.html(),/この名所からの次の遠征で薬草 \+1/);
+});

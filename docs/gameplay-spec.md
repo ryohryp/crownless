@@ -26,6 +26,14 @@ The player stays at a safe public vantage point; entrance to the landmark is not
 
 Human fun gate: does real-world discovery prompt opening the game, give an interesting fantasy place, and make returning to that place more inviting?
 
+### Landmark stronghold capture (2026-10-10 user refinement)
+
+**All recognized landmarks are conquerable fantasy outposts**, rather than stamp-only collectibles. Discovery is automatic near the real landmark; claiming a landmark is a separate optional RPG action playable from a safe stationary context later.
+
+Pilot loop: discover Tokyo Tower as `紅蓮の望楼` → tap its siege action on the fantasy travel map → clear that expedition biome's boss → safely return with the result → the *exact* landmark becomes owned and shows ⚑ on the travel map. A retreat, partial return, or dying before banking boss victory never grants control. Ownership remains distinct for Tokyo Tower and Tokyo Skytree despite their shared `tower` expedition encounter template.
+
+The first tangible outpost advantage is +1 starting herb (capped at 3) **only when departing from that owned landmark**. Avoid introducing build/maintenance chores or passive timers until this specific conquest loop proves fun. Normal biome expeditions cannot accidentally capture a landmark. New ownership persists in the game-state `claimedLandmarks` IDs; personal visits remain in the separate private discovery book. Existing biome battles are reused for the smallest playable experiment; distinct landmark guardians and real shared-world rival control are **not implemented yet**.
+
 ## 2. Exploration and location
 
 - Real-world movement reveals Crownless; it does not refill stamina or reward raw step count.

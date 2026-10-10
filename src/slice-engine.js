@@ -152,7 +152,7 @@
     { id:'smith', name:'見習い鍛冶師', role:'smith', equipped:'rust', experience:0 },
     { id:'merchant', name:'行商人', role:'merchant', equipped:'rust', experience:0 }
   ];
-  const initial = () => ({ version: VERSION, mode: null, unlocked: ['wood'], cleared: [], owned: ['rust'], equipped: 'rust', qualities: emptyQualities(), scrap: 0, materials:emptyMaterials(), characters:startingCharacters(), activeCharacter:0, commission:emptyCommission(), level: 0, upgrades: emptyUpgrades(), runs: 0, victories: 0, grudge: null, maintenance: null, expedition: null, report: null, neighborhood:N.initial() });
+  const initial = () => ({ version: VERSION, mode: null, unlocked: ['wood'], cleared: [], owned: ['rust'], equipped: 'rust', qualities: emptyQualities(), scrap: 0, materials:emptyMaterials(), characters:startingCharacters(), activeCharacter:0, commission:emptyCommission(), level: 0, upgrades: emptyUpgrades(), runs: 0, victories: 0, grudge: null, maintenance: null, claimedLandmarks: [], expedition: null, report: null, neighborhood:N.initial() });
   const maxHp = s => 30 + (Number.isInteger(s.level) ? s.level : 0) * 5 + (s.owned.includes('crown') ? 6 : 0) + (s.neighborhood?.buildings.includes('lodge') ? 4 : 0);
   function weaponLevel(s, id = s.equipped) {
     const legacy = LEGACY_UPGRADEABLE.has(id) && Number.isInteger(s?.level)
@@ -300,6 +300,20 @@
     n.expedition = { place: id, depth: 1, room: 0, hp: maxHp(s), stamina: 3, focus: 0, stagger: false, sharpened, sharpenedApplied: false, potions: (supported || visitorGift) ? 3 : 2, scrap: 0, materials:emptyMaterials(), gear: [], gearQuality: [], seals: [], grudge, enemy: null, stage: 'path', log: [intro] };
     return n;
   }
+  // A landmark expedition is bound to one *discovered* fantasy place by the UI.
+  // Its conquest is awarded only after defeating the regional boss and returning alive.
+  // Capture is separate from the old neighborhood's biome-wide territorial state.
+  function startLandmark(s, biome, landmarkId) {
+    if (typeof landmarkId !== 'string' || !/^[a-z][a-z0-9-]{1,63}$/.test(landmarkId)) return s;
+    const n = start(s, biome);
+    if (n === s) return s;
+    n.expedition.landmarkId = landmarkId;
+    if (n.claimedLandmarks?.includes(landmarkId) && n.expedition.potions < 3) {
+      n.expedition.potions++;
+      n.expedition.log.unshift('支配拠点の補給路。薬草 +1 を持って遠征へ。');
+    }
+    return n;
+  }
   // One local trade creates a tangible expedition advantage without new save fields.
   // The selected district must actually contain the woodland herbalist's shop.
   function startWithLocalHerb(s) {
@@ -332,7 +346,7 @@
     let completedHere = false;
     const gearQuality = Array.isArray(x.gearQuality) ? [...x.gearQuality] : [];
     while (gearQuality.length < x.gear.length) gearQuality.push(0);
-    s.report = { died, place: x.place, depth: x.depth, scrap: x.scrap, gear: [...x.gear], gearQuality: [...gearQuality], materials:{...emptyMaterials(),...(x.materials||{})}, newGear: [], duplicates: [], hp: x.hp, cleared: [...x.seals], defeatedBy: died && x.enemy ? x.enemy.kind : null };
+    s.report = { died, place: x.place, depth: x.depth, scrap: x.scrap, gear: [...x.gear], gearQuality: [...gearQuality], materials:{...emptyMaterials(),...(x.materials||{})}, newGear: [], duplicates: [], hp: x.hp, cleared: [...x.seals], defeatedBy: died && x.enemy ? x.enemy.kind : null, ...(x.landmarkId ? {landmarkId:x.landmarkId} : {}) };
     if (died && x.enemy) s.grudge = { place: x.place, enemy: x.enemy.kind };
     if (!died) {
       s.scrap += x.scrap;
@@ -364,6 +378,10 @@
       s.report.newGear = [...new Set(newGear)];
       s.report.duplicates = duplicates;
       s.cleared = [...new Set([...s.cleared, ...x.seals])]; s.victories++; s.maintenance = 'ready';
+      // Landmarks are claimed individually and only after boss victory + safe return.
+      if (x.landmarkId && x.seals.includes(x.place)) {
+        s.claimedLandmarks = [...new Set([...(s.claimedLandmarks || []), x.landmarkId])];
+      }
     }
     s.neighborhood = N.settle(s.neighborhood || N.migrate(s),x,died,completedHere);
     s.expedition = null;
@@ -663,6 +681,7 @@
     if (!raw) return initial();
     try {
       const s = JSON.parse(raw);
+      if (s.version === VERSION && s.claimedLandmarks === undefined) s.claimedLandmarks = [];
       if (s.version === VERSION && s.neighborhood === undefined) s.neighborhood = N.migrate(s);
       if (s.version === VERSION) s.neighborhood = N.hydrateLegacy(s.neighborhood);
       if (!N.valid(s.neighborhood)) throw Error('neighborhood');
@@ -705,11 +724,11 @@
       const validDuplicates = d => Array.isArray(d) && d.length <= 12 && d.every(item => item && typeof item === 'object' && !Array.isArray(item) && Object.keys(item).length === 3 && Object.keys(item).every(k => ['id','quality','decision'].includes(k)) && Object.prototype.hasOwnProperty.call(GEAR,item.id) && item.id !== 'crown' && int(item.quality,-1,3) && [null,'keep','dismantle'].includes(item.decision));
       const validGrudge = g => g === null || (g && typeof g === 'object' && !Array.isArray(g) && Object.keys(g).length === 2 && ids.includes(g.place) && Object.prototype.hasOwnProperty.call(ENEMIES,g.enemy));
       const validExpeditionGrudge = g => g === null || (g && typeof g === 'object' && !Array.isArray(g) && Object.keys(g).length === 3 && ids.includes(g.place) && Object.prototype.hasOwnProperty.call(ENEMIES,g.enemy) && typeof g.used === 'boolean');
-      if (s.version !== VERSION || Object.keys(s).some(k => !keys.includes(k)) || ![null, 'demo', 'walk'].includes(s.mode) || !validArray(s.unlocked, ids) || !s.unlocked.includes('wood') || !validArray(s.cleared, ids) || !validArray(s.owned, Object.keys(GEAR)) || !s.owned.includes('rust') || !s.owned.includes(s.equipped) || s.equipped === 'crown' || !int(s.level, 0, 4) || !validUpgrades(s.upgrades) || !validQualities(s.qualities) || !validGrudge(s.grudge) || ![null,'ready','sharp'].includes(s.maintenance) || !int(s.scrap, 0, 1e9) || !validMaterials(s.materials) || !validCharacters(s.characters,s.activeCharacter) || !validCommission(s.commission) || !int(s.runs, 0, 1e9) || !int(s.victories, 0, s.runs)) throw Error('save');
+      if (s.version !== VERSION || Object.keys(s).some(k => !keys.includes(k)) || ![null, 'demo', 'walk'].includes(s.mode) || (!Array.isArray(s.claimedLandmarks) || s.claimedLandmarks.length > 500 || new Set(s.claimedLandmarks).size !== s.claimedLandmarks.length || !s.claimedLandmarks.every(id=>typeof id==='string' && /^[a-z][a-z0-9-]{1,63}$/.test(id))) || !validArray(s.unlocked, ids) || !s.unlocked.includes('wood') || !validArray(s.cleared, ids) || !validArray(s.owned, Object.keys(GEAR)) || !s.owned.includes('rust') || !s.owned.includes(s.equipped) || s.equipped === 'crown' || !int(s.level, 0, 4) || !validUpgrades(s.upgrades) || !validQualities(s.qualities) || !validGrudge(s.grudge) || ![null,'ready','sharp'].includes(s.maintenance) || !int(s.scrap, 0, 1e9) || !validMaterials(s.materials) || !validCharacters(s.characters,s.activeCharacter) || !validCommission(s.commission) || !int(s.runs, 0, 1e9) || !int(s.victories, 0, s.runs)) throw Error('save');
       if (s.expedition) {
         const x = s.expedition;
         const allowedFocus = gearFamily(s.equipped) === 'fang' ? [0,3,4,5,6,7,8,9] : [0,3];
-        if (Object.keys(x).some(k => !['place','depth','room','hp','stamina','focus','stagger','sharpened','sharpenedApplied' ,'potions','scrap','materials','gear','gearQuality','seals','grudge','enemy','stage','log'].includes(k)) || !s.unlocked.includes(x.place) || !int(x.depth,1,3) || !int(x.room,0,4) || !int(x.hp,1,maxHp(s)) || !int(x.stamina,0,3) || !allowedFocus.includes(x.focus) || typeof x.stagger !== 'boolean' || !int(x.sharpened,0,3) || typeof x.sharpenedApplied !== 'boolean' || !validExpeditionGrudge(x.grudge) || !int(x.potions,0,3) || !int(x.scrap,0,1000) || !validMaterials(x.materials) || !validLoot(x.gear,x.gearQuality) || !Array.isArray(x.seals) || x.seals.length > 3 || !x.seals.every(v => ids.includes(v)) || !['path','fight','cleared'].includes(x.stage) || !Array.isArray(x.log) || x.log.length > 10 || !x.log.every(v => typeof v === 'string' && v.length < 250)) throw Error('run');
+        if (Object.keys(x).some(k => !['place','depth','room','hp','stamina','focus','stagger','sharpened','sharpenedApplied','landmarkId' ,'potions','scrap','materials','gear','gearQuality','seals','grudge','enemy','stage','log'].includes(k)) || !(x.landmarkId === undefined || (typeof x.landmarkId==='string' && /^[a-z][a-z0-9-]{1,63}$/.test(x.landmarkId))) || !s.unlocked.includes(x.place) || !int(x.depth,1,3) || !int(x.room,0,4) || !int(x.hp,1,maxHp(s)) || !int(x.stamina,0,3) || !allowedFocus.includes(x.focus) || typeof x.stagger !== 'boolean' || !int(x.sharpened,0,3) || typeof x.sharpenedApplied !== 'boolean' || !validExpeditionGrudge(x.grudge) || !int(x.potions,0,3) || !int(x.scrap,0,1000) || !validMaterials(x.materials) || !validLoot(x.gear,x.gearQuality) || !Array.isArray(x.seals) || x.seals.length > 3 || !x.seals.every(v => ids.includes(v)) || !['path','fight','cleared'].includes(x.stage) || !Array.isArray(x.log) || x.log.length > 10 || !x.log.every(v => typeof v === 'string' && v.length < 250)) throw Error('run');
         if (x.stage === 'fight') {
           const e = x.enemy;
           if (!e || Object.keys(e).some(k => !['kind','hp','maxHp','turn','depth','elite','risky','seed','frenzy','wounded'].includes(k)) || !(e.seed === undefined || int(e.seed,0,99990)) || !(e.frenzy === undefined || typeof e.frenzy === 'boolean') || !(e.wounded === undefined || typeof e.wounded === 'boolean') || !ENEMIES[e.kind] || !int(e.maxHp,1,80) || !int(e.hp,1,e.maxHp) || !int(e.turn,0,1e6) || e.depth !== x.depth || typeof e.elite !== 'boolean' || typeof e.risky !== 'boolean') throw Error('enemy');
@@ -717,13 +736,13 @@
       }
       if (s.report) {
         const r = s.report;
-        if (Object.keys(r).some(k => !['died','place' ,'depth','scrap','materials','gear','gearQuality','newGear','duplicates','hp','cleared','defeatedBy'].includes(k)) || typeof r.died !== 'boolean' || !ids.includes(r.place) || !int(r.depth,1,3) || !int(r.scrap,0,1000) || !validMaterials(r.materials) || !validLoot(r.gear,r.gearQuality) || !validArray(r.newGear,Object.keys(GEAR)) || !validDuplicates(r.duplicates) || !(r.defeatedBy === null || Object.prototype.hasOwnProperty.call(ENEMIES,r.defeatedBy)) || !int(r.hp,-30,80) || !Array.isArray(r.cleared) || r.cleared.length > 3 || !r.cleared.every(v => ids.includes(v))) throw Error('report');
+        if (Object.keys(r).some(k => !['died','place' ,'depth','scrap','materials','gear','gearQuality','newGear','duplicates','hp','cleared','defeatedBy','landmarkId'].includes(k)) || !(r.landmarkId === undefined || (typeof r.landmarkId==='string' && /^[a-z][a-z0-9-]{1,63}$/.test(r.landmarkId))) || typeof r.died !== 'boolean' || !ids.includes(r.place) || !int(r.depth,1,3) || !int(r.scrap,0,1000) || !validMaterials(r.materials) || !validLoot(r.gear,r.gearQuality) || !validArray(r.newGear,Object.keys(GEAR)) || !validDuplicates(r.duplicates) || !(r.defeatedBy === null || Object.prototype.hasOwnProperty.call(ENEMIES,r.defeatedBy)) || !int(r.hp,-30,80) || !Array.isArray(r.cleared) || r.cleared.length > 3 || !r.cleared.every(v => ids.includes(v))) throw Error('report');
       }
       if (s.neighborhood.active !== null && (!s.expedition || N.get(s.neighborhood,s.neighborhood.active).biome !== s.expedition.place)) throw Error('district');
       if (s.neighborhood.districts.some(d => !s.unlocked.includes(d.biome))) throw Error('district');
       return s;
     } catch { return null; }
   }
-  const api = { VERSION, PLACES, GEAR, ENEMIES, INTENTS, VARIANT_LOOT, MATERIALS, RECIPES, COMMISSIONS, DISMANTLE_SCRAP, LOCAL_HERB_COST, initial, maxHp, gearFamily, weaponLevel, weaponQuality, weaponAttack, qualityLabel, rollQuality, upgradeCost, combatProfile, gearText, enemyProfile, attackPreview, intent, lootCue, place, isRoadsideEvent, discover, start, startWithLocalHerb, act, resolveFight, maintain, equip, switchCharacter, craftItem, craftWolfFang, supplyCommission, upgrade, resolveDuplicate, locationSession, observe, serialize, parse, discoverDistrict,selectDistrict,buildHome,renameHome };
+  const api = { VERSION, PLACES, GEAR, ENEMIES, INTENTS, VARIANT_LOOT, MATERIALS, RECIPES, COMMISSIONS, DISMANTLE_SCRAP, LOCAL_HERB_COST, initial, maxHp, gearFamily, weaponLevel, weaponQuality, weaponAttack, qualityLabel, rollQuality, upgradeCost, combatProfile, gearText, enemyProfile, attackPreview, intent, lootCue, place, isRoadsideEvent, discover, start, startLandmark, startWithLocalHerb, act, resolveFight, maintain, equip, switchCharacter, craftItem, craftWolfFang, supplyCommission, upgrade, resolveDuplicate, locationSession, observe, serialize, parse, discoverDistrict,selectDistrict,buildHome,renameHome };
   return api;
 });
