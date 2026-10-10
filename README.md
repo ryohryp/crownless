@@ -79,6 +79,16 @@ node --test test/slice-engine.test.js test/slice-app.test.js
 
 新規テストは生還と損失、装備差、最終地点への到達、深層、途中保存、GPS精度・移動・遅延応答、保存失敗とタブ競合を確認します。ゲームの面白さは自動テストでは判定できません。
 
+AI/APIキーなしの **実Chromiumスマホ画面スモークテスト** も使えます。390×844・360×800の地図表示、ランドマーク発見→攻略→再読込、壊れたセーブの保護を確認し、`.qa/browser/` にスクリーンショットを残します。CIでは専用ジョブが自動実行します。ローカルで試す場合は以下を実行します。
+
+```sh
+npm install --no-save --package-lock=false playwright@1.56.1
+npx playwright install chromium
+npm run playtest:smoke
+```
+
+これらは表示・操作の技術的な確認であり、人間による「もう一回遊びたいか」の評価には代わりません。
+
 TypeSafe Jev による実ブラウザの高速スモーク確認も任意で実行できます（Node.js 22+ と `TYPESAFE_API_KEY` が必要です）。初回は `npx` が Jev Browser / Chromium を取得する場合があります。
 
 ```sh
