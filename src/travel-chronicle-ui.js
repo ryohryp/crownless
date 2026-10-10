@@ -222,6 +222,12 @@
       const F=window.CrownlessTravelFootprints;
       const found=F ? F.discovered(getFootprints()) : [];
       const owned=new Set(controlledLandmarks());
+      let conqueredBiomes=[];
+      try {
+        const mode=footprintMode();
+        const state=window.CrownlessSlice?.parse(localStorage.getItem(`crownless-expedition-v1-${mode}`));
+        conqueredBiomes=state?.cleared || [];
+      } catch { /* The map is available even when the game save is blocked. */ }
       if (!found.length) return '<div class="empty-state">まだ幻想の名所は見つかっていない。<p>現実のランドマークの近くで、安全に立ち止まって現在地を確認しよう。訪問すると地図に発見の印が付く。文字入力はいらない。</p></div>';
       // Illustration only: coordinates below are fantasy-map placements and are
       // intentionally NOT a precise representation of real-world locations.
@@ -238,7 +244,8 @@
         <p class="small">${esc(p.description)}</p>
         <p class="footprint-acquired">${owned.has(p.id)?'⚑ あなたの支配拠点':'👣 発見済み・未支配'} · ${esc(p.seal)}</p>
         <p class="small">初発見 ${esc(p.firstDate)} · 訪問 ${p.visits.length}日${p.visits.length>1?' · 再訪済み':''}</p>
-        <p class="small">${owned.has(p.id)?'支配の効果：この名所からの遠征に薬草 +1（最大3個）':'攻略条件：土地の主を倒し、戦利品を持って生還する'}</p>
+        <p class="small">${owned.has(p.id)?'支配の効果：この名所からの遠征に薬草 +1（最大3個）':'攻略条件：この名所の主を倒し、旗を立てて帰還する'}</p>
+        ${!owned.has(p.id) && conqueredBiomes.includes(p.biome) ? '<p class="landmark-generic-warning">⚠ 通常の土地の主を倒しても、名所の支配は別。この名所の攻略ボタンから出発しよう。</p>' : ''}
         <button class="landmark-siege-btn" type="button" data-action="landmark-siege" data-value="${esc(p.id)}">${owned.has(p.id)?'この支配拠点から再遠征':'このランドマークを攻略する'}</button>
       </article>`).join('')}</div>`;
     }

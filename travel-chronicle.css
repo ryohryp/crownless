@@ -403,3 +403,36 @@
 .landmark-status-site strong {display:block;font-size:.81rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
 .landmark-status-site small {display:block;font-size:.7rem;color:#b9c6b7;}
 .landmark-status-site:focus-visible {outline:3px solid #e2c783;outline-offset:2px;}
+
+/* Keep the game chronicle readable inside the parchment-colored host panel.
+   Use a single dark surface instead of translucent cards over a light parent. */
+.chronicle-container {
+  background:#142824;
+  color:#eee8d9;
+  border:1px solid rgba(209,183,128,.38);
+  border-radius:12px;
+  padding:12px 10px 18px;
+}
+.chronicle-container .chronicle-header,
+.chronicle-container .chronicle-body {min-width:0;}
+.chronicle-container .chronicle-subtitle,
+.chronicle-container .chronicle-body .small,
+.chronicle-container .footprint-heading small {color:#cdd5cb;}
+.chronicle-container .footprint-card {
+  background:#243b34;
+  border:1px solid rgba(210,185,129,.46);
+  color:#f1eee4;
+  padding:12px;
+}
+.chronicle-container .footprint-heading strong {color:#f3d49c;}
+.chronicle-container .footprint-acquired {color:#d7efbd;}
+.chronicle-container .footprints-list {gap:8px;}
+.chronicle-container .footprint-card p {margin:7px 0;}
+.chronicle-container .fantasy-landmark-map-field {height:160px;}
+.landmark-siege-progress {
+  background:#263d35;border:1px solid #cbb77b;border-radius:10px;
+  padding:10px 12px;margin:0 0 10px;color:#f5e2a8;
+  font-size:.93rem;font-weight:700;line-height:1.5;
+}
+
+.landmark-generic-warning {font-size:.83rem;line-height:1.5;color:#ffe3a8;background:#453629;border-left:3px solid #dfb570;border-radius:6px;padding:9px 10px;margin:9px 0;}
