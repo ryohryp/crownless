@@ -330,3 +330,17 @@ test('combat offers one prominent resolution choice with manual controls optiona
   assert.equal(saved.materials.wolfFang,0);
   assert.deepEqual(E.parse(E.serialize(saved)),saved);
 });
+
+test('revisited district reveals a named persistent NPC trace in its main detail', () => {
+  const state={...E.initial(),mode:'demo'};
+  state.neighborhood.districts[0].aided=true;
+  const seed={'crownless-expedition-mode':'demo','crownless-expedition-v1-demo':E.serialize(state)};
+  const b=browser(seed);
+  assert.match(b.html(),/district-trace/);
+  assert.match(b.html(),/この土地に残った変化：斥候の道標/);
+  assert.match(b.html(),/最初に倒した敵から狼牙 \+1/);
+  assert.match(b.html(),/data-action="depart"/);
+  assert.match(b.html(),/✦ 斥候の道標/);
+  const before=b.store.get('crownless-expedition-v1-demo');
+  assert.deepEqual(E.parse(before),state);
+});

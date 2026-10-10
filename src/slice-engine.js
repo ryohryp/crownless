@@ -326,6 +326,7 @@
   }
   function finish(s, died) {
     const x = s.expedition;
+    let completedHere = false;
     const gearQuality = Array.isArray(x.gearQuality) ? [...x.gearQuality] : [];
     while (gearQuality.length < x.gear.length) gearQuality.push(0);
     s.report = { died, place: x.place, depth: x.depth, scrap: x.scrap, gear: [...x.gear], gearQuality: [...gearQuality], materials:{...emptyMaterials(),...(x.materials||{})}, newGear: [], duplicates: [], hp: x.hp, cleared: [...x.seals], defeatedBy: died && x.enemy ? x.enemy.kind : null };
@@ -351,6 +352,7 @@
       if (s.commission.pending === x.place && COMMISSIONS[x.place] && (x.room > 0 || x.stage === 'cleared')) {
         const job = COMMISSIONS[x.place];
         s.commission.pending = null;
+        completedHere = true;
         s.commission.completed++;
         s.commission.support = x.place;
         s.commission.lastResult = x.place;
@@ -360,7 +362,7 @@
       s.report.duplicates = duplicates;
       s.cleared = [...new Set([...s.cleared, ...x.seals])]; s.victories++; s.maintenance = 'ready';
     }
-    s.neighborhood = N.settle(s.neighborhood || N.migrate(s),x,died);
+    s.neighborhood = N.settle(s.neighborhood || N.migrate(s),x,died,completedHere);
     s.expedition = null;
     return s;
   }
@@ -376,8 +378,11 @@
     x.log.push(`討伐。鉄片を ${loot} 個、背嚢へ。生還するまで確定しない。`);
     const materialId = ENEMY_MATERIAL[e.kind];
     if (materialId) {
+      const active = N.get(s.neighborhood,s.neighborhood.active);
+      const aided = x.room === 0 && active?.aided && active.biome === x.place;
       const amount = e.elite ? Math.min(3,x.depth+1) : 1;
-      x.materials[materialId] += amount;
+      x.materials[materialId] += amount + (aided ? 1 : 0);
+      if (aided) x.log.push(`${N.trace(active).name}の採集路。最初の戦利品に${MATERIALS[materialId].name} +1。生還するまで未確定。`);
       x.log.push(`${MATERIALS[materialId].name} +${amount}。装備そのものは落ちない。素材を持ち帰って鍛冶師に託そう。`);
     }
     if (e.elite) {
@@ -656,6 +661,7 @@
     try {
       const s = JSON.parse(raw);
       if (s.version === VERSION && s.neighborhood === undefined) s.neighborhood = N.migrate(s);
+      if (s.version === VERSION) s.neighborhood = N.hydrateLegacy(s.neighborhood);
       if (!N.valid(s.neighborhood)) throw Error('neighborhood');
       if (s.version === VERSION) s.upgrades = hydrateKnownRecord(s.upgrades, emptyUpgrades);
       if (s.version === VERSION) s.materials = hydrateKnownRecord(s.materials, emptyMaterials);
