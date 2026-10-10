@@ -289,13 +289,19 @@
     const resultDistrict = state.neighborhood.result && N.get(state.neighborhood,state.neighborhood.result.id);
     const placedTrace = commissionFinished && N.trace(resultDistrict);
     const commissionFeedback = commissionFinished ? '<p class="notice">架空のNPCからの報告：'+E.COMMISSIONS[r.place].outcome+' 鉄片 +'+E.COMMISSIONS[r.place].reward+'。次の同地域遠征で薬草 +1。'+(placedTrace ? ' 【'+N.title(resultDistrict)+'】に「'+placedTrace.name+'」が残った。再訪すると採集が変わる。' : '')+'</p>' : '';
+    const capturedSite = r.landmarkId && state.claimedLandmarks?.includes(r.landmarkId)
+      ? window.CrownlessTravelFootprints?.LANDMARKS?.find(p => p.id === r.landmarkId) : null;
+    const landmarkOutcome = capturedSite && !r.died && r.cleared.includes(r.place)
+      ? '<div class="home-return"><strong>⚑ '+esc(capturedSite.name)+'を支配！</strong><p>あなたの旗が旅の地図に刻まれた。</p><small>この名所からの次の遠征で薬草 +1（最大3個）。再訪しても支配は残る。</small></div>'
+      : r.landmarkId
+        ? '<p class="notice">この名所の支配には土地の主の撃破と無事な帰還が必要。今はまだ未支配。</p>' : '';
     const visitorId = state.neighborhood.result?.visitorId;
     const visitorDistrict = visitorId ? N.get(state.neighborhood,visitorId) : null;
     const visitorNews = visitorDistrict && N.traveler(visitorDistrict)
       ? '<p class="notice">✦ 別の旅人の痕跡：'+N.TRAVELER.name+'（架空NPC）が【'+esc(N.title(visitorDistrict))+'】に補給袋を残した。そこから次の遠征へ出ると薬草 +1。</p>'
       : '';
     const nextLabel = commissionFinished ? '鍛冶師に報告を伝える' : readyToCraft ? '職人に素材を渡す' : unresolved ? `同名武器をあと ${unresolved} 本整理する` : keptDuplicate ? '入れ替えた装備を確認する' : homeOpportunity ? '拠点を育てる' : hasNewBattleGear ? '持ち帰った装備を比べる' : canPowerUp ? '補強へ進む' : '焚き火で次の準備をする';
-    return `<div class="game-layout report-layout"><section class="visual-column">${scene('camp',r.died ? '火は、まだ消えていない。' : 'おかえり、旅人。',r.died ? 'THE ROAD IS NOT OVER' : 'YOU MADE IT HOME')}</section><section class="panel report-panel"><div class="report-scroll"><p class='kicker'>${r.died ? 'EXPEDITION LOST' : 'SAFE RETURN'} / ${E.place(r.place).name}</p><h1>${r.died ? '命だけを、持ち帰った。' : duplicates.length ? '持ち帰った一本を、比べる。' : r.newGear.length ? '新しい一本を、火へ。' : '欲張らずに、帰る強さ。'}</h1><p class='intro'>${r.died ? defeatIntro : '背嚢の素材を確保した。鍛冶師に渡せば、次の遠征で使う装備を製作できる。'}</p><div class='result-number'>${r.died ? '' : '+'}${r.scrap} <small>${r.died ? '鉄片を落とした' : '鉄片を確保'}</small></div>${materialList(r.materials) ? `<p class='notice'>${r.died ? '失った素材' : '持ち帰った素材'}：${materialList(r.materials)}。鍛冶師の仕事に使える。</p>` : ''}${commissionFeedback}${visitorNews}${state.neighborhood.result ? `<div class="home-return"><strong>${state.neighborhood.result.claimed ? '⚑ '+N.title(N.get(state.neighborhood,state.neighborhood.result.id))+'を開拓！' : state.neighborhood.result.died ? '土地と拠点は残っている。' : '拠点へ建材を持ち帰った。'}</strong><p>木材 +${state.neighborhood.result.wood} · 石材 +${state.neighborhood.result.stone}</p><small>${state.neighborhood.result.claimed ? 'この土地に、あなたの旗が立つ。' : '持ち帰った建材で、拠点に建物を増やせる。'}</small></div>` : ''}${lootRows}${duplicateRows}${recovery?.scrap ? `<div class='reward'><span class='reward-icon'>↺</span><div><strong>敗走跡：鉄片 ${recovery.scrap}</strong><small>次に同じ土地へ出れば背嚢へ戻る。生還するまで未確定。</small></div></div>` : ''}${!r.died && state.owned.includes('crown') ? `<p class='notice'>灰冠の廟を越えた。名もなき旅人の、最初の物語が残った。</p>` : ''}<p class='small rule-line'>${r.died ? (recovery ? '敗走は全損ではない。取り戻しに行くか、別の土地へ向かうかを選べる。' : '遠征の失敗で、恒久的な進行は失われません。') : state.cleared.length >= 2 && !state.owned.includes('crown') ? '二つの土地を越えた。次は「灰冠の廟」の主に挑める。' : '別の土地では異なる素材が見つかる。鍛冶師なら武具に変えられる。'}</p></div><div class="report-actions">${button('continue',r.died && recovery ? '敗走跡を回収する準備へ' : nextLabel,'',{class:'primary',disabled:unresolved > 0})}</div></section></div>`;
+    return `<div class="game-layout report-layout"><section class="visual-column">${scene('camp',r.died ? '火は、まだ消えていない。' : 'おかえり、旅人。',r.died ? 'THE ROAD IS NOT OVER' : 'YOU MADE IT HOME')}</section><section class="panel report-panel"><div class="report-scroll"><p class='kicker'>${r.died ? 'EXPEDITION LOST' : 'SAFE RETURN'} / ${E.place(r.place).name}</p><h1>${r.died ? '命だけを、持ち帰った。' : duplicates.length ? '持ち帰った一本を、比べる。' : r.newGear.length ? '新しい一本を、火へ。' : '欲張らずに、帰る強さ。'}</h1><p class='intro'>${r.died ? defeatIntro : '背嚢の素材を確保した。鍛冶師に渡せば、次の遠征で使う装備を製作できる。'}</p><div class='result-number'>${r.died ? '' : '+'}${r.scrap} <small>${r.died ? '鉄片を落とした' : '鉄片を確保'}</small></div>${materialList(r.materials) ? `<p class='notice'>${r.died ? '失った素材' : '持ち帰った素材'}：${materialList(r.materials)}。鍛冶師の仕事に使える。</p>` : ''}${commissionFeedback}${visitorNews}${landmarkOutcome}${state.neighborhood.result ? `<div class="home-return"><strong>${state.neighborhood.result.claimed ? '⚑ '+N.title(N.get(state.neighborhood,state.neighborhood.result.id))+'を開拓！' : state.neighborhood.result.died ? '土地と拠点は残っている。' : '拠点へ建材を持ち帰った。'}</strong><p>木材 +${state.neighborhood.result.wood} · 石材 +${state.neighborhood.result.stone}</p><small>${state.neighborhood.result.claimed ? 'この土地に、あなたの旗が立つ。' : '持ち帰った建材で、拠点に建物を増やせる。'}</small></div>` : ''}${lootRows}${duplicateRows}${recovery?.scrap ? `<div class='reward'><span class='reward-icon'>↺</span><div><strong>敗走跡：鉄片 ${recovery.scrap}</strong><small>次に同じ土地へ出れば背嚢へ戻る。生還するまで未確定。</small></div></div>` : ''}${!r.died && state.owned.includes('crown') ? `<p class='notice'>灰冠の廟を越えた。名もなき旅人の、最初の物語が残った。</p>` : ''}<p class='small rule-line'>${r.died ? (recovery ? '敗走は全損ではない。取り戻しに行くか、別の土地へ向かうかを選べる。' : '遠征の失敗で、恒久的な進行は失われません。') : state.cleared.length >= 2 && !state.owned.includes('crown') ? '二つの土地を越えた。次は「灰冠の廟」の主に挑める。' : '別の土地では異なる素材が見つかる。鍛冶師なら武具に変えられる。'}</p></div><div class="report-actions">${button('continue',r.died && recovery ? '敗走跡を回収する準備へ' : nextLabel,'',{class:'primary',disabled:unresolved > 0})}</div></section></div>`;
   }
   function render() {
     const help = document.querySelector('#help'), helpToggle = document.querySelector('#help-toggle');
@@ -368,6 +374,23 @@
     else if (action === 'home-name') { state = E.renameHome(state,document.querySelector('#home-name').value); }
     else if (action === 'select') { selected = value; tab = 'explore'; notice = ''; lastReturnedPlace = null; prioritizeReinforcement = false; }
     else if (action === 'tab') { tab = value; notice = ''; }
+    else if (action === 'landmark-siege') {
+      const F=window.CrownlessTravelFootprints;
+      const site=F?.discovered(window.CrownlessTravelChronicleUI?.getFootprints?.(state.mode))?.find(p=>p.id===value);
+      if (!site) {
+        notice='この地点はまだ発見されていない。現地で発見してから攻略しよう。';
+        window.CrownlessTravelChronicleUI?.showFootprints?.(notice);
+      } else if (state.activeCharacter !== 0 || state.expedition || state.report) {
+        notice='遠征には冒険者が必要。報告を終えてから、装備画面で旅人に切り替えよう。';
+        window.CrownlessTravelChronicleUI?.showFootprints?.(notice);
+      } else {
+        state=E.startLandmark(E.discover(state,site.biome),site.biome,site.id);
+        if (state.expedition) {
+          locationRequest++; busy=false; selected=site.biome;
+          notice=''; lastReturnedPlace=null; prioritizeReinforcement=false;
+        }
+      }
+    }
     else if (action === 'travel-demo') {
       const points={home:{latitude:35.658656,longitude:139.745364,accuracy:8,speed:0},skytree:{latitude:35.7101,longitude:139.8107,accuracy:8,speed:0},far:{latitude:34.68734,longitude:135.526,accuracy:8,speed:0}};
       const demoDate=new Date(); if (value==='return') demoDate.setDate(demoDate.getDate()+1);
