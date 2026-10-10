@@ -1,18 +1,10 @@
 name: deploy-pages
 
 on:
-  push:
+  workflow_run:
+    workflows: [test]
+    types: [completed]
     branches: [main]
-    paths-ignore:
-      - 'docs/**'
-      - 'art-source/**'
-      - 'qa-output/**'
-      - 'skills/**'
-      - 'test/**'
-      - 'tests/**'
-      - 'test-support/**'
-      - 'tools/**'
-      - '**/*.md'
   workflow_dispatch:
 
 permissions:
@@ -26,12 +18,17 @@ concurrency:
 
 jobs:
   deploy:
+    # workflow_run also fires for PR checks; never deploy those or failed runs.
+    if: ${{ github.event_name == 'workflow_dispatch' || (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push' && github.event.workflow_run.head_repository.full_name == github.repository) }}
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          # Publish the exact source tested on main, not the workflow's own default-branch SHA.
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
 
       - name: Check whether GitHub Pages is enabled
         id: pages
@@ -62,7 +59,7 @@ jobs:
         if: steps.pages.outputs.enabled == 'true'
         shell: bash
         env:
-          DEPLOY_SHA: ${{ github.sha }}
+          DEPLOY_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
         run: |
           mkdir -p _site
           rsync -a --delete \
