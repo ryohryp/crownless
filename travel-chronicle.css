@@ -382,3 +382,14 @@
 .footprint-seal {display:grid;place-items:center;font-size:1.6rem;width:46px;min-width:46px;height:46px;border:1px solid var(--gold,#d2b981);border-radius:50%;}
 .footprint-acquired {font-weight:700;color:#c7d8ba;font-size:.84rem;}
 @media(max-width:370px) {.chronicle-subtabs {grid-template-columns:repeat(3,minmax(0,1fr));}}
+
+/* Landmark strongholds: claim is a gameplay result, not a visit stamp. */
+.landmark-siege-btn {
+  display:block;width:100%;min-height:44px;margin-top:10px;padding:10px 12px;
+  background:#c9b67d;color:#1b2c2c;border:1px solid #dbc88e;border-radius:9px;
+  font:inherit;font-weight:700;cursor:pointer;
+}
+.landmark-siege-btn:focus-visible {outline:3px solid #e4d6a4;outline-offset:2px;}
+.fantasy-landmark-pin[aria-label*="支配済み"] .fantasy-landmark-footstep {
+  border-color:#f3d782;background:#694f2e;box-shadow:0 0 0 3px rgba(220,181,90,.12);
+}
