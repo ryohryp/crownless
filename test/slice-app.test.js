@@ -437,5 +437,6 @@ test('landmark conquest feedback is displayed after real boss victory and safe r
   b.click('return');
   assert.deepEqual(E.parse(b.store.get(key)).claimedLandmarks,['tokyo-tower']);
   assert.match(b.html(),/紅蓮の望楼を支配！/);
-  assert.match(b.html(),/支配拠点/);
+  assert.match(b.html(),/あなたの旗が旅の地図に刻まれた/);
+  assert.match(b.html(),/この名所からの次の遠征で薬草 \+1/);
 });
