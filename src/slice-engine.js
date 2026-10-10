@@ -287,14 +287,17 @@
     if (supported) n.commission.support = null;
     n.commission.lastResult = null;
     n.neighborhood = N.begin(n.neighborhood || N.migrate(n),id);
+    const visitorGift = !supported && N.traveler(N.get(n.neighborhood,n.neighborhood.active));
+    if (visitorGift) n.neighborhood = N.takeTraveler(n.neighborhood);
     const sharpened = n.maintenance === 'sharp' ? 3 : 0; n.maintenance = null;
     const grudge = n.grudge?.place === id && ENEMIES[n.grudge.enemy] ? { ...n.grudge, used: false } : null;
     const intro = [
       sharpened ? '研いだ刃はまだ鋭い。次の三戦、初撃が強くなる。' : null,
       grudge ? `敗走の記憶が残っている。${ENEMIES[grudge.enemy].name}への一撃に執念を乗せられる。` : null,
       supported ? `${COMMISSIONS[id].requester}の支援で薬草 +1。鍛冶師の納品が帰ってきた。` : null,
+      visitorGift ? `${visitorGift.name}（架空NPC）の補給袋を受け取った。薬草 +1。ここからの一度限りの支援。` : null,
     ].filter(Boolean).join(' ') || '火はここで待っている。まずは足跡をたどろう。';
-    n.expedition = { place: id, depth: 1, room: 0, hp: maxHp(s), stamina: 3, focus: 0, stagger: false, sharpened, sharpenedApplied: false, potions: supported ? 3 : 2, scrap: 0, materials:emptyMaterials(), gear: [], gearQuality: [], seals: [], grudge, enemy: null, stage: 'path', log: [intro] };
+    n.expedition = { place: id, depth: 1, room: 0, hp: maxHp(s), stamina: 3, focus: 0, stagger: false, sharpened, sharpenedApplied: false, potions: (supported || visitorGift) ? 3 : 2, scrap: 0, materials:emptyMaterials(), gear: [], gearQuality: [], seals: [], grudge, enemy: null, stage: 'path', log: [intro] };
     return n;
   }
   // One local trade creates a tangible expedition advantage without new save fields.
