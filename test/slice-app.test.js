@@ -380,27 +380,36 @@ test('fictional traveler supplies appear on selected district and vanish when us
   assert.match(b.html(),/補給袋は受け取った/);
 });
 
-test('real GPS records the first visit and faraway travel independent of the old 64 districts',()=>{
+test('real GPS discovers a landmark and exposes its fantasy entry even when far from home',()=>{
   const b=browser(); b.click('mode','walk');
-  b.click('gps'); b.callbacks.ok({coords:{latitude:35.7521,longitude:139.8623,accuracy:8,speed:0}});
+  b.click('gps'); b.callbacks.ok({coords:{latitude:35.658656,longitude:139.745364,accuracy:8,speed:0}});
   const key='crownless-travel-footprints-v1-walk';
-  assert.equal(F.parse(b.store.get(key)).places.length,1);
-  assert.match(b.html(),/旅の書に初訪問の印/);
-  b.click('gps'); b.callbacks.ok({coords:{latitude:34.7123,longitude:135.4872,accuracy:8,speed:0}});
-  assert.equal(F.parse(b.store.get(key)).places.length,2);
-  assert.match(b.html(),/旅の書に初訪問の印/);
-  const reload=browser(Object.fromEntries(b.store));
-  assert.equal(F.parse(reload.store.get(key)).places.length,2);
-});
-test('simulated trip and later revisit are stored only in the demo journal',()=>{
-  const b=browser(); b.click('mode','demo'); b.click('travel-demo','home');
-  const key='crownless-travel-footprints-v1-demo';
-  assert.equal(F.parse(b.store.get(key)).places.length,1);
+  assert.equal(F.parse(b.store.get(key)).places[0].id,'tokyo-tower');
   assert.ok(b.callbacks.showFootprints);
-  b.click('tab','explore'); b.click('travel-demo','far');
+  assert.match(b.html(),/chronicle-panel/);
+  assert.ok(E.parse(b.store.get('crownless-expedition-v1-walk')).unlocked.includes('tower'));
+  b.click('tab','explore'); b.click('gps'); b.callbacks.ok({coords:{latitude:34.68734,longitude:135.526,accuracy:8,speed:0}});
   assert.equal(F.parse(b.store.get(key)).places.length,2);
+  assert.match(b.html(),/chronicle-panel/);
+  assert.equal(F.parse(browser(Object.fromEntries(b.store)).store.get(key)).places.length,2);
+});
+test('simulated landmark tour and later return require no text input',()=>{
+  const b=browser(); b.click('mode','demo');
+  b.click('travel-demo','home');
+  const key='crownless-travel-footprints-v1-demo';
+  assert.equal(F.parse(b.store.get(key)).places[0].id,'tokyo-tower');
+  b.click('tab','explore'); b.click('travel-demo','skytree');
+  b.click('tab','explore'); b.click('travel-demo','far');
+  assert.equal(F.parse(b.store.get(key)).places.length,3);
   b.click('tab','explore'); b.click('travel-demo','return');
-  const home=F.parse(b.store.get(key)).places.find(p=>p.id===F.locate({latitude:35.7521,longitude:139.8623,accuracy:8,speed:0}).id);
-  assert.equal(home.visits.length,2);
+  const tower=F.parse(b.store.get(key)).places.find(p=>p.id==='tokyo-tower');
+  assert.equal(tower.visits.length,2);
   assert.equal(b.store.get('crownless-travel-footprints-v1-walk'),undefined);
 });
+test('an unregistered GPS area does not create a fake landmark',()=>{
+  const b=browser(); b.click('mode','walk'); b.click('gps');
+  b.callbacks.ok({coords:{latitude:35.7521,longitude:139.8623,accuracy:8,speed:0}});
+  assert.equal(b.store.get('crownless-travel-footprints-v1-walk'),undefined);
+  assert.match(b.html(),/まだ登録済みの名所がない/);
+});
+
