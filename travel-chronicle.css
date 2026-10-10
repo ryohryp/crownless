@@ -453,6 +453,6 @@
   border:1px solid #d0af76;border-radius:12px;background:#213a33;color:#eee8d8;
   box-shadow:0 6px 24px rgba(0,0,0,.28);line-height:1.65;
 }
-.save-recovery-panel h2 {margin:0 0 10px;color:#ffda99;font:700 1.25rem/1.4 inherit;}
+.save-recovery-panel h2 {margin:0 0 10px;color:#ffda99;font-family:inherit;font-size:1.25rem;font-weight:700;line-height:1.4;}
 .save-recovery-panel p {margin:0 0 16px;font-size:.94rem;}
 .save-recovery-panel button {min-height:48px;width:100%;font-size:1rem;}
