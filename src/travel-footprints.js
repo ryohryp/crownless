@@ -47,7 +47,7 @@
     try {
       const data=typeof raw==='string'?JSON.parse(raw):raw;
       if (!data || data.version!==VERSION || !Array.isArray(data.places) || data.places.length>LANDMARKS.length) return initial();
-      if (!data.places.every(p=>p && CATALOG[p.id] && validDay(p.firstDate) &&
+      if (!data.places.every(p=>p && Object.hasOwn(CATALOG,p.id) && validDay(p.firstDate) &&
           Array.isArray(p.visits) && p.visits.length>0 && p.visits.length<=10000 &&
           p.visits[0]===p.firstDate && p.visits.every(validDay) &&
           new Set(p.visits).size===p.visits.length) ||
@@ -68,7 +68,7 @@
     return {status:current?'revisited':'first',journal:{version:VERSION,places},place:{...saved,...landmark}};
   }
   function discovered(journal) {
-    return (journal?.places||[]).filter(p=>CATALOG[p.id]).map(p=>({...CATALOG[p.id],...p}));
+    return (journal?.places||[]).filter(p=>Object.hasOwn(CATALOG,p.id)).map(p=>({...CATALOG[p.id],...p}));
   }
   return {VERSION,LANDMARKS,initial,dayString,locate,parse,record,discovered};
 });
