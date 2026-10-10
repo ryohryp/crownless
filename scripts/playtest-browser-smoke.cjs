@@ -95,6 +95,42 @@ async function main() {
       }
     }
 
+    // A discovered POI must change REAL banked resources and expedition choices.
+    const poiContext = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+    const poiPage = await poiContext.newPage();
+    try {
+      await poiPage.goto(url);
+      await poiPage.locator('[data-action="mode"][data-value="demo"]').click();
+      await poiPage.locator(".map-home-scouting > summary").click();
+      await poiPage.locator('[data-action="scout"][data-value="tower"]').click();
+      await poiPage.locator(".map-home-scouting > summary").click();
+      await poiPage.locator('[data-action="scout"][data-value="tower"]').click();
+      await poiPage.evaluate(() => {
+        const key="crownless-expedition-v1-demo";
+        const saved=JSON.parse(localStorage.getItem(key));
+        saved.scrap=7; // Earned currency fixture: isolate the discovery→shop mechanic.
+        localStorage.setItem(key,JSON.stringify(saved));
+      });
+      await poiPage.reload();
+      await poiPage.locator(".district-poi-card > summary").click();
+      await poiPage.screenshot({ path: path.join(output, "poi-shop-390.png") });
+      await poiPage.locator('[data-action="poi"][data-value="trade-material"]').click();
+      const trade=await poiPage.evaluate(() => JSON.parse(localStorage.getItem("crownless-expedition-v1-demo")));
+      assert.equal(trade.scrap,4);
+      assert.equal(trade.materials.watchIron,1);
+      await poiPage.locator('.district-pin[data-value="0,1"]').click();
+      await poiPage.locator(".district-poi-card > summary").click();
+      await poiPage.screenshot({ path: path.join(output, "poi-clue-390.png") });
+      await poiPage.locator('[data-action="poi"][data-value="clue"]').click();
+      const fight=await poiPage.evaluate(() => JSON.parse(localStorage.getItem("crownless-expedition-v1-demo")));
+      assert.equal(fight.expedition.enemy.clue,true);
+      assert.equal(fight.expedition.stage,"fight");
+      await poiPage.reload();
+      assert.match(await poiPage.locator("#game").innerText(), /鐘守の亡兵/);
+    } finally {
+      await poiContext.close();
+    }
+
     // Corrupt game saves must not be silently overwritten during rendering.
     const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const page = await context.newPage();
