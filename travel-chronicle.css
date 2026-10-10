@@ -351,3 +351,16 @@
   border: 1px dashed rgba(255, 255, 255, 0.1);
   border-radius: 6px;
 }
+
+/* Private travel book: compact, thumb-friendly controls. */
+.footprints-list { display:grid; gap:12px; }
+.footprint-card { border:1px solid var(--line, #747260); border-radius:12px; padding:14px; background:rgba(10,24,25,.45); min-width:0; }
+.footprint-heading { display:flex; align-items:center; gap:12px; }
+.footprint-heading strong { display:block; color:var(--gold,#d2b981); font-size:1.05rem; }
+.footprint-heading small { display:block; color:var(--muted,#a5b4ac); margin-top:3px; }
+.footprint-seal { display:grid; place-items:center; font-size:1.6rem; width:46px; min-width:46px; height:46px; border:1px solid var(--gold,#d2b981); border-radius:50%; }
+.footprint-card label { display:block; margin:10px 0; font-size:.83rem; }
+.footprint-card input { display:block; width:100%; min-height:44px; margin-top:4px; border:1px solid var(--line,#747260); border-radius:8px; padding:9px; background:#0c2023; color:var(--ink,#e7e6d6); font:inherit; }
+.footprint-save-btn { width:100%; min-height:44px; padding:8px; background:var(--gold,#d2b981); color:#162322; border:0; border-radius:8px; font-weight:bold; cursor:pointer; }
+.footprint-error { display:block; color:var(--danger,#e2a28b); margin-top:5px; }
+.footprint-card details { margin-top:10px; }
