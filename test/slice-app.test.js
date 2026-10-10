@@ -140,7 +140,7 @@ test('cancel keeps invalid game bytes; confirming fresh start preserves other mo
   assert.equal(b.store.get(walk),oldWalk);
   assert.equal(b.store.get(fkey),JSON.stringify(visits));
   assert.doesNotMatch(b.html(),/セーブを読み込めません/);
-  assert.match(b.html(),/class="neighborhood-atlas"/);
+  assert.match(b.html(),/class="exploration-atlas neighborhood-atlas"/);
   b.click('tab','chronicle');
   assert.match(b.chronicleHTML(),/天穿つ白塔/);
   assert.match(b.chronicleHTML(),/発見済み・未支配/);
