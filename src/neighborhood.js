@@ -12,8 +12,20 @@
   };
   const key = (x,y) => `${x},${y}`;
   function terrain(x,y) { return Math.abs(y) > Math.abs(x) ? (y > 0 ? 'tower' : 'crypt') : (x > 0 ? 'fen' : 'wood'); }
-  function district(x,y, biome = terrain(x,y)) { return { id:key(x,y), x, y, biome, claimed:false, returns:0 }; }
+  function district(x,y, biome = terrain(x,y)) { return { id:key(x,y), x, y, biome, claimed:false, returns:0, aided:false }; }
   const initial = () => ({ name:'最後の焚き火', wood:0, stone:0, buildings:[], districts:[district(-1,0)], selected:'-1,0', active:null, result:null });
+  // One local sign of an NPC helped by a player-made item. No network or GPS history.
+  const TRACE = Object.freeze({
+    wood:{ name:'斥候の道標', story:'斥候が獣道を切り開き、牙の採集路を残した。', benefit:'この土地で最初に倒した敵から狼牙 +1' },
+    tower:{ name:'見張りの盾標', story:'見張りが街道を守り、鐘鉄の回収路を開いた。', benefit:'この土地で最初に倒した敵から鐘鉄 +1' },
+    fen:{ name:'案内人の葦標', story:'案内人が安全な葦舟の道を刻んだ。', benefit:'この土地で最初に倒した敵から霧葦 +1' }
+  });
+  const trace = d => d?.aided ? TRACE[d.biome] || null : null;
+  // Upgrade exact legacy district records in place without inventing prior accomplishments.
+  function hydrateLegacy(n) {
+    if (!n || !Array.isArray(n.districts)) return n;
+    return { ...n, districts:n.districts.map(d => d && typeof d === 'object' && !Array.isArray(d) && !Object.hasOwn(d,'aided') ? {...d,aided:false} : d) };
+  }
   const claims = n => n.districts.filter(d => d.claimed).length;
   const get = (n,id = n.selected) => n.districts.find(d => d.id === id);
   function title(d) {
@@ -61,7 +73,7 @@
     const selected = get(n), target = selected?.biome === biome ? selected : n.districts.find(d => d.biome === biome);
     return {...n, active:target?.id || null, result:null};
   }
-  function settle(n,x,died) {
+  function settle(n,x,died,commissionCompleted = false) {
     const d = get(n,n.active);
     if (!d || d.biome !== x.place) return {...n,active:null,result:null};
     const won = !died && x.seals.includes(x.place), loot = !died && x.scrap > 0;
@@ -69,7 +81,7 @@
     const wood = loot ? (d.biome === 'wood' ? 2 : 1) * x.depth + (d.claimed ? 1 : 0) : 0;
     const stone = loot ? (d.biome === 'tower' || d.biome === 'crypt' ? 2 : 1) * x.depth + (d.claimed ? 1 : 0) : 0;
     return {...n, wood:Math.min(1e9,n.wood+wood), stone:Math.min(1e9,n.stone+stone), active:null,
-      districts:n.districts.map(v => v.id === d.id ? {...v, claimed:v.claimed || won, returns:Math.min(1e9,v.returns+(loot ? 1 : 0))} : v),
+      districts:n.districts.map(v => v.id === d.id ? {...v, claimed:v.claimed || won, aided:v.aided || (commissionCompleted && !died && x.room > 0), returns:Math.min(1e9,v.returns+(loot ? 1 : 0))} : v),
       result:{id:d.id,wood,stone,claimed:won && !d.claimed,died} };
   }
   function canBuild(n,id) {
@@ -86,7 +98,7 @@
     return name ? {...n,name} : n;
   }
   function validDistrict(d) {
-    return d && Object.keys(d).sort().join(',') === 'biome,claimed,id,returns,x,y' && Number.isInteger(d.x) && Math.abs(d.x)<=RANGE && Number.isInteger(d.y) && Math.abs(d.y)<=RANGE && (d.x || d.y) && d.id===key(d.x,d.y) && BIOMES.includes(d.biome) && typeof d.claimed==='boolean' && Number.isInteger(d.returns) && d.returns>=0 && d.returns<=1e9;
+    return d && Object.keys(d).sort().join(',') === 'aided,biome,claimed,id,returns,x,y' && Number.isInteger(d.x) && Math.abs(d.x)<=RANGE && Number.isInteger(d.y) && Math.abs(d.y)<=RANGE && (d.x || d.y) && d.id===key(d.x,d.y) && BIOMES.includes(d.biome) && typeof d.claimed==='boolean' && typeof d.aided==='boolean' && Number.isInteger(d.returns) && d.returns>=0 && d.returns<=1e9;
   }
   function valid(n) {
     const amount = v => Number.isInteger(v) && v>=0 && v<=1e9;
@@ -103,5 +115,5 @@
     n.active = state.expedition ? n.districts.find(d => d.biome===state.expedition.place)?.id || null : null;
     return n;
   }
-  return { CELL_METERS,LIMIT,RANGE,BUILDINGS,POIS,initial,claims,get,title,pointOfInterest,cell,discover,select,begin,settle,canBuild,build,rename,valid,migrate };
+  return { CELL_METERS,LIMIT,RANGE,BUILDINGS,POIS,TRACE,initial,claims,get,title,trace,hydrateLegacy,pointOfInterest,cell,discover,select,begin,settle,canBuild,build,rename,valid,migrate };
 });
