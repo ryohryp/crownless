@@ -63,28 +63,7 @@
     const initial = TC ? TC.createInitialChronicle() : { version: 1, stamps: [], cards: [], collectedRelics: [] };
     let data = readJson(STORAGE_KEY_CHRONICLE, initial);
 
-    // Seed initial demo landmarks if chronicle is empty so the player immediately enjoys the experience
-    if (data.stamps.length === 0 && TC) {
-      data = TC.recordVisitAndStamp(data, '囁きの森・大樹の祠', 'sacred');
-      data = TC.recordVisitAndStamp(data, '鐘なき塔・見張り台', 'height');
-      data = TC.recordVisitAndStamp(data, '星沈みの湿原・渡し場', 'water');
-
-      const RR = window.CrownlessRegionalRelics;
-      if (RR) {
-        const relic1 = RR.createRegionalRelicInstance('relic_sacred_exorcist_dagger', '囁きの森・大樹の祠');
-        data = TC.recordCollectedRelic(data, relic1);
-      }
-
-      data = TC.recordExpeditionCard(data, {
-        landmarkName: '囁きの森・大樹の祠',
-        signal: 'sacred',
-        summary: '古木の根元で魔物を払い、最初の開拓旗を立てた。',
-        relicName: '破魔の短剣',
-        facilityBuilt: '見張り塔 Lv1',
-      });
-      writeJson(STORAGE_KEY_CHRONICLE, data);
-    }
-
+    // Only visits actually earned by the player should appear as stamps.
     return data;
   }
 
