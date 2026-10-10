@@ -1,7 +1,7 @@
 # Crownless — Active Gameplay Specification
 
 > **Status:** Active supporting specification
-> **Updated:** 2026-10-09
+> **Updated:** 2026-10-10
 > **Authority:** `AGENTS.md` and accepted ADRs take precedence. This file describes the smallest current gameplay contract without creating a second product vision.
 
 ## 1. Current playable loop
@@ -58,6 +58,12 @@ Do not add multiple recipe tiers, global prices, or punishment through wear befo
 Crafted personal equipment remains one copy per item ID. To make production repeatable before there are real players, the smith can instead spend the same materials and iron scraps to supply one **fictional NPC** in a discovered region. One pending NPC commission per account. The NPC reports its consequence only after the adventurer completes at least one fight and returns alive from that same game region. The smith receives iron scraps, a completed-order count and a single-use +1 herb supply for the next expedition to that region. No real player account or live position is represented, and no duplicate equippable item is generated. A failed or zero-encounter return cannot claim the reward. This is a fun hypothesis, not networked trade.
 
 First place-bound consequence (2026-10-10): when a completed NPC commission is reported after a victorious encounter and safe return, the **specific coarse district** where the adventurer returned gains a named permanent trail/sign of the NPC's work. Revisit that district to see the sign; its first victorious enemy on each new expedition there carries **one extra regional material**, still lost if the adventurer fails to return. Another district of the same biome does not inherit the trail. Existing districts migrate with no trace; no exact GPS, clock data, player-to-player exchange, or network state is added. The one-off commission herb benefit remains separate. This is a local simulated human-fun test, not evidence of actual MMO interaction.
+
+### Fictional traveler reply — one nearby place changes
+
+When a player's completed smith commission leaves its permanent NPC-assisted trail, a **different, already discovered coarse district** may receive a one-off parcel from the fictional traveler **旅の薬師・イオ**. This is a small local **simulated** consequence, not an actual second player or timed background process. A new district discovered after the commission can receive the parcel if no destination was previously available. The marked district and return report display the parcel; its next departure receives +1 herb, capped at three. Existing same-region commission support takes priority so it does not waste the parcel. The item is consumed at departure once, independent of fight outcome, and cannot be collected again by reloading, reversing a menu, or returning empty-handed.
+
+This is a *different place affected by an NPC who followed your mark*: it may motivate exploring a newly marked district. It is not an economy, real-time event, real shared server, or a claim that an actual player left resources. No additional GPS, timestamps, routes, or location-sensitive telemetry are stored. Old saves migrate with no parcel; do not reintroduce mandatory combat input or overhaul the main UI to surface this.
 
 ## 5. Territory and frontier development
 
