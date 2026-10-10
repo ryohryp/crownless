@@ -88,7 +88,9 @@
   // landmark flags visible from the main screen rather than hiding them in a tab.
   function landmarkFlagPreview() {
     const F=window.CrownlessTravelFootprints, ui=window.CrownlessTravelChronicleUI;
-    const found=F?.discovered(ui?.getFootprints?.(state.mode)) || [];
+    let found=[];
+    try { found=F?.discovered(ui?.getFootprints?.(state.mode)) || []; }
+    catch { return ''; } // Browsers with blocked storage must still play.
     if (!found.length) return '';
     return '<section class="landmark-status-strip" aria-label="発見した名所と支配旗">'
       + '<span class="landmark-status-title">幻想の名所 · 支配の旗</span>'
