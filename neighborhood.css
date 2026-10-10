@@ -325,3 +325,18 @@
     padding:10px 10px calc(100px + env(safe-area-inset-bottom));
   }
 }
+
+/* A place-bound trace is visible on revisit without another management screen. */
+#game .district-trace{
+  margin:10px 0 12px;
+  padding:12px 14px;
+  border-left:3px solid #8d7650;
+  background:rgba(110,91,60,.10);
+  color:inherit;
+}
+#game .district-trace strong{display:block;font-size:14px;line-height:1.5}
+#game .district-trace p{margin:5px 0;font-size:13px;line-height:1.6}
+#game .district-trace small{display:block;font-size:12px;line-height:1.55}
+@media(max-width:430px){
+  #game .district-trace{margin:8px 0;padding:10px 12px}
+}
