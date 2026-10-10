@@ -90,22 +90,17 @@
 
   function getPlayerScrap() {
     const E = window.CrownlessSlice;
-    if (!E) return 12;
+    if (!E) return 0;
     try {
-      const mode = localStorage.getItem('crownless-expedition-mode') || 'demo';
-      const key = `crownless-expedition-v1-${mode}`;
-      const raw = localStorage.getItem(key);
+      const mode = footprintMode();
+      const raw = localStorage.getItem(`crownless-expedition-v1-${mode}`);
+      // Reading the travel map must never write the game's save behind the
+      // active slice app. Doing so desynchronizes its concurrency guard, which
+      // then blocks the siege result from being saved.
       const state = E.parse(raw);
-      if (!state) return 12;
-      // In demo mode for first time play, grant starter pioneer grant (12 iron scraps)
-      if (mode === 'demo' && Number(state.scrap) === 0 && Number(state.runs) === 0 && !localStorage.getItem('crownless-pioneer-grant-v1')) {
-        state.scrap = 12;
-        localStorage.setItem(key, JSON.stringify(state));
-        localStorage.setItem('crownless-pioneer-grant-v1', 'true');
-      }
-      return Number(state.scrap) || 0;
+      return Number(state?.scrap) || 0;
     } catch (_) {
-      return 12;
+      return 0;
     }
   }
 
