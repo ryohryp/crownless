@@ -84,6 +84,20 @@
     const frontier = '<div class="district-frontier-fog" aria-hidden="true"></div><span class="district-frontier-mark district-frontier-mark--nw" aria-hidden="true">?</span><span class="district-frontier-mark district-frontier-mark--se" aria-hidden="true">?</span>';
     return '<section class="exploration-atlas neighborhood-atlas" data-living-atlas="true" aria-label="拠点と近所の領域"><div class="atlas-home-header"><div><strong>'+esc(n.name)+'</strong><small>'+ (state.mode==='demo' ? '体験の近所' : '散策の起点の近所')+' · 発見 '+n.districts.length+' / 開拓 '+N.claims(n)+'</small></div><span><b>建材</b>木材 '+n.wood+' · 石材 '+n.stone+'</span></div><div class="atlas-field neighborhood-field"><div class="neighborhood-canvas" style="width:'+((rx*2+1)*140)+'px;height:'+((ry*2+1)*140)+'px"><svg class="district-roads" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">'+paths+'</svg>'+frontier+'<button class="district-home" data-action="tab" data-value="home" aria-label="'+esc(n.name)+'の拠点を育てる">'+homeArt()+'<strong>'+esc(n.name)+'</strong><small>'+ (n.buildings.length ? '建物 '+n.buildings.length+' · 拠点を育てる' : 'まだ小さな野営地')+'</small></button>'+markers+'</div></div><p class="atlas-home-caption">主を倒し、帰還した土地に、あなたの旗が立つ。</p></section>';
   }
+  // The neighborhood atlas and the travel atlas are separate maps. Keep earned
+  // landmark flags visible from the main screen rather than hiding them in a tab.
+  function landmarkFlagPreview() {
+    const F=window.CrownlessTravelFootprints, ui=window.CrownlessTravelChronicleUI;
+    const found=F?.discovered(ui?.getFootprints?.(state.mode)) || [];
+    if (!found.length) return '';
+    return '<section class="landmark-status-strip" aria-label="発見した名所と支配旗">'
+      + '<span class="landmark-status-title">幻想の名所 · 支配の旗</span>'
+      + '<div class="landmark-status-sites">'+found.map(p=>button('landmark-map',
+          (state.claimedLandmarks?.includes(p.id)?'⚑ ':'👣 ')+esc(p.name),
+          state.claimedLandmarks?.includes(p.id)?'支配済み':'未支配',
+          {class:'landmark-status-site',value:p.id})).join('')+'</div>'
+      + '</section>';
+  }
   function homePanel() {
     const n = state.neighborhood;
     return '<div class="homestead-panel"><p class="kicker">A PLACE TO CALL YOUR OWN</p><h2>'+esc(n.name)+'</h2><p class="home-materials">木材 <b>'+n.wood+'</b> · 石材 <b>'+n.stone+'</b> · 領域 <b>'+N.claims(n)+'</b></p><p class="small">建材は遠征から生還すると持ち帰れる。土地の主を倒して帰ると、その土地にあなたの旗が立つ。</p><div class="home-buildings">'+Object.entries(N.BUILDINGS).map(([id,b]) => { const built=n.buildings.includes(id); return '<section class="home-building '+(built ? 'built' : '')+'"><div><h3>'+(built ? '✓ ' : '')+b.name+'</h3><p>'+b.benefit+'</p></div>'+ (built ? '<small>建設済み · '+b.story+'</small>' : button('home-build',b.name+'を建てる','木材 '+b.wood+' · 石材 '+b.stone+(b.claims ? ' · 領域 '+b.claims+' が必要' : ''),{class:'secondary',value:id,disabled:!N.canBuild(n,id)}))+'</section>'; }).join('')+'</div><div class="home-name"><label for="home-name">この拠点に名前をつける</label><div><input id="home-name" maxlength="16" value="'+esc(n.name)+'" autocomplete="off">'+button('home-name','名付ける','',{class:'secondary'})+'</div></div>'+ (notice ? '<p class="notice" role="status">'+esc(notice)+'</p>' : '')+'</div>';
@@ -194,7 +208,7 @@
   function camp() {
     const level = E.weaponLevel(state, state.equipped);
     const nav = `<nav class="camp-tabs bottom-navigation" aria-label="主要ナビゲーション">${button('tab','近所','',{class:'bottom-navigation-item'+(tab === 'explore' ? ' active' : ''),value:'explore',current:tab === 'explore'})}${button('tab','拠点','',{class:'bottom-navigation-item'+(tab === 'home' ? ' active' : ''),value:'home',current:tab === 'home'})}${button('tab','装備','',{class:'bottom-navigation-item'+(tab === 'gear' ? ' active' : ''),value:'gear',current:tab === 'gear'})}${button('tab','手記','',{class:'bottom-navigation-item'+(tab === 'codex' ? ' active' : ''),value:'codex',current:tab === 'codex'})}${button('tab','冒険録','',{class:'bottom-navigation-item'+(tab === 'chronicle' ? ' active' : ''),value:'chronicle',current:tab === 'chronicle'})}${button('settings','設定','',{class:'bottom-navigation-item'})}</nav>`;
-    return `<div class="game-layout camp-layout ${tab === 'explore' ? 'living-map-home' : tab === 'home' ? 'homestead-home' : tab === 'gear' ? 'gear-home' : 'journal-home'}"><section class="visual-column"><div class="mode-strip"><span class="mode-pill">${state.mode === 'demo' ? '散策体験モード' : '現実の散策モード'}</span><span>遠征 ${state.runs} 回 · 生還 ${state.victories} 回</span></div>${tab === 'home' ? '<div class="home-portrait">'+homeArt()+'<p>'+esc(state.neighborhood.name)+' · '+(state.neighborhood.buildings.length ? '育ち始めた集落' : '野営地')+'</p></div>' : scene('camp','帰りを待つ火。','THE LAST HEARTH',null,'安全な拠点')}${mapPins()}<div class="stat-strip"><div class="stat">最大体力<b>${E.maxHp(state)}</b></div><div class="stat">手元の鉄片<b>${state.scrap}</b></div><div class="stat">装備<b><em>${E.GEAR[state.equipped].name}<small> · ${E.qualityLabel(E.weaponQuality(state,state.equipped))}${level > 0 ? ` · 補強 ${level}/4` : ''}</small></em></b></div></div></section><section class="panel">${tab === 'gear' ? gearPanel() : tab === 'home' ? homePanel() : tab === 'codex' ? '<div class="codex-panel" aria-label="旅人の手記"></div>' : tab === 'chronicle' ? '<div class="chronicle-panel" aria-label="旅の冒険録"></div>' : explorePanel()}<button class="text-button" data-action="switch-mode">${state.mode === 'demo' ? '現実の散策モードへ' : '散策体験モードへ'} <span aria-hidden="true">↗</span></button></section>${nav}</div>`;
+    return `<div class="game-layout camp-layout ${tab === 'explore' ? 'living-map-home' : tab === 'home' ? 'homestead-home' : tab === 'gear' ? 'gear-home' : 'journal-home'}"><section class="visual-column"><div class="mode-strip"><span class="mode-pill">${state.mode === 'demo' ? '散策体験モード' : '現実の散策モード'}</span><span>遠征 ${state.runs} 回 · 生還 ${state.victories} 回</span></div>${tab === 'home' ? '<div class="home-portrait">'+homeArt()+'<p>'+esc(state.neighborhood.name)+' · '+(state.neighborhood.buildings.length ? '育ち始めた集落' : '野営地')+'</p></div>' : scene('camp','帰りを待つ火。','THE LAST HEARTH',null,'安全な拠点')}${mapPins()}${tab === 'explore' ? landmarkFlagPreview() : ''}<div class="stat-strip"><div class="stat">最大体力<b>${E.maxHp(state)}</b></div><div class="stat">手元の鉄片<b>${state.scrap}</b></div><div class="stat">装備<b><em>${E.GEAR[state.equipped].name}<small> · ${E.qualityLabel(E.weaponQuality(state,state.equipped))}${level > 0 ? ` · 補強 ${level}/4` : ''}</small></em></b></div></div></section><section class="panel">${tab === 'gear' ? gearPanel() : tab === 'home' ? homePanel() : tab === 'codex' ? '<div class="codex-panel" aria-label="旅人の手記"></div>' : tab === 'chronicle' ? '<div class="chronicle-panel" aria-label="旅の冒険録"></div>' : explorePanel()}<button class="text-button" data-action="switch-mode">${state.mode === 'demo' ? '現実の散策モードへ' : '散策体験モードへ'} <span aria-hidden="true">↗</span></button></section>${nav}</div>`;
   }
   function vitals(x) {
     return `<div class="vitals"><div><div class="hp-row"><span>あなたの体力</span><strong class="${x.hp < 10 ? 'danger' : ''}">${x.hp} <small class="small">/ ${E.maxHp(state)}</small></strong></div><div class="bar" role="meter" aria-label="あなたの体力" aria-valuenow="${x.hp}" aria-valuemin="0" aria-valuemax="${E.maxHp(state)}"><span style="width:${100*x.hp/E.maxHp(state)}%"></span></div></div><div><span class="small">気力 · ${x.stamina} / 3</span><div class="stamina" aria-hidden="true">${'◆'.repeat(x.stamina)}<span class="empty">${'◇'.repeat(3-x.stamina)}</span></div></div></div>`;
@@ -374,6 +388,10 @@
     else if (action === 'home-name') { state = E.renameHome(state,document.querySelector('#home-name').value); }
     else if (action === 'select') { selected = value; tab = 'explore'; notice = ''; lastReturnedPlace = null; prioritizeReinforcement = false; }
     else if (action === 'tab') { tab = value; notice = ''; }
+    else if (action === 'landmark-map') {
+      tab='chronicle'; notice='';
+      window.CrownlessTravelChronicleUI?.showFootprints?.();
+    }
     else if (action === 'landmark-siege') {
       const F=window.CrownlessTravelFootprints;
       const site=F?.discovered(window.CrownlessTravelChronicleUI?.getFootprints?.(state.mode))?.find(p=>p.id===value);
@@ -451,10 +469,22 @@
       tab = homeOpportunity ? 'home' : gearStep ? 'gear' : 'explore';
       if (forgeReady || commissionFinished) tab = 'gear';
       if (keptDuplicate) { lastReturnedPlace = state.report.place; prioritizeReinforcement = false; tab = 'gear'; }
+      const completedLandmark = state.report.landmarkId &&
+        state.claimedLandmarks?.includes(state.report.landmarkId) &&
+        !state.report.died && state.report.cleared.includes(state.report.place);
+      const landmarkExpedition = Boolean(state.report.landmarkId);
+      const conqueredName=window.CrownlessTravelFootprints?.LANDMARKS?.find(p=>p.id===state.report.landmarkId)?.name || '幻想の名所';
       const crownEnding = !state.report.died && state.report.newGear.includes('crown');
       endingOpen = crownEnding;
       const homeResult = state.neighborhood.result;
       state = {...state,report:null}; notice = homeOpportunity ? `${homeResult.claimed ? '新しい領域を開拓した。' : ''}木材 ${homeResult.wood}・石材 ${homeResult.stone} を拠点に持ち帰った。` : '';
+      if (landmarkExpedition && !crownEnding) {
+        tab='chronicle';
+        notice=completedLandmark
+          ? `⚑ ${conqueredName}に支配の旗が立った！ 旅の地図に刻まれた。`
+          : `${conqueredName}はまだ未支配。土地の主を倒して生還すると旗が立つ。`;
+        window.CrownlessTravelChronicleUI?.showFootprints?.(notice);
+      }
     }
     else state = E.act(state, action);
     if (state !== before) save();
