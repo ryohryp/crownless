@@ -5,8 +5,9 @@ const vm = require('node:vm');
 const E = require('../src/slice-engine.js');
 const F = require('../src/travel-footprints.js');
 const code = fs.readFileSync(require('node:path').join(__dirname,'../src/slice-app.js'),'utf8');
-function browser(seed = {}, storageFails = false) {
+function browser(seed = {}, storageFails = false, realChronicle = false) {
   const store = new Map(Object.entries(seed)), callbacks = {}, elements = {};
+  const chronicleContainer = {innerHTML:'',querySelectorAll:()=>[]};
   for (const id of ['#game','#save-status','#save-label','#help-toggle','#help','#home-name']) elements[id] = {innerHTML:'',hidden:true,textContent:'',value:'',addEventListener(type,fn){this[type]=fn;},setAttribute(){}};
   const context = {CrownlessSlice:E,CrownlessNeighborhood:require('../src/neighborhood.js'),CrownlessArt:{scene:()=>'<svg></svg>',icon:()=>'<svg></svg>'},isSecureContext:true,
     document:{querySelector:selector=>elements[selector] || null},
@@ -29,8 +30,14 @@ function browser(seed = {}, storageFails = false) {
     },
     showFootprints(){callbacks.showFootprints=true;}
   };
+  if (realChronicle) {
+    elements['#game'].querySelector=selector=>
+      selector==='.chronicle-panel' && elements['#game'].innerHTML.includes('class="chronicle-panel"')
+        ? chronicleContainer : null;
+    vm.runInNewContext(fs.readFileSync(require('node:path').join(__dirname,'../src/travel-chronicle-ui.js'),'utf8'),context);
+  }
   vm.runInNewContext(code,context);
-  return {store,elements,callbacks,click(action,value){elements['#game'].click({target:{closest:()=>({dataset:{action,value},disabled:false})}});},html:()=>elements['#game'].innerHTML};
+  return {store,elements,callbacks,chronicleHTML:()=>chronicleContainer.innerHTML,click(action,value){elements['#game'].click({target:{closest:()=>({dataset:{action,value},disabled:false})}});},html:()=>elements['#game'].innerHTML};
 }
 
 test('a saved combat opening exposes the actual follow-up damage and disappears after guarding', () => {
@@ -439,4 +446,53 @@ test('landmark conquest feedback is displayed after real boss victory and safe r
   assert.match(b.html(),/紅蓮の望楼を支配！/);
   assert.match(b.html(),/あなたの旗が旅の地図に刻まれた/);
   assert.match(b.html(),/この名所からの次の遠征で薬草 \+1/);
+});
+
+test('opening the travel atlas never silently rewrites the active demo game save',()=>{
+  const b=browser({},false,true);
+  b.click('mode','demo');
+  b.click('travel-demo','home');
+  const key='crownless-expedition-v1-demo';
+  const before=b.store.get(key);
+  assert.ok(before);
+  assert.match(b.chronicleHTML(),/紅蓮の望楼/);
+  assert.equal(b.store.get(key),before,'travel map rendering must be read-only');
+  b.click('landmark-siege','tokyo-tower');
+  const saved=E.parse(b.store.get(key));
+  assert.equal(saved.expedition.landmarkId,'tokyo-tower');
+  assert.doesNotMatch(b.html(),/別のタブで旅が進んでいます/);
+});
+
+test('boss victory -> return -> continue automatically reveals the visible flag on the real atlas',()=>{
+  const key='crownless-expedition-v1-demo', landmark='tokyo-tower';
+  let saved=E.startLandmark(E.discover({...E.initial(),mode:'demo'},'tower'),'tower',landmark);
+  saved.expedition.stage='cleared';saved.expedition.room=4;saved.expedition.seals=['tower'];
+  saved=E.act(saved,'return');
+  const footprint=F.record(F.initial(),{latitude:35.658656,longitude:139.745364,accuracy:8,speed:0},'2026-10-10').journal;
+  const b=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(saved),
+    'crownless-travel-footprints-v1-demo':JSON.stringify(footprint)},false,true);
+  assert.match(b.html(),/紅蓮の望楼を支配！/);
+  b.click('continue');
+  assert.match(b.html(),/class="chronicle-panel"/);
+  assert.match(b.chronicleHTML(),/紅蓮の望楼/);
+  assert.match(b.chronicleHTML(),/⚑ あなたの支配拠点/);
+  assert.match(b.chronicleHTML(),/⚑ 紅蓮の望楼に支配の旗が立った！/);
+  assert.deepEqual(E.parse(b.store.get(key)).claimedLandmarks,[landmark]);
+  const reload=browser(Object.fromEntries(b.store),false,true);
+  assert.match(reload.html(),/class="landmark-status-strip"/);
+  assert.match(reload.html(),/⚑ 紅蓮の望楼/);
+  reload.click('landmark-map',landmark);
+  assert.match(reload.chronicleHTML(),/⚑ あなたの支配拠点/);
+});
+
+test('a landmark retreat visibly keeps the flag down and explains the remaining condition',()=>{
+  const key='crownless-expedition-v1-demo',landmark='tokyo-tower';
+  const unfinished=E.act(E.startLandmark(E.discover({...E.initial(),mode:'demo'},'tower'),'tower',landmark),'return');
+  const footprint=F.record(F.initial(),{latitude:35.658656,longitude:139.745364,accuracy:8,speed:0},'2026-10-10').journal;
+  const b=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(unfinished),
+    'crownless-travel-footprints-v1-demo':JSON.stringify(footprint)},false,true);
+  b.click('continue');
+  assert.match(b.chronicleHTML(),/まだ未支配/);
+  assert.match(b.chronicleHTML(),/土地の主を倒して生還/);
+  assert.doesNotMatch(b.chronicleHTML(),/⚑ あなたの支配拠点/);
 });
