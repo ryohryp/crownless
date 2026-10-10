@@ -496,3 +496,54 @@ test('a landmark retreat visibly keeps the flag down and explains the remaining 
   assert.match(b.chronicleHTML(),/土地の主を倒して生還/);
   assert.doesNotMatch(b.chronicleHTML(),/⚑ あなたの支配拠点/);
 });
+
+test('REAL click-path: a named landmark guardian dies, the flag CTA appears, and safe return persists conquest',()=>{
+  const key='crownless-expedition-v1-demo', id='tokyo-tower';
+  const fix={latitude:35.658656,longitude:139.745364,accuracy:8,speed:0};
+  const footprint=F.record(F.initial(),fix,'2026-10-10').journal;
+  let s=E.startLandmark(E.discover({...E.initial(),mode:'demo'},'tower'),'tower',id);
+  s.expedition.room=4;
+  s=E.act(s,'careful'); // The real engine spawns the guardian and its reward transition.
+  assert.equal(s.expedition.enemy.elite,true);
+  s.expedition.enemy.hp=1; // Shorten only the boss HP; never fabricate cleared/seals.
+  const b=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(s),
+     'crownless-travel-footprints-v1-demo':JSON.stringify(footprint)},false,true);
+  assert.match(b.html(),/紅蓮の望楼/);
+  assert.match(b.html(),/守護者を攻略中/);
+  b.click('strike'); // Actual browser click + E.act -> victory().
+  const beaten=E.parse(b.store.get(key));
+  assert.equal(beaten.expedition.stage,'cleared');
+  assert.ok(beaten.expedition.seals.includes('tower'));
+  assert.deepEqual(beaten.claimedLandmarks,[],'victory is provisional until safe return');
+  assert.match(b.html(),/紅蓮の望楼を制圧した/);
+  assert.match(b.html(),/⚑ 旗を立てて帰還する/);
+  b.click('return'); // Actual browser click + finish().
+  const returned=E.parse(b.store.get(key));
+  assert.deepEqual(returned.claimedLandmarks,[id]);
+  assert.match(b.html(),/紅蓮の望楼を支配！/);
+  b.click('continue');
+  assert.match(b.chronicleHTML(),/⚑ あなたの支配拠点/);
+  const loaded=browser(Object.fromEntries(b.store),false,true);
+  assert.match(loaded.html(),/⚑ 紅蓮の望楼/);
+  loaded.click('landmark-map',id);
+  assert.match(loaded.chronicleHTML(),/⚑ あなたの支配拠点/);
+});
+test('generic tower guardian victory cannot silently masquerade as a named landmark capture',()=>{
+  const key='crownless-expedition-v1-demo',id='tokyo-tower';
+  const fix={latitude:35.658656,longitude:139.745364,accuracy:8,speed:0};
+  const footprint=F.record(F.initial(),fix,'2026-10-10').journal;
+  let s=E.start(E.discover({...E.initial(),mode:'demo'},'tower'),'tower');
+  s.expedition.room=4;
+  s=E.act(s,'careful');
+  s.expedition.enemy.hp=1;
+  s=E.act(s,'strike');
+  assert.equal(s.expedition.stage,'cleared');
+  s=E.act(s,'return');
+  assert.deepEqual(s.claimedLandmarks,[]);
+  const b=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(s),
+    'crownless-travel-footprints-v1-demo':JSON.stringify(footprint)},false,true);
+  b.click('continue');
+  b.click('tab','chronicle');
+  assert.match(b.chronicleHTML(),/通常の土地の主を倒しても、名所の支配は別/);
+  assert.doesNotMatch(b.chronicleHTML(),/⚑ あなたの支配拠点/);
+});
