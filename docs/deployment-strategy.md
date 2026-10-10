@@ -21,6 +21,9 @@ GitHub Pages is the public source of truth for browser / phone playtests. Docume
 - Consecutive Pages deployments use a single concurrency group with `cancel-in-progress: true`, so the newest tested `main` commit wins during rapid merges.
 - `workflow_dispatch` remains available as a manual recovery / re-run path without changing the normal automatic flow.
 - Feature branches are validated by CI but do not need a hosted preview for every commit.
+- The `test` workflow has a separate real-Chromium smartphone smoke job (390×844 and 360×800): first map, simulated landmark discovery, exact-landmark siege, save/reload, and unreadable-save protection. Screenshots (including failure captures) are uploaded as the `crownless-phone-smoke` CI artifact. Browser checks prove reachability and viewport stability, **not** that gameplay is fun.
+- `workflow_run` deployments accept only **successful push-to-main** `test` runs from this repository; a failed test or a PR-originated event cannot publish. The deployment checks out the `workflow_run.head_sha`, avoiding a mismatch between tested code and published code.
+- Manual `workflow_dispatch` is an explicit recovery override and does **not** prove CI success; verify the intended main commit's checks before using it.
 - Static CSS / JS references in the Pages artifact are fingerprinted with the deployed commit so normal reloads move clients onto the current tested asset set without requiring a full browser-cache wipe.
 
 #### One-time repository setup
