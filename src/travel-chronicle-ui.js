@@ -263,8 +263,8 @@
       if (!found.length) return '<div class="empty-state">まだ幻想の名所は見つかっていない。<p>現実のランドマークの近くで、安全に立ち止まって現在地を確認しよう。訪問すると地図に発見の印が付く。文字入力はいらない。</p></div>';
       // Illustration only: coordinates below are fantasy-map placements and are
       // intentionally NOT a precise representation of real-world locations.
-      const pins=found.map((p,i)=>`<div class="fantasy-landmark-pin" style="left:${14+(i%3)*36}%;top:${24+(Math.floor(i/3)%2)*44}%;" aria-label="${esc(p.name)}、${owned.has(p.id)?'支配済み':'発見済み'}">
-          <span class="fantasy-landmark-icon" aria-hidden="true">${esc(p.icon)}</span><span class="fantasy-landmark-footstep" aria-hidden="true">${owned.has(p.id)?'⚑':'👣'}</span>
+      const pins=found.map((p,i)=>`<div class="fantasy-landmark-pin" style="left:${14+(i%3)*36}%;top:${24+(Math.floor(i/3)%2)*44}%;" aria-label="${esc(p.name)}、${control.status!=='ok'?'支配状態不明':owned.has(p.id)?'支配済み':'発見済み'}">
+          <span class="fantasy-landmark-icon" aria-hidden="true">${esc(p.icon)}</span><span class="fantasy-landmark-footstep" aria-hidden="true">${control.status!=='ok'?'?':owned.has(p.id)?'⚑':'👣'}</span>
           <span class="fantasy-landmark-pin-title">${esc(p.name)}</span></div>`).join('');
       return `<section class="fantasy-landmark-map" aria-label="発見した幻想の名所を表示した旅の地図">
         <div class="fantasy-landmark-map-title">発見した土地 · ${found.length}か所</div>
@@ -274,11 +274,11 @@
       <div class="footprints-list">${found.map(p=>`<article class="footprint-card">
         <div class="footprint-heading"><span class="footprint-seal" aria-hidden="true">${esc(p.icon)}</span><div><strong>${esc(p.name)}</strong><small>${esc(p.realName)} 付近で発見</small></div></div>
         <p class="small">${esc(p.description)}</p>
-        <p class="footprint-acquired">${owned.has(p.id)?'⚑ あなたの支配拠点':'👣 発見済み・未支配'} · ${esc(p.seal)}</p>
+        <p class="footprint-acquired">${control.status!=='ok'?'⚠ 支配情報を確認できません':owned.has(p.id)?'⚑ あなたの支配拠点':'👣 発見済み・未支配'} · ${esc(p.seal)}</p>
         <p class="small">初発見 ${esc(p.firstDate)} · 訪問 ${p.visits.length}日${p.visits.length>1?' · 再訪済み':''}</p>
         <p class="small">${owned.has(p.id)?'支配の効果：この名所からの遠征に薬草 +1（最大3個）':'攻略条件：この名所の主を倒し、旗を立てて帰還する'}</p>
         ${!owned.has(p.id) ? (()=>{const progress=landmarkProgress(p,control);return `<p class="landmark-control-status landmark-control-status--${progress.type}" role="status">${esc(progress.message)}</p>`;})() : ''}
-        <button class="landmark-siege-btn" type="button" data-action="landmark-siege" data-value="${esc(p.id)}">${owned.has(p.id)?'この支配拠点から再遠征':'このランドマークを攻略する'}</button>
+        <button class="landmark-siege-btn" type="button" data-action="landmark-siege" data-value="${esc(p.id)}" ${control.status!=='ok'?'disabled title="ゲームセーブの読み取り状態を確認してください"':''}>${owned.has(p.id)?'この支配拠点から再遠征':'このランドマークを攻略する'}</button>
       </article>`).join('')}</div>`;
     }
     if (subtab === 'stamps') {
