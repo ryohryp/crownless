@@ -82,3 +82,69 @@ test('illustrated atlas shows earned flags and a siege button for each unique la
   assert.match(container.innerHTML,/この支配拠点から再遠征/);
   assert.match(container.innerHTML,/このランドマークを攻略する/);
 });
+
+test('Skytree guardian: real engine strike -> victory -> safe return -> reload claims only Skytree',()=>{
+  let s=start('tokyo-skytree','tower');
+  assert.equal(s.expedition.landmarkId,'tokyo-skytree');
+  s.expedition.room=4;
+  s=E.act(s,'careful');
+  assert.equal(s.expedition.enemy.elite,true);
+  s.expedition.enemy.hp=1; // Shorten boss health, not the victory or return logic.
+  s=E.act(s,'strike');
+  assert.equal(s.expedition.stage,'cleared');
+  assert.deepEqual(s.claimedLandmarks,[]);
+  s=E.act(s,'return');
+  assert.deepEqual(s.claimedLandmarks,['tokyo-skytree']);
+  assert.equal(s.report.landmarkId,'tokyo-skytree');
+  assert.deepEqual(E.parse(E.serialize(s)).claimedLandmarks,['tokyo-skytree']);
+  assert.equal(s.claimedLandmarks.includes('tokyo-tower'),false);
+});
+test('old verified Skytree safe-return report repairs a missing claim without a redo',()=>{
+  const won=E.act(bossDefeated(start('tokyo-skytree','tower')),'return');
+  const broken={...won,claimedLandmarks:[]};
+  const repaired=E.parse(E.serialize(broken));
+  assert.deepEqual(repaired.claimedLandmarks,['tokyo-skytree']);
+  const normal=E.act(bossDefeated(E.start(E.discover({...E.initial(),mode:'demo'},'tower'),'tower')),'return');
+  assert.deepEqual(E.parse(E.serialize(normal)).claimedLandmarks,[]);
+  const retreated=E.act(start('tokyo-skytree','tower'),'return');
+  assert.deepEqual(E.parse(E.serialize(retreated)).claimedLandmarks,[]);
+  assert.deepEqual(E.parse('{"version":11,"claimedLandmarks":["tokyo-skytree"]}'),null);
+});
+test('a corrupt conquest save is explicitly unknown, not silently shown as unclaimed',()=>{
+  const skytree=F.record(F.initial(),{latitude:35.7101,longitude:139.8107,accuracy:8,speed:0},'2026-10-10').journal;
+  const data=new Map([
+    ['crownless-expedition-mode','demo'],
+    ['crownless-travel-footprints-v1-demo',JSON.stringify(skytree)],
+    ['crownless-expedition-v1-demo','{invalid-json']
+  ]);
+  const context={CrownlessSlice:E,CrownlessTravelFootprints:F,
+    localStorage:{getItem:key=>data.get(key)||null,setItem:(key,value)=>data.set(key,value)}};
+  context.window=context;
+  const code=fs.readFileSync(path.join(__dirname,'../src/travel-chronicle-ui.js'),'utf8');
+  vm.runInNewContext(code,context);
+  const ui=context.CrownlessTravelChronicleUI;
+  const container={innerHTML:'',querySelectorAll:()=>[]};
+  ui.showFootprints(); ui.renderChronicle(container);
+  assert.match(container.innerHTML,/支配情報を確認できません/);
+  assert.match(container.innerHTML,/ゲームセーブを読み取れません/);
+  assert.match(container.innerHTML,/disabled title="ゲームセーブの読み取り状態を確認してください"/);
+  assert.doesNotMatch(container.innerHTML,/👣 発見済み・未支配/);
+});
+test('a generic tower boss clear is disclosed as a different expedition, not labeled an unclaimed failure with no clue',()=>{
+  const skytree=F.record(F.initial(),{latitude:35.7101,longitude:139.8107,accuracy:8,speed:0},'2026-10-10').journal;
+  const game=E.act(bossDefeated(E.start(E.discover({...E.initial(),mode:'demo'},'tower'),'tower')),'return');
+  const data=new Map([
+    ['crownless-expedition-mode','demo'],
+    ['crownless-expedition-v1-demo',E.serialize(game)],
+    ['crownless-travel-footprints-v1-demo',JSON.stringify(skytree)]
+  ]);
+  const context={CrownlessSlice:E,CrownlessTravelFootprints:F,
+    localStorage:{getItem:key=>data.get(key)||null,setItem:(key,value)=>data.set(key,value)}};
+  context.window=context;
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../src/travel-chronicle-ui.js'),'utf8'),context);
+  const container={innerHTML:'',querySelectorAll:()=>[]};
+  context.CrownlessTravelChronicleUI.showFootprints();
+  context.CrownlessTravelChronicleUI.renderChronicle(container);
+  assert.match(container.innerHTML,/この地域種別の主を倒した履歴はありますが、この名所の攻略記録ではありません/);
+  assert.match(container.innerHTML,/このランドマークを攻略する/);
+});

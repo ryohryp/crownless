@@ -740,6 +740,15 @@
       }
       if (s.neighborhood.active !== null && (!s.expedition || N.get(s.neighborhood,s.neighborhood.active).biome !== s.expedition.place)) throw Error('district');
       if (s.neighborhood.districts.some(d => !s.unlocked.includes(d.biome))) throw Error('district');
+      // Recover a documented safe-return conquest if an older save recorded the
+      // named victory report but omitted the flag. Reconcile only AFTER the
+      // complete save/report schema has passed validation. A generic tower clear
+      // can never claim a named landmark through this path.
+      if (s.report?.landmarkId && !s.report.died &&
+          s.report.cleared.includes(s.report.place) &&
+          !s.claimedLandmarks.includes(s.report.landmarkId)) {
+        s.claimedLandmarks = [...s.claimedLandmarks,s.report.landmarkId];
+      }
       return s;
     } catch { return null; }
   }
