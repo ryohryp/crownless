@@ -393,3 +393,13 @@
 .fantasy-landmark-pin[aria-label*="支配済み"] .fantasy-landmark-footstep {
   border-color:#f3d782;background:#694f2e;box-shadow:0 0 0 3px rgba(220,181,90,.12);
 }
+
+/* Earned landmark control is visible even on the ordinary neighborhood screen.
+   These are fantasy-map status chips, not real-world GPS pins. */
+.landmark-status-strip {margin:8px 0 10px;padding:8px 10px;border:1px solid rgba(204,180,126,.35);border-radius:10px;background:rgba(16,32,30,.86);}
+.landmark-status-title {display:block;font-size:.78rem;font-weight:700;color:#dcca96;margin-bottom:5px;}
+.landmark-status-sites {display:flex;gap:8px;overflow-x:auto;scrollbar-width:thin;padding:0 0 3px;overscroll-behavior-x:contain;}
+.landmark-status-site {flex:0 0 auto;min-height:44px;max-width:182px;padding:5px 10px;background:#263b35;border:1px solid #69785f;border-radius:8px;color:#e8e1c7;cursor:pointer;text-align:left;}
+.landmark-status-site strong {display:block;font-size:.81rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.landmark-status-site small {display:block;font-size:.7rem;color:#b9c6b7;}
+.landmark-status-site:focus-visible {outline:3px solid #e2c783;outline-offset:2px;}
