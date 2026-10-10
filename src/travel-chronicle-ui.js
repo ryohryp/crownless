@@ -10,8 +10,37 @@
 
   const STORAGE_KEY_CHRONICLE = 'crownless-travel-chronicle-v1';
   const STORAGE_KEY_OUTPOSTS = 'crownless-frontier-outposts-v1';
+  const esc = value => String(value ?? '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+  const footprintKey = mode => `crownless-travel-footprints-v1-${mode === 'demo' ? 'demo' : 'walk'}`;
+  const footprintMode = () => {
+    try { return localStorage.getItem('crownless-expedition-mode') === 'demo' ? 'demo' : 'walk'; }
+    catch { return 'walk'; }
+  };
+  function getFootprints(mode = footprintMode()) {
+    const F = window.CrownlessTravelFootprints;
+    if (!F) return {version:1,places:[]};
+    try { return F.parse(localStorage.getItem(footprintKey(mode))); }
+    catch { return F.initial(); }
+  }
+  function modifyFootprints(mode, change) {
+    const F=window.CrownlessTravelFootprints;
+    if (!F) return {status:'unavailable'};
+    const key=footprintKey(mode);
+    try {
+      const raw=localStorage.getItem(key), current=F.parse(raw);
+      const next=change(current);
+      if (next.journal === current) return next;
+      if (localStorage.getItem(key)!==raw) return {status:'conflict'};
+      localStorage.setItem(key,JSON.stringify(next.journal));
+      return next;
+    } catch { return {status:'save-failed'}; }
+  }
+  function recordFootprint(coords,mode = footprintMode()) {
+    return modifyFootprints(mode,journal=>window.CrownlessTravelFootprints.record(journal,coords));
+  }
+  function showFootprints() { currentSubtab='footprints'; }
 
-  let currentSubtab = 'stamps';
+  let currentSubtab = 'footprints';
 
   function readJson(key, fallback) {
     try {
@@ -113,6 +142,7 @@
     const chronicle = getChronicle();
     const outpostsState = getOutposts();
     const playerScrap = getPlayerScrap();
+    const footprints = getFootprints();
 
     const stats = TC ? TC.getChronicleStats(chronicle) : { totalStamps: 0, totalRelics: 0, totalCards: 0 };
     const outpostsList = Object.values(outpostsState.outposts || {});
@@ -125,8 +155,8 @@
           <p class="chronicle-subtitle">訪れた土地の霧を払い、旗を立て、刻まれた旅の足跡。</p>
           <div class="chronicle-stats-ribbon">
             <div class="stat-item">
-              <span class="stat-num">${stats.totalStamps}</span>
-              <span class="stat-label">⛩️ 踏破消印</span>
+              <span class="stat-num">${currentSubtab === 'footprints' ? footprints.places.length : stats.totalStamps}</span>
+              <span class="stat-label">${currentSubtab === 'footprints' ? '👣 旅の足跡' : '⛩️ 踏破消印'}</span>
             </div>
             <div class="stat-item">
               <span class="stat-num">${stats.totalRelics}</span>
@@ -144,6 +174,7 @@
         </header>
 
         <nav class="chronicle-subtabs" aria-label="冒険録の項目">
+          <button class="subtab-btn ${currentSubtab === 'footprints' ? 'active' : ''}" data-subtab="footprints">旅の書</button>
           <button class="subtab-btn ${currentSubtab === 'stamps' ? 'active' : ''}" data-subtab="stamps">旅の印章</button>
           <button class="subtab-btn ${currentSubtab === 'relics' ? 'active' : ''}" data-subtab="relics">ご当地武具</button>
           <button class="subtab-btn ${currentSubtab === 'outposts' ? 'active' : ''}" data-subtab="outposts">開拓拠点</button>
@@ -161,6 +192,25 @@
       btn.addEventListener('click', (e) => {
         currentSubtab = e.currentTarget.dataset.subtab;
         renderChronicle(container);
+      });
+    });
+
+    container.querySelectorAll('.footprint-save-btn').forEach(btn => {
+      btn.addEventListener('click', event => {
+        const card=event.currentTarget.closest('.footprint-card');
+        const id=card?.dataset.footprintId, date=card?.dataset.visitDate;
+        const label=card?.querySelector('.footprint-label')?.value || '';
+        const note=card?.querySelector('.footprint-note')?.value || '';
+        const result=modifyFootprints(footprintMode(),journal=>{
+          const renamed=window.CrownlessTravelFootprints.rename(journal,id,label);
+          const annotated=window.CrownlessTravelFootprints.annotate(renamed,id,date,note);
+          return {status:'saved',journal:annotated};
+        });
+        if (result.status==='saved') renderChronicle(container);
+        else {
+          const status=card?.querySelector('.footprint-error');
+          if (status) status.textContent='保存できませんでした。ほかのタブが開いていないか確認してください。';
+        }
       });
     });
 
@@ -200,6 +250,22 @@
   }
 
   function renderSubtabContent(subtab, chronicle, outpostsState, playerScrap) {
+    if (subtab === 'footprints') {
+      const footprints=getFootprints();
+      if (!footprints.places.length) return '<div class="empty-state">まだ旅の足跡がありません。<p>現実の散策モードで、安全に立ち止まって現在地を記録すると、ここに初訪問の印が残ります。戦闘は不要です。</p></div>';
+      return '<div class="footprints-list">'+footprints.places.map(p=>{
+        const latest=p.visits[p.visits.length-1];
+        return `<article class="footprint-card" data-footprint-id="${esc(p.id)}" data-visit-date="${esc(latest.date)}">
+          <div class="footprint-heading"><span class="footprint-seal">${esc(p.icon)}</span><div><strong>${esc(p.label||p.name)}</strong><small>${esc(p.seal)} · 初訪問 ${esc(p.firstDate)}</small></div></div>
+          <p class="small">訪問 ${p.visits.length}日 · 最終訪問 ${esc(latest.date)} ${p.visits.length>1?'· おかえりなさい':''}</p>
+          <label>旅の名前<input class="footprint-label" maxlength="60" placeholder="例：家族で訪れた港" value="${esc(p.label)}"></label>
+          <label>この日の一言<input class="footprint-note" maxlength="180" placeholder="任意。後から書いてもOK" value="${esc(latest.note)}"></label>
+          <button type="button" class="footprint-save-btn">思い出を保存</button>
+          <span class="footprint-error" role="status"></span>
+          ${p.visits.length>1 ? '<details><summary>これまでの訪問</summary>'+p.visits.slice().reverse().map(v=>'<p class="small">'+esc(v.date)+(v.note?' · '+esc(v.note):'')+'</p>').join('')+'</details>' : ''}
+          </article>`;
+      }).join('')+'</div>';
+    }
     if (subtab === 'stamps') {
       const stamps = chronicle.stamps || [];
       if (stamps.length === 0) {
@@ -325,6 +391,9 @@
   return {
     getChronicle,
     getOutposts,
+    getFootprints,
+    recordFootprint,
+    showFootprints,
     renderChronicle,
     installChronicleTab,
   };
