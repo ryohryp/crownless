@@ -9,6 +9,10 @@ Keep these unless the user changes them:
 - Immediate core loop: **Explore → Fight/Gather → Return alive with materials → Craft/Trade/Equip → Explore farther**.
 - Shared-world meta-loop: **Discover a place → Leave a useful trace → Affect another character or player → See the consequence → Revisit or expand**.
 - Real-world movement discovers and opens the game world; it is not a step-count reward system.
+- Travel-life-log loop: **Visit somewhere → Privately record a dated footprint and one regional seal → Optionally explore or leave a fictional trace → Revisit and remember**.
+- Visiting a place is valuable without fighting, crafting or performing a mandatory check-in. Do not add daily-streak pressure.
+- Keep personal dates/notes private; asynchronous multiplayer exposes only deliberately published coarse game effects, never private movement history.
+- A trip beyond the player's home neighborhood must still count as a visit.
 - Equipment should visibly change the character and meaningfully change later choices.
 - Combat should reward strategy and meaningful decisions.
 - Exploration should make the world feel larger and open new possibilities.
@@ -20,9 +24,11 @@ Keep these unless the user changes them:
 - The player starts unknown and poorly equipped, then develops different builds and combat styles.
 - Design for real smartphone play.
 
-The first milestone is simple:
+The two complementary milestones are simple:
 
-> **After about 15 minutes, does someone voluntarily want one more expedition for ingredients, one more craft, or to see what happened to an object/place they affected?**
+> **After an ordinary walk or trip, does someone voluntarily open Crownless to keep a footprint? When they return to a place later, does the travel book make their past visit meaningful?**
+
+> **After about 15 minutes of optional RPG play, does someone voluntarily want one more expedition for ingredients, one more craft, or to see what happened to an object/place they affected?**
 
 Prefer work that strengthens the loop above.
 
@@ -51,6 +57,7 @@ Related implementation work: #602, #708, #709, #710.
 - Reuse old code only when it is genuinely useful.
 - Historical ADRs and design docs are references, not Canon.
 - Avoid speculative systems and abstractions.
+- Historical save compatibility is not a requirement for the 2026-10-10 travel-lifelog experiment. Never claim a successful save when writing fails; protect new personal visit records.
 - Prefer **Design → smallest implementation → run → play/inspect → improve**.
 - Make reasonable product and technical decisions without stopping for approval.
 

@@ -3,6 +3,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const vm = require('node:vm');
 const E = require('../src/slice-engine.js');
+const F = require('../src/travel-footprints.js');
 const code = fs.readFileSync(require('node:path').join(__dirname,'../src/slice-app.js'),'utf8');
 function browser(seed = {}, storageFails = false) {
   const store = new Map(Object.entries(seed)), callbacks = {}, elements = {};
@@ -12,7 +13,20 @@ function browser(seed = {}, storageFails = false) {
     localStorage:{getItem:k=>{if(storageFails)throw Error('blocked');return store.get(k)??null;},setItem:(k,v)=>{if(storageFails)throw Error('blocked');store.set(k,v);}},
     navigator:{geolocation:{getCurrentPosition(ok,error){callbacks.ok=ok;callbacks.error=error;}}},
     addEventListener:(name,fn)=>{callbacks[name]=fn;},location:{reload(){callbacks.reloaded=true;}}};
-  context.window=context; vm.runInNewContext(code,context);
+  context.window=context;
+  context.CrownlessTravelFootprints=F;
+  context.CrownlessTravelChronicleUI={
+    recordFootprint(coords,mode='walk',day=F.dayString()){
+      const k='crownless-travel-footprints-v1-'+mode;
+      try {
+        const data=F.parse(context.localStorage.getItem(k)), result=F.record(data,coords,day);
+        if (result.journal!==data) context.localStorage.setItem(k,JSON.stringify(result.journal));
+        return result;
+      } catch { return {status:'save-failed'}; }
+    },
+    showFootprints(){callbacks.showFootprints=true;}
+  };
+  vm.runInNewContext(code,context);
   return {store,elements,callbacks,click(action,value){elements['#game'].click({target:{closest:()=>({dataset:{action,value},disabled:false})}});},html:()=>elements['#game'].innerHTML};
 }
 
@@ -364,4 +378,29 @@ test('fictional traveler supplies appear on selected district and vanish when us
   b.click('tab','explore');
   assert.doesNotMatch(b.html(),/架空NPCが残したもの：薬師の補給袋/);
   assert.match(b.html(),/補給袋は受け取った/);
+});
+
+test('real GPS records the first visit and faraway travel independent of the old 64 districts',()=>{
+  const b=browser(); b.click('mode','walk');
+  b.click('gps'); b.callbacks.ok({coords:{latitude:35.7521,longitude:139.8623,accuracy:8,speed:0}});
+  const key='crownless-travel-footprints-v1-walk';
+  assert.equal(F.parse(b.store.get(key)).places.length,1);
+  assert.match(b.html(),/旅の書に初訪問の印/);
+  b.click('gps'); b.callbacks.ok({coords:{latitude:34.7123,longitude:135.4872,accuracy:8,speed:0}});
+  assert.equal(F.parse(b.store.get(key)).places.length,2);
+  assert.match(b.html(),/旅の書に初訪問の印/);
+  const reload=browser(Object.fromEntries(b.store));
+  assert.equal(F.parse(reload.store.get(key)).places.length,2);
+});
+test('simulated trip and later revisit are stored only in the demo journal',()=>{
+  const b=browser(); b.click('mode','demo'); b.click('travel-demo','home');
+  const key='crownless-travel-footprints-v1-demo';
+  assert.equal(F.parse(b.store.get(key)).places.length,1);
+  assert.ok(b.callbacks.showFootprints);
+  b.click('tab','explore'); b.click('travel-demo','far');
+  assert.equal(F.parse(b.store.get(key)).places.length,2);
+  b.click('tab','explore'); b.click('travel-demo','return');
+  const home=F.parse(b.store.get(key)).places.find(p=>p.id===F.locate({latitude:35.7521,longitude:139.8623,accuracy:8,speed:0}).id);
+  assert.equal(home.visits.length,2);
+  assert.equal(b.store.get('crownless-travel-footprints-v1-walk'),undefined);
 });
