@@ -392,6 +392,7 @@
     if (!target || target.disabled) return;
     const { action, value } = target.dataset;
     if (action === 'reload') { location.reload(); return; }
+    if (invalidSave && action !== 'restart-invalid-save') return;
     if (action === 'restart-invalid-save') {
       if (!invalidSave || !currentKey) return;
       if (!window.confirm('このモードの古いゲーム記録と装備を破棄して、新しい冒険を始めますか？ 発見済みランドマークの足跡は残ります。')) return;
