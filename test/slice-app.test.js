@@ -11,9 +11,9 @@ function browser(seed = {}, storageFails = false, realChronicle = false) {
   for (const id of ['#game','#save-status','#save-label','#help-toggle','#help','#home-name']) elements[id] = {innerHTML:'',hidden:true,textContent:'',value:'',addEventListener(type,fn){this[type]=fn;},setAttribute(){}};
   const context = {CrownlessSlice:E,CrownlessNeighborhood:require('../src/neighborhood.js'),CrownlessArt:{scene:()=>'<svg></svg>',icon:()=>'<svg></svg>'},isSecureContext:true,
     document:{querySelector:selector=>elements[selector] || null},
-    localStorage:{getItem:k=>{if(storageFails)throw Error('blocked');return store.get(k)??null;},setItem:(k,v)=>{if(storageFails)throw Error('blocked');store.set(k,v);}},
+    localStorage:{getItem:k=>{if(storageFails)throw Error('blocked');return store.get(k)??null;},setItem:(k,v)=>{if(storageFails)throw Error('blocked');store.set(k,v);},removeItem:k=>{if(storageFails)throw Error('blocked');store.delete(k);}},
     navigator:{geolocation:{getCurrentPosition(ok,error){callbacks.ok=ok;callbacks.error=error;}}},
-    addEventListener:(name,fn)=>{callbacks[name]=fn;},location:{reload(){callbacks.reloaded=true;}}};
+    addEventListener:(name,fn)=>{callbacks[name]=fn;},confirm:()=>callbacks.confirmRestart!==false,location:{reload(){callbacks.reloaded=true;}}};
   context.window=context;
   context.CrownlessTravelFootprints=F;
   context.CrownlessTravelChronicleUI={
@@ -108,11 +108,47 @@ test('denied and timed-out location requests leave a playable fallback', () => {
   b.click('gps'); b.callbacks.error({code:3}); assert.match(b.html(),/現在地を取得できません/);
   b.click('switch-mode'); b.click('depart','wood'); assert.match(b.html(),/最初の足跡/);
 });
-test('corrupt save is retained verbatim and play remains available without overwriting it', () => {
+test('corrupt save is never overwritten or allowed to fake unsaved gameplay', () => {
   const k='crownless-expedition-v1-demo', b=browser({[k]:'{broken'});
-  b.click('mode','demo'); b.click('depart','wood'); b.click('careful');
-  assert.equal(b.store.get(k),'{broken'); assert.equal(b.elements['#save-status'].hidden,false);
-  assert.match(b.html(),/茨牙の狼/);
+  b.click('mode','demo');
+  assert.equal(b.store.get(k),'{broken');
+  assert.match(b.html(),/セーブを読み込めません/);
+  assert.match(b.html(),/data-action="restart-invalid-save"/);
+  b.click('depart','wood');
+  assert.equal(b.store.get(k),'{broken');
+  assert.doesNotMatch(b.html(),/茨牙の狼/);
+  assert.equal(b.elements['#save-status'].hidden,false);
+});
+test('cancel keeps invalid game bytes; confirming fresh start preserves other mode and discovered landmarks',()=>{
+  const k='crownless-expedition-v1-demo';
+  const walk='crownless-expedition-v1-walk';
+  const fkey='crownless-travel-footprints-v1-demo';
+  const oldWalk=E.serialize({...E.initial(),mode:'walk',scrap:27});
+  const visits=F.record(F.initial(),{latitude:35.7101,longitude:139.8107,accuracy:8,speed:0},'2026-10-10').journal;
+  const seed={[k]:'{broken',[walk]:oldWalk,[fkey]:JSON.stringify(visits),'crownless-expedition-mode':'demo'};
+  const b=browser(seed,false,true);
+  assert.match(b.html(),/セーブを読み込めません/);
+  b.callbacks.confirmRestart=false;
+  b.click('restart-invalid-save');
+  assert.equal(b.store.get(k),'{broken');
+  b.callbacks.confirmRestart=true;
+  b.click('restart-invalid-save');
+  const clean=E.parse(b.store.get(k));
+  assert.equal(clean.mode,'demo');
+  assert.deepEqual(clean.claimedLandmarks,[]);
+  assert.equal(clean.scrap,0);
+  assert.equal(b.store.get(walk),oldWalk);
+  assert.equal(b.store.get(fkey),JSON.stringify(visits));
+  assert.doesNotMatch(b.html(),/セーブを読み込めません/);
+  assert.match(b.html(),/class="exploration-atlas neighborhood-atlas"/);
+  b.click('tab','chronicle');
+  assert.match(b.chronicleHTML(),/天穿つ白塔/);
+  assert.match(b.chronicleHTML(),/発見済み・未支配/);
+  b.click('landmark-siege','tokyo-skytree');
+  const siege=E.parse(b.store.get(k));
+  assert.equal(siege.expedition.landmarkId,'tokyo-skytree');
+  assert.equal(siege.expedition.place,'tower');
+  assert.match(b.html(),/天穿つ白塔/);
 });
 test('unavailable storage does not prevent starting or playing', () => {
   const b=browser({},true); b.click('mode','demo'); b.click('depart','wood'); b.click('careful');

@@ -445,3 +445,14 @@
 .landmark-control-status--generic {background:#46392c;border:1px solid #c9a66d;color:#f8e5bd;}
 .landmark-control-status--new {background:#253831;border:1px solid #587766;color:#d6e8d8;}
 .landmark-siege-btn:disabled {opacity:.6;cursor:not-allowed;}
+
+/* Visible, explicit single-mode restart when a stale save cannot be parsed.
+   Never quietly reset a player's data in the background. */
+.save-recovery-panel {
+  max-width:550px;margin:clamp(18px,5vh,44px) auto;padding:22px 18px;
+  border:1px solid #d0af76;border-radius:12px;background:#213a33;color:#eee8d8;
+  box-shadow:0 6px 24px rgba(0,0,0,.28);line-height:1.65;
+}
+.save-recovery-panel h2 {margin:0 0 10px;color:#ffda99;font-family:inherit;font-size:1.25rem;font-weight:700;line-height:1.4;}
+.save-recovery-panel p {margin:0 0 16px;font-size:.94rem;}
+.save-recovery-panel button {min-height:48px;width:100%;font-size:1rem;}
