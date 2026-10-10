@@ -57,6 +57,8 @@ Do not add multiple recipe tiers, global prices, or punishment through wear befo
 
 Crafted personal equipment remains one copy per item ID. To make production repeatable before there are real players, the smith can instead spend the same materials and iron scraps to supply one **fictional NPC** in a discovered region. One pending NPC commission per account. The NPC reports its consequence only after the adventurer completes at least one fight and returns alive from that same game region. The smith receives iron scraps, a completed-order count and a single-use +1 herb supply for the next expedition to that region. No real player account or live position is represented, and no duplicate equippable item is generated. A failed or zero-encounter return cannot claim the reward. This is a fun hypothesis, not networked trade.
 
+First place-bound consequence (2026-10-10): when a completed NPC commission is reported after a victorious encounter and safe return, the **specific coarse district** where the adventurer returned gains a named permanent trail/sign of the NPC's work. Revisit that district to see the sign; its first victorious enemy on each new expedition there carries **one extra regional material**, still lost if the adventurer fails to return. Another district of the same biome does not inherit the trail. Existing districts migrate with no trace; no exact GPS, clock data, player-to-player exchange, or network state is added. The one-off commission herb benefit remains separate. This is a local simulated human-fun test, not evidence of actual MMO interaction.
+
 ## 5. Territory and frontier development
 
 A conquered meaningful place can become a Frontier Outpost.
