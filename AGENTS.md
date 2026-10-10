@@ -9,10 +9,10 @@ Keep these unless the user changes them:
 - Immediate core loop: **Explore → Fight/Gather → Return alive with materials → Craft/Trade/Equip → Explore farther**.
 - Shared-world meta-loop: **Discover a place → Leave a useful trace → Affect another character or player → See the consequence → Revisit or expand**.
 - Real-world movement discovers and opens the game world; it is not a step-count reward system.
-- Travel-life-log loop: **Visit somewhere → Privately record a dated footprint and one regional seal → Optionally explore or leave a fictional trace → Revisit and remember**.
-- Visiting a place is valuable without fighting, crafting or performing a mandatory check-in. Do not add daily-streak pressure.
-- Keep personal dates/notes private; asynchronous multiplayer exposes only deliberately published coarse game effects, never private movement history.
-- A trip beyond the player's home neighborhood must still count as a visit.
+- Landmark discovery loop: **Approach a real landmark → Reveal its fantasy counterpart on the game map → Earn a footprint and seal → Return to find the same place changed**. It is gameplay, not diary keeping.
+- No text input, nicknames, diaries or daily check-in chores for discoveries. Visiting a landmark is valuable without mandatory combat.
+- Real-world location checks happen only on explicit stationary foreground action for now. Store earned landmark IDs and visit days, not raw coordinates or route history. Keep dates private; expose only deliberately published fictional gameplay effects.
+- Recognized landmarks count even when far beyond the player's home neighborhood. Do not mint meaningless random map stamps at arbitrary GPS cells.
 - Equipment should visibly change the character and meaningfully change later choices.
 - Combat should reward strategy and meaningful decisions.
 - Exploration should make the world feel larger and open new possibilities.
@@ -26,7 +26,7 @@ Keep these unless the user changes them:
 
 The two complementary milestones are simple:
 
-> **After an ordinary walk or trip, does someone voluntarily open Crownless to keep a footprint? When they return to a place later, does the travel book make their past visit meaningful?**
+> **Does visiting a real landmark reveal a memorable fantasy location that the player wants to discover, revisit, and see on their map?**
 
 > **After about 15 minutes of optional RPG play, does someone voluntarily want one more expedition for ingredients, one more craft, or to see what happened to an object/place they affected?**
 

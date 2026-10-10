@@ -14,39 +14,61 @@ function setup(seed={},fails=false) {
   };
   context.window=context;
   vm.runInNewContext(code,context);
-  return {values,ui:context.CrownlessTravelChronicleUI};
+  const ui=context.CrownlessTravelChronicleUI;
+  const render=()=>{
+    const container={innerHTML:'',querySelectorAll:()=>[]};
+    ui.renderChronicle(container);
+    return container.innerHTML;
+  };
+  return {values,ui,render};
 }
-const near={latitude:35.7521,longitude:139.8623,accuracy:8,speed:0};
-const distant={latitude:34.7123,longitude:135.4872,accuracy:8,speed:0};
-test('explicit GPS visit is persisted to private walk book, not game state',()=>{
+const tower={latitude:35.658656,longitude:139.745364,accuracy:8,speed:0};
+const osaka={latitude:34.68734,longitude:135.526,accuracy:8,speed:0};
+test('landmark discovery is saved in the private walk world and reflected on the map',()=>{
   const b=setup();
-  const r=b.ui.recordFootprint(near,'walk','2026-10-10');
-  assert.equal(r.status,'first');
+  const result=b.ui.recordFootprint(tower,'walk','2026-10-10');
+  assert.equal(result.status,'first');
   const raw=b.values.get('crownless-travel-footprints-v1-walk');
   assert.ok(raw);
-  assert.equal(F.parse(raw).places.length,1);
-  assert.ok(!raw.includes('latitude')&&!raw.includes('longitude'));
+  assert.equal(F.parse(raw).places[0].id,'tokyo-tower');
   assert.equal(b.values.get('crownless-expedition-v1-walk'),undefined);
+  b.ui.showFootprints('紅蓮の望楼を発見！');
+  const html=b.render();
+  assert.match(html,/fantasy-landmark-map-field/);
+  assert.match(html,/紅蓮の望楼/);
+  assert.match(html,/東京タワー/);
+  assert.match(html,/発見済み/);
+  assert.match(html,/👣/);
+  assert.doesNotMatch(html,/<input|<textarea|旅の名前|この日の一言|思い出を保存/);
 });
-test('remote travel and repeat visit survive reopening',()=>{
+test('distant castle and return become two distinct discovery pins across reload',()=>{
   const b=setup();
-  b.ui.recordFootprint(near,'walk','2026-10-10');
-  assert.equal(b.ui.recordFootprint(distant,'walk','2026-10-10').status,'first');
+  b.ui.recordFootprint(tower,'walk','2026-10-10');
+  assert.equal(b.ui.recordFootprint(osaka,'walk','2026-10-10').status,'first');
   const reload=setup(Object.fromEntries(b.values));
-  assert.equal(reload.ui.recordFootprint(near,'walk','2026-10-12').status,'revisited');
-  const places=reload.ui.getFootprints('walk').places;
-  assert.equal(places.length,2);
-  assert.equal(places.find(p=>p.id===F.locate(near).id).visits.length,2);
-  assert.equal(reload.ui.recordFootprint(near,'walk','2026-10-12').status,'same-day');
+  assert.equal(reload.ui.recordFootprint(tower,'walk','2026-10-12').status,'revisited');
+  assert.equal(reload.ui.getFootprints('walk').places.length,2);
+  const html=reload.render();
+  assert.match(html,/紅蓮の望楼/);
+  assert.match(html,/翠冠の王城/);
+  assert.match(html,/再訪済み/);
+  assert.equal(reload.ui.recordFootprint(tower,'walk','2026-10-12').status,'same-day');
 });
-test('demo visits are isolated from the real travel journal',()=>{
+test('unregistered locations cannot appear as arbitrary stamps',()=>{
+  const b=setup();
+  const result=b.ui.recordFootprint({latitude:35.7521,longitude:139.8623,accuracy:8,speed:0},'walk','2026-10-10');
+  assert.equal(result.status,'no-landmark');
+  assert.equal(b.ui.getFootprints('walk').places.length,0);
+  assert.doesNotMatch(b.render(),/fantasy-landmark-map-field/);
+});
+test('demo discoveries are kept separate from real discoveries',()=>{
   const b=setup({'crownless-expedition-mode':'demo'});
-  b.ui.recordFootprint(near,'demo','2026-10-10');
+  b.ui.recordFootprint(tower,'demo','2026-10-10');
   assert.equal(b.ui.getFootprints('demo').places.length,1);
   assert.equal(b.ui.getFootprints('walk').places.length,0);
 });
-test('failed storage never claims a stamp has been saved',()=>{
+test('failed storage does not claim earned stamps',()=>{
   const b=setup({},true);
-  assert.equal(b.ui.recordFootprint(near,'walk','2026-10-10').status,'save-failed');
+  assert.equal(b.ui.recordFootprint(tower,'walk','2026-10-10').status,'save-failed');
   assert.equal(b.ui.getFootprints('walk').places.length,0);
 });
