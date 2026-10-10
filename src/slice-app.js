@@ -355,7 +355,9 @@
     else if (action === 'tab') { tab = value; notice = ''; }
     else if (action === 'travel-demo') {
       const points={home:{latitude:35.7521,longitude:139.8623,accuracy:8,speed:0},far:{latitude:34.7123,longitude:135.4872,accuracy:8,speed:0}};
-      const visit=window.CrownlessTravelChronicleUI?.recordFootprint?.(points[value==='far'?'far':'home'],'demo');
+      const demoDate=new Date(); if (value==='return') demoDate.setDate(demoDate.getDate()+1);
+      const day=window.CrownlessTravelFootprints?.dayString?.(demoDate);
+      const visit=window.CrownlessTravelChronicleUI?.recordFootprint?.(points[value==='far'?'far':'home'],'demo',day);
       notice=visit?.status==='first' ? '新しい旅の印章を記録した。'
         : visit?.status==='revisited' ? 'この土地に戻り、再訪記録を残した。'
         : visit?.status==='same-day' ? '同じ日の訪問は重複しない。'
