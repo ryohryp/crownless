@@ -5,7 +5,7 @@
   const root = document.querySelector('#game');
   const esc = v => String(v).replace(/[&<>"']/g, c => ({ '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;' }[c]));
   let state = E.initial(), selected = 'wood', tab = 'explore', notice = '', busy = false, lastReturnedPlace = null, prioritizeReinforcement = false, endingOpen = false;
-  let session = E.locationSession(), currentKey = null, lastRaw = null, saveBlocked = false, conflict = false, locationRequest = 0;
+  let session = E.locationSession(), currentKey = null, lastRaw = null, saveBlocked = false, invalidSave = false, conflict = false, locationRequest = 0;
   const key = mode => `crownless-expedition-v1-${mode}`;
   const walkAnchorKey = 'crownless-expedition-v1-walk-anchor';
   const coarseAnchor = anchor => anchor && Number.isFinite(anchor.latitude) && Number.isFinite(anchor.longitude)
@@ -24,12 +24,12 @@
   }
   const warning = message => { const el = document.querySelector('#save-status'); el.hidden = !message; el.textContent = message; document.querySelector('#save-label').textContent = message ? '保存停止中・この画面でのみ進行' : '端末に自動保存'; };
   function loadMode(mode) {
-    state = E.initial(); state.mode = mode; currentKey = key(mode); lastRaw = null; saveBlocked = false; conflict = false; warning('');
+    state = E.initial(); state.mode = mode; currentKey = key(mode); lastRaw = null; saveBlocked = false; invalidSave = false; conflict = false; warning('');
     try {
       lastRaw = localStorage.getItem(currentKey);
       const loaded = E.parse(lastRaw);
       if (loaded && (!loaded.mode || loaded.mode === mode)) { state = loaded; state.mode = mode; }
-      else { saveBlocked = true; warning('セーブを読み込めませんでした。元データを保持し、この回は保存せずに遊べます。'); }
+      else { invalidSave = true; saveBlocked = true; warning('このモードのセーブを読み込めません。古い記録を破棄して再開できます。'); }
       localStorage.setItem('crownless-expedition-mode', mode);
     } catch { saveBlocked = true; warning('このブラウザでは保存できません。ページを閉じると今回の進行は失われます。'); }
     locationRequest++; busy = false; session = restoreWalkSession(); selected = state.expedition?.place || N.get(state.neighborhood).biome; tab = 'explore'; notice = ''; lastReturnedPlace = null; prioritizeReinforcement = false; endingOpen = false; render();
@@ -331,6 +331,17 @@
     if (help && !help.hidden) { help.hidden = true; helpToggle?.setAttribute('aria-expanded', 'false'); }
     if (conflict) { root.innerHTML = '<div class="help"><h2>別のタブで旅が進んでいます。</h2><p>最新のセーブを読み直してください。</p><button class="primary" data-action="reload">再読み込み</button></div>'; return; }
     root.innerHTML = !state.mode ? onboard() : state.expedition ? expedition() : endingOpen ? ending() : state.report ? report() : camp();
+    if (invalidSave) {
+      // A bad save is not playable progression: otherwise every action looks
+      // successful but none persists. Keep the original bytes untouched until
+      // the player explicitly elects to restart this ONE mode.
+      root.innerHTML = '<section class="save-recovery-panel" role="alert"><h2>セーブを読み込めません</h2>'
+        + '<p>このモードは現在、冒険を進めても保存されません。古いゲーム記録を破棄すると、新しい冒険を保存できます。'
+        + '発見済みランドマークの足跡は残ります。</p>'
+        + button('restart-invalid-save','このモードを最初からやり直す','',{class:'primary'})
+        + '</section>';
+      return;
+    }
     const codexPanel = root.querySelector?.('.codex-panel');
     if (codexPanel) window.CrownlessCodexUI?.renderCodex?.(codexPanel);
     const chroniclePanel = root.querySelector?.('.chronicle-panel');
@@ -381,6 +392,21 @@
     if (!target || target.disabled) return;
     const { action, value } = target.dataset;
     if (action === 'reload') { location.reload(); return; }
+    if (action === 'restart-invalid-save') {
+      if (!invalidSave || !currentKey) return;
+      if (!window.confirm('このモードの古いゲーム記録と装備を破棄して、新しい冒険を始めますか？ 発見済みランドマークの足跡は残ります。')) return;
+      try {
+        // Only remove this mode's broken game state. Walk/demo records and
+        // landmark discovery logs are independent, and are not overwritten.
+        const mode=state.mode;
+        localStorage.removeItem(currentKey);
+        loadMode(mode);
+        save();
+      } catch {
+        warning('初期化できませんでした。ブラウザの保存設定を確認してください。');
+      }
+      return;
+    }
     if (conflict) return;
     if (action === 'settings') {
       const help = document.querySelector('#help');
