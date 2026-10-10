@@ -14,7 +14,7 @@
   ];
   const initial = () => ({ version: VERSION, places: [] });
   const dayString = (date = new Date()) => {
-    if (!(date instanceof Date) || Number.isNaN(date.getTime())) throw Error('invalid date');
+    if (!date || typeof date.getTime !== 'function' || !Number.isFinite(date.getTime())) throw Error('invalid date');
     return [date.getFullYear(), String(date.getMonth()+1).padStart(2, '0'), String(date.getDate()).padStart(2, '0')].join('-');
   };
   const validDay = day => typeof day === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(day);
