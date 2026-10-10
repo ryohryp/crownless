@@ -16,15 +16,15 @@ The surrounding location/meta loop is:
 
 The first milestone is the one in `AGENTS.md`: after roughly 15 minutes, does the player want to seek another material, craft another item, or inspect an effect they left in the world? The older stronghold/relic goals remain as playable systems, not the sole North Star.
 
-## 1.5 Travel footprints (2026-10-10 approved direction, MVP experiment)
+## 1.5 Landmark discovery (2026-10-10 updated human direction)
 
-Ordinary movement should leave a memory even when the player declines to start a fight. A brief, voluntary, stationary foreground GPS check records a **private coarse place** and local visit date. The first visit creates one seal; later days append memories to the same place. Optional nickname and brief note help distinguish real trips. No tracking, map history, photo upload, automatic check-ins, or server sync is needed for the first slice.
+This is a **game, not a diary**. When the player safely checks their location near a recognizable real-world landmark, the fantasy counterpart is revealed on the Crownless travel map (e.g. Tokyo Tower → 紅蓮の望楼). The fantasy location earns a footprint/seal with no forms, notes, custom titles or second save action. Repeat visits add a footprint to the *same place*, never spawn duplicate stamps. Distinct landmarks can unlock existing expedition biome types without demanding a fight.
 
-This travel book is separate from the old simulated region stamps and game progress. The nearby 400m/64-district map remains a local expedition prototype: a distant visit already counts toward the travel book even if it cannot yet become a distinct playable expedition destination. Closing that world-map linkage is a follow-up, not a false claim of current functionality.
+The small offline pilot recognizes Tokyo Tower, Tokyo Skytree and Osaka Castle; no general nationwide catalogue or live POI service yet. Outside the known pilot landmarks, do not invent an anonymous stamp based only on a 2km GPS cell. Landmark identity and themed description come from verified public catalogue data. The illustrated fantasy map is not a real navigation map.
 
-`src/travel-footprints.js` contains the stable approximately 2km Web-Mercator region identity. It persists the cell ID (which can reveal an approximate private area if exported), date and user-written annotations, but not raw coordinates, exact routes, or time of day. Never publish personal notes, dates or cell IDs to asynchronous players by default. Keep demo visits distinct from actual GPS visits.
+The player stays at a safe public vantage point; entrance to the landmark is not required. Only explicit foreground GPS, no continuous tracking. The new v3 save contains landmark IDs and visit dates only; never store precise GPS, actual route, personal notes or location histories. Demo discoveries are isolated from actual ones. Old diary saves need not migrate (user explicitly waived compatibility).
 
-Human evaluation now asks both whether an ordinary outing makes the player open Crownless and whether optional RPG consequences encourage a return. Legacy-save compatibility is explicitly not required for this experimental pivot.
+Human fun gate: does real-world discovery prompt opening the game, give an interesting fantasy place, and make returning to that place more inviting?
 
 ## 2. Exploration and location
 
