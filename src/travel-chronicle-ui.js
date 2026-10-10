@@ -18,7 +18,7 @@
   };
   function getFootprints(mode = footprintMode()) {
     const F = window.CrownlessTravelFootprints;
-    if (!F) return {version:1,places:[]};
+    if (!F) return {version:3,places:[]};
     try { return F.parse(localStorage.getItem(footprintKey(mode))); }
     catch { return F.initial(); }
   }
@@ -195,25 +195,7 @@
       });
     });
 
-    container.querySelectorAll('.footprint-save-btn').forEach(btn => {
-      btn.addEventListener('click', event => {
-        const card=event.currentTarget.closest('.footprint-card');
-        const id=card?.dataset.footprintId, date=card?.dataset.visitDate;
-        const label=card?.querySelector('.footprint-label')?.value || '';
-        const note=card?.querySelector('.footprint-note')?.value || '';
-        const result=modifyFootprints(footprintMode(),journal=>{
-          const renamed=window.CrownlessTravelFootprints.rename(journal,id,label);
-          const annotated=window.CrownlessTravelFootprints.annotate(renamed,id,date,note);
-          return {status:'saved',journal:annotated};
-        });
-        if (result.status==='saved') renderChronicle(container);
-        else {
-          const status=card?.querySelector('.footprint-error');
-          if (status) status.textContent='保存できませんでした。ほかのタブが開いていないか確認してください。';
-        }
-      });
-    });
-
+    /* Place discoveries require no text editing or secondary save action. */
     // Bind upgrade buttons
     container.querySelectorAll('.facility-upgrade-btn').forEach(btn => {
       btn.addEventListener('click', (e) => {
@@ -251,20 +233,26 @@
 
   function renderSubtabContent(subtab, chronicle, outpostsState, playerScrap) {
     if (subtab === 'footprints') {
-      const footprints=getFootprints();
-      if (!footprints.places.length) return '<div class="empty-state">まだ旅の足跡がありません。<p>現実の散策モードで、安全に立ち止まって現在地を記録すると、ここに初訪問の印が残ります。戦闘は不要です。</p></div>';
-      return '<div class="footprints-list">'+footprints.places.map(p=>{
-        const latest=p.visits[p.visits.length-1];
-        return `<article class="footprint-card" data-footprint-id="${esc(p.id)}" data-visit-date="${esc(latest.date)}">
-          <div class="footprint-heading"><span class="footprint-seal">${esc(p.icon)}</span><div><strong>${esc(p.label||p.name)}</strong><small>${esc(p.seal)} · 初訪問 ${esc(p.firstDate)}</small></div></div>
-          <p class="small">訪問 ${p.visits.length}日 · 最終訪問 ${esc(latest.date)} ${p.visits.length>1?'· おかえりなさい':''}</p>
-          <label>旅の名前<input class="footprint-label" maxlength="60" placeholder="例：家族で訪れた港" value="${esc(p.label)}"></label>
-          <label>この日の一言<input class="footprint-note" maxlength="180" placeholder="任意。後から書いてもOK" value="${esc(latest.note)}"></label>
-          <button type="button" class="footprint-save-btn">思い出を保存</button>
-          <span class="footprint-error" role="status"></span>
-          ${p.visits.length>1 ? '<details><summary>これまでの訪問</summary>'+p.visits.slice().reverse().map(v=>'<p class="small">'+esc(v.date)+(v.note?' · '+esc(v.note):'')+'</p>').join('')+'</details>' : ''}
-          </article>`;
-      }).join('')+'</div>';
+      const F=window.CrownlessTravelFootprints;
+      const found=F ? F.discovered(getFootprints()) : [];
+      if (!found.length) return '<div class="empty-state">まだ幻想の名所は見つかっていない。<p>現実のランドマークの近くで、安全に立ち止まって現在地を確認しよう。訪問すると地図に発見の印が付く。文字入力はいらない。</p></div>';
+      // Illustration only: coordinates below are fantasy-map placements and are
+      // intentionally NOT a precise representation of real-world locations.
+      const pins=found.map((p,i)=>`<div class="fantasy-landmark-pin" style="left:${14+(i%3)*36}%;top:${24+(Math.floor(i/3)%2)*44}%;" aria-label="${esc(p.name)}、発見済み">
+          <span class="fantasy-landmark-icon" aria-hidden="true">${esc(p.icon)}</span><span class="fantasy-landmark-footstep" aria-hidden="true">👣</span>
+          <span class="fantasy-landmark-pin-title">${esc(p.name)}</span></div>`).join('');
+      return `<section class="fantasy-landmark-map" aria-label="発見した幻想の名所を表示した旅の地図">
+        <div class="fantasy-landmark-map-title">発見した土地 · ${found.length}か所</div>
+        <div class="fantasy-landmark-map-field">${pins}</div>
+        <p class="small">旅の絵地図。現実の位置や経路を示すものではない。</p>
+      </section>
+      <div class="footprints-list">${found.map(p=>`<article class="footprint-card">
+        <div class="footprint-heading"><span class="footprint-seal" aria-hidden="true">${esc(p.icon)}</span><div><strong>${esc(p.name)}</strong><small>${esc(p.realName)} 付近で発見</small></div></div>
+        <p class="small">${esc(p.description)}</p>
+        <p class="footprint-acquired">👣 発見済み · ${esc(p.seal)}</p>
+        <p class="small">初発見 ${esc(p.firstDate)} · 訪問 ${p.visits.length}日${p.visits.length>1?' · 再訪済み':''}</p>
+        <p class="small">開放された冒険系統：${p.biome==='tower'?'鐘なき塔':'囁きの森'}</p>
+      </article>`).join('')}</div>`;
     }
     if (subtab === 'stamps') {
       const stamps = chronicle.stamps || [];
