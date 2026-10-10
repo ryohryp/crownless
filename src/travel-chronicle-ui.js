@@ -38,7 +38,8 @@
   function recordFootprint(coords,mode = footprintMode(),day) {
     return modifyFootprints(mode,journal=>window.CrownlessTravelFootprints.record(journal,coords,day));
   }
-  function showFootprints() { currentSubtab='footprints'; }
+  let lastDiscovery = '';
+  function showFootprints(message = '') { currentSubtab='footprints'; lastDiscovery=String(message); }
 
   let currentSubtab = 'footprints';
 
@@ -151,8 +152,8 @@
       <div class="chronicle-container">
         <header class="chronicle-header">
           <p class="chronicle-kicker">TRAVELER'S CHRONICLE & PASSPORT</p>
-          <h2 class="chronicle-title">旅人の冒険録 · 旅と開拓</h2>
-          <p class="chronicle-subtitle">訪れた土地の霧を払い、旗を立て、刻まれた旅の足跡。</p>
+          <h2 class="chronicle-title">旅の地図 · 発見した世界</h2>
+          <p class="chronicle-subtitle">現実のランドマークは、こちらの世界にも姿を現す。</p>
           <div class="chronicle-stats-ribbon">
             <div class="stat-item">
               <span class="stat-num">${currentSubtab === 'footprints' ? footprints.places.length : stats.totalStamps}</span>
@@ -174,7 +175,7 @@
         </header>
 
         <nav class="chronicle-subtabs" aria-label="冒険録の項目">
-          <button class="subtab-btn ${currentSubtab === 'footprints' ? 'active' : ''}" data-subtab="footprints">旅の書</button>
+          <button class="subtab-btn ${currentSubtab === 'footprints' ? 'active' : ''}" data-subtab="footprints">旅の地図</button>
           <button class="subtab-btn ${currentSubtab === 'stamps' ? 'active' : ''}" data-subtab="stamps">旅の印章</button>
           <button class="subtab-btn ${currentSubtab === 'relics' ? 'active' : ''}" data-subtab="relics">ご当地武具</button>
           <button class="subtab-btn ${currentSubtab === 'outposts' ? 'active' : ''}" data-subtab="outposts">開拓拠点</button>
@@ -182,10 +183,13 @@
         </nav>
 
         <div class="chronicle-body">
+          ${currentSubtab === 'footprints' && lastDiscovery ? `<p class="landmark-discovery-banner" role="status">${esc(lastDiscovery)}</p>` : ''}
           ${renderSubtabContent(currentSubtab, chronicle, outpostsState, playerScrap)}
         </div>
       </div>
     `;
+
+    lastDiscovery='';
 
     // Bind subtab buttons
     container.querySelectorAll('.subtab-btn').forEach(btn => {
