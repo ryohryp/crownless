@@ -89,7 +89,7 @@
     return '<div class="homestead-panel"><p class="kicker">A PLACE TO CALL YOUR OWN</p><h2>'+esc(n.name)+'</h2><p class="home-materials">木材 <b>'+n.wood+'</b> · 石材 <b>'+n.stone+'</b> · 領域 <b>'+N.claims(n)+'</b></p><p class="small">建材は遠征から生還すると持ち帰れる。土地の主を倒して帰ると、その土地にあなたの旗が立つ。</p><div class="home-buildings">'+Object.entries(N.BUILDINGS).map(([id,b]) => { const built=n.buildings.includes(id); return '<section class="home-building '+(built ? 'built' : '')+'"><div><h3>'+(built ? '✓ ' : '')+b.name+'</h3><p>'+b.benefit+'</p></div>'+ (built ? '<small>建設済み · '+b.story+'</small>' : button('home-build',b.name+'を建てる','木材 '+b.wood+' · 石材 '+b.stone+(b.claims ? ' · 領域 '+b.claims+' が必要' : ''),{class:'secondary',value:id,disabled:!N.canBuild(n,id)}))+'</section>'; }).join('')+'</div><div class="home-name"><label for="home-name">この拠点に名前をつける</label><div><input id="home-name" maxlength="16" value="'+esc(n.name)+'" autocomplete="off">'+button('home-name','名付ける','',{class:'secondary'})+'</div></div>'+ (notice ? '<p class="notice" role="status">'+esc(notice)+'</p>' : '')+'</div>';
   }
   function scouting() {
-    return `<div class="discovery"><p>${state.mode === 'demo' ? '散策を体験する — 歩くほど、地図の線と色が増えていく。' : '画面を閉じて散策し、安全に止まれる場所で発見する。'}</p>${state.mode === 'demo' ? `<div class="choice-grid">${button('scout','丘の道を歩いた','',{value:'tower'})}${button('scout','水辺の道を歩いた','',{value:'fen'})}${button('scout','南の小道を歩いた','',{value:'crypt'})}${button('scout','森の道を歩いた','',{value:'wood'})}</div><p class="small">旅の書を試す（実際に移動せず、遠くの土地と再訪を記録）</p><div class="choice-grid">${button('travel-demo','旅の書：近所を記録','',{value:'home'})}${button('travel-demo','旅の書：遠方を記録','',{value:'far'})}${button('travel-demo','旅の書：近所を再訪','',{value:'return'})}</div>` : `${button('gps',busy ? '現在地を確認中…' : session.anchor ? '現在地を記録・発見する' : 'ここで旅の足跡を残す','',{class:'secondary',disabled:busy})}<p class="small" style="margin-top:10px">正確な現在地や移動経路は保存せず、旅の書に粗い地域と訪問日を残します。安全に立ち止まって操作してください。</p>`}${notice ? `<p class="notice" role="status">${esc(notice)}</p>` : ''}</div>`;
+    return `<div class="discovery"><p>${state.mode === 'demo' ? '散策を体験する — 歩くほど、地図の線と色が増えていく。' : '画面を閉じて散策し、安全に止まれる場所で発見する。'}</p>${state.mode === 'demo' ? `<div class="choice-grid">${button('scout','丘の道を歩いた','',{value:'tower'})}${button('scout','水辺の道を歩いた','',{value:'fen'})}${button('scout','南の小道を歩いた','',{value:'crypt'})}${button('scout','森の道を歩いた','',{value:'wood'})}</div><p class="small">ランドマーク発見を体験する（GPS不要）</p><div class="choice-grid">${button('travel-demo','東京タワーへ','',{value:'home'})}${button('travel-demo','東京スカイツリーへ','',{value:'skytree'})}${button('travel-demo','大阪城へ','',{value:'far'})}${button('travel-demo','東京タワーに再訪','',{value:'return'})}</div>` : `${button('gps',busy ? '現在地を確認中…' : '近くのランドマークを発見する','',{class:'secondary',disabled:busy})}<p class="small" style="margin-top:10px">実在の名所に対応した幻想の地点を発見。地図に足跡が残ります。安全に立ち止まって操作してください。</p>`}${notice ? `<p class="notice" role="status">${esc(notice)}</p>` : ''}</div>`;
   }
   function explorePanel() {
     const d = N.get(state.neighborhood), p = E.place(d.biome), poi=N.pointOfInterest(d), locked = p.id==='crypt' && state.cleared.length<2;
@@ -326,10 +326,25 @@
       if (!known && N.traveler(N.get(state.neighborhood,result.district.id))) notice += ' 架空NPC・旅の薬師イオが、この土地に補給袋を残している。';
       save();
     } else notice = messages[result.status];
-    if (footprint?.status === 'first') notice = '旅の書に初訪問の印「'+footprint.place.seal+'」を残した。冒険録から思い出を記せる。' + (result.status==='discovered' ? ' '+notice : '');
-    else if (footprint?.status === 'revisited') notice = 'おかえりなさい。この土地の旅の書に、新しい訪問日が加わった。' + (result.status==='discovered' ? ' '+notice : '');
-    else if (footprint?.status === 'same-day') notice = 'この土地の今日の足跡は記録済み。冒険録から振り返れる。';
-    else if (footprint?.status === 'save-failed' || footprint?.status === 'conflict') notice += ' 旅の書は保存できなかったため、印章は付けていません。';
+    if (footprint?.status === 'first' || footprint?.status === 'revisited') {
+      const first=footprint.status === 'first';
+      state = E.discover(state,footprint.place.biome);
+      save();
+      notice = first ? `✦ ${footprint.place.realName}付近で「${footprint.place.name}」を発見！ ${footprint.place.seal}を獲得。`
+        : `👣 「${footprint.place.name}」を再訪！ 足跡が一つ増えた。`;
+      window.CrownlessTravelChronicleUI?.showFootprints?.(notice);
+      tab='chronicle';
+    } else if (footprint?.status === 'same-day') {
+      notice = 'この名所は本日発見済み。';
+      window.CrownlessTravelChronicleUI?.showFootprints?.(notice);
+      tab='chronicle';
+    } else if (footprint?.status === 'no-landmark') {
+      notice='この周辺には、まだ登録済みの名所がない。別の場所で新しい冒険を見つけよう。';
+    } else if (footprint?.status === 'save-failed' || footprint?.status === 'conflict') {
+      notice += ' 発見の印章を保存できませんでした。';
+    } else if (footprint?.status === 'moving' || footprint?.status === 'inaccurate') {
+      notice = messages[footprint.status];
+    }
     busy = false; render();
   }
   root.addEventListener('click', event => {
@@ -354,15 +369,19 @@
     else if (action === 'select') { selected = value; tab = 'explore'; notice = ''; lastReturnedPlace = null; prioritizeReinforcement = false; }
     else if (action === 'tab') { tab = value; notice = ''; }
     else if (action === 'travel-demo') {
-      const points={home:{latitude:35.7521,longitude:139.8623,accuracy:8,speed:0},far:{latitude:34.7123,longitude:135.4872,accuracy:8,speed:0}};
+      const points={home:{latitude:35.658656,longitude:139.745364,accuracy:8,speed:0},skytree:{latitude:35.7101,longitude:139.8107,accuracy:8,speed:0},far:{latitude:34.68734,longitude:135.526,accuracy:8,speed:0}};
       const demoDate=new Date(); if (value==='return') demoDate.setDate(demoDate.getDate()+1);
       const day=window.CrownlessTravelFootprints?.dayString?.(demoDate);
-      const visit=window.CrownlessTravelChronicleUI?.recordFootprint?.(points[value==='far'?'far':'home'],'demo',day);
-      notice=visit?.status==='first' ? '新しい旅の印章を記録した。'
-        : visit?.status==='revisited' ? 'この土地に戻り、再訪記録を残した。'
-        : visit?.status==='same-day' ? '同じ日の訪問は重複しない。'
-        : 'この地点は記録できませんでした。';
-      window.CrownlessTravelChronicleUI?.showFootprints?.();
+      const visit=window.CrownlessTravelChronicleUI?.recordFootprint?.(points[value==='far'?'far':value==='skytree'?'skytree':'home'],'demo',day);
+      if (visit?.status === 'first' || visit?.status === 'revisited') {
+        state=E.discover(state,visit.place.biome);
+        save();
+      }
+      notice=visit?.status==='first' ? `✦ ${visit.place.realName}付近で「${visit.place.name}」を発見！`
+        : visit?.status==='revisited' ? `👣 「${visit.place.name}」を再訪！`
+        : visit?.status==='same-day' ? 'この名所の足跡はすでに記録済み。'
+        : 'この地点は発見できませんでした。';
+      window.CrownlessTravelChronicleUI?.showFootprints?.(notice);
       tab='chronicle';
     }
     else if (action === 'scout') {
