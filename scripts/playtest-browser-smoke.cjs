@@ -59,6 +59,19 @@ async function main() {
         await page.screenshot({ path: path.join(output, "map-" + width + ".png") });
 
         if (width === 390) {
+          // The map must reveal distinct shop/event sprites by player discovery,
+          // not by artificially stamping a record into localStorage.
+          assert.equal(await page.locator('.district-pin[data-poi-family="event"] .district-pixel-art').count(), 1);
+          await page.locator(".map-home-scouting > summary").click();
+          await page.locator('[data-action="scout"][data-value="tower"]').click();
+          await page.locator(".map-home-scouting > summary").click();
+          await page.locator('[data-action="scout"][data-value="tower"]').click();
+          assert(await page.locator('.district-pin[data-poi-family="shop"] .district-pixel-art').count() >= 1);
+          assert(await page.locator('.district-pin[data-poi-family="event"] .district-pixel-art').count() >= 1);
+          await page.screenshot({ path: path.join(output, "hybrid-discovery-390.png") });
+          await page.locator('.district-pin[data-poi-family="shop"]').last().click();
+          assert.match(await page.locator(".district-detail").innerText(), /見張り跡/);
+          assert.match(await page.locator(".district-poi-card").innerText(), /鐘守の鍛冶台/);
           await page.locator(".map-home-scouting > summary").click();
           await page.locator('[data-action="travel-demo"][data-value="skytree"]').click();
           assert.match(await page.locator(".chronicle-panel").innerText(), /天穿つ白塔/, "new fantasy landmark should appear");
