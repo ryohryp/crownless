@@ -12,7 +12,7 @@
   };
   const key = (x,y) => `${x},${y}`;
   function terrain(x,y) { return Math.abs(y) > Math.abs(x) ? (y > 0 ? 'tower' : 'crypt') : (x > 0 ? 'fen' : 'wood'); }
-  function district(x,y, biome = terrain(x,y)) { return { id:key(x,y), x, y, biome, claimed:false, returns:0, aided:false }; }
+  function district(x,y, biome = terrain(x,y)) { return { id:key(x,y), x, y, biome, claimed:false, returns:0, aided:false, visitor:'none' }; }
   const initial = () => ({ name:'最後の焚き火', wood:0, stone:0, buildings:[], districts:[district(-1,0)], selected:'-1,0', active:null, result:null });
   // One local sign of an NPC helped by a player-made item. No network or GPS history.
   const TRACE = Object.freeze({
@@ -21,10 +21,21 @@
     fen:{ name:'案内人の葦標', story:'案内人が安全な葦舟の道を刻んだ。', benefit:'この土地で最初に倒した敵から霧葦 +1' }
   });
   const trace = d => d?.aided ? TRACE[d.biome] || null : null;
+  // Explicitly fictional traveler; one parcel is usable once in a different district.
+  const TRAVELER = Object.freeze({name:'旅の薬師・イオ', parcel:'薬師の補給袋', intro:'架空の旅人イオが、先人の道標を頼りに薬草を残した。', benefit:'この土地からの次の遠征に薬草 +1（1回限り）'});
+  const traveler = d => d?.visitor === 'supplies' ? TRAVELER : null;
   // Upgrade exact legacy district records in place without inventing prior accomplishments.
   function hydrateLegacy(n) {
     if (!n || !Array.isArray(n.districts)) return n;
-    return { ...n, districts:n.districts.map(d => d && typeof d === 'object' && !Array.isArray(d) && !Object.hasOwn(d,'aided') ? {...d,aided:false} : d) };
+    return {
+      ...n,
+      districts:n.districts.map(d => {
+        if (!d || typeof d !== 'object' || Array.isArray(d)) return d;
+        return {...d,...(!Object.hasOwn(d,'aided') ? {aided:false} : {}),...(!Object.hasOwn(d,'visitor') ? {visitor:'none'} : {})};
+      }),
+      result:n.result && typeof n.result === 'object' && !Array.isArray(n.result) && !Object.hasOwn(n.result,'visitorId')
+        ? {...n.result,visitorId:null} : n.result
+    };
   }
   const claims = n => n.districts.filter(d => d.claimed).length;
   const get = (n,id = n.selected) => n.districts.find(d => d.id === id);
@@ -43,7 +54,11 @@
     if (!d || !validDistrict(d)) return n;
     const known = get(n,d.id);
     if (!known && n.districts.length >= LIMIT) return n;
-    return {...n, districts:known ? n.districts : [...n.districts,district(d.x,d.y,d.biome)], selected:d.id};
+    // If the commissioned scout's trail is the only discovered place, the next
+    // discovered district becomes the fictional traveler's destination.
+    const newPlace = district(d.x,d.y,d.biome);
+    if (!known && n.districts.some(v => v.aided) && n.districts.every(v => v.visitor === 'none')) newPlace.visitor = 'supplies';
+    return {...n, districts:known ? n.districts : [...n.districts,newPlace], selected:d.id};
   }
   const POIS = {
     wood: {
@@ -73,6 +88,12 @@
     const selected = get(n), target = selected?.biome === biome ? selected : n.districts.find(d => d.biome === biome);
     return {...n, active:target?.id || null, result:null};
   }
+  // The user can only claim the parcel when departing from its exact district.
+  function takeTraveler(n) {
+    const d = get(n,n.active);
+    if (!d || d.visitor !== 'supplies') return n;
+    return {...n,districts:n.districts.map(v => v.id === d.id ? {...v,visitor:'used'} : v)};
+  }
   function settle(n,x,died,commissionCompleted = false) {
     const d = get(n,n.active);
     if (!d || d.biome !== x.place) return {...n,active:null,result:null};
@@ -80,9 +101,15 @@
     // Return loot is banked once by the engine. An empty return earns no construction materials.
     const wood = loot ? (d.biome === 'wood' ? 2 : 1) * x.depth + (d.claimed ? 1 : 0) : 0;
     const stone = loot ? (d.biome === 'tower' || d.biome === 'crypt' ? 2 : 1) * x.depth + (d.claimed ? 1 : 0) : 0;
+    // The player-made trail lets a *different fictional NPC* reach one other
+    // already-discovered place. No timers, simulated GPS trails or free repeat drops.
+    const targets = commissionCompleted && !died && x.room > 0
+      ? n.districts.filter(v => v.id !== d.id && v.visitor === 'none') : [];
+    targets.sort((a,b) => (Math.abs(a.x-d.x)+Math.abs(a.y-d.y))-(Math.abs(b.x-d.x)+Math.abs(b.y-d.y)) || a.id.localeCompare(b.id));
+    const visitorId = targets[0]?.id || null;
     return {...n, wood:Math.min(1e9,n.wood+wood), stone:Math.min(1e9,n.stone+stone), active:null,
-      districts:n.districts.map(v => v.id === d.id ? {...v, claimed:v.claimed || won, aided:v.aided || (commissionCompleted && !died && x.room > 0), returns:Math.min(1e9,v.returns+(loot ? 1 : 0))} : v),
-      result:{id:d.id,wood,stone,claimed:won && !d.claimed,died} };
+      districts:n.districts.map(v => v.id === d.id ? {...v, claimed:v.claimed || won, aided:v.aided || (commissionCompleted && !died && x.room > 0), returns:Math.min(1e9,v.returns+(loot ? 1 : 0))} : v.id === visitorId ? {...v,visitor:'supplies'} : v),
+      result:{id:d.id,wood,stone,claimed:won && !d.claimed,died,visitorId} };
   }
   function canBuild(n,id) {
     const b = BUILDINGS[id];
@@ -98,7 +125,7 @@
     return name ? {...n,name} : n;
   }
   function validDistrict(d) {
-    return d && Object.keys(d).sort().join(',') === 'aided,biome,claimed,id,returns,x,y' && Number.isInteger(d.x) && Math.abs(d.x)<=RANGE && Number.isInteger(d.y) && Math.abs(d.y)<=RANGE && (d.x || d.y) && d.id===key(d.x,d.y) && BIOMES.includes(d.biome) && typeof d.claimed==='boolean' && typeof d.aided==='boolean' && Number.isInteger(d.returns) && d.returns>=0 && d.returns<=1e9;
+    return d && Object.keys(d).sort().join(',') === 'aided,biome,claimed,id,returns,visitor,x,y' && Number.isInteger(d.x) && Math.abs(d.x)<=RANGE && Number.isInteger(d.y) && Math.abs(d.y)<=RANGE && (d.x || d.y) && d.id===key(d.x,d.y) && BIOMES.includes(d.biome) && typeof d.claimed==='boolean' && typeof d.aided==='boolean' && ['none','supplies','used'].includes(d.visitor) && Number.isInteger(d.returns) && d.returns>=0 && d.returns<=1e9;
   }
   function valid(n) {
     const amount = v => Number.isInteger(v) && v>=0 && v<=1e9;
@@ -106,7 +133,7 @@
     if (!Array.isArray(n.buildings) || n.buildings.length>2 || new Set(n.buildings).size!==n.buildings.length || !n.buildings.every(id => Object.hasOwn(BUILDINGS,id))) return false;
     if (!Array.isArray(n.districts) || !n.districts.length || n.districts.length>LIMIT || !n.districts.every(validDistrict) || new Set(n.districts.map(d => d.id)).size!==n.districts.length || !get(n) || !(n.active===null || get(n,n.active))) return false;
     const r = n.result;
-    return r===null || Boolean(r && Object.keys(r).sort().join(',')==='claimed,died,id,stone,wood' && get(n,r.id) && amount(r.wood) && r.wood<=7 && amount(r.stone) && r.stone<=7 && typeof r.claimed==='boolean' && typeof r.died==='boolean' && (!r.died || (!r.claimed && !r.wood && !r.stone)));
+    return r===null || Boolean(r && Object.keys(r).sort().join(',')==='claimed,died,id,stone,visitorId,wood' && get(n,r.id) && (r.visitorId === null || (get(n,r.visitorId)?.visitor === 'supplies' && r.visitorId !== r.id)) && amount(r.wood) && r.wood<=7 && amount(r.stone) && r.stone<=7 && typeof r.claimed==='boolean' && typeof r.died==='boolean' && (!r.died || (!r.claimed && !r.wood && !r.stone)));
   }
   function migrate(state) {
     const n = initial(), positions = {wood:[-1,0],tower:[0,1],fen:[1,0],crypt:[0,-1]};
@@ -115,5 +142,5 @@
     n.active = state.expedition ? n.districts.find(d => d.biome===state.expedition.place)?.id || null : null;
     return n;
   }
-  return { CELL_METERS,LIMIT,RANGE,BUILDINGS,POIS,TRACE,initial,claims,get,title,trace,hydrateLegacy,pointOfInterest,cell,discover,select,begin,settle,canBuild,build,rename,valid,migrate };
+  return { CELL_METERS,LIMIT,RANGE,BUILDINGS,POIS,TRACE,TRAVELER,initial,claims,get,title,trace,traveler,hydrateLegacy,pointOfInterest,cell,discover,select,begin,takeTraveler,settle,canBuild,build,rename,valid,migrate };
 });
