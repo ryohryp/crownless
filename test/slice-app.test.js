@@ -361,6 +361,7 @@ test('fictional traveler supplies appear on selected district and vanish when us
   assert.deepEqual(E.parse(E.serialize(departed)),departed);
   b.click('return');
   b.click('continue');
+  b.click('tab','explore');
   assert.doesNotMatch(b.html(),/架空NPCが残したもの：薬師の補給袋/);
   assert.match(b.html(),/補給袋は受け取った/);
 });
