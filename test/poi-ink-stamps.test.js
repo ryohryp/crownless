@@ -40,7 +40,7 @@ test('map pixel signs and expanded ink POI detail use the same canonical distric
   ]);
   const elements = {};
   for (const id of ['#game', '#save-status', '#save-label', '#help-toggle', '#help']) {
-    elements[id] = {innerHTML:'', hidden:true, textContent:'', setAttribute(){}, addEventListener(){}, querySelector(){return null;}};
+    elements[id] = {innerHTML:'', hidden:true, textContent:'', setAttribute(){}, addEventListener(type,handler){this[type]=handler;}, querySelector(){return null;}};
   }
   const window = {
     CrownlessArt: art, CrownlessNeighborhood: N, CrownlessSlice: E,
