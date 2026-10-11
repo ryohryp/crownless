@@ -49,7 +49,7 @@
   }
   const logs = x => `<div class="combat-log" role="status" aria-live="polite">${x.log.map(v => `<p>${esc(v)}</p>`).join('')}</div>`;
   const materialList = m => Object.entries(E.MATERIALS).filter(([id]) => (m?.[id] || 0) > 0).map(([id,v]) => `${v.name} ${m[id]}`).join(' · ');
-  const canCraft = (s,id) => { const recipe=E.RECIPES[id]; return !!recipe && !s.owned.includes(id) && s.scrap >= recipe.scrap && Object.entries(recipe.materials).every(([mat,count]) => (s.materials?.[mat] || 0) >= count); };
+  const canCraft = (s,id) => { const recipe=E.RECIPES[id]; return !!recipe && (!recipe.requiresBlueprint || !!s.designs?.[id]) && !s.owned.includes(id) && s.scrap >= recipe.scrap && Object.entries(recipe.materials).every(([mat,count]) => (s.materials?.[mat] || 0) >= count); };
   const ledger = x => `<div class='loot-ledger'><p class='kicker'>AT RISK · 生還で確定</p><strong>${x.scrap}</strong> <small>鉄片 / 背嚢の中</small>${materialList(x.materials) ? `<p><small>未帰還の素材：${materialList(x.materials)}</small></p>` : ''}${x.gear.length ? `<p><small data-current-gear-id='${state.equipped}'>現在装備：${E.GEAR[state.equipped].name} · ${E.qualityLabel(E.weaponQuality(state,state.equipped))} · ${E.gearText(state,state.equipped)}</small></p>` : ''}${x.gear.map((g,i) => { const q=x.gearQuality?.[i] ?? 0; const current=state.owned.includes(g) ? ` / 所持 ${E.qualityLabel(E.weaponQuality(state,g))}` : ''; const foundAttack = E.weaponAttack(state,g,q), currentAttack = E.weaponAttack(state,state.equipped); const delta = foundAttack - currentAttack; const compare = delta > 0 ? `装備中より攻撃 +${delta}` : delta < 0 ? `装備中より攻撃 ${delta}` : '装備中と攻撃は同じ'; return `<p data-found-gear-id='${g}'>＋ ${E.GEAR[g].name} · ${E.qualityLabel(q)}<br><small>未帰還 · ${E.gearText(state,g,q)}${current}<br>${compare}（${foundAttack} / 現在 ${currentAttack}）</small></p>`; }).join('')}</div>`;
   function onboard() {
     return `<div class="game-layout onboard"><section class="visual-column">${scene('camp','まだ、名もなき旅人。','A FIRE WORTH RETURNING TO')}<div class="journey-note"><b>01</b><span>霧の先には、まだ知らない場所。<br>戦利品を持ち帰り、ここに自分の拠点を育てよう。</span></div></section><section class="panel"><p class="kicker">A SMALL JOURNEY. SOMETHING TO LOSE.</p><h1>霧の向こうへ。<br>生きて、帰ろう。</h1><p class="intro">欠けた剣と、ふた束の薬草。<br>あなたの旅は、それだけで始まる。<br>踏み込むか、引き返すか。<br>持ち帰った素材を鍛冶師に渡し、装備を作ろう。<br>建材を集め、自分の拠点と領域を育てよう。</p><div class="button-stack">${button('mode','まずは体験する <span>約 15 分</span>','',{class:'primary',value:'demo'})}${button('mode','現実の散策で発見する','',{class:'secondary',value:'walk'})}</div><p class="small rule-line">体験モードは、室内で移動を再現します。<br>散策モードは、安全に立ち止まって現在地を確認。<br>位置情報を送信せず、移動履歴も残しません。</p></section></div>`;
@@ -122,6 +122,12 @@
           +button('poi','この店で'+esc(material.name)+'を買う','鉄片 −'+E.LOCAL_MATERIAL_COST+' / '+esc(material.name)+' +1',{class:'secondary',value:'trade-material',disabled:state.scrap<E.LOCAL_MATERIAL_COST || ownedMaterials>=1e6})+'</div>'
         : '<div class="poi-unlock"><strong>新しい遠征：'+esc(poi.name)+'の手掛かり</strong><p>'+esc(E.ENEMIES[p.enemy].name)+'の強敵（体力 +4）を追う。勝てば'+esc(material.name)+'を通常より1個多く持ち帰れる。帰還できなければ失う。</p></div>'
       : '<div class="poi-unlock"><strong>王墓の伝承</strong><p>灰冠の廟に挑むには、他の土地を2つ踏破する必要がある。王墓の主は防御を固める。敵の構えに合わせて攻撃を変えよう。</p></div>';
+    const designOrigin=state.designs?.shield_thorn;
+    const towerDesignNote=d.biome==='tower' && poi.family==='event'
+      ? designOrigin===d.id ? '<p class="notice">✓ この土地で「返し棘の盾」の設計図を発見済み。鍛冶師の製作一覧に残っている。</p>'
+        : designOrigin ? '<p class="small">別の見張り跡で「返し棘の盾」の設計図を入手済み。</p>'
+        : '<p class="notice">✦ 固有の発見：鐘守の亡兵は「返し棘の盾」の設計図を守っている。倒して生還すれば製作解放。鐘鉄2個に加え、森の狼牙1個が必要。</p>'
+      : '';
     const poiArt=A.poiStamp?.(d.biome,poi.family) || poi.icon;
     const herbalist = d.biome === 'wood' && poi.family === 'shop'
       ? '<p class="small">森の薬草を一束買うと、今回の遠征は薬草3つで出発できる。使わなければ鉄片は装備の強化に残せる。</p>'
@@ -130,11 +136,11 @@
     const poiCard='<details class="district-poi-card"><summary><span class="district-poi-icon" aria-hidden="true">'+poiArt+'</span><span class="district-poi-title"><small>'+esc(poi.label)+'</small><strong>'+esc(poi.name)+'</strong></span><span class="district-poi-toggle" aria-hidden="true">＋</span></summary><div class="district-poi-content"><p>'+esc(poi.description)+'</p>'+ (poi.family==='event' && material
       ? button('poi','強敵の手掛かりを追って出発','討伐で'+esc(material.name)+' +1 / 生還で確定',{class:'primary',value:'clue',disabled:locked || state.activeCharacter!==0})
       : button('poi',poi.actionLabel,'',{class:'secondary',value:poi.action,disabled:poi.action==='depart' && locked}))
-      +opportunity+herbalist+'</div></details>';
+      +opportunity+towerDesignNote+herbalist+'</div></details>';
     const localTrace = N.trace(d);
     const traceNotice = localTrace ? '<div class="district-trace" role="status"><strong>✦ この土地に残った変化：'+esc(localTrace.name)+'</strong><p>'+esc(localTrace.story)+'</p><small>'+esc(localTrace.benefit)+'。持ち帰って初めて確定する。</small></div>' : '';
     const visitorNotice = N.traveler(d) ? '<div class="district-trace" role="status"><strong>✦ 架空NPCが残したもの：'+esc(N.TRAVELER.parcel)+'</strong><p>'+esc(N.TRAVELER.intro)+'</p><small>'+esc(N.TRAVELER.benefit)+'。薬草はこの地点から出発すると受け取れる。</small></div>' : d.visitor === 'used' ? '<p class="small">旅の薬師イオの補給袋は受け取った。旅人の痕跡だけが残っている。</p>' : '';
-    return '<div class="map-home-detail"><div class="district-detail"><div><small>'+ (d.claimed ? '⚑ あなたの領域 · 生還 '+d.returns+' 回' : '未開拓 · 主を倒して帰還すると領域になる')+'</small><h2>'+N.title(d)+'</h2><p>'+p.name+' · '+ (d.claimed ? '開拓済みの道から、帰還時の木材・石材が各 +1。' : '最初の戦闘だけでも、帰れば建材を持ち帰れる。')+'</p><p class="poi-reveal-line">'+(material ? (poi.family==='shop' ? '◆ 発見した店：地域素材を交易できる' : '✦ 発見した異変：強敵を追う特別な遠征') : (poi.family==='shop' ? '◆ 発見した古物商：王墓の情報' : '✦ 発見した儀式跡：王墓の情報'))+'</p></div>'+button('depart',locked ? '他の土地を2か所踏破' : 'この土地へ遠征','',{class:'primary',value:p.id,disabled:locked})+'</div>'+visitorNotice+traceNotice+poiCard+'<details class="map-home-scouting"><summary>'+ (state.mode==='demo' ? '近所を歩く · 室内で体験' : '立ち止まって近所を発見')+'</summary>'+scouting()+'</details>'+ (state.neighborhood.districts.length>6 ? '<details class="district-list"><summary>発見した土地をすべて見る</summary>'+state.neighborhood.districts.map(v=>button('district',N.title(v),v.claimed ? 'あなたの領域' : '未開拓',{value:v.id})).join('')+'</details>' : '')+ (notice ? '<p class="notice map-home-notice" role="status">'+esc(notice)+'</p>' : '')+'</div>';
+    return '<div class="map-home-detail"><div class="district-detail"><div><small>'+ (d.claimed ? '⚑ あなたの領域 · 生還 '+d.returns+' 回' : '未開拓 · 主を倒して帰還すると領域になる')+'</small><h2>'+N.title(d)+'</h2><p>'+p.name+' · '+ (d.claimed ? '開拓済みの道から、帰還時の木材・石材が各 +1。' : '最初の戦闘だけでも、帰れば建材を持ち帰れる。')+'</p><p class="poi-reveal-line">'+(state.designs?.shield_thorn===d.id ? '✦ この土地で盾の設計図を発掘済み' : material ? (poi.family==='shop' ? '◆ 発見した店：地域素材を交易できる' : '✦ 発見した異変：強敵を追う特別な遠征') : (poi.family==='shop' ? '◆ 発見した古物商：王墓の情報' : '✦ 発見した儀式跡：王墓の情報'))+'</p></div>'+button('depart',locked ? '他の土地を2か所踏破' : 'この土地へ遠征','',{class:'primary',value:p.id,disabled:locked})+'</div>'+visitorNotice+traceNotice+poiCard+'<details class="map-home-scouting"><summary>'+ (state.mode==='demo' ? '近所を歩く · 室内で体験' : '立ち止まって近所を発見')+'</summary>'+scouting()+'</details>'+ (state.neighborhood.districts.length>6 ? '<details class="district-list"><summary>発見した土地をすべて見る</summary>'+state.neighborhood.districts.map(v=>button('district',N.title(v),v.claimed ? 'あなたの領域' : '未開拓',{value:v.id})).join('')+'</details>' : '')+ (notice ? '<p class="notice map-home-notice" role="status">'+esc(notice)+'</p>' : '')+'</div>';
   }
   function canReinforceEquipped() {
     const id = state.equipped;
@@ -164,7 +170,9 @@
     const recipes = Object.entries(E.RECIPES).map(([recipeId,recipe]) => {
       const materials = Object.entries(recipe.materials).map(([materialId,count]) => `${E.MATERIALS[materialId].name} ${count}個`).join(' · ');
       const done = state.owned.includes(recipeId);
+      if (recipe.requiresBlueprint && !state.designs?.[recipeId]) return '<div class="home-building blueprint-locked"><div><h3>？ 塔の秘伝設計図</h3><p>「鳴らない鐘の刻」の強敵から製法を見つけ、生きて帰れば新しい盾を製作できる。発見前は製作できない。</p></div><p class="small">手掛かり：塔の異変 → 強敵討伐 → 生還</p></div>';
       const info = `${materials} + 鉄片 ${recipe.scrap} · 産地：${recipe.origin}`;
+      const learnedAt = recipe.requiresBlueprint && state.designs?.[recipeId] ? N.get(state.neighborhood,state.designs[recipeId]) : null;
       const missing = Object.entries(recipe.materials)
         .map(([materialId,count]) => ({materialId,needed:Math.max(0,count-(state.materials?.[materialId] || 0))}))
         .filter(({needed}) => needed > 0)
@@ -178,7 +186,7 @@
         : state.activeCharacter === 1
           ? button('craft-item',`${E.GEAR[recipeId].name}を製作`,info,{class:'secondary',value:recipeId,disabled:!canCraft(state,recipeId)})
           : `<p class="small">必要素材：${info}</p>`;
-      return `<div class="home-building"><div><h3>${E.GEAR[recipeId].name}</h3><p>${E.gearText(state,recipeId,recipe.quality)}</p></div>${progress}${make}</div>`;
+      return `<div class="home-building"><div><h3>${E.GEAR[recipeId].name}</h3><p>${E.gearText(state,recipeId,recipe.quality)}</p></div>${learnedAt ? '<p class="notice">✦ '+N.title(learnedAt)+'で製法を発見した。</p>' : ''}${progress}${make}</div>`;
     }).join('');
     const commissionRows = Object.entries(E.COMMISSIONS).filter(([placeId]) => state.unlocked.includes(placeId)).map(([placeId,job]) => {
       const recipe=E.RECIPES[job.recipe];
@@ -270,6 +278,7 @@
     const title = clear ? (captured ? `⚑ ${siege.name}を制圧した！` : x.place === 'crypt' ? '灰の冠は、あなたの手に。' : '土地の主を越えた。') : roadside ? '朽ちた荷車が、道を塞ぐ。' : event ? (x.room === 1 ? '消えかけの灯り。' : '茨の奥に、銀の光。') : x.room === 4 ? 'この先に、主がいる。' : x.room === 0 ? '最初の足跡をたどる。' : '奥から、息づかい。';
     const detail = clear ? (captured ? '土地の主を倒した。ここで戦利品を持って帰れば、この名所にあなたの支配旗が立つ。さらに深層へ進んで倒れると、旗を確定できない。' : '手に入れたものを、焚き火へ。まだ余力があるなら、より危険な深層へ進むこともできる。') : roadside ? '荷台には乾いた薬草が残る。傍らの古い道標には、血を捧げた旅人の傷跡が刻まれている。' : event ? '息を整えるか、傷を引き受けて遺品を拾うか。引き返す道も、まだ残っている。' : x.room === 4 ? `この土地の主が奥を守っている。深層では、より多くの希少素材を持ち帰れる。` : '静かな道をたどるか、宝の気配を追うか。深く踏み込むほど、敵の読み方も変わる。';
     const summary = clear ? (captured ? `⚑ ${siege.name}の主を撃破！ 次は「旗を立てて帰還」で支配を確定しよう。` : '戦利品を確定して帰るか、さらに深層へ踏み込むか。') : roadside ? '鉄片を薬草へ替えるか、体力を代価に次の一撃を研ぎ澄ますか。' : event ? '休息するか、傷を負って遺品を拾うか。' : x.room === 4 ? '土地の主へ挑む。生還できる余力を残そう。' : '静かな道をたどるか、宝の気配を追うか。';
+    const foundDesign = x.foundDesign ? '<p class="notice" role="status">✦ 「返し棘の盾」の設計図を背嚢に入れた。ここで生還すれば鍛冶師に製法が伝わる。敗北すると失う。</p>' : '';
     const cue = x.depth >= 2 && !event && !clear ? `<p class="notice">${E.lootCue(x.place,x.depth)} 素材は生還するまで確定しない。</p>` : '';
     const decisions = clear ? `${button('return',captured ? '⚑ 旗を立てて帰還する' : '戦利品を持って帰る','',{class:'primary'})}${x.depth < 3 ? `<p class="notice">${E.lootCue(x.place,x.depth+1)}</p>${button('deeper',`深層 ${x.depth+1} へ踏み込む`,`敵の行動も変化 / 追加素材の可能性 / 鉄片 ×${x.depth+1}`)}` : '<p class="small">最深部へ到達した。火のもとへ帰ろう。</p>'}` : roadside ? `${button('trade','荷車の薬草を拾う','鉄片 −3 / 薬草 +1',{disabled:x.scrap < 3 || x.potions >= 2})}${button('pray','道標へ血を捧げる','体力 −3 / 次の一撃 +3',{disabled:x.hp <= 3})}` : event ? `${button('rest','火のそばで休む','体力 +6 / 遺品は残す')}${button('search',`茨の遺品を拾う`,`体力 −4 / 鉄片 +${5*x.depth}`,{disabled:x.hp <= 4})}` : `${button('careful',x.room === 4 ? '主に挑む' : '静かに足跡をたどる','通常の敵 / 体力を温存したい')}${button('risky','宝の気配を追う',x.depth >= 2 ? '敵の体力 +3 / 鉄片 +3 / 素材を確保' : '敵の体力 +3 / 鉄片 +3')}`;
     const retreat = !clear ? button('return','ここで生還する','',{class:'secondary'}) : '';
@@ -277,7 +286,7 @@
     return `<div class="path-decision">${siege ? `<div class="landmark-siege-progress" role="status">${captured ? '⚑ 制圧完了・帰還で支配確定' : `⚔ ランドマーク攻略中：${esc(siege.name)}`}</div>` : ''}
       <div class="path-scroll">
         <div class="path-mobile-status">${vitals(x)}<div class="path-risk"><span>背嚢</span><strong>鉄片 ${x.scrap}</strong><small>${materialList(x.materials) ? `${materialList(x.materials)} · 生還で確定` : '素材は生還で確定'}</small></div></div>
-        <div class="path-copy"><p class="kicker">${clear ? 'A WAY HOME' : 'ONE MORE ROOM?'}</p><h2>${title}</h2><p class="path-summary">${summary}</p><div class="path-desktop-details"><p class="intro">${detail}</p>${ledger(x)}${cue}${logs(x)}</div></div>
+        <div class="path-copy"><p class="kicker">${clear ? 'A WAY HOME' : 'ONE MORE ROOM?'}</p><h2>${title}</h2><p class="path-summary">${summary}</p>${foundDesign}<div class="path-desktop-details"><p class="intro">${detail}</p>${ledger(x)}${cue}${logs(x)}</div></div>
       </div>
       <div class="path-actions"><div class="button-stack">${decisions}</div>${!clear ? `<div class="path-secondary-row">${retreat}${heal}</div>` : ''}</div>
     </div>`;
@@ -325,6 +334,7 @@
     const homeOpportunity = state.neighborhood.result && !r.died && (state.neighborhood.result.claimed || Object.keys(N.BUILDINGS).some(id => N.canBuild(state.neighborhood,id)));
     const readyToCraft = !r.died && Object.keys(E.RECIPES).some(id => canCraft(state,id));
     const commissionFinished = !r.died && state.commission.lastResult === r.place;
+    const blueprintReward = r.newDesign === 'shield_thorn' && !r.died ? '<div class="home-return" role="status"><strong>✦ 新しい製作レシピを解放：返し棘の盾</strong><p>「鳴らない鐘の刻」の亡兵から盾の製法を持ち帰った。鍛冶師に交代すれば製作可能。</p><small>必要：鐘鉄 2個＋森の狼牙 1個＋鉄片 6個。防御の軽減は薄いが、反撃が強い。</small></div>' : '';
     const resultDistrict = state.neighborhood.result && N.get(state.neighborhood,state.neighborhood.result.id);
     const placedTrace = commissionFinished && N.trace(resultDistrict);
     const commissionFeedback = commissionFinished ? '<p class="notice">架空のNPCからの報告：'+E.COMMISSIONS[r.place].outcome+' 鉄片 +'+E.COMMISSIONS[r.place].reward+'。次の同地域遠征で薬草 +1。'+(placedTrace ? ' 【'+N.title(resultDistrict)+'】に「'+placedTrace.name+'」が残った。再訪すると採集が変わる。' : '')+'</p>' : '';
@@ -340,7 +350,7 @@
       ? '<p class="notice">✦ 別の旅人の痕跡：'+N.TRAVELER.name+'（架空NPC）が【'+esc(N.title(visitorDistrict))+'】に補給袋を残した。そこから次の遠征へ出ると薬草 +1。</p>'
       : '';
     const nextLabel = commissionFinished ? '鍛冶師に報告を伝える' : readyToCraft ? '職人に素材を渡す' : unresolved ? `同名武器をあと ${unresolved} 本整理する` : keptDuplicate ? '入れ替えた装備を確認する' : homeOpportunity ? '拠点を育てる' : hasNewBattleGear ? '持ち帰った装備を比べる' : canPowerUp ? '補強へ進む' : '焚き火で次の準備をする';
-    return `<div class="game-layout report-layout"><section class="visual-column">${scene('camp',r.died ? '火は、まだ消えていない。' : 'おかえり、旅人。',r.died ? 'THE ROAD IS NOT OVER' : 'YOU MADE IT HOME')}</section><section class="panel report-panel"><div class="report-scroll"><p class='kicker'>${r.died ? 'EXPEDITION LOST' : 'SAFE RETURN'} / ${E.place(r.place).name}</p><h1>${r.died ? '命だけを、持ち帰った。' : duplicates.length ? '持ち帰った一本を、比べる。' : r.newGear.length ? '新しい一本を、火へ。' : '欲張らずに、帰る強さ。'}</h1><p class='intro'>${r.died ? defeatIntro : '背嚢の素材を確保した。鍛冶師に渡せば、次の遠征で使う装備を製作できる。'}</p><div class='result-number'>${r.died ? '' : '+'}${r.scrap} <small>${r.died ? '鉄片を落とした' : '鉄片を確保'}</small></div>${materialList(r.materials) ? `<p class='notice'>${r.died ? '失った素材' : '持ち帰った素材'}：${materialList(r.materials)}。鍛冶師の仕事に使える。</p>` : ''}${commissionFeedback}${visitorNews}${landmarkOutcome}${state.neighborhood.result ? `<div class="home-return"><strong>${state.neighborhood.result.claimed ? '⚑ '+N.title(N.get(state.neighborhood,state.neighborhood.result.id))+'を開拓！' : state.neighborhood.result.died ? '土地と拠点は残っている。' : '拠点へ建材を持ち帰った。'}</strong><p>木材 +${state.neighborhood.result.wood} · 石材 +${state.neighborhood.result.stone}</p><small>${state.neighborhood.result.claimed ? 'この土地に、あなたの旗が立つ。' : '持ち帰った建材で、拠点に建物を増やせる。'}</small></div>` : ''}${lootRows}${duplicateRows}${recovery?.scrap ? `<div class='reward'><span class='reward-icon'>↺</span><div><strong>敗走跡：鉄片 ${recovery.scrap}</strong><small>次に同じ土地へ出れば背嚢へ戻る。生還するまで未確定。</small></div></div>` : ''}${!r.died && state.owned.includes('crown') ? `<p class='notice'>灰冠の廟を越えた。名もなき旅人の、最初の物語が残った。</p>` : ''}<p class='small rule-line'>${r.died ? (recovery ? '敗走は全損ではない。取り戻しに行くか、別の土地へ向かうかを選べる。' : '遠征の失敗で、恒久的な進行は失われません。') : state.cleared.length >= 2 && !state.owned.includes('crown') ? '二つの土地を越えた。次は「灰冠の廟」の主に挑める。' : '別の土地では異なる素材が見つかる。鍛冶師なら武具に変えられる。'}</p></div><div class="report-actions">${button('continue',r.died && recovery ? '敗走跡を回収する準備へ' : nextLabel,'',{class:'primary',disabled:unresolved > 0})}</div></section></div>`;
+    return `<div class="game-layout report-layout"><section class="visual-column">${scene('camp',r.died ? '火は、まだ消えていない。' : 'おかえり、旅人。',r.died ? 'THE ROAD IS NOT OVER' : 'YOU MADE IT HOME')}</section><section class="panel report-panel"><div class="report-scroll"><p class='kicker'>${r.died ? 'EXPEDITION LOST' : 'SAFE RETURN'} / ${E.place(r.place).name}</p><h1>${r.died ? '命だけを、持ち帰った。' : duplicates.length ? '持ち帰った一本を、比べる。' : r.newGear.length ? '新しい一本を、火へ。' : '欲張らずに、帰る強さ。'}</h1><p class='intro'>${r.died ? defeatIntro : '背嚢の素材を確保した。鍛冶師に渡せば、次の遠征で使う装備を製作できる。'}</p><div class='result-number'>${r.died ? '' : '+'}${r.scrap} <small>${r.died ? '鉄片を落とした' : '鉄片を確保'}</small></div>${materialList(r.materials) ? `<p class='notice'>${r.died ? '失った素材' : '持ち帰った素材'}：${materialList(r.materials)}。鍛冶師の仕事に使える。</p>` : ''}${blueprintReward}${commissionFeedback}${visitorNews}${landmarkOutcome}${state.neighborhood.result ? `<div class="home-return"><strong>${state.neighborhood.result.claimed ? '⚑ '+N.title(N.get(state.neighborhood,state.neighborhood.result.id))+'を開拓！' : state.neighborhood.result.died ? '土地と拠点は残っている。' : '拠点へ建材を持ち帰った。'}</strong><p>木材 +${state.neighborhood.result.wood} · 石材 +${state.neighborhood.result.stone}</p><small>${state.neighborhood.result.claimed ? 'この土地に、あなたの旗が立つ。' : '持ち帰った建材で、拠点に建物を増やせる。'}</small></div>` : ''}${lootRows}${duplicateRows}${recovery?.scrap ? `<div class='reward'><span class='reward-icon'>↺</span><div><strong>敗走跡：鉄片 ${recovery.scrap}</strong><small>次に同じ土地へ出れば背嚢へ戻る。生還するまで未確定。</small></div></div>` : ''}${!r.died && state.owned.includes('crown') ? `<p class='notice'>灰冠の廟を越えた。名もなき旅人の、最初の物語が残った。</p>` : ''}<p class='small rule-line'>${r.died ? (recovery ? '敗走は全損ではない。取り戻しに行くか、別の土地へ向かうかを選べる。' : '遠征の失敗で、恒久的な進行は失われません。') : state.cleared.length >= 2 && !state.owned.includes('crown') ? '二つの土地を越えた。次は「灰冠の廟」の主に挑める。' : '別の土地では異なる素材が見つかる。鍛冶師なら武具に変えられる。'}</p></div><div class="report-actions">${button('continue',r.died && recovery ? '敗走跡を回収する準備へ' : nextLabel,'',{class:'primary',disabled:unresolved > 0})}</div></section></div>`;
   }
   function render() {
     const help = document.querySelector('#help'), helpToggle = document.querySelector('#help-toggle');
@@ -528,7 +538,7 @@
       const forgeReady = !state.report.died && Object.keys(E.RECIPES).some(id => canCraft(state,id));
       const commissionFinished = !state.report.died && state.commission.lastResult === state.report.place;
       tab = homeOpportunity ? 'home' : gearStep ? 'gear' : 'explore';
-      if (forgeReady || commissionFinished) tab = 'gear';
+      if (forgeReady || commissionFinished || state.report.newDesign) tab = 'gear';
       if (keptDuplicate) { lastReturnedPlace = state.report.place; prioritizeReinforcement = false; tab = 'gear'; }
       const completedLandmark = state.report.landmarkId &&
         state.claimedLandmarks?.includes(state.report.landmarkId) &&
