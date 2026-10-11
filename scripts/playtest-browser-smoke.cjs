@@ -58,6 +58,41 @@ async function main() {
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true, "no document-wide horizontal overflow");
         await page.screenshot({ path: path.join(output, "map-" + width + ".png") });
 
+        // Real pointer/touch regression: a normal expedition must lead into
+        // combat and a resolved first fight, not merely set a path save.
+        await page.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
+        assert.equal(await page.locator(".expedition-layout.path-stage").count(), 0);
+        assert.equal(await page.locator(".expedition-layout:not(.battle-layout)").count(), 1);
+        const firstStep = page.locator('.path-actions button[data-action="careful"]');
+        assert.equal(await firstStep.isVisible(), true, "advance-to-fight choice should be visible");
+        await page.screenshot({ path: path.join(output, "before-combat-" + width + ".png") });
+        await firstStep.click();
+        assert.equal(await page.locator(".battle-layout .combat-enemy-summary").count(), 1, "first encounter must render actual battle");
+        await page.screenshot({ path: path.join(output, "combat-start-" + width + ".png") });
+        await page.locator('[data-action="auto-fight"]').click();
+        assert.equal(await page.locator(".path-panel").count(), 1, "first battle must resolve to the next route scene");
+        const afterFirstBattle = await page.evaluate(() => JSON.parse(localStorage.getItem("crownless-expedition-v1-demo")));
+        assert.equal(afterFirstBattle.expedition?.room, 1);
+        assert(afterFirstBattle.expedition?.materials.wolfFang >= 1);
+        await page.reload();
+        assert.equal(await page.locator(".expedition-layout:not(.battle-layout)").count(), 1, "the saved route must survive reload");
+        const roadsideOption = page.locator('.path-actions button[data-action="pray"]');
+        if (await roadsideOption.count()) await roadsideOption.click();
+        else await page.locator('.path-actions button[data-action="rest"]').click();
+        await page.locator('.path-actions button[data-action="careful"]').click();
+        assert.equal(await page.locator(".battle-layout .combat-enemy-summary").count(), 1, "second encounter must also work");
+        await page.locator('[data-action="auto-fight"]').click();
+        assert.equal(await page.locator(".path-panel").count(), 1);
+        await page.locator('.path-actions button[data-action="return"]').click();
+        assert.equal(await page.locator(".report-layout").count(), 1, "banking route remains open");
+        await page.locator('[data-action="continue"]').click();
+        // The normal return may prioritize the gear/home tab. Restore the map
+        // before running the older discovery and landmark smoke scenarios.
+        await page.locator('[data-action="tab"][data-value="explore"]').click();
+        assert.equal(await page.locator(".neighborhood-atlas").count(), 1);
+        await page.screenshot({ path: path.join(output, "return-from-combat-" + width + ".png") });
+
+
         if (width === 390) {
           // The map must reveal distinct shop/event sprites by player discovery,
           // not by artificially stamping a record into localStorage.
