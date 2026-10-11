@@ -37,6 +37,16 @@ Verification for the isolated comparison: PR CI run `38113377086` (Node + Playwr
 
 The accepted [ADR 0010](adr/0010-selective-game-tooling-before-engine-migration.md) is **confirmed rather than superseded** by this experiment: selectively adopt game tools when a rendering boundary has a proven problem.
 
+## Production map rollout — PR #968
+
+The user authorized promoting the successful PR #967 UI boundary experiment into production. This change replaces **only** the home neighborhood Explore tab with `src/nearby-home-view.js` (single scene owner) and `neighborhood-rebuild.css`. The existing `slice-engine.js`, `neighborhood.js`, save parsers, location safety rules, actual expedition, battle, forge and character tabs continue unchanged.
+
+Production map contract: a non-overlapping CSS grid containing a parchment fantasy-land map, one selected-location action card, and the same six-button persistent thumb dock. The compact card shows exactly one primary expedition CTA and one contextual route to details. Scouting, POI trade, stronger clue battles, one-time fictional NPC resources, restored-bell dialogue and landmark flags live in a **separate scrollable reading scene**, not layers above a live map. Discovered districts beyond six use bounded pagination; the saved selected district's page is shown on reload, preserving every discovered ID.
+
+The new view has one owner but still uses existing CSS/JavaScript for other tabs; this is deliberately not a complete Preact/Vite conversion. Continued framework migration is conditional on observed maintenance benefit of this targeted slice.
+
+Quality gate: Node regression including old/walk saved states, UI event routing, provenance and paginated POIs; actual Chromium touch paths 360×800, 390×844, 430×932 and 1280×900; elementFromPoint tap checks, three separate grid rectangles, no map scrolling, map >=40% viewport and nav at thumb reach; screenshots must be opened and visually inspected before merging. Keep `AGENTS.md` one scene per viewport requirement authoritative. The actual screenshots showed a legible wide parchment map and distinct CTA/dock, rather than the original overlay with stacked NPC paragraphs. **Human play-fun verdict remains pending.**
+
 ## Next production slice and acceptance gate
 
 1. Rebuild **only the map tab** around exactly one owning component and a stable one-viewport layout: legible fantasy map; one summary card outside the map; one primary CTA; long lore behind an optional detail view. Do not pile the existing `bellPanel`, `visitorNotice`, `traceNotice`, and POI text in the first view.

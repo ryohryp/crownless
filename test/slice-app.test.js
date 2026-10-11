@@ -9,7 +9,7 @@ function browser(seed = {}, storageFails = false, realChronicle = false) {
   const store = new Map(Object.entries(seed)), callbacks = {}, elements = {};
   const chronicleContainer = {innerHTML:'',querySelectorAll:()=>[]};
   for (const id of ['#game','#save-status','#save-label','#help-toggle','#help','#home-name']) elements[id] = {innerHTML:'',hidden:true,textContent:'',value:'',addEventListener(type,fn){this[type]=fn;},setAttribute(){}};
-  const context = {CrownlessSlice:E,CrownlessNeighborhood:require('../src/neighborhood.js'),CrownlessArt:{scene:()=>'<svg></svg>',icon:()=>'<svg></svg>'},isSecureContext:true,
+  const context = {CrownlessSlice:E,CrownlessNearbyHome:require('../src/nearby-home-view.js'),CrownlessNeighborhood:require('../src/neighborhood.js'),CrownlessArt:{scene:()=>'<svg></svg>',icon:()=>'<svg></svg>'},isSecureContext:true,
     document:{querySelector:selector=>elements[selector] || null},
     localStorage:{getItem:k=>{if(storageFails)throw Error('blocked');return store.get(k)??null;},setItem:(k,v)=>{if(storageFails)throw Error('blocked');store.set(k,v);},removeItem:k=>{if(storageFails)throw Error('blocked');store.delete(k);}},
     navigator:{geolocation:{getCurrentPosition(ok,error){callbacks.ok=ok;callbacks.error=error;}}},
@@ -89,7 +89,7 @@ test('banked crown epilogue can be revisited without restarting or advancing the
   assert.match(b.html(),/EPILOGUE/);
   assert.match(b.html(),/3 <small>回の生還 \/ 遠征 4 回/);
   b.click('ending-continue');
-  assert.match(b.html(),/neighborhood-atlas/);
+  assert.match(b.html(),/neighborhood-rebuild/);
   assert.equal(b.store.get(key),saved);
   const unearned = browser(); unearned.click('mode','demo'); unearned.click('ending-open');
   assert.doesNotMatch(unearned.html(),/EPILOGUE/);
@@ -140,7 +140,7 @@ test('cancel keeps invalid game bytes; confirming fresh start preserves other mo
   assert.equal(b.store.get(walk),oldWalk);
   assert.equal(b.store.get(fkey),JSON.stringify(visits));
   assert.doesNotMatch(b.html(),/セーブを読み込めません/);
-  assert.match(b.html(),/class="exploration-atlas neighborhood-atlas"/);
+  assert.match(b.html(),/class="game-layout neighborhood-rebuild living-map-home"/);
   b.click('tab','chronicle');
   assert.match(b.chronicleHTML(),/天穿つ白塔/);
   assert.match(b.chronicleHTML(),/発見済み・未支配/);
@@ -255,11 +255,11 @@ test('camp home presents a persistent neighborhood and local expedition action',
   assert.match(b.html(),/西の木立/);
   assert.match(b.html(),/未開拓/);
   assert.match(b.html(),/data-action="district"/);
-  assert.match(b.html(),/district-landmark-svg/);
-  assert.match(b.html(),/district-frontier-fog/);
+  assert.match(b.html(),/nearby-tile-stamp/);
+  assert.match(b.html(),/nearby-paper-map/);
   assert.match(b.html(),/<\/section><nav class="camp-tabs bottom-navigation"/);
   assert.match(b.html(),/この土地へ遠征/);
-  assert.match(b.html(),/近所を歩く/);
+  assert.match(b.html(),/土地を発見/);
   b.click('scout','tower');
   assert.match(b.html(),/鐘なき塔/);
   assert.match(b.html(),/北の見張り跡/);
@@ -288,7 +288,7 @@ test('core camp nav owns six stable buttons and journal views are reversible', (
   assert.match(b.html(),/class="chronicle-panel"/);
   assert.match(b.html(),/data-value="chronicle" aria-current="page"/);
   b.click('tab','explore');
-  assert.match(b.html(),/class="atlas-field neighborhood-field"/);
+  assert.match(b.html(),/class="nearby-tile-grid"/);
   assert.match(b.html(),/この土地へ遠征/);
   b.click('tab','home');
   assert.match(b.html(),/class="home-portrait"/);
@@ -396,11 +396,12 @@ test('revisited district reveals a named persistent NPC trace in its main detail
   state.neighborhood.districts[0].aided=true;
   const seed={'crownless-expedition-mode':'demo','crownless-expedition-v1-demo':E.serialize(state)};
   const b=browser(seed);
+  assert.match(b.html(),/data-action="depart"/);
+  b.click('nearby-view','detail');
   assert.match(b.html(),/district-trace/);
   assert.match(b.html(),/この土地に残った変化：斥候の道標/);
   assert.match(b.html(),/最初に倒した敵から狼牙 \+1/);
-  assert.match(b.html(),/data-action="depart"/);
-  assert.match(b.html(),/✦ 斥候の道標/);
+  assert.match(b.html(),/✦ この土地に残った変化/);
   const before=b.store.get('crownless-expedition-v1-demo');
   assert.deepEqual(E.parse(before),state);
 });
@@ -410,9 +411,11 @@ test('fictional traveler supplies appear on selected district and vanish when us
   s.neighborhood.districts[0].visitor='supplies';
   const key='crownless-expedition-v1-demo';
   const b=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(s)});
+  assert.match(b.html(),/薬師の荷/);
+  b.click('nearby-view','detail');
   assert.match(b.html(),/架空NPCが残したもの：薬師の補給袋/);
-  assert.match(b.html(),/この地点から出発すると受け取れる/);
-  assert.match(b.html(),/NPC 薬師の補給袋/);
+  assert.match(b.html(),/この土地からの次の遠征に薬草 \+1/);
+  b.click('nearby-view','map');
   b.click('depart','wood');
   const departed=JSON.parse(b.store.get(key));
   assert.equal(departed.expedition.potions,3);
@@ -422,6 +425,8 @@ test('fictional traveler supplies appear on selected district and vanish when us
   b.click('return');
   b.click('continue');
   b.click('tab','explore');
+  assert.doesNotMatch(b.html(),/薬師の荷/);
+  b.click('nearby-view','detail');
   assert.doesNotMatch(b.html(),/架空NPCが残したもの：薬師の補給袋/);
   assert.match(b.html(),/補給袋は受け取った/);
 });
@@ -515,6 +520,7 @@ test('boss victory -> return -> continue automatically reveals the visible flag 
   assert.match(b.chronicleHTML(),/⚑ 紅蓮の望楼に支配の旗が立った！/);
   assert.deepEqual(E.parse(b.store.get(key)).claimedLandmarks,[landmark]);
   const reload=browser(Object.fromEntries(b.store),false,true);
+  reload.click('nearby-view','detail');
   assert.match(reload.html(),/class="landmark-status-strip"/);
   assert.match(reload.html(),/⚑ 紅蓮の望楼/);
   reload.click('landmark-map',landmark);
@@ -560,6 +566,7 @@ test('REAL click-path: a named landmark guardian dies, the flag CTA appears, and
   b.click('continue');
   assert.match(b.chronicleHTML(),/⚑ あなたの支配拠点/);
   const loaded=browser(Object.fromEntries(b.store),false,true);
+  loaded.click('nearby-view','detail');
   assert.match(loaded.html(),/⚑ 紅蓮の望楼/);
   loaded.click('landmark-map',id);
   assert.match(loaded.chronicleHTML(),/⚑ あなたの支配拠点/);
@@ -591,6 +598,7 @@ test('a newly discovered event opens a higher-stakes hunt; a shop changes actual
   s=E.discoverDistrict(s,N.cell(800,0)); // Second tower = shop.
   const key='crownless-expedition-v1-demo';
   const b=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(s)});
+  b.click('nearby-view','detail');
   assert.match(b.html(),/交易路を発見/);
   assert.match(b.html(),/鐘鉄/);
   b.click('poi','trade-material');
@@ -599,7 +607,9 @@ test('a newly discovered event opens a higher-stakes hunt; a shop changes actual
   assert.equal(traded.materials.watchIron,1);
   assert.match(b.html(),/共同倉庫へ \+1/);
   b.click('district','0,1');
-  assert.match(b.html(),/強敵を追う特別な遠征/);
+  assert.match(b.html(),/異変の手掛かり/);
+  assert.match(b.html(),/異変を調べる/);
+  b.click('nearby-view','detail');
   assert.match(b.html(),/強敵の手掛かりを追って出発/);
   b.click('poi','clue');
   const fight=E.parse(b.store.get(key));
@@ -614,6 +624,7 @@ test('tower mystery shows an actionable design reward and smith recipe after saf
   let discovered=E.discoverDistrict({...E.initial(),mode:'demo'},N.cell(400,0));
   const key='crownless-expedition-v1-demo';
   const before=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(discovered)});
+  before.click('nearby-view','detail');
   assert.match(before.html(),/固有の発見：鐘守の亡兵/);
   assert.match(before.html(),/返し棘の盾/);
   before.click('tab','gear');
@@ -656,8 +667,9 @@ test('restored tower map and Yuno are visible after safe return, and bell signal
   returned.click('tab','explore');
   assert.match(returned.html(),/restored-bell/);
   assert.match(returned.html(),/🔔 鐘が戻った/);
+  returned.click('nearby-view','detail');
   assert.match(returned.html(),/鐘守の弟子・ユノ/);
-  assert.match(returned.html(),/鐘の戻った塔の残響/);
+  assert.match(returned.html(),/鐘が戻った見張り跡/);
   assert.match(returned.html(),/data-action="bell-depart"/);
   const restored=JSON.parse(returned.store.get(key));
   assert.equal(restored.designs.shield_thorn,'0,1');

@@ -40,10 +40,11 @@ test('map pixel signs and expanded ink POI detail use the same canonical distric
   ]);
   const elements = {};
   for (const id of ['#game', '#save-status', '#save-label', '#help-toggle', '#help']) {
-    elements[id] = {innerHTML:'', hidden:true, textContent:'', setAttribute(){}, addEventListener(){}, querySelector(){return null;}};
+    elements[id] = {innerHTML:'', hidden:true, textContent:'', setAttribute(){}, addEventListener(type,handler){this[type]=handler;}, querySelector(){return null;}};
   }
   const window = {
     CrownlessArt: art, CrownlessNeighborhood: N, CrownlessSlice: E,
+    CrownlessNearbyHome: require('../src/nearby-home-view.js'),
     CrownlessMapPixelArt: require('../src/map-pixel-art.js'),
     addEventListener(){}, isSecureContext:true
   };
@@ -53,13 +54,17 @@ test('map pixel signs and expanded ink POI detail use the same canonical distric
   window.navigator = {geolocation: null};
   vm.runInNewContext(read('src/slice-app.js'), window);
   const html = elements['#game'].innerHTML;
-  assert.equal((html.match(/class="district-pixel-art"/g) || []).length, 8);
-  assert.equal((html.match(/class="district-poi-stamp"/g) || []).length, 1);
-  assert.match(html, /aria-label="西の木立：異変・囁き樹の噂"/);
-  assert.match(html, /class="district-poi-mark" aria-hidden="true"><svg class="district-pixel-art"/);
-  assert.match(html, /class="district-poi-icon" aria-hidden="true"><svg class="district-poi-stamp"/);
+  assert.equal((html.match(/class="district-pixel-art"/g) || []).length, 2, 'restored view opens on the second page containing the currently selected eighth discovery');
+  assert.match(html, /class="nearby-tile-grid"/);
+  assert.match(html, new RegExp('data-value="'+N.get(s.neighborhood).id+'" aria-pressed="true"'));
+  assert.match(html, /class="nearby-tile-stamp" aria-hidden="true"><svg class="district-pixel-art"/);
   assert.match(html, /data-action="district"/);
-  assert.match(html, /data-action="poi"/);
+  assert.match(html, /data-action="nearby-view"/);
+  assert.match(html, /data-action="nearby-page"/, 'new map must paginate, not stack 8 pins');
+  elements['#game'].click({target:{closest:()=>({dataset:{action:'nearby-page',value:'0'},disabled:false})}});
+  const first=elements['#game'].innerHTML;
+  assert.equal((first.match(/class="district-pixel-art"/g)||[]).length,6);
+  assert.match(first,/aria-label="西の木立、✦ 異変"/);
 });
 
 test('map POI stamps keep crisp bounds and minimum tappable map marker', () => {
