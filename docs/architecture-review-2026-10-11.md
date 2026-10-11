@@ -47,12 +47,34 @@ The new view has one owner but still uses existing CSS/JavaScript for other tabs
 
 Quality gate: Node regression including old/walk saved states, UI event routing, provenance and paginated POIs; actual Chromium touch paths 360×800, 390×844, 430×932 and 1280×900; elementFromPoint tap checks, three separate grid rectangles, no map scrolling, map >=40% viewport and nav at thumb reach; screenshots must be opened and visually inspected before merging. Keep `AGENTS.md` one scene per viewport requirement authoritative. The actual screenshots showed a legible wide parchment map and distinct CTA/dock, rather than the original overlay with stacked NPC paragraphs. **Human play-fun verdict remains pending.**
 
-## Next production slice and acceptance gate
+## Status after the first two production rollouts — 2026-10-11
 
-1. Rebuild **only the map tab** around exactly one owning component and a stable one-viewport layout: legible fantasy map; one summary card outside the map; one primary CTA; long lore behind an optional detail view. Do not pile the existing `bellPanel`, `visitorNotice`, `traceNotice`, and POI text in the first view.
-2. Run the same saved scenarios through both implementations, on 360, 390, and 430px phones and desktop width. Assert no panel/card overlap, no document/nested scroll traps for the primary screen, all interactive targets actually reachable with touch, and no disappeared tactical information (ADR 0009). Inspect screenshots visually **before merge**; enforce review, not automated claims of subjective fun.
-3. Preserve `parse/serialize` and journal migrations, and test existing real `demo` and `walk` saves. Use a single explicit save adapter and a separately testable location provider.
-4. Once the first scene passes visual and live-play comparison, decide whether maintaining it in vanilla DOM or small Preact components produces the lower real maintenance cost. Migrate only that vertical slice; do not rewrite combat or forge simultaneously.
-5. Trial Phaser/PixiJS on **one isolated animated scene** only if further human play finds that real visual rendering, not UI layering, is the repeat blocker. Compare real mobile frame times, memory, visual legibility, integration complexity, and player action value against the DOM baseline.
+The original rollout checklist below described **future work when PR #967 was opened**. Do not re-run it as if the first map slice were still unimplemented.
 
-**Unmeasured:** subjective fun, real hardware frame times, network bundle transfer, iOS Safari behavior, genuine multi-account throughput. Do not infer them from this CI green result.
+| Boundary | Evidence | Status |
+| --- | --- | --- |
+| Single-owner lab without game-state writes | PR #967, browser smoke and CI run `38113377086` | Complete for isolated map/expedition comparison |
+| Production one-viewport neighborhood scene | PR #968, `src/nearby-home-view.js` and `neighborhood-rebuild.css` | Merged; Playwright phone-width checks passed on the PR |
+| Production one-decision combat scene | PR #970, `combat-decision-scene.css`, battle UI changes and browser tests | Merged; the PR's test workflow succeeded |
+| Travel-tab touch target repair | PR #966, real pointer navigation at 360/390px | Merged; still not proof that every button is usable on a physical phone |
+| Old screenshot/Pages artifact accumulation | PR #969 and #971 | Cleanup workflows merged; verify runtime execution and account-wide quota separately |
+| Actual 15-minute fun/playability verdict | Issue #717 | **Open**; cannot be inferred from CI or screenshots |
+| iOS Safari and physical device behavior | No qualifying measurement in this review | **Unverified** |
+
+### Current decision: no framework or engine migration
+
+The original suspected blocker was overlapping DOM/CSS ownership, **not** a missing GPU game engine. PR #967 demonstrated a usable one-owner renderer with the same state engine. PRs #968 and #970 then applied focused changes to the live map and combat screens without Vite, Preact, Phaser, PixiJS, new state authority, or save-format migration.
+
+**Keep this smaller stack for the next playtest.** The surviving `src/slice-app.js` and late-loaded view scripts remain maintenance risk, but 66 script entries alone do not justify a rewrite. Do not create a parallel UI framework merely to tidy file counts. Do not remove historical source modules based on the entrypoint inventory.
+
+### Next unfinished gate
+
+1. **Play the deployed tested build on a real phone**: start from the neighborhood; tap its main expedition and details actions; manually fight and use optional supplies; return with materials; change to smith, craft/equip, and go on one more expedition. Record the exact screen, action, device, failure, and whether another expedition is appealing, in #717. Repeat at least one key route on iOS Safari when available.
+2. If a primary action cannot be tapped, or a panel overlaps at 360–430px, **fix that one owning scene first**, with a real Chromium pointer test and before/after screenshot. Do not compensate with another global overlay or `MutationObserver`.
+3. Extract a shared save adapter or replaceable foreground-location provider **only when the next changed scene requires that seam**. Verify existing demo/walk records, cross-tab conflict protection, unreadable-save recovery, and landmark journal isolation. Do not move both systems speculatively.
+4. Evaluate a small Preact + Vite vertical slice **only if subsequent changes show repeated ownership or maintenance failure** despite the current single-owner approach. Compare the same user actions, bundle/load cost, one-phone layout, number of competing render owners, and developer effort with the vanilla baseline. Keep one source of game state and restore the previous renderer easily.
+5. Try Phaser/PixiJS only if a concrete animated scene exposes a measured DOM/SVG rendering limit, per accepted ADR 0010; compare on physical hardware before accepting the additional runtime.
+
+**Stop condition:** If the map, combat, return, and craft loop is technically usable and maintenance remains tractable, stop environment work and prioritize #717's player-fun findings. CI green means the checks passed, not that the game is enjoyable.
+
+**Still unmeasured:** real hardware frame times, iOS Safari, network bundle transfer, subjective player enjoyment, and cross-account server performance.
