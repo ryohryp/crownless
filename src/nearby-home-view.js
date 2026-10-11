@@ -17,7 +17,8 @@
     const visible=n.districts.slice(currentPage*6,(currentPage+1)*6);
     // These are schematic fantasy-map connections, never a GPS trace.
     // Use only the discoveries on this page; do not persist extra coordinates.
-    const trailStops=[[25,16],[75,16],[25,50],[75,50],[25,84],[75,84]];
+    const rowHeights=visible.length===2?[50,50]:visible.length<=4?[25,25,75,75]:[16,16,50,50,84,84];
+    const trailStops=rowHeights.map((y,i)=>[i%2===0?25:75,y]);
     const trail=visible.length>1
       ? '<svg class="nearby-map-trail" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path d="'
         +trailStops.slice(0,visible.length).map(([x,y],i)=>(i?' L':'M')+x+' '+y).join('')
