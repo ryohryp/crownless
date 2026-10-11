@@ -360,6 +360,19 @@
     n.expedition.log=[`「${N.pointOfInterest(d).name}」の手掛かりを追った。敵は強いが、討伐すれば${MATERIALS[REGIONAL_MATERIAL[d.biome]].name}をさらに1つ得る。生還で確定。`];
     return n;
   }
+  // The resolved bell only changes its original coarse district. The newly arrived
+  // bell keeper offers a voluntary tactical lead before a later expedition.
+  // Use existing focus rather than a new timed buff/save field.
+  function startWithBellSignal(s) {
+    const d = s?.neighborhood && N.get(s.neighborhood);
+    if (!d || d.id !== s.designs?.shield_thorn || d.biome !== 'tower' ||
+        N.pointOfInterest(d)?.family !== 'event') return s;
+    const n = start(s,'tower');
+    if (n === s) return s;
+    n.expedition.focus = 3;
+    n.expedition.log.unshift('修復された鐘が鳴る。鐘守の弟子・ユノの合図で、最初の攻撃に集中 +3。');
+    return n;
+  }
   function encounter(x, risky, runs = 0) {
     const elite = x.room === 4;
     const kind = x.place === 'wood' && x.room === 2 ? 'forest_hunter' : place(x.place).enemy;
@@ -796,6 +809,6 @@
       return s;
     } catch { return null; }
   }
-  const api = { VERSION, PLACES, GEAR, ENEMIES, INTENTS, VARIANT_LOOT, MATERIALS, RECIPES, COMMISSIONS, DISMANTLE_SCRAP, LOCAL_HERB_COST, LOCAL_MATERIAL_COST, REGIONAL_MATERIAL, initial, maxHp, gearFamily, weaponLevel, weaponQuality, weaponAttack, qualityLabel, rollQuality, upgradeCost, combatProfile, gearText, enemyProfile, attackPreview, intent, lootCue, place, isRoadsideEvent, discover, start, startLandmark, startWithLocalHerb, startWithLocalClue, tradeLocalMaterial, act, resolveFight, maintain, equip, switchCharacter, craftItem, craftWolfFang, supplyCommission, upgrade, resolveDuplicate, locationSession, observe, serialize, parse, discoverDistrict,selectDistrict,buildHome,renameHome };
+  const api = { VERSION, PLACES, GEAR, ENEMIES, INTENTS, VARIANT_LOOT, MATERIALS, RECIPES, COMMISSIONS, DISMANTLE_SCRAP, LOCAL_HERB_COST, LOCAL_MATERIAL_COST, REGIONAL_MATERIAL, initial, maxHp, gearFamily, weaponLevel, weaponQuality, weaponAttack, qualityLabel, rollQuality, upgradeCost, combatProfile, gearText, enemyProfile, attackPreview, intent, lootCue, place, isRoadsideEvent, discover, start, startLandmark, startWithLocalHerb, startWithLocalClue, tradeLocalMaterial, startWithBellSignal, act, resolveFight, maintain, equip, switchCharacter, craftItem, craftWolfFang, supplyCommission, upgrade, resolveDuplicate, locationSession, observe, serialize, parse, discoverDistrict,selectDistrict,buildHome,renameHome };
   return api;
 });
