@@ -173,6 +173,16 @@
       button('character', `${c.name}${state.activeCharacter === i ? ' · 操作中' : ''}`,
         c.role === 'smith' ? `鍛冶熟練 ${c.experience}` : c.role === 'merchant' ? '交易（今後の実験）' : '遠征と素材採集',
         {class:state.activeCharacter === i ? 'choice selected' : 'secondary',value:String(i)})).join('');
+    // Offer one actionable smith recipe before the long catalogue. Newly
+    // earned blueprint gear wins when multiple items are craftable.
+    const readyRecipes = state.activeCharacter === 1
+      ? Object.keys(E.RECIPES).filter(recipeId => canCraft(state,recipeId)) : [];
+    const quickCraftId = readyRecipes.find(id => E.RECIPES[id].requiresBlueprint) || readyRecipes[0] || null;
+    const quickCraft = quickCraftId
+      ? '<div class="gear-quick-craft" aria-label="今すぐ製作できる装備"><p class="small">素材が揃った：'
+        +esc(E.GEAR[quickCraftId].name)+'。今ここで製作できる。</p>'
+        +button('craft-item',esc(E.GEAR[quickCraftId].name)+'を製作','',{class:'primary',value:quickCraftId})+'</div>'
+      : '';
     const recipes = Object.entries(E.RECIPES).map(([recipeId,recipe]) => {
       const materials = Object.entries(recipe.materials).map(([materialId,count]) => `${E.MATERIALS[materialId].name} ${count}個`).join(' · ');
       const done = state.owned.includes(recipeId);
@@ -190,7 +200,9 @@
         : `<p class="small" data-recipe-progress="${recipeId}">${state.activeCharacter === 1 ? '素材が揃った。製作できる。' : '素材が揃った。鍛冶師に交代して製作しよう。'}</p>`;
       const make = done ? '<p class="notice">製作済み · 倉庫から装備できる</p>'
         : state.activeCharacter === 1
-          ? button('craft-item',`${E.GEAR[recipeId].name}を製作`,info,{class:'secondary',value:recipeId,disabled:!canCraft(state,recipeId)})
+          ? recipeId===quickCraftId
+            ? '<p class="small">この装備は上の製作ボタンから作れる。</p>'
+            : button('craft-item',`${E.GEAR[recipeId].name}を製作`,info,{class:'secondary',value:recipeId,disabled:!canCraft(state,recipeId)})
           : `<p class="small">必要素材：${info}</p>`;
       return `<div class="home-building"><div><h3>${E.GEAR[recipeId].name}</h3><p>${E.gearText(state,recipeId,recipe.quality)}</p></div>${learnedAt ? '<p class="notice">✦ '+N.title(learnedAt)+'で製法を発見した。</p>' : ''}${progress}${make}</div>`;
     }).join('');
@@ -209,6 +221,7 @@
     const workshop = `<section class="rule-line" aria-label="冒険者と鍛冶師の製作">
       <h3>冒険者と職人の仕事</h3>
       <p class="small">戦闘で得るのは素材。遠征は旅人、装備を生み出すのは鍛冶師。安全な拠点で交代し、倉庫を共有する。</p>
+      ${quickCraft}
       <div class="choice-grid">${roleChoices}</div>
       <p class="small">共同倉庫：${materialList(state.materials) || '素材なし'} · 鉄片 ${state.scrap}</p>
       <div class="home-buildings">${recipes}</div>
