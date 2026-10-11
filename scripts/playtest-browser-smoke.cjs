@@ -306,7 +306,8 @@ async function main() {
         const map=await labPage.locator('.lab-map').boundingBox();
         const card=await labPage.locator('.lab-card').boundingBox();
         assert(map && card && Math.abs(map.y+map.height-card.y)<=2,'the card is a separate grid row and cannot overlap the map');
-        assert.equal(await labPage.evaluate(()=>document.documentElement.scrollHeight<=innerHeight+1),true,'no page-level vertical scroll');
+        const dimensions=await labPage.evaluate(()=>({height:innerHeight,innerWidth,scrollHeight:document.documentElement.scrollHeight,clientHeight:document.documentElement.clientHeight,body:document.body.scrollHeight,frame:document.querySelector('.lab-frame').getBoundingClientRect().height,visualViewport:window.visualViewport?.height}));
+        assert.equal(dimensions.scrollHeight<=dimensions.clientHeight+1,true,'no page-level vertical scroll: '+JSON.stringify(dimensions));
         assert.equal(await labPage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,'no horizontal overflow');
         await labPage.locator('.lab-place[data-value="0,1"]').click();
         assert.match(await labPage.locator('.lab-card').innerText(),/ユノの合図で出発/);
