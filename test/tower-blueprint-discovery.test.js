@@ -34,7 +34,8 @@ test('the tower event reveals a unique at-risk smith blueprint, banked only on s
 
 test('no blueprint on failed run, shop discovery, other biome, or repeated clears',()=>{
   const found=event();
-  assert.equal(E.startWithLocalClue(E.discoverDistrict(found,shop)),E.discoverDistrict(found,shop));
+  const atShop=E.discoverDistrict(found,shop);
+  assert.equal(E.startWithLocalClue(atShop),atShop);
   const won=defeatFirstClue();
   const advance=E.act(won,E.isRoadsideEvent(won)?'pray':'rest');
   const battle=E.act(advance,'careful');
