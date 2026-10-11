@@ -31,6 +31,6 @@ test('mobile combat keeps the whole turn decision surface in one viewport', () =
   assert.match(rebuiltCss, /\.combat-panel \{[\s\S]*?display:grid[\s\S]*?overflow:hidden/);
   assert.match(rebuiltCss, /\.combat-choice-grid \.choice\{min-height:58px\}/);
   assert.match(rebuiltCss, /\.combat-support \.combat-foot \{[\s\S]*?grid-template-columns:repeat\(2,minmax\(0,1fr\)\)/);
-  assert.match(app, /class="combat-support"><summary>薬草・撤退・戦闘記録/);
+  assert.match(app, /class="combat-support"><summary><span class="combat-support-closed">薬草・撤退・戦闘記録/);
   assert.match(rebuiltCss, /\.combat-panel:has\(\.combat-support\[open\]\) > \.combat-decision/);
 });
