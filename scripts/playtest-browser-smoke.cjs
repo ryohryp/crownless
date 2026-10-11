@@ -308,11 +308,23 @@ async function main() {
       await poiPage.locator('[data-action="tab"][data-value="gear"]').click();
       await poiPage.screenshot({path:path.join(output,'blueprint-unlocked-390.png')});
       await poiPage.locator('[data-action="character"][data-value="1"]').click();
-      const smithButton=poiPage.locator('[data-action="craft-item"][data-value="shield_thorn"]');
+      const smithButton=poiPage.locator('.gear-quick-craft [data-action="craft-item"][data-value="shield_thorn"]');
+      assert.equal(await smithButton.count(),1,'newly unlocked, truly craftable blueprint gets the single fast smith action');
       assert.equal(await smithButton.isEnabled(),true,'cross-region materials and design enable smithing');
+      const firstScreenCraft=await smithButton.evaluate(button=>{
+        const r=button.getBoundingClientRect(), dock=document.querySelector('.bottom-navigation').getBoundingClientRect();
+        const at=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
+        return {top:r.top,bottom:r.bottom,dockTop:dock.top,tappable:at===button||button.contains(at)};
+      });
+      assert(firstScreenCraft.top>=0 && firstScreenCraft.bottom<firstScreenCraft.dockTop-4 && firstScreenCraft.tappable,
+        'a real ready-to-craft action must be visibly tappable above the thumb dock without scrolling: '+JSON.stringify(firstScreenCraft));
+      await poiPage.screenshot({path:path.join(output,'smith-ready-first-screen-390.png')});
       await smithButton.click();
+      assert.equal(await poiPage.locator('.gear-quick-craft [data-action="craft-item"][data-value="shield_thorn"]').count(),0,
+        'crafted item must not remain in the quick-craft queue');
       await poiPage.locator('[data-action="character"][data-value="0"]').click();
       await poiPage.locator('[data-action="equip"][data-value="shield_thorn"]').click();
+      await poiPage.screenshot({path:path.join(output,'smith-crafted-equipped-390.png')});
       const forged=await poiPage.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
       forgedSaved=forged;
       assert.equal(forged.equipped,'shield_thorn');
