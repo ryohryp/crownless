@@ -80,7 +80,7 @@ test('discovered shop shows the trade action and spending starts the boosted run
     el[name] = {innerHTML:'',hidden:true,textContent:'',value:'',addEventListener(type,fn){this[type]=fn;},setAttribute(){}};
   }
   const context = {
-    CrownlessSlice:E, CrownlessNeighborhood:N,
+    CrownlessSlice:E, CrownlessNearbyHome:require('../src/nearby-home-view.js'), CrownlessNeighborhood:N,
     CrownlessArt:{scene:()=>'<svg></svg>',icon:()=>'<svg></svg>'},
     isSecureContext:true, document:{querySelector:q=>el[q] || null},
     localStorage:{getItem:q=>store.get(q)??null,setItem:(q,v)=>store.set(q,v)},
@@ -88,9 +88,10 @@ test('discovered shop shows the trade action and spending starts the boosted run
   };
   context.window = context;
   vm.runInNewContext(fs.readFileSync(path.join(__dirname,'..','src/slice-app.js'),'utf8'),context);
+  el['#game'].click({target:{closest:()=>({dataset:{action:'nearby-view',value:'detail'},disabled:false})}});
   assert.match(el['#game'].innerHTML,/枝角の露店/);
   assert.match(el['#game'].innerHTML,/data-action="poi" data-value="herb"/);
-  assert.match(el['#game'].innerHTML,/鉄片 2 \/ 薬草 \+1/);
+  assert.match(el['#game'].innerHTML,/薬草を買って遠征/);
   el['#game'].click({target:{closest:()=>({dataset:{action:'poi',value:'herb'},disabled:false})}});
   const saved = E.parse(store.get('crownless-expedition-v1-demo'));
   assert.equal(saved.scrap, 1);

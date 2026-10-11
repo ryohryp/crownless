@@ -353,8 +353,10 @@
 }
 
 /* Discovery-driven fantasy atlas: earned locations, not a diary form. */
+/* Five actual subviews must stay in one thumb-sized row at 360–430px.
+   A three-column wrap hid some controls below the first fold on small phones. */
 .chronicle-subtabs {grid-template-columns: repeat(5,minmax(0,1fr));}
-.subtab-btn {min-width:0; overflow-wrap:anywhere;}
+.subtab-btn {min-width:0;min-height:46px;padding:9px 1px;line-height:1.3;font-size:clamp(10px,2.7vw,12px);overflow-wrap:anywhere;touch-action:manipulation;}
 .landmark-discovery-banner {padding:12px;border:1px solid #ccb47e;background:rgba(204,180,126,.12);border-radius:10px;color:#f3e5b8;font-weight:bold;line-height:1.55;}
 .fantasy-landmark-map {margin-bottom:12px;}
 .fantasy-landmark-map-title {font-size:.9rem;color:#d2b981;font-weight:700;margin-bottom:7px;}
@@ -381,7 +383,7 @@
 .footprint-heading small {display:block;color:var(--muted,#a5b4ac);margin-top:3px;}
 .footprint-seal {display:grid;place-items:center;font-size:1.6rem;width:46px;min-width:46px;height:46px;border:1px solid var(--gold,#d2b981);border-radius:50%;}
 .footprint-acquired {font-weight:700;color:#c7d8ba;font-size:.84rem;}
-@media(max-width:370px) {.chronicle-subtabs {grid-template-columns:repeat(3,minmax(0,1fr));}}
+/* Keep the same five controls visible on 360px phones; no second navigation row. */
 
 /* Landmark strongholds: claim is a gameplay result, not a visit stamp. */
 .landmark-siege-btn {

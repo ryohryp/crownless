@@ -136,6 +136,20 @@
     const q = s?.qualities?.[id];
     return Number.isInteger(q) ? Math.max(-1, Math.min(3, q)) : 0;
   }
+  // ADR 0012: only earned landmark control grants passive combat blessings.
+  const LANDMARK_COMBAT_BLESSINGS = Object.freeze({
+    'tokyo-tower': { attack: 1 },
+    'osaka-castle': { defense: 1 }
+  });
+  function landmarkBlessings(s) {
+    const owned = new Set(Array.isArray(s?.claimedLandmarks) ? s.claimedLandmarks : []);
+    const active = Object.entries(LANDMARK_COMBAT_BLESSINGS)
+      .filter(([id]) => owned.has(id)).map(([, bonus]) => bonus);
+    return {
+      attack: Math.max(0, ...active.map(b => b.attack || 0)),
+      defense: Math.max(0, ...active.map(b => b.defense || 0))
+    };
+  }
   function weaponAttack(s, id = s.equipped, qualityOverride = null) {
     const gear = GEAR[id];
     if (!gear) return 0;
@@ -164,20 +178,6 @@
     const key = upgradeKey(id);
     const specific = key && Number.isInteger(s?.upgrades?.[key]) ? Math.max(0, Math.min(4, s.upgrades[key])) : 0;
     return Math.max(legacy, specific);
-  }
-  // ADR 0012: only earned landmark control grants passive combat blessings.
-  const LANDMARK_COMBAT_BLESSINGS = Object.freeze({
-    'tokyo-tower': { attack: 1 },
-    'osaka-castle': { defense: 1 }
-  });
-  function landmarkBlessings(s) {
-    const owned = new Set(Array.isArray(s?.claimedLandmarks) ? s.claimedLandmarks : []);
-    const active = Object.entries(LANDMARK_COMBAT_BLESSINGS)
-      .filter(([id]) => owned.has(id)).map(([, bonus]) => bonus);
-    return {
-      attack: Math.max(0, ...active.map(b => b.attack || 0)),
-      defense: Math.max(0, ...active.map(b => b.defense || 0))
-    };
   }
   const upgradeCost = (s, id = s.equipped) => Math.max(2, (id === 'rust' && weaponLevel(s, id) === 0 ? 4 : 8 + weaponLevel(s, id) * 6) - (s.neighborhood?.buildings.includes('forge') ? 2 : 0));
   function combatProfile(s, id = s.equipped) {
@@ -594,7 +594,6 @@
         ? Math.max(2, next.damage - Math.floor(block / 2))
         : next.id === 'intercept' && action === 'heavy'
           ? next.damage + 4 : Math.max(0, next.damage - block);
-    // A real hit still costs at least 1 HP; fully blocked hits remain zero.
     if (taken > 0) taken = Math.max(1, taken - landmarkBlessings(n).defense);
     x.hp -= taken;
     if (action === 'dodge') {

@@ -51,12 +51,64 @@ async function main() {
       try {
         await page.goto(url);
         await page.locator('[data-action="mode"][data-value="demo"]').click();
-        assert.equal(await page.locator(".neighborhood-atlas").count(), 1, "demo should show the map");
+        assert.equal(await page.locator(".nearby-paper-map").count(), 1, "demo should show the map");
+        const layout = await page.evaluate(() => {
+          const rect = selector => {
+            const r = document.querySelector(selector).getBoundingClientRect();
+            return {top:r.top,bottom:r.bottom,height:r.height,left:r.left,right:r.right};
+          };
+          const selectors=['.nearby-tile','.nearby-top-action','.nearby-card-actions button.primary','.nearby-card-actions button.secondary'];
+          const blocked=selectors.filter(selector=>{
+            const e=document.querySelector(selector);
+            if (!e || e.disabled) return false;
+            const r=e.getBoundingClientRect(),top=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
+            return !(top===e || e.contains(top));
+          });
+          return {map:rect('.nearby-scene'),card:rect('.nearby-card'),dock:rect('.bottom-navigation'),
+            blocked,viewport:innerHeight,mapOverflow:document.querySelector('.nearby-paper-map').scrollHeight-document.querySelector('.nearby-paper-map').clientHeight};
+        });
+        assert(Math.abs(layout.map.bottom-layout.card.top)<=2,'map and card must occupy distinct, adjacent rows: '+JSON.stringify(layout));
+        assert(Math.abs(layout.card.bottom-layout.dock.top)<=2,'card and thumb dock must occupy distinct, adjacent rows: '+JSON.stringify(layout));
+        assert(layout.map.height >= height*.4,'map must remain the visual focus, not a tiny strip: '+JSON.stringify(layout));
+        assert(height-layout.dock.bottom<=24 && layout.dock.bottom<=height+2,'dock must sit at the thumb bottom without old reserved gap: '+JSON.stringify(layout));
+        assert.deepEqual(layout.blocked,[],'all primary map/card controls must receive their real tap centers: '+JSON.stringify(layout));
+        assert(layout.mapOverflow<=2,'map never scrolls below the card');
         assert.equal(await page.locator(".bottom-navigation").isVisible(), true, "bottom navigation should be visible");
         const nav = await page.locator(".bottom-navigation").boundingBox();
         assert(nav && nav.y >= -1 && nav.y + nav.height <= height + 2, "bottom navigation must fit the viewport");
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true, "no document-wide horizontal overflow");
         await page.screenshot({ path: path.join(output, "map-" + width + ".png") });
+        
+        // Real touch interaction, not DOM-dispatched click: every primary camp
+        // destination and every Chronicle subtab must remain operable on 360/390px.
+        await page.locator('.bottom-navigation [data-action="tab"][data-value="gear"]').click();
+        assert.equal(await page.locator('.gear-home').count(), 1, "equipment tab must open");
+        await page.locator('[data-action="character"][data-value="1"]').click();
+        assert.match(await page.locator('.gear-home').innerText(), /操作中/);
+        await page.locator('[data-action="character"][data-value="0"]').click();
+        await page.locator('.bottom-navigation [data-action="tab"][data-value="home"]').click();
+        assert.equal(await page.locator('.homestead-home').count(), 1, "homestead tab must open");
+        await page.locator('.bottom-navigation [data-action="tab"][data-value="codex"]').click();
+        assert.equal(await page.locator('.codex-panel').count(), 1, "journal tab must open");
+        await page.locator('.bottom-navigation [data-action="tab"][data-value="chronicle"]').click();
+        assert.equal(await page.locator('.chronicle-subtabs .subtab-btn').count(), 5, "all five travel subtabs must be present");
+        for (const subtab of ["stamps", "relics", "outposts", "travelog", "footprints"]) {
+          const button = page.locator('.chronicle-subtabs .subtab-btn[data-subtab="' + subtab + '"]');
+          await button.click();
+          assert.equal(await button.evaluate(el => el.classList.contains("active")), true,
+            "travel subtab " + subtab + " must respond to a real tap");
+        }
+        const travelTabs = await page.locator('.chronicle-subtabs .subtab-btn').evaluateAll(nodes =>
+          nodes.map(el => { const box = el.getBoundingClientRect(); return { top: box.top, height: box.height, left: box.left, right: box.right }; }));
+        assert(travelTabs.every(x => x.height >= 44), "travel subtabs need 44px touch height");
+        assert(travelTabs.every(x => Math.abs(x.top - travelTabs[0].top) < 2),
+          "all five travel subtabs must remain on one row at phone widths");
+        assert(travelTabs.every(x => x.left >= 0 && x.right <= width + 1),
+          "travel subtab controls must fit the device width");
+        await page.screenshot({ path: path.join(output, "travel-controls-" + width + ".png") });
+        await page.locator('.bottom-navigation [data-action="tab"][data-value="explore"]').click();
+        assert.equal(await page.locator(".nearby-paper-map").count(), 1, "travel tabs must return to map");
+
 
         // Real pointer/touch regression: a normal expedition must lead into
         // combat and a resolved first fight, not merely set a path save.
@@ -68,7 +120,45 @@ async function main() {
         await page.screenshot({ path: path.join(output, "before-combat-" + width + ".png") });
         await firstStep.click();
         assert.equal(await page.locator(".battle-layout .combat-enemy-summary").count(), 1, "first encounter must render actual battle");
+        const battleLayout=await page.evaluate(()=>{
+          const names=['.combat-situation','.combat-decision','.combat-support'];
+          const items=names.map(selector=>{
+            const el=document.querySelector(selector), r=el.getBoundingClientRect();
+            return {selector,top:r.top,bottom:r.bottom,height:r.height};
+          });
+          const buttons=['strike','heavy','guard','dodge','auto-fight'].map(action=>{
+            const el=document.querySelector('[data-action="'+action+'"]');
+            const r=el.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,at=document.elementFromPoint(cx,cy);
+            return {action,visible:r.width>0&&r.height>=43&&r.top>=0&&r.bottom<=innerHeight+2,tappable:el.disabled || at===el || el.contains(at)};
+          });
+          return {items,buttons,viewport:innerHeight};
+        });
+        assert(battleLayout.items.every((item,i)=>item.height>=44 && (i===0||item.top>=battleLayout.items[i-1].bottom-2)),
+          'battle readout, choice card and optional support are separate, nonoverlapping rows: '+JSON.stringify(battleLayout));
+        assert(battleLayout.buttons.every(btn=>btn.visible&&btn.tappable),
+          'the four tactics and one-click auto must be real thumb-reachable controls: '+JSON.stringify(battleLayout));
+        await page.screenshot({ path: path.join(output, "combat-tactics-" + width + ".png") });
+        const supportTappable=await page.locator('.combat-support > summary').evaluate(el=>{
+          const r=el.getBoundingClientRect(),point=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
+          return r.top>=0 && r.bottom<=innerHeight+2 && (point===el || el.contains(point));
+        });
+        assert(supportTappable,'optional supply/log summary must receive a real tap');
+        await page.locator('.combat-support > summary').click();
+        assert.equal(await page.locator('.combat-support').getAttribute('open'),'','supplies are readable on demand');
+        assert.equal(await page.locator('.combat-decision').isVisible(),false,'reading support never competes with the tactical buttons');
+        assert.equal(await page.locator('[data-action="flee"]').isVisible(),true,'retreat is visible in the reading scene');
+        const supportReader=await page.locator('.combat-support').boundingBox();
+        assert(supportReader&&supportReader.y<height*.55&&supportReader.height>150,'support detail becomes its own readable viewport instead of blank space');
+        await page.screenshot({ path: path.join(output, "combat-support-" + width + ".png") });
+        await page.locator('.combat-support > summary').click();
         await page.screenshot({ path: path.join(output, "combat-start-" + width + ".png") });
+        if(width===390){
+          const beforeTurn=await page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')).expedition.enemy.turn);
+          await page.locator('.combat-choice-grid [data-action="strike"]').click();
+          const afterTurn=await page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')).expedition.enemy.turn);
+          assert(afterTurn>beforeTurn,'manual strike must execute a real combat turn');
+          await page.screenshot({path:path.join(output,'combat-after-manual-strike-390.png')});
+        }
         await page.locator('[data-action="auto-fight"]').click();
         assert.equal(await page.locator(".path-panel").count(), 1, "first battle must resolve to the next route scene");
         const afterFirstBattle = await page.evaluate(() => JSON.parse(localStorage.getItem("crownless-expedition-v1-demo")));
@@ -88,31 +178,33 @@ async function main() {
         await page.locator('[data-action="continue"]').click();
         // The normal return may prioritize the gear/home tab. Restore the map
         // before running the older discovery and landmark smoke scenarios.
-        await page.locator('[data-action="tab"][data-value="explore"]').click();
-        assert.equal(await page.locator(".neighborhood-atlas").count(), 1);
+        await page.locator('.bottom-navigation [data-action="tab"][data-value="explore"]').click();
+        assert.equal(await page.locator(".nearby-paper-map").count(), 1);
         await page.screenshot({ path: path.join(output, "return-from-combat-" + width + ".png") });
 
 
         if (width === 390) {
           // The map must reveal distinct shop/event sprites by player discovery,
           // not by artificially stamping a record into localStorage.
-          assert.equal(await page.locator('.district-pin[data-poi-family="event"] .district-pixel-art').count(), 1);
-          await page.locator(".map-home-scouting > summary").click();
+          assert.equal(await page.locator('.nearby-tile[data-poi-family="event"] .district-pixel-art').count(), 1);
+          await page.locator('[data-action="nearby-view"][data-value="scout"]').click();
           await page.locator('[data-action="scout"][data-value="tower"]').click();
-          await page.locator(".map-home-scouting > summary").click();
+          await page.locator('[data-action="nearby-view"][data-value="scout"]').click();
           await page.locator('[data-action="scout"][data-value="tower"]').click();
-          assert(await page.locator('.district-pin[data-poi-family="shop"] .district-pixel-art').count() >= 1);
-          assert(await page.locator('.district-pin[data-poi-family="event"] .district-pixel-art').count() >= 1);
+          assert(await page.locator('.nearby-tile[data-poi-family="shop"] .district-pixel-art').count() >= 1);
+          assert(await page.locator('.nearby-tile[data-poi-family="event"] .district-pixel-art').count() >= 1);
           await page.screenshot({ path: path.join(output, "hybrid-discovery-390.png") });
-          await page.locator('.district-pin[data-poi-family="shop"]').last().click();
+          await page.locator('.nearby-tile[data-poi-family="shop"]').last().click();
           assert.match(await page.locator(".district-detail").innerText(), /見張り跡/);
-          assert.match(await page.locator(".district-poi-card").innerText(), /鐘守の鍛冶台/);
-          await page.locator(".map-home-scouting > summary").click();
+          await page.locator('[data-action="nearby-view"][data-value="detail"]').click();
+      assert.match(await page.locator(".district-poi-card").innerText(), /鐘守の鍛冶台/);
+      await page.locator('[data-action="nearby-view"][data-value="map"]').click();
+          await page.locator('[data-action="nearby-view"][data-value="scout"]').click();
           await page.locator('[data-action="travel-demo"][data-value="skytree"]').click();
           assert.match(await page.locator(".chronicle-panel").innerText(), /天穿つ白塔/, "new fantasy landmark should appear");
           await page.screenshot({ path: path.join(output, "landmark-390.png") });
           await page.reload();
-          await page.locator('[data-action="tab"][data-value="chronicle"]').click();
+          await page.locator('.bottom-navigation [data-action="tab"][data-value="chronicle"]').click();
           const siege = page.locator('[data-action="landmark-siege"][data-value="tokyo-skytree"]');
           assert.equal(await siege.isEnabled(), true, "discovered landmark should allow a siege");
           await siege.click();
@@ -128,6 +220,32 @@ async function main() {
       } finally {
         await context.close();
       }
+    }
+
+    // Separate compact and desktop viewport checks, without repeating the
+    // expensive multi-stage adventure tests for each added breakpoint.
+    for (const [width,height] of [[430,932],[1280,900]]) {
+      const context=await browser.newContext({viewport:{width,height},isMobile:width<481,hasTouch:width<481});
+      const page=await context.newPage();
+      try {
+        await page.goto(url);
+        await page.locator('[data-action="mode"][data-value="demo"]').click();
+        const map=await page.locator('.nearby-scene').boundingBox();
+        const card=await page.locator('.nearby-card').boundingBox();
+        const dock=await page.locator('.bottom-navigation').boundingBox();
+        assert(map&&card&&dock && Math.abs(map.y+map.height-card.y)<3 && Math.abs(card.y+card.height-dock.y)<3,
+          width+'px: no scroll-sheet may paint over the map');
+        assert(map.height>300,width+'px: map must be large enough to explore');
+        await page.screenshot({path:path.join(output,'map-production-'+width+'.png')});
+        await page.locator('.nearby-card-actions [data-action="depart"][data-value="wood"]').click();
+        await page.locator('.path-actions [data-action="careful"]').click();
+        assert.equal(await page.locator('.combat-choice-grid .choice').count(),4,'wide phones/desktop share the same tactical options');
+        assert.equal(await page.locator('.combat-choice-grid [data-action="guard"]').isVisible(),true);
+        await page.screenshot({path:path.join(output,'combat-production-'+width+'.png')});
+        await page.locator('.combat-choice-grid [data-action="guard"]').click();
+        const guarded=await page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+        assert(guarded.expedition?.enemy?.turn>0,width+'px: manual combat must advance a real turn');
+      } finally {await context.close();}
     }
 
     // A discovered POI must change REAL banked resources and expedition choices.
@@ -146,9 +264,9 @@ async function main() {
       await poiPage.locator('[data-action="tab"][data-value="explore"]').click();
       const earnedFang=await poiPage.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')).materials.wolfFang);
       assert(earnedFang>=1,'forest combat must provide the second region ingredient');
-      await poiPage.locator(".map-home-scouting > summary").click();
+      await poiPage.locator('[data-action="nearby-view"][data-value="scout"]').click();
       await poiPage.locator('[data-action="scout"][data-value="tower"]').click();
-      await poiPage.locator(".map-home-scouting > summary").click();
+      await poiPage.locator('[data-action="nearby-view"][data-value="scout"]').click();
       await poiPage.locator('[data-action="scout"][data-value="tower"]').click();
       await poiPage.evaluate(() => {
         const key="crownless-expedition-v1-demo";
@@ -157,14 +275,15 @@ async function main() {
         localStorage.setItem(key,JSON.stringify(saved));
       });
       await poiPage.reload();
-      await poiPage.locator(".district-poi-card > summary").click();
+      await poiPage.locator('[data-action="nearby-view"][data-value="detail"]').click();
       await poiPage.screenshot({ path: path.join(output, "poi-shop-390.png") });
       await poiPage.locator('[data-action="poi"][data-value="trade-material"]').click();
       const trade=await poiPage.evaluate(() => JSON.parse(localStorage.getItem("crownless-expedition-v1-demo")));
       assert.equal(trade.scrap,4);
       assert.equal(trade.materials.watchIron,1);
-      await poiPage.locator('.district-pin[data-value="0,1"]').click();
-      await poiPage.locator(".district-poi-card > summary").click();
+      await poiPage.locator('[data-action="nearby-view"][data-value="map"]').click();
+      await poiPage.locator('.nearby-tile[data-value="0,1"]').click();
+      await poiPage.locator('[data-action="nearby-view"][data-value="detail"]').click();
       await poiPage.screenshot({ path: path.join(output, "poi-clue-390.png") });
       await poiPage.locator('[data-action="poi"][data-value="clue"]').click();
       const fight=await poiPage.evaluate(() => JSON.parse(localStorage.getItem("crownless-expedition-v1-demo")));
@@ -189,11 +308,23 @@ async function main() {
       await poiPage.locator('[data-action="tab"][data-value="gear"]').click();
       await poiPage.screenshot({path:path.join(output,'blueprint-unlocked-390.png')});
       await poiPage.locator('[data-action="character"][data-value="1"]').click();
-      const smithButton=poiPage.locator('[data-action="craft-item"][data-value="shield_thorn"]');
+      const smithButton=poiPage.locator('.gear-quick-craft [data-action="craft-item"][data-value="shield_thorn"]');
+      assert.equal(await smithButton.count(),1,'newly unlocked, truly craftable blueprint gets the single fast smith action');
       assert.equal(await smithButton.isEnabled(),true,'cross-region materials and design enable smithing');
+      const firstScreenCraft=await smithButton.evaluate(button=>{
+        const r=button.getBoundingClientRect(), dock=document.querySelector('.bottom-navigation').getBoundingClientRect();
+        const at=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
+        return {top:r.top,bottom:r.bottom,dockTop:dock.top,tappable:at===button||button.contains(at)};
+      });
+      assert(firstScreenCraft.top>=0 && firstScreenCraft.bottom<firstScreenCraft.dockTop-4 && firstScreenCraft.tappable,
+        'a real ready-to-craft action must be visibly tappable above the thumb dock without scrolling: '+JSON.stringify(firstScreenCraft));
+      await poiPage.screenshot({path:path.join(output,'smith-ready-first-screen-390.png')});
       await smithButton.click();
+      assert.equal(await poiPage.locator('.gear-quick-craft [data-action="craft-item"][data-value="shield_thorn"]').count(),0,
+        'crafted item must not remain in the quick-craft queue');
       await poiPage.locator('[data-action="character"][data-value="0"]').click();
       await poiPage.locator('[data-action="equip"][data-value="shield_thorn"]').click();
+      await poiPage.screenshot({path:path.join(output,'smith-crafted-equipped-390.png')});
       const forged=await poiPage.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
       forgedSaved=forged;
       assert.equal(forged.equipped,'shield_thorn');
@@ -204,10 +335,10 @@ async function main() {
       await poiPage.locator('[data-action="tab"][data-value="gear"]').click();
       assert.match(await poiPage.locator('#game').innerText(),/返し棘の盾/);
       await poiPage.locator('[data-action="tab"][data-value="explore"]').click();
-      await poiPage.locator('.district-pin[data-value="-1,0"]').click();
+      await poiPage.locator('.nearby-tile[data-value="-1,0"]').click();
       await poiPage.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
       await poiPage.locator('.path-actions [data-action="careful"]').click();
-      await poiPage.locator('.combat-manual > summary').click();
+      assert.equal(await poiPage.locator('.combat-manual').getAttribute('open'),'','four choices should appear by default');
       assert.match(await poiPage.locator('.combat-manual').innerText(),/反撃/,'new shield changes the available guard decision');
       await poiPage.screenshot({path:path.join(output,'crafted-shield-combat-390.png')});
     } finally {
@@ -231,10 +362,11 @@ async function main() {
       },forgedSaved);
       await bellPage.goto(url);
       await bellPage.locator('[data-action="tab"][data-value="explore"]').click();
-      await bellPage.locator('.district-pin[data-value="0,2"]').click();
+      await bellPage.locator('.nearby-tile[data-value="0,2"]').click();
       assert.equal(await bellPage.locator('.restored-bell-notice').count(),0,'the neighboring tower shop did not change');
-      await bellPage.locator('.district-pin[data-value="0,1"]').click();
-      assert.equal(await bellPage.locator('.district-pin.restored-bell').count(),1,'exact source tower is visibly changed');
+      await bellPage.locator('.nearby-tile[data-value="0,1"]').click();
+      assert.equal(await bellPage.locator('.nearby-tile.restored-bell').count(),1,'exact source tower is visibly changed');
+      await bellPage.locator('[data-action="nearby-view"][data-value="detail"]').click();
       assert.match(await bellPage.locator('.restored-bell-notice').innerText(),/鐘守の弟子・ユノ/);
       await bellPage.screenshot({path:path.join(output,'bell-restored-revisit-390.png')});
       await bellPage.locator('[data-action="bell-depart"]').click();
@@ -252,6 +384,44 @@ async function main() {
       await bellPage.screenshot({path:path.join(output,'bell-signal-combat-390.png')});
     } finally {
       await bellContext.close();
+    }
+
+    // Architecture spike: existing real saved state → an isolated, single-owner UI
+    // → selecting a changed place → departing with existing engine → combat.
+    // This comparison page may never write the source game's saved progress.
+    for (const width of [360,390]) {
+      const labContext = await browser.newContext({viewport:{width,height:width===360?800:844},isMobile:true,hasTouch:true});
+      const labPage = await labContext.newPage();
+      const labErrors=[];
+      labPage.on('pageerror',e=>labErrors.push(e.message));
+      try {
+        assert(forgedSaved?.designs?.shield_thorn,'a real playthrough provided the lab save');
+        await labPage.addInitScript(saved=>{
+          localStorage.setItem('crownless-expedition-mode','demo');
+          localStorage.setItem('crownless-expedition-v1-demo',JSON.stringify(saved));
+        },forgedSaved);
+        await labPage.goto(url.replace('/expedition.html','/architecture-lab.html'));
+        assert.equal(await labPage.locator('.lab-place').count()>0,true);
+        assert.match(await labPage.locator('.lab-card').innerText(),/北の見張り跡|西の木立/);
+        const original=await labPage.evaluate(()=>localStorage.getItem('crownless-expedition-v1-demo'));
+        const map=await labPage.locator('.lab-map').boundingBox();
+        const card=await labPage.locator('.lab-card').boundingBox();
+        assert(map && card && Math.abs(map.y+map.height-card.y)<=2,'the card is a separate grid row and cannot overlap the map');
+        const dimensions=await labPage.evaluate(()=>({height:innerHeight,innerWidth,scrollHeight:document.documentElement.scrollHeight,clientHeight:document.documentElement.clientHeight,body:document.body.scrollHeight,frame:document.querySelector('.lab-frame').getBoundingClientRect().height,visualViewport:window.visualViewport?.height}));
+        assert.equal(dimensions.scrollHeight<=dimensions.clientHeight+1,true,'no page-level vertical scroll: '+JSON.stringify(dimensions));
+        assert.equal(await labPage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,'no horizontal overflow');
+        await labPage.locator('.lab-place[data-value="0,1"]').click();
+        assert.match(await labPage.locator('.lab-card').innerText(),/ユノの合図で出発/);
+        await labPage.screenshot({path:path.join(output,'architecture-lab-map-'+width+'.png')});
+        await labPage.locator('[data-action="bell"]').click();
+        assert.match(await labPage.locator('.lab-card').innerText(),/最初の足跡をたどる/);
+        await labPage.locator('[data-action="careful"]').click();
+        assert.match(await labPage.locator('.lab-card').innerText(),/ENCOUNTER/);
+        await labPage.locator('[data-action="strike"]').click();
+        assert.equal(await labPage.evaluate(()=>localStorage.getItem('crownless-expedition-v1-demo')),original,'technical preview must never write live saves');
+        assert.deepEqual(labErrors,[],'architecture comparison has no JS errors');
+        await labPage.screenshot({path:path.join(output,'architecture-lab-fight-'+width+'.png')});
+      } finally { await labContext.close(); }
     }
 
     // Corrupt game saves must not be silently overwritten during rendering.
