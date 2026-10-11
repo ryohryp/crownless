@@ -16,6 +16,7 @@ function mockBrowser(seed = {}) {
   }
   const context = {
     CrownlessSlice: E,
+    CrownlessNearbyHome: require('../src/nearby-home-view.js'),
     CrownlessNeighborhood: require('../src/neighborhood.js'),
     CrownlessArt: { scene: () => '<svg></svg>', icon: () => '<svg></svg>' },
     isSecureContext: true,
@@ -39,9 +40,11 @@ function mockBrowser(seed = {}) {
 test('issue #897: scene includes scene-top-actions with scene-settings button', () => {
   const b = mockBrowser();
   b.click('mode', 'demo');
+  assert.match(b.html(), /class="game-layout neighborhood-rebuild living-map-home"/);
+  assert.match(b.html(), /data-action="settings"/);
+  b.click('depart','wood');
   assert.match(b.html(), /class="scene-top-actions"/);
   assert.match(b.html(), /class="scene-settings"\s+data-action="settings"/);
-  assert.match(b.html(), /⚙ 設定/);
 });
 
 test('issue #897: clicking settings from scene opens help modal without changing screen', () => {
