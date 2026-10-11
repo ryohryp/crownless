@@ -608,7 +608,9 @@ test('a newly discovered event opens a higher-stakes hunt; a shop changes actual
   assert.match(b.html(),/共同倉庫へ \+1/);
   b.click('district','0,1');
   assert.match(b.html(),/異変の手掛かり/);
-  assert.match(b.html(),/強敵の手掛かりを追う/);
+  assert.match(b.html(),/異変を調べる/);
+  b.click('nearby-view','detail');
+  assert.match(b.html(),/強敵の手掛かりを追って出発/);
   b.click('poi','clue');
   const fight=E.parse(b.store.get(key));
   assert.equal(fight.expedition.enemy.clue,true);
