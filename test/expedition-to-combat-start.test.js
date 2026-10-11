@@ -20,6 +20,7 @@ test('the mobile runtime cannot intercept departure with an invisible mandatory 
   const html=fs.readFileSync('expedition.html','utf8');
   assert.doesNotMatch(html,/src\/expedition-supplies-ui\.js/);
   assert.doesNotMatch(html,/src\/expedition-supplies\.js/);
+  assert.doesNotMatch(html,/src\/hunt-target\.js/);
   const app=fs.readFileSync('src/slice-app.js','utf8');
   assert.match(app,/action === 'depart'[\s\S]*?E\.start\(state,value\)/);
   const n=N.initial();
