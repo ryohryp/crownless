@@ -1,10 +1,10 @@
 /* Production neighborhood scene. One renderer owns map, selected card and
    secondary discovery/lore views. No mutation observers or independent saves. */
 (function (root, factory) {
-  const api=factory();
+  const api=factory(root);
   if (typeof module==='object' && module.exports) module.exports=api;
   if (root) root.CrownlessNearbyHome=api;
-})(typeof globalThis==='object'?globalThis:this,function(){
+})(typeof globalThis==='object'?globalThis:this,function(root){
   'use strict';
   function render({state,N,E,A,button,scouting,landmarkFlagPreview,notice,nav,view='map',page=0}) {
     const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
