@@ -5,7 +5,7 @@
   position:relative; display:grid; grid-template-columns:minmax(0,1fr);
   grid-template-rows:minmax(0,1fr) auto auto; gap:0;
   width:min(430px,100%); height:min(844px,calc(100dvh - 116px));
-  min-height:0; margin:10px auto 0; padding:0; overflow:hidden;
+  min-height:0; margin:10px auto 0; padding:0; overflow:hidden; align-items:stretch;
   background:#e0d4b8; box-shadow:0 0 0 1px rgba(108,82,50,.4);
 }
 #game > .neighborhood-rebuild .nearby-scene {
@@ -216,4 +216,32 @@
 #game > .neighborhood-rebuild.living-map-home .nearby-card-actions button.primary::after {
   display:none;
   content:none;
+}
+
+/* A newly started game has one or two discovered lands, not a complete grid.
+   Place those discoveries in the visual center instead of one tiny corner. */
+#game > .neighborhood-rebuild .nearby-tile-grid:has(> .nearby-tile:only-child) {
+  display:flex;align-items:center;justify-content:center;
+}
+#game > .neighborhood-rebuild .nearby-tile-grid:has(> .nearby-tile:only-child) .nearby-tile {
+  width:min(190px,84%);height:110px;max-height:110px;flex:none;
+}
+#game > .neighborhood-rebuild .nearby-tile-grid:has(> .nearby-tile:nth-child(2):last-child) {
+  grid-template-rows:minmax(0,1fr);align-items:center;
+}
+#game > .neighborhood-rebuild .nearby-tile-grid:has(> .nearby-tile:nth-child(3):last-child),
+#game > .neighborhood-rebuild .nearby-tile-grid:has(> .nearby-tile:nth-child(4):last-child) {
+  grid-template-rows:repeat(2,minmax(0,1fr));
+}
+#game > .neighborhood-rebuild .nearby-map-art {
+  background:
+    url("assets/living-map-terrain.svg") center/100% 100% no-repeat,
+    linear-gradient(114deg,transparent 43%,rgba(111,97,78,.14) 44%,rgba(111,97,78,.10) 47%,transparent 48%);
+  opacity:.40;
+}
+#game > .neighborhood-rebuild .nearby-card-copy small {color:#f0d19a}
+#game > .neighborhood-rebuild .nearby-map-legend {
+  background:rgba(246,238,215,.55);
+  z-index:2;
+  padding:5px 8px;
 }
