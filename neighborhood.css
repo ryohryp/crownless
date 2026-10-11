@@ -341,6 +341,14 @@
   #game .district-trace{margin:8px 0;padding:10px 12px}
 }
 
+/* The restored bell changes ONLY the source district after safe return.
+   Keep the permanent visual difference visible on the illustrated map. */
+#game>.living-map-home .district-pin.restored-bell small{display:block;background:#f4dc9a;color:#473920;border:1px solid #aa8454}
+#game>.living-map-home .district-pin.restored-bell>.district-poi-mark{border-color:#a27731;background:#f4dc9a}
+#game .restored-bell-notice{border-left-color:#b89248;background:rgba(168,133,67,.13)}
+#game .restored-bell-notice .secondary{margin-top:10px;min-height:48px;width:100%}
+@media(max-width:430px){#game .restored-bell-notice{padding:10px 12px}}
+
 /* Ink-wash + tiny pixel silhouettes: shops/events must be identifiable
    before tapping a pin. Scope to the living map; keep the old hit target. */
 #game>.living-map-home .district-pin .district-poi-mark{

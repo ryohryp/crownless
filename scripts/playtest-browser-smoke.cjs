@@ -131,6 +131,7 @@ async function main() {
     }
 
     // A discovered POI must change REAL banked resources and expedition choices.
+    let forgedSaved=null;
     const poiContext = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
     const poiPage = await poiContext.newPage();
     try {
@@ -194,6 +195,7 @@ async function main() {
       await poiPage.locator('[data-action="character"][data-value="0"]').click();
       await poiPage.locator('[data-action="equip"][data-value="shield_thorn"]').click();
       const forged=await poiPage.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+      forgedSaved=forged;
       assert.equal(forged.equipped,'shield_thorn');
       assert.equal(forged.designs.shield_thorn,'0,1','recipe remembers actual tower origin');
       assert(forged.owned.includes('shield_thorn'));
@@ -210,6 +212,46 @@ async function main() {
       await poiPage.screenshot({path:path.join(output,'crafted-shield-combat-390.png')});
     } finally {
       await poiContext.close();
+    }
+
+    // Continue with the REAL crafted character from the successful play loop in
+    // an independent browser to test the solved place, not a fabricated unlock.
+    const bellContext = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile:true, hasTouch:true });
+    const bellPage = await bellContext.newPage();
+    try {
+      assert(forgedSaved?.designs?.shield_thorn, 'saved provenance from actual play');
+      await bellPage.addInitScript(saved => {
+        // Seed once. Overwriting saved state on every reload would silently
+        // erase the NPC expedition we are specifically trying to verify.
+        const key='crownless-expedition-v1-demo';
+        if (!localStorage.getItem(key)) {
+          localStorage.setItem('crownless-expedition-mode','demo');
+          localStorage.setItem(key,JSON.stringify(saved));
+        }
+      },forgedSaved);
+      await bellPage.goto(url);
+      await bellPage.locator('[data-action="tab"][data-value="explore"]').click();
+      await bellPage.locator('.district-pin[data-value="0,2"]').click();
+      assert.equal(await bellPage.locator('.restored-bell-notice').count(),0,'the neighboring tower shop did not change');
+      await bellPage.locator('.district-pin[data-value="0,1"]').click();
+      assert.equal(await bellPage.locator('.district-pin.restored-bell').count(),1,'exact source tower is visibly changed');
+      assert.match(await bellPage.locator('.restored-bell-notice').innerText(),/鐘守の弟子・ユノ/);
+      await bellPage.screenshot({path:path.join(output,'bell-restored-revisit-390.png')});
+      await bellPage.locator('[data-action="bell-depart"]').click();
+      const signaled=await bellPage.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+      assert.equal(signaled.expedition.focus,3,'optional local NPC signal affects a real expedition');
+      await bellPage.reload();
+      assert.match(await bellPage.locator('#game').innerText(),/修復された鐘が鳴る/);
+      await bellPage.locator('.path-actions [data-action="careful"]').click();
+      const signalDamage=await bellPage.evaluate(()=>{
+        const saved=JSON.parse(localStorage.getItem('crownless-expedition-v1-demo'));
+        const baseline=JSON.parse(JSON.stringify(saved)); baseline.expedition.focus=0;
+        return window.CrownlessSlice.attackPreview(saved,'strike')-window.CrownlessSlice.attackPreview(baseline,'strike');
+      });
+      assert.equal(signalDamage,3,'bell NPC changes the next tactical strike, not just flavor text');
+      await bellPage.screenshot({path:path.join(output,'bell-signal-combat-390.png')});
+    } finally {
+      await bellContext.close();
     }
 
     // Corrupt game saves must not be silently overwritten during rendering.
