@@ -138,9 +138,17 @@ async function main() {
         assert(battleLayout.buttons.every(btn=>btn.visible&&btn.tappable),
           'the four tactics and one-click auto must be real thumb-reachable controls: '+JSON.stringify(battleLayout));
         await page.screenshot({ path: path.join(output, "combat-tactics-" + width + ".png") });
+        const supportTappable=await page.locator('.combat-support > summary').evaluate(el=>{
+          const r=el.getBoundingClientRect(),point=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
+          return r.top>=0 && r.bottom<=innerHeight+2 && (point===el || el.contains(point));
+        });
+        assert(supportTappable,'optional supply/log summary must receive a real tap');
         await page.locator('.combat-support > summary').click();
         assert.equal(await page.locator('.combat-support').getAttribute('open'),'','supplies are readable on demand');
-        assert.equal(await page.locator('[data-action="flee"]').count(),1,'retreat is not removed');
+        assert.equal(await page.locator('.combat-decision').isVisible(),false,'reading support never competes with the tactical buttons');
+        assert.equal(await page.locator('[data-action="flee"]').isVisible(),true,'retreat is visible in the reading scene');
+        const supportReader=await page.locator('.combat-support').boundingBox();
+        assert(supportReader&&supportReader.y<height*.55&&supportReader.height>150,'support detail becomes its own readable viewport instead of blank space');
         await page.screenshot({ path: path.join(output, "combat-support-" + width + ".png") });
         await page.locator('.combat-support > summary').click();
         await page.screenshot({ path: path.join(output, "combat-start-" + width + ".png") });
