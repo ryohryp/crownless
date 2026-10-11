@@ -174,3 +174,35 @@
   #game > .battle-layout .combat-decision .combat-manual > summary{min-height:30px}
   #game > .battle-layout .combat-decision .combat-choice-grid .choice{min-height:51px;padding:4px 7px}
 }
+
+/* Real Chromium phone tap gate: the expanded supply reader is a separate
+   scene, not an overlapping fourth grid item. On close, tactical choices
+   return to the same screen and keep the combat state unchanged. */
+#game > .battle-layout .combat-situation{overflow:hidden;position:relative;z-index:1}
+#game > .battle-layout .combat-panel > .combat-support{position:relative;z-index:3;align-self:end}
+@media(max-width:480px){
+  #game > .battle-layout.game-layout .combat-panel:not(:has(.combat-support[open])){
+    grid-template-rows:auto auto minmax(0,1fr);
+  }
+  #game > .battle-layout.game-layout .combat-panel .combat-decision {
+    justify-content:flex-start;overflow:visible;
+  }
+  #game > .battle-layout.game-layout .combat-panel:has(.combat-support[open]) {
+    display:flex;flex-direction:column;align-items:stretch;justify-content:flex-start;
+    overflow:hidden;
+  }
+  #game > .battle-layout.game-layout .combat-panel:has(.combat-support[open]) > .combat-situation,
+  #game > .battle-layout.game-layout .combat-panel:has(.combat-support[open]) > .combat-decision {
+    display:none;
+  }
+  #game > .battle-layout.game-layout .combat-panel > .combat-support[open] {
+    display:block;flex:1 1 auto;min-height:0;width:100%;
+    overflow-y:auto;overscroll-behavior:contain;
+    padding:8px 10px;background:#f7edda;border:1px solid #b5a17d;border-radius:7px;
+    align-self:stretch;
+  }
+  #game > .battle-layout.game-layout .combat-panel > .combat-support[open] > summary {
+    color:#342c22;font-size:13px;font-weight:750;background:#ead4ab;
+    border-radius:5px;padding:12px 10px;min-height:48px;
+  }
+}
