@@ -21,7 +21,7 @@
         N.traveler(place)?'✦ 薬師の痕跡':site.family==='shop'?'◆ 店':'✦ 異変';
       const active=place.id===d.id;
       return '<button type="button" class="nearby-tile biome-'+place.biome+(active?' selected':'')+
-        (changed?' restored-bell':'')+'" data-action="district" data-value="'+esc(place.id)+
+        (changed?' restored-bell':'')+'" data-poi-family="'+site.family+'" data-action="district" data-value="'+esc(place.id)+
         '" aria-pressed="'+active+'" aria-label="'+esc(N.title(place)+'、'+label)+'">'+
         '<span class="nearby-tile-stamp" aria-hidden="true">'+stamp+'</span><strong>'+esc(N.title(place))+
         '</strong><small>'+esc(label)+'</small></button>';
