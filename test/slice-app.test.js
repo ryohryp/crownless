@@ -607,3 +607,33 @@ test('a newly discovered event opens a higher-stakes hunt; a shop changes actual
   assert.equal(fight.expedition.enemy.risky,true);
   assert.match(b.html(),/鐘守の亡兵/);
 });
+
+
+test('tower mystery shows an actionable design reward and smith recipe after safe return',()=>{
+  const N=require('../src/neighborhood.js');
+  let discovered=E.discoverDistrict({...E.initial(),mode:'demo'},N.cell(400,0));
+  const key='crownless-expedition-v1-demo';
+  const before=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(discovered)});
+  assert.match(before.html(),/固有の発見：鐘守の亡兵/);
+  assert.match(before.html(),/返し棘の盾/);
+  before.click('tab','gear');
+  assert.match(before.html(),/塔の秘伝設計図/);
+  assert.doesNotMatch(before.html(),/data-action="craft-item" data-value="shield_thorn"/);
+  before.click('tab','explore');
+  before.click('poi','clue');
+  const fight=JSON.parse(before.store.get(key));
+  assert.equal(fight.expedition.enemy.clue,true);
+  fight.expedition.enemy.hp=1;
+  let won=E.act(fight,'strike');
+  assert.equal(won.expedition.foundDesign,'shield_thorn');
+  const onTheRoad=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(won)});
+  assert.match(onTheRoad.html(),/生還すれば鍛冶師に製法が伝わる/);
+  onTheRoad.click('return');
+  assert.match(onTheRoad.html(),/新しい製作レシピを解放：返し棘の盾/);
+  onTheRoad.click('continue');
+  assert.match(onTheRoad.html(),/返し棘の盾/);
+  assert.doesNotMatch(onTheRoad.html(),/塔の秘伝設計図/);
+  const final=JSON.parse(onTheRoad.store.get(key));
+  assert.equal(final.designs.shield_thorn,'0,1');
+  assert.deepEqual(E.parse(E.serialize(final)),final);
+});

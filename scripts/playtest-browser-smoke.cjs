@@ -136,6 +136,15 @@ async function main() {
     try {
       await poiPage.goto(url);
       await poiPage.locator('[data-action="mode"][data-value="demo"]').click();
+      // Earn the other region's required material in an actual forest combat.
+      await poiPage.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
+      await poiPage.locator('.path-actions [data-action="careful"]').click();
+      await poiPage.locator('[data-action="auto-fight"]').click();
+      await poiPage.locator('.path-actions [data-action="return"]').click();
+      await poiPage.locator('[data-action="continue"]').click();
+      await poiPage.locator('[data-action="tab"][data-value="explore"]').click();
+      const earnedFang=await poiPage.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')).materials.wolfFang);
+      assert(earnedFang>=1,'forest combat must provide the second region ingredient');
       await poiPage.locator(".map-home-scouting > summary").click();
       await poiPage.locator('[data-action="scout"][data-value="tower"]').click();
       await poiPage.locator(".map-home-scouting > summary").click();
@@ -162,6 +171,43 @@ async function main() {
       assert.equal(fight.expedition.stage,"fight");
       await poiPage.reload();
       assert.match(await poiPage.locator("#game").innerText(), /鐘守の亡兵/);
+      await poiPage.evaluate(()=>{
+        const key='crownless-expedition-v1-demo', saved=JSON.parse(localStorage.getItem(key));
+        saved.expedition.enemy.hp=1; // Shorten battle only; victory/banking/forge remain real clicks.
+        localStorage.setItem(key,JSON.stringify(saved));
+      });
+      await poiPage.reload();
+      await poiPage.locator('[data-action="auto-fight"]').click();
+      const found=await poiPage.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+      assert.equal(found.expedition?.foundDesign,'shield_thorn','tower event victory reveals a carried design');
+      assert.equal(found.designs.shield_thorn,undefined,'unreturned design must not be banked');
+      await poiPage.screenshot({path:path.join(output,'blueprint-risk-390.png')});
+      await poiPage.locator('.path-actions [data-action="return"]').click();
+      assert.match(await poiPage.locator('.report-layout').innerText(),/新しい製作レシピを解放：返し棘の盾/);
+      await poiPage.locator('[data-action="continue"]').click();
+      await poiPage.locator('[data-action="tab"][data-value="gear"]').click();
+      await poiPage.screenshot({path:path.join(output,'blueprint-unlocked-390.png')});
+      await poiPage.locator('[data-action="character"][data-value="1"]').click();
+      const smithButton=poiPage.locator('[data-action="craft-item"][data-value="shield_thorn"]');
+      assert.equal(await smithButton.isEnabled(),true,'cross-region materials and design enable smithing');
+      await smithButton.click();
+      await poiPage.locator('[data-action="character"][data-value="0"]').click();
+      await poiPage.locator('[data-action="equip"][data-value="shield_thorn"]').click();
+      const forged=await poiPage.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+      assert.equal(forged.equipped,'shield_thorn');
+      assert.equal(forged.designs.shield_thorn,'0,1','recipe remembers actual tower origin');
+      assert(forged.owned.includes('shield_thorn'));
+      assert(forged.materials.wolfFang<earnedFang,'smith consumes forest fang as well as tower iron');
+      await poiPage.reload();
+      await poiPage.locator('[data-action="tab"][data-value="gear"]').click();
+      assert.match(await poiPage.locator('#game').innerText(),/返し棘の盾/);
+      await poiPage.locator('[data-action="tab"][data-value="explore"]').click();
+      await poiPage.locator('.district-pin[data-value="-1,0"]').click();
+      await poiPage.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
+      await poiPage.locator('.path-actions [data-action="careful"]').click();
+      await poiPage.locator('.combat-manual > summary').click();
+      assert.match(await poiPage.locator('.combat-manual').innerText(),/反撃/,'new shield changes the available guard decision');
+      await poiPage.screenshot({path:path.join(output,'crafted-shield-combat-390.png')});
     } finally {
       await poiContext.close();
     }

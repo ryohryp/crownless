@@ -45,7 +45,12 @@
     margin-top: .25rem;
     padding: 8px 12px;
   }
-  .game-layout:has(.camp-tabs button.active[data-value="gear"]) .panel {
+  /* This tab has a long workshop plus nested weapon buttons. The shared
+     mobile .panel flex column shrinks the gear list underneath its next
+     sibling, so elementFromPoint lands on a reinforcement card instead of the
+     forged weapon. Use a normal scrolling document inside the bounded panel. */
+  #game > .game-layout:has(.camp-tabs button.active[data-value="gear"]) .panel {
+    display: block;
     min-height: 0;
     overflow-y: auto;
     overscroll-behavior: contain;
@@ -69,10 +74,13 @@
     min-height: 44px;
     padding-block: .55rem;
   }
+  /* A sticky reinforcement panel covered lower weapon rows (including newly
+     forged gear), intercepting actual phone taps. Keep the gear list and the
+     reinforcement controls in document order inside the panel's own scroller. */
   .game-layout:has(.camp-tabs button.active[data-value="gear"]) .rule-line {
-    position: sticky;
-    bottom: 0;
-    z-index: 3;
+    position: static;
+    bottom: auto;
+    z-index: auto;
     margin-top: .5rem;
     padding: .7rem;
     color: #23302d;
