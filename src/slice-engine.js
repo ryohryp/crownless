@@ -165,6 +165,30 @@
     const specific = key && Number.isInteger(s?.upgrades?.[key]) ? Math.max(0, Math.min(4, s.upgrades[key])) : 0;
     return Math.max(legacy, specific);
   }
+  // ADR 0012: only earned landmark control grants passive combat blessings.
+  const LANDMARK_COMBAT_BLESSINGS = Object.freeze({
+    'tokyo-tower': { attack: 1 },
+    'osaka-castle': { defense: 1 }
+  });
+  function landmarkBlessings(s) {
+    const owned = new Set(Array.isArray(s?.claimedLandmarks) ? s.claimedLandmarks : []);
+    const active = Object.entries(LANDMARK_COMBAT_BLESSINGS)
+      .filter(([id]) => owned.has(id)).map(([, bonus]) => bonus);
+    return {
+      attack: Math.max(0, ...active.map(b => b.attack || 0)),
+      defense: Math.max(0, ...active.map(b => b.defense || 0))
+    };
+  }
+  const initial = () => ({ version: VERSION, mode: null, designs:{}, unlocked: ['wood'], cleared: [], owned: ['rust'], equipped: 'rust', qualities: emptyQualities(), scrap: 0, materials:emptyMaterials(), characters:startingCharacters(), activeCharacter:0, commission:emptyCommission(), level: 0, upgrades: emptyUpgrades(), runs: 0, victories: 0, grudge: null, maintenance: null, claimedLandmarks: [], expedition: null, report: null, neighborhood:N.initial() });
+  const maxHp = s => 30 + (Number.isInteger(s.level) ? s.level : 0) * 5 + (s.owned.includes('crown') ? 6 : 0) + (s.neighborhood?.buildings.includes('lodge') ? 4 : 0);
+  function weaponLevel(s, id = s.equipped) {
+    const legacy = LEGACY_UPGRADEABLE.has(id) && Number.isInteger(s?.level)
+      ? Math.max(0, Math.min(4, s.level))
+      : 0;
+    const key = upgradeKey(id);
+    const specific = key && Number.isInteger(s?.upgrades?.[key]) ? Math.max(0, Math.min(4, s.upgrades[key])) : 0;
+    return Math.max(legacy, specific);
+  }
   const upgradeCost = (s, id = s.equipped) => Math.max(2, (id === 'rust' && weaponLevel(s, id) === 0 ? 4 : 8 + weaponLevel(s, id) * 6) - (s.neighborhood?.buildings.includes('forge') ? 2 : 0));
   function combatProfile(s, id = s.equipped) {
     const gear = GEAR[id];
@@ -482,7 +506,7 @@
     const x = s.expedition;
     if (!x?.enemy || !['strike', 'heavy'].includes(action)) return 0;
     const e = x.enemy, next = api.intent(e), p = combatProfile(s);
-    let damage = weaponAttack(s, s.equipped) + x.focus + (action === 'heavy' ? p.heavyBonus : 0);
+    let damage = weaponAttack(s, s.equipped) + landmarkBlessings(s).attack + x.focus + (action === 'heavy' ? p.heavyBonus : 0);
     if (x.sharpened > 0 && !x.sharpenedApplied) damage += 3;
     if (x.grudge && !x.grudge.used && x.grudge.enemy === e.kind) damage += 3;
     if (x.stagger) damage += weaponAttack(s, s.equipped);
@@ -574,12 +598,14 @@
         : '薙ぎ払いを受け流した！ 次の一撃が崩し追撃になる。');
     }
     const block = action === 'guard' ? p.block : 0;
-    const taken = interrupted ? 0 : action === 'dodge'
+    let taken = interrupted ? 0 : action === 'dodge'
       ? (next.id === 'feint' ? next.damage : next.id === 'quick' ? Math.max(1, Math.ceil(next.damage / 2)) : 0)
       : next.id === 'break' && action === 'guard'
         ? Math.max(2, next.damage - Math.floor(block / 2))
         : next.id === 'intercept' && action === 'heavy'
           ? next.damage + 4 : Math.max(0, next.damage - block);
+    // A real hit still costs at least 1 HP; fully blocked hits remain zero.
+    if (taken > 0) taken = Math.max(1, taken - landmarkBlessings(n).defense);
     x.hp -= taken;
     if (action === 'dodge') {
       if (['quick', 'feint'].includes(next.id)) x.log.push(`${next.name}をかわしきれない。体力 −${taken}。追撃の好機は作れない。`);
@@ -809,6 +835,6 @@
       return s;
     } catch { return null; }
   }
-  const api = { VERSION, PLACES, GEAR, ENEMIES, INTENTS, VARIANT_LOOT, MATERIALS, RECIPES, COMMISSIONS, DISMANTLE_SCRAP, LOCAL_HERB_COST, LOCAL_MATERIAL_COST, REGIONAL_MATERIAL, initial, maxHp, gearFamily, weaponLevel, weaponQuality, weaponAttack, qualityLabel, rollQuality, upgradeCost, combatProfile, gearText, enemyProfile, attackPreview, intent, lootCue, place, isRoadsideEvent, discover, start, startLandmark, startWithLocalHerb, startWithLocalClue, tradeLocalMaterial, startWithBellSignal, act, resolveFight, maintain, equip, switchCharacter, craftItem, craftWolfFang, supplyCommission, upgrade, resolveDuplicate, locationSession, observe, serialize, parse, discoverDistrict,selectDistrict,buildHome,renameHome };
+  const api = { VERSION, PLACES, GEAR, ENEMIES, INTENTS, landmarkBlessings, VARIANT_LOOT, MATERIALS, RECIPES, COMMISSIONS, DISMANTLE_SCRAP, LOCAL_HERB_COST, LOCAL_MATERIAL_COST, REGIONAL_MATERIAL, initial, maxHp, gearFamily, weaponLevel, weaponQuality, weaponAttack, qualityLabel, rollQuality, upgradeCost, combatProfile, gearText, enemyProfile, attackPreview, intent, lootCue, place, isRoadsideEvent, discover, start, startLandmark, startWithLocalHerb, startWithLocalClue, tradeLocalMaterial, startWithBellSignal, act, resolveFight, maintain, equip, switchCharacter, craftItem, craftWolfFang, supplyCommission, upgrade, resolveDuplicate, locationSession, observe, serialize, parse, discoverDistrict,selectDistrict,buildHome,renameHome };
   return api;
 });
