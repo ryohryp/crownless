@@ -50,7 +50,7 @@
       restored?'ユノに会う':poi.family==='event'&&material?'異変を調べる':
       poi.family==='shop'&&material?'店を開く':'土地の情報を見る','',
       {class:'secondary',value:'detail'});
-    const mainCard='<div class="nearby-card-copy"><small>'+esc(stateLabel)+'</small><h2>'+esc(N.title(d))+'</h2>'+
+    const mainCard='<div class="nearby-card-copy"><small>'+esc(stateLabel)+' · '+esc(p.name)+'</small><h2>'+esc(N.title(d))+'</h2>'+
       '<p>'+esc(restored?'鐘が再び鳴る。鐘守の弟子ユノが旅を助ける。':p.teaser)+'</p></div>'+
       '<div class="nearby-card-actions">'+primary+secondary+'</div>';
     const entries=['<section class="nearby-info-piece"><span class="kicker">ABOUT THIS LAND</span>'+
