@@ -59,6 +59,7 @@
   const RECIPES = Object.freeze({
     forged_fang: { materials:{wolfFang:2}, scrap:4, quality:1, origin:'囁きの森' },
     shield: { materials:{watchIron:2}, scrap:4, quality:0, origin:'鐘なき塔' },
+    shield_thorn: { materials:{watchIron:2,wolfFang:1}, scrap:6, quality:0, origin:'鐘なき塔と囁きの森', requiresBlueprint:true },
     bow: { materials:{marshFiber:2}, scrap:4, quality:0, origin:'星沈みの湿原' }
   });
   // These clients are simulated NPCs. This is NOT a networked player marketplace.
@@ -154,7 +155,7 @@
     { id:'smith', name:'見習い鍛冶師', role:'smith', equipped:'rust', experience:0 },
     { id:'merchant', name:'行商人', role:'merchant', equipped:'rust', experience:0 }
   ];
-  const initial = () => ({ version: VERSION, mode: null, unlocked: ['wood'], cleared: [], owned: ['rust'], equipped: 'rust', qualities: emptyQualities(), scrap: 0, materials:emptyMaterials(), characters:startingCharacters(), activeCharacter:0, commission:emptyCommission(), level: 0, upgrades: emptyUpgrades(), runs: 0, victories: 0, grudge: null, maintenance: null, claimedLandmarks: [], expedition: null, report: null, neighborhood:N.initial() });
+  const initial = () => ({ version: VERSION, mode: null, designs:{}, unlocked: ['wood'], cleared: [], owned: ['rust'], equipped: 'rust', qualities: emptyQualities(), scrap: 0, materials:emptyMaterials(), characters:startingCharacters(), activeCharacter:0, commission:emptyCommission(), level: 0, upgrades: emptyUpgrades(), runs: 0, victories: 0, grudge: null, maintenance: null, claimedLandmarks: [], expedition: null, report: null, neighborhood:N.initial() });
   const maxHp = s => 30 + (Number.isInteger(s.level) ? s.level : 0) * 5 + (s.owned.includes('crown') ? 6 : 0) + (s.neighborhood?.buildings.includes('lodge') ? 4 : 0);
   function weaponLevel(s, id = s.equipped) {
     const legacy = LEGACY_UPGRADEABLE.has(id) && Number.isInteger(s?.level)
@@ -376,6 +377,14 @@
     while (gearQuality.length < x.gear.length) gearQuality.push(0);
     s.report = { died, place: x.place, depth: x.depth, scrap: x.scrap, gear: [...x.gear], gearQuality: [...gearQuality], materials:{...emptyMaterials(),...(x.materials||{})}, newGear: [], duplicates: [], hp: x.hp, cleared: [...x.seals], defeatedBy: died && x.enemy ? x.enemy.kind : null, ...(x.landmarkId ? {landmarkId:x.landmarkId} : {}) };
     if (died && x.enemy) s.grudge = { place: x.place, enemy: x.enemy.kind };
+    // A found design is still carried loot; only a safe return teaches the smith.
+    if (!died && x.foundDesign === 'shield_thorn' && !s.designs.shield_thorn) {
+      const origin = N.get(s.neighborhood,s.neighborhood.active);
+      if (origin?.biome === 'tower' && N.pointOfInterest(origin)?.family === 'event') {
+        s.designs.shield_thorn = origin.id;
+        s.report.newDesign = 'shield_thorn';
+      }
+    }
     if (!died) {
       s.scrap += x.scrap;
       for (const id of MATERIAL_IDS) s.materials[id] += x.materials?.[id] ?? 0;
@@ -426,6 +435,10 @@
     x.scrap += loot;
     x.log.push(`討伐。鉄片を ${loot} 個、背嚢へ。生還するまで確定しない。`);
     const materialId = ENEMY_MATERIAL[e.kind];
+    if (e.clue && x.place === 'tower' && x.room === 0 && !s.designs.shield_thorn) {
+      x.foundDesign = 'shield_thorn';
+      x.log.push('鳴らない鐘の刻：亡兵の盾から「返し棘の盾」の製法を発見！ 生還するまで設計図は失う危険がある。');
+    }
     if (materialId) {
       const active = N.get(s.neighborhood,s.neighborhood.active);
       const aided = x.room === 0 && active?.aided && active.biome === x.place;
@@ -624,7 +637,7 @@
   // A smith supplies all new equippable gear; item IDs are unique in this small local prototype.
   function craftItem(s, id) {
     const recipe = RECIPES[id];
-    if (!recipe || s.expedition || s.report || s.activeCharacter !== 1 || s.owned.includes(id) || s.scrap < recipe.scrap) return s;
+    if (!recipe || (recipe.requiresBlueprint && !s.designs?.[id]) || s.expedition || s.report || s.activeCharacter !== 1 || s.owned.includes(id) || s.scrap < recipe.scrap) return s;
     if (Object.entries(recipe.materials).some(([material,count]) => (s.materials?.[material] ?? 0) < count)) return s;
     const n = copy(s);
     for (const [material,count] of Object.entries(recipe.materials)) n.materials[material] -= count;
@@ -711,6 +724,7 @@
     try {
       const s = JSON.parse(raw);
       if (s.version === VERSION && s.claimedLandmarks === undefined) s.claimedLandmarks = [];
+      if (s.version === VERSION && s.designs === undefined) s.designs = {};
       if (s.version === VERSION && s.neighborhood === undefined) s.neighborhood = N.migrate(s);
       if (s.version === VERSION) s.neighborhood = N.hydrateLegacy(s.neighborhood);
       if (!N.valid(s.neighborhood)) throw Error('neighborhood');
@@ -741,6 +755,7 @@
       const int = (v, min, max) => Number.isInteger(v) && v >= min && v <= max;
       const validUpgrades = u => u && typeof u === 'object' && !Array.isArray(u) && Object.keys(u).length === UPGRADEABLE.length && UPGRADEABLE.every(id => Object.prototype.hasOwnProperty.call(u,id) && int(u[id],0,4)) && Object.keys(u).every(id => UPGRADEABLE.includes(id));
       const validQualities = q => q && typeof q === 'object' && !Array.isArray(q) && Object.keys(q).length === GEAR_IDS.length && GEAR_IDS.every(id => Object.prototype.hasOwnProperty.call(q,id) && int(q[id],-1,3)) && Object.keys(q).every(id => Object.prototype.hasOwnProperty.call(GEAR,id));
+      const validDesigns = v => v && typeof v === 'object' && !Array.isArray(v) && Object.keys(v).every(id => id === 'shield_thorn' && typeof v[id] === 'string' && N.get(s.neighborhood,v[id])?.biome === 'tower' && N.pointOfInterest(N.get(s.neighborhood,v[id]))?.family === 'event');
       const validMaterials = m => m && typeof m === 'object' && !Array.isArray(m) && Object.keys(m).length === MATERIAL_IDS.length && MATERIAL_IDS.every(id => int(m[id],0,1e6)) && Object.keys(m).every(id => Object.hasOwn(MATERIALS,id));
       const validCommission = c => c && typeof c === 'object' && !Array.isArray(c)
         && Object.keys(c).length === 4 && Object.keys(c).every(id => ['pending','completed','support','lastResult'].includes(id))
@@ -753,11 +768,11 @@
       const validDuplicates = d => Array.isArray(d) && d.length <= 12 && d.every(item => item && typeof item === 'object' && !Array.isArray(item) && Object.keys(item).length === 3 && Object.keys(item).every(k => ['id','quality','decision'].includes(k)) && Object.prototype.hasOwnProperty.call(GEAR,item.id) && item.id !== 'crown' && int(item.quality,-1,3) && [null,'keep','dismantle'].includes(item.decision));
       const validGrudge = g => g === null || (g && typeof g === 'object' && !Array.isArray(g) && Object.keys(g).length === 2 && ids.includes(g.place) && Object.prototype.hasOwnProperty.call(ENEMIES,g.enemy));
       const validExpeditionGrudge = g => g === null || (g && typeof g === 'object' && !Array.isArray(g) && Object.keys(g).length === 3 && ids.includes(g.place) && Object.prototype.hasOwnProperty.call(ENEMIES,g.enemy) && typeof g.used === 'boolean');
-      if (s.version !== VERSION || Object.keys(s).some(k => !keys.includes(k)) || ![null, 'demo', 'walk'].includes(s.mode) || (!Array.isArray(s.claimedLandmarks) || s.claimedLandmarks.length > 500 || new Set(s.claimedLandmarks).size !== s.claimedLandmarks.length || !s.claimedLandmarks.every(id=>typeof id==='string' && /^[a-z][a-z0-9-]{1,63}$/.test(id))) || !validArray(s.unlocked, ids) || !s.unlocked.includes('wood') || !validArray(s.cleared, ids) || !validArray(s.owned, Object.keys(GEAR)) || !s.owned.includes('rust') || !s.owned.includes(s.equipped) || s.equipped === 'crown' || !int(s.level, 0, 4) || !validUpgrades(s.upgrades) || !validQualities(s.qualities) || !validGrudge(s.grudge) || ![null,'ready','sharp'].includes(s.maintenance) || !int(s.scrap, 0, 1e9) || !validMaterials(s.materials) || !validCharacters(s.characters,s.activeCharacter) || !validCommission(s.commission) || !int(s.runs, 0, 1e9) || !int(s.victories, 0, s.runs)) throw Error('save');
+      if (s.version !== VERSION || Object.keys(s).some(k => !keys.includes(k)) || ![null, 'demo', 'walk'].includes(s.mode) || (!Array.isArray(s.claimedLandmarks) || s.claimedLandmarks.length > 500 || new Set(s.claimedLandmarks).size !== s.claimedLandmarks.length || !s.claimedLandmarks.every(id=>typeof id==='string' && /^[a-z][a-z0-9-]{1,63}$/.test(id))) || !validArray(s.unlocked, ids) || !s.unlocked.includes('wood') || !validArray(s.cleared, ids) || !validArray(s.owned, Object.keys(GEAR)) || !s.owned.includes('rust') || !s.owned.includes(s.equipped) || s.equipped === 'crown' || !int(s.level, 0, 4) || !validUpgrades(s.upgrades) || !validQualities(s.qualities) || !validDesigns(s.designs) || !validGrudge(s.grudge) || ![null,'ready','sharp'].includes(s.maintenance) || !int(s.scrap, 0, 1e9) || !validMaterials(s.materials) || !validCharacters(s.characters,s.activeCharacter) || !validCommission(s.commission) || !int(s.runs, 0, 1e9) || !int(s.victories, 0, s.runs)) throw Error('save');
       if (s.expedition) {
         const x = s.expedition;
         const allowedFocus = gearFamily(s.equipped) === 'fang' ? [0,3,4,5,6,7,8,9] : [0,3];
-        if (Object.keys(x).some(k => !['place','depth','room','hp','stamina','focus','stagger','sharpened','sharpenedApplied','landmarkId' ,'potions','scrap','materials','gear','gearQuality','seals','grudge','enemy','stage','log'].includes(k)) || !(x.landmarkId === undefined || (typeof x.landmarkId==='string' && /^[a-z][a-z0-9-]{1,63}$/.test(x.landmarkId))) || !s.unlocked.includes(x.place) || !int(x.depth,1,3) || !int(x.room,0,4) || !int(x.hp,1,maxHp(s)) || !int(x.stamina,0,3) || !allowedFocus.includes(x.focus) || typeof x.stagger !== 'boolean' || !int(x.sharpened,0,3) || typeof x.sharpenedApplied !== 'boolean' || !validExpeditionGrudge(x.grudge) || !int(x.potions,0,3) || !int(x.scrap,0,1000) || !validMaterials(x.materials) || !validLoot(x.gear,x.gearQuality) || !Array.isArray(x.seals) || x.seals.length > 3 || !x.seals.every(v => ids.includes(v)) || !['path','fight','cleared'].includes(x.stage) || !Array.isArray(x.log) || x.log.length > 10 || !x.log.every(v => typeof v === 'string' && v.length < 250)) throw Error('run');
+        if (Object.keys(x).some(k => !['place','depth','room','hp','stamina','focus','stagger','sharpened','sharpenedApplied','landmarkId' ,'potions','scrap','materials','gear','gearQuality','seals','grudge','enemy','stage','log','foundDesign'].includes(k)) || !(x.foundDesign === undefined || x.foundDesign === 'shield_thorn') || !(x.landmarkId === undefined || (typeof x.landmarkId==='string' && /^[a-z][a-z0-9-]{1,63}$/.test(x.landmarkId))) || !s.unlocked.includes(x.place) || !int(x.depth,1,3) || !int(x.room,0,4) || !int(x.hp,1,maxHp(s)) || !int(x.stamina,0,3) || !allowedFocus.includes(x.focus) || typeof x.stagger !== 'boolean' || !int(x.sharpened,0,3) || typeof x.sharpenedApplied !== 'boolean' || !validExpeditionGrudge(x.grudge) || !int(x.potions,0,3) || !int(x.scrap,0,1000) || !validMaterials(x.materials) || !validLoot(x.gear,x.gearQuality) || !Array.isArray(x.seals) || x.seals.length > 3 || !x.seals.every(v => ids.includes(v)) || !['path','fight','cleared'].includes(x.stage) || !Array.isArray(x.log) || x.log.length > 10 || !x.log.every(v => typeof v === 'string' && v.length < 250)) throw Error('run');
         if (x.stage === 'fight') {
           const e = x.enemy;
           if (!e || Object.keys(e).some(k => !['kind','hp','maxHp','turn','depth','elite','risky','seed','frenzy','wounded','clue'].includes(k)) || !(e.seed === undefined || int(e.seed,0,99990)) || !(e.frenzy === undefined || typeof e.frenzy === 'boolean') || !(e.wounded === undefined || typeof e.wounded === 'boolean') || !(e.clue === undefined || typeof e.clue === 'boolean') || !ENEMIES[e.kind] || !int(e.maxHp,1,80) || !int(e.hp,1,e.maxHp) || !int(e.turn,0,1e6) || e.depth !== x.depth || typeof e.elite !== 'boolean' || typeof e.risky !== 'boolean') throw Error('enemy');
@@ -765,7 +780,7 @@
       }
       if (s.report) {
         const r = s.report;
-        if (Object.keys(r).some(k => !['died','place' ,'depth','scrap','materials','gear','gearQuality','newGear','duplicates','hp','cleared','defeatedBy','landmarkId'].includes(k)) || !(r.landmarkId === undefined || (typeof r.landmarkId==='string' && /^[a-z][a-z0-9-]{1,63}$/.test(r.landmarkId))) || typeof r.died !== 'boolean' || !ids.includes(r.place) || !int(r.depth,1,3) || !int(r.scrap,0,1000) || !validMaterials(r.materials) || !validLoot(r.gear,r.gearQuality) || !validArray(r.newGear,Object.keys(GEAR)) || !validDuplicates(r.duplicates) || !(r.defeatedBy === null || Object.prototype.hasOwnProperty.call(ENEMIES,r.defeatedBy)) || !int(r.hp,-30,80) || !Array.isArray(r.cleared) || r.cleared.length > 3 || !r.cleared.every(v => ids.includes(v))) throw Error('report');
+        if (Object.keys(r).some(k => !['died','place' ,'depth','scrap','materials','gear','gearQuality','newGear','duplicates','hp','cleared','defeatedBy','landmarkId','newDesign'].includes(k)) || !(r.newDesign === undefined || r.newDesign === 'shield_thorn') || !(r.landmarkId === undefined || (typeof r.landmarkId==='string' && /^[a-z][a-z0-9-]{1,63}$/.test(r.landmarkId))) || typeof r.died !== 'boolean' || !ids.includes(r.place) || !int(r.depth,1,3) || !int(r.scrap,0,1000) || !validMaterials(r.materials) || !validLoot(r.gear,r.gearQuality) || !validArray(r.newGear,Object.keys(GEAR)) || !validDuplicates(r.duplicates) || !(r.defeatedBy === null || Object.prototype.hasOwnProperty.call(ENEMIES,r.defeatedBy)) || !int(r.hp,-30,80) || !Array.isArray(r.cleared) || r.cleared.length > 3 || !r.cleared.every(v => ids.includes(v))) throw Error('report');
       }
       if (s.neighborhood.active !== null && (!s.expedition || N.get(s.neighborhood,s.neighborhood.active).biome !== s.expedition.place)) throw Error('district');
       if (s.neighborhood.districts.some(d => !s.unlocked.includes(d.biome))) throw Error('district');
