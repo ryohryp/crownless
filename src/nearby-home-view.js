@@ -6,13 +6,14 @@
   if (root) root.CrownlessNearbyHome=api;
 })(typeof globalThis==='object'?globalThis:this,function(root){
   'use strict';
-  function render({state,N,E,A,button,scouting,landmarkFlagPreview,notice,nav,view='map',page=0}) {
+  function render({state,N,E,A,button,scouting,landmarkFlagPreview,notice,nav,view='map',page=null}) {
     const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const n=state.neighborhood,d=N.get(n),p=E.place(d.biome),poi=N.pointOfInterest(d);
     const restored=state.designs?.shield_thorn===d.id;
     const materialId=E.REGIONAL_MATERIAL[d.biome],material=materialId&&E.MATERIALS[materialId];
     const locked=d.biome==='crypt'&&state.cleared.length<2,traveler=state.activeCharacter===0;
-    const pages=Math.max(1,Math.ceil(n.districts.length/6)),currentPage=Math.min(Math.max(0,page),pages-1);
+    const pages=Math.max(1,Math.ceil(n.districts.length/6)),selectedIndex=n.districts.findIndex(item=>item.id===d.id),
+      currentPage=page===null?Math.floor(Math.max(0,selectedIndex)/6):Math.min(Math.max(0,page),pages-1);
     const visible=n.districts.slice(currentPage*6,(currentPage+1)*6);
     const tiles=visible.map(place=>{
       const site=N.pointOfInterest(place),changed=state.designs?.shield_thorn===place.id;
