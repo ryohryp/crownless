@@ -637,3 +637,33 @@ test('tower mystery shows an actionable design reward and smith recipe after saf
   assert.equal(final.designs.shield_thorn,'0,1');
   assert.deepEqual(E.parse(E.serialize(final)),final);
 });
+
+
+test('restored tower map and Yuno are visible after safe return, and bell signal opens real combat',()=>{
+  const N=require('../src/neighborhood.js');
+  const origin=N.cell(400,0);
+  let state=E.discoverDistrict({...E.initial(),mode:'demo'},origin);
+  const key='crownless-expedition-v1-demo';
+  const before=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(state)});
+  assert.doesNotMatch(before.html(),/鐘守の弟子・ユノ/);
+  assert.doesNotMatch(before.html(),/data-action="bell-depart"/);
+  state=E.startWithLocalClue(state);
+  state.expedition.enemy.hp=1;
+  state=E.act(E.act(state,'strike'),'return');
+  const returned=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(state)});
+  assert.match(returned.html(),/再訪すると鐘守の弟子・ユノに会える/);
+  returned.click('continue');
+  returned.click('tab','explore');
+  assert.match(returned.html(),/restored-bell/);
+  assert.match(returned.html(),/🔔 鐘が戻った/);
+  assert.match(returned.html(),/鐘守の弟子・ユノ/);
+  assert.match(returned.html(),/鐘の戻った塔の残響/);
+  assert.match(returned.html(),/data-action="bell-depart"/);
+  const restored=JSON.parse(returned.store.get(key));
+  assert.equal(restored.designs.shield_thorn,'0,1');
+  returned.click('bell-depart');
+  const departed=JSON.parse(returned.store.get(key));
+  assert.equal(departed.expedition.focus,3);
+  assert.match(returned.html(),/修復された鐘が鳴る/);
+  assert.deepEqual(E.parse(E.serialize(departed)),departed);
+});
