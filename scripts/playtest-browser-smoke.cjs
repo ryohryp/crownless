@@ -120,7 +120,37 @@ async function main() {
         await page.screenshot({ path: path.join(output, "before-combat-" + width + ".png") });
         await firstStep.click();
         assert.equal(await page.locator(".battle-layout .combat-enemy-summary").count(), 1, "first encounter must render actual battle");
+        const battleLayout=await page.evaluate(()=>{
+          const names=['.combat-situation','.combat-decision','.combat-support'];
+          const items=names.map(selector=>{
+            const el=document.querySelector(selector), r=el.getBoundingClientRect();
+            return {selector,top:r.top,bottom:r.bottom,height:r.height};
+          });
+          const buttons=['strike','heavy','guard','dodge','auto-fight'].map(action=>{
+            const el=document.querySelector('[data-action="'+action+'"]');
+            const r=el.getBoundingClientRect(),cx=r.left+r.width/2,cy=r.top+r.height/2,at=document.elementFromPoint(cx,cy);
+            return {action,visible:r.width>0&&r.height>=43&&r.top>=0&&r.bottom<=innerHeight+2,tappable:el.disabled || at===el || el.contains(at)};
+          });
+          return {items,buttons,viewport:innerHeight};
+        });
+        assert(battleLayout.items.every((item,i)=>item.height>=44 && (i===0||item.top>=battleLayout.items[i-1].bottom-2)),
+          'battle readout, choice card and optional support are separate, nonoverlapping rows: '+JSON.stringify(battleLayout));
+        assert(battleLayout.buttons.every(btn=>btn.visible&&btn.tappable),
+          'the four tactics and one-click auto must be real thumb-reachable controls: '+JSON.stringify(battleLayout));
+        await page.screenshot({ path: path.join(output, "combat-tactics-" + width + ".png") });
+        await page.locator('.combat-support > summary').click();
+        assert.equal(await page.locator('.combat-support').getAttribute('open'),'','supplies are readable on demand');
+        assert.equal(await page.locator('[data-action="flee"]').count(),1,'retreat is not removed');
+        await page.screenshot({ path: path.join(output, "combat-support-" + width + ".png") });
+        await page.locator('.combat-support > summary').click();
         await page.screenshot({ path: path.join(output, "combat-start-" + width + ".png") });
+        if(width===390){
+          const beforeTurn=await page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')).expedition.enemy.turn);
+          await page.locator('.combat-choice-grid [data-action="strike"]').click();
+          const afterTurn=await page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')).expedition.enemy.turn);
+          assert(afterTurn>beforeTurn,'manual strike must execute a real combat turn');
+          await page.screenshot({path:path.join(output,'combat-after-manual-strike-390.png')});
+        }
         await page.locator('[data-action="auto-fight"]').click();
         assert.equal(await page.locator(".path-panel").count(), 1, "first battle must resolve to the next route scene");
         const afterFirstBattle = await page.evaluate(() => JSON.parse(localStorage.getItem("crownless-expedition-v1-demo")));
@@ -280,7 +310,7 @@ async function main() {
       await poiPage.locator('.nearby-tile[data-value="-1,0"]').click();
       await poiPage.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
       await poiPage.locator('.path-actions [data-action="careful"]').click();
-      await poiPage.locator('.combat-manual > summary').click();
+      assert.equal(await poiPage.locator('.combat-manual').getAttribute('open'),'','four choices should appear by default');
       assert.match(await poiPage.locator('.combat-manual').innerText(),/反撃/,'new shield changes the available guard decision');
       await poiPage.screenshot({path:path.join(output,'crafted-shield-combat-390.png')});
     } finally {
