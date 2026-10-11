@@ -140,3 +140,19 @@ test('phone-smoke artifacts are short-lived and cleanup cannot touch Pages artif
   assert.match(cleanup, /\.slice\(0, 500\)/);
   assert.doesNotMatch(cleanup, /a\.name === 'github-pages'/);
 });
+
+test('old successful Pages artifacts are pruned with a bounded account-storage inventory', () => {
+  const workflow = read('.github/workflows/prune-pages-artifacts.yml');
+  assert.match(workflow, /schedule:/);
+  assert.match(workflow, /paths:\s*\n\s*- \.github\/workflows\/prune-pages-artifacts\.yml/);
+  assert.match(workflow, /github\.repository == 'ryohryp\/crownless'/);
+  assert.match(workflow, /context\.eventName|github\.event_name != 'workflow_dispatch'/);
+  assert.match(workflow, /github\.event_name == 'workflow_dispatch' && inputs\.mode \|\| 'delete'/);
+  assert.match(workflow, /inventory_count=/);
+  assert.match(workflow, /inventory_group name=/);
+  assert.match(workflow, /artifact\.get\("name"\) == "github-pages"/);
+  assert.match(workflow, /pages\[:2\]/);
+  assert.match(workflow, /timedelta\(hours=6\)/);
+  assert.match(workflow, /run\.get\("conclusion"\) != "success"/);
+  assert.match(workflow, /candidates = candidates\[:25\]/);
+});
