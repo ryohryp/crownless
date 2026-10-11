@@ -44,6 +44,7 @@ test('map pixel signs and expanded ink POI detail use the same canonical distric
   }
   const window = {
     CrownlessArt: art, CrownlessNeighborhood: N, CrownlessSlice: E,
+    CrownlessNearbyHome: require('../src/nearby-home-view.js'),
     CrownlessMapPixelArt: require('../src/map-pixel-art.js'),
     addEventListener(){}, isSecureContext:true
   };
@@ -53,13 +54,13 @@ test('map pixel signs and expanded ink POI detail use the same canonical distric
   window.navigator = {geolocation: null};
   vm.runInNewContext(read('src/slice-app.js'), window);
   const html = elements['#game'].innerHTML;
-  assert.equal((html.match(/class="district-pixel-art"/g) || []).length, 8);
-  assert.equal((html.match(/class="district-poi-stamp"/g) || []).length, 1);
-  assert.match(html, /aria-label="西の木立：異変・囁き樹の噂"/);
-  assert.match(html, /class="district-poi-mark" aria-hidden="true"><svg class="district-pixel-art"/);
-  assert.match(html, /class="district-poi-icon" aria-hidden="true"><svg class="district-poi-stamp"/);
+  assert.equal((html.match(/class="district-pixel-art"/g) || []).length, 6, 'one map page keeps up to six legible ink-and-pixel POI markers');
+  assert.match(html, /class="nearby-tile-grid"/);
+  assert.match(html, /aria-label="西の木立、✦ 異変"/);
+  assert.match(html, /class="nearby-tile-stamp" aria-hidden="true"><svg class="district-pixel-art"/);
   assert.match(html, /data-action="district"/);
-  assert.match(html, /data-action="poi"/);
+  assert.match(html, /data-action="nearby-view"/);
+  assert.match(html, /data-action="nearby-page"/, 'new map must paginate, not stack 8 pins');
 });
 
 test('map POI stamps keep crisp bounds and minimum tappable map marker', () => {
