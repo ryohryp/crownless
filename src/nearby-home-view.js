@@ -43,16 +43,18 @@
     const stateLabel=restored?'🔔 鐘が戻った・ユノが滞在中':d.claimed?'⚑ あなたの領域':
       poi.family==='shop'?'未開拓 · ◆ 地域の店':'未開拓 · ✦ '+(material?'異変の手掛かり':'王墓の噂');
     const primary=button('depart',locked?'他の土地を2か所踏破':'この土地へ遠征','',{class:'primary',value:p.id,disabled:locked||!traveler});
-    const secondary=restored?button('bell-depart','ユノの鐘で出発','集中 +3',{class:'secondary',disabled:!traveler}):
-      poi.family==='event'&&material?button('poi','強敵の手掛かりを追う','',{class:'secondary',value:'clue',disabled:!traveler}):
-      poi.family==='shop'&&material?button('poi','素材を交易','鉄片 '+E.LOCAL_MATERIAL_COST,{class:'secondary',value:'trade-material',disabled:state.scrap<E.LOCAL_MATERIAL_COST}):
-      button('nearby-view','土地の情報を見る','',{class:'secondary',value:'detail'});
+    // The summary card never contains duplicate actions from the detail scene.
+    // Choosing the contextual action changes the scene; transactions and NPC
+    // departures remain in exactly one detail view at a time.
+    const secondary=button('nearby-view',
+      restored?'ユノに会う':poi.family==='event'&&material?'異変を調べる':
+      poi.family==='shop'&&material?'店を開く':'土地の情報を見る','',
+      {class:'secondary',value:'detail'});
     const mainCard='<div class="nearby-card-copy"><small>'+esc(stateLabel)+'</small><h2>'+esc(N.title(d))+'</h2>'+
       '<p>'+esc(restored?'鐘が再び鳴る。鐘守の弟子ユノが旅を助ける。':p.teaser)+'</p></div>'+
       '<div class="nearby-card-actions">'+primary+secondary+'</div>'+
       '<div class="nearby-card-foot">'+
-      button('nearby-view','土地の詳細 →','',{class:'nearby-minor-action',value:'detail'})+
-      button('nearby-view','散策する →','',{class:'nearby-minor-action',value:'scout'})+'</div>';
+      button('nearby-view','土地の詳細 →','',{class:'nearby-minor-action',value:'detail'})+'</div>';
     const entries=['<section class="nearby-info-piece"><span class="kicker">ABOUT THIS LAND</span>'+
       '<h2>'+esc(N.title(d))+'</h2><p>'+esc(p.name)+' · '+esc(poi.description)+'</p><p>'+
       (d.claimed?'⚑ 開拓済み：帰還すると木材と石材が各 +1。':'未開拓：土地の主を倒し、生還すると領域を得る。')+'</p></section>'];
