@@ -179,16 +179,6 @@
       defense: Math.max(0, ...active.map(b => b.defense || 0))
     };
   }
-  const initial = () => ({ version: VERSION, mode: null, designs:{}, unlocked: ['wood'], cleared: [], owned: ['rust'], equipped: 'rust', qualities: emptyQualities(), scrap: 0, materials:emptyMaterials(), characters:startingCharacters(), activeCharacter:0, commission:emptyCommission(), level: 0, upgrades: emptyUpgrades(), runs: 0, victories: 0, grudge: null, maintenance: null, claimedLandmarks: [], expedition: null, report: null, neighborhood:N.initial() });
-  const maxHp = s => 30 + (Number.isInteger(s.level) ? s.level : 0) * 5 + (s.owned.includes('crown') ? 6 : 0) + (s.neighborhood?.buildings.includes('lodge') ? 4 : 0);
-  function weaponLevel(s, id = s.equipped) {
-    const legacy = LEGACY_UPGRADEABLE.has(id) && Number.isInteger(s?.level)
-      ? Math.max(0, Math.min(4, s.level))
-      : 0;
-    const key = upgradeKey(id);
-    const specific = key && Number.isInteger(s?.upgrades?.[key]) ? Math.max(0, Math.min(4, s.upgrades[key])) : 0;
-    return Math.max(legacy, specific);
-  }
   const upgradeCost = (s, id = s.equipped) => Math.max(2, (id === 'rust' && weaponLevel(s, id) === 0 ? 4 : 8 + weaponLevel(s, id) * 6) - (s.neighborhood?.buildings.includes('forge') ? 2 : 0));
   function combatProfile(s, id = s.equipped) {
     const gear = GEAR[id];
