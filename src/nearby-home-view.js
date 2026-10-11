@@ -52,9 +52,7 @@
       {class:'secondary',value:'detail'});
     const mainCard='<div class="nearby-card-copy"><small>'+esc(stateLabel)+'</small><h2>'+esc(N.title(d))+'</h2>'+
       '<p>'+esc(restored?'鐘が再び鳴る。鐘守の弟子ユノが旅を助ける。':p.teaser)+'</p></div>'+
-      '<div class="nearby-card-actions">'+primary+secondary+'</div>'+
-      '<div class="nearby-card-foot">'+
-      button('nearby-view','土地の詳細 →','',{class:'nearby-minor-action',value:'detail'})+'</div>';
+      '<div class="nearby-card-actions">'+primary+secondary+'</div>';
     const entries=['<section class="nearby-info-piece"><span class="kicker">ABOUT THIS LAND</span>'+
       '<h2>'+esc(N.title(d))+'</h2><p>'+esc(p.name)+' · '+esc(poi.description)+'</p><p>'+
       (d.claimed?'⚑ 開拓済み：帰還すると木材と石材が各 +1。':'未開拓：土地の主を倒し、生還すると領域を得る。')+'</p></section>'];
