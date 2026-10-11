@@ -245,3 +245,89 @@
   z-index:2;
   padding:5px 8px;
 }
+
+
+/* The paper map is a playable fantasy landscape, not six boxed menu cards.
+   Pure presentation: existing touch actions and discovered-place state remain
+   authoritative. The trail is a schematic connection, never travel history. */
+#game > .neighborhood-rebuild .nearby-map-art { opacity:.64; }
+#game > .neighborhood-rebuild .nearby-map-trail {
+  position:absolute;inset:0;width:100%;height:100%;z-index:0;
+  overflow:visible;pointer-events:none;
+}
+#game > .neighborhood-rebuild .nearby-map-trail path {
+  fill:none;stroke:#584b35;stroke-opacity:.65;stroke-width:1.3;
+  stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:1.7 2.3;
+}
+#game > .neighborhood-rebuild button.nearby-tile,
+#game > .neighborhood-rebuild button.nearby-tile.selected,
+#game > .neighborhood-rebuild button.nearby-tile.restored-bell:not(.selected) {
+  position:relative;z-index:1;isolation:isolate;
+  background:transparent;border:0;border-radius:0;box-shadow:none;
+  color:#302c25;overflow:visible;
+  transition:none;
+}
+#game > .neighborhood-rebuild button.nearby-tile:focus-visible {
+  outline:3px solid #3f5a45;outline-offset:-1px;border-radius:12px;
+}
+#game > .neighborhood-rebuild button.nearby-tile::before {
+  content:"";position:absolute;z-index:-1;
+  width:70px;height:65px;top:46%;left:50%;
+  transform:translate(-50%,-66%);
+  border-radius:49% 54% 45% 51%;
+  background:radial-gradient(ellipse at 40% 32%,#f4e8caed,#c4b38eae 75%,#9f8b6655);
+  border:1px solid rgba(87,72,46,.58);
+  box-shadow:0 2px 9px #604c3433;
+}
+#game > .neighborhood-rebuild button.nearby-tile.selected::before {
+  background:radial-gradient(ellipse at 40% 30%,#f9e9bc,#d8bb7c 76%,#998057);
+  border:2px solid #5f5638;box-shadow:0 0 0 4px #f1ddaa9c,0 3px 12px #443a2970;
+}
+#game > .neighborhood-rebuild button.nearby-tile.restored-bell::before {
+  border:2px solid #a07634;
+}
+#game > .neighborhood-rebuild .nearby-tile-stamp {
+  position:relative;z-index:1;flex:0 0 46px;
+  width:55px;min-height:44px;color:#383c34;
+  filter:drop-shadow(0 1px 0 #fff4cf);
+}
+#game > .neighborhood-rebuild .nearby-tile-stamp svg {
+  width:48px;height:45px;max-width:100%;
+}
+#game > .neighborhood-rebuild .nearby-tile strong,
+#game > .neighborhood-rebuild .nearby-tile small {
+  position:relative;z-index:1;
+  max-width:100%;padding:2px 6px;
+  background:rgba(250,241,213,.95);
+  border:1px solid rgba(91,78,54,.26);
+  border-radius:4px;color:#282b24;
+  box-shadow:0 1px 4px #78644330;
+}
+#game > .neighborhood-rebuild .nearby-tile strong {
+  font:700 12px/1.25 Georgia,"Yu Mincho",serif;
+}
+#game > .neighborhood-rebuild .nearby-tile small {
+  max-width:100%;font-size:10px;
+}
+#game > .neighborhood-rebuild .nearby-traveler {
+  position:absolute;z-index:2;
+  width:31px;height:38px;
+  left:calc(50% + 16px);top:0;
+  pointer-events:none;
+  filter:drop-shadow(0 2px 3px rgba(35,31,22,.42));
+  animation:nearby-arrival .42s ease-out both;
+}
+#game > .neighborhood-rebuild .nearby-traveler svg {width:100%;height:100%}
+@keyframes nearby-arrival {
+  from {opacity:.35;transform:translateY(-9px) scale(.86)}
+  to {opacity:1;transform:translateY(0) scale(1)}
+}
+@media(prefers-reduced-motion:reduce){
+  #game > .neighborhood-rebuild .nearby-traveler{animation:none}
+}
+@media(max-height:670px){
+  #game > .neighborhood-rebuild .nearby-tile-stamp{flex-basis:31px;min-height:30px}
+  #game > .neighborhood-rebuild .nearby-tile-stamp svg{width:35px;height:31px}
+  #game > .neighborhood-rebuild button.nearby-tile::before{width:57px;height:53px}
+  #game > .neighborhood-rebuild .nearby-traveler{width:25px;height:30px}
+}
