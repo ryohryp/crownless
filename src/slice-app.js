@@ -284,6 +284,8 @@
     const title = clear ? (captured ? `⚑ ${siege.name}を制圧した！` : x.place === 'crypt' ? '灰の冠は、あなたの手に。' : '土地の主を越えた。') : roadside ? '朽ちた荷車が、道を塞ぐ。' : event ? (x.room === 1 ? '消えかけの灯り。' : '茨の奥に、銀の光。') : x.room === 4 ? 'この先に、主がいる。' : x.room === 0 ? '最初の足跡をたどる。' : '奥から、息づかい。';
     const detail = clear ? (captured ? '土地の主を倒した。ここで戦利品を持って帰れば、この名所にあなたの支配旗が立つ。さらに深層へ進んで倒れると、旗を確定できない。' : '手に入れたものを、焚き火へ。まだ余力があるなら、より危険な深層へ進むこともできる。') : roadside ? '荷台には乾いた薬草が残る。傍らの古い道標には、血を捧げた旅人の傷跡が刻まれている。' : event ? '息を整えるか、傷を引き受けて遺品を拾うか。引き返す道も、まだ残っている。' : x.room === 4 ? `この土地の主が奥を守っている。深層では、より多くの希少素材を持ち帰れる。` : '静かな道をたどるか、宝の気配を追うか。深く踏み込むほど、敵の読み方も変わる。';
     const summary = clear ? (captured ? `⚑ ${siege.name}の主を撃破！ 次は「旗を立てて帰還」で支配を確定しよう。` : '戦利品を確定して帰るか、さらに深層へ踏み込むか。') : roadside ? '鉄片を薬草へ替えるか、体力を代価に次の一撃を研ぎ澄ますか。' : event ? '休息するか、傷を負って遺品を拾うか。' : x.room === 4 ? '土地の主へ挑む。生還できる余力を残そう。' : '静かな道をたどるか、宝の気配を追うか。';
+    const bellSignal = x.room === 0 && x.focus === 3 && x.log.some(line => line.startsWith('修復された鐘が鳴る'))
+      ? '<p class="notice bell-signal-notice" role="status">🔔 修復された鐘が鳴る。ユノの合図で次の一撃に集中 +3。</p>' : '';
     const foundDesign = x.foundDesign ? '<p class="notice" role="status">✦ 「返し棘の盾」の設計図を背嚢に入れた。ここで生還すれば鍛冶師に製法が伝わる。敗北すると失う。</p>' : '';
     const cue = x.depth >= 2 && !event && !clear ? `<p class="notice">${E.lootCue(x.place,x.depth)} 素材は生還するまで確定しない。</p>` : '';
     const decisions = clear ? `${button('return',captured ? '⚑ 旗を立てて帰還する' : '戦利品を持って帰る','',{class:'primary'})}${x.depth < 3 ? `<p class="notice">${E.lootCue(x.place,x.depth+1)}</p>${button('deeper',`深層 ${x.depth+1} へ踏み込む`,`敵の行動も変化 / 追加素材の可能性 / 鉄片 ×${x.depth+1}`)}` : '<p class="small">最深部へ到達した。火のもとへ帰ろう。</p>'}` : roadside ? `${button('trade','荷車の薬草を拾う','鉄片 −3 / 薬草 +1',{disabled:x.scrap < 3 || x.potions >= 2})}${button('pray','道標へ血を捧げる','体力 −3 / 次の一撃 +3',{disabled:x.hp <= 3})}` : event ? `${button('rest','火のそばで休む','体力 +6 / 遺品は残す')}${button('search',`茨の遺品を拾う`,`体力 −4 / 鉄片 +${5*x.depth}`,{disabled:x.hp <= 4})}` : `${button('careful',x.room === 4 ? '主に挑む' : '静かに足跡をたどる','通常の敵 / 体力を温存したい')}${button('risky','宝の気配を追う',x.depth >= 2 ? '敵の体力 +3 / 鉄片 +3 / 素材を確保' : '敵の体力 +3 / 鉄片 +3')}`;
@@ -292,7 +294,7 @@
     return `<div class="path-decision">${siege ? `<div class="landmark-siege-progress" role="status">${captured ? '⚑ 制圧完了・帰還で支配確定' : `⚔ ランドマーク攻略中：${esc(siege.name)}`}</div>` : ''}
       <div class="path-scroll">
         <div class="path-mobile-status">${vitals(x)}<div class="path-risk"><span>背嚢</span><strong>鉄片 ${x.scrap}</strong><small>${materialList(x.materials) ? `${materialList(x.materials)} · 生還で確定` : '素材は生還で確定'}</small></div></div>
-        <div class="path-copy"><p class="kicker">${clear ? 'A WAY HOME' : 'ONE MORE ROOM?'}</p><h2>${title}</h2><p class="path-summary">${summary}</p>${foundDesign}<div class="path-desktop-details"><p class="intro">${detail}</p>${ledger(x)}${cue}${logs(x)}</div></div>
+        <div class="path-copy"><p class="kicker">${clear ? 'A WAY HOME' : 'ONE MORE ROOM?'}</p><h2>${title}</h2><p class="path-summary">${summary}</p>${bellSignal}${foundDesign}<div class="path-desktop-details"><p class="intro">${detail}</p>${ledger(x)}${cue}${logs(x)}</div></div>
       </div>
       <div class="path-actions"><div class="button-stack">${decisions}</div>${!clear ? `<div class="path-secondary-row">${retreat}${heal}</div>` : ''}</div>
     </div>`;
