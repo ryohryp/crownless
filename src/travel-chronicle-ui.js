@@ -116,12 +116,8 @@
     const initial = FO ? FO.createInitialState() : { version: 1, outposts: {} };
     let data = readJson(STORAGE_KEY_OUTPOSTS, initial);
 
-    // Seed initial demo outpost if empty
-    if (Object.keys(data.outposts).length === 0 && FO) {
-      data = FO.claimOutpost(data, 'wood_outpost', '囁きの森・前哨拠点', 'woods');
-      writeJson(STORAGE_KEY_OUTPOSTS, data);
-    }
-
+    // Viewing the travel map must not silently grant ownership or mutate storage.
+    // Outposts are earned through explicit gameplay, never by opening this tab.
     return data;
   }
 

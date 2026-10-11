@@ -2,11 +2,13 @@ const test=require('node:test');
 const assert=require('node:assert/strict');
 const fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
 const F=require('../src/travel-footprints.js');
+const FO=require('../src/frontier-outpost.js');
 const code=fs.readFileSync(path.join(__dirname,'../src/travel-chronicle-ui.js'),'utf8');
 function setup(seed={},fails=false) {
   const values=new Map(Object.entries(seed));
   const context={
     CrownlessTravelFootprints:F,
+    CrownlessFrontierOutpost:FO,
     localStorage:{
       getItem:k=>{if(fails)throw Error('blocked');return values.get(k)||null;},
       setItem:(k,v)=>{if(fails)throw Error('blocked');values.set(k,v);}
@@ -71,4 +73,12 @@ test('failed storage does not claim earned stamps',()=>{
   const b=setup({},true);
   assert.equal(b.ui.recordFootprint(tower,'walk','2026-10-10').status,'save-failed');
   assert.equal(b.ui.getFootprints('walk').places.length,0);
+});
+
+test('opening the travel map does not create an unearned outpost or write to storage',()=>{
+  const b=setup();
+  const html=b.render();
+  assert.equal(b.values.has('crownless-frontier-outposts-v1'),false);
+  assert.equal(Object.keys(b.ui.getOutposts().outposts).length,0);
+  assert.doesNotMatch(html,/囁きの森・前哨拠点/);
 });
