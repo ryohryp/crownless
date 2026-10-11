@@ -126,3 +126,17 @@ test('scheduled geography health preserves structured upstream diagnostics on su
   assert.match(workflow, /Structured upstream diagnostics: unavailable/);
   assert.match(workflow, /fs\.appendFileSync\(process\.env\.GITHUB_STEP_SUMMARY/);
 });
+
+test('phone-smoke artifacts are short-lived and cleanup cannot touch Pages artifacts', () => {
+  const workflow = read('.github/workflows/test.yml');
+  const cleanup = read('.github/workflows/prune-phone-smoke-artifacts.yml');
+
+  assert.match(workflow, /failure\(\) \|\| github\.event_name == 'pull_request'/);
+  assert.match(workflow, /retention-days:\s*2/);
+  assert.match(cleanup, /github\.repository == 'ryohryp\/crownless'/);
+  assert.match(cleanup, /a\.name === 'crownless-phone-smoke'/);
+  assert.match(cleanup, /screenshots\.slice\(0, 10\)/);
+  assert.match(cleanup, /now - 7 \* 24 \* 60 \* 60 \* 1000/);
+  assert.match(cleanup, /\.slice\(0, 500\)/);
+  assert.doesNotMatch(cleanup, /a\.name === 'github-pages'/);
+});

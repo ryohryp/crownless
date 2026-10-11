@@ -56,10 +56,11 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Phone map, landmark and save smoke
         run: npm run playtest:smoke
-      - name: Upload phone screenshots (including failures)
-        if: always()
+      - name: Upload PR and failure screenshots (short-lived)
+        if: ${{ failure() || github.event_name == 'pull_request' }}
         uses: actions/upload-artifact@v4
         with:
           name: crownless-phone-smoke
           path: .qa/browser/
           if-no-files-found: ignore
+          retention-days: 2
