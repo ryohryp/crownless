@@ -221,8 +221,13 @@ async function main() {
     try {
       assert(forgedSaved?.designs?.shield_thorn, 'saved provenance from actual play');
       await bellPage.addInitScript(saved => {
-        localStorage.setItem('crownless-expedition-mode','demo');
-        localStorage.setItem('crownless-expedition-v1-demo',JSON.stringify(saved));
+        // Seed once. Overwriting saved state on every reload would silently
+        // erase the NPC expedition we are specifically trying to verify.
+        const key='crownless-expedition-v1-demo';
+        if (!localStorage.getItem(key)) {
+          localStorage.setItem('crownless-expedition-mode','demo');
+          localStorage.setItem(key,JSON.stringify(saved));
+        }
       },forgedSaved);
       await bellPage.goto(url);
       await bellPage.locator('[data-action="tab"][data-value="explore"]').click();
