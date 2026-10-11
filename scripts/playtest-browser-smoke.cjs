@@ -205,7 +205,9 @@ async function main() {
       await poiPage.locator('.district-pin[data-value="-1,0"]').click();
       await poiPage.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
       await poiPage.locator('.path-actions [data-action="careful"]').click();
-      assert.match(await poiPage.locator('.battle-layout').innerText(),/反撃/,'new shield changes the next combat');
+      await poiPage.locator('.combat-manual > summary').click();
+      assert.match(await poiPage.locator('.combat-manual').innerText(),/反撃/,'new shield changes the available guard decision');
+      await poiPage.screenshot({path:path.join(output,'crafted-shield-combat-390.png')});
     } finally {
       await poiContext.close();
     }
