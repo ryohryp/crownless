@@ -41,6 +41,8 @@
   ];
   const DISMANTLE_SCRAP = 2;
   const LOCAL_HERB_COST = 2;
+  const LOCAL_MATERIAL_COST = 3;
+  const REGIONAL_MATERIAL = Object.freeze({wood:'wolfFang',tower:'watchIron',fen:'marshFiber'});
   // Legacy catalog retained for saved weapon IDs and older test fixtures; no new expedition drops equippable gear.
   const VARIANT_LOOT = {
     wood: ['fang_blood', 'fang_moon'],
@@ -331,6 +333,32 @@
     n.expedition.log.unshift('枝角の露店の薬師から、森の薬草を一束買った。鉄片 −2 / 今回の遠征の薬草 +1。');
     return n;
   }
+  // A found shop opens a repeatable non-combat path to smithing materials.
+  // No currency or items are minted by repeated map taps; trade uses banked scrap.
+  function tradeLocalMaterial(s) {
+    const d=s?.neighborhood && N.get(s.neighborhood);
+    const item=d && REGIONAL_MATERIAL[d.biome];
+    if (!s?.mode || s.expedition || s.report || !item || N.pointOfInterest(d)?.family!=='shop' ||
+        s.scrap<LOCAL_MATERIAL_COST || s.materials[item]>=1e6) return s;
+    const n=copy(s);
+    n.scrap-=LOCAL_MATERIAL_COST;
+    n.materials[item]++;
+    return n;
+  }
+  // Following a newly revealed rumor is an OPTIONAL harder first fight;
+  // the extra regional crafting material is at risk until a safe return.
+  function startWithLocalClue(s) {
+    const d=s?.neighborhood && N.get(s.neighborhood);
+    if (!d || !REGIONAL_MATERIAL[d.biome] || N.pointOfInterest(d)?.family!=='event') return s;
+    const n=start(s,d.biome);
+    if (n===s) return s;
+    encounter(n.expedition,true,n.runs);
+    n.expedition.enemy.clue=true;
+    n.expedition.enemy.maxHp+=4;
+    n.expedition.enemy.hp+=4;
+    n.expedition.log=[`「${N.pointOfInterest(d).name}」の手掛かりを追った。敵は強いが、討伐すれば${MATERIALS[REGIONAL_MATERIAL[d.biome]].name}をさらに1つ得る。生還で確定。`];
+    return n;
+  }
   function encounter(x, risky, runs = 0) {
     const elite = x.room === 4;
     const kind = x.place === 'wood' && x.room === 2 ? 'forest_hunter' : place(x.place).enemy;
@@ -402,7 +430,8 @@
       const active = N.get(s.neighborhood,s.neighborhood.active);
       const aided = x.room === 0 && active?.aided && active.biome === x.place;
       const amount = e.elite ? Math.min(3,x.depth+1) : 1;
-      x.materials[materialId] += amount + (aided ? 1 : 0);
+      x.materials[materialId] += amount + (aided ? 1 : 0) + (e.clue ? 1 : 0);
+      if (e.clue) x.log.push(`土地の噂を追い当てた！ ${MATERIALS[materialId].name} +1。生還まで未確定。`);
       if (aided) x.log.push(`${N.trace(active).name}の採集路。最初の戦利品に${MATERIALS[materialId].name} +1。生還するまで未確定。`);
       x.log.push(`${MATERIALS[materialId].name} +${amount}。装備そのものは落ちない。素材を持ち帰って鍛冶師に託そう。`);
     }
@@ -731,7 +760,7 @@
         if (Object.keys(x).some(k => !['place','depth','room','hp','stamina','focus','stagger','sharpened','sharpenedApplied','landmarkId' ,'potions','scrap','materials','gear','gearQuality','seals','grudge','enemy','stage','log'].includes(k)) || !(x.landmarkId === undefined || (typeof x.landmarkId==='string' && /^[a-z][a-z0-9-]{1,63}$/.test(x.landmarkId))) || !s.unlocked.includes(x.place) || !int(x.depth,1,3) || !int(x.room,0,4) || !int(x.hp,1,maxHp(s)) || !int(x.stamina,0,3) || !allowedFocus.includes(x.focus) || typeof x.stagger !== 'boolean' || !int(x.sharpened,0,3) || typeof x.sharpenedApplied !== 'boolean' || !validExpeditionGrudge(x.grudge) || !int(x.potions,0,3) || !int(x.scrap,0,1000) || !validMaterials(x.materials) || !validLoot(x.gear,x.gearQuality) || !Array.isArray(x.seals) || x.seals.length > 3 || !x.seals.every(v => ids.includes(v)) || !['path','fight','cleared'].includes(x.stage) || !Array.isArray(x.log) || x.log.length > 10 || !x.log.every(v => typeof v === 'string' && v.length < 250)) throw Error('run');
         if (x.stage === 'fight') {
           const e = x.enemy;
-          if (!e || Object.keys(e).some(k => !['kind','hp','maxHp','turn','depth','elite','risky','seed','frenzy','wounded'].includes(k)) || !(e.seed === undefined || int(e.seed,0,99990)) || !(e.frenzy === undefined || typeof e.frenzy === 'boolean') || !(e.wounded === undefined || typeof e.wounded === 'boolean') || !ENEMIES[e.kind] || !int(e.maxHp,1,80) || !int(e.hp,1,e.maxHp) || !int(e.turn,0,1e6) || e.depth !== x.depth || typeof e.elite !== 'boolean' || typeof e.risky !== 'boolean') throw Error('enemy');
+          if (!e || Object.keys(e).some(k => !['kind','hp','maxHp','turn','depth','elite','risky','seed','frenzy','wounded','clue'].includes(k)) || !(e.seed === undefined || int(e.seed,0,99990)) || !(e.frenzy === undefined || typeof e.frenzy === 'boolean') || !(e.wounded === undefined || typeof e.wounded === 'boolean') || !(e.clue === undefined || typeof e.clue === 'boolean') || !ENEMIES[e.kind] || !int(e.maxHp,1,80) || !int(e.hp,1,e.maxHp) || !int(e.turn,0,1e6) || e.depth !== x.depth || typeof e.elite !== 'boolean' || typeof e.risky !== 'boolean') throw Error('enemy');
         } else if (x.enemy !== null) throw Error('enemy');
       }
       if (s.report) {
@@ -752,6 +781,6 @@
       return s;
     } catch { return null; }
   }
-  const api = { VERSION, PLACES, GEAR, ENEMIES, INTENTS, VARIANT_LOOT, MATERIALS, RECIPES, COMMISSIONS, DISMANTLE_SCRAP, LOCAL_HERB_COST, initial, maxHp, gearFamily, weaponLevel, weaponQuality, weaponAttack, qualityLabel, rollQuality, upgradeCost, combatProfile, gearText, enemyProfile, attackPreview, intent, lootCue, place, isRoadsideEvent, discover, start, startLandmark, startWithLocalHerb, act, resolveFight, maintain, equip, switchCharacter, craftItem, craftWolfFang, supplyCommission, upgrade, resolveDuplicate, locationSession, observe, serialize, parse, discoverDistrict,selectDistrict,buildHome,renameHome };
+  const api = { VERSION, PLACES, GEAR, ENEMIES, INTENTS, VARIANT_LOOT, MATERIALS, RECIPES, COMMISSIONS, DISMANTLE_SCRAP, LOCAL_HERB_COST, LOCAL_MATERIAL_COST, REGIONAL_MATERIAL, initial, maxHp, gearFamily, weaponLevel, weaponQuality, weaponAttack, qualityLabel, rollQuality, upgradeCost, combatProfile, gearText, enemyProfile, attackPreview, intent, lootCue, place, isRoadsideEvent, discover, start, startLandmark, startWithLocalHerb, startWithLocalClue, tradeLocalMaterial, act, resolveFight, maintain, equip, switchCharacter, craftItem, craftWolfFang, supplyCommission, upgrade, resolveDuplicate, locationSession, observe, serialize, parse, discoverDistrict,selectDistrict,buildHome,renameHome };
   return api;
 });

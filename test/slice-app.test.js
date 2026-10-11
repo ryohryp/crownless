@@ -583,3 +583,27 @@ test('generic tower guardian victory cannot silently masquerade as a named landm
   assert.match(b.chronicleHTML(),/この地域種別の主を倒した履歴はありますが、この名所の攻略記録ではありません/);
   assert.doesNotMatch(b.chronicleHTML(),/⚑ あなたの支配拠点/);
 });
+
+test('a newly discovered event opens a higher-stakes hunt; a shop changes actual crafting stock', () => {
+  const N=require('../src/neighborhood.js');
+  let s={...E.initial(),mode:'demo',scrap:7};
+  s=E.discoverDistrict(s,N.cell(400,0)); // First tower = event.
+  s=E.discoverDistrict(s,N.cell(800,0)); // Second tower = shop.
+  const key='crownless-expedition-v1-demo';
+  const b=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(s)});
+  assert.match(b.html(),/交易路を発見/);
+  assert.match(b.html(),/鐘鉄/);
+  b.click('poi','trade-material');
+  const traded=E.parse(b.store.get(key));
+  assert.equal(traded.scrap,4);
+  assert.equal(traded.materials.watchIron,1);
+  assert.match(b.html(),/共同倉庫へ \+1/);
+  b.click('district','0,1');
+  assert.match(b.html(),/強敵を追う特別な遠征/);
+  assert.match(b.html(),/強敵の手掛かりを追って出発/);
+  b.click('poi','clue');
+  const fight=E.parse(b.store.get(key));
+  assert.equal(fight.expedition.enemy.clue,true);
+  assert.equal(fight.expedition.enemy.risky,true);
+  assert.match(b.html(),/鐘守の亡兵/);
+});
