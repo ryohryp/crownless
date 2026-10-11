@@ -206,3 +206,13 @@
     border-radius:5px;padding:12px 10px;min-height:48px;
   }
 }
+
+/* A support reader is a reversible scene, not a dead-end log. */
+#game > .battle-layout .combat-support > summary .combat-support-open {display:none}
+#game > .battle-layout .combat-support[open] > summary .combat-support-closed {display:none}
+#game > .battle-layout .combat-support[open] > summary .combat-support-open {display:inline}
+@media(min-width:481px){
+  /* Player HP/energy already live beside the enemy and intention; do not show
+     the same vitals a second time below the desktop background illustration. */
+  #game > .battle-layout .visual-column > .vitals {display:none}
+}
