@@ -57,6 +57,37 @@ async function main() {
         assert(nav && nav.y >= -1 && nav.y + nav.height <= height + 2, "bottom navigation must fit the viewport");
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true, "no document-wide horizontal overflow");
         await page.screenshot({ path: path.join(output, "map-" + width + ".png") });
+        
+        // Real touch interaction, not DOM-dispatched click: every primary camp
+        // destination and every Chronicle subtab must remain operable on 360/390px.
+        await page.locator('.bottom-navigation [data-action="tab"][data-value="gear"]').click();
+        assert.equal(await page.locator('.gear-home').count(), 1, "equipment tab must open");
+        await page.locator('[data-action="character"][data-value="1"]').click();
+        assert.match(await page.locator('.gear-home').innerText(), /操作中/);
+        await page.locator('[data-action="character"][data-value="0"]').click();
+        await page.locator('.bottom-navigation [data-action="tab"][data-value="home"]').click();
+        assert.equal(await page.locator('.homestead-home').count(), 1, "homestead tab must open");
+        await page.locator('.bottom-navigation [data-action="tab"][data-value="codex"]').click();
+        assert.equal(await page.locator('.codex-panel').count(), 1, "journal tab must open");
+        await page.locator('.bottom-navigation [data-action="tab"][data-value="chronicle"]').click();
+        assert.equal(await page.locator('.chronicle-subtabs .subtab-btn').count(), 5, "all five travel subtabs must be present");
+        for (const subtab of ["stamps", "relics", "outposts", "travelog", "footprints"]) {
+          const button = page.locator('.chronicle-subtabs .subtab-btn[data-subtab="' + subtab + '"]');
+          await button.click();
+          assert.equal(await button.evaluate(el => el.classList.contains("active")), true,
+            "travel subtab " + subtab + " must respond to a real tap");
+        }
+        const travelTabs = await page.locator('.chronicle-subtabs .subtab-btn').evaluateAll(nodes =>
+          nodes.map(el => { const box = el.getBoundingClientRect(); return { top: box.top, height: box.height, left: box.left, right: box.right }; }));
+        assert(travelTabs.every(x => x.height >= 44), "travel subtabs need 44px touch height");
+        assert(travelTabs.every(x => Math.abs(x.top - travelTabs[0].top) < 2),
+          "all five travel subtabs must remain on one row at phone widths");
+        assert(travelTabs.every(x => x.left >= 0 && x.right <= width + 1),
+          "travel subtab controls must fit the device width");
+        await page.screenshot({ path: path.join(output, "travel-controls-" + width + ".png") });
+        await page.locator('.bottom-navigation [data-action="tab"][data-value="explore"]').click();
+        assert.equal(await page.locator(".neighborhood-atlas").count(), 1, "travel tabs must return to map");
+
 
         // Real pointer/touch regression: a normal expedition must lead into
         // combat and a resolved first fight, not merely set a path save.
@@ -88,7 +119,7 @@ async function main() {
         await page.locator('[data-action="continue"]').click();
         // The normal return may prioritize the gear/home tab. Restore the map
         // before running the older discovery and landmark smoke scenarios.
-        await page.locator('[data-action="tab"][data-value="explore"]').click();
+        await page.locator('.bottom-navigation [data-action="tab"][data-value="explore"]').click();
         assert.equal(await page.locator(".neighborhood-atlas").count(), 1);
         await page.screenshot({ path: path.join(output, "return-from-combat-" + width + ".png") });
 
@@ -112,7 +143,7 @@ async function main() {
           assert.match(await page.locator(".chronicle-panel").innerText(), /天穿つ白塔/, "new fantasy landmark should appear");
           await page.screenshot({ path: path.join(output, "landmark-390.png") });
           await page.reload();
-          await page.locator('[data-action="tab"][data-value="chronicle"]').click();
+          await page.locator('.bottom-navigation [data-action="tab"][data-value="chronicle"]').click();
           const siege = page.locator('[data-action="landmark-siege"][data-value="tokyo-skytree"]');
           assert.equal(await siege.isEnabled(), true, "discovered landmark should allow a siege");
           await siege.click();
