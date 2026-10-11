@@ -1,0 +1,187 @@
+/* Production neighborhood: derived from the independent one-owner lab.
+   Only the explore tab uses this scene. Existing combat, crafting and save
+   screens keep their old layout until independently reviewed. */
+#game > .neighborhood-rebuild.living-map-home {
+  position:relative; display:grid; grid-template-columns:minmax(0,1fr);
+  grid-template-rows:minmax(0,1fr) auto auto; gap:0;
+  width:min(430px,100%); height:min(844px,calc(100dvh - 116px));
+  min-height:0; margin:10px auto 0; padding:0; overflow:hidden;
+  background:#e0d4b8; box-shadow:0 0 0 1px rgba(108,82,50,.4);
+}
+#game > .neighborhood-rebuild .nearby-scene {
+  position:relative; min-width:0; min-height:0; overflow:hidden;
+  background:#e7dcc1;
+}
+#game > .neighborhood-rebuild .nearby-paper-map {
+  height:100%; min-height:0; display:grid;
+  grid-template-rows:auto minmax(0,1fr) auto;
+  position:relative; isolation:isolate;
+  background:
+    radial-gradient(ellipse at 55% 45%,rgba(248,241,224,.4),rgba(148,131,104,.25) 85%),
+    repeating-linear-gradient(8deg,transparent 0 15px,rgba(72,63,49,.028) 16px 17px),
+    #e5dbc4; color:#342f29;
+}
+#game > .neighborhood-rebuild .nearby-map-top {
+  display:flex; align-items:center; justify-content:space-between; gap:8px;
+  min-height:61px; padding:9px 12px; z-index:2;
+  border-bottom:1px solid rgba(94,72,46,.35); background:rgba(255,249,231,.68);
+}
+#game > .neighborhood-rebuild .nearby-map-top strong {
+  display:block; font:700 18px/1.2 Georgia,"Yu Mincho",serif; color:#302a22;
+}
+#game > .neighborhood-rebuild .nearby-map-top small {display:block;margin-top:3px;color:#705e45;font-size:11px}
+#game > .neighborhood-rebuild button.nearby-top-action {
+  min-height:44px; flex:0 0 auto; padding:8px 10px;
+  border:1px solid #806743; border-radius:6px;
+  background:#233b34; color:#f7e6bc; font-size:12px; font-weight:700;
+}
+#game > .neighborhood-rebuild .nearby-map-art {
+  position:absolute; z-index:0; inset:67px 0 0; pointer-events:none; opacity:.72;
+  background:
+    radial-gradient(ellipse at 17% 69%, transparent 47%,rgba(96,79,56,.18) 48%,transparent 49%),
+    radial-gradient(ellipse at 72% 33%,transparent 42%,rgba(96,79,56,.18) 43%,transparent 44%),
+    linear-gradient(114deg,transparent 43%,rgba(111,97,78,.2) 44%,rgba(111,97,78,.11) 47%,transparent 48%);
+}
+#game > .neighborhood-rebuild .nearby-map-art span {
+  position:absolute;left:8px;bottom:8px;font:italic 11px Georgia,serif;letter-spacing:.14em;color:#76654c;
+}
+#game > .neighborhood-rebuild .nearby-tile-grid {
+  display:grid; grid-template-columns:repeat(2,minmax(0,1fr));
+  grid-template-rows:repeat(3,minmax(0,1fr));
+  align-items:stretch; gap:10px 15px; min-height:0; min-width:0;
+  padding:15px clamp(16px,6vw,29px); position:relative; z-index:1;
+}
+#game > .neighborhood-rebuild button.nearby-tile {
+  min-width:0; min-height:0; position:relative; align-self:center;
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  gap:2px; width:100%; height:100%; max-height:104px; padding:5px 7px;
+  border:1px solid rgba(88,77,58,.45); border-radius:9px;
+  background:rgba(246,238,215,.84); color:#302c25;
+  box-shadow:0 3px 0 rgba(112,92,68,.16),0 2px 14px rgba(96,71,43,.09);
+  overflow:hidden; text-align:center;
+}
+#game > .neighborhood-rebuild .nearby-tile.selected {
+  background:#283b32; color:#fff0d5; border:2px solid #bd9652;
+  box-shadow:0 0 0 2px rgba(246,236,208,.9),0 5px 18px rgba(30,40,31,.23);
+}
+#game > .neighborhood-rebuild .nearby-tile.restored-bell:not(.selected){border-color:#a67d36;background:#f7e2b1}
+#game > .neighborhood-rebuild .nearby-tile-stamp {
+  display:grid; place-items:center; flex:0 1 36px; width:38px; min-height:24px;
+  line-height:1; font-size:20px; overflow:hidden;
+}
+#game > .neighborhood-rebuild .nearby-tile-stamp svg {width:37px;height:33px;max-width:100%}
+#game > .neighborhood-rebuild .nearby-tile strong {
+  display:block; max-width:100%; font:700 13px/1.3 Georgia,"Yu Mincho",serif;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+#game > .neighborhood-rebuild .nearby-tile small {font-size:10px;font-weight:650;line-height:1.15;white-space:nowrap}
+#game > .neighborhood-rebuild .nearby-map-legend {
+  position:relative;z-index:1;padding:0 10px 9px;text-align:center;
+  font-size:10px;color:#705d41;pointer-events:none;
+}
+#game > .neighborhood-rebuild .nearby-pagination{
+  display:flex;justify-content:center;align-items:center;gap:9px;
+  position:absolute;right:6px;bottom:20px;z-index:3;
+  background:rgba(250,242,222,.97);padding:4px;border-radius:7px;
+}
+#game > .neighborhood-rebuild .nearby-pagination button{padding:5px 7px;min-height:32px;font-size:11px}
+#game > .neighborhood-rebuild .nearby-pagination span{font-size:11px;color:#63543d}
+#game > .neighborhood-rebuild .nearby-card.district-detail {
+  position:relative; z-index:2; display:block; grid-template-columns:none;
+  border:0; border-top:2px solid #bfa16b; border-radius:0; box-shadow:0 -4px 15px rgba(45,36,26,.19);
+  background:#17302e; color:#fff0d6; padding:11px 12px 9px;
+  min-height:0; max-height:none; overflow:visible;
+}
+#game > .neighborhood-rebuild .nearby-card-copy small{font-size:11px;color:#e1bf79;font-weight:700}
+#game > .neighborhood-rebuild .nearby-card-copy h2{
+  color:#f8ebcf; font:700 20px/1.25 Georgia,"Yu Mincho",serif;margin:4px 0;
+}
+#game > .neighborhood-rebuild .nearby-card-copy p{
+  color:#d7d1bd; font-size:12px;line-height:1.35;margin:4px 0 0;
+  white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+}
+#game > .neighborhood-rebuild .nearby-card-actions {
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:8px;margin-top:9px;
+}
+#game > .neighborhood-rebuild .nearby-card-actions button {
+  width:100%;min-width:0;max-width:none;min-height:48px;
+  padding:6px 8px; border-radius:7px;font-size:12px;font-weight:700;
+  display:flex; flex-direction:column; align-items:center;justify-content:center;gap:2px;
+}
+#game > .neighborhood-rebuild .nearby-card-actions .primary{background:#e9d1a2;color:#272a23;border:1px solid #d1a967}
+#game > .neighborhood-rebuild .nearby-card-actions .secondary{background:#2c4641;color:#f2e1c0;border:1px solid #9c8a66}
+#game > .neighborhood-rebuild .nearby-card-actions button small{font-size:10px;color:inherit;opacity:.84}
+#game > .neighborhood-rebuild .nearby-card-foot{
+  margin-top:7px;display:flex;justify-content:space-between;gap:8px;
+}
+#game > .neighborhood-rebuild .nearby-minor-action {
+  padding:5px 2px;border:0;background:transparent;min-height:33px;
+  color:#e1c98f;text-decoration:underline;text-underline-offset:3px;font-size:11px;
+}
+#game > .neighborhood-rebuild .nearby-notice{
+  margin:5px 0 0;font-size:11px;line-height:1.4;color:#fae4a9;
+}
+#game > .neighborhood-rebuild .nearby-scene--reading{
+  overflow-y:auto;overscroll-behavior:contain;scrollbar-gutter:stable;background:#f1e8d4;
+}
+#game > .neighborhood-rebuild .nearby-secondary-content{padding:14px 13px 20px;color:#302d26}
+#game > .neighborhood-rebuild .nearby-secondary-content > h2{
+  color:#372e20;font:700 20px/1.2 Georgia,"Yu Mincho",serif;margin:0 0 9px;
+}
+#game > .neighborhood-rebuild .nearby-secondary-content p{font-size:13px;line-height:1.5;color:#433d33}
+#game > .neighborhood-rebuild .nearby-info-piece{
+  display:grid;gap:8px;padding:12px 10px;margin:0 0 10px;
+  border:1px solid #cabb9d;background:#fff9e8;border-radius:8px;color:#363128;
+}
+#game > .neighborhood-rebuild .nearby-info-piece h2,#game > .neighborhood-rebuild .nearby-info-piece h3{margin:0;color:#373023;font:700 17px Georgia,"Yu Mincho",serif}
+#game > .neighborhood-rebuild .nearby-info-piece p{margin:0;font-size:13px}
+#game > .neighborhood-rebuild .nearby-info-piece button{min-height:48px;width:100%;max-width:none;border-radius:7px}
+#game > .neighborhood-rebuild .nearby-info-piece .secondary{background:#2c4641;color:#f9ead4}
+#game > .neighborhood-rebuild .nearby-info-piece .primary{background:#2c4641;color:#f9ead4}
+#game > .neighborhood-rebuild .nearby-info-piece.restored-bell-notice{background:#faedc7;border-color:#ae8544}
+#game > .neighborhood-rebuild .map-home-scouting{margin:0;background:none;border:0}
+#game > .neighborhood-rebuild .map-home-scouting .discovery{
+  overflow:visible;max-height:none;display:grid;gap:10px;padding:0;border:0;background:transparent;color:#322e26;
+}
+#game > .neighborhood-rebuild .map-home-scouting .discovery p{margin:0;font-size:13px;color:#423a2d}
+#game > .neighborhood-rebuild .map-home-scouting .choice-grid{display:grid;grid-template-columns:1fr;gap:7px;overflow:visible}
+#game > .neighborhood-rebuild .map-home-scouting button{
+  display:block;width:100%;max-width:none;min-height:48px;border:1px solid #a28d63;border-radius:7px;
+  background:#fff8e6;color:#302c25;font-size:13px;text-align:left;padding:9px 12px;
+}
+#game > .neighborhood-rebuild .nearby-secondary-actions{
+  display:flex;justify-content:space-between;align-items:center;gap:9px;
+}
+#game > .neighborhood-rebuild .nearby-secondary-actions strong{font-size:13px}
+#game > .neighborhood-rebuild .nearby-secondary-actions button{
+  min-height:44px;border:1px solid #bfaa7a;background:#2c4641;color:#f5e4c0;border-radius:7px;
+  padding:7px 12px;font-size:12px;
+}
+#game > .neighborhood-rebuild > .camp-tabs.bottom-navigation{
+  position:relative;z-index:3;left:auto;right:auto;top:auto;bottom:auto;
+  display:grid;grid-template-columns:repeat(6,minmax(0,1fr));
+  transform:none;width:100%;margin:0;padding:6px;
+  border:0;border-top:1px solid #b8a075;border-radius:0;
+  background:#142b29;box-shadow:none;gap:2px;
+}
+#game > .neighborhood-rebuild > .camp-tabs.bottom-navigation button{
+  min-width:0;min-height:53px;max-width:none;padding:7px 2px;margin:0;
+  border-radius:5px;font-size:11px;line-height:1.2;white-space:nowrap;
+}
+@media(max-width:480px){
+  #game > .neighborhood-rebuild.living-map-home{
+    height:100%;width:100%;min-height:0;margin:0 auto;padding:0;
+  }
+  #game > .neighborhood-rebuild > .camp-tabs.bottom-navigation{
+    padding-bottom:max(6px,env(safe-area-inset-bottom));
+  }
+}
+@media(max-height:670px){
+  #game > .neighborhood-rebuild .nearby-map-top{min-height:50px;padding:5px 10px}
+  #game > .neighborhood-rebuild .nearby-tile-grid{gap:5px;padding:8px 14px}
+  #game > .neighborhood-rebuild .nearby-tile-stamp{flex-basis:26px}
+  #game > .neighborhood-rebuild .nearby-card-copy p{display:none}
+  #game > .neighborhood-rebuild .nearby-card-actions{margin-top:5px}
+  #game > .neighborhood-rebuild .nearby-card-foot{margin-top:1px}
+}
