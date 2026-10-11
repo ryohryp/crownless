@@ -62,8 +62,6 @@ async function main() {
         // combat and a resolved first fight, not merely set a path save.
         await page.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
         assert.equal(await page.locator(".expedition-layout.path-stage").count(), 0);
-        const departDiagnostic = await page.evaluate(() => ({mode:localStorage.getItem('crownless-expedition-mode'),data:JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')),root:document.querySelector('#game')?.innerText.slice(0,1300),pageErrors:document.querySelector('#save-status')?.textContent}));
-        console.log('[depart-trace]',JSON.stringify({width,mode:departDiagnostic.mode,expedition:departDiagnostic.data?.expedition,report:departDiagnostic.data?.report,root:departDiagnostic.root,error:departDiagnostic.pageErrors}));
         assert.equal(await page.locator(".expedition-layout:not(.battle-layout)").count(), 1);
         const firstStep = page.locator('.path-actions button[data-action="careful"]');
         assert.equal(await firstStep.isVisible(), true, "advance-to-fight choice should be visible");
@@ -88,6 +86,9 @@ async function main() {
         await page.locator('.path-actions button[data-action="return"]').click();
         assert.equal(await page.locator(".report-layout").count(), 1, "banking route remains open");
         await page.locator('[data-action="continue"]').click();
+        // The normal return may prioritize the gear/home tab. Restore the map
+        // before running the older discovery and landmark smoke scenarios.
+        await page.locator('[data-action="tab"][data-value="explore"]').click();
         assert.equal(await page.locator(".neighborhood-atlas").count(), 1);
         await page.screenshot({ path: path.join(output, "return-from-combat-" + width + ".png") });
 
