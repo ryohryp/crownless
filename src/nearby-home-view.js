@@ -17,8 +17,9 @@
     const tiles=visible.map(place=>{
       const site=N.pointOfInterest(place),changed=state.designs?.shield_thorn===place.id;
       const stamp=root.CrownlessMapPixelArt?.sprite?.(site.family)||A.poiStamp?.(place.biome,site.family)||esc(site.icon);
+      const trace=N.trace(place);
       const label=changed?'🔔 鐘が戻った':place.claimed?'⚑ あなたの領域':
-        N.traveler(place)?'✦ 薬師の痕跡':site.family==='shop'?'◆ 店':'✦ 異変';
+        N.traveler(place)?'✦ 薬師の荷':trace?'✦ '+trace.name:site.family==='shop'?'◆ 店':'✦ 異変';
       const active=place.id===d.id;
       return '<button type="button" class="nearby-tile biome-'+place.biome+(active?' selected':'')+
         (changed?' restored-bell':'')+'" data-poi-family="'+site.family+'" data-action="district" data-value="'+esc(place.id)+
@@ -28,8 +29,8 @@
     }).join('');
     const map='<div class="nearby-paper-map" role="group" aria-label="発見した土地の地図">'+
       '<div class="nearby-map-top"><div><strong>'+esc(n.name)+'</strong><small>'+
-      (state.mode==='demo'?'体験の近所':'現実の散策')+' · 発見 '+n.districts.length+
-      ' / 開拓 '+N.claims(n)+'</small></div>'+
+      (state.mode==='demo'?'散策体験モード':'現実の散策モード')+' · 発見 '+n.districts.length+
+      ' / 開拓 '+N.claims(n)+(n.buildings.length?' · 建物 '+n.buildings.length:'')+'</small></div>'+
       button('nearby-view','＋ 土地を発見','',{class:'nearby-top-action',value:'scout'})+'</div>'+
       '<div class="nearby-map-art" aria-hidden="true"><span>THE UNWRITTEN LANDS</span></div>'+
       '<div class="nearby-tile-grid">'+tiles+'</div>'+
@@ -40,7 +41,7 @@
         '</div>':'')+
       '<div class="nearby-map-legend">歩いて発見した土地が、ここへ刻まれる。</div></div>';
     const stateLabel=restored?'🔔 鐘が戻った・ユノが滞在中':d.claimed?'⚑ あなたの領域':
-      poi.family==='shop'?'◆ 地域の店を発見':'✦ '+(material?'異変の手掛かり':'王墓の噂');
+      poi.family==='shop'?'未開拓 · ◆ 地域の店':'未開拓 · ✦ '+(material?'異変の手掛かり':'王墓の噂');
     const primary=button('depart',locked?'他の土地を2か所踏破':'この土地へ遠征','',{class:'primary',value:p.id,disabled:locked||!traveler});
     const secondary=restored?button('bell-depart','ユノの鐘で出発','集中 +3',{class:'secondary',disabled:!traveler}):
       poi.family==='event'&&material?button('poi','強敵の手掛かりを追う','',{class:'secondary',value:'clue',disabled:!traveler}):
@@ -66,15 +67,15 @@
         '<p>✦ 固有の発見：鐘守の亡兵は「返し棘の盾」の設計図を守る。倒して生還すれば製作解放。森の狼牙も必要。</p>':'')+
       button('poi','強敵の手掛かりを追って出発','',{class:'primary',value:'clue',disabled:!traveler})+'</section>');
     if(material&&poi.family==='shop')entries.push('<section class="nearby-info-piece district-poi-card">'+
-      '<h3>'+esc(poi.name)+'</h3><p>鉄片 '+E.LOCAL_MATERIAL_COST+'で'+esc(material.name)+
+      '<h3>交易路を発見：'+esc(poi.name)+'</h3><p>鉄片 '+E.LOCAL_MATERIAL_COST+'で'+esc(material.name)+
       'を1個購入。現在の所持数：'+(state.materials[materialId]||0)+'。</p>'+
       button('poi','この店で'+esc(material.name)+'を買う','',{class:'secondary',value:'trade-material',disabled:state.scrap<E.LOCAL_MATERIAL_COST})+
       (d.biome==='wood'?button('poi','薬草を買って遠征','',{class:'secondary',value:'herb',disabled:!traveler||state.scrap<E.LOCAL_HERB_COST}):'')+
       '</section>');
     const trace=N.trace(d);
-    if(trace)entries.push('<section class="nearby-info-piece"><h3>✦ 残された変化：'+esc(trace.name)+
+    if(trace)entries.push('<section class="nearby-info-piece district-trace"><h3>✦ この土地に残った変化：'+esc(trace.name)+
       '</h3><p>'+esc(trace.story)+'</p><p>'+esc(trace.benefit)+'</p></section>');
-    if(N.traveler(d))entries.push('<section class="nearby-info-piece"><h3>✦ 旅の薬師イオ</h3>'+
+    if(N.traveler(d))entries.push('<section class="nearby-info-piece district-trace"><h3>✦ 架空NPCが残したもの：'+esc(N.TRAVELER.parcel)+'</h3>'+
       '<p>'+esc(N.TRAVELER.intro)+'</p><p>'+esc(N.TRAVELER.benefit)+'</p></section>');
     else if(d.visitor==='used')entries.push('<section class="nearby-info-piece"><p>薬師イオの補給袋は受け取った。痕跡だけが残る。</p></section>');
     entries.push(landmarkFlagPreview());
