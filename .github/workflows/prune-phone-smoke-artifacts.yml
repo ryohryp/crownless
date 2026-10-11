@@ -1,0 +1,87 @@
+name: Prune obsolete phone-smoke artifacts
+
+# Only CI screenshots are eligible. This does not touch Pages, releases, or other artifacts.
+on:
+  push:
+    branches: [main]
+    paths:
+      - .github/workflows/prune-phone-smoke-artifacts.yml
+  schedule:
+    - cron: '31 3 * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: Preview eligible artifacts without deleting
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  group: crownless-phone-artifact-cleanup
+  cancel-in-progress: false
+
+jobs:
+  prune:
+    if: github.repository == 'ryohryp/crownless'
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - name: Remove redundant old CI screenshots
+        uses: actions/github-script@v7
+        env:
+          DRY_RUN: ${{ inputs.dry_run || false }}
+        with:
+          script: |
+            if (context.repo.owner !== 'ryohryp' || context.repo.repo !== 'crownless') {
+              throw new Error('Unexpected repository: refusing cleanup');
+            }
+            if (context.eventName === 'workflow_dispatch' && context.actor !== 'ryohryp') {
+              throw new Error('Manual deletion is owner-only');
+            }
+            const dryRun = context.eventName === 'workflow_dispatch' &&
+              process.env.DRY_RUN === 'true';
+            const now = Date.now();
+            const cutoffMs = now - 7 * 24 * 60 * 60 * 1000;
+            const all = await github.paginate(github.rest.actions.listArtifactsForRepo, {
+              ...context.repo,
+              per_page: 100,
+            });
+            const screenshots = all
+              .filter((a) => a.name === 'crownless-phone-smoke' && a.expired !== true)
+              .sort((a, b) => Date.parse(b.created_at) - Date.parse(a.created_at));
+            // Even if clock data is stale, retain the newest ten screenshots.
+            const protectedIds = new Set(screenshots.slice(0, 10).map((a) => a.id));
+            const eligible = screenshots
+              .filter((a) => !protectedIds.has(a.id) &&
+                Number.isFinite(Date.parse(a.created_at)) &&
+                Date.parse(a.created_at) < cutoffMs &&
+                Number.isSafeInteger(a.id) && a.id > 0)
+              .sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at))
+              .slice(0, 500);
+            const bytes = eligible.reduce((n, a) => n + a.size_in_bytes, 0);
+            core.info(`inventory=${all.length} screenshots=${screenshots.length} eligible=${eligible.length} candidate_mib=${(bytes / 1048576).toFixed(2)} dry_run=${dryRun}`);
+            let deleted = 0;
+            let failures = 0;
+            for (const artifact of eligible) {
+              if (dryRun) {
+                core.info(`would_delete id=${artifact.id} age_created=${artifact.created_at} bytes=${artifact.size_in_bytes}`);
+                continue;
+              }
+              try {
+                await github.rest.actions.deleteArtifact({
+                  ...context.repo,
+                  artifact_id: artifact.id,
+                });
+                deleted++;
+              } catch (error) {
+                failures++;
+                core.warning(`delete_failed id=${artifact.id} reason=${error.message}`);
+              }
+              // Be gentle with GitHub's secondary API rate limits.
+              await new Promise((resolve) => setTimeout(resolve, 200));
+            }
+            core.info(`deleted=${deleted} failed=${failures} remaining_candidates=${eligible.length - deleted}`);
+            if (failures) core.setFailed(`Unable to delete ${failures} eligible CI artifacts`);
