@@ -82,7 +82,7 @@ async function main() {
         assert(travelTabs.every(x => x.height >= 44), "travel subtabs need 44px touch height");
         assert(travelTabs.every(x => Math.abs(x.top - travelTabs[0].top) < 2),
           "all five travel subtabs must remain on one row at phone widths");
-        assert(travelTabs.every(x => x.left >= 0 && x.right <= innerWidth + 1),
+        assert(travelTabs.every(x => x.left >= 0 && x.right <= width + 1),
           "travel subtab controls must fit the device width");
         await page.screenshot({ path: path.join(output, "travel-controls-" + width + ".png") });
         await page.locator('[data-action="tab"][data-value="explore"]').click();
