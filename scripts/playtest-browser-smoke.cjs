@@ -78,7 +78,9 @@ async function main() {
         assert(afterFirstBattle.expedition?.materials.wolfFang >= 1);
         await page.reload();
         assert.equal(await page.locator(".expedition-layout:not(.battle-layout)").count(), 1, "the saved route must survive reload");
-        await page.locator('.path-actions button[data-action="rest"]').click();
+        const roadsideOption = page.locator('.path-actions button[data-action="pray"]');
+        if (await roadsideOption.count()) await roadsideOption.click();
+        else await page.locator('.path-actions button[data-action="rest"]').click();
         await page.locator('.path-actions button[data-action="careful"]').click();
         assert.equal(await page.locator(".battle-layout .combat-enemy-summary").count(), 1, "second encounter must also work");
         await page.locator('[data-action="auto-fight"]').click();
