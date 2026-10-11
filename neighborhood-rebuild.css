@@ -170,6 +170,22 @@
   border-radius:5px;font-size:11px;line-height:1.2;white-space:nowrap;
 }
 @media(max-width:480px){
+  /* Old mobile :has(explore) rule has higher specificity than the generic
+     new scene grid, silently squeezing the map into 27dvh. Override only
+     this scene, leaving the other live tabs alone. */
+  #game > .game-layout.neighborhood-rebuild.living-map-home:has(.camp-tabs button.active[data-value="explore"]) {
+    display:grid;
+    grid-template-columns:minmax(0,1fr);
+    grid-template-rows:minmax(0,1fr) auto auto;
+    align-content:stretch;
+    gap:0;
+    padding:0;
+  }
+  /* Legacy floating bottom nav reserved 82px at the bottom of the app-shell.
+     This view's dock is IN the grid, so reclaim that wasted space. */
+  body:has(#game > .neighborhood-rebuild) .app-shell {
+    padding-bottom:env(safe-area-inset-bottom);
+  }
   #game > .neighborhood-rebuild.living-map-home{
     height:100%;width:100%;min-height:0;margin:0 auto;padding:0;
   }
@@ -184,4 +200,20 @@
   #game > .neighborhood-rebuild .nearby-card-copy p{display:none}
   #game > .neighborhood-rebuild .nearby-card-actions{margin-top:5px}
   #game > .neighborhood-rebuild .nearby-card-foot{margin-top:1px}
+}
+
+/* Explicitly override the old 118px map overlay CTA cap and generic arrow. */
+#game > .neighborhood-rebuild.living-map-home .nearby-card-actions button.primary,
+#game > .neighborhood-rebuild.living-map-home .nearby-card-actions button.secondary {
+  max-width:none;
+  min-width:0;
+  width:100%;
+  min-height:48px;
+  padding:7px 8px;
+  justify-content:center;
+  text-align:center;
+}
+#game > .neighborhood-rebuild.living-map-home .nearby-card-actions button.primary::after {
+  display:none;
+  content:none;
 }
