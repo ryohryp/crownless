@@ -19,7 +19,7 @@ test('revealing an event unlocks a saved, harder clue hunt with real crafting ma
   hunt.expedition.enemy.hp=1; // Fast combat, normal defeat and bank transitions.
   const won=E.act(hunt,'strike');
   assert.equal(won.expedition.materials.watchIron,2);
-  assert.match(won.expedition.log.join(' '),/手掛かり/);
+  assert.match(won.expedition.log.join(' '),/土地の噂を追い当てた/);
   assert.equal(found.materials.watchIron,0,'discovery alone is not a free resource');
   assert.equal(won.materials.watchIron,0,'unreturned crafting materials remain at risk');
   const safe=E.act(won,'return');
