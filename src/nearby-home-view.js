@@ -15,6 +15,17 @@
     const pages=Math.max(1,Math.ceil(n.districts.length/6)),selectedIndex=n.districts.findIndex(item=>item.id===d.id),
       currentPage=page===null?Math.floor(Math.max(0,selectedIndex)/6):Math.min(Math.max(0,page),pages-1);
     const visible=n.districts.slice(currentPage*6,(currentPage+1)*6);
+    // These are schematic fantasy-map connections, never a GPS trace.
+    // Use only the discoveries on this page; do not persist extra coordinates.
+    const trailStops=[[25,16],[75,16],[25,50],[75,50],[25,84],[75,84]];
+    const trail=visible.length>1
+      ? '<svg class="nearby-map-trail" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path d="'
+        +trailStops.slice(0,visible.length).map(([x,y],i)=>(i?' L':'M')+x+' '+y).join('')
+        +'" /></svg>' : '';
+    const travelerMark='<span class="nearby-traveler" aria-hidden="true"><svg viewBox="0 0 38 43" focusable="false">'
+      +'<path d="M18 7c-6 0-9 4-9 9l4 3-7 19 12-5 13 5-7-19 4-3c0-5-3-9-10-9z" fill="#26352e" stroke="#e4ce9c" stroke-width="1.3"/>'
+      +'<path d="M14 10l4-5 4 5m-8 17 9-6m-17 2L2 7" stroke="#b79457" stroke-width="2" fill="none" stroke-linecap="round"/>'
+      +'<circle cx="18" cy="5" r="4" fill="#d9bb85" stroke="#394638" stroke-width="1"/></svg></span>';
     const tiles=visible.map(place=>{
       const site=N.pointOfInterest(place),changed=state.designs?.shield_thorn===place.id;
       const stamp=root.CrownlessMapPixelArt?.sprite?.(site.family)||A.poiStamp?.(place.biome,site.family)||esc(site.icon);
@@ -25,7 +36,7 @@
       return '<button type="button" class="nearby-tile biome-'+place.biome+(active?' selected':'')+
         (changed?' restored-bell':'')+'" data-poi-family="'+site.family+'" data-action="district" data-value="'+esc(place.id)+
         '" aria-pressed="'+active+'" aria-label="'+esc(N.title(place)+'、'+label)+'">'+
-        '<span class="nearby-tile-stamp" aria-hidden="true">'+stamp+'</span><strong>'+esc(N.title(place))+
+        '<span class="nearby-tile-stamp" aria-hidden="true">'+stamp+'</span>'+(active?travelerMark:'')+'<strong>'+esc(N.title(place))+
         '</strong><small>'+esc(label)+'</small></button>';
     }).join('');
     const map='<div class="nearby-paper-map" role="group" aria-label="発見した土地の地図">'+
@@ -34,13 +45,13 @@
       ' / 開拓 '+N.claims(n)+(n.buildings.length?' · 建物 '+n.buildings.length:'')+'</small></div>'+
       button('nearby-view','＋ 土地を発見','',{class:'nearby-top-action',value:'scout'})+'</div>'+
       '<div class="nearby-map-art" aria-hidden="true"><span>THE UNWRITTEN LANDS</span></div>'+
-      '<div class="nearby-tile-grid">'+tiles+'</div>'+
+      '<div class="nearby-tile-grid">'+trail+tiles+'</div>'+
       (pages>1?'<div class="nearby-pagination">'+
         button('nearby-page','前の土地','',{class:'secondary',value:String(Math.max(0,currentPage-1)),disabled:currentPage===0})+
         '<span>'+(currentPage+1)+' / '+pages+'</span>'+
         button('nearby-page','次の土地','',{class:'secondary',value:String(Math.min(pages-1,currentPage+1)),disabled:currentPage===pages-1})+
         '</div>':'')+
-      '<div class="nearby-map-legend">歩いて発見した土地が、ここへ刻まれる。</div></div>';
+      '<div class="nearby-map-legend">旅人の印が今の目的地。発見した土地を結ぶ幻想の略図。</div></div>';
     const stateLabel=restored?'🔔 鐘が戻った・ユノが滞在中':d.claimed?'⚑ あなたの領域':
       poi.family==='shop'?'未開拓 · ◆ 地域の店':'未開拓 · ✦ '+(material?'異変の手掛かり':'王墓の噂');
     const primary=button('depart',locked?'他の土地を2か所踏破':'この土地へ遠征','',{class:'primary',value:p.id,disabled:locked||!traveler});
