@@ -237,6 +237,14 @@ async function main() {
           width+'px: no scroll-sheet may paint over the map');
         assert(map.height>300,width+'px: map must be large enough to explore');
         await page.screenshot({path:path.join(output,'map-production-'+width+'.png')});
+        await page.locator('.nearby-card-actions [data-action="depart"][data-value="wood"]').click();
+        await page.locator('.path-actions [data-action="careful"]').click();
+        assert.equal(await page.locator('.combat-choice-grid .choice').count(),4,'wide phones/desktop share the same tactical options');
+        assert.equal(await page.locator('.combat-choice-grid [data-action="guard"]').isVisible(),true);
+        await page.screenshot({path:path.join(output,'combat-production-'+width+'.png')});
+        await page.locator('.combat-choice-grid [data-action="guard"]').click();
+        const guarded=await page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+        assert(guarded.expedition?.enemy?.turn>0,width+'px: manual combat must advance a real turn');
       } finally {await context.close();}
     }
 
