@@ -378,7 +378,7 @@ test('combat opens with visible tactical choices, with auto-play and supplies se
   b.click('depart','wood');
   b.click('careful');
   assert.match(b.html(),/data-action="auto-fight"/);
-  assert.match(b.html(),/決着まで任せる/);
+  assert.match(b.html(),/自動で決着する/);
   assert.match(b.html(),/<section class="combat-situation">/);
   assert.match(b.html(),/<details class="combat-manual" open><summary>どう戦う？ · 4つの行動から選ぶ<\/summary>/);
   assert.match(b.html(),/data-action="strike"/);
