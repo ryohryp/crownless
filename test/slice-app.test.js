@@ -385,7 +385,7 @@ test('combat opens with visible tactical choices, with auto-play and supplies se
   assert.match(b.html(),/data-action="heavy"/);
   assert.match(b.html(),/data-action="guard"/);
   assert.match(b.html(),/data-action="dodge"/);
-  assert.match(b.html(),/<details class="combat-support"><summary>薬草・撤退・戦闘記録/);
+  assert.match(b.html(),/<details class="combat-support"><summary><span class="combat-support-closed">薬草・撤退・戦闘記録/);
   assert.match(b.html(),/data-action="flee"/,'retreat is still available via the supply/details panel');
   assert(b.html().indexOf('data-action="strike"')<b.html().indexOf('data-action="auto-fight"'),'manual tactics precede one-click auto-play');
   b.click('auto-fight');
