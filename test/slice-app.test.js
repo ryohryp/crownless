@@ -259,7 +259,7 @@ test('camp home presents a persistent neighborhood and local expedition action',
   assert.match(b.html(),/nearby-paper-map/);
   assert.match(b.html(),/<\/section><nav class="camp-tabs bottom-navigation"/);
   assert.match(b.html(),/この土地へ遠征/);
-  assert.match(b.html(),/近所を歩く/);
+  assert.match(b.html(),/土地を発見/);
   b.click('scout','tower');
   assert.match(b.html(),/鐘なき塔/);
   assert.match(b.html(),/北の見張り跡/);
@@ -396,12 +396,12 @@ test('revisited district reveals a named persistent NPC trace in its main detail
   state.neighborhood.districts[0].aided=true;
   const seed={'crownless-expedition-mode':'demo','crownless-expedition-v1-demo':E.serialize(state)};
   const b=browser(seed);
+  assert.match(b.html(),/data-action="depart"/);
   b.click('nearby-view','detail');
   assert.match(b.html(),/district-trace/);
   assert.match(b.html(),/この土地に残った変化：斥候の道標/);
   assert.match(b.html(),/最初に倒した敵から狼牙 \+1/);
-  assert.match(b.html(),/data-action="depart"/);
-  assert.match(b.html(),/✦ 斥候の道標/);
+  assert.match(b.html(),/✦ この土地に残った変化/);
   const before=b.store.get('crownless-expedition-v1-demo');
   assert.deepEqual(E.parse(before),state);
 });
@@ -414,7 +414,7 @@ test('fictional traveler supplies appear on selected district and vanish when us
   assert.match(b.html(),/薬師の荷/);
   b.click('nearby-view','detail');
   assert.match(b.html(),/架空NPCが残したもの：薬師の補給袋/);
-  assert.match(b.html(),/この地点から出発すると受け取れる/);
+  assert.match(b.html(),/この土地からの次の遠征に薬草 \+1/);
   b.click('nearby-view','map');
   b.click('depart','wood');
   const departed=JSON.parse(b.store.get(key));
