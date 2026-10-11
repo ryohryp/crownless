@@ -54,13 +54,17 @@ test('map pixel signs and expanded ink POI detail use the same canonical distric
   window.navigator = {geolocation: null};
   vm.runInNewContext(read('src/slice-app.js'), window);
   const html = elements['#game'].innerHTML;
-  assert.equal((html.match(/class="district-pixel-art"/g) || []).length, 6, 'one map page keeps up to six legible ink-and-pixel POI markers');
+  assert.equal((html.match(/class="district-pixel-art"/g) || []).length, 2, 'restored view opens on the second page containing the currently selected eighth discovery');
   assert.match(html, /class="nearby-tile-grid"/);
-  assert.match(html, /aria-label="西の木立、✦ 異変"/);
+  assert.match(html, new RegExp('data-value="'+N.get(s.neighborhood).id+'" aria-pressed="true"'));
   assert.match(html, /class="nearby-tile-stamp" aria-hidden="true"><svg class="district-pixel-art"/);
   assert.match(html, /data-action="district"/);
   assert.match(html, /data-action="nearby-view"/);
   assert.match(html, /data-action="nearby-page"/, 'new map must paginate, not stack 8 pins');
+  elements['#game'].click({target:{closest:()=>({dataset:{action:'nearby-page',value:'0'},disabled:false})}});
+  const first=elements['#game'].innerHTML;
+  assert.equal((first.match(/class="district-pixel-art"/g)||[]).length,6);
+  assert.match(first,/aria-label="西の木立、✦ 異変"/);
 });
 
 test('map POI stamps keep crisp bounds and minimum tappable map marker', () => {
