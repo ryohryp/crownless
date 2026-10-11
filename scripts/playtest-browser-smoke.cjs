@@ -229,6 +229,13 @@ async function main() {
       await bellPage.locator('.district-pin[data-value="0,2"]').click();
       assert.equal(await bellPage.locator('.restored-bell-notice').count(),0,'the neighboring tower shop did not change');
       await bellPage.locator('.district-pin[data-value="0,1"]').click();
+      const bellDiagnostics=await bellPage.evaluate(()=>({
+        designs:JSON.parse(localStorage.getItem('crownless-expedition-v1-demo'))?.designs,
+        pins:[...document.querySelectorAll('.district-pin')].map(e=>({id:e.dataset.value,className:e.className})),
+        restoredNotices:document.querySelectorAll('.restored-bell-notice').length,
+        text:document.querySelector('#game')?.innerText.slice(0,400)
+      }));
+      console.log('[bell-diagnostics]',JSON.stringify(bellDiagnostics));
       assert.equal(await bellPage.locator('.district-pin.restored-bell').count(),1,'exact source tower is visibly changed');
       assert.match(await bellPage.locator('.restored-bell-notice').innerText(),/鐘守の弟子・ユノ/);
       await bellPage.screenshot({path:path.join(output,'bell-restored-revisit-390.png')});
