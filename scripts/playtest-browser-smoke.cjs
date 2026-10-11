@@ -52,6 +52,27 @@ async function main() {
         await page.goto(url);
         await page.locator('[data-action="mode"][data-value="demo"]').click();
         assert.equal(await page.locator(".nearby-paper-map").count(), 1, "demo should show the map");
+        const layout = await page.evaluate(() => {
+          const rect = selector => {
+            const r = document.querySelector(selector).getBoundingClientRect();
+            return {top:r.top,bottom:r.bottom,height:r.height,left:r.left,right:r.right};
+          };
+          const selectors=['.nearby-tile','.nearby-top-action','.nearby-card-actions button.primary','.nearby-card-actions button.secondary'];
+          const blocked=selectors.filter(selector=>{
+            const e=document.querySelector(selector);
+            if (!e || e.disabled) return false;
+            const r=e.getBoundingClientRect(),top=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
+            return !(top===e || e.contains(top));
+          });
+          return {map:rect('.nearby-scene'),card:rect('.nearby-card'),dock:rect('.bottom-navigation'),
+            blocked,viewport:innerHeight,mapOverflow:document.querySelector('.nearby-paper-map').scrollHeight-document.querySelector('.nearby-paper-map').clientHeight};
+        });
+        assert(Math.abs(layout.map.bottom-layout.card.top)<=2,'map and card must occupy distinct, adjacent rows: '+JSON.stringify(layout));
+        assert(Math.abs(layout.card.bottom-layout.dock.top)<=2,'card and thumb dock must occupy distinct, adjacent rows: '+JSON.stringify(layout));
+        assert(layout.map.height >= height*.4,'map must remain the visual focus, not a tiny strip: '+JSON.stringify(layout));
+        assert(height-layout.dock.bottom<=24 && layout.dock.bottom<=height+2,'dock must sit at the thumb bottom without old reserved gap: '+JSON.stringify(layout));
+        assert.deepEqual(layout.blocked,[],'all primary map/card controls must receive their real tap centers: '+JSON.stringify(layout));
+        assert(layout.mapOverflow<=2,'map never scrolls below the card');
         assert.equal(await page.locator(".bottom-navigation").isVisible(), true, "bottom navigation should be visible");
         const nav = await page.locator(".bottom-navigation").boundingBox();
         assert(nav && nav.y >= -1 && nav.y + nav.height <= height + 2, "bottom navigation must fit the viewport");
@@ -161,6 +182,24 @@ async function main() {
       } finally {
         await context.close();
       }
+    }
+
+    // Separate compact and desktop viewport checks, without repeating the
+    // expensive multi-stage adventure tests for each added breakpoint.
+    for (const [width,height] of [[430,932],[1280,900]]) {
+      const context=await browser.newContext({viewport:{width,height},isMobile:width<481,hasTouch:width<481});
+      const page=await context.newPage();
+      try {
+        await page.goto(url);
+        await page.locator('[data-action="mode"][data-value="demo"]').click();
+        const map=await page.locator('.nearby-scene').boundingBox();
+        const card=await page.locator('.nearby-card').boundingBox();
+        const dock=await page.locator('.bottom-navigation').boundingBox();
+        assert(map&&card&&dock && Math.abs(map.y+map.height-card.y)<3 && Math.abs(card.y+card.height-dock.y)<3,
+          width+'px: no scroll-sheet may paint over the map');
+        assert(map.height>300,width+'px: map must be large enough to explore');
+        await page.screenshot({path:path.join(output,'map-production-'+width+'.png')});
+      } finally {await context.close();}
     }
 
     // A discovered POI must change REAL banked resources and expedition choices.
