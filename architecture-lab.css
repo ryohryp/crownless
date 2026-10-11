@@ -1,0 +1,35 @@
+/* Isolated architecture comparison: one owner, one scroll-free scene.
+   No rules from slice.css, phone-density.css or existing live app are loaded. */
+:root{font-family:"Yu Gothic","Hiragino Kaku Gothic ProN",system-ui,sans-serif;color:#2b302c;background:#111e1f}
+*{box-sizing:border-box}
+body{margin:0;min-height:100dvh}
+button,a{font:inherit}
+button{cursor:pointer}
+button:disabled{opacity:.5;cursor:not-allowed}
+.lab-frame{height:100dvh;width:min(100%,430px);margin:0 auto;display:grid;grid-template-rows:auto minmax(0,1fr) auto auto;background:#e8dfc9;overflow:hidden}
+.lab-head{padding:10px 14px;background:#172d2b;color:#f0e1bd;border-bottom:2px solid #b58e58}
+.lab-head strong{letter-spacing:.12em;font-size:16px}.lab-head small{display:block;color:#d7c7a3;font-size:11px;margin-top:3px}
+.lab-map{position:relative;min-height:0;overflow:hidden;background:radial-gradient(circle at 50% 55%,rgba(248,239,217,.6),transparent 60%),repeating-linear-gradient(7deg,rgba(77,65,44,.035) 0 1px,transparent 1px 15px),#d9ccb4}
+.lab-map:before{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 45%,rgba(103,94,77,.14) 46%,rgba(103,94,77,.12) 49%,transparent 50%);pointer-events:none}
+.lab-map .eyebrow{position:absolute;left:14px;top:12px;z-index:1;color:#685638;font-size:12px;font-weight:700}
+.lab-place{position:absolute;transform:translate(-50%,-50%);border:1px solid #6f5a3b;border-radius:7px;padding:8px 7px;min-width:94px;max-width:120px;background:#f2e7d0;color:#2d312b;box-shadow:1px 2px 0 #b5a88f;min-height:46px;font-size:11px;line-height:1.35}
+.lab-place strong{display:block;font-size:12px}.lab-place small{display:block;opacity:.75;margin-top:2px}
+.lab-place[aria-pressed="true"]{background:#313e35;color:#f8ebcd;outline:2px solid #c19458;outline-offset:2px}
+.lab-scene{display:grid;align-content:center;justify-items:center;height:100%;padding:24px;text-align:center}
+.lab-scene .glyph{font-size:68px;color:#655a45;line-height:1.1}.lab-scene h2{font-family:serif;font-size:25px;line-height:1.2;margin:10px 0}.lab-scene p{margin:3px 0;font-size:15px;line-height:1.5}
+.lab-card{position:relative;z-index:2;background:#fbf5e8;border-top:2px solid #af9161;padding:11px 13px 12px;box-shadow:0 -4px 16px rgba(53,40,25,.1)}
+.lab-kicker{color:#79613c;font-size:11px;font-weight:700;letter-spacing:.05em;margin:0 0 4px}
+.lab-card h1{font:700 21px/1.25 Georgia,"Yu Mincho",serif;margin:0 0 5px;color:#292c28}
+.lab-card p{font-size:13px;line-height:1.4;margin:5px 0;color:#46483e}
+.lab-actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+.lab-actions button{min-height:48px;border:1px solid #4d5946;border-radius:7px;padding:8px;color:#28352e;background:#f3ead9;font-weight:700;font-size:13px}
+.lab-actions .primary{background:#263b31;color:#fff2d6}
+.lab-actions .full{grid-column:1/-1}
+.lab-actions .secondary{background:#ece2d0}
+.lab-detail{margin-top:9px}
+.lab-detail summary{font-size:12px;color:#5e5543;cursor:pointer;min-height:28px}
+.lab-detail p{font-size:12px;line-height:1.5}
+.lab-foot{padding:9px 14px;background:#192a28;color:#e5dbcb;display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:12px}
+.lab-foot a{color:#f2d69d;text-decoration:underline;text-underline-offset:3px}
+@media(min-width:481px){.lab-frame{height:min(844px,100dvh);margin:0 auto;box-shadow:0 0 0 1px #766a57}}
+@media(max-height:650px){.lab-head{padding:6px 12px}.lab-card{padding:8px 11px}.lab-card h1{font-size:18px}.lab-actions button{min-height:44px}.lab-map .lab-place{padding:5px;min-height:42px}}

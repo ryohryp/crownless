@@ -285,6 +285,44 @@ async function main() {
       await bellContext.close();
     }
 
+    // Architecture spike: existing real saved state → an isolated, single-owner UI
+    // → selecting a changed place → departing with existing engine → combat.
+    // This comparison page may never write the source game's saved progress.
+    for (const width of [360,390]) {
+      const labContext = await browser.newContext({viewport:{width,height:width===360?800:844},isMobile:true,hasTouch:true});
+      const labPage = await labContext.newPage();
+      const labErrors=[];
+      labPage.on('pageerror',e=>labErrors.push(e.message));
+      try {
+        assert(forgedSaved?.designs?.shield_thorn,'a real playthrough provided the lab save');
+        await labPage.addInitScript(saved=>{
+          localStorage.setItem('crownless-expedition-mode','demo');
+          localStorage.setItem('crownless-expedition-v1-demo',JSON.stringify(saved));
+        },forgedSaved);
+        await labPage.goto(url.replace('/expedition.html','/architecture-lab.html'));
+        assert.equal(await labPage.locator('.lab-place').count()>0,true);
+        assert.match(await labPage.locator('.lab-card').innerText(),/北の見張り跡|西の木立/);
+        const original=await labPage.evaluate(()=>localStorage.getItem('crownless-expedition-v1-demo'));
+        const map=await labPage.locator('.lab-map').boundingBox();
+        const card=await labPage.locator('.lab-card').boundingBox();
+        assert(map && card && Math.abs(map.y+map.height-card.y)<=2,'the card is a separate grid row and cannot overlap the map');
+        const dimensions=await labPage.evaluate(()=>({height:innerHeight,innerWidth,scrollHeight:document.documentElement.scrollHeight,clientHeight:document.documentElement.clientHeight,body:document.body.scrollHeight,frame:document.querySelector('.lab-frame').getBoundingClientRect().height,visualViewport:window.visualViewport?.height}));
+        assert.equal(dimensions.scrollHeight<=dimensions.clientHeight+1,true,'no page-level vertical scroll: '+JSON.stringify(dimensions));
+        assert.equal(await labPage.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),true,'no horizontal overflow');
+        await labPage.locator('.lab-place[data-value="0,1"]').click();
+        assert.match(await labPage.locator('.lab-card').innerText(),/ユノの合図で出発/);
+        await labPage.screenshot({path:path.join(output,'architecture-lab-map-'+width+'.png')});
+        await labPage.locator('[data-action="bell"]').click();
+        assert.match(await labPage.locator('.lab-card').innerText(),/最初の足跡をたどる/);
+        await labPage.locator('[data-action="careful"]').click();
+        assert.match(await labPage.locator('.lab-card').innerText(),/ENCOUNTER/);
+        await labPage.locator('[data-action="strike"]').click();
+        assert.equal(await labPage.evaluate(()=>localStorage.getItem('crownless-expedition-v1-demo')),original,'technical preview must never write live saves');
+        assert.deepEqual(labErrors,[],'architecture comparison has no JS errors');
+        await labPage.screenshot({path:path.join(output,'architecture-lab-fight-'+width+'.png')});
+      } finally { await labContext.close(); }
+    }
+
     // Corrupt game saves must not be silently overwritten during rendering.
     const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const page = await context.newPage();
