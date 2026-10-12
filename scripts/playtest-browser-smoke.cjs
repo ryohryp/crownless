@@ -709,6 +709,18 @@ async function main() {
         assert.match(await page.locator('.field-moment').innerText(),/隠し道が現れた/);
         assert.equal(await page.locator('.field-cell.shrine.revealed').count(),1,
           'emerging shrine must be visible beyond the opened shortcut');
+        await page.waitForTimeout(460); // allow the camera to finish revealing the new vista
+        const shrineFrame=await page.evaluate(()=>{
+          const world=document.querySelector('.forest-field .field-worldspace').getBoundingClientRect();
+          const viewport=document.querySelector('.forest-field .field-terrain').getBoundingClientRect();
+          const shrine={x:world.left+world.width*300/600,y:world.top+world.height*180/600};
+          return {shrine,top:viewport.top,bottom:viewport.bottom,left:viewport.left,right:viewport.right};
+        });
+        assert(shrineFrame.shrine.y>shrineFrame.top+45 &&
+          shrineFrame.shrine.y<shrineFrame.bottom-25 &&
+          shrineFrame.shrine.x>shrineFrame.left+25 &&
+          shrineFrame.shrine.x<shrineFrame.right-25,
+          'secret-path camera must show the newly discovered shrine instead of clipping it: '+JSON.stringify(shrineFrame));
         await page.screenshot({path:path.join(output,'forest-secret-open-'+width+'.png')});
         await page.reload();
         assert.equal(await page.locator('.forest-field[data-field-secret="true"][data-field-pos="12"]').count(),1,
