@@ -43,7 +43,12 @@
       '<div class="nearby-map-legend">歩いて発見した土地が、ここへ刻まれる。</div></div>';
     const stateLabel=restored?'🔔 鐘が戻った・ユノが滞在中':d.claimed?'⚑ あなたの領域':
       poi.family==='shop'?'未開拓 · ◆ 地域の店':'未開拓 · ✦ '+(material?'異変の手掛かり':'王墓の噂');
-    const primary=button('depart',locked?'他の土地を2か所踏破':'この土地へ遠征','',{class:'primary',value:p.id,disabled:locked||!traveler});
+    // A crafted item often leaves the smith active. A dead-looking departure
+    // button strands the player; make returning to the adventurer one tap.
+    const primary=button(traveler?'depart':'depart-as-adventurer',
+      locked?'他の土地を2か所踏破':traveler?'この土地へ遠征':'冒険者に交代して遠征',
+      !locked&&!traveler?'鍛冶師から切り替えて出発':'',
+      {class:'primary',value:p.id,disabled:locked});
     // The summary card never contains duplicate actions from the detail scene.
     // Choosing the contextual action changes the scene; transactions and NPC
     // departures remain in exactly one detail view at a time.
