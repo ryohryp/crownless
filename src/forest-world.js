@@ -386,17 +386,6 @@
     ctx.globalCompositeOperation='source-over';
     return mask;
   }
-  function steps(ctx,pos,seen,time){
-    const ns=F.neighbors(pos).filter(n=>(seen&(1<<n))&&!F.WALLS.includes(n));
-    for(const n of ns){
-      const [x,y]=center(n),s=1+Math.sin(time/350+n)*.1;
-      const g=ctx.createRadialGradient(x,y,5,x,y,45*s);
-      g.addColorStop(0,'#eac4894d');g.addColorStop(1,'#c6aa5200');
-      ellipse(ctx,x,y,45*s,45*s,g);
-      ctx.strokeStyle='#f4dfa48c';ctx.lineWidth=2.1;
-      ctx.setLineDash([3,8]);ctx.beginPath();ctx.arc(x,y,32,0,Math.PI*2);ctx.stroke();ctx.setLineDash([]);
-    }
-  }
   function hero(ctx,x,y,time,walking){
     const bob=Math.sin(time/120)*(walking?3:1);
     const sway=Math.sin(time/200)*2;
@@ -498,7 +487,8 @@
       landmarks(ctx,cache,tracks,treasure,wolfDefeated,secret,shrine,time);
       if(wolfStatus==='watching'||wolfStatus==='alert')wolf(ctx,time,wolfStatus==='alert');
       ctx.drawImage(mist,0,0);
-      steps(ctx,pos,seen,time);
+      // Traversable destinations are deliberately not highlighted. Read the
+      // paths, rustling foliage and fog; invisible HTML hit targets still work.
       hero(ctx,x,y,time,t<1);
       // A subtle outer vignette creates a continuous scene, not a board.
       const v=ctx.createRadialGradient(W/2,W/2,140,W/2,W/2,440);
