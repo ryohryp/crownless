@@ -489,6 +489,14 @@
         x.log.push('古い武具はもう使えない。鉄片 +4。');
       }
       x.seals.push(x.place); x.stage = 'cleared';
+    } else if (x.place==='wood' && x.depth===1 && x.room===0 && x.field
+        && e.kind==='wolf' && (x.field.pos===F.DEN || x.field.pos===F.EXIT)) {
+      // This wolf belongs to the physical forest scene, not the legacy five-fight
+      // corridor. The player returns to the SAME explored field with earned loot.
+      // Older saves with an already-started gate wolf fight are also supported.
+      x.field.wolf=true;
+      x.stage='path';
+      x.log.unshift('狼は倒れた。森に静けさが戻る。宝箱を探すもよし、石門から帰るもよし。');
     } else { x.room++; x.stage = 'path'; }
     x.enemy = null; x.stagger = false; x.focus = 0;
   }
@@ -527,7 +535,15 @@
         if (!field) return s;
         const wolfBefore=F.wolfAwareness(x.field);
         x.field=field;
-        if (to === F.CACHE && !field.cache) {
+        if (to === F.TREASURE && !field.treasure) {
+          field.treasure=true;
+          // A real find: enough scrap and one crafting material, never an
+          // instant equippable drop. At risk until the expedition ends alive.
+          if(x.scrap<=994 && x.materials.wolfFang<=998){
+            x.scrap+=6; x.materials.wolfFang+=1;
+            x.log=['古い宝箱を発見！ 鉄片 +6、狼牙 +1。持ち帰れば鍛冶師の素材になる。'];
+          } else x.log=['古い宝箱を開けた。背嚢がいっぱいでこれ以上は持てない。'];
+        } else if (to === F.CACHE && !field.cache) {
           field.cache=true;
           // The tree's torn roots are visible on approach. A small wound is
           // the deliberate price for real loot, banked only if returned alive.
@@ -547,10 +563,14 @@
             x.log=['狼の視線を振り切った。遠ざかる足音を背に、別の道を探せる。'];
           }
         }
-        if (to === F.DEN || to === F.EXIT) {
-          encounter(x,to===F.DEN,n.runs);
-          if(to===F.DEN) x.log.unshift('身構えた狼が飛びかかってきた！ 危険を承知で巣穴へ踏み込んだ。');
-          else x.log.unshift('霧の先の石門を抜けた。奥から獣が現れた！');
+        if (to === F.DEN && !field.wolf) {
+          encounter(x,true,n.runs);
+          x.log.unshift('身構えた狼が飛びかかってきた！ 危険を承知で巣穴へ踏み込んだ。');
+        } else if(to === F.DEN && field.wolf) {
+          x.log=['討伐した狼の巣穴。もう襲ってくる獣はいない。宝を探して森を歩こう。'];
+        } else if(to === F.EXIT) {
+          x.log=['霧の石門を抜け、無事に帰還した。見つけた宝と素材を持ち帰る。'];
+          return finish(n,false);
         }
         return n;
       }
@@ -678,7 +698,11 @@
       const summary = x.stage === 'fight'
         ? '決着はまだつかない。残りは手動で進めるか撤退できる。'
         : `戦闘をまとめて決着（${turns}手）。体力 ${startingHp} → ${x.hp}、薬草 ${startingPotions} → ${x.potions}。`;
-      x.log = [summary, ...x.log].slice(0, 10);
+      // In the local forest, the primary result is that the only wolf is
+      // gone and exploration has resumed; don't obscure that with turn stats.
+      x.log = x.field?.wolf && x.room===0 && x.stage==='path'
+        ? [x.log[0],summary,...x.log.slice(1)].slice(0,10)
+        : [summary, ...x.log].slice(0, 10);
     }
     return current;
   }

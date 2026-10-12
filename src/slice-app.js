@@ -60,12 +60,12 @@
   function forestField(x, title) {
     const F=window.CrownlessField, field=x.field;
     const wolfStatus=F.wolfAwareness(field);
-    const names={wall:'絡む木々',exit:'霧の石門',cache:'倒木の下の光',tracks:'獣の足跡',den:'獣の巣穴',camp:'遠征の起点',trail:'森の小道'};
-    const icons={wall:'♠',exit:'⛩',cache:'✦',tracks:'⌁',den:'⚔',camp:'⌂',trail:'·'};
+    const names={wall:'絡む木々',exit:'生還できる霧の石門',cache:'倒木の下の光',tracks:'獣の足跡',den:field.wolf?'空になった獣の巣穴':'獣の巣穴',treasure:field.treasure?'開いた宝箱':'まだ閉じた宝箱',camp:'遠征の起点',trail:'森の小道'};
+    const icons={wall:'♠',exit:'⛩',cache:'✦',tracks:'⌁',den:field.wolf?'✓':'⚔',treasure:field.treasure?'□':'✧',camp:'⌂',trail:'·'};
     const cells=Array.from({length:25},(_,i)=>{
       const kind=F.landmark(i), seen=F.visible(field,i), near=F.adjacent(field.pos,i);
       const here=i===field.pos, known=seen&&!here, passable=near&&kind!=='wall';
-      const used=(kind==='cache'&&field.cache)||(kind==='tracks'&&field.tracks);
+      const used=(kind==='cache'&&field.cache)||(kind==='tracks'&&field.tracks)||(kind==='treasure'&&field.treasure)||(kind==='den'&&field.wolf);
       const icon=here?'<span class="field-hero" aria-hidden="true"><i></i></span>'
         : seen?(used?'✓':icons[kind]):'';
       const classes=['field-cell',seen?'revealed':'veiled',kind,here?'here':'',passable?'can-step':'',used?'spent':''].filter(Boolean).join(' ');
@@ -73,16 +73,16 @@
       if(passable)return `<button type="button" class="${classes}" data-action="field-step" data-value="${i}" aria-label="${label}へ一歩進む">${icon}</button>`;
       return `<span class="${classes}" aria-label="${label}">${icon}</span>`;
     }).join('');
-    return `<section class="forest-field" data-field-pos="${field.pos}" data-field-seen="${field.seen}" data-field-cache="${field.cache}" data-field-tracks="${field.tracks}" data-wolf-state="${wolfStatus}" aria-label="探索できる森のフィールド">
+    return `<section class="forest-field" data-field-pos="${field.pos}" data-field-seen="${field.seen}" data-field-cache="${field.cache}" data-field-tracks="${field.tracks}" data-field-treasure="${Boolean(field.treasure)}" data-field-wolf="${Boolean(field.wolf)}" data-wolf-state="${wolfStatus}" aria-label="探索できる森のフィールド">
       <div class="forest-field-header"><span class="kicker">THE UNCHARTED WOOD · 霧の森</span><h2>${esc(title)}</h2>${wolfStatus==='alert'?'': '<small>森の霧を抜け、道と危険を自分の足で見つけよう。</small>'}</div>
       ${wolfStatus==='alert' ? '<div class="forest-wolf-warning" role="status">⚠ 狼に気づかれた · 巣穴へ進むと戦闘</div>' : ''}
       <div class="field-terrain" role="group" aria-label="霧の森を歩く"><div class="field-worldspace"><canvas class="forest-world-canvas" width="600" height="600" aria-hidden="true"></canvas>${cells}</div></div>
-      <div class="forest-field-footer"><span>♧ 深い森</span><strong>✦ 発見 ${field.cache||field.tracks?'あり':'なし'}</strong><span>霧の石門を探せ</span></div>
+      <div class="forest-field-footer"><span>♧ 深い森</span><strong>✦ 宝箱 ${field.treasure?'開封済':'未発見'}</strong><span>石門から生還</span></div>
     </section>`;
   }
   function fieldDecision(x){
     const wolfStatus=window.CrownlessField?.wolfAwareness(x.field);
-    const event=wolfStatus==='alert'?'狼の視線がこちらを追っている。巣穴へ踏み込んで戦うか、横道へ逃げるか。':x.field.pos===20?'森の入り口。どこへ踏み込む？':x.field.cache&&x.field.tracks?'素材と足跡を見つけた。奥に進むか、生還するか。':x.field.cache?'傷つきながら鉄片を拾った。持ち帰るか先へ進むか。':x.field.tracks?'獣の足跡を読んだ。危険な巣穴を避ける道を探せ。':'足元の霧が晴れた。知らない道が現れた。';
+    const event=x.field.wolf?'狼を倒した！ 同じ森を探索できる。残る宝箱を探してもいい。':wolfStatus==='alert'?'狼の視線がこちらを追っている。巣穴へ踏み込んで戦うか、横道へ逃げるか。':x.field.pos===20?'森の入り口。どこへ踏み込む？':x.field.cache&&x.field.tracks?'素材と足跡を見つけた。奥に進むか、生還するか。':x.field.cache?'傷つきながら鉄片を拾った。持ち帰るか先へ進むか。':x.field.tracks?'獣の足跡を読んだ。危険な巣穴を避ける道を探せ。':'足元の霧が晴れた。知らない道が現れた。';
     return `<div class="field-decision"><div class="field-status">${vitals(x)}<div class="path-risk"><span>持ち帰れる鉄片</span><strong>${x.scrap}</strong><small>倒れれば失う</small></div></div>
       <p class="field-moment" role="status">${esc(x.log[0]||event)}</p>
       <div class="field-choices">${button('return','ここで生還する','拾った素材を確定する',{class:'secondary'})}

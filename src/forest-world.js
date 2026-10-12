@@ -121,7 +121,7 @@
       }
     }
   }
-  function landmarks(ctx,cache,tracks,time){
+  function landmarks(ctx,cache,tracks,treasure,wolfDefeated,time){
     // Camp fire at the entrance: a tangible safe starting place.
     {
       const [x,y]=center(F.START);
@@ -164,6 +164,35 @@
       }
       if(!tracks){ellipse(ctx,x+15,y-20,9,9,'#adbf8a66');}
     }
+    // A small treasure chest glints between two mossy trees. Once found it
+    // remains visibly open; returning here cannot award its loot twice.
+    {
+      const [x,y]=center(F.TREASURE);
+      ellipse(ctx,x+1,y+19,44,18,'#071715ae');
+      ctx.save();ctx.translate(x,y);ctx.rotate(-.10);
+      ctx.fillStyle='#37251b';ctx.fillRect(-35,-2,70,33);
+      ctx.fillStyle='#a57a43';ctx.fillRect(-32,-2,65,26);
+      ctx.fillStyle='#563e2a';ctx.fillRect(-25,2,50,17);
+      ctx.fillStyle='#d1a45d';ctx.fillRect(-34,8,69,5);
+      ctx.fillStyle='#c7a56a';ctx.fillRect(-6,-8,13,38);
+      if(treasure){
+        // A lid lifted backward, dark empty cavity, scattered golden light.
+        ctx.fillStyle='#483323';ctx.fillRect(-36,-34,71,23);
+        ctx.fillStyle='#967044';ctx.fillRect(-32,-30,64,12);
+        ctx.fillStyle='#101b1c';ctx.fillRect(-26,1,54,16);
+        ellipse(ctx,16,15,4,3,'#d3ac6b');
+      }else{
+        ctx.fillStyle='#6d4b2e';ctx.fillRect(-36,-17,71,19);
+        ctx.fillStyle='#cba261';ctx.fillRect(-32,-16,64,6);
+        ctx.fillStyle='#fbe1a2';ctx.fillRect(-5,-12,11,19);
+        const glow=ctx.createRadialGradient(x,y-17,1,x,y-17,48);
+        glow.addColorStop(0,'#ffdda68a');glow.addColorStop(1,'#f6c66c00');
+        ellipse(ctx,0,-17,49,44,glow);
+        const wave=.5+.5*Math.sin(time/450);
+        ellipse(ctx,0,-31-wave*6,3+wave*2,3+wave*2,'#fff5c1');
+      }
+      ctx.restore();
+    }
     // The wolf den is a physically distinct danger spot.
     {
       const [x,y]=center(F.DEN);
@@ -173,8 +202,11 @@
       ctx.quadraticCurveTo(x+41,y-51,x+42,y+15);ctx.closePath();
       ctx.fillStyle='#58645a';ctx.fill();
       ellipse(ctx,x,y+15,29,33,'#0a1519');
-      ellipse(ctx,x-11,y+8,3,2,'#d57c58');
-      ellipse(ctx,x+12,y+8,3,2,'#d57c58');
+      if(!wolfDefeated){
+        ellipse(ctx,x-11,y+8,3,2,'#d57c58');
+        ellipse(ctx,x+12,y+8,3,2,'#d57c58');
+      }
+      // A defeated wolf leaves only an unlit, empty entrance.
     }
     // An arch gate invites curiosity, beyond the fog.
     {
@@ -358,7 +390,8 @@
     const pos=Number(section.dataset.fieldPos),seen=Number(section.dataset.fieldSeen);
     if(!F.valid({pos,seen,cache:section.dataset.fieldCache==='true',tracks:section.dataset.fieldTracks==='true'}))return;
     const cache=section.dataset.fieldCache==='true',tracks=section.dataset.fieldTracks==='true';
-    const wolfStatus=F.wolfAwareness({pos,seen,cache,tracks});
+    const treasure=section.dataset.fieldTreasure==='true',wolfDefeated=section.dataset.fieldWolf==='true';
+    const wolfStatus=F.wolfAwareness({pos,seen,cache,tracks,treasure,wolf:wolfDefeated});
     const base=staticWorld();
     if(!base)return;
     const mist=fogLayer(seen);
@@ -400,8 +433,8 @@
       const y=start[1]+(end[1]-start[1])*ease;
       camera(x,y);
       ctx.drawImage(base,0,0);
-      landmarks(ctx,cache,tracks,time);
-      if(wolfStatus!=='hidden')wolf(ctx,time,wolfStatus==='alert');
+      landmarks(ctx,cache,tracks,treasure,wolfDefeated,time);
+      if(wolfStatus==='watching'||wolfStatus==='alert')wolf(ctx,time,wolfStatus==='alert');
       ctx.drawImage(mist,0,0);
       steps(ctx,pos,seen,time);
       hero(ctx,x,y,time,t<1);
