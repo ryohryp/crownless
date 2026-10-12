@@ -140,11 +140,21 @@ async function main() {
           return {supported:true,width:canvas.width,height:canvas.height,
             samples,distinct:new Set(samples).size,stepFacesHidden:tiles.every(el=>
               getComputedStyle(el).borderTopWidth==='0px' &&
-              getComputedStyle(el).fontSize==='0px' && el.offsetWidth>=44)};
+              getComputedStyle(el).fontSize==='0px' && el.offsetWidth>=44),
+            noIdleMoveHints:tiles.every(el=>{
+              const css=getComputedStyle(el);
+              return css.backgroundImage==='none' &&
+                (css.backgroundColor==='rgba(0, 0, 0, 0)' || css.backgroundColor==='transparent') &&
+                css.animationName==='none';
+            })};
         });
         assert(canvasProof.supported&&canvasProof.width>=512&&canvasProof.distinct>=3
           &&canvasProof.stepFacesHidden,
           'the new forest has actual non-flat pixel art and invisible grid faces: '+JSON.stringify(canvasProof));
+        assert(canvasProof.noIdleMoveHints,
+          'move buttons stay fully tappable but show no idle glow, dashed rings, or direction navigation: '+JSON.stringify(canvasProof));
+        assert(!/宝箱.*未発見|森の秘密/.test(await page.locator('.forest-field-footer').innerText()),
+          'unfound treasure or hidden discoveries must not be advertised in the footer');
         assert.equal(await page.locator('.forest-field .field-cell').count(),25,'five by five terrain must render');
         assert((await page.locator('.forest-field .field-cell.veiled').count())>14,
           'most of the land must actually be hidden at the beginning');
@@ -696,6 +706,8 @@ async function main() {
         assert.equal(found.expedition.field.shrine,false);
         const vines=page.locator('.forest-field button.field-cell.secret[data-value="12"]');
         assert.equal(await vines.count(),1,'tangled vines are a real adjacent tap target');
+        assert.equal(await vines.evaluate(el=>getComputedStyle(el).backgroundImage),'none',
+          'the secret-vine destination must not be given away by a glowing navigation circle');
         assert.match(await vines.getAttribute('aria-label'),/揺れるツタを調べる/);
         const tap=await vines.evaluate(el=>{
           const b=el.getBoundingClientRect();
