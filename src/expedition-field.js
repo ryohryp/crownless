@@ -9,7 +9,7 @@
   'use strict';
   const SIZE=7, COUNT=49;
   const START=20, EXIT=4, CACHE=16, TRACKS=18, DEN=8,
-    TREASURE=17, SHRINE=7, SECRET=12, GLADE=48;
+    TREASURE=17, SHRINE=7, SECRET=12, GLADE=40;
   // Dense, actually IMPASSABLE forest around the ordinary winding trails.
   // Shrine 7 is additionally enclosed by rock and reachable ONLY from 12.
   const WALLS=Object.freeze([0,1,2,3,6,11,25,27,29,30,35,36,37,38,46]);
