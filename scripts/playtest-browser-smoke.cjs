@@ -126,6 +126,26 @@ async function main() {
         assert.equal(await page.locator(".expedition-layout:not(.battle-layout)").count(), 1);
         const world = page.locator('.forest-field');
         assert.equal(await world.count(),1,'forest has an actual playable local field');
+        assert.equal(await page.locator('.forest-field.world-painted canvas.forest-world-canvas').count(),1,
+          'the active world is actually painted using a continuous canvas, not colored tile controls');
+        const canvasProof=await page.evaluate(()=>{
+          const canvas=document.querySelector('.forest-field.world-painted canvas.forest-world-canvas');
+          const ctx=canvas?.getContext('2d');
+          if(!ctx)return {supported:false};
+          const img=ctx.getImageData(0,0,canvas.width,canvas.height);
+          const samples=[[60,540],[180,540],[300,540],[60,60],[300,300]].map(([x,y])=>{
+            const i=(y*canvas.width+x)*4;
+            return [...img.data.slice(i,i+3)].join(',');
+          });
+          const tiles=[...document.querySelectorAll('.forest-field button.can-step')];
+          return {supported:true,width:canvas.width,height:canvas.height,
+            samples,distinct:new Set(samples).size,stepFacesHidden:tiles.every(el=>
+              getComputedStyle(el).borderTopWidth==='0px' &&
+              getComputedStyle(el).fontSize==='0px' && el.offsetWidth>=44)};
+        });
+        assert(canvasProof.supported&&canvasProof.width>=512&&canvasProof.distinct>=3
+          &&canvasProof.stepFacesHidden,
+          'the new forest has actual non-flat pixel art and invisible grid faces: '+JSON.stringify(canvasProof));
         assert.equal(await page.locator('.forest-field .field-cell').count(),25,'five by five terrain must render');
         assert((await page.locator('.forest-field .field-cell.veiled').count())>14,
           'most of the land must actually be hidden at the beginning');
