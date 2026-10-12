@@ -602,6 +602,8 @@ async function main() {
         const warning=page.locator('.forest-wolf-warning');
         assert.match(await warning.innerText(),/狼に気づかれた/);
         assert.equal(await warning.isVisible(),true,'not just a hidden accessibility state');
+        assert.equal(await page.locator('.forest-field-header small').count(),0,
+          'when the wolf appears, redundant header copy must not sit beneath alert banner');
         const warningState=await warning.evaluate(el=>{
           const scene=document.querySelector('.forest-field');
           const r=el.getBoundingClientRect();
