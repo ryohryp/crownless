@@ -190,42 +190,45 @@
       ellipse(ctx,x,y-8,42,54,light);
     }
   }
-  function fog(ctx,seen,time){
-    for(let i=0;i<25;i++){
-      if(seen&(1<<i))continue;
-      const x=(i%5)*CELL,y=Math.floor(i/5)*CELL;
-      // Never leak the terrain or wall type through an unknown cell.
-      ctx.fillStyle='#152c2c';ctx.fillRect(x,y,CELL,CELL);
-      const r=random(i*2137+45);
-      for(let k=0;k<5;k++){
-        const xx=x+r()*CELL,yy=y+r()*CELL;
-        ellipse(ctx,xx,yy,22+r()*43,12+r()*25,'#748a7e25');
-      }
-      for(let k=0;k<2;k++){
-        const xx=x+((r()*CELL+time*.004*(k+1))%CELL),yy=y+r()*CELL;
-        ellipse(ctx,xx,yy,19,14,'#97aa9830');
-      }
+  function fogLayer(seen){
+    // Fog is a single continuous veil. Punch overlapping SOFT circles around
+    // what the traveler has seen; never expose grid-cell boundaries.
+    // Unknown trees below are generic distant silhouettes independent of
+    // actual wall/loot/encounter placement.
+    const mask=root.document.createElement('canvas');
+    mask.width=mask.height=W;
+    const ctx=mask.getContext('2d');
+    if(!ctx)return null;
+    ctx.fillStyle='#102827';ctx.fillRect(0,0,W,W);
+    const r=random(30867);
+    for(let i=0;i<63;i++){
+      const x=r()*W,y=r()*W,size=10+r()*37;
+      ellipse(ctx,x+size*.16,y+size*.48,size*.6,size*.21,'#071c1d5f');
+      ctx.fillStyle='#1b3934bb';
+      ctx.fillRect(x-2,y-size*.1,4,size*.45);
+      ellipse(ctx,x,y-size*.2,size*.48,size*.32,
+        i%3===0?'#30514898':'#23453e99');
+      ellipse(ctx,x-size*.18,y-size*.26,size*.29,size*.21,
+        i%4===0?'#40635154':'#153b3580');
     }
-    // Soft fog drifts just over the edges of discovered land.
+    for(let i=0;i<150;i++){
+      const x=r()*W,y=r()*W;
+      ellipse(ctx,x,y,13+r()*35,4+r()*12,i%3===0?'#b8cdb813':'#8caaa812');
+    }
+    ctx.globalCompositeOperation='destination-out';
     for(let i=0;i<25;i++){
       if(!(seen&(1<<i)))continue;
-      const x=(i%5)*CELL,y=Math.floor(i/5)*CELL;
-      const adjacent=F.neighbors(i).filter(n=>!(seen&(1<<n)));
-      for(const n of adjacent){
-        let gradient;
-        if(n===i-1)gradient=ctx.createLinearGradient(x,y,x+23,y);
-        else if(n===i+1)gradient=ctx.createLinearGradient(x+CELL,y,x+CELL-23,y);
-        else if(n===i-5)gradient=ctx.createLinearGradient(x,y,x,y+23);
-        else gradient=ctx.createLinearGradient(x,y+CELL,x,y+CELL-23);
-        gradient.addColorStop(0,'#a3c2b273');
-        gradient.addColorStop(1,'#a3c2b200');
-        ctx.fillStyle=gradient;
-        if(n===i-1)ctx.fillRect(x,y,23,CELL);
-        else if(n===i+1)ctx.fillRect(x+CELL-23,y,23,CELL);
-        else if(n===i-5)ctx.fillRect(x,y,CELL,23);
-        else ctx.fillRect(x,y+CELL-23,CELL,23);
-      }
+      const [x,y]=center(i);
+      const light=ctx.createRadialGradient(x,y,24,x,y,112);
+      light.addColorStop(0,'#000000ff');
+      light.addColorStop(.36,'#000000ff');
+      light.addColorStop(.77,'#000000e8');
+      light.addColorStop(1,'#00000000');
+      ctx.fillStyle=light;
+      ctx.fillRect(x-113,y-113,226,226);
     }
+    ctx.globalCompositeOperation='source-over';
+    return mask;
   }
   function steps(ctx,pos,seen,time){
     const ns=F.neighbors(pos).filter(n=>(seen&(1<<n))&&!F.WALLS.includes(n));
@@ -290,6 +293,8 @@
     const cache=section.dataset.fieldCache==='true',tracks=section.dataset.fieldTracks==='true';
     const base=staticWorld();
     if(!base)return;
+    const mist=fogLayer(seen);
+    if(!mist)return;
     section.classList.add('world-painted');
     const worldspace=section.querySelector('.field-worldspace');
     const size=worldspace?.clientWidth||0;
@@ -323,7 +328,7 @@
       camera(x,y);
       ctx.drawImage(base,0,0);
       landmarks(ctx,cache,tracks,time);
-      fog(ctx,seen,time);
+      ctx.drawImage(mist,0,0);
       steps(ctx,pos,seen,time);
       hero(ctx,x,y,time,t<1);
       // A subtle outer vignette creates a continuous scene, not a board.
