@@ -138,6 +138,16 @@ test('one wolf battle returns to the exact same explored forest with loot and no
   assert(home.materials.wolfFang>=2);
 });
 
+test('already-traversable positions in prior five-by-five saves remain valid',()=>{
+  for(const pos of [0,1,2,3,5,7,10,13,14,15,16,17,18,19,20,21,22,23,24]){
+    const s=wood();
+    s.expedition.field.pos=pos;
+    s.expedition.field.seen += (Math.floor(s.expedition.field.seen/(2**pos))%2)?0:2**pos;
+    assert(F.valid(s.expedition.field),'legacy position '+pos+' should remain walkable');
+    assert.equal(E.parse(E.serialize(s)).expedition.field.pos,pos);
+  }
+});
+
 test('wider woodland has real blocked terrain, side trails and exact 49-cell fog',()=>{
   const s=wood(),f=s.expedition.field;
   assert.equal(F.COUNT,49);
