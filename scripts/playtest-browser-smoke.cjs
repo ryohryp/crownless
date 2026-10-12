@@ -784,15 +784,16 @@ async function main() {
         for(const id of [21,22,23,24,33,34,41])await step(id);
         assert.equal(await page.locator('.forest-field .field-cell.glade.revealed').count(),1);
         await page.screenshot({path:path.join(output,'forest-distant-glade-approach-'+width+'.png')});
-        await step(48);
+        await step(48); // long eastward detour past the furthest clearing
+        await step(41);await step(40); // the hidden stone-ring glade is inset from the camera edge
         const found=await page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
-        assert.equal(found.expedition.field.pos,48);
+        assert.equal(found.expedition.field.pos,40);
         assert.equal(found.expedition.field.glade,true);
         assert.equal(found.expedition.scrap,4);
         await page.screenshot({path:path.join(output,'forest-distant-glade-found-'+width+'.png')});
         await page.reload();
-        assert.equal(await page.locator('.forest-field[data-field-glade="true"][data-field-pos="48"]').count(),1);
-        await step(41);await step(48);
+        assert.equal(await page.locator('.forest-field[data-field-glade="true"][data-field-pos="40"]').count(),1);
+        await step(41);await step(40);
         const twice=await page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
         assert.equal(twice.expedition.scrap,4,'saved distant discoveries cannot pay out twice');
       }finally{await ctx.close();}
