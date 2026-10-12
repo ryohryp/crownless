@@ -290,6 +290,7 @@
     const cache=section.dataset.fieldCache==='true',tracks=section.dataset.fieldTracks==='true';
     const base=staticWorld();
     if(!base)return;
+    section.classList.add('world-painted');
     const last=previous;
     previous=pos;
     const start=last!==null&&last!==pos&&F.adjacent(last,pos)?center(last):center(pos);
