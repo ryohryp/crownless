@@ -72,9 +72,9 @@
       if(passable)return `<button type="button" class="${classes}" data-action="field-step" data-value="${i}" aria-label="${label}へ一歩進む">${icon}</button>`;
       return `<span class="${classes}" aria-label="${label}">${icon}</span>`;
     }).join('');
-    return `<section class="forest-field" data-field-pos="${field.pos}" aria-label="探索できる森のフィールド">
+    return `<section class="forest-field" data-field-pos="${field.pos}" data-field-seen="${field.seen}" data-field-cache="${field.cache}" data-field-tracks="${field.tracks}" aria-label="探索できる森のフィールド">
       <div class="forest-field-header"><span class="kicker">THE UNCHARTED WOOD · 霧の森</span><h2>${esc(title)}</h2><small>光る隣のマスへ進む。見えない道は一歩ずつ開く。</small></div>
-      <div class="field-terrain" role="group" aria-label="縦横5マスの探索地図">${cells}</div>
+      <div class="field-terrain" role="group" aria-label="霧の森を歩く"><canvas class="forest-world-canvas" width="600" height="600" aria-hidden="true"></canvas>${cells}</div>
       <div class="forest-field-footer"><span>♧ 深い森</span><strong>✦ 発見 ${field.cache||field.tracks?'あり':'なし'}</strong><span>霧の石門を探せ</span></div>
     </section>`;
   }
@@ -430,6 +430,9 @@
         + '</section>';
       return;
     }
+    // Paint only when the new forest is active; retain accessible tile controls.
+    // No engine mutation: the terrain renderer reads already validated DOM state.
+    window.CrownlessForestWorld?.mount?.(root);
     const codexPanel = root.querySelector?.('.codex-panel');
     if (codexPanel) window.CrownlessCodexUI?.renderCodex?.(codexPanel);
     const chroniclePanel = root.querySelector?.('.chronicle-panel');
