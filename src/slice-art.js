@@ -35,7 +35,7 @@ window.CrownlessArt = (() => {
       .replaceAll('#101c21','#344a3a')
       .replaceAll('#b89b75','#f3d8a5');
     const room = journey && Number.isInteger(journey.room) ? Math.min(4, Math.max(0,journey.room)) : 0;
-    const heroX = [520,560,600,640,680][room];
+    const heroX = journey?.depth === 1 && room === 0 && journey?.discovery === 'cache' ? 605 : journey?.depth === 1 && room === 0 && journey?.discovery === 'tracks' ? 685 : [520,560,600,640,680][room];
     const journeyMotif = !enemy && journey && place !== 'camp'
       ? journey.stage === 'cleared'
         ? '<g class="journey-discovery" transform="translate(716 395)"><path d="M0 100V-40M3-34l100 20-100 37" stroke="#dcc997" stroke-width="8" fill="#b09459"/><path d="M-24 92h44M-13 0l13-13 13 13" stroke="#e3d29d" stroke-width="5" fill="none"/></g>'
