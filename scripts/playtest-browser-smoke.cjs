@@ -462,6 +462,53 @@ async function main() {
       } finally { await labContext.close(); }
     }
 
+    // Regression: after smithing the role remains "smith"; the previous map
+    // rendered a disabled departure with no explanation. Check both a desktop
+    // pointer and actual phone-sized tap and save, not just a CSS snapshot.
+    for (const [width,height] of [[360,800],[390,844],[1280,800]]) {
+      const roleContext=await browser.newContext({viewport:{width,height},isMobile:width<480,hasTouch:width<480});
+      const rolePage=await roleContext.newPage();
+      const roleErrors=[];
+      rolePage.on('pageerror',error=>roleErrors.push(error.message));
+      try {
+        await rolePage.goto(url);
+        await rolePage.locator('[data-action="mode"][data-value="demo"]').click();
+        const defaultDepart=rolePage.locator('.district-detail [data-action="depart"][data-value="wood"]');
+        assert.equal(await defaultDepart.isEnabled(),true,'normal adventurer departure must remain enabled on '+width);
+        const centerHit=async locator=>locator.evaluate(el=>{
+          const r=el.getBoundingClientRect();
+          const hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
+          return {hit:hit===el||el.contains(hit),rect:{left:r.left,top:r.top,right:r.right,bottom:r.bottom},viewport:{w:innerWidth,h:innerHeight}};
+        });
+        const defaultHit=await centerHit(defaultDepart);
+        assert(defaultHit.hit,'normal map departure must receive pointer at '+width+': '+JSON.stringify(defaultHit));
+        await rolePage.locator('.bottom-navigation [data-action="tab"][data-value="gear"]').click();
+        await rolePage.locator('[data-action="character"][data-value="1"]').click();
+        const asSmith=await rolePage.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+        assert.equal(asSmith.activeCharacter,1,'smith role is the actual saved state');
+        await rolePage.locator('.bottom-navigation [data-action="tab"][data-value="explore"]').click();
+        const readyDepart=rolePage.locator('.district-detail [data-action="depart-as-adventurer"][data-value="wood"]');
+        assert.equal(await readyDepart.count(),1,'smith can see the explicit role-switching departure');
+        assert.equal(await readyDepart.isEnabled(),true,'smith departure must not be a dead disabled control');
+        assert.match(await readyDepart.innerText(),/冒険者に交代して遠征/);
+        const smithHit=await centerHit(readyDepart);
+        assert(smithHit.hit && smithHit.rect.top>=0 && smithHit.rect.bottom<=height+2,
+          'smith departure must be a real unobscured first-screen tap on '+width+': '+JSON.stringify(smithHit));
+        await rolePage.screenshot({path:path.join(output,'smith-depart-ready-'+width+'.png')});
+        await readyDepart.click();
+        const leftSmith=await rolePage.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+        assert.equal(leftSmith.activeCharacter,0,'departing switches to real adventurer, not a simulated role');
+        assert.equal(leftSmith.expedition?.place,'wood','one click begins the selected real expedition');
+        assert.equal(leftSmith.runs,1,'only one expedition starts');
+        assert.equal(leftSmith.characters[1].equipped,asSmith.characters[1].equipped,
+          'one-tap departure preserves smith equipment state');
+        await rolePage.reload();
+        assert.equal(await rolePage.locator('.expedition-layout:not(.battle-layout)').count(),1,
+          'reloaded save must resume adventurer expedition after single tap');
+        assert.deepEqual(roleErrors,[],'role-switching departure must not cause runtime errors on '+width);
+      } finally {await roleContext.close();}
+    }
+
     // Corrupt game saves must not be silently overwritten during rendering.
     const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const page = await context.newPage();

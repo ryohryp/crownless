@@ -552,6 +552,18 @@
         busy = false; notice = error.code === 1 ? '位置情報は許可されませんでした。設定を変えずに、散策体験モードでも遊べます。' : '現在地を取得できませんでした。後ほど試すか、散策体験モードで続けられます。'; render();
       }, { enableHighAccuracy:true, maximumAge:0, timeout:12000 }); return;
     } else if (action === 'depart') { selected = value; lastReturnedPlace = null; prioritizeReinforcement = false; locationRequest++; busy = false; state = E.start(state,value); }
+    else if (action === 'depart-as-adventurer') {
+      // Leave ordinary departures unchanged. Smithing leaves the smith active,
+      // so route this explicit one-tap CTA through the real role transition.
+      const ready = E.switchCharacter(state,0);
+      const next = E.start(ready,value);
+      if (next.expedition) {
+        state = next; selected = value; lastReturnedPlace = null;
+        prioritizeReinforcement = false; locationRequest++; busy = false; notice = '';
+      } else {
+        notice = '遠征できません。冒険者の状態と、土地の解放条件を確認しよう。';
+      }
+    }
     else if (action === 'auto-fight') { state = E.resolveFight(state); }
     else if (action === 'character') { state = E.switchCharacter(state,Number(value)); notice = state !== before ? `${state.characters[state.activeCharacter].name}に切り替えた。` : ''; tab='gear'; }
     else if (action === 'commission') { state = E.supplyCommission(state,value); notice = state !== before ? E.COMMISSIONS[value].requester+'へ装備を納品した。旅人に切り替え、'+E.place(value).name+'から生還すると報告が届く。' : ''; tab='gear'; }
