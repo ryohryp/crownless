@@ -57,6 +57,35 @@
     </div>` : '';
     return `<div class="scene${journey?' expedition-world-scene':''}" ${journey?`data-journey-room="${room}" data-journey-stage="${journey.stage}"`:''}>${A.scene(id, enemy, state.equipped,journey)}<span class="scene-top">${enemy ? 'HOLD YOUR GROUND' : journey ? 'THE ROAD BEYOND · 遠征中' : 'BEYOND THE MIST'}</span><div class="scene-top-actions">${tag ? `<span class="scene-tag">${tag}</span>` : ''}<button class="scene-settings" data-action="settings" aria-label="旅の設定と遊び方">⚙ 設定</button></div><div class="scene-caption"><p class="kicker">${subtitle}</p><h2>${title}</h2></div>${sceneTrail}</div>`;
   }
+  function forestField(x, title) {
+    const F=window.CrownlessField, field=x.field;
+    const names={wall:'絡む木々',exit:'霧の石門',cache:'倒木の下の光',tracks:'獣の足跡',den:'獣の巣穴',camp:'遠征の起点',trail:'森の小道'};
+    const icons={wall:'♠',exit:'⛩',cache:'✦',tracks:'⌁',den:'⚔',camp:'⌂',trail:'·'};
+    const cells=Array.from({length:25},(_,i)=>{
+      const kind=F.landmark(i), seen=F.visible(field,i), near=F.adjacent(field.pos,i);
+      const here=i===field.pos, known=seen&&!here, passable=near&&kind!=='wall';
+      const used=(kind==='cache'&&field.cache)||(kind==='tracks'&&field.tracks);
+      const icon=here?'<span class="field-hero" aria-hidden="true"><i></i></span>'
+        : seen?(used?'✓':icons[kind]):'';
+      const classes=['field-cell',seen?'revealed':'veiled',kind,here?'here':'',passable?'can-step':'',used?'spent':''].filter(Boolean).join(' ');
+      const label=here?'旅人の現在地':seen?names[kind]:'まだ見えない土地';
+      if(passable)return `<button type="button" class="${classes}" data-action="field-step" data-value="${i}" aria-label="${label}へ一歩進む">${icon}</button>`;
+      return `<span class="${classes}" aria-label="${label}">${icon}</span>`;
+    }).join('');
+    return `<section class="forest-field" data-field-pos="${field.pos}" aria-label="探索できる森のフィールド">
+      <div class="forest-field-header"><span class="kicker">THE UNCHARTED WOOD · 霧の森</span><h2>${esc(title)}</h2><small>光る隣のマスへ進む。見えない道は一歩ずつ開く。</small></div>
+      <div class="field-terrain" role="group" aria-label="縦横5マスの探索地図">${cells}</div>
+      <div class="forest-field-footer"><span>♧ 深い森</span><strong>✦ 発見 ${field.cache||field.tracks?'あり':'なし'}</strong><span>霧の石門を探せ</span></div>
+    </section>`;
+  }
+  function fieldDecision(x){
+    const event=x.field.pos===20?'森の入り口。どこへ踏み込む？':x.field.cache&&x.field.tracks?'素材と足跡を見つけた。奥に進むか、生還するか。':x.field.cache?'傷つきながら鉄片を拾った。持ち帰るか先へ進むか。':x.field.tracks?'獣の足跡を読んだ。危険な巣穴を避ける道を探せ。':'足元の霧が晴れた。知らない道が現れた。';
+    return `<div class="field-decision"><div class="field-status">${vitals(x)}<div class="path-risk"><span>持ち帰れる鉄片</span><strong>${x.scrap}</strong><small>倒れれば失う</small></div></div>
+      <p class="field-moment" role="status">${esc(x.log[0]||event)}</p>
+      <div class="field-choices">${button('return','ここで生還する','拾った素材を確定する',{class:'secondary'})}
+      ${button('heal',`薬草 ${x.potions} · 体力 +12`,'',{class:'text-button',disabled:x.potions===0||x.hp===E.maxHp(state)})}</div>
+    </div>`;
+  }
   const logs = x => `<div class="combat-log" role="status" aria-live="polite">${x.log.map(v => `<p>${esc(v)}</p>`).join('')}</div>`;
   const materialList = m => Object.entries(E.MATERIALS).filter(([id]) => (m?.[id] || 0) > 0).map(([id,v]) => `${v.name} ${m[id]}`).join(' · ');
   const canCraft = (s,id) => { const recipe=E.RECIPES[id]; return !!recipe && (!recipe.requiresBlueprint || !!s.designs?.[id]) && !s.owned.includes(id) && s.scrap >= recipe.scrap && Object.entries(recipe.materials).every(([mat,count]) => (s.materials?.[mat] || 0) >= count); };
@@ -328,7 +357,8 @@
     const localDistrict = N.get(state.neighborhood,state.neighborhood.active);
     const siege=landmarkOf(x.landmarkId);
     const enemyArt = x.enemy ? (E.ENEMIES[x.enemy.kind].art || x.enemy.kind) : null;
-    return `<div class="game-layout expedition-layout ${isFight ? 'battle-layout' : ''}" data-combat-result="${x.log.some(line => line.startsWith('崩し追撃！')) ? 'follow-up' : ''}" data-combat-turn="${x.depth}:${x.room}:${x.enemy?.turn ?? 'path'}"><section class="visual-column">${scene(x.place,siege ? siege.name : localDistrict ? N.title(localDistrict) : p.name,`DEPTH ${String(x.depth).padStart(2,'0')} · ${x.stage === 'cleared' ? '踏破' : `${x.room+1} / 5`}`,enemyArt,`${E.GEAR[state.equipped].name}`,isFight ? null : x)}${route(x)}${vitals(x)}<div class="journey-note"><b>${String(x.depth).padStart(2,'0')}</b><span>深層 ${x.depth} · 戦利品を失っても、持ち込んだ装備は残る。<br>深層ほど敵は強く、より多くの希少素材を持ち帰れる。</span></div></section><section class="panel ${isFight ? 'combat-panel' : 'path-panel'}">${isFight ? fight(x) : pathPanel(x)}</section></div>`;
+    const fieldActive=x.place==='wood'&&x.depth===1&&x.room===0&&x.stage==='path'&&Boolean(x.field);
+    return `<div class="game-layout expedition-layout ${isFight ? 'battle-layout' : ''} ${fieldActive?'field-layout':''}" data-combat-result="${x.log.some(line => line.startsWith('崩し追撃！')) ? 'follow-up' : ''}" data-combat-turn="${x.depth}:${x.room}:${x.enemy?.turn ?? 'path'}"><section class="visual-column">${fieldActive?forestField(x,siege ? siege.name : localDistrict ? N.title(localDistrict) : p.name):scene(x.place,siege ? siege.name : localDistrict ? N.title(localDistrict) : p.name,`DEPTH ${String(x.depth).padStart(2,'0')} · ${x.stage === 'cleared' ? '踏破' : `${x.room+1} / 5`}`,enemyArt,`${E.GEAR[state.equipped].name}`,isFight ? null : x)}${fieldActive?'':route(x)+vitals(x)}<div class="journey-note"><b>${String(x.depth).padStart(2,'0')}</b><span>深層 ${x.depth} · 戦利品を失っても、持ち込んだ装備は残る。<br>深層ほど敵は強く、より多くの希少素材を持ち帰れる。</span></div></section><section class="panel ${isFight ? 'combat-panel' : 'path-panel'}">${isFight ? fight(x) : fieldActive ? fieldDecision(x) : pathPanel(x)}</section></div>`;
   }
   function ending() {
     return `<div class="game-layout report-layout"><section class="visual-column">${scene('camp','灰の冠は、火のそばに。','THE CROWN CAME HOME',null,'旅の到達点')}</section><section class="panel report-panel"><div class="report-scroll"><p class="kicker">EPILOGUE · 名もなき旅人</p><h1>冠を持ち帰った。<br>それでも、旅は続く。</h1><p class="intro">霧の王墓から持ち帰った灰の冠を、あなたは焚き火のそばへ置いた。名は刻まれない。けれど、歩いた土地と、生きて帰った夜だけは残る。</p><div class="result-number">${state.victories} <small>回の生還 / 遠征 ${state.runs} 回</small></div><p class="notice">灰の王冠 · 最大体力 +6。ここから先も、まだ見ぬ素材と職人の仕事が残っている。</p><p class="small rule-line">これは終わりではなく、最初の物語の区切り。地図へ戻れば、踏破した土地にも再び遠征できる。</p></div><div class="report-actions">${button('ending-continue','旅の地図へ戻る','',{class:'primary'})}</div></section></div>`;
@@ -564,6 +594,7 @@
         notice = '遠征できません。冒険者の状態と、土地の解放条件を確認しよう。';
       }
     }
+    else if (action === 'field-step') { state=E.act(state,'field-step:'+value); }
     else if (action === 'auto-fight') { state = E.resolveFight(state); }
     else if (action === 'character') { state = E.switchCharacter(state,Number(value)); notice = state !== before ? `${state.characters[state.activeCharacter].name}に切り替えた。` : ''; tab='gear'; }
     else if (action === 'commission') { state = E.supplyCommission(state,value); notice = state !== before ? E.COMMISSIONS[value].requester+'へ装備を納品した。旅人に切り替え、'+E.place(value).name+'から生還すると報告が届く。' : ''; tab='gear'; }
