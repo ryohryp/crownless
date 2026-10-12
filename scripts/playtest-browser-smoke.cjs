@@ -121,6 +121,11 @@ async function main() {
           'illustrated world shows five journey landmarks, not a duplicate HTML route');
         assert.equal(await page.locator('.expedition-world-scene .journey-traveler').count(),1,
           'the actual equipped traveler must appear on the road');
+        const heroBox=await page.locator('.expedition-world-scene .journey-traveler').boundingBox();
+        assert(heroBox && heroBox.x>width*.38 && heroBox.x+heroBox.width<width+5,
+          'the hero must be visibly in the main landscape, not hidden beneath the left-aligned title: '+JSON.stringify(heroBox));
+        assert.equal(await page.locator('.expedition-world-scene .journey-traveler-glow').count(),1,
+          'the player silhouette must remain visually separated from the dark forest');
         assert.equal(await page.locator('.expedition-world-scene .journey-discovery').count(),1,
           'room zero has a different visual clue from the following rooms');
         const startingPosition = await page.locator('.journey-traveler').getAttribute('transform');
