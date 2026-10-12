@@ -214,8 +214,10 @@
   display:none!important;
 }
 #game > .field-layout .forest-field.world-painted button.field-cell.can-step {
+  /* No idle navigation glow: the real terrain becomes the only visual clue.
+     Keep the full-sized invisible button for touch and assistive technology. */
   border:0!important;
-  background:radial-gradient(ellipse at center,#f4dd8a36,#dec67a12 46%,transparent 70%)!important;
+  background:transparent!important;
   cursor:pointer;touch-action:manipulation;
 }
 #game > .field-layout .forest-field.world-painted button.field-cell.can-step:active {
