@@ -26,6 +26,13 @@
     if(!valid(f)||!inBounds(to)||WALLS.includes(to)||!adjacent(f.pos,to))return null;
     return {...f,pos:to,seen:nextSeen(f.seen,to)};
   }
+  // The wolf is a diegetic threat: first seen from an adjacent trail,
+  // then left behind if the player chooses a different path.
+  // This is derived solely from existing field state; no new save keys.
+  function wolfAwareness(f){
+    if(!valid(f)||!visible(f,DEN))return 'hidden';
+    return adjacent(f.pos,DEN)?'alert':'watching';
+  }
   function landmark(n){
     if(WALLS.includes(n))return 'wall';
     if(n===EXIT)return 'exit';
@@ -35,5 +42,5 @@
     if(n===START)return 'camp';
     return 'trail';
   }
-  return {SIZE,START,EXIT,CACHE,TRACKS,DEN,WALLS,initial,valid,move,visible,adjacent,neighbors,landmark};
+  return {SIZE,START,EXIT,CACHE,TRACKS,DEN,WALLS,initial,valid,move,visible,adjacent,neighbors,landmark,wolfAwareness};
 });
