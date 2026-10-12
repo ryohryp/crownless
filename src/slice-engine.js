@@ -698,7 +698,11 @@
       const summary = x.stage === 'fight'
         ? '決着はまだつかない。残りは手動で進めるか撤退できる。'
         : `戦闘をまとめて決着（${turns}手）。体力 ${startingHp} → ${x.hp}、薬草 ${startingPotions} → ${x.potions}。`;
-      x.log = [summary, ...x.log].slice(0, 10);
+      // In the local forest, the primary result is that the only wolf is
+      // gone and exploration has resumed; don't obscure that with turn stats.
+      x.log = x.field?.wolf && x.room===0 && x.stage==='path'
+        ? [x.log[0],summary,...x.log.slice(1)].slice(0,10)
+        : [summary, ...x.log].slice(0, 10);
     }
     return current;
   }
