@@ -76,21 +76,77 @@ test('wolf reveals itself nearby and player can either engage or escape its den'
   assert.equal(F.wolfAwareness(escaped.expedition.field),'watching');
   assert.match(escaped.expedition.log[0],/狼の視線を振り切った/);
   const around=walk(escaped,9,4);
-  assert.equal(around.expedition.stage,'fight','the stone gate still uses its existing separate encounter');
-  assert.equal(around.expedition.enemy.risky,false,'bypassing the wolf avoids the den bonus risk');
-  assert.equal(around.expedition.field.pos,F.EXIT);
+  assert.equal(around.expedition,null,'the stone gate allows a safe escape');
+  assert.equal(around.report.died,false);
+  assert.equal(around.victories,0,'avoiding the den really avoids wolf combat');
 });
 
-test('careful path around the den opens the same real combat system',()=>{
+test('careful bypass reaches the stone gate without a forced second wolf fight',()=>{
   const s=walk(wood(),21,22,23,24,19,14,9,4);
+  assert.equal(s.expedition,null,'stone gate banks loot and returns the player');
+  assert.equal(s.report.died,false);
+  assert.equal(s.report.scrap,0);
+  assert.equal(s.runs,1);
+  assert.equal(s.victories,0,'wolf is optional and no phantom battle is awarded');
+});
+
+
+test('a hidden chest can be discovered once, carried through a reload, and banked for smithing',()=>{
+  const start=wood();
+  assert.equal(start.expedition.field.treasure,false);
+  assert(!F.visible(start.expedition.field,F.TREASURE),'the chest is initially under fog');
+  let s=walk(start,21,22,17);
+  assert.equal(s.expedition.field.treasure,true);
+  assert.equal(s.expedition.scrap,6);
+  assert.equal(s.expedition.materials.wolfFang,1);
+  assert.match(s.expedition.log[0],/宝箱を発見/);
+  s=E.parse(E.serialize(s));
+  assert.equal(s.expedition.field.treasure,true);
+  s=walk(s,22,17);
+  assert.equal(s.expedition.scrap,6,'opened chest cannot be looted repeatedly');
+  assert.equal(s.expedition.materials.wolfFang,1);
+  const banked=E.act(s,'return');
+  assert.equal(banked.expedition,null);
+  assert.equal(banked.scrap,6);
+  assert.equal(banked.materials.wolfFang,1,'smith receives a REAL banked raw material');
+});
+
+test('one wolf battle returns to the exact same explored forest with loot and no respawn',()=>{
+  let s=walk(wood(),21,22,17,18,13,8);
   assert.equal(s.expedition.stage,'fight');
-  assert.equal(s.expedition.enemy.risky,false);
-  assert.equal(s.expedition.field.pos,F.EXIT);
-  assert(F.visible(s.expedition.field,4));
-  assert.equal(E.parse(E.serialize(s)).expedition.field.pos,4);
-  const win=E.resolveFight(s);
-  assert.notEqual(win,s);
-  assert.equal(win.expedition?.room,1,'victory uses normal expedition progression');
+  const seen=s.expedition.field.seen;
+  const scrap=s.expedition.scrap;
+  const won=E.resolveFight(s);
+  assert.equal(won.expedition?.stage,'path','battle returns to forest exploration');
+  assert.equal(won.expedition?.room,0,'no five-room fight corridor');
+  assert.equal(won.expedition.field.pos,F.DEN);
+  assert.equal(won.expedition.field.seen,seen,'fog and position persist');
+  assert.equal(won.expedition.field.treasure,true,'opened chest stays open');
+  assert.equal(won.expedition.field.wolf,true,'defeated wolf is persisted');
+  assert(won.expedition.scrap>scrap);
+  assert(won.expedition.materials.wolfFang>=2,'treasure and wolf reward are carried together');
+  assert.equal(F.wolfAwareness(won.expedition.field),'defeated');
+  const restored=E.parse(E.serialize(won));
+  assert.equal(restored.expedition.field.wolf,true);
+  const revisited=walk(restored,13,8);
+  assert.equal(revisited.expedition.stage,'path','the dead wolf never starts another fight');
+  assert.equal(revisited.expedition.scrap,won.expedition.scrap);
+  assert.equal(revisited.expedition.materials.wolfFang,won.expedition.materials.wolfFang);
+  const home=walk(revisited,9,4);
+  assert.equal(home.expedition,null,'reaching the stone gate finishes the single-field expedition');
+  assert(home.report.scrap>=8);
+  assert(home.materials.wolfFang>=2);
+});
+
+test('legacy forest saves without new fields remain accepted',()=>{
+  let s=walk(wood(),21,22);
+  delete s.expedition.field.treasure;
+  delete s.expedition.field.wolf;
+  assert(F.valid(s.expedition.field));
+  const restored=E.parse(E.serialize(s));
+  const opened=E.act(restored,'field-step:17');
+  assert.equal(opened.expedition.field.treasure,true);
+  assert.equal(opened.expedition.field.wolf,undefined);
 });
 
 test('old saves and other regions keep their existing route',()=>{
