@@ -20,7 +20,7 @@ test('first forest expedition starts in genuinely hidden, bounded terrain',()=>{
   assert.equal(E.parse(E.serialize(s)).expedition.field.pos,20);
   assert.equal(E.act(s,'field-step:4'),s,'no teleport');
   assert.equal(E.act(s,'field-step:abc'),s,'no malformed movement');
-  assert.equal(E.act(s,'field-step:25'),s,'out of bounds');
+  assert.equal(E.act(s,'field-step:49'),s,'out of bounds');
   assert.equal(E.act(s,'field-step:15').expedition.field.pos,15,'north is a valid adjacent move');
 });
 
@@ -138,6 +138,49 @@ test('one wolf battle returns to the exact same explored forest with loot and no
   assert(home.materials.wolfFang>=2);
 });
 
+test('already-traversable positions in prior five-by-five saves remain valid',()=>{
+  for(const pos of [0,1,2,3,5,7,10,13,14,15,16,17,18,19,20,21,22,23,24]){
+    const s=wood();
+    s.expedition.field.pos=pos;
+    s.expedition.field.seen += (Math.floor(s.expedition.field.seen/(2**pos))%2)?0:2**pos;
+    assert(F.valid(s.expedition.field),'legacy position '+pos+' should remain walkable');
+    assert.equal(E.parse(E.serialize(s)).expedition.field.pos,pos);
+  }
+});
+
+test('wider woodland has real blocked terrain, side trails and exact 49-cell fog',()=>{
+  const s=wood(),f=s.expedition.field;
+  assert.equal(F.COUNT,49);
+  assert.equal(F.SIZE,7);
+  assert(F.WALLS.length>=12,'ordinary forest blocks must be genuine obstacles');
+  assert.equal(F.move(f,35),null,'trees below the camp are physically impassable');
+  assert.equal(F.move(f,40),null,'cannot tap across the large forest in one step');
+  assert(!F.visible(f,F.GLADE),'far glade starts undiscovered');
+  const near=walk(s,21,22,23,24,33,34,41);
+  assert(!F.visible(s.expedition.field,F.GLADE));
+  assert(F.visible(near.expedition.field,F.GLADE),'distant glade only becomes visible nearby');
+  const edge=walk(near,48);
+  assert(F.visible(edge.expedition.field,48),'bit 48 must remain visible at the far edge, not wrap at 32');
+  const found=walk(edge,41,40);
+  assert.equal(found.expedition.field.pos,F.GLADE);
+  assert.equal(found.expedition.field.glade,true);
+  assert.equal(found.expedition.scrap,4);
+  assert.match(found.expedition.log[0],/石環を発見/);
+  assert(F.visible(found.expedition.field,48),'the distant edge stays revealed while entering the glade');
+  const again=walk(E.parse(E.serialize(found)),41,40);
+  assert.equal(again.expedition.scrap,4,'side glade rewards only once');
+});
+
+test('shrine is unreachable around the secret rock wall from the wolf or northern trail',()=>{
+  const fromWolf=walk(wood(),21,22,23,18,13);
+  assert.equal(F.adjacent(F.DEN,F.SHRINE),false);
+  assert.equal(F.adjacent(2,F.SHRINE),false);
+  assert.equal(E.act(fromWolf,'field-step:7'),fromWolf,'shrine cannot be accessed directly');
+  const north=walk(wood(),21,22,17,12,12);
+  assert.equal(F.adjacent(F.SECRET,F.SHRINE),true,'new narrow corridor is sole entry');
+  assert.equal(north.expedition.field.pos,F.SECRET);
+});
+
 test('tangled vines conceal a shortcut, which physically opens on adjacent discovery',()=>{
   const s=wood();
   assert.equal(s.expedition.field.secret,false);
@@ -150,11 +193,15 @@ test('tangled vines conceal a shortcut, which physically opens on adjacent disco
   assert(F.visible(near.expedition.field,F.SECRET),'vines become visible from the treasure');
   assert.equal(near.expedition.field.secret,false,'mere visibility does not reveal a passable secret');
   const opened=walk(near,12);
-  assert.equal(opened.expedition.field.pos,F.SECRET);
+  assert.equal(opened.expedition.field.pos,F.TREASURE,'first investigation opens the barrier but cannot walk through it');
+  assert.equal(F.move(near.expedition.field,F.SECRET),null,'closed vines are an actual collision wall');
+  const entered=walk(opened,12);
+  assert.equal(entered.expedition.field.pos,F.SECRET);
   assert.equal(opened.expedition.field.secret,true,'opening really changes the traversable terrain');
-  assert.match(opened.expedition.log[0],/隠し道が現れた/);
-  assert(F.visible(opened.expedition.field,F.SHRINE),'shrine emerges from the fog beyond the path');
-  const reloaded=E.parse(E.serialize(opened));
+  assert.match(opened.expedition.log[0],/隠し道が開いた/);
+  assert(!F.visible(opened.expedition.field,F.SHRINE),'opening vines does not instantly show the whole hidden grove');
+  assert(F.visible(entered.expedition.field,F.SHRINE),'entering the revealed path unveils a hidden shrine');
+  const reloaded=E.parse(E.serialize(entered));
   assert(reloaded.expedition.field.secret,'revealed shortcut must survive reload');
   const back=walk(reloaded,17,12);
   assert.equal(back.expedition.field.pos,12,'reopened passage remains traversable from both sides');
@@ -162,7 +209,7 @@ test('tangled vines conceal a shortcut, which physically opens on adjacent disco
 });
 
 test('mossy shrine gives capped health and one herb only on the first visit',()=>{
-  const before=walk(wood(),21,16,17,12);
+  const before=walk(wood(),21,16,17,12,12);
   assert.equal(before.expedition.hp,27,'gathering the cache created a healing opportunity');
   assert.equal(before.expedition.potions,2);
   const found=walk(before,7);
@@ -172,19 +219,19 @@ test('mossy shrine gives capped health and one herb only on the first visit',()=
   assert.equal(found.expedition.field.shrine,true);
   assert.match(found.expedition.log[0],/苔むした祠を発見/);
   assert.match(found.expedition.log[0],/体力 \+3、薬草 \+1/);
-  // Den lies adjacent to the shrine: its alert cannot erase discovery feedback.
-  assert.equal(F.wolfAwareness(found.expedition.field),'alert');
+  // The shrine is isolated behind real tree walls; the wolf cannot reach it.
+  assert.equal(F.wolfAwareness(found.expedition.field),'hidden');
   const revisit=walk(E.parse(E.serialize(found)),12,7);
   assert.equal(revisit.expedition.hp,30);
   assert.equal(revisit.expedition.potions,3);
   assert.equal(revisit.expedition.field.shrine,true);
-  const returned=walk(revisit,2,3,4);
+  const returned=walk(revisit,12,17,22,23,24,19,14,9,4);
   assert.equal(returned.expedition,null,'gate remains reachable along the upper trail');
   assert.equal(returned.materials.wolfFang,1,'treasure loot can be safely banked after finding the shrine');
 });
 
 test('fully supplied travelers receive no extra duplicate shrine reward',()=>{
-  let s=walk(wood(),21,22,17,12);
+  let s=walk(wood(),21,22,17,12,12);
   s.expedition.potions=3;
   const healed=walk(s,7);
   assert.equal(healed.expedition.potions,3,'potion cap applies to shrine');
@@ -204,6 +251,7 @@ test('legacy forest saves without new fields remain accepted',()=>{
   assert.equal(opened.expedition.field.treasure,true);
   assert.equal(opened.expedition.field.wolf,undefined);
   const toPassage=E.act(opened,'field-step:12');
+  assert.equal(toPassage.expedition.field.pos,F.TREASURE);
   assert.equal(toPassage.expedition.field.secret,true,'old saves may discover newly added shortcut');
   assert.equal(toPassage.expedition.field.shrine,undefined);
 });

@@ -5,7 +5,7 @@
   'use strict';
   if(!root || !root.document) return;
   const F=root.CrownlessField;
-  const W=600, CELL=120;
+  const W=840, CELL=120;
   let previous=null, active=null;
   function random(seed){
     let n=seed>>>0;
@@ -21,7 +21,7 @@
     ctx.strokeStyle=color;ctx.lineWidth=width;
     ctx.lineJoin='round';ctx.lineCap='round';ctx.stroke();
   }
-  const center=id=>[(id%5+.5)*CELL,(Math.floor(id/5)+.5)*CELL];
+  const center=id=>{const [col,row]=F.coords(id);return [(col+.5)*CELL,(row+.5)*CELL];};
   function ground(ctx,secret){
     const g=ctx.createLinearGradient(0,0,W,W);
     g.addColorStop(0,'#233e38');g.addColorStop(.5,'#324f3b');g.addColorStop(1,'#101f25');
@@ -34,7 +34,10 @@
     // A winding, broad woodland trail rather than lines between squares.
     const trails=[
       [[60,540],[180,540],[300,540],[420,540],[540,540],[540,420],[540,300],[540,180],[540,60]],
-      [[180,540],[180,420]],[[420,540],[420,420],[420,300],[420,180]]
+      [[180,540],[180,420]],[[420,540],[420,420],[420,300],[420,180]],
+      [[540,540],[660,540],[780,540],[780,660],[780,780]],
+      [[540,540],[540,660],[660,660],[780,660]],
+      [[660,420],[660,540],[660,660]]
     ];
     if(secret) trails.push([[300,420],[300,300],[300,180]]);
     for(const track of trails){
@@ -93,7 +96,7 @@
   }
   function decorations(ctx,secret){
     const r=random(21670);
-    for(let id=0;id<25;id++){
+    for(let id=0;id<F.COUNT;id++){
       const [cx,cy]=center(id);
       const wall=F.WALLS.includes(id)||(id===F.SECRET&&!secret);
       if(wall){
@@ -122,7 +125,7 @@
       }
     }
   }
-  function landmarks(ctx,cache,tracks,treasure,wolfDefeated,secret,shrine,time){
+  function landmarks(ctx,cache,tracks,treasure,wolfDefeated,secret,shrine,glade,time){
     // Camp fire at the entrance: a tangible safe starting place.
     {
       const [x,y]=center(F.START);
@@ -250,6 +253,30 @@
         }
       }
     }
+    // A distant moss-covered stone ring rewards following the winding
+    // eastward trail. The wider forest is not only empty padding.
+    {
+      const [x,y]=center(F.GLADE);
+      ellipse(ctx,x,y+17,63,32,'#0c261eb2');
+      for(let k=0;k<7;k++){
+        const t=k*Math.PI*2/7;
+        const sx=x+40*Math.cos(t),sy=y+14*Math.sin(t);
+        ctx.save();ctx.translate(sx,sy);
+        ctx.rotate(Math.sin(t)*.18);
+        ctx.fillStyle='#66786a';
+        ctx.fillRect(-6,-18,13,26);
+        ctx.fillStyle='#8b9e87';
+        ctx.fillRect(-6,-18,13,4);
+        ctx.restore();
+      }
+      ellipse(ctx,x,y-7,20,9,'#486a53');
+      if(!glade){
+        const g=ctx.createRadialGradient(x,y-17,3,x,y-17,53);
+        g.addColorStop(0,'#d1ecb882');g.addColorStop(1,'#b0d5a900');
+        ellipse(ctx,x,y-17,53,50,g);
+        ellipse(ctx,x,y-16+Math.sin(time/360)*4,5,6,'#d9f1c3');
+      }
+    }
     // The wolf den is a physically distinct danger spot.
     {
       const [x,y]=center(F.DEN);
@@ -372,8 +399,10 @@
       ellipse(ctx,x,y,13+r()*35,4+r()*12,i%3===0?'#b8cdb813':'#8caaa812');
     }
     ctx.globalCompositeOperation='destination-out';
-    for(let i=0;i<25;i++){
-      if(!(seen&(1<<i)))continue;
+    // All forty-nine cells use the game's number-safe visibility check.
+    // Bitwise shifts would wrap at cell 32 and hide discoveries at the edge.
+    for(let i=0;i<F.COUNT;i++){
+      if(!F.visible({seen},i))continue;
       const [x,y]=center(i);
       const light=ctx.createRadialGradient(x,y,24,x,y,112);
       light.addColorStop(0,'#000000ff');
@@ -438,6 +467,7 @@
     const cache=section.dataset.fieldCache==='true',tracks=section.dataset.fieldTracks==='true';
     const treasure=section.dataset.fieldTreasure==='true',wolfDefeated=section.dataset.fieldWolf==='true';
     const secret=section.dataset.fieldSecret==='true',shrine=section.dataset.fieldShrine==='true';
+    const glade=section.dataset.fieldGlade==='true';
     const wolfStatus=F.wolfAwareness({pos,seen,cache,tracks,treasure,wolf:wolfDefeated,secret,shrine});
     const base=staticWorld(secret);
     if(!base)return;
@@ -446,7 +476,7 @@
     section.classList.add('world-painted');
     const worldspace=section.querySelector('.field-worldspace');
     const size=worldspace?.clientWidth||0;
-    const zoom=1.58;
+    const zoom=2.1;
     function camera(x,y){
       if(!worldspace||!size)return;
       // Once noticed, compose BOTH figures into the frame while the traveler
@@ -484,7 +514,7 @@
       const y=start[1]+(end[1]-start[1])*ease;
       camera(x,y);
       ctx.drawImage(base,0,0);
-      landmarks(ctx,cache,tracks,treasure,wolfDefeated,secret,shrine,time);
+      landmarks(ctx,cache,tracks,treasure,wolfDefeated,secret,shrine,glade,time);
       if(wolfStatus==='watching'||wolfStatus==='alert')wolf(ctx,time,wolfStatus==='alert');
       ctx.drawImage(mist,0,0);
       // Traversable destinations are deliberately not highlighted. Read the

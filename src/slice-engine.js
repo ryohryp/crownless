@@ -531,15 +531,24 @@
       if (x.place === 'wood' && x.depth === 1 && x.room === 0 && x.field
           && action.startsWith('field-step:')) {
         const to=Number(action.slice('field-step:'.length));
+        // First investigate the vine-covered rock barrier; the explorer does
+        // not walk through until the newly uncovered opening is tapped again.
+        const uncovered=F.uncover(x.field,to);
+        if(uncovered){
+          x.field=uncovered;
+          x.log=['揺れるツタを調べると、倒木の裏に本物の隠し道が開いた！ 奥から青白い光が漏れる。'];
+          return n;
+        }
         const field=F.move(x.field,to);
         if (!field) return s;
         const wolfBefore=F.wolfAwareness(x.field);
-        const secretOpened=to===F.SECRET && !x.field.secret;
         x.field=field;
         let discovered=false;
-        if(secretOpened){
+        if(to === F.GLADE && !field.glade){
           discovered=true;
-          x.log=['揺れるツタを押し分けると、木々の奥に隠し道が現れた！ 奥から青白い光が漏れている。'];
+          field.glade=true;
+          x.scrap=Math.min(1000,x.scrap+4);
+          x.log=['深い森の奥で、忘れられた石環を発見！ 苔の下から鉄片 +4。ここにも誰かが暮らしていた。'];
         } else if(to === F.SHRINE && !field.shrine){
           discovered=true;
           field.shrine=true;
