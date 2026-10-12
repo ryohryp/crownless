@@ -509,6 +509,77 @@ async function main() {
       } finally {await roleContext.close();}
     }
 
+    // Actual in-world exploration, not a decoration or a text-only action:
+    // tap a mysterious object in the landscape, receive a real risk/reward,
+    // then choose whether to leave alive with it. Both alternatives are
+    // separately exercised at phone viewport sizes.
+    for (const width of [360,390]) {
+      const discoverContext=await browser.newContext({
+        viewport:{width,height:width===360?800:844},isMobile:true,hasTouch:true
+      });
+      const discoverPage=await discoverContext.newPage();
+      const errors=[];
+      discoverPage.on('pageerror',e=>errors.push(e.message));
+      try {
+        await discoverPage.goto(url);
+        await discoverPage.locator('[data-action="mode"][data-value="demo"]').click();
+        await discoverPage.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
+        const findOne=discoverPage.locator('.expedition-world-scene [data-action="scout-cache"]');
+        const findOther=discoverPage.locator('.expedition-world-scene [data-action="scout-tracks"]');
+        assert.equal(await findOne.count(),1,'an actual root glint can be inspected');
+        assert.equal(await findOther.count(),1,'a distinct track can be inspected');
+        const hits=await discoverPage.evaluate(()=>{
+          return ['scout-cache','scout-tracks'].map(action=>{
+            const el=document.querySelector('.expedition-world-scene [data-action="'+action+'"]');
+            const r=el.getBoundingClientRect();
+            const hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
+            return {action,x:r.x,y:r.y,w:r.width,h:r.height,
+              tappable:hit===el||el.contains(hit),inside:r.x>=0&&r.y>=0&&r.right<=innerWidth&&r.bottom<=innerHeight};
+          });
+        });
+        assert(hits.every(x=>x.tappable&&x.inside&&x.h>=48),
+          'both discovery objects must be real visible tap targets: '+JSON.stringify(hits));
+        await discoverPage.screenshot({path:path.join(output,'discovery-unknown-'+width+'.png')});
+        await findOne.click();
+        assert.equal(await discoverPage.locator('.expedition-world-scene[data-discovery="cache"]').count(),1);
+        const after=await discoverPage.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+        assert.equal(after.expedition.scrap,3);
+        assert.equal(after.expedition.hp,27);
+        assert.equal(await discoverPage.locator('.world-discovery-sites button').count(),0,
+          'a first find is one-time, not a repeatable farming button');
+        await discoverPage.screenshot({path:path.join(output,'discovery-found-'+width+'.png')});
+        await discoverPage.reload();
+        assert.equal(await discoverPage.locator('.expedition-world-scene[data-discovery="cache"]').count(),1,
+          'revealed site remains remembered after reload');
+        await discoverPage.locator('.path-actions [data-action="return"]').click();
+        const earned=await discoverPage.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+        assert.equal(earned.scrap,3,'real scrap banked after deciding to return alive');
+        await discoverPage.screenshot({path:path.join(output,'discovery-return-'+width+'.png')});
+        assert.deepEqual(errors,[]);
+      } finally {await discoverContext.close();}
+
+      const tracksContext=await browser.newContext({
+        viewport:{width,height:width===360?800:844},isMobile:true,hasTouch:true
+      });
+      try {
+        const page=await tracksContext.newPage();
+        await page.goto(url);
+        await page.locator('[data-action="mode"][data-value="demo"]').click();
+        await page.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
+        await page.locator('.expedition-world-scene [data-action="scout-tracks"]').click();
+        const mark=await page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+        assert.equal(mark.expedition.discovery,'tracks');
+        assert.equal(mark.expedition.focus,3);
+        await page.locator('.path-actions [data-action="careful"]').click();
+        const pre=await page.evaluate(()=>{
+          const saved=JSON.parse(localStorage.getItem('crownless-expedition-v1-demo'));
+          const baseline=JSON.parse(JSON.stringify(saved));baseline.expedition.focus=0;
+          return window.CrownlessSlice.attackPreview(saved,'strike')-window.CrownlessSlice.attackPreview(baseline,'strike');
+        });
+        assert.equal(pre,3,'scouting tracks changes the actual next battle');
+      } finally {await tracksContext.close();}
+    }
+
     // Corrupt game saves must not be silently overwritten during rendering.
     const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const page = await context.newPage();
