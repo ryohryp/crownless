@@ -167,3 +167,97 @@
   border-radius:6px;text-decoration:none;text-align:center;
 }
 #game > .field-layout .field-choices .text-button:disabled {opacity:.48}
+
+
+/* Canvas world pilot: preserve accessible adjacent-step buttons, but paint one
+   continuous forest with no square grid or debug-style tile badges. All
+   selectors are gated on successful Canvas initialization for graceful fallback. */
+#game > .field-layout .forest-field.world-painted {
+  background:linear-gradient(180deg,#142522,#23392c 57%,#0c1f21);
+  border-color:#60715a;
+}
+#game > .field-layout .forest-field.world-painted .forest-field-header {
+  padding:5px 10px 8px;
+  border-left:3px solid #c6ac76;
+  background:linear-gradient(90deg,#0b201de6,#1532287a 84%,transparent);
+  border-radius:0 5px 5px 0;
+}
+#game > .field-layout .forest-field.world-painted .forest-field-header .kicker {
+  letter-spacing:.12em;color:#e5cc8f;font-weight:700;
+}
+#game > .field-layout .forest-field.world-painted .forest-field-header h2 {
+  font-size:20px;color:#f1dfb9;text-shadow:0 2px 7px #091814;
+}
+#game > .field-layout .forest-field.world-painted .forest-field-header small {
+  color:#d4dab7;
+}
+#game > .field-layout .forest-field.world-painted .field-terrain {
+  position:relative;gap:0;padding:0;
+  border:1px solid #53664c;
+  border-radius:9px;overflow:hidden;
+  background:none;
+  box-shadow:0 11px 35px #020d0baa,0 0 0 3px #bbab7652;
+}
+#game > .field-layout .forest-field.world-painted .forest-world-canvas {
+  position:absolute;inset:0;display:block;pointer-events:none;
+  width:100%;height:100%;z-index:0;
+}
+#game > .field-layout .forest-field.world-painted .field-cell {
+  display:grid;place-items:center;position:relative;z-index:1;
+  border:0!important;border-radius:0;box-shadow:none!important;
+  background:transparent!important;color:transparent!important;
+  text-shadow:none;font-size:0!important;opacity:1;
+  animation:none!important;min-height:0;
+}
+#game > .field-layout .forest-field.world-painted .field-hero,
+#game > .field-layout .forest-field.world-painted .field-cell > span {
+  display:none!important;
+}
+#game > .field-layout .forest-field.world-painted button.field-cell.can-step {
+  border:0!important;
+  background:radial-gradient(ellipse at center,#f4dd8a36,#dec67a12 46%,transparent 70%)!important;
+  cursor:pointer;touch-action:manipulation;
+}
+#game > .field-layout .forest-field.world-painted button.field-cell.can-step:active {
+  background:radial-gradient(ellipse at center,#f9e9af93,#fbdf8c38 55%,transparent 75%)!important;
+}
+#game > .field-layout .forest-field.world-painted button.field-cell.can-step:focus-visible {
+  outline:3px solid #ffdf91;outline-offset:-4px;
+  z-index:5;border-radius:6px;
+}
+#game > .field-layout .forest-field.world-painted .forest-field-footer {
+  justify-content:space-between;
+  padding:6px 9px;border-top:1px solid #72846a73;
+  background:#09201c75;
+}
+#game > .field-layout .forest-field.world-painted .forest-field-footer strong {
+  color:#f6dfa0;
+}
+#game > .field-layout .forest-field.world-painted .field-moment {
+  border-color:#bba67d;background:#1b312ad9;
+}
+@media(max-width:480px) {
+  #game > .field-layout:has(.world-painted) {
+    grid-template-rows:minmax(0,63dvh) minmax(0,1fr)!important;
+  }
+  #game > .field-layout .forest-field.world-painted {
+    padding:8px 7px 7px;
+  }
+  #game > .field-layout .forest-field.world-painted .field-terrain {
+    width:min(100%,calc(63dvh - 86px),390px);
+  }
+  #game > .field-layout .forest-field.world-painted .forest-field-header h2 {
+    font-size:18px;
+  }
+  #game > .field-layout .forest-field.world-painted .forest-field-header small {
+    font-size:11px;
+  }
+}
+@media(max-width:480px) and (max-height:700px){
+  #game > .field-layout:has(.world-painted) {
+    grid-template-rows:minmax(0,57dvh) minmax(0,1fr)!important;
+  }
+  #game > .field-layout .forest-field.world-painted .field-terrain {
+    width:min(100%,calc(57dvh - 75px),310px);
+  }
+}
