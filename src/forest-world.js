@@ -369,8 +369,13 @@
     const zoom=1.58;
     function camera(x,y){
       if(!worldspace||!size)return;
-      const targetX=size*.5-(x/W)*size*zoom;
-      const targetY=size*.5-(y/W)*size*zoom;
+      // Once noticed, compose BOTH figures into the frame while the traveler
+      // finishes the step. Do not let the wolf be clipped above the camera.
+      const [wolfX,wolfY]=center(F.DEN);
+      const focusX=wolfStatus==='alert'?(x+wolfX)*.5:x;
+      const focusY=wolfStatus==='alert'?(y+wolfY)*.5:y;
+      const targetX=size*.5-(focusX/W)*size*zoom;
+      const targetY=size*.5-(focusY/W)*size*zoom;
       const edge=size*(1-zoom);
       const shiftX=Math.max(edge,Math.min(0,targetX));
       const shiftY=Math.max(edge,Math.min(0,targetY));
