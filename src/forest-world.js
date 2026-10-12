@@ -291,6 +291,19 @@
     const base=staticWorld();
     if(!base)return;
     section.classList.add('world-painted');
+    const worldspace=section.querySelector('.field-worldspace');
+    const size=worldspace?.clientWidth||0;
+    const zoom=1.58;
+    function camera(x,y){
+      if(!worldspace||!size)return;
+      const targetX=size*.5-(x/W)*size*zoom;
+      const targetY=size*.5-(y/W)*size*zoom;
+      const edge=size*(1-zoom);
+      const shiftX=Math.max(edge,Math.min(0,targetX));
+      const shiftY=Math.max(edge,Math.min(0,targetY));
+      worldspace.style.transform='translate3d('+shiftX.toFixed(2)+'px,'+
+        shiftY.toFixed(2)+'px,0) scale('+zoom+')';
+    }
     const last=previous;
     previous=pos;
     const start=last!==null&&last!==pos&&F.adjacent(last,pos)?center(last):center(pos);
@@ -307,6 +320,7 @@
       const ease=1-Math.pow(1-t,3);
       const x=start[0]+(end[0]-start[0])*ease;
       const y=start[1]+(end[1]-start[1])*ease;
+      camera(x,y);
       ctx.drawImage(base,0,0);
       landmarks(ctx,cache,tracks,time);
       fog(ctx,seen,time);
