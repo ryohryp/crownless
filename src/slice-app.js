@@ -55,7 +55,16 @@
     const sceneTrail = journey ? `<div class="journey-scene-trail" role="group" aria-label="遠征の進行・${room+1} / 5">
       ${stages.map((name,i) => `<span class="journey-trail-stop ${i<room?'passed':i===room?'here':''}" ${i===room?'aria-current="step"':''}><span aria-hidden="true">${i<room?'✓':i===room?'◆':'·'}</span><small>${name}</small></span>`).join('')}
     </div>` : '';
-    return `<div class="scene${journey?' expedition-world-scene':''}" ${journey?`data-journey-room="${room}" data-journey-stage="${journey.stage}"`:''}>${A.scene(id, enemy, state.equipped,journey)}<span class="scene-top">${enemy ? 'HOLD YOUR GROUND' : journey ? 'THE ROAD BEYOND · 遠征中' : 'BEYOND THE MIST'}</span><div class="scene-top-actions">${tag ? `<span class="scene-tag">${tag}</span>` : ''}<button class="scene-settings" data-action="settings" aria-label="旅の設定と遊び方">⚙ 設定</button></div><div class="scene-caption"><p class="kicker">${subtitle}</p><h2>${title}</h2></div>${sceneTrail}</div>`;
+    const findable = journey && journey.depth === 1 && room === 0 && journey.stage === 'path';
+    const discovery = findable
+      ? journey.discovery === null
+        ? `<div class="world-discovery-sites" role="group" aria-label="景色の中の調べられる場所">
+            <button type="button" class="world-discovery world-discovery--cache" data-action="scout-cache" ${journey.hp <= 3 || journey.scrap > 997 ? 'disabled' : ''} aria-label="倒木の根元を調べる"><span aria-hidden="true">✧</span><small>根元の光</small></button>
+            <button type="button" class="world-discovery world-discovery--tracks" data-action="scout-tracks" ${journey.focus >= 3 ? 'disabled' : ''} aria-label="獣の大きな足跡を調べる"><span aria-hidden="true">⌁</span><small>大きな足跡</small></button>
+          </div>`
+        : `<div class="world-discovery-result" role="status"><strong>✦ ${journey.discovery === 'cache' ? '倒木の下から鉄片を見つけた' : '獣の足跡を読み取った'}</strong><small>${journey.discovery === 'cache' ? '鉄片 +3 / 体力 −3 · 生還すれば獲得' : '次の攻撃 +3 · 戦闘前の手がかり'}</small></div>`
+      : '';
+    return `<div class="scene${journey?' expedition-world-scene':''}" ${journey?`data-journey-room="${room}" data-journey-stage="${journey.stage}" data-discovery="${journey.discovery || 'none'}"`:''}>${A.scene(id, enemy, state.equipped,journey)}<span class="scene-top">${enemy ? 'HOLD YOUR GROUND' : journey ? 'THE ROAD BEYOND · 遠征中' : 'BEYOND THE MIST'}</span><div class="scene-top-actions">${tag ? `<span class="scene-tag">${tag}</span>` : ''}<button class="scene-settings" data-action="settings" aria-label="旅の設定と遊び方">⚙ 設定</button></div><div class="scene-caption"><p class="kicker">${subtitle}</p><h2>${title}</h2></div>${sceneTrail}${discovery}</div>`;
   }
   const logs = x => `<div class="combat-log" role="status" aria-live="polite">${x.log.map(v => `<p>${esc(v)}</p>`).join('')}</div>`;
   const materialList = m => Object.entries(E.MATERIALS).filter(([id]) => (m?.[id] || 0) > 0).map(([id,v]) => `${v.name} ${m[id]}`).join(' · ');
@@ -307,7 +316,12 @@
     const roadside = event && E.isRoadsideEvent(state, x);
     const title = clear ? (captured ? `⚑ ${siege.name}を制圧した！` : x.place === 'crypt' ? '灰の冠は、あなたの手に。' : '土地の主を越えた。') : roadside ? '朽ちた荷車が、道を塞ぐ。' : event ? (x.room === 1 ? '消えかけの灯り。' : '茨の奥に、銀の光。') : x.room === 4 ? 'この先に、主がいる。' : x.room === 0 ? '最初の足跡をたどる。' : '奥から、息づかい。';
     const detail = clear ? (captured ? '土地の主を倒した。ここで戦利品を持って帰れば、この名所にあなたの支配旗が立つ。さらに深層へ進んで倒れると、旗を確定できない。' : '手に入れたものを、焚き火へ。まだ余力があるなら、より危険な深層へ進むこともできる。') : roadside ? '荷台には乾いた薬草が残る。傍らの古い道標には、血を捧げた旅人の傷跡が刻まれている。' : event ? '息を整えるか、傷を引き受けて遺品を拾うか。引き返す道も、まだ残っている。' : x.room === 4 ? `この土地の主が奥を守っている。深層では、より多くの希少素材を持ち帰れる。` : '静かな道をたどるか、宝の気配を追うか。深く踏み込むほど、敵の読み方も変わる。';
-    const summary = clear ? (captured ? `⚑ ${siege.name}の主を撃破！ 次は「旗を立てて帰還」で支配を確定しよう。` : '戦利品を確定して帰るか、さらに深層へ踏み込むか。') : roadside ? '鉄片を薬草へ替えるか、体力を代価に次の一撃を研ぎ澄ますか。' : event ? '休息するか、傷を負って遺品を拾うか。' : x.room === 4 ? '土地の主へ挑む。生還できる余力を残そう。' : '静かな道をたどるか、宝の気配を追うか。';
+    const firstDiscovery = x.depth === 1 && x.room === 0 && !clear;
+    const summary = firstDiscovery && x.discovery === null
+      ? 'この霧の中に、何かがある。風景の光や足跡を直接触って調べよう。調べず先へ進むこともできる。'
+      : firstDiscovery && x.discovery
+        ? (x.discovery === 'cache' ? '手傷を負ったが鉄片を拾った。今すぐ帰って確定するか、さらに奥へ進むか。' : '獣の動きが読めた。次の攻撃に集中 +3。奥へ踏み込むか、退くか。')
+        : clear ? (captured ? `⚑ ${siege.name}の主を撃破！ 次は「旗を立てて帰還」で支配を確定しよう。` : '戦利品を確定して帰るか、さらに深層へ踏み込むか。') : roadside ? '鉄片を薬草へ替えるか、体力を代価に次の一撃を研ぎ澄ますか。' : event ? '休息するか、傷を負って遺品を拾うか。' : x.room === 4 ? '土地の主へ挑む。生還できる余力を残そう。' : '静かな道をたどるか、宝の気配を追うか。';
     const bellSignal = x.room === 0 && x.focus === 3 && x.log.some(line => line.startsWith('修復された鐘が鳴る'))
       ? '<p class="notice bell-signal-notice" role="status">🔔 修復された鐘が鳴る。ユノの合図で次の一撃に集中 +3。</p>' : '';
     const foundDesign = x.foundDesign ? '<p class="notice" role="status">✦ 「返し棘の盾」の設計図を背嚢に入れた。ここで生還すれば鍛冶師に製法が伝わる。敗北すると失う。</p>' : '';
@@ -563,6 +577,10 @@
       } else {
         notice = '遠征できません。冒険者の状態と、土地の解放条件を確認しよう。';
       }
+    }
+    else if (action === 'scout-cache' || action === 'scout-tracks') {
+      state = E.act(state,action);
+      if (state !== before) notice = '';
     }
     else if (action === 'auto-fight') { state = E.resolveFight(state); }
     else if (action === 'character') { state = E.switchCharacter(state,Number(value)); notice = state !== before ? `${state.characters[state.activeCharacter].name}に切り替えた。` : ''; tab='gear'; }
