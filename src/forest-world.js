@@ -121,7 +121,7 @@
       }
     }
   }
-  function landmarks(ctx,cache,tracks,treasure,time){
+  function landmarks(ctx,cache,tracks,treasure,wolfDefeated,time){
     // Camp fire at the entrance: a tangible safe starting place.
     {
       const [x,y]=center(F.START);
@@ -202,8 +202,14 @@
       ctx.quadraticCurveTo(x+41,y-51,x+42,y+15);ctx.closePath();
       ctx.fillStyle='#58645a';ctx.fill();
       ellipse(ctx,x,y+15,29,33,'#0a1519');
-      ellipse(ctx,x-11,y+8,3,2,'#d57c58');
-      ellipse(ctx,x+12,y+8,3,2,'#d57c58');
+      if(!wolfDefeated){
+        ellipse(ctx,x-11,y+8,3,2,'#d57c58');
+        ellipse(ctx,x+12,y+8,3,2,'#d57c58');
+      }else{
+        // No glowing eyes or living monster silhouette after the one battle.
+        stone(ctx,x-12,y+30,8,random(900));
+        ellipse(ctx,x+17,y+27,6,2,'#78836b77');
+      }
     }
     // An arch gate invites curiosity, beyond the fog.
     {
@@ -430,7 +436,7 @@
       const y=start[1]+(end[1]-start[1])*ease;
       camera(x,y);
       ctx.drawImage(base,0,0);
-      landmarks(ctx,cache,tracks,treasure,time);
+      landmarks(ctx,cache,tracks,treasure,wolfDefeated,time);
       if(wolfStatus==='watching'||wolfStatus==='alert')wolf(ctx,time,wolfStatus==='alert');
       ctx.drawImage(mist,0,0);
       steps(ctx,pos,seen,time);
