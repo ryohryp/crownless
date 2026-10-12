@@ -190,6 +190,73 @@
       ellipse(ctx,x,y-8,42,54,light);
     }
   }
+  // The wolf is part of the world, not a floating button or text event.
+  // It crouches in the den, sniffs, and visibly turns toward the hero when
+  // the player enters an adjacent cell. The forest state owns the alert.
+  function wolf(ctx,time,alert){
+    const [cx,cy]=center(F.DEN);
+    const sway=Math.sin(time/280),breath=Math.sin(time/390);
+    const x=cx+(alert?8:2)+sway*(alert?2:4);
+    const y=cy+25+(alert?4:0)+breath*1.5;
+    ctx.save();ctx.translate(x,y);
+    const facing=alert?1:-1;
+    ctx.scale(facing,1);
+    if(alert){
+      const g=ctx.createRadialGradient(-4,0,4,-4,0,64);
+      g.addColorStop(0,'#e688484b');g.addColorStop(1,'#d8672500');
+      ellipse(ctx,-4,-7,60,54,g);
+      ellipse(ctx,-3,22,42,10,'#140f1090');
+    } else ellipse(ctx,-3,23,35,8,'#081417a3');
+    // Walking paws, shoulders and furry back have an unmistakably canine outline.
+    ctx.fillStyle='#202d2e';
+    for(const foot of [[-27,3],[-12,8],[13,8],[22,3]]){
+      ctx.fillRect(foot[0],foot[1],8,24);
+      ellipse(ctx,foot[0]+4,foot[1]+24,8,3,'#65726c');
+    }
+    // Wagging tail becomes stiff as soon as the wolf notices the traveler.
+    ctx.save();ctx.translate(-28,-17);
+    ctx.rotate((alert?-.55:-.95)+(!alert?sway*.17:0));
+    ctx.beginPath();ctx.moveTo(0,0);ctx.lineTo(-22,-15);ctx.lineTo(-30,-26);
+    ctx.lineTo(-34,-9);ctx.lineTo(-17,-2);ctx.closePath();
+    ctx.fillStyle='#596967';ctx.fill();ctx.restore();
+    ellipse(ctx,-6,-15,31,21,'#4a5856');
+    ellipse(ctx,-1,-22,23,13,'#6c756b');
+    ellipse(ctx,12,-11,17,18,'#5b6862');
+    // Head is forward and raised when alerted; visible eyes face the player.
+    ctx.save();ctx.translate(21,alert?-23:-17);
+    ctx.rotate(alert?.08:-.12);
+    ctx.beginPath();
+    ctx.moveTo(-17,-13);ctx.lineTo(-18,-34);ctx.lineTo(-4,-25);
+    ctx.lineTo(4,-34);ctx.lineTo(16,-13);ctx.closePath();
+    ctx.fillStyle='#596967';ctx.fill();
+    ctx.beginPath();ctx.moveTo(-11,-15);ctx.lineTo(-11,-25);ctx.lineTo(-2,-19);
+    ctx.lineTo(6,-26);ctx.lineTo(10,-14);ctx.closePath();
+    ctx.fillStyle='#ae9c80';ctx.fill();
+    ellipse(ctx,0,-8,19,17,'#77827a');
+    ctx.beginPath();ctx.moveTo(7,-8);ctx.lineTo(30,0);ctx.lineTo(15,8);
+    ctx.lineTo(4,6);ctx.closePath();
+    ctx.fillStyle='#c4bb9f';ctx.fill();
+    ellipse(ctx,28,0,5,4,'#202726');
+    ellipse(ctx,8,-10,4.5,3.2,alert?'#ff9f55':'#f2d2a0');
+    ellipse(ctx,8,-10,2,2,'#211b1c');
+    if(alert){
+      line(ctx,[[12,8],[19,10],[25,6]],1.4,'#e0c7a4');
+      // Breathing wisps around its muzzle, animated separately from the hero.
+      ellipse(ctx,34+Math.sin(time/430)*4,0,5,3,'#d7e9ca55');
+    }
+    ctx.restore();ctx.restore();
+    if(alert){
+      const bob=3*Math.sin(time/260);
+      // This in-world exclamation follows the creature and stays under fog.
+      ctx.save();
+      ctx.fillStyle='#2b2317ef';
+      ctx.beginPath();ctx.arc(cx+23,cy-49+bob,13,0,Math.PI*2);ctx.fill();
+      ctx.lineWidth=2;ctx.strokeStyle='#f0c37c';ctx.stroke();
+      ctx.font='bold 24px sans-serif';ctx.textAlign='center';
+      ctx.fillStyle='#ffe1a7';ctx.fillText('!',cx+23,cy-41+bob);
+      ctx.restore();
+    }
+  }
   function fogLayer(seen){
     // Fog is a single continuous veil. Punch overlapping SOFT circles around
     // what the traveler has seen; never expose grid-cell boundaries.
@@ -291,6 +358,7 @@
     const pos=Number(section.dataset.fieldPos),seen=Number(section.dataset.fieldSeen);
     if(!F.valid({pos,seen,cache:section.dataset.fieldCache==='true',tracks:section.dataset.fieldTracks==='true'}))return;
     const cache=section.dataset.fieldCache==='true',tracks=section.dataset.fieldTracks==='true';
+    const wolfStatus=F.wolfAwareness({pos,seen,cache,tracks});
     const base=staticWorld();
     if(!base)return;
     const mist=fogLayer(seen);
@@ -301,8 +369,13 @@
     const zoom=1.58;
     function camera(x,y){
       if(!worldspace||!size)return;
-      const targetX=size*.5-(x/W)*size*zoom;
-      const targetY=size*.5-(y/W)*size*zoom;
+      // Once noticed, compose BOTH figures into the frame while the traveler
+      // finishes the step. Do not let the wolf be clipped above the camera.
+      const [wolfX,wolfY]=center(F.DEN);
+      const focusX=wolfStatus==='alert'?(x+wolfX)*.5:x;
+      const focusY=wolfStatus==='alert'?(y+wolfY)*.5:y;
+      const targetX=size*.5-(focusX/W)*size*zoom;
+      const targetY=size*.5-(focusY/W)*size*zoom;
       const edge=size*(1-zoom);
       const shiftX=Math.max(edge,Math.min(0,targetX));
       const shiftY=Math.max(edge,Math.min(0,targetY));
@@ -328,6 +401,7 @@
       camera(x,y);
       ctx.drawImage(base,0,0);
       landmarks(ctx,cache,tracks,time);
+      if(wolfStatus!=='hidden')wolf(ctx,time,wolfStatus==='alert');
       ctx.drawImage(mist,0,0);
       steps(ctx,pos,seen,time);
       hero(ctx,x,y,time,t<1);

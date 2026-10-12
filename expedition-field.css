@@ -275,3 +275,23 @@
 #game > .field-layout .forest-field.world-painted .field-worldspace {
   will-change:transform;
 }
+
+
+/* In-world sighting indicator, visible only while the wolf can see the player.
+   It must not steal movement taps or become a new choice-menu overlay. */
+#game > .field-layout .forest-wolf-warning {
+  position:absolute;top:69px;right:12px;left:12px;z-index:6;
+  padding:9px 11px;border:1px solid #f4bb75;border-left:4px solid #e99c50;
+  color:#fff1d3;background:linear-gradient(90deg,#4b2b22f0,#231c1bd9);
+  border-radius:4px;box-shadow:0 3px 15px #07161599;
+  text-align:center;font-size:12px;font-weight:700;letter-spacing:.015em;
+  pointer-events:none;
+}
+#game > .field-layout .forest-field[data-wolf-state="alert"] .forest-field-header {
+  border-left-color:#d99059;
+}
+@media(max-width:480px){
+  #game > .field-layout .forest-wolf-warning {
+    top:65px;left:8px;right:8px;padding:7px 7px;font-size:11px;
+  }
+}

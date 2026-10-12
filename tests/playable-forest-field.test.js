@@ -56,6 +56,31 @@ test('tracks help in combat and a dangerous den is a real risky encounter',()=>{
   assert.equal(E.parse(E.serialize(inFight)).expedition.field.tracks,true,'battle save remembers explored geography');
 });
 
+test('wolf reveals itself nearby and player can either engage or escape its den',()=>{
+  const start=wood();
+  assert.equal(F.wolfAwareness(start.expedition.field),'hidden','do not expose secret den initially');
+  const tracks=walk(start,21,22,23,18);
+  assert.equal(F.wolfAwareness(tracks.expedition.field),'hidden');
+  const sighted=walk(tracks,13);
+  assert.equal(F.wolfAwareness(sighted.expedition.field),'alert');
+  assert.match(sighted.expedition.log[0],/狼が現れた|狼.*気づ/);
+  assert.equal(sighted.expedition.stage,'path','sighting must not auto-start battle');
+  assert.equal(E.parse(E.serialize(sighted)).expedition.field.pos,13,
+    'warning and character position survive reload');
+  const fought=walk(sighted,8);
+  assert.equal(fought.expedition.stage,'fight');
+  assert.equal(fought.expedition.enemy.risky,true,'entering the den deliberately starts a stronger encounter');
+  assert.match(fought.expedition.log[0],/狼/);
+  const escaped=walk(sighted,14);
+  assert.equal(escaped.expedition.stage,'path','stepping away must not trigger combat');
+  assert.equal(F.wolfAwareness(escaped.expedition.field),'watching');
+  assert.match(escaped.expedition.log[0],/狼の視線を振り切った/);
+  const around=walk(escaped,9,4);
+  assert.equal(around.expedition.stage,'fight','the stone gate still uses its existing separate encounter');
+  assert.equal(around.expedition.enemy.risky,false,'bypassing the wolf avoids the den bonus risk');
+  assert.equal(around.expedition.field.pos,F.EXIT);
+});
+
 test('careful path around the den opens the same real combat system',()=>{
   const s=walk(wood(),21,22,23,24,19,14,9,4);
   assert.equal(s.expedition.stage,'fight');
