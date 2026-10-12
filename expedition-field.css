@@ -147,3 +147,23 @@
   #game > .field-layout .forest-field-header small {font-size:10px}
   #game > .field-layout .forest-field-footer {font-size:9px}
 }
+
+/* QA screenshots: undiscovered walls must stay concealed. Tree stripes
+   appeared through fog because the general .wall rule followed .veiled. */
+#game > .field-layout .field-cell.veiled.wall {
+  color:transparent;border-color:#182a26aa;
+  background:radial-gradient(ellipse at 50% 50%,#536d61a0,#1b322cbf 75%);
+  box-shadow:inset 0 0 18px #b7cfaf20;
+}
+/* Safe retreat is never a nearly invisible secondary control. */
+#game > .field-layout .field-choices .secondary {
+  background:#e2c28a;color:#182e27;border:1px solid #f5dfad;
+  border-radius:6px;box-shadow:0 2px 0 #081c17;
+}
+#game > .field-layout .field-choices .secondary strong,
+#game > .field-layout .field-choices .secondary small {color:#182e27}
+#game > .field-layout .field-choices .text-button {
+  background:#29463d;color:#ecdabc;border:1px solid #819779;
+  border-radius:6px;text-decoration:none;text-align:center;
+}
+#game > .field-layout .field-choices .text-button:disabled {opacity:.48}
