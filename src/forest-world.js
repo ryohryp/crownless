@@ -464,7 +464,11 @@
       // finishes the step. Do not let the wolf be clipped above the camera.
       const [wolfX,wolfY]=center(F.DEN);
       const focusX=wolfStatus==='alert'?(x+wolfX)*.5:x;
-      const focusY=wolfStatus==='alert'?(y+wolfY)*.5:y;
+      // Reveal the shrine as an actual new vista when the hidden passage
+      // opens, framing both the traveler and the blue stone above the vines.
+      const shrineVista=secret&&!shrine&&pos===F.SECRET;
+      const focusY=wolfStatus==='alert'?(y+wolfY)*.5:
+        shrineVista?(y+center(F.SHRINE)[1])*.5:y;
       const targetX=size*.5-(focusX/W)*size*zoom;
       const targetY=size*.5-(focusY/W)*size*zoom;
       const edge=size*(1-zoom);
