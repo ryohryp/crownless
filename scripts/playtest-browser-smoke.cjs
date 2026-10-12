@@ -580,6 +580,74 @@ async function main() {
       } finally {await context.close();}
     }
 
+    // A wolf is visible before combat, reacts to proximity, and presents a
+    // real route choice: engage the den or turn away and bypass it.
+    for(const width of [360,390]){
+      const context=await browser.newContext({viewport:{width,height:width===360?800:844},isMobile:true,hasTouch:true});
+      const page=await context.newPage();
+      const errors=[];page.on('pageerror',e=>errors.push(e.message));
+      const saved=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+      try{
+        await page.goto(url);
+        await page.locator('[data-action="mode"][data-value="demo"]').click();
+        await page.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
+        assert.equal(await page.locator('.forest-field[data-wolf-state="hidden"]').count(),1,
+          'wolf must not appear through an unexplored fog-of-war region');
+        assert.equal(await page.locator('.forest-wolf-warning').count(),0);
+        for(const id of [21,22,23,18,13]){
+          await page.locator('.forest-field [data-action="field-step"][data-value="'+id+'"]').click();
+        }
+        assert.equal(await page.locator('.forest-field[data-wolf-state="alert"]').count(),1,
+          'the wolf must become visible and alert when adjacent');
+        const warning=page.locator('.forest-wolf-warning');
+        assert.match(await warning.innerText(),/狼に気づかれた/);
+        assert.equal(await warning.isVisible(),true,'not just a hidden accessibility state');
+        const warningState=await warning.evaluate(el=>{
+          const scene=document.querySelector('.forest-field');
+          const r=el.getBoundingClientRect();
+          return {pointerEvents:getComputedStyle(el).pointerEvents,
+            bottom:r.bottom,sceneBottom:scene.getBoundingClientRect().bottom};
+        });
+        assert.equal(warningState.pointerEvents,'none','wolf warning cannot obstruct movement taps');
+        assert(warningState.bottom<warningState.sceneBottom,
+          'alert belongs inside the scene, not over the retreat button');
+        assert.equal((await saved()).expedition.stage,'path',
+          'wolf seeing the hero cannot force a combat');
+        await page.screenshot({path:path.join(output,'forest-wolf-spotted-'+width+'.png')});
+        await page.reload();
+        assert.equal(await page.locator('.forest-field[data-wolf-state="alert"]').count(),1,
+          'wolf detection must survive a saved expedition reload');
+        await page.locator('.forest-field [data-action="field-step"][data-value="8"]').click();
+        const fought=await saved();
+        assert.equal(fought.expedition.stage,'fight');
+        assert.equal(fought.expedition.enemy.risky,true,'den is the deliberately risky fight');
+        await page.screenshot({path:path.join(output,'forest-wolf-engaged-'+width+'.png')});
+
+        // New independent expedition: see the wolf, back away, take the gate.
+        const escapeContext=await browser.newContext({viewport:{width,height:width===360?800:844},isMobile:true,hasTouch:true});
+        const escape=await escapeContext.newPage();
+        try{
+          await escape.goto(url);
+          await escape.locator('[data-action="mode"][data-value="demo"]').click();
+          await escape.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
+          for(const id of [21,22,23,18,13,14]){
+            await escape.locator('.forest-field [data-action="field-step"][data-value="'+id+'"]').click();
+          }
+          const slipped=await escape.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+          assert.equal(slipped.expedition.stage,'path');
+          assert.equal(await escape.locator('.forest-field[data-wolf-state="watching"]').count(),1,
+            'the wolf stays behind while the player returns to safety');
+          assert.match(slipped.expedition.log[0],/狼の視線を振り切った/);
+          await escape.screenshot({path:path.join(output,'forest-wolf-bypassed-'+width+'.png')});
+          for(const id of [9,4])await escape.locator('.forest-field [data-action="field-step"][data-value="'+id+'"]').click();
+          const passed=await escape.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+          assert.equal(passed.expedition.stage,'fight','the later stone gate still uses existing combat');
+          assert.equal(passed.expedition.enemy.risky,false,'the dangerous wolf fight was avoided');
+        }finally{await escapeContext.close();}
+        assert.deepEqual(errors,[],'wolf encounter/retreat must not throw browser exceptions');
+      }finally{await context.close();}
+    }
+
     // Corrupt game saves must not be silently overwritten during rendering.
     const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const page = await context.newPage();
