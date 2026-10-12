@@ -12,7 +12,7 @@
     TREASURE=17, SHRINE=7, SECRET=12, GLADE=48;
   // Dense, actually IMPASSABLE forest around the ordinary winding trails.
   // Shrine 7 is additionally enclosed by rock and reachable ONLY from 12.
-  const WALLS=Object.freeze([0,1,2,3,6,11,25,27,29,30,35,36,37,38,39,40,46]);
+  const WALLS=Object.freeze([0,1,2,3,6,11,25,27,29,30,35,36,37,38,46]);
   const MAX_SEEN=2**COUNT-1;
   const inBounds=n=>Number.isInteger(n)&&n>=0&&n<COUNT;
   const coords=n=>{
