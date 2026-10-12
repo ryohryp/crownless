@@ -74,10 +74,10 @@
       return `<span class="${classes}" aria-label="${label}">${icon}</span>`;
     }).join('');
     return `<section class="forest-field" data-field-pos="${field.pos}" data-field-seen="${field.seen}" data-field-cache="${field.cache}" data-field-tracks="${field.tracks}" data-field-treasure="${Boolean(field.treasure)}" data-field-wolf="${Boolean(field.wolf)}" data-field-secret="${Boolean(field.secret)}" data-field-shrine="${Boolean(field.shrine)}" data-wolf-state="${wolfStatus}" aria-label="探索できる森のフィールド">
-      <div class="forest-field-header"><span class="kicker">THE UNCHARTED WOOD · 霧の森</span><h2>${esc(title)}</h2>${wolfStatus==='alert'?'': '<small>森の霧を抜け、道と危険を自分の足で見つけよう。</small>'}</div>
+      <div class="forest-field-header"><span class="kicker">THE UNCHARTED WOOD · 霧の森</span><h2>${esc(title)}</h2>${wolfStatus==='alert'?'': '<small>行きたい方向の地面をタップして歩こう。</small>'}</div>
       ${wolfStatus==='alert' ? '<div class="forest-wolf-warning" role="status">⚠ 狼に気づかれた · 巣穴へ進むと戦闘</div>' : ''}
       <div class="field-terrain" role="group" aria-label="霧の森を歩く"><div class="field-worldspace"><canvas class="forest-world-canvas" width="600" height="600" aria-hidden="true"></canvas>${cells}</div></div>
-      <div class="forest-field-footer"><span>♧ 深い森</span><strong>✦ 宝箱 ${field.treasure?'開封済':'未発見'}</strong><span>${field.shrine?'祠の加護':'森の秘密'} · 石門で生還</span></div>
+      <div class="forest-field-footer"><span>♧ 深い森</span><strong>${field.treasure?'✦ 宝箱を発見':'霧の森を探索中'}</strong><span>${field.shrine?'祠の加護':field.secret?'隠し道を発見':'霧の石門へ'}</span></div>
     </section>`;
   }
   function fieldDecision(x){
