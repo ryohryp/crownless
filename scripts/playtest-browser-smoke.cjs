@@ -129,6 +129,12 @@ async function main() {
         assert.equal(await page.locator('.forest-field .field-cell').count(),25,'five by five terrain must render');
         assert((await page.locator('.forest-field .field-cell.veiled').count())>14,
           'most of the land must actually be hidden at the beginning');
+        const fogObscuresWall=await page.evaluate(()=>{
+          const blocked=document.querySelector('.forest-field .field-cell.veiled.wall');
+          const blank=document.querySelector('.forest-field .field-cell.veiled.trail');
+          return blocked&&blank&&getComputedStyle(blocked).backgroundImage===getComputedStyle(blank).backgroundImage;
+        });
+        assert.equal(fogObscuresWall,true,'undiscovered obstacles must not be revealed through fog');
         assert.equal(await world.getAttribute('data-field-pos'),'20');
         const startingPosition='20';
         const journeyFrame=await page.evaluate(()=>{
