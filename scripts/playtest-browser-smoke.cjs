@@ -222,6 +222,8 @@ async function main() {
         await page.locator('[data-action="auto-fight"]').click();
         assert.equal(await page.locator('.forest-field[data-field-wolf="true"]').count(),1,
           'after the only wolf battle, hero returns to the SAME forest, with wolf gone');
+        assert.match(await page.locator('.field-moment').innerText(),/狼は倒れた/,
+          'forest exploration success must be explained before the auto-combat statistics');
         const afterFirstBattle = await page.evaluate(() => JSON.parse(localStorage.getItem("crownless-expedition-v1-demo")));
         assert.equal(afterFirstBattle.expedition?.room,0,'wolf victory does not start a five-fight corridor');
         assert.equal(afterFirstBattle.expedition?.field.pos,8,'hero resumes exactly where the fight happened');
