@@ -125,3 +125,62 @@
   #game > .expedition-layout:not(.battle-layout) .journey-scene-trail{bottom:6px}
   #game > .expedition-layout:not(.battle-layout) .journey-trail-stop{gap:2px}
 }
+
+/* One small world interaction. The environment is the first action: look at
+   a clue, uncover a real reward/advantage, then decide whether to continue. */
+#game > .expedition-layout:not(.battle-layout) .expedition-world-scene .world-discovery-sites {
+  position:absolute;inset:0;z-index:4;pointer-events:none;
+}
+#game > .expedition-layout:not(.battle-layout) .expedition-world-scene .world-discovery {
+  pointer-events:auto;position:absolute;top:34%;width:105px;min-height:72px;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:3px;padding:7px 6px;border-radius:50% 50% 35% 35%;
+  border:1px solid #e9ca81cc;background:#122925b3;color:#f8e5ae;
+  cursor:pointer;box-shadow:0 0 0 4px #cfad4f35,0 0 27px #f1cb777d;
+}
+#game > .expedition-layout:not(.battle-layout) .world-discovery--cache {left:12%;top:33%}
+#game > .expedition-layout:not(.battle-layout) .world-discovery--tracks {right:6%;top:37%}
+#game > .expedition-layout:not(.battle-layout) .world-discovery span {
+  font:700 28px/1 Georgia,serif;text-shadow:0 1px 11px #f7ca66;
+}
+#game > .expedition-layout:not(.battle-layout) .world-discovery small {
+  font:700 11px/1.25 "Yu Gothic",sans-serif;color:#f9eac8;
+  white-space:nowrap;
+}
+#game > .expedition-layout:not(.battle-layout) .world-discovery:focus-visible {
+  outline:3px solid #fff3be;outline-offset:5px;
+}
+#game > .expedition-layout:not(.battle-layout) .world-discovery:not(:disabled):active {
+  transform:scale(.96);background:#5a462d;
+}
+#game > .expedition-layout:not(.battle-layout) .world-discovery:disabled {
+  filter:grayscale(1);opacity:.35;cursor:not-allowed;box-shadow:none;
+}
+#game > .expedition-layout:not(.battle-layout) .world-discovery-result {
+  position:absolute;z-index:4;top:38%;left:50%;transform:translateX(-50%);
+  width:max-content;max-width:calc(100% - 24px);padding:8px 13px;
+  border:1px solid #dfbb6e;border-radius:6px;
+  color:#fff2c4;background:#182c25e6;box-shadow:0 0 24px #deb56d65;
+  text-align:center;pointer-events:none;
+}
+#game > .expedition-layout:not(.battle-layout) .world-discovery-result strong,
+#game > .expedition-layout:not(.battle-layout) .world-discovery-result small {
+  display:block;line-height:1.5;
+}
+#game > .expedition-layout:not(.battle-layout) .world-discovery-result strong {font-size:12px}
+#game > .expedition-layout:not(.battle-layout) .world-discovery-result small {font-size:10px}
+@media(max-width:480px) {
+  #game > .expedition-layout:not(.battle-layout) .world-discovery--cache {left:7%;top:33%}
+  #game > .expedition-layout:not(.battle-layout) .world-discovery--tracks {right:5%;top:33%}
+  #game > .expedition-layout:not(.battle-layout) .expedition-world-scene .world-discovery {
+    width:92px;min-height:64px;
+  }
+  #game > .expedition-layout:not(.battle-layout) .world-discovery-result {top:32%}
+}
+@media(max-width:480px) and (max-height:690px){
+  #game > .expedition-layout:not(.battle-layout) .world-discovery--cache,
+  #game > .expedition-layout:not(.battle-layout) .world-discovery--tracks {top:28%}
+  #game > .expedition-layout:not(.battle-layout) .expedition-world-scene .world-discovery {
+    min-height:52px;
+  }
+}
