@@ -22,7 +22,7 @@
     ctx.lineJoin='round';ctx.lineCap='round';ctx.stroke();
   }
   const center=id=>[(id%5+.5)*CELL,(Math.floor(id/5)+.5)*CELL];
-  function ground(ctx){
+  function ground(ctx,secret){
     const g=ctx.createLinearGradient(0,0,W,W);
     g.addColorStop(0,'#233e38');g.addColorStop(.5,'#324f3b');g.addColorStop(1,'#101f25');
     ctx.fillStyle=g;ctx.fillRect(0,0,W,W);
@@ -36,6 +36,7 @@
       [[60,540],[180,540],[300,540],[420,540],[540,540],[540,420],[540,300],[540,180],[540,60]],
       [[180,540],[180,420]],[[420,540],[420,420],[420,300],[420,180]]
     ];
+    if(secret) trails.push([[300,420],[300,300],[300,180]]);
     for(const track of trails){
       line(ctx,track,80,'#091b1d66');
       line(ctx,track,64,'#736c4e63');
@@ -90,11 +91,11 @@
     line(ctx,[[-size*.29,-size*.49],[0,-size*.12],[size*.55,-size*.06]],1.3,'#a9a88b66');
     ctx.restore();
   }
-  function decorations(ctx){
+  function decorations(ctx,secret){
     const r=random(21670);
     for(let id=0;id<25;id++){
       const [cx,cy]=center(id);
-      const wall=F.WALLS.includes(id);
+      const wall=F.WALLS.includes(id)||(id===F.SECRET&&!secret);
       if(wall){
         for(let k=0;k<5;k++){
           const xx=cx+(r()-.5)*94,yy=cy+(r()-.5)*91;
@@ -121,7 +122,7 @@
       }
     }
   }
-  function landmarks(ctx,cache,tracks,treasure,wolfDefeated,time){
+  function landmarks(ctx,cache,tracks,treasure,wolfDefeated,secret,shrine,time){
     // Camp fire at the entrance: a tangible safe starting place.
     {
       const [x,y]=center(F.START);
@@ -192,6 +193,62 @@
         ellipse(ctx,0,-31-wave*6,3+wave*2,3+wave*2,'#fff5c1');
       }
       ctx.restore();
+    }
+    // Tangled vines masquerade as an impenetrable wall. Once stepped into,
+    // the brambles split and the traversable shortcut stays physically open.
+    {
+      const [x,y]=center(F.SECRET);
+      if(!secret){
+        const sway=Math.sin(time/440)*4;
+        ellipse(ctx,x,y+20,51,24,'#0b241db8');
+        for(let k=0;k<6;k++){
+          const px=x+(k-2.5)*17;
+          const py=y+((k%2)*10)-7;
+          ellipse(ctx,px+sway*(k%2?-.6:.6),py,22,28,k%2?'#224b36':'#28523c');
+          ellipse(ctx,px+sway*(k%2?-.6:.6)-5,py-12,13,8,'#4f715075');
+          line(ctx,[[px-9,py+16],[px+sway,py+1],[px+8,py-24]],3,'#6e7249c9');
+        }
+        // Faint light leaks through the moving branches, not a square marker.
+        const g=ctx.createRadialGradient(x,y-10,1,x,y-10,35);
+        g.addColorStop(0,'#b4e4c181');g.addColorStop(1,'#8bc8ad00');
+        ellipse(ctx,x,y-11,38,40,g);
+      } else {
+        ellipse(ctx,x,y+9,33,19,'#6d7658a6');
+        for(const side of [-1,1]){
+          ellipse(ctx,x+side*45,y-2,24,40,'#224c38');
+          ellipse(ctx,x+side*34,y-30,26,24,'#315d43');
+          line(ctx,[[x+side*35,y-30],[x+side*27,y+1]],4,'#8a875bb0');
+        }
+        for(let k=0;k<4;k++)ellipse(ctx,x+(k-1.5)*9,y-14+(k%2)*15,3,5,'#a6ba8c73');
+      }
+    }
+    // An ancient resting shrine: bright cyan while unclaimed, unlit stone
+    // afterward. It is found by walking to it, never by opening a text menu.
+    {
+      const [x,y]=center(F.SHRINE);
+      ellipse(ctx,x,y+27,48,19,'#081819a8');
+      ctx.fillStyle='#617265';ctx.fillRect(x-32,y-20,13,45);
+      ctx.fillRect(x+20,y-20,13,45);
+      ctx.fillStyle='#8a9984';ctx.fillRect(x-36,y-30,72,15);
+      ellipse(ctx,x,y+16,26,12,'#6c796c');
+      ctx.fillStyle='#465a50';ctx.fillRect(x-20,y-16,41,33);
+      ctx.fillStyle='#9bac93';ctx.fillRect(x-16,y-15,32,5);
+      ellipse(ctx,x-21,y-24,13,8,'#497a50');
+      ellipse(ctx,x+23,y-24,14,9,'#376e4b');
+      const light=shrine?'#566f6966':'#bbf6e6';
+      if(!shrine){
+        const aura=ctx.createRadialGradient(x,y-20,2,x,y-20,53);
+        aura.addColorStop(0,'#b6f5e5bc');aura.addColorStop(1,'#57c9b500');
+        ellipse(ctx,x,y-19,51,54,aura);
+      }
+      line(ctx,[[x-9,y],[x,y+7],[x+9,y],[x,y-10],[x-9,y]],3,light);
+      ellipse(ctx,x,y,shrine?3:5,shrine?3:5,light);
+      if(!shrine){
+        const bob=Math.sin(time/480)*5;
+        for(const [dx,dy] of [[-22,-33],[23,-40],[9,-55]]){
+          ellipse(ctx,x+dx,y+dy+bob,3,4,'#c4fcf0');
+        }
+      }
     }
     // The wolf den is a physically distinct danger spot.
     {
@@ -371,11 +428,11 @@
     ellipse(ctx,-19,10,3,4,'#fff4bd');
     ctx.restore();
   }
-  function staticWorld(){
+  function staticWorld(secret){
     const off=root.document.createElement('canvas');off.width=off.height=W;
     const ctx=off.getContext('2d');
     if(!ctx)return null;
-    ground(ctx);decorations(ctx);
+    ground(ctx,secret);decorations(ctx,secret);
     return off;
   }
   function mount(scope){
@@ -388,11 +445,12 @@
     try{ctx=canvas.getContext('2d',{alpha:false});}catch{return;}
     if(!ctx)return;
     const pos=Number(section.dataset.fieldPos),seen=Number(section.dataset.fieldSeen);
-    if(!F.valid({pos,seen,cache:section.dataset.fieldCache==='true',tracks:section.dataset.fieldTracks==='true'}))return;
+    if(!F.valid({pos,seen,cache:section.dataset.fieldCache==='true',tracks:section.dataset.fieldTracks==='true',secret:section.dataset.fieldSecret==='true',shrine:section.dataset.fieldShrine==='true'}))return;
     const cache=section.dataset.fieldCache==='true',tracks=section.dataset.fieldTracks==='true';
     const treasure=section.dataset.fieldTreasure==='true',wolfDefeated=section.dataset.fieldWolf==='true';
-    const wolfStatus=F.wolfAwareness({pos,seen,cache,tracks,treasure,wolf:wolfDefeated});
-    const base=staticWorld();
+    const secret=section.dataset.fieldSecret==='true',shrine=section.dataset.fieldShrine==='true';
+    const wolfStatus=F.wolfAwareness({pos,seen,cache,tracks,treasure,wolf:wolfDefeated,secret,shrine});
+    const base=staticWorld(secret);
     if(!base)return;
     const mist=fogLayer(seen);
     if(!mist)return;
@@ -406,7 +464,11 @@
       // finishes the step. Do not let the wolf be clipped above the camera.
       const [wolfX,wolfY]=center(F.DEN);
       const focusX=wolfStatus==='alert'?(x+wolfX)*.5:x;
-      const focusY=wolfStatus==='alert'?(y+wolfY)*.5:y;
+      // Reveal the shrine as an actual new vista when the hidden passage
+      // opens, framing both the traveler and the blue stone above the vines.
+      const shrineVista=secret&&!shrine&&pos===F.SECRET;
+      const focusY=wolfStatus==='alert'?(y+wolfY)*.5:
+        shrineVista?(y+center(F.SHRINE)[1])*.5:y;
       const targetX=size*.5-(focusX/W)*size*zoom;
       const targetY=size*.5-(focusY/W)*size*zoom;
       const edge=size*(1-zoom);
@@ -433,7 +495,7 @@
       const y=start[1]+(end[1]-start[1])*ease;
       camera(x,y);
       ctx.drawImage(base,0,0);
-      landmarks(ctx,cache,tracks,treasure,wolfDefeated,time);
+      landmarks(ctx,cache,tracks,treasure,wolfDefeated,secret,shrine,time);
       if(wolfStatus==='watching'||wolfStatus==='alert')wolf(ctx,time,wolfStatus==='alert');
       ctx.drawImage(mist,0,0);
       steps(ctx,pos,seen,time);

@@ -672,6 +672,82 @@ async function main() {
       }finally{await context.close();}
     }
 
+    // New discovery trio: a real chest, visibly moving vines, and a one-use
+    // shrine behind an actual newly-opened shortcut. No JS state teleport.
+    for(const width of [360,390]){
+      const context=await browser.newContext({viewport:{width,height:width===360?800:844},isMobile:true,hasTouch:true});
+      const page=await context.newPage();
+      const errors=[];page.on('pageerror',e=>errors.push(e.message));
+      const saved=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+      const step=async n=>page.locator('.forest-field [data-action="field-step"][data-value="'+n+'"]').click();
+      try{
+        await page.goto(url);
+        await page.locator('[data-action="mode"][data-value="demo"]').click();
+        await page.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
+        assert.equal(await page.locator('.forest-field[data-field-secret="false"][data-field-shrine="false"]').count(),1);
+        assert.equal(await page.locator('.field-cell[data-value="12"]').count(),0,'hidden path must not be a reachable teleport from the entrance');
+        await step(21);await step(16); // Collecting old iron shards costs three HP.
+        await step(17); // The existing real treasure chest.
+        const found=await saved();
+        assert.equal(found.expedition.scrap,10);
+        assert.equal(found.expedition.materials.wolfFang,1);
+        assert.equal(found.expedition.hp,27);
+        assert.equal(found.expedition.field.secret,false);
+        assert.equal(found.expedition.field.shrine,false);
+        const vines=page.locator('.forest-field button.field-cell.secret[data-value="12"]');
+        assert.equal(await vines.count(),1,'tangled vines are a real adjacent tap target');
+        assert.match(await vines.getAttribute('aria-label'),/揺れるツタを調べる/);
+        const tap=await vines.evaluate(el=>{
+          const b=el.getBoundingClientRect();
+          const hit=document.elementFromPoint(b.left+b.width/2,b.top+b.height/2);
+          return {height:b.height,hit:hit===el||el.contains(hit)};
+        });
+        assert(tap.hit&&tap.height>=44,'vines must be physically tappable on small phones');
+        await page.screenshot({path:path.join(output,'forest-secret-vines-'+width+'.png')});
+        await vines.click(); // This opens the shortcut and MOVES one cell.
+        assert.equal(await page.locator('.forest-field[data-field-secret="true"][data-field-pos="12"]').count(),1);
+        assert.match(await page.locator('.field-moment').innerText(),/隠し道が現れた/);
+        assert.equal(await page.locator('.field-cell.shrine.revealed').count(),1,
+          'emerging shrine must be visible beyond the opened shortcut');
+        await page.waitForTimeout(460); // allow the camera to finish revealing the new vista
+        const shrineFrame=await page.evaluate(()=>{
+          const world=document.querySelector('.forest-field .field-worldspace').getBoundingClientRect();
+          const viewport=document.querySelector('.forest-field .field-terrain').getBoundingClientRect();
+          const shrine={x:world.left+world.width*300/600,y:world.top+world.height*180/600};
+          return {shrine,top:viewport.top,bottom:viewport.bottom,left:viewport.left,right:viewport.right};
+        });
+        assert(shrineFrame.shrine.y>shrineFrame.top+45 &&
+          shrineFrame.shrine.y<shrineFrame.bottom-25 &&
+          shrineFrame.shrine.x>shrineFrame.left+25 &&
+          shrineFrame.shrine.x<shrineFrame.right-25,
+          'secret-path camera must show the newly discovered shrine instead of clipping it: '+JSON.stringify(shrineFrame));
+        await page.screenshot({path:path.join(output,'forest-secret-open-'+width+'.png')});
+        await page.reload();
+        assert.equal(await page.locator('.forest-field[data-field-secret="true"][data-field-pos="12"]').count(),1,
+          'revealed shortcut must survive reload without reversing');
+        await step(7);
+        const healed=await saved();
+        assert.equal(healed.expedition.stage,'path');
+        assert.equal(healed.expedition.field.shrine,true);
+        assert.equal(healed.expedition.hp,30);
+        assert.equal(healed.expedition.potions,3);
+        assert.match(await page.locator('.field-moment').innerText(),/苔むした祠を発見/);
+        assert.equal(await page.locator('.forest-field[data-field-shrine="true"]').count(),1);
+        await page.screenshot({path:path.join(output,'forest-shrine-found-'+width+'.png')});
+        await step(12);await step(7); // revisit cannot duplicate heals.
+        const revisited=await saved();
+        assert.equal(revisited.expedition.hp,30);
+        assert.equal(revisited.expedition.potions,3);
+        await step(2);await step(3);await step(4);
+        const banked=await saved();
+        assert.equal(banked.expedition,null);
+        assert.equal(banked.scrap,10,'cache + original chest carry through new secret route');
+        assert.equal(banked.materials.wolfFang,1);
+        assert.equal(await page.locator('.report-layout').count(),1);
+        assert.deepEqual(errors,[],'shrines and shortcut must not generate browser errors');
+      }finally{await context.close();}
+    }
+
     // Corrupt game saves must not be silently overwritten during rendering.
     const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const page = await context.newPage();
