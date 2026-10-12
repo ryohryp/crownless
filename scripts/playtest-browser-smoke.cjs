@@ -516,6 +516,44 @@ async function main() {
       } finally {await roleContext.close();}
     }
 
+    // Product's central new agency: a detour under a tree yields real,
+    // loseable loot; turning back safely banks it, including after reload.
+    for(const width of [360,390]){
+      const context=await browser.newContext({viewport:{width,height:width===360?800:844},isMobile:true,hasTouch:true});
+      const page=await context.newPage();
+      const errors=[];page.on('pageerror',e=>errors.push(e.message));
+      try{
+        await page.goto(url);
+        await page.locator('[data-action="mode"][data-value="demo"]').click();
+        await page.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
+        const fog=await page.locator('.field-cell.veiled').count();
+        await page.locator('.field-cell[data-value="21"]').click();
+        assert((await page.locator('.field-cell.veiled').count())<fog,
+          'the fog clears as the traveler chooses a new step');
+        await page.locator('.field-cell[data-value="16"]').click();
+        const found=await page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+        assert.equal(found.expedition.field.cache,true);
+        assert.equal(found.expedition.hp,27);
+        assert.equal(found.expedition.scrap,4);
+        await page.screenshot({path:path.join(output,'forest-cache-found-'+width+'.png')});
+        await page.reload();
+        assert.equal(await page.locator('.forest-field[data-field-pos="16"]').count(),1,
+          'player position and revealed terrain survive ordinary reload');
+        await page.locator('.field-cell[data-value="21"]').click();
+        await page.locator('.field-cell[data-value="16"]').click();
+        const again=await page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+        assert.equal(again.expedition.scrap,4,'no repeatable loot from the same cache');
+        const exit=page.locator('.field-choices [data-action="return"]');
+        assert(await exit.isVisible(),'safe return stays clearly available during the detour');
+        await exit.click();
+        const banked=await page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+        assert.equal(banked.scrap,4,'safe return banks actual found materials');
+        assert.equal(await page.locator('.report-layout').count(),1);
+        await page.screenshot({path:path.join(output,'forest-safe-return-'+width+'.png')});
+        assert.deepEqual(errors,[],'the fog/detour scene must not cause browser runtime errors');
+      } finally {await context.close();}
+    }
+
     // Corrupt game saves must not be silently overwritten during rendering.
     const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const page = await context.newPage();
