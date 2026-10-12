@@ -138,15 +138,74 @@ test('one wolf battle returns to the exact same explored forest with loot and no
   assert(home.materials.wolfFang>=2);
 });
 
+test('tangled vines conceal a shortcut, which physically opens on adjacent discovery',()=>{
+  const s=wood();
+  assert.equal(s.expedition.field.secret,false);
+  assert.equal(F.SECRET,12);
+  assert.equal(F.SHRINE,7);
+  assert(!F.visible(s.expedition.field,F.SECRET),'unknown passage starts inside fog');
+  assert.equal(E.act(s,'field-step:12'),s,'no remote shortcut teleport');
+  assert.equal(E.act(s,'field-step:7'),s,'no remote shrine teleport');
+  const near=walk(s,21,22,17);
+  assert(F.visible(near.expedition.field,F.SECRET),'vines become visible from the treasure');
+  assert.equal(near.expedition.field.secret,false,'mere visibility does not reveal a passable secret');
+  const opened=walk(near,12);
+  assert.equal(opened.expedition.field.pos,F.SECRET);
+  assert.equal(opened.expedition.field.secret,true,'opening really changes the traversable terrain');
+  assert.match(opened.expedition.log[0],/隠し道が現れた/);
+  assert(F.visible(opened.expedition.field,F.SHRINE),'shrine emerges from the fog beyond the path');
+  const reloaded=E.parse(E.serialize(opened));
+  assert(reloaded.expedition.field.secret,'revealed shortcut must survive reload');
+  const back=walk(reloaded,17,12);
+  assert.equal(back.expedition.field.pos,12,'reopened passage remains traversable from both sides');
+  assert.equal(back.expedition.field.secret,true);
+});
+
+test('mossy shrine gives capped health and one herb only on the first visit',()=>{
+  const before=walk(wood(),21,16,17,12);
+  assert.equal(before.expedition.hp,27,'gathering the cache created a healing opportunity');
+  assert.equal(before.expedition.potions,2);
+  const found=walk(before,7);
+  assert.equal(found.expedition.stage,'path','shrine is a noncombat discovery');
+  assert.equal(found.expedition.hp,30);
+  assert.equal(found.expedition.potions,3);
+  assert.equal(found.expedition.field.shrine,true);
+  assert.match(found.expedition.log[0],/苔むした祠を発見/);
+  assert.match(found.expedition.log[0],/体力 \+3、薬草 \+1/);
+  // Den lies adjacent to the shrine: its alert cannot erase discovery feedback.
+  assert.equal(F.wolfAwareness(found.expedition.field),'alert');
+  const revisit=walk(E.parse(E.serialize(found)),12,7);
+  assert.equal(revisit.expedition.hp,30);
+  assert.equal(revisit.expedition.potions,3);
+  assert.equal(revisit.expedition.field.shrine,true);
+  const returned=walk(revisit,2,3,4);
+  assert.equal(returned.expedition,null,'gate remains reachable along the upper trail');
+  assert.equal(returned.materials.wolfFang,1,'treasure loot can be safely banked after finding the shrine');
+});
+
+test('fully supplied travelers receive no extra duplicate shrine reward',()=>{
+  let s=walk(wood(),21,22,17,12);
+  s.expedition.potions=3;
+  const healed=walk(s,7);
+  assert.equal(healed.expedition.potions,3,'potion cap applies to shrine');
+  assert.equal(healed.expedition.hp,30,'healing stays at maximum');
+  assert.match(healed.expedition.log[0],/体力 \+0、薬草 \+0/);
+});
+
 test('legacy forest saves without new fields remain accepted',()=>{
   let s=walk(wood(),21,22);
   delete s.expedition.field.treasure;
   delete s.expedition.field.wolf;
+  delete s.expedition.field.secret;
+  delete s.expedition.field.shrine;
   assert(F.valid(s.expedition.field));
   const restored=E.parse(E.serialize(s));
   const opened=E.act(restored,'field-step:17');
   assert.equal(opened.expedition.field.treasure,true);
   assert.equal(opened.expedition.field.wolf,undefined);
+  const toPassage=E.act(opened,'field-step:12');
+  assert.equal(toPassage.expedition.field.secret,true,'old saves may discover newly added shortcut');
+  assert.equal(toPassage.expedition.field.shrine,undefined);
 });
 
 test('old saves and other regions keep their existing route',()=>{
@@ -158,6 +217,13 @@ test('old saves and other regions keep their existing route',()=>{
   assert.equal(E.act(restored,'careful').expedition.stage,'fight','old two-choice expedition can finish normally');
   const tower=E.start(E.discover(Object.assign(E.initial(),{mode:'demo'}),'tower'),'tower');
   assert.equal(tower.expedition.field,undefined);
+});
+
+test('tampered secret-cell saves without a revealed passage are rejected',()=>{ 
+  const s=wood();
+  s.expedition.field.pos=F.SECRET;
+  s.expedition.field.seen|=(1<<F.SECRET);
+  assert.equal(E.parse(E.serialize(s)),null);
 });
 
 test('tampered field state is rejected, never trusted for impossible travel',()=>{
