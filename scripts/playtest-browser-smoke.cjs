@@ -381,7 +381,7 @@ async function main() {
       assert.equal(found.expedition?.foundDesign,'shield_thorn','tower event victory reveals a carried design');
       assert.equal(found.designs.shield_thorn,undefined,'unreturned design must not be banked');
       await poiPage.screenshot({path:path.join(output,'blueprint-risk-390.png')});
-      await poiPage.locator('.field-choices [data-action="return"]').click();
+      await poiPage.locator('.path-actions [data-action="return"]').click();
       assert.match(await poiPage.locator('.report-layout').innerText(),/新しい製作レシピを解放：返し棘の盾/);
       await poiPage.locator('[data-action="continue"]').click();
       await poiPage.locator('[data-action="tab"][data-value="gear"]').click();
