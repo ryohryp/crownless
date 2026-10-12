@@ -115,8 +115,37 @@ async function main() {
         await page.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
         assert.equal(await page.locator(".expedition-layout.path-stage").count(), 0);
         assert.equal(await page.locator(".expedition-layout:not(.battle-layout)").count(), 1);
+        const world = page.locator('.expedition-world-scene');
+        assert.equal(await world.count(), 1, 'exploration is a rendered world scene, not a standalone action sheet');
+        assert.equal(await page.locator('.journey-scene-trail .journey-trail-stop').count(),5,
+          'illustrated world shows five journey landmarks, not a duplicate HTML route');
+        assert.equal(await page.locator('.expedition-world-scene .journey-traveler').count(),1,
+          'the actual equipped traveler must appear on the road');
+        const heroBox=await page.locator('.expedition-world-scene .journey-traveler').boundingBox();
+        assert(heroBox && heroBox.x>width*.38 && heroBox.x+heroBox.width<width+5,
+          'the hero must be visibly in the main landscape, not hidden beneath the left-aligned title: '+JSON.stringify(heroBox));
+        assert.equal(await page.locator('.expedition-world-scene .journey-traveler-glow').count(),1,
+          'the player silhouette must remain visually separated from the dark forest');
+        assert.equal(await page.locator('.expedition-world-scene .journey-discovery').count(),1,
+          'room zero has a different visual clue from the following rooms');
+        const startingPosition = await page.locator('.journey-traveler').getAttribute('transform');
         const firstStep = page.locator('.path-actions button[data-action="careful"]');
         assert.equal(await firstStep.isVisible(), true, "advance-to-fight choice should be visible");
+        const journeyFrame = await page.evaluate(()=>{
+          const world=document.querySelector('.expedition-world-scene').getBoundingClientRect();
+          const card=document.querySelector('.path-panel').getBoundingClientRect();
+          const actions=[...document.querySelectorAll('.path-actions button:not(:disabled)')].map(el=>{
+            const r=el.getBoundingClientRect(),point=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
+            return {action:el.dataset.action,top:r.top,bottom:r.bottom,hit:point===el||el.contains(point)};
+          });
+          return {worldHeight:world.height,worldBottom:world.bottom,cardTop:card.top,actions,viewport:innerHeight};
+        });
+        assert(journeyFrame.worldHeight >= height*.46,
+          'a playable world landscape should dominate the phone before choices: '+JSON.stringify(journeyFrame));
+        assert(journeyFrame.worldBottom<=journeyFrame.cardTop+2,
+          'world canvas and decision surface never overlap: '+JSON.stringify(journeyFrame));
+        assert(journeyFrame.actions.length>=2 && journeyFrame.actions.every(x=>x.hit&&x.top>=0&&x.bottom<=height+2),
+          'every path action remains a real reachable thumb tap: '+JSON.stringify(journeyFrame));
         await page.screenshot({ path: path.join(output, "before-combat-" + width + ".png") });
         await firstStep.click();
         assert.equal(await page.locator(".battle-layout .combat-enemy-summary").count(), 1, "first encounter must render actual battle");
@@ -164,7 +193,16 @@ async function main() {
         const afterFirstBattle = await page.evaluate(() => JSON.parse(localStorage.getItem("crownless-expedition-v1-demo")));
         assert.equal(afterFirstBattle.expedition?.room, 1);
         assert(afterFirstBattle.expedition?.materials.wolfFang >= 1);
+        assert.equal(await page.locator('.expedition-world-scene[data-journey-room="1"]').count(),1,
+          'battle result advances the world canvas to the actual new room');
+        assert.equal(await page.locator('.journey-trail-stop.here').count(),1,
+          'exactly one road milestone is active');
+        assert.notEqual(await page.locator('.journey-traveler').getAttribute('transform'),startingPosition,
+          'the character actually progresses across the art after the fight');
+        await page.screenshot({path:path.join(output,'journey-after-first-fight-'+width+'.png')});
         await page.reload();
+        assert.equal(await page.locator('.expedition-world-scene[data-journey-room="1"]').count(),1,
+          'world illustration follows the saved route after reload');
         assert.equal(await page.locator(".expedition-layout:not(.battle-layout)").count(), 1, "the saved route must survive reload");
         const roadsideOption = page.locator('.path-actions button[data-action="pray"]');
         if (await roadsideOption.count()) await roadsideOption.click();

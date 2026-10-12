@@ -49,8 +49,13 @@
   function button(action, title, body = '', options = {}) {
     return `<button class="${options.class || 'choice'}" data-action="${action}" ${options.value ? `data-value="${options.value}"` : ''} ${typeof options.current === 'boolean' ? `aria-current="${options.current ? 'page' : 'false'}"` : ''} ${options.disabled ? 'disabled' : ''}>${body ? `<strong>${title}</strong><small>${body}</small>` : title}</button>`;
   }
-  function scene(id, title, subtitle, enemy = null, tag = '') {
-    return `<div class="scene">${A.scene(id, enemy, state.equipped)}<span class="scene-top">${enemy ? 'HOLD YOUR GROUND' : 'BEYOND THE MIST'}</span><div class="scene-top-actions">${tag ? `<span class="scene-tag">${tag}</span>` : ''}<button class="scene-settings" data-action="settings" aria-label="旅の設定と遊び方">⚙ 設定</button></div><div class="scene-caption"><p class="kicker">${subtitle}</p><h2>${title}</h2></div></div>`;
+  function scene(id, title, subtitle, enemy = null, tag = '', journey = null) {
+    const stages = ['足跡','灯り','狩場','遺品','土地の主'];
+    const room = journey ? Math.min(4,Math.max(0,journey.room)) : 0;
+    const sceneTrail = journey ? `<div class="journey-scene-trail" role="group" aria-label="遠征の進行・${room+1} / 5">
+      ${stages.map((name,i) => `<span class="journey-trail-stop ${i<room?'passed':i===room?'here':''}" ${i===room?'aria-current="step"':''}><span aria-hidden="true">${i<room?'✓':i===room?'◆':'·'}</span><small>${name}</small></span>`).join('')}
+    </div>` : '';
+    return `<div class="scene${journey?' expedition-world-scene':''}" ${journey?`data-journey-room="${room}" data-journey-stage="${journey.stage}"`:''}>${A.scene(id, enemy, state.equipped,journey)}<span class="scene-top">${enemy ? 'HOLD YOUR GROUND' : journey ? 'THE ROAD BEYOND · 遠征中' : 'BEYOND THE MIST'}</span><div class="scene-top-actions">${tag ? `<span class="scene-tag">${tag}</span>` : ''}<button class="scene-settings" data-action="settings" aria-label="旅の設定と遊び方">⚙ 設定</button></div><div class="scene-caption"><p class="kicker">${subtitle}</p><h2>${title}</h2></div>${sceneTrail}</div>`;
   }
   const logs = x => `<div class="combat-log" role="status" aria-live="polite">${x.log.map(v => `<p>${esc(v)}</p>`).join('')}</div>`;
   const materialList = m => Object.entries(E.MATERIALS).filter(([id]) => (m?.[id] || 0) > 0).map(([id,v]) => `${v.name} ${m[id]}`).join(' · ');
@@ -323,7 +328,7 @@
     const localDistrict = N.get(state.neighborhood,state.neighborhood.active);
     const siege=landmarkOf(x.landmarkId);
     const enemyArt = x.enemy ? (E.ENEMIES[x.enemy.kind].art || x.enemy.kind) : null;
-    return `<div class="game-layout expedition-layout ${isFight ? 'battle-layout' : ''}" data-combat-result="${x.log.some(line => line.startsWith('崩し追撃！')) ? 'follow-up' : ''}" data-combat-turn="${x.depth}:${x.room}:${x.enemy?.turn ?? 'path'}"><section class="visual-column">${scene(x.place,siege ? siege.name : localDistrict ? N.title(localDistrict) : p.name,`DEPTH ${String(x.depth).padStart(2,'0')} · ${x.stage === 'cleared' ? '踏破' : `${x.room+1} / 5`}`,enemyArt,`${E.GEAR[state.equipped].name}`)}${route(x)}${vitals(x)}<div class="journey-note"><b>${String(x.depth).padStart(2,'0')}</b><span>深層 ${x.depth} · 戦利品を失っても、持ち込んだ装備は残る。<br>深層ほど敵は強く、より多くの希少素材を持ち帰れる。</span></div></section><section class="panel ${isFight ? 'combat-panel' : 'path-panel'}">${isFight ? fight(x) : pathPanel(x)}</section></div>`;
+    return `<div class="game-layout expedition-layout ${isFight ? 'battle-layout' : ''}" data-combat-result="${x.log.some(line => line.startsWith('崩し追撃！')) ? 'follow-up' : ''}" data-combat-turn="${x.depth}:${x.room}:${x.enemy?.turn ?? 'path'}"><section class="visual-column">${scene(x.place,siege ? siege.name : localDistrict ? N.title(localDistrict) : p.name,`DEPTH ${String(x.depth).padStart(2,'0')} · ${x.stage === 'cleared' ? '踏破' : `${x.room+1} / 5`}`,enemyArt,`${E.GEAR[state.equipped].name}`,isFight ? null : x)}${route(x)}${vitals(x)}<div class="journey-note"><b>${String(x.depth).padStart(2,'0')}</b><span>深層 ${x.depth} · 戦利品を失っても、持ち込んだ装備は残る。<br>深層ほど敵は強く、より多くの希少素材を持ち帰れる。</span></div></section><section class="panel ${isFight ? 'combat-panel' : 'path-panel'}">${isFight ? fight(x) : pathPanel(x)}</section></div>`;
   }
   function ending() {
     return `<div class="game-layout report-layout"><section class="visual-column">${scene('camp','灰の冠は、火のそばに。','THE CROWN CAME HOME',null,'旅の到達点')}</section><section class="panel report-panel"><div class="report-scroll"><p class="kicker">EPILOGUE · 名もなき旅人</p><h1>冠を持ち帰った。<br>それでも、旅は続く。</h1><p class="intro">霧の王墓から持ち帰った灰の冠を、あなたは焚き火のそばへ置いた。名は刻まれない。けれど、歩いた土地と、生きて帰った夜だけは残る。</p><div class="result-number">${state.victories} <small>回の生還 / 遠征 ${state.runs} 回</small></div><p class="notice">灰の王冠 · 最大体力 +6。ここから先も、まだ見ぬ素材と職人の仕事が残っている。</p><p class="small rule-line">これは終わりではなく、最初の物語の区切り。地図へ戻れば、踏破した土地にも再び遠征できる。</p></div><div class="report-actions">${button('ending-continue','旅の地図へ戻る','',{class:'primary'})}</div></section></div>`;
