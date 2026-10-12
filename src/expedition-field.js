@@ -6,7 +6,7 @@
   if(root) root.CrownlessField=api;
 })(typeof globalThis==='object'?globalThis:this,function(){
   'use strict';
-  const SIZE=5, START=20, EXIT=4, CACHE=16, TRACKS=18, DEN=8;
+  const SIZE=5, START=20, EXIT=4, CACHE=16, TRACKS=18, DEN=8, TREASURE=17;
   const WALLS=Object.freeze([6,11,12]);
   const MAX_SEEN=2**(SIZE*SIZE)-1;
   const inBounds=n=>Number.isInteger(n)&&n>=0&&n<SIZE*SIZE;
@@ -16,9 +16,12 @@
   const nextSeen=(mask,pos)=>[pos,...neighbors(pos)].reduce((value,n)=>value|(1<<n),mask);
   const visible=(field,n)=>Boolean(field.seen&(1<<n));
   const adjacent=(a,b)=>neighbors(a).includes(b);
-  const initial=()=>({pos:START,seen:nextSeen(0,START),cache:false,tracks:false});
+  const initial=()=>({pos:START,seen:nextSeen(0,START),cache:false,tracks:false,treasure:false,wolf:false});
   const valid=f=>f&&typeof f==='object'&&!Array.isArray(f)&&
-    Object.keys(f).sort().join(',')==='cache,pos,seen,tracks'&&
+    Object.keys(f).every(k=>['pos','seen','cache','tracks','treasure','wolf'].includes(k))&&
+    ['pos','seen','cache','tracks'].every(k=>Object.prototype.hasOwnProperty.call(f,k))&&
+    (f.treasure===undefined||typeof f.treasure==='boolean')&&
+    (f.wolf===undefined||typeof f.wolf==='boolean')&&
     inBounds(f.pos)&&!WALLS.includes(f.pos)&&
     Number.isInteger(f.seen)&&f.seen>0&&f.seen<=MAX_SEEN&&
     visible(f,f.pos)&&typeof f.cache==='boolean'&&typeof f.tracks==='boolean';
@@ -30,7 +33,9 @@
   // then left behind if the player chooses a different path.
   // This is derived solely from existing field state; no new save keys.
   function wolfAwareness(f){
-    if(!valid(f)||!visible(f,DEN))return 'hidden';
+    if(!valid(f))return 'hidden';
+    if(f.wolf===true)return 'defeated';
+    if(!visible(f,DEN))return 'hidden';
     return adjacent(f.pos,DEN)?'alert':'watching';
   }
   function landmark(n){
@@ -39,8 +44,9 @@
     if(n===CACHE)return 'cache';
     if(n===TRACKS)return 'tracks';
     if(n===DEN)return 'den';
+    if(n===TREASURE)return 'treasure';
     if(n===START)return 'camp';
     return 'trail';
   }
-  return {SIZE,START,EXIT,CACHE,TRACKS,DEN,WALLS,initial,valid,move,visible,adjacent,neighbors,landmark,wolfAwareness};
+  return {SIZE,START,EXIT,CACHE,TRACKS,DEN,TREASURE,WALLS,initial,valid,move,visible,adjacent,neighbors,landmark,wolfAwareness};
 });
