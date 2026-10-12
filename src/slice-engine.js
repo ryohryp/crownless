@@ -534,8 +534,21 @@
         const field=F.move(x.field,to);
         if (!field) return s;
         const wolfBefore=F.wolfAwareness(x.field);
+        const secretOpened=to===F.SECRET && !x.field.secret;
         x.field=field;
-        if (to === F.TREASURE && !field.treasure) {
+        let discovered=false;
+        if(secretOpened){
+          discovered=true;
+          x.log=['揺れるツタを押し分けると、木々の奥に隠し道が現れた！ 奥から青白い光が漏れている。'];
+        } else if(to === F.SHRINE && !field.shrine){
+          discovered=true;
+          field.shrine=true;
+          const healed=Math.min(6,maxHp(n)-x.hp);
+          const potion=x.potions<3?1:0;
+          x.hp+=healed; x.potions+=potion;
+          x.log=[`苔むした祠を発見。青白い加護に包まれた。体力 +${healed}、薬草 +${potion}。`];
+        } else if (to === F.TREASURE && !field.treasure) {
+          discovered=true;
           field.treasure=true;
           // A real find: enough scrap and one crafting material, never an
           // instant equippable drop. At risk until the expedition ends alive.
@@ -557,7 +570,9 @@
         } else x.log=['霧が少し晴れた。まだ踏み込んでいない道が見えてくる。'];
         if (to !== F.DEN && to !== F.EXIT) {
           const wolfNow=F.wolfAwareness(field);
-          if(wolfNow==='alert' && wolfBefore!=='alert') {
+          // Finding a shrine or passage is its own discovery moment. Keep
+          // that feedback visible even if a wolf simultaneously notices us.
+          if(!discovered && wolfNow==='alert' && wolfBefore!=='alert') {
             x.log=['茂みから狼が現れた！ こちらに気づいて唸っている。巣穴へ進めば戦闘、脇道へ戻れば避けられる。'];
           } else if(wolfBefore==='alert' && wolfNow!=='alert') {
             x.log=['狼の視線を振り切った。遠ざかる足音を背に、別の道を探せる。'];
