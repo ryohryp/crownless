@@ -74,7 +74,7 @@
       return `<span class="${classes}" aria-label="${label}">${icon}</span>`;
     }).join('');
     return `<section class="forest-field" data-field-pos="${field.pos}" data-field-seen="${field.seen}" data-field-cache="${field.cache}" data-field-tracks="${field.tracks}" data-wolf-state="${wolfStatus}" aria-label="探索できる森のフィールド">
-      <div class="forest-field-header"><span class="kicker">THE UNCHARTED WOOD · 霧の森</span><h2>${esc(title)}</h2><small>${wolfStatus==='alert'?'狼がこちらを見ている。巣穴に近づくか、別の道へ戻るか。':'森の霧を抜け、道と危険を自分の足で見つけよう。'}</small></div>
+      <div class="forest-field-header"><span class="kicker">THE UNCHARTED WOOD · 霧の森</span><h2>${esc(title)}</h2>${wolfStatus==='alert'?'': '<small>森の霧を抜け、道と危険を自分の足で見つけよう。</small>'}</div>
       ${wolfStatus==='alert' ? '<div class="forest-wolf-warning" role="status">⚠ 狼に気づかれた · 巣穴へ進むと戦闘</div>' : ''}
       <div class="field-terrain" role="group" aria-label="霧の森を歩く"><div class="field-worldspace"><canvas class="forest-world-canvas" width="600" height="600" aria-hidden="true"></canvas>${cells}</div></div>
       <div class="forest-field-footer"><span>♧ 深い森</span><strong>✦ 発見 ${field.cache||field.tracks?'あり':'なし'}</strong><span>霧の石門を探せ</span></div>
