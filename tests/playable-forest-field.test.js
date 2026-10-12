@@ -144,18 +144,20 @@ test('wider woodland has real blocked terrain, side trails and exact 49-cell fog
   assert.equal(F.SIZE,7);
   assert(F.WALLS.length>=12,'ordinary forest blocks must be genuine obstacles');
   assert.equal(F.move(f,35),null,'trees below the camp are physically impassable');
-  assert.equal(F.move(f,48),null,'cannot tap across the large forest in one step');
+  assert.equal(F.move(f,40),null,'cannot tap across the large forest in one step');
   assert(!F.visible(f,F.GLADE),'far glade starts undiscovered');
   const near=walk(s,21,22,23,24,33,34,41);
   assert(!F.visible(s.expedition.field,F.GLADE));
   assert(F.visible(near.expedition.field,F.GLADE),'distant glade only becomes visible nearby');
-  const found=walk(near,48);
+  const edge=walk(near,48);
+  assert(F.visible(edge.expedition.field,48),'bit 48 must remain visible at the far edge, not wrap at 32');
+  const found=walk(edge,41,40);
   assert.equal(found.expedition.field.pos,F.GLADE);
   assert.equal(found.expedition.field.glade,true);
   assert.equal(found.expedition.scrap,4);
   assert.match(found.expedition.log[0],/石環を発見/);
-  assert(F.visible(found.expedition.field,48),'bit 48 must stay visible, no JS 32bit shift rollover');
-  const again=walk(E.parse(E.serialize(found)),41,48);
+  assert(F.visible(found.expedition.field,48),'the distant edge stays revealed while entering the glade');
+  const again=walk(E.parse(E.serialize(found)),41,40);
   assert.equal(again.expedition.scrap,4,'side glade rewards only once');
 });
 
