@@ -1,42 +1,70 @@
-/* The first playable local field. Pure, deterministic, and intentionally tiny.
-   Coordinates are fantasy grid cells, never GPS fixes or movement history. */
+/* Deterministic local fantasy forest. IDs 0–24 keep their original
+   five-by-five positions; 25–48 extend the east and south woodland.
+   This preserves old saves without recording real-world GPS movement. */
 (function(root,factory){
   const api=factory();
-  if(typeof module==='object' && module.exports) module.exports=api;
-  if(root) root.CrownlessField=api;
+  if(typeof module==='object' && module.exports)module.exports=api;
+  if(root)root.CrownlessField=api;
 })(typeof globalThis==='object'?globalThis:this,function(){
   'use strict';
-  const SIZE=5, START=20, EXIT=4, CACHE=16, TRACKS=18, DEN=8, TREASURE=17, SHRINE=7, SECRET=12;
-  const WALLS=Object.freeze([6,11]);
-  const MAX_SEEN=2**(SIZE*SIZE)-1;
-  const inBounds=n=>Number.isInteger(n)&&n>=0&&n<SIZE*SIZE;
-  const neighbors=n=>inBounds(n)?[n-SIZE,n+SIZE,n-1,n+1].filter(v=>
-    inBounds(v)&&Math.abs(Math.floor(v/SIZE)-Math.floor(n/SIZE))+
-      Math.abs(v%SIZE-n%SIZE)===1):[];
-  const nextSeen=(mask,pos)=>[pos,...neighbors(pos)].reduce((value,n)=>value|(1<<n),mask);
-  const visible=(field,n)=>Boolean(field.seen&(1<<n));
+  const SIZE=7, COUNT=49;
+  const START=20, EXIT=4, CACHE=16, TRACKS=18, DEN=8,
+    TREASURE=17, SHRINE=7, SECRET=12, GLADE=48;
+  // Dense, actually IMPASSABLE forest around the ordinary winding trails.
+  // Shrine 7 is additionally enclosed by rock and reachable ONLY from 12.
+  const WALLS=Object.freeze([0,1,2,3,6,11,25,27,29,30,35,36,37,38,39,40,46]);
+  const MAX_SEEN=2**COUNT-1;
+  const inBounds=n=>Number.isInteger(n)&&n>=0&&n<COUNT;
+  const coords=n=>{
+    if(!inBounds(n))return null;
+    if(n<25)return [n%5,Math.floor(n/5)];
+    if(n<35)return [5+(n-25)%2,Math.floor((n-25)/2)];
+    return [(n-35)%7,5+Math.floor((n-35)/7)];
+  };
+  const lookup=Array.from({length:COUNT},(_,id)=>coords(id));
+  const distance=(a,b)=>{
+    if(!inBounds(a)||!inBounds(b))return Infinity;
+    return Math.abs(lookup[a][0]-lookup[b][0])+Math.abs(lookup[a][1]-lookup[b][1]);
+  };
+  // Dense rock and bramble banks stop the shrine from being reached
+  // by circling around from the wolf den or the northern woodland.
+  const connected=(a,b)=>{
+    if((a===SHRINE||b===SHRINE))return a===SECRET||b===SECRET;
+    if((a===SECRET||b===SECRET))return a===TREASURE||b===TREASURE;
+    return true;
+  };
+  const neighbors=n=>inBounds(n)?Array.from({length:COUNT},(_,i)=>i)
+    .filter(v=>distance(n,v)===1&&connected(n,v)):[];
   const adjacent=(a,b)=>neighbors(a).includes(b);
-  const initial=()=>({pos:START,seen:nextSeen(0,START),cache:false,tracks:false,treasure:false,wolf:false,secret:false,shrine:false});
+  // 49 cells fit exactly in a safe JS number. Never use 32-bit bitwise
+  // operators: that would silently expose/hide cells past index 31.
+  const visible=(f,n)=>Boolean(f&&inBounds(n)&&
+    Math.floor(f.seen/(2**n))%2);
+  const nextSeen=(mask,pos)=>[pos,...neighbors(pos)].reduce((value,n)=>
+    value+(Math.floor(value/(2**n))%2?0:2**n),mask);
+  const initial=()=>({pos:START,seen:nextSeen(0,START),
+    cache:false,tracks:false,treasure:false,wolf:false,secret:false,shrine:false,glade:false});
   const valid=f=>f&&typeof f==='object'&&!Array.isArray(f)&&
-    Object.keys(f).every(k=>['pos','seen','cache','tracks','treasure','wolf','secret','shrine'].includes(k))&&
+    Object.keys(f).every(k=>['pos','seen','cache','tracks','treasure','wolf','secret','shrine','glade'].includes(k))&&
     ['pos','seen','cache','tracks'].every(k=>Object.prototype.hasOwnProperty.call(f,k))&&
-    (f.treasure===undefined||typeof f.treasure==='boolean')&&
-    (f.wolf===undefined||typeof f.wolf==='boolean')&&
-    (f.secret===undefined||typeof f.secret==='boolean')&&
-    (f.shrine===undefined||typeof f.shrine==='boolean')&&
+    ['treasure','wolf','secret','shrine','glade'].every(k=>f[k]===undefined||typeof f[k]==='boolean')&&
     (f.pos!==SECRET||f.secret===true)&&
     inBounds(f.pos)&&!WALLS.includes(f.pos)&&
-    Number.isInteger(f.seen)&&f.seen>0&&f.seen<=MAX_SEEN&&
+    Number.isSafeInteger(f.seen)&&f.seen>0&&f.seen<=MAX_SEEN&&
     visible(f,f.pos)&&typeof f.cache==='boolean'&&typeof f.tracks==='boolean';
+  const canMove=(f,to)=>valid(f)&&inBounds(to)&&!WALLS.includes(to)&&
+    adjacent(f.pos,to)&&(to!==SECRET||f.secret===true);
   function move(f,to){
-    if(!valid(f)||!inBounds(to)||WALLS.includes(to)||!adjacent(f.pos,to))return null;
-    // The overgrown gap is discovered by physically entering the adjacent vines.
-    // It becomes traversable both ways, including from the shrine side.
-    return {...f,pos:to,seen:nextSeen(f.seen,to),...(to===SECRET?{secret:true}:{})};
+    if(!canMove(f,to))return null;
+    return {...f,pos:to,seen:nextSeen(f.seen,to)};
   }
-  // The wolf is a diegetic threat: first seen from an adjacent trail,
-  // then left behind if the player chooses a different path.
-  // This is derived solely from existing field state; no new save keys.
+  // First tap from the treasure side pulls apart the obstructing vines.
+  // The player remains in place. Only the second tap traverses the gap.
+  function uncover(f,to){
+    if(!valid(f)||to!==SECRET||f.pos!==TREASURE||f.secret===true||
+      !adjacent(f.pos,to))return null;
+    return {...f,secret:true,seen:nextSeen(f.seen,f.pos)};
+  }
   function wolfAwareness(f){
     if(!valid(f))return 'hidden';
     if(f.wolf===true)return 'defeated';
@@ -52,8 +80,10 @@
     if(n===TREASURE)return 'treasure';
     if(n===SHRINE)return 'shrine';
     if(n===SECRET)return 'secret';
+    if(n===GLADE)return 'glade';
     if(n===START)return 'camp';
     return 'trail';
   }
-  return {SIZE,START,EXIT,CACHE,TRACKS,DEN,TREASURE,SHRINE,SECRET,WALLS,initial,valid,move,visible,adjacent,neighbors,landmark,wolfAwareness};
+  return {SIZE,COUNT,START,EXIT,CACHE,TRACKS,DEN,TREASURE,SHRINE,SECRET,GLADE,
+    WALLS,coords,initial,valid,move,uncover,canMove,visible,adjacent,neighbors,landmark,wolfAwareness};
 });
