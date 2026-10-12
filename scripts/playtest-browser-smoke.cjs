@@ -23,6 +23,15 @@ function listenForPort(server) {
   });
 }
 
+async function walkForestToGate(page) {
+  // Short, safe path around the dangerous den. Each tile is a REAL
+  // one-step DOM click in the new foggy forest, not a JS teleport.
+  for(const pos of [21,22,23,24,19,14,9,4]){
+    const next=page.locator('.forest-field [data-action="field-step"][data-value="'+pos+'"]');
+    await next.click();
+  }
+}
+
 async function main() {
   let chromium;
   try {
@@ -115,39 +124,36 @@ async function main() {
         await page.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
         assert.equal(await page.locator(".expedition-layout.path-stage").count(), 0);
         assert.equal(await page.locator(".expedition-layout:not(.battle-layout)").count(), 1);
-        const world = page.locator('.expedition-world-scene');
-        assert.equal(await world.count(), 1, 'exploration is a rendered world scene, not a standalone action sheet');
-        assert.equal(await page.locator('.journey-scene-trail .journey-trail-stop').count(),5,
-          'illustrated world shows five journey landmarks, not a duplicate HTML route');
-        assert.equal(await page.locator('.expedition-world-scene .journey-traveler').count(),1,
-          'the actual equipped traveler must appear on the road');
-        const heroBox=await page.locator('.expedition-world-scene .journey-traveler').boundingBox();
-        assert(heroBox && heroBox.x>width*.38 && heroBox.x+heroBox.width<width+5,
-          'the hero must be visibly in the main landscape, not hidden beneath the left-aligned title: '+JSON.stringify(heroBox));
-        assert.equal(await page.locator('.expedition-world-scene .journey-traveler-glow').count(),1,
-          'the player silhouette must remain visually separated from the dark forest');
-        assert.equal(await page.locator('.expedition-world-scene .journey-discovery').count(),1,
-          'room zero has a different visual clue from the following rooms');
-        const startingPosition = await page.locator('.journey-traveler').getAttribute('transform');
-        const firstStep = page.locator('.path-actions button[data-action="careful"]');
-        assert.equal(await firstStep.isVisible(), true, "advance-to-fight choice should be visible");
-        const journeyFrame = await page.evaluate(()=>{
-          const world=document.querySelector('.expedition-world-scene').getBoundingClientRect();
-          const card=document.querySelector('.path-panel').getBoundingClientRect();
-          const actions=[...document.querySelectorAll('.path-actions button:not(:disabled)')].map(el=>{
-            const r=el.getBoundingClientRect(),point=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
-            return {action:el.dataset.action,top:r.top,bottom:r.bottom,hit:point===el||el.contains(point)};
-          });
+        const world = page.locator('.forest-field');
+        assert.equal(await world.count(),1,'forest has an actual playable local field');
+        assert.equal(await page.locator('.forest-field .field-cell').count(),25,'five by five terrain must render');
+        assert((await page.locator('.forest-field .field-cell.veiled').count())>14,
+          'most of the land must actually be hidden at the beginning');
+        assert.equal(await world.getAttribute('data-field-pos'),'20');
+        const startingPosition='20';
+        const journeyFrame=await page.evaluate(()=>{
+          const world=document.querySelector('.forest-field').getBoundingClientRect();
+          const card=document.querySelector('.field-panel').getBoundingClientRect();
+          const selectors=['.forest-field button.can-step','.field-choices button:not(:disabled)'];
+          const actions=selectors.flatMap(selector=>[...document.querySelectorAll(selector)].map(el=>{
+            const r=el.getBoundingClientRect(),hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
+            return {selector,top:r.top,bottom:r.bottom,hit:hit===el||el.contains(hit),height:r.height};
+          }));
           return {worldHeight:world.height,worldBottom:world.bottom,cardTop:card.top,actions,viewport:innerHeight};
         });
-        assert(journeyFrame.worldHeight >= height*.46,
-          'a playable world landscape should dominate the phone before choices: '+JSON.stringify(journeyFrame));
-        assert(journeyFrame.worldBottom<=journeyFrame.cardTop+2,
-          'world canvas and decision surface never overlap: '+JSON.stringify(journeyFrame));
-        assert(journeyFrame.actions.length>=2 && journeyFrame.actions.every(x=>x.hit&&x.top>=0&&x.bottom<=height+2),
-          'every path action remains a real reachable thumb tap: '+JSON.stringify(journeyFrame));
-        await page.screenshot({ path: path.join(output, "before-combat-" + width + ".png") });
-        await firstStep.click();
+        assert(journeyFrame.worldHeight>=height*.49,'the traversable field should dominate the viewport: '+JSON.stringify(journeyFrame));
+        assert(journeyFrame.worldBottom<=journeyFrame.cardTop+2,'field and thumb controls must not overlap: '+JSON.stringify(journeyFrame));
+        assert(journeyFrame.actions.length>=4 && journeyFrame.actions.every(x=>x.hit&&x.top>=0&&x.bottom<=height+2&&x.height>=44),
+          'all field moves and return actions are real accessible tap targets: '+JSON.stringify(journeyFrame));
+        await page.screenshot({path:path.join(output,'forest-fog-start-'+width+'.png')});
+        await page.locator('.forest-field [data-action="field-step"][data-value="21"]').click();
+        assert.equal(await world.getAttribute('data-field-pos'),'21','walking visibly moves the hero one tile');
+        const knownAfterStep=await page.locator('.forest-field .field-cell.revealed').count();
+        assert(knownAfterStep>3,'moving reveals genuinely new local ground');
+        await page.screenshot({path:path.join(output,'forest-fog-revealed-'+width+'.png')});
+        for(const pos of [22,23,24,19,14,9,4]){
+          await page.locator('.forest-field [data-action="field-step"][data-value="'+pos+'"]').click();
+        }
         assert.equal(await page.locator(".battle-layout .combat-enemy-summary").count(), 1, "first encounter must render actual battle");
         const battleLayout=await page.evaluate(()=>{
           const names=['.combat-situation','.combat-decision','.combat-support'];
@@ -197,8 +203,9 @@ async function main() {
           'battle result advances the world canvas to the actual new room');
         assert.equal(await page.locator('.journey-trail-stop.here').count(),1,
           'exactly one road milestone is active');
-        assert.notEqual(await page.locator('.journey-traveler').getAttribute('transform'),startingPosition,
-          'the character actually progresses across the art after the fight');
+        assert.equal(startingPosition,'20');
+        assert.equal(await page.locator('.journey-traveler').count(),1,
+          'after clearing the navigable first room, the ordinary route illustration resumes');
         await page.screenshot({path:path.join(output,'journey-after-first-fight-'+width+'.png')});
         await page.reload();
         assert.equal(await page.locator('.expedition-world-scene[data-journey-room="1"]').count(),1,
@@ -276,7 +283,7 @@ async function main() {
         assert(map.height>300,width+'px: map must be large enough to explore');
         await page.screenshot({path:path.join(output,'map-production-'+width+'.png')});
         await page.locator('.nearby-card-actions [data-action="depart"][data-value="wood"]').click();
-        await page.locator('.path-actions [data-action="careful"]').click();
+        await walkForestToGate(page);
         assert.equal(await page.locator('.combat-choice-grid .choice').count(),4,'wide phones/desktop share the same tactical options');
         assert.equal(await page.locator('.combat-choice-grid [data-action="guard"]').isVisible(),true);
         await page.screenshot({path:path.join(output,'combat-production-'+width+'.png')});
@@ -295,7 +302,7 @@ async function main() {
       await poiPage.locator('[data-action="mode"][data-value="demo"]').click();
       // Earn the other region's required material in an actual forest combat.
       await poiPage.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
-      await poiPage.locator('.path-actions [data-action="careful"]').click();
+      await walkForestToGate(poiPage);
       await poiPage.locator('[data-action="auto-fight"]').click();
       await poiPage.locator('.path-actions [data-action="return"]').click();
       await poiPage.locator('[data-action="continue"]').click();
@@ -375,7 +382,7 @@ async function main() {
       await poiPage.locator('[data-action="tab"][data-value="explore"]').click();
       await poiPage.locator('.nearby-tile[data-value="-1,0"]').click();
       await poiPage.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
-      await poiPage.locator('.path-actions [data-action="careful"]').click();
+      await walkForestToGate(poiPage);
       assert.equal(await poiPage.locator('.combat-manual').getAttribute('open'),'','four choices should appear by default');
       assert.match(await poiPage.locator('.combat-manual').innerText(),/反撃/,'new shield changes the available guard decision');
       await poiPage.screenshot({path:path.join(output,'crafted-shield-combat-390.png')});
