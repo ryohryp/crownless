@@ -78,7 +78,7 @@ test('wolf reveals itself nearby and player can either engage or escape its den'
   const around=walk(escaped,9,4);
   assert.equal(around.expedition,null,'the stone gate allows a safe escape');
   assert.equal(around.report.died,false);
-  assert.equal(around.victories,0,'avoiding the den really avoids wolf combat');
+  assert.equal(around.materials.wolfFang,0,'avoiding the den does not fake a wolf kill');
 });
 
 test('careful bypass reaches the stone gate without a forced second wolf fight',()=>{
@@ -87,7 +87,7 @@ test('careful bypass reaches the stone gate without a forced second wolf fight',
   assert.equal(s.report.died,false);
   assert.equal(s.report.scrap,0);
   assert.equal(s.runs,1);
-  assert.equal(s.victories,0,'wolf is optional and no phantom battle is awarded');
+  assert.equal(s.materials.wolfFang,0,'no phantom wolf drops when the player avoids combat');
 });
 
 
