@@ -613,6 +613,18 @@ async function main() {
           'alert belongs inside the scene, not over the retreat button');
         assert.equal((await saved()).expedition.stage,'path',
           'wolf seeing the hero cannot force a combat');
+        await page.waitForTimeout(510); // finish the 410ms approach animation before framing checks
+        const sightline=await page.evaluate(()=>{
+          const space=document.querySelector('.forest-field .field-worldspace').getBoundingClientRect();
+          const frame=document.querySelector('.forest-field .field-terrain').getBoundingClientRect();
+          const point=(x,y)=>({x:space.left+space.width*x/600,y:space.top+space.height*y/600});
+          return {wolfEar:point(420,125),heroBoot:point(420,330),
+            viewport:{left:frame.left,right:frame.right,top:frame.top,bottom:frame.bottom}};
+        });
+        assert([sightline.wolfEar,sightline.heroBoot].every(pt=>
+          pt.x>=sightline.viewport.left-3&&pt.x<=sightline.viewport.right+3&&
+          pt.y>=sightline.viewport.top-3&&pt.y<=sightline.viewport.bottom+3),
+          'alert camera must frame the wolf and traveler together: '+JSON.stringify(sightline));
         await page.screenshot({path:path.join(output,'forest-wolf-spotted-'+width+'.png')});
         await page.reload();
         assert.equal(await page.locator('.forest-field[data-wolf-state="alert"]').count(),1,
