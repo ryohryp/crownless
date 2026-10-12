@@ -525,6 +525,7 @@
         const to=Number(action.slice('field-step:'.length));
         const field=F.move(x.field,to);
         if (!field) return s;
+        const wolfBefore=F.wolfAwareness(x.field);
         x.field=field;
         if (to === F.CACHE && !field.cache) {
           field.cache=true;
@@ -538,9 +539,17 @@
           field.tracks=true; x.focus=Math.max(3,x.focus);
           x.log=['獣の足取りが読めた。次の一撃に集中 +3。危険な巣穴を迂回する道も見える。'];
         } else x.log=['霧が少し晴れた。まだ踏み込んでいない道が見えてくる。'];
+        if (to !== F.DEN && to !== F.EXIT) {
+          const wolfNow=F.wolfAwareness(field);
+          if(wolfNow==='alert' && wolfBefore!=='alert') {
+            x.log=['茂みから狼が現れた！ こちらに気づいて唸っている。巣穴へ進めば戦闘、脇道へ戻れば避けられる。'];
+          } else if(wolfBefore==='alert' && wolfNow!=='alert') {
+            x.log=['狼の視線を振り切った。遠ざかる足音を背に、別の道を探せる。'];
+          }
+        }
         if (to === F.DEN || to === F.EXIT) {
           encounter(x,to===F.DEN,n.runs);
-          if(to===F.DEN) x.log.unshift('獣の巣穴へ踏み込んだ。強い獣が襲いかかる！');
+          if(to===F.DEN) x.log.unshift('身構えた狼が飛びかかってきた！ 危険を承知で巣穴へ踏み込んだ。');
           else x.log.unshift('霧の先の石門を抜けた。奥から獣が現れた！');
         }
         return n;
