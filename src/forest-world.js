@@ -205,11 +205,8 @@
       if(!wolfDefeated){
         ellipse(ctx,x-11,y+8,3,2,'#d57c58');
         ellipse(ctx,x+12,y+8,3,2,'#d57c58');
-      }else{
-        // No glowing eyes or living monster silhouette after the one battle.
-        stone(ctx,x-12,y+30,8,random(900));
-        ellipse(ctx,x+17,y+27,6,2,'#78836b77');
       }
+      // A defeated wolf leaves only an unlit, empty entrance.
     }
     // An arch gate invites curiosity, beyond the fog.
     {
