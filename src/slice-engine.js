@@ -314,7 +314,7 @@
       supported ? `${COMMISSIONS[id].requester}の支援で薬草 +1。鍛冶師の納品が帰ってきた。` : null,
       visitorGift ? `${visitorGift.name}（架空NPC）の補給袋を受け取った。薬草 +1。ここからの一度限りの支援。` : null,
     ].filter(Boolean).join(' ') || '火はここで待っている。まずは足跡をたどろう。';
-    n.expedition = { place: id, depth: 1, room: 0, hp: maxHp(s), stamina: 3, focus: 0, stagger: false, sharpened, sharpenedApplied: false, potions: (supported || visitorGift) ? 3 : 2, scrap: 0, materials:emptyMaterials(), gear: [], gearQuality: [], seals: [], grudge, enemy: null, stage: 'path', log: [intro] };
+    n.expedition = { place: id, depth: 1, room: 0, discovery: null, hp: maxHp(s), stamina: 3, focus: 0, stagger: false, sharpened, sharpenedApplied: false, potions: (supported || visitorGift) ? 3 : 2, scrap: 0, materials:emptyMaterials(), gear: [], gearQuality: [], seals: [], grudge, enemy: null, stage: 'path', log: [intro] };
     return n;
   }
   // A landmark expedition is bound to one *discovered* fantasy place by the UI.
@@ -518,6 +518,24 @@
     } else if (x.stage === 'cleared' && action === 'deeper' && x.depth < 3) {
       x.depth++; x.room = 0; x.stage = 'path'; x.log = [`さらに深く。${lootCue(x.place, x.depth)}`]; return n;
     } else if (x.stage === 'path') {
+      // First-footstep interaction: the player can physically investigate
+      // exactly ONE suspicious site in the scene before choosing a route.
+      // The reward is carried at risk until safe return; it can never repeat
+      // through reloads or the next four rooms of the expedition.
+      if (x.depth === 1 && x.room === 0 && x.discovery === null
+        && (action === 'scout-cache' || action === 'scout-tracks')) {
+        if (action === 'scout-cache') {
+          if (x.hp <= 3 || x.scrap > 997) return s;
+          x.hp -= 3; x.scrap += 3;
+          x.discovery = 'cache';
+          x.log = ['倒木の根を探った。鋭い枝で体力 −3。鉄片 +3 を背嚢に収めた。生還できれば持ち帰れる。'];
+        } else {
+          if (x.focus >= 3) return s;
+          x.focus = 3; x.discovery = 'tracks';
+          x.log = ['獣の足跡を調べた。飛びかかる角度を見抜いた。次の攻撃 +3。'];
+        }
+        return n;
+      }
       if ([1, 3].includes(x.room)) {
         const roadside = isRoadsideEvent(n, x);
         if (roadside) {
@@ -771,6 +789,7 @@
         if (s.expedition.sharpenedApplied === undefined) s.expedition.sharpenedApplied = false;
         if (s.expedition.grudge === undefined) s.expedition.grudge = null;
         if (s.expedition.stagger === undefined) s.expedition.stagger = false;
+        if (s.expedition.discovery === undefined) s.expedition.discovery = null;
       }
       if (s.version === VERSION && s.report) {
         s.report.materials = hydrateKnownRecord(s.report.materials, emptyMaterials);
@@ -800,7 +819,7 @@
       if (s.expedition) {
         const x = s.expedition;
         const allowedFocus = gearFamily(s.equipped) === 'fang' ? [0,3,4,5,6,7,8,9] : [0,3];
-        if (Object.keys(x).some(k => !['place','depth','room','hp','stamina','focus','stagger','sharpened','sharpenedApplied','landmarkId' ,'potions','scrap','materials','gear','gearQuality','seals','grudge','enemy','stage','log','foundDesign'].includes(k)) || !(x.foundDesign === undefined || x.foundDesign === 'shield_thorn') || !(x.landmarkId === undefined || (typeof x.landmarkId==='string' && /^[a-z][a-z0-9-]{1,63}$/.test(x.landmarkId))) || !s.unlocked.includes(x.place) || !int(x.depth,1,3) || !int(x.room,0,4) || !int(x.hp,1,maxHp(s)) || !int(x.stamina,0,3) || !allowedFocus.includes(x.focus) || typeof x.stagger !== 'boolean' || !int(x.sharpened,0,3) || typeof x.sharpenedApplied !== 'boolean' || !validExpeditionGrudge(x.grudge) || !int(x.potions,0,3) || !int(x.scrap,0,1000) || !validMaterials(x.materials) || !validLoot(x.gear,x.gearQuality) || !Array.isArray(x.seals) || x.seals.length > 3 || !x.seals.every(v => ids.includes(v)) || !['path','fight','cleared'].includes(x.stage) || !Array.isArray(x.log) || x.log.length > 10 || !x.log.every(v => typeof v === 'string' && v.length < 250)) throw Error('run');
+        if (Object.keys(x).some(k => !['place','depth','room','discovery','hp','stamina','focus','stagger','sharpened','sharpenedApplied','landmarkId' ,'potions','scrap','materials','gear','gearQuality','seals','grudge','enemy','stage','log','foundDesign'].includes(k)) || !(x.foundDesign === undefined || x.foundDesign === 'shield_thorn') || !(x.landmarkId === undefined || (typeof x.landmarkId==='string' && /^[a-z][a-z0-9-]{1,63}$/.test(x.landmarkId))) || ![null,'cache','tracks'].includes(x.discovery) || !s.unlocked.includes(x.place) || !int(x.depth,1,3) || !int(x.room,0,4) || !int(x.hp,1,maxHp(s)) || !int(x.stamina,0,3) || !allowedFocus.includes(x.focus) || typeof x.stagger !== 'boolean' || !int(x.sharpened,0,3) || typeof x.sharpenedApplied !== 'boolean' || !validExpeditionGrudge(x.grudge) || !int(x.potions,0,3) || !int(x.scrap,0,1000) || !validMaterials(x.materials) || !validLoot(x.gear,x.gearQuality) || !Array.isArray(x.seals) || x.seals.length > 3 || !x.seals.every(v => ids.includes(v)) || !['path','fight','cleared'].includes(x.stage) || !Array.isArray(x.log) || x.log.length > 10 || !x.log.every(v => typeof v === 'string' && v.length < 250)) throw Error('run');
         if (x.stage === 'fight') {
           const e = x.enemy;
           if (!e || Object.keys(e).some(k => !['kind','hp','maxHp','turn','depth','elite','risky','seed','frenzy','wounded','clue'].includes(k)) || !(e.seed === undefined || int(e.seed,0,99990)) || !(e.frenzy === undefined || typeof e.frenzy === 'boolean') || !(e.wounded === undefined || typeof e.wounded === 'boolean') || !(e.clue === undefined || typeof e.clue === 'boolean') || !ENEMIES[e.kind] || !int(e.maxHp,1,80) || !int(e.hp,1,e.maxHp) || !int(e.turn,0,1e6) || e.depth !== x.depth || typeof e.elite !== 'boolean' || typeof e.risky !== 'boolean') throw Error('enemy');
