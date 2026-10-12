@@ -399,8 +399,10 @@
       ellipse(ctx,x,y,13+r()*35,4+r()*12,i%3===0?'#b8cdb813':'#8caaa812');
     }
     ctx.globalCompositeOperation='destination-out';
-    for(let i=0;i<25;i++){
-      if(!(seen&(1<<i)))continue;
+    // All forty-nine cells use the game's number-safe visibility check.
+    // Bitwise shifts would wrap at cell 32 and hide discoveries at the edge.
+    for(let i=0;i<F.COUNT;i++){
+      if(!F.visible({seen},i))continue;
       const [x,y]=center(i);
       const light=ctx.createRadialGradient(x,y,24,x,y,112);
       light.addColorStop(0,'#000000ff');
