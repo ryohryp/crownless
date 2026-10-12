@@ -272,7 +272,7 @@
         <p class="small">${esc(p.description)}</p>
         <p class="footprint-acquired">${control.status!=='ok'?'👣 発見済み · ⚠ 支配情報を確認できません':owned.has(p.id)?'⚑ あなたの支配拠点':'👣 発見済み・未支配'} · ${esc(p.seal)}</p>
         <p class="small">初発見 ${esc(p.firstDate)} · 訪問 ${p.visits.length}日${p.visits.length>1?' · 再訪済み':''}</p>
-        <p class="small">${owned.has(p.id)?'支配の効果：この名所からの遠征に薬草 +1（最大3個）':'攻略条件：この名所の主を倒し、旗を立てて帰還する'}</p>
+        <p class="small">${owned.has(p.id)?'支配の効果：この名所からの遠征に薬草 +1（最大3個）'+(p.id==='tokyo-tower'?' · 紅蓮の闘志：全遠征で攻撃 +1':p.id==='osaka-castle'?' · 王城の加護：全遠征で被ダメージ −1':' · 天眼：探索効果は実装待ち'):'攻略条件：この名所の主を倒し、旗を立てて帰還する'}</p>
         ${!owned.has(p.id) ? (()=>{const progress=landmarkProgress(p,control);return `<p class="landmark-control-status landmark-control-status--${progress.type}" role="status">${esc(progress.message)}</p>`;})() : ''}
         <button class="landmark-siege-btn" type="button" data-action="landmark-siege" data-value="${esc(p.id)}" ${control.status!=='ok'?'disabled title="ゲームセーブの読み取り状態を確認してください"':''}>${owned.has(p.id)?'この支配拠点から再遠征':'このランドマークを攻略する'}</button>
       </article>`).join('')}</div>`;
