@@ -141,18 +141,30 @@ async function main() {
             samples,distinct:new Set(samples).size,stepFacesHidden:tiles.every(el=>
               getComputedStyle(el).borderTopWidth==='0px' &&
               getComputedStyle(el).fontSize==='0px' && el.offsetWidth>=44),
-            noIdleMoveHints:tiles.every(el=>{
+            transparentHitAreas:tiles.every(el=>{
               const css=getComputedStyle(el);
               return css.backgroundImage==='none' &&
                 (css.backgroundColor==='rgba(0, 0, 0, 0)' || css.backgroundColor==='transparent') &&
                 css.animationName==='none';
-            })};
+            }),
+            guidedCells:tiles.filter(el=>el.classList.contains('walk-nav')).map(el=>Number(el.dataset.value)),
+            visibleWaypoint:tiles.filter(el=>el.classList.contains('walk-nav')).every(el=>{
+              const hint=getComputedStyle(el,'::after');
+              return hint.content!=='none' && parseFloat(hint.width)>=10 && hint.borderTopStyle==='dashed';
+            }),
+            unexpectedNav:[...document.querySelectorAll('.forest-field .field-cell.walk-nav')]
+              .filter(el=>el.classList.contains('wall')||el.classList.contains('secret')||el.classList.contains('veiled'))
+              .map(el=>el.className) };
         });
         assert(canvasProof.supported&&canvasProof.width>=512&&canvasProof.distinct>=3
           &&canvasProof.stepFacesHidden,
           'the new forest has actual non-flat pixel art and invisible grid faces: '+JSON.stringify(canvasProof));
-        assert(canvasProof.noIdleMoveHints,
-          'move buttons stay fully tappable but show no idle glow, dashed rings, or direction navigation: '+JSON.stringify(canvasProof));
+        assert(canvasProof.transparentHitAreas,
+          'walkable tap cells must remain full-sized transparent inputs: '+JSON.stringify(canvasProof));
+        assert.deepEqual(canvasProof.guidedCells.slice().sort((a,b)=>a-b),[15,21],
+          'only the two ordinary walkable neighbors of the camp get visible waypoints');
+        assert(canvasProof.visibleWaypoint && canvasProof.unexpectedNav.length===0,
+          'CSS waypoints visible on standard paths only; neither walls, secrets nor fog get marked: '+JSON.stringify(canvasProof));
         assert(!/宝箱.*未発見|森の秘密/.test(await page.locator('.forest-field-footer').innerText()),
           'unfound treasure or hidden discoveries must not be advertised in the footer');
         assert.equal(await page.locator('.forest-field .field-cell').count(),49,'larger woodland renders forty-nine real cells');
@@ -710,6 +722,10 @@ async function main() {
         assert.equal(await vines.count(),1,'tangled vines are a real adjacent tap target');
         assert.equal(await vines.evaluate(el=>getComputedStyle(el).backgroundImage),'none',
           'the secret-vine destination must not be given away by a glowing navigation circle');
+        assert.equal(await vines.evaluate(el=>el.classList.contains('walk-nav')),false,
+          'closed secret vines have no walking waypoint even though they can be inspected');
+        assert((await page.locator('.forest-field .walk-nav').count())>=2,
+          'regular walkable neighbors still have navigation near the hidden passage');
         assert.match(await vines.getAttribute('aria-label'),/揺れるツタを調べる/);
         const tap=await vines.evaluate(el=>{
           const b=el.getBoundingClientRect();
@@ -720,12 +736,16 @@ async function main() {
         await page.screenshot({path:path.join(output,'forest-secret-vines-'+width+'.png')});
         await vines.click(); // First touch uncovers the real barrier but does NOT teleport through it.
         assert.equal(await page.locator('.forest-field[data-field-secret="true"][data-field-pos="17"]').count(),1);
+        assert.equal(await page.locator('.forest-field .field-cell.secret.walk-nav').count(),0,
+          'the shortcut stays unsignposted even after its collision barrier opens');
         assert.match(await page.locator('.field-moment').innerText(),/隠し道が開いた/);
         assert.equal(await page.locator('.field-cell.shrine.revealed').count(),0,
           'uncovering the barrier must not reveal the hidden shrine prematurely');
         await page.screenshot({path:path.join(output,'forest-secret-barrier-open-'+width+'.png')});
         await step(12); // Only the second touch enters the newly opened passage.
         assert.equal(await page.locator('.forest-field[data-field-secret="true"][data-field-pos="12"]').count(),1);
+        assert.equal(await page.locator('.forest-field .field-cell.secret.walk-nav').count(),0,
+          'the shortcut must not gain a waypoint when player stands in it');
         assert.equal(await page.locator('.field-cell.shrine.revealed').count(),1,
           'shrine becomes visible ONLY after entering the hidden passage');
         await page.waitForTimeout(460); // allow the camera to finish revealing the new vista

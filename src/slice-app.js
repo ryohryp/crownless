@@ -66,10 +66,13 @@
       const kind=F.landmark(i), seen=F.visible(field,i), near=F.adjacent(field.pos,i);
       const [col,row]=F.coords(i);
       const here=i===field.pos, known=seen&&!here, passable=near&&kind!=='wall';
+      // Navigation marks only ordinary, currently traversable adjacent land.
+      // Secret vines are intentionally never marked, even after discovery.
+      const guided=seen&&kind!=='secret'&&F.canMove(field,i);
       const used=(kind==='cache'&&field.cache)||(kind==='tracks'&&field.tracks)||(kind==='treasure'&&field.treasure)||(kind==='den'&&field.wolf)||(kind==='shrine'&&field.shrine)||(kind==='secret'&&field.secret)||(kind==='glade'&&field.glade);
       const icon=here?'<span class="field-hero" aria-hidden="true"><i></i></span>'
         : seen?(used?'✓':icons[kind]):'';
-      const classes=['field-cell',seen?'revealed':'veiled',kind,here?'here':'',passable?'can-step':'',used?'spent':''].filter(Boolean).join(' ');
+      const classes=['field-cell',seen?'revealed':'veiled',kind,here?'here':'',passable?'can-step':'',guided?'walk-nav':'',used?'spent':''].filter(Boolean).join(' ');
       const label=here?'旅人の現在地':seen?names[kind]:'まだ見えない土地';
       if(passable)return `<button type="button" class="${classes}" style="grid-column:${col+1};grid-row:${row+1}" data-action="field-step" data-value="${i}" aria-label="${label}${kind==='secret'&&!field.secret?'を調べる':'へ一歩進む'}">${icon}</button>`;
       return `<span class="${classes}" style="grid-column:${col+1};grid-row:${row+1}" aria-label="${label}">${icon}</span>`;

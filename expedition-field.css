@@ -214,11 +214,28 @@
   display:none!important;
 }
 #game > .field-layout .forest-field.world-painted button.field-cell.can-step {
-  /* No idle navigation glow: the real terrain becomes the only visual clue.
-     Keep the full-sized invisible button for touch and assistive technology. */
+  /* Invisible full-cell tap surface; only approved .walk-nav tiles add
+     an indicator. Walls and hidden shortcuts never receive that class. */
   border:0!important;
   background:transparent!important;
   cursor:pointer;touch-action:manipulation;
+}
+/* Only ordinary walkable neighbors display a subdued ground waypoint.
+   A secret passage remains unmarked before AND after it is uncovered.
+   The indicator lives inside the same camera-transformed tap cell, so it
+   stays aligned on 360px phones and cannot steal a movement tap. */
+#game > .field-layout .forest-field.world-painted button.field-cell.walk-nav::after {
+  content:'';
+  position:absolute;
+  left:50%;top:73%;
+  width:36%;aspect-ratio:1;
+  transform:translate(-50%,-50%);
+  border:1.5px dashed #f4d797bc;
+  border-radius:50%;
+  background:radial-gradient(circle,#fae2a455 0 12%,#e2cd8520 45%,transparent 72%);
+  box-shadow:0 0 12px #efda9757,inset 0 0 9px #f2dfaf2b;
+  pointer-events:none;
+  z-index:1;
 }
 #game > .field-layout .forest-field.world-painted button.field-cell.can-step:active {
   background:radial-gradient(ellipse at center,#f9e9af93,#fbdf8c38 55%,transparent 75%)!important;
