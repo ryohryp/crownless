@@ -155,7 +155,9 @@ async function main() {
           'move buttons stay fully tappable but show no idle glow, dashed rings, or direction navigation: '+JSON.stringify(canvasProof));
         assert(!/宝箱.*未発見|森の秘密/.test(await page.locator('.forest-field-footer').innerText()),
           'unfound treasure or hidden discoveries must not be advertised in the footer');
-        assert.equal(await page.locator('.forest-field .field-cell').count(),25,'five by five terrain must render');
+        assert.equal(await page.locator('.forest-field .field-cell').count(),49,'larger woodland renders forty-nine real cells');
+        assert.equal(await page.locator('.forest-field .field-cell.wall').count(),17,
+          'impenetrable tree masses are part of the field, not decorative background');
         assert((await page.locator('.forest-field .field-cell.veiled').count())>14,
           'most of the land must actually be hidden at the beginning');
         const fogObscuresWall=await page.evaluate(()=>{
@@ -639,7 +641,7 @@ async function main() {
         const sightline=await page.evaluate(()=>{
           const space=document.querySelector('.forest-field .field-worldspace').getBoundingClientRect();
           const frame=document.querySelector('.forest-field .field-terrain').getBoundingClientRect();
-          const point=(x,y)=>({x:space.left+space.width*x/600,y:space.top+space.height*y/600});
+          const point=(x,y)=>({x:space.left+space.width*x/840,y:space.top+space.height*y/840});
           return {wolfEar:point(420,125),heroBoot:point(420,330),
             viewport:{left:frame.left,right:frame.right,top:frame.top,bottom:frame.bottom}};
         });
@@ -716,16 +718,21 @@ async function main() {
         });
         assert(tap.hit&&tap.height>=44,'vines must be physically tappable on small phones');
         await page.screenshot({path:path.join(output,'forest-secret-vines-'+width+'.png')});
-        await vines.click(); // This opens the shortcut and MOVES one cell.
+        await vines.click(); // First touch uncovers the real barrier but does NOT teleport through it.
+        assert.equal(await page.locator('.forest-field[data-field-secret="true"][data-field-pos="17"]').count(),1);
+        assert.match(await page.locator('.field-moment').innerText(),/隠し道が開いた/);
+        assert.equal(await page.locator('.field-cell.shrine.revealed').count(),0,
+          'uncovering the barrier must not reveal the hidden shrine prematurely');
+        await page.screenshot({path:path.join(output,'forest-secret-barrier-open-'+width+'.png')});
+        await step(12); // Only the second touch enters the newly opened passage.
         assert.equal(await page.locator('.forest-field[data-field-secret="true"][data-field-pos="12"]').count(),1);
-        assert.match(await page.locator('.field-moment').innerText(),/隠し道が現れた/);
         assert.equal(await page.locator('.field-cell.shrine.revealed').count(),1,
-          'emerging shrine must be visible beyond the opened shortcut');
+          'shrine becomes visible ONLY after entering the hidden passage');
         await page.waitForTimeout(460); // allow the camera to finish revealing the new vista
         const shrineFrame=await page.evaluate(()=>{
           const world=document.querySelector('.forest-field .field-worldspace').getBoundingClientRect();
           const viewport=document.querySelector('.forest-field .field-terrain').getBoundingClientRect();
-          const shrine={x:world.left+world.width*300/600,y:world.top+world.height*180/600};
+          const shrine={x:world.left+world.width*300/840,y:world.top+world.height*180/840};
           return {shrine,top:viewport.top,bottom:viewport.bottom,left:viewport.left,right:viewport.right};
         });
         assert(shrineFrame.shrine.y>shrineFrame.top+45 &&
@@ -750,7 +757,7 @@ async function main() {
         const revisited=await saved();
         assert.equal(revisited.expedition.hp,30);
         assert.equal(revisited.expedition.potions,3);
-        await step(2);await step(3);await step(4);
+        for(const id of [12,17,22,23,24,19,14,9,4])await step(id);
         const banked=await saved();
         assert.equal(banked.expedition,null);
         assert.equal(banked.scrap,10,'cache + original chest carry through new secret route');
@@ -758,6 +765,37 @@ async function main() {
         assert.equal(await page.locator('.report-layout').count(),1);
         assert.deepEqual(errors,[],'shrines and shortcut must not generate browser errors');
       }finally{await context.close();}
+    }
+
+    // The larger world has a genuinely distant side expedition.
+    for(const width of [360,390]){
+      const ctx=await browser.newContext({viewport:{width,height:width===360?800:844},isMobile:true,hasTouch:true});
+      const page=await ctx.newPage();
+      const step=async n=>page.locator('.forest-field [data-action="field-step"][data-value="'+n+'"]').click();
+      try{
+        await page.goto(url);
+        await page.locator('[data-action="mode"][data-value="demo"]').click();
+        await page.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
+        assert.equal(await page.locator('.forest-field .field-cell').count(),49);
+        assert.equal(await page.locator('.forest-field button.field-cell.wall').count(),0,
+          'all forest walls must be physically impassable, not invisible tappable passageways');
+        assert.equal(await page.locator('.forest-field .field-cell.glade.veiled').count(),1,
+          'far glade must be obscured when the expedition begins');
+        for(const id of [21,22,23,24,33,34,41])await step(id);
+        assert.equal(await page.locator('.forest-field .field-cell.glade.revealed').count(),1);
+        await page.screenshot({path:path.join(output,'forest-distant-glade-approach-'+width+'.png')});
+        await step(48);
+        const found=await page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+        assert.equal(found.expedition.field.pos,48);
+        assert.equal(found.expedition.field.glade,true);
+        assert.equal(found.expedition.scrap,4);
+        await page.screenshot({path:path.join(output,'forest-distant-glade-found-'+width+'.png')});
+        await page.reload();
+        assert.equal(await page.locator('.forest-field[data-field-glade="true"][data-field-pos="48"]').count(),1);
+        await step(41);await step(48);
+        const twice=await page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+        assert.equal(twice.expedition.scrap,4,'saved distant discoveries cannot pay out twice');
+      }finally{await ctx.close();}
     }
 
     // Corrupt game saves must not be silently overwritten during rendering.
