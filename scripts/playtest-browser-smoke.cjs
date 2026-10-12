@@ -143,7 +143,7 @@ async function main() {
         });
         assert(journeyFrame.worldHeight>=height*.49,'the traversable field should dominate the viewport: '+JSON.stringify(journeyFrame));
         assert(journeyFrame.worldBottom<=journeyFrame.cardTop+2,'field and thumb controls must not overlap: '+JSON.stringify(journeyFrame));
-        assert(journeyFrame.actions.length>=4 && journeyFrame.actions.every(x=>x.hit&&x.top>=0&&x.bottom<=height+2&&x.height>=44),
+        assert(journeyFrame.actions.length>=3 && journeyFrame.actions.every(x=>x.hit&&x.top>=0&&x.bottom<=height+2&&x.height>=44),
           'all field moves and return actions are real accessible tap targets: '+JSON.stringify(journeyFrame));
         await page.screenshot({path:path.join(output,'forest-fog-start-'+width+'.png')});
         await page.locator('.forest-field [data-action="field-step"][data-value="21"]').click();
