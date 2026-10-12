@@ -23,10 +23,9 @@ function listenForPort(server) {
   });
 }
 
-async function walkForestToGate(page) {
-  // Short, safe path around the dangerous den. Each tile is a REAL
-  // one-step DOM click in the new foggy forest, not a JS teleport.
-  for(const pos of [21,22,23,24,19,14,9,4]){
+async function walkForestToWolf(page) {
+  // Walk the REAL on-screen trail to the optional wolf encounter.
+  for(const pos of [21,22,23,18,13,8]){
     const next=page.locator('.forest-field [data-action="field-step"][data-value="'+pos+'"]');
     await next.click();
   }
@@ -177,10 +176,10 @@ async function main() {
         const knownAfterStep=await page.locator('.forest-field .field-cell.revealed').count();
         assert(knownAfterStep>3,'moving reveals genuinely new local ground');
         await page.screenshot({path:path.join(output,'forest-fog-revealed-'+width+'.png')});
-        for(const pos of [22,23,24,19,14,9,4]){
+        for(const pos of [22,23,18,13,8]){
           await page.locator('.forest-field [data-action="field-step"][data-value="'+pos+'"]').click();
         }
-        assert.equal(await page.locator(".battle-layout .combat-enemy-summary").count(), 1, "first encounter must render actual battle");
+        assert.equal(await page.locator(".battle-layout .combat-enemy-summary").count(), 1, "the wolf den must render exactly one actual battle");
         const battleLayout=await page.evaluate(()=>{
           const names=['.combat-situation','.combat-decision','.combat-support'];
           const items=names.map(selector=>{
@@ -221,31 +220,40 @@ async function main() {
           await page.screenshot({path:path.join(output,'combat-after-manual-strike-390.png')});
         }
         await page.locator('[data-action="auto-fight"]').click();
-        assert.equal(await page.locator(".path-panel").count(), 1, "first battle must resolve to the next route scene");
+        assert.equal(await page.locator('.forest-field[data-field-wolf="true"]').count(),1,
+          'after the only wolf battle, hero returns to the SAME forest, with wolf gone');
         const afterFirstBattle = await page.evaluate(() => JSON.parse(localStorage.getItem("crownless-expedition-v1-demo")));
-        assert.equal(afterFirstBattle.expedition?.room, 1);
-        assert(afterFirstBattle.expedition?.materials.wolfFang >= 1);
-        assert.equal(await page.locator('.expedition-world-scene[data-journey-room="1"]').count(),1,
-          'battle result advances the world canvas to the actual new room');
-        assert.equal(await page.locator('.journey-trail-stop.here').count(),1,
-          'exactly one road milestone is active');
-        assert.equal(startingPosition,'20');
-        assert.equal(await page.locator('.journey-traveler').count(),1,
-          'after clearing the navigable first room, the ordinary route illustration resumes');
-        await page.screenshot({path:path.join(output,'journey-after-first-fight-'+width+'.png')});
+        assert.equal(afterFirstBattle.expedition?.room,0,'wolf victory does not start a five-fight corridor');
+        assert.equal(afterFirstBattle.expedition?.field.pos,8,'hero resumes exactly where the fight happened');
+        assert.equal(afterFirstBattle.expedition?.field.wolf,true,'wolf stays permanently defeated for this expedition');
+        assert(afterFirstBattle.expedition?.materials.wolfFang>=1,'first wolf loot is actually carried');
+        await page.screenshot({path:path.join(output,'forest-after-wolf-'+width+'.png')});
         await page.reload();
-        assert.equal(await page.locator('.expedition-world-scene[data-journey-room="1"]').count(),1,
-          'world illustration follows the saved route after reload');
-        assert.equal(await page.locator(".expedition-layout:not(.battle-layout)").count(), 1, "the saved route must survive reload");
-        const roadsideOption = page.locator('.path-actions button[data-action="pray"]');
-        if (await roadsideOption.count()) await roadsideOption.click();
-        else await page.locator('.path-actions button[data-action="rest"]').click();
-        await page.locator('.path-actions button[data-action="careful"]').click();
-        assert.equal(await page.locator(".battle-layout .combat-enemy-summary").count(), 1, "second encounter must also work");
-        await page.locator('[data-action="auto-fight"]').click();
-        assert.equal(await page.locator(".path-panel").count(), 1);
-        await page.locator('.path-actions button[data-action="return"]').click();
-        assert.equal(await page.locator(".report-layout").count(), 1, "banking route remains open");
+        assert.equal(await page.locator('.forest-field[data-field-wolf="true"]').count(),1,
+          'defeated wolf state survives saved reload');
+        // Re-entering the now-empty den must NEVER launch a second wolf fight.
+        await page.locator('.forest-field [data-action="field-step"][data-value="13"]').click();
+        await page.locator('.forest-field [data-action="field-step"][data-value="8"]').click();
+        assert.equal(await page.locator('.battle-layout').count(),0,'wolf can be fought only once');
+        for(const id of [13,18,17]){
+          await page.locator('.forest-field [data-action="field-step"][data-value="'+id+'"]').click();
+        }
+        const chest=await page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+        assert.equal(chest.expedition.field.treasure,true,'hidden real treasure can be discovered after the wolf fight');
+        assert(chest.expedition.scrap>=8,'chest contents and wolf rewards stay in the pack');
+        assert(chest.expedition.materials.wolfFang>=2,'chest and wolf yield smith-craftable materials');
+        await page.screenshot({path:path.join(output,'forest-treasure-found-'+width+'.png')});
+        await page.reload();
+        assert.equal(await page.locator('.forest-field[data-field-treasure="true"][data-field-wolf="true"]').count(),1,
+          'both chest and defeated wolf persist on re-entry');
+        // The exit portal finishes the single scene with safe loot banking.
+        for(const id of [18,13,8,9,4]){
+          await page.locator('.forest-field [data-action="field-step"][data-value="'+id+'"]').click();
+        }
+        assert.equal(await page.locator('.report-layout').count(),1,'gate returns from forest without a second combat');
+        const banked=await page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+        assert(banked.materials.wolfFang>=2,'both wolf and treasure materials were banked');
+        await page.screenshot({path:path.join(output,'return-from-combat-'+width+'.png')});
         await page.locator('[data-action="continue"]').click();
         // The normal return may prioritize the gear/home tab. Restore the map
         // before running the older discovery and landmark smoke scenarios.
@@ -309,7 +317,7 @@ async function main() {
         assert(map.height>300,width+'px: map must be large enough to explore');
         await page.screenshot({path:path.join(output,'map-production-'+width+'.png')});
         await page.locator('.nearby-card-actions [data-action="depart"][data-value="wood"]').click();
-        await walkForestToGate(page);
+        await walkForestToWolf(page);
         assert.equal(await page.locator('.combat-choice-grid .choice').count(),4,'wide phones/desktop share the same tactical options');
         assert.equal(await page.locator('.combat-choice-grid [data-action="guard"]').isVisible(),true);
         await page.screenshot({path:path.join(output,'combat-production-'+width+'.png')});
@@ -328,9 +336,9 @@ async function main() {
       await poiPage.locator('[data-action="mode"][data-value="demo"]').click();
       // Earn the other region's required material in an actual forest combat.
       await poiPage.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
-      await walkForestToGate(poiPage);
+      await walkForestToWolf(poiPage);
       await poiPage.locator('[data-action="auto-fight"]').click();
-      await poiPage.locator('.path-actions [data-action="return"]').click();
+      await poiPage.locator('.field-choices [data-action="return"]').click();
       await poiPage.locator('[data-action="continue"]').click();
       await poiPage.locator('[data-action="tab"][data-value="explore"]').click();
       const earnedFang=await poiPage.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')).materials.wolfFang);
@@ -373,7 +381,7 @@ async function main() {
       assert.equal(found.expedition?.foundDesign,'shield_thorn','tower event victory reveals a carried design');
       assert.equal(found.designs.shield_thorn,undefined,'unreturned design must not be banked');
       await poiPage.screenshot({path:path.join(output,'blueprint-risk-390.png')});
-      await poiPage.locator('.path-actions [data-action="return"]').click();
+      await poiPage.locator('.field-choices [data-action="return"]').click();
       assert.match(await poiPage.locator('.report-layout').innerText(),/新しい製作レシピを解放：返し棘の盾/);
       await poiPage.locator('[data-action="continue"]').click();
       await poiPage.locator('[data-action="tab"][data-value="gear"]').click();
@@ -408,7 +416,7 @@ async function main() {
       await poiPage.locator('[data-action="tab"][data-value="explore"]').click();
       await poiPage.locator('.nearby-tile[data-value="-1,0"]').click();
       await poiPage.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
-      await walkForestToGate(poiPage);
+      await walkForestToWolf(poiPage);
       assert.equal(await poiPage.locator('.combat-manual').getAttribute('open'),'','four choices should appear by default');
       assert.match(await poiPage.locator('.combat-manual').innerText(),/反撃/,'new shield changes the available guard decision');
       await poiPage.screenshot({path:path.join(output,'crafted-shield-combat-390.png')});
@@ -655,8 +663,8 @@ async function main() {
           await escape.screenshot({path:path.join(output,'forest-wolf-bypassed-'+width+'.png')});
           for(const id of [9,4])await escape.locator('.forest-field [data-action="field-step"][data-value="'+id+'"]').click();
           const passed=await escape.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
-          assert.equal(passed.expedition.stage,'fight','the later stone gate still uses existing combat');
-          assert.equal(passed.expedition.enemy.risky,false,'the dangerous wolf fight was avoided');
+          assert.equal(passed.expedition,null,'the stone gate banks loot without starting a second fight');
+          assert.equal(passed.report.died,false,'avoiding the wolf stays a genuinely safe choice');
         }finally{await escapeContext.close();}
         assert.deepEqual(errors,[],'wolf encounter/retreat must not throw browser exceptions');
       }finally{await context.close();}
