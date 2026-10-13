@@ -1,0 +1,57 @@
+/* Character dossier: reuse the game's native scene, no speculative progression system. */
+.character-status-layout{grid-template-columns:minmax(0,.92fr) minmax(340px,1.08fr);align-items:stretch;padding-bottom:78px;gap:22px}
+.status-visual{position:relative;min-height:425px;overflow:hidden;background:#233a39;border:1px solid var(--line)}
+.status-visual>svg{position:absolute;inset:0;width:100%;height:100%;display:block}
+.status-visual:after{content:"";position:absolute;inset:0;background:linear-gradient(0deg,#102329f5 1%,#10232950 58%,transparent);pointer-events:none}
+.status-identity{position:absolute;left:22px;right:20px;bottom:24px;z-index:1}
+.status-identity .kicker{margin-bottom:6px}
+.status-identity h1{margin:0;font-size:30px;color:var(--ink);line-height:1.35}
+.status-identity p:last-child{color:var(--gold);font-size:12px;margin:2px 0 0}
+.status-mark{display:inline-flex;align-items:center;justify-content:center;width:38px;height:38px;border:1px solid #c6ac7777;border-radius:50%;background:#203638ad;color:var(--gold);font-size:24px;margin-bottom:8px}
+.character-status-panel{min-width:0;padding-top:0}
+.status-panel-content{height:100%;max-height:680px;overflow:auto;overscroll-behavior:contain;padding:4px 10px 18px 0}
+.status-heading{display:flex;align-items:center;justify-content:space-between;gap:10px}
+.status-heading h2{font-size:24px;margin-bottom:12px}
+.status-heading .kicker{margin:0 0 4px}
+.status-settings{border:1px solid var(--line);background:#263d3b;color:var(--ink);font-size:11px;min-height:44px;padding:8px 12px;white-space:nowrap}
+.status-roles{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.status-role{background:#1d3335;border:1px solid var(--line);color:var(--ink);padding:10px 5px;font-size:12px;min-height:48px;line-height:1.45;text-align:center;overflow-wrap:anywhere}
+.status-role.selected{background:#3c4435;border-color:var(--gold);color:var(--gold)}
+.status-role-note{font-size:10px;color:var(--muted);margin:7px 0 12px;line-height:1.5!important}
+.status-numbers{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:7px}
+.status-numbers>div{border:1px solid var(--line);background:#1a3032;padding:11px 10px}
+.status-numbers small{display:block;font-size:10px;color:var(--muted);line-height:1.4}
+.status-numbers strong{font:26px Georgia,serif;color:var(--gold);display:block;margin-top:5px}
+.status-numbers em{font-size:13px;color:var(--muted);font-style:normal}
+.status-section{padding-top:13px;margin-top:14px;border-top:1px solid var(--line)}
+.status-section h3{font-size:17px;margin:0 0 6px;color:var(--gold)}
+.status-section>strong{display:block;font-weight:500;margin-bottom:5px}
+.status-section p{font-size:12px;color:var(--muted);line-height:1.6!important;margin-bottom:0}
+.status-skill{display:flex;gap:10px;padding:11px;border:1px solid var(--line);background:#192f31}
+.status-skill.unlocked{border-color:#c0a66c70}
+.status-skill-mark{width:30px;height:30px;flex:none;display:grid;place-items:center;border:1px solid var(--line);color:var(--gold);font-size:22px}
+.status-skill strong{font-size:14px;display:block;color:var(--ink);font-weight:500}
+.status-skill strong small{font-size:10px;color:var(--gold);margin-left:5px}
+.status-next{background:#c0a66c0f;padding:12px;margin-top:14px;border:1px solid #c0a66c44}
+.status-next h3{font-size:14px}
+.status-next p{color:var(--ink)}
+.status-shared h3 small{font:10px sans-serif;color:var(--muted);margin-left:5px}
+.status-history{display:flex;flex-wrap:wrap;gap:8px 15px;font-size:11px;color:var(--muted);margin:5px 0}
+.status-history b{color:var(--ink)}
+.status-gear-link{font-size:12px;min-height:46px;margin-top:14px}
+@media(max-width:620px){
+  .character-status-layout{display:flex;flex-direction:column;gap:9px;height:calc(100dvh - 154px);min-height:425px;padding-bottom:0}
+  .status-visual{min-height:115px;flex:none}
+  .status-visual>svg{object-fit:cover}
+  .status-identity{left:14px;bottom:9px}
+  .status-mark{width:27px;height:27px;font-size:18px;float:left;margin:8px 10px 0 0}
+  .status-identity h1{font-size:23px}
+  .status-identity .kicker{font-size:9px}
+  .character-status-panel{flex:1;min-height:0;overflow:hidden;padding-top:0}
+  .status-panel-content{max-height:none;height:100%;overflow-y:auto;padding:7px 3px 20px}
+  .status-heading h2{font-size:21px;margin:0 0 10px}
+  .status-roles{gap:5px}
+  .status-role{font-size:11px;min-height:48px;padding:7px 3px}
+  .status-numbers strong{font-size:23px}
+  .status-numbers>div{padding:9px 7px}
+}
