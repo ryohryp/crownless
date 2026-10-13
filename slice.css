@@ -41,3 +41,25 @@
 .combat-manual{border-top:1px solid var(--line);margin-top:7px}
 .combat-manual>summary{padding:12px 4px;min-height:44px;color:var(--muted);font-size:13px;cursor:pointer}
 .combat-manual>.combat-choice-grid{margin:6px 0 10px}
+
+
+/* Earned exploration knowledge needs a first-screen reward moment, not a line
+   buried beneath the expedition's scrap and materials. No mandatory popup. */
+.skill-learning-hint{border-left:3px solid var(--gold);background:#c9a96918;color:#efdfb8;padding:10px 13px;margin:10px 0;font-size:12px;line-height:1.65}
+.skill-learning-hint strong{display:block;color:#f1d096;font-size:13px;font-weight:700}
+.skill-unlock-report .scene{border-color:#d2b98188;box-shadow:0 0 30px #caa85918}
+.skill-unlock-spotlight{position:relative;overflow:hidden;padding:20px 21px 18px;border:1px solid #d2b981a6;background:radial-gradient(circle at 90% 12%,#d2b98129,transparent 52%),linear-gradient(145deg,#27443e,#182e31);box-shadow:0 0 23px #d2b98124;margin:0 0 19px;animation:skill-unlock-reveal .48s ease-out both}
+.skill-unlock-spotlight .kicker{color:#d9c391;letter-spacing:.14em;font-size:11px;margin:0 65px 8px 0}
+.skill-unlock-spotlight h2{font-size:clamp(24px,3vw,32px);line-height:1.35;color:#f7dfab;margin:0 45px 12px 0}
+.skill-unlock-spotlight p{font-size:12px;line-height:1.75;margin:0 0 8px;max-width:35em}
+.skill-unlock-spotlight .skill-unlock-mark{position:absolute;right:18px;top:8px;font:75px Georgia,serif;line-height:1;color:#d2b98155;pointer-events:none}
+.skill-unlock-spotlight .skill-unlock-effect{border-top:1px solid #d2b98155;padding-top:10px;margin:11px 0 0;color:#e7e6d6}
+.skill-unlock-effect strong{display:block;color:#f2d397;margin-bottom:2px}
+@keyframes skill-unlock-reveal{from{opacity:.2;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}
+@media(max-width:620px){
+  .skill-unlock-spotlight{padding:16px 17px;margin-bottom:14px}
+  .skill-unlock-spotlight h2{font-size:25px;margin-bottom:8px}
+  .skill-unlock-spotlight .skill-unlock-mark{font-size:62px;right:13px}
+  .skill-unlock-spotlight p{font-size:12px;line-height:1.65}
+}
+@media(prefers-reduced-motion:reduce){.skill-unlock-spotlight{animation:none}}
