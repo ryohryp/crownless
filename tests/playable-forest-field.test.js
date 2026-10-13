@@ -190,7 +190,7 @@ test('tangled vines conceal a shortcut, which physically opens on adjacent disco
   assert.equal(E.act(s,'field-step:12'),s,'no remote shortcut teleport');
   assert.equal(E.act(s,'field-step:7'),s,'no remote shrine teleport');
   const near=walk(s,21,22,17);
-  assert(F.visible(near.expedition.field,F.SECRET),'vines become visible from the treasure');
+  assert(!F.visible(near.expedition.field,F.SECRET),'vines remain under fog until deliberately investigated');
   assert.equal(near.expedition.field.secret,false,'mere visibility does not reveal a passable secret');
   const opened=walk(near,12);
   assert.equal(opened.expedition.field.pos,F.TREASURE,'first investigation opens the barrier but cannot walk through it');
