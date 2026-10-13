@@ -88,7 +88,7 @@
           (marker?'<span class="nearby-track-flag" aria-hidden="true">'+marker+'</span>':'')+
           (place?'<span class="nearby-track-name">'+esc(N.title(place))+'</span>':'')+
           (home?'<span class="nearby-track-home-label">拠点</span>':'');
-        if(place)cells.push('<button type="button" class="'+classes+'" data-action="district" data-value="'+esc(id)+
+        if(place)cells.push('<button type="button" class="'+classes+'" data-poi-family="'+poi.family+'" data-action="district" data-value="'+esc(id)+
           '" aria-pressed="'+(id===d.id)+'" aria-label="'+esc(N.title(place)+'、'+kind+
             (changed?'、鐘が戻った':place.visitor==='supplies'?'、薬師の荷':place.claimed?'、開拓済み':''))+'">'+inner+'</button>');
         else if(home)cells.push('<button type="button" class="'+classes+'" data-action="tab" data-value="home" aria-label="拠点を開く">'+inner+'</button>');
