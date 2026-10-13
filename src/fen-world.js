@@ -146,6 +146,10 @@
      herbs:section.dataset.fenHerbs==='true'};
    if(!M.valid(f))return;
    const ctx=canvas.getContext('2d',{alpha:false});if(!ctx)return;
+   // Cut holes from a separate fog layer. destination-out on the main
+   // canvas would erase the illuminated terrain as well as the fog.
+   const mist=root.document.createElement('canvas');mist.width=W;mist.height=W;
+   const mistCtx=mist.getContext('2d');if(!mistCtx)return;
    section.classList.add('world-painted');
    const worldspace=section.querySelector('.field-worldspace'),size=worldspace?.clientWidth||0;
    const last=previous;previous=f.pos;
@@ -166,7 +170,7 @@
        const ty=Math.max(edge,Math.min(0,size/2-y/W*size*zoom));
        worldspace.style.transform='translate3d('+tx.toFixed(2)+'px,'+ty.toFixed(2)+'px,0) scale('+zoom+')';
      }
-     scene(ctx,f,time);fog(ctx,f);hero(ctx,x,y,time);
+     scene(ctx,f,time);fog(mistCtx,f);ctx.drawImage(mist,0,0);hero(ctx,x,y,time);
      const dark=ctx.createRadialGradient(300,300,120,300,300,425);
      dark.addColorStop(0,'#071d2300');dark.addColorStop(1,'#08151ca8');
      ctx.fillStyle=dark;ctx.fillRect(0,0,W,W);
