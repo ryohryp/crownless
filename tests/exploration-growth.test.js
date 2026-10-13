@@ -70,3 +70,56 @@ test('cannot forge the moon dagger without returning the earned blueprint',()=>{
   const forged=E.craftItem({...s,designs:{fang_moon:'wood'}},'fang_moon');
   assert(forged.owned.includes('fang_moon'));
 });
+
+
+test('player-triggered trail reading discovers a design, rather than passive path entry',()=>{
+  let s=fresh();s.characters[0].skills.trailReading=true;
+  s=steps(E.start(s,'wood'),21,22);
+  assert.match(s.expedition.log[0],/獣道読み/);
+  assert.equal(s.expedition.foundDesign,undefined,'walking into the clue does not fire the skill');
+  const used=E.act(s,'skill-trail-read');
+  assert.equal(used.expedition.foundDesign,'fang_moon');
+  assert.match(used.expedition.log[0],/^《獣道読み》発動！/);
+  assert.deepEqual(E.act(used,'skill-trail-read'),used,'no duplicate reward');
+  assert.deepEqual(E.parse(E.serialize(used)),used,'active use survives reload');
+  assert.equal(E.act(used,'return').designs.fang_moon,'wood');
+});
+
+test('trail reading helps prepare a real wolf fight but cannot stack endlessly',()=>{
+  let s=fresh();s.characters[0].skills.trailReading=true;
+  // From tile 23/18, the wolf den's approach is visible but its battle is optional.
+  s=steps(E.start(s,'wood'),21,22,23,18,13,8);
+  // We are already fighting at the den; the skill cannot be used mid-combat.
+  assert.deepEqual(E.act(s,'skill-trail-read'),s);
+  s=steps(E.start({...s,expedition:null},'wood'),21,22,23,18,13);
+  // Tracks granted focus already, so no extra stack is possible.
+  assert.equal(s.expedition.focus,3);
+  assert.deepEqual(E.act(s,'skill-trail-read'),s);
+  let fromAlternate=fresh();fromAlternate.characters[0].skills.trailReading=true;
+  fromAlternate=steps(E.start(fromAlternate,'wood'),21,16,17,18,13);
+  // If this path already granted focus, reading the same tracks is not repeatable.
+  assert.equal(fromAlternate.expedition.focus,3);
+});
+
+test('trail skill action opens a fen causeway from the approach only and can be reused in later runs',()=>{
+  const N=require('../src/neighborhood.js');
+  let s=E.discoverDistrict(fresh(),N.cell(N.CELL_METERS,0));
+  s.characters[0].skills.trailReading=true;
+  s=E.start(s,'fen');
+  assert.deepEqual(E.act(s,'skill-trail-read'),s,'no remote scan');
+  for(const id of [21,16,11])s=E.act(s,'fen-step:'+id);
+  assert.equal(s.expedition.fen.trail,false);
+  const opened=E.act(s,'skill-trail-read');
+  assert.equal(opened.expedition.fen.pos,11);
+  assert.equal(opened.expedition.fen.trail,true);
+  assert.match(opened.expedition.log[0],/^《獣道読み》発動！/);
+  assert.deepEqual(E.act(opened,'skill-trail-read'),opened,'opened passage cannot be reopened');
+  assert.deepEqual(E.parse(E.serialize(opened)),opened);
+  const causeway=E.act(opened,'fen-step:6');
+  assert.equal(causeway.expedition.fen.pos,6);
+  const home=E.act(causeway,'return');
+  const revisit=E.start({...home,report:null},'fen');
+  let again=revisit;
+  for(const id of [21,16,11])again=E.act(again,'fen-step:'+id);
+  assert.equal(E.act(again,'skill-trail-read').expedition.fen.trail,true);
+});
