@@ -1,7 +1,7 @@
 # Crownless — Active Gameplay Specification
 
 > **Status:** Active supporting specification
-> **Updated:** 2026-10-10
+> **Updated:** 2026-10-14
 > **Authority:** `AGENTS.md` and accepted ADRs take precedence. This file describes the smallest current gameplay contract without creating a second product vision.
 
 ## 1. Current playable loop
@@ -90,6 +90,8 @@ The target rule is **all equippable weapons and armor are crafted by appropriate
 - Finished products should eventually preserve maker identity and coarse origin and may be traded asynchronously.
 - Current `src/slice-engine.js` new expeditions grant regional materials (wolf fangs, watch iron, marsh fiber), scraps, and non-equippable story relics; no newly awarded ready-made weapons. The local smith can craft the first dagger, shield and bow recipes. Existing saved equipment and pre-migration backpack gear are grandfathered.
 - The source of truth is still browser-local for this playable slice. It is **not yet** a networked economy; artisan-made item provenance and exchanges between real accounts await later validation.
+
+**ADR 0013 (accepted, not yet implemented):** Before expanding the crafting catalog, validate a first-return **non-combat gather → bank materials → smith-crafted exploration tool → changed second expedition** loop. A player who deliberately follows a reachable starter-forest gathering route and returns alive should be able to make one exploration-relevant tool. It must produce a visible difference at an existing clue / hidden-route interaction without automatically revealing the secret or replacing the learned trail-reading skill. An empty return or death does not grant a free tool. ADR 0011's separate smith-crafted usable weapon and changed-combat experiment remains required.
 
 Do not add multiple recipe tiers, global prices, or punishment through wear before the single material→craft→equip loop demonstrates fun.
 
