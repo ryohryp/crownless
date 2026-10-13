@@ -9,7 +9,7 @@
  function ellipse(ctx,x,y,rx,ry,color){
    ctx.beginPath();ctx.ellipse(x,y,rx,ry,0,0,2*Math.PI);ctx.fillStyle=color;ctx.fill();
  }
- function scene(ctx,f,time){
+ function scene(ctx,f,time,reader){
    ctx.fillStyle='#0a222c';ctx.fillRect(0,0,W,W);
    for(let id=0;id<M.COUNT;id++){
      const [x,y]=center(id),water=M.WALLS.includes(id);
@@ -65,6 +65,25 @@
        for(let i=0;i<5;i++){
          ellipse(ctx,x-31+i*16+Math.sin(time/420+i)*5,y+35,14,25,i%2?'#446a54':'#375c4d');
        }
+     }
+   }
+   // An earned ability reveals tracks first; stones are rendered only AFTER
+   // the explorer investigates the water. Hidden passages never get nav rings.
+   if(reader&&!f.trail&&f.pos===M.APPROACH){
+     const [x,y]=center(M.APPROACH);
+     for(let i=0;i<3;i++){
+       const px=x+17+i*8,py=y-14-i*12;
+       ellipse(ctx,px,py,8,4,'#c9d1a5c4');
+       ellipse(ctx,px+2,py-7,3,3,'#c9d1a5c4');
+     }
+   }
+   if(f.trail){
+     const [x,y]=center(M.CAUSEWAY);
+     for(let i=0;i<5;i++){
+       const px=x-41+i*20,py=y+34-i*14;
+       ellipse(ctx,px,py+4,17,11,'#071f2aa8');
+       ellipse(ctx,px,py,15,9,i%2?'#9aa58b':'#b9b6a1');
+       ellipse(ctx,px-3,py-3,6,2,'#e1dbc06b');
      }
    }
    // Fallen star: a gold-blue light that becomes a dull altar after discovery.
@@ -143,7 +162,8 @@
    const f={pos:Number(section.dataset.fieldPos),seen:Number(section.dataset.fieldSeen),
      sound:section.dataset.fenSound==='true',shoal:section.dataset.fenShoal==='true',
      star:section.dataset.fenStar==='true',wraith:section.dataset.fenWraith==='true',
-     herbs:section.dataset.fenHerbs==='true'};
+     herbs:section.dataset.fenHerbs==='true',trail:section.dataset.fenTrail==='true'};
+   const reader=section.dataset.fenReader==='true';
    if(!M.valid(f))return;
    const ctx=canvas.getContext('2d',{alpha:false});if(!ctx)return;
    // Cut holes from a separate fog layer. destination-out on the main
@@ -170,7 +190,7 @@
        const ty=Math.max(edge,Math.min(0,size/2-y/W*size*zoom));
        worldspace.style.transform='translate3d('+tx.toFixed(2)+'px,'+ty.toFixed(2)+'px,0) scale('+zoom+')';
      }
-     scene(ctx,f,time);fog(mistCtx,f);ctx.drawImage(mist,0,0);hero(ctx,x,y,time);
+     scene(ctx,f,time,reader);fog(mistCtx,f);ctx.drawImage(mist,0,0);hero(ctx,x,y,time);
      const dark=ctx.createRadialGradient(300,300,120,300,300,425);
      dark.addColorStop(0,'#071d2300');dark.addColorStop(1,'#08151ca8');
      ctx.fillStyle=dark;ctx.fillRect(0,0,W,W);

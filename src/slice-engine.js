@@ -61,7 +61,8 @@
     fang_moon: { materials:{wolfFang:3}, scrap:6, quality:0, origin:'囁きの森', requiresBlueprint:true },
     shield: { materials:{watchIron:2}, scrap:4, quality:0, origin:'鐘なき塔' },
     shield_thorn: { materials:{watchIron:2,wolfFang:1}, scrap:6, quality:0, origin:'鐘なき塔と囁きの森', requiresBlueprint:true },
-    bow: { materials:{marshFiber:2}, scrap:4, quality:0, origin:'星沈みの湿原' }
+    bow: { materials:{marshFiber:2}, scrap:4, quality:0, origin:'星沈みの湿原' },
+    bow_hunter: { materials:{marshFiber:3,wolfFang:1}, scrap:6, quality:0, origin:'星沈みの湿原と囁きの森', requiresBlueprint:true }
   });
   // These clients are simulated NPCs. This is NOT a networked player marketplace.
   const COMMISSIONS = Object.freeze({
@@ -415,6 +416,11 @@
       s.designs.fang_moon = 'wood';
       s.report.newDesign = 'fang_moon';
     }
+    // The old wetland causeway yields a different bow technique, not a ready-made weapon.
+    if (!died && x.place === 'fen' && x.foundDesign === 'bow_hunter' && !s.designs.bow_hunter) {
+      s.designs.bow_hunter = 'fen';
+      s.report.newDesign = 'bow_hunter';
+    }
     // A found design is still carried loot; only a safe return teaches the smith.
     if (!died && x.foundDesign === 'shield_thorn' && !s.designs.shield_thorn) {
       const origin = N.get(s.neighborhood,s.neighborhood.active);
@@ -560,12 +566,16 @@
       if (x.place === 'fen' && x.depth===1 && x.room===0 && x.fen
           && action.startsWith('fen-step:')) {
         const to=Number(action.slice('fen-step:'.length));
-        const opened=M.uncover(x.fen,to);
+        const trailReading=n.characters[0].skills?.trailReading===true;
+        const opened=M.uncover(x.fen,to,trailReading);
         if(opened){
           x.fen=opened;
-          x.log=['葦の下を流れる水音に耳を澄ます。浮かぶ石を押すと、星明かりへ続く浅瀬が姿を現した。渡れば体力 −3。'];
+          x.log=to===M.CAUSEWAY
+            ? ['《獣道読み》で水面に消える足跡を追うと、泥の下から古い踏み石が現れた！ この道なら冷たい浅瀬を渡らずに星の祭壇へ行ける。']
+            : ['葦の下を流れる水音に耳を澄ます。浮かぶ石を押すと、星明かりへ続く浅瀬が姿を現した。渡れば体力 −3。'];
           return n;
         }
+        const from=x.fen.pos;
         const next=M.move(x.fen,to);
         if(!next)return s;
         if(to===M.SHOAL && x.hp<=3){
@@ -573,17 +583,28 @@
           return n;
         }
         x.fen=next;
-        if(to===M.REEDS&&!next.sound){
+        if(to===M.APPROACH&&trailReading&&!next.trail){
+          x.log=['泥の上の獣の足跡が、深い水の手前で途切れている。《獣道読み》なら、この水面を調べられる。'];
+        }else if(to===M.CAUSEWAY){
+          x.log=['隠れていた踏み石を一歩ずつ渡る。泥に沈まず、向こうの星明かりが近づいてきた。'];
+        }else if(to===M.REEDS&&!next.sound){
           next.sound=true;
           x.log=['足元の葦が逆向きに揺れた。水の下から乾いた石を叩く音が聞こえる。渡れる場所があるのかもしれない。'];
         }else if(to===M.SHOAL){
           x.hp-=3;
           x.log=['水音を頼りに浅瀬を渡った。泥に足を取られ体力 −3。水の向こうに青い星明かりが揺れる。'];
-        }else if(to===M.STAR&&!next.star){
-          next.star=true;
-          x.materials.marshFiber=Math.min(1000000,x.materials.marshFiber+1);
-          x.scrap=Math.min(1000,x.scrap+4);
-          x.log=['沈んだ星の祭壇を発見！ 霧葦 +1、鉄片 +4。持ち帰れれば鍛冶に使える。'];
+        }else if(to===M.STAR){
+          const firstVisit=!next.star;
+          if(firstVisit){
+            next.star=true;
+            x.materials.marshFiber=Math.min(1000000,x.materials.marshFiber+1);
+            x.scrap=Math.min(1000,x.scrap+4);
+          }
+          if(from===M.CAUSEWAY&&trailReading&&!n.designs.bow_hunter&&!x.foundDesign){
+            x.foundDesign='bow_hunter';
+            x.log=[(firstVisit?'沈んだ星の祭壇を発見！ 霧葦 +1、鉄片 +4。 ':'')+
+              '獣道の先の古い狩人の刻印から「灰羽の長弓」の製法を発見！ 生還するまで製法は失う危険がある。'];
+          }else x.log=[firstVisit?'沈んだ星の祭壇を発見！ 霧葦 +1、鉄片 +4。持ち帰れれば鍛冶に使える。':'星の祭壇には、以前訪れた跡が残っている。'];
         }else if(to===M.HERBS&&!next.herbs){
           next.herbs=true;
           const herbs=Math.min(1,3-x.potions);
@@ -992,7 +1013,7 @@
       const int = (v, min, max) => Number.isInteger(v) && v >= min && v <= max;
       const validUpgrades = u => u && typeof u === 'object' && !Array.isArray(u) && Object.keys(u).length === UPGRADEABLE.length && UPGRADEABLE.every(id => Object.prototype.hasOwnProperty.call(u,id) && int(u[id],0,4)) && Object.keys(u).every(id => UPGRADEABLE.includes(id));
       const validQualities = q => q && typeof q === 'object' && !Array.isArray(q) && Object.keys(q).length === GEAR_IDS.length && GEAR_IDS.every(id => Object.prototype.hasOwnProperty.call(q,id) && int(q[id],-1,3)) && Object.keys(q).every(id => Object.prototype.hasOwnProperty.call(GEAR,id));
-      const validDesigns = v => v && typeof v === 'object' && !Array.isArray(v) && Object.keys(v).every(id => (id === 'shield_thorn' && typeof v[id] === 'string' && N.get(s.neighborhood,v[id])?.biome === 'tower' && N.pointOfInterest(N.get(s.neighborhood,v[id]))?.family === 'event') || (id === 'fang_moon' && v[id] === 'wood'));
+      const validDesigns = v => v && typeof v === 'object' && !Array.isArray(v) && Object.keys(v).every(id => (id === 'shield_thorn' && typeof v[id] === 'string' && N.get(s.neighborhood,v[id])?.biome === 'tower' && N.pointOfInterest(N.get(s.neighborhood,v[id]))?.family === 'event') || (id === 'fang_moon' && v[id] === 'wood') || (id === 'bow_hunter' && v[id] === 'fen'));
       const validMaterials = m => m && typeof m === 'object' && !Array.isArray(m) && Object.keys(m).length === MATERIAL_IDS.length && MATERIAL_IDS.every(id => int(m[id],0,1e6)) && Object.keys(m).every(id => Object.hasOwn(MATERIALS,id));
       const validCommission = c => c && typeof c === 'object' && !Array.isArray(c)
         && Object.keys(c).length === 4 && Object.keys(c).every(id => ['pending','completed','support','lastResult'].includes(id))
@@ -1009,7 +1030,7 @@
       if (s.expedition) {
         const x = s.expedition;
         const allowedFocus = gearFamily(s.equipped) === 'fang' ? [0,3,4,5,6,7,8,9] : [0,3];
-        if (Object.keys(x).some(k => !['place','depth','room','field','tower','fen','hp','stamina','focus','stagger','sharpened','sharpenedApplied','landmarkId' ,'potions','scrap','materials','gear','gearQuality','seals','grudge','enemy','stage','log','foundDesign'].includes(k)) || !(x.foundDesign === undefined || x.foundDesign === 'shield_thorn' || (x.foundDesign === 'fang_moon' && x.place === 'wood')) || !(x.landmarkId === undefined || (typeof x.landmarkId==='string' && /^[a-z][a-z0-9-]{1,63}$/.test(x.landmarkId))) || !(x.field === undefined || (x.place==='wood' && F.valid(x.field))) || !(x.tower===undefined || (x.place==='tower'&&T.valid(x.tower))) || !(x.fen===undefined || (x.place==='fen'&&M.valid(x.fen))) || !s.unlocked.includes(x.place) || !int(x.depth,1,3) || !int(x.room,0,4) || !int(x.hp,1,maxHp(s)) || !int(x.stamina,0,3) || !allowedFocus.includes(x.focus) || typeof x.stagger !== 'boolean' || !int(x.sharpened,0,3) || typeof x.sharpenedApplied !== 'boolean' || !validExpeditionGrudge(x.grudge) || !int(x.potions,0,3) || !int(x.scrap,0,1000) || !validMaterials(x.materials) || !validLoot(x.gear,x.gearQuality) || !Array.isArray(x.seals) || x.seals.length > 3 || !x.seals.every(v => ids.includes(v)) || !['path','fight','cleared'].includes(x.stage) || !Array.isArray(x.log) || x.log.length > 10 || !x.log.every(v => typeof v === 'string' && v.length < 250)) throw Error('run');
+        if (Object.keys(x).some(k => !['place','depth','room','field','tower','fen','hp','stamina','focus','stagger','sharpened','sharpenedApplied','landmarkId' ,'potions','scrap','materials','gear','gearQuality','seals','grudge','enemy','stage','log','foundDesign'].includes(k)) || !(x.foundDesign === undefined || x.foundDesign === 'shield_thorn' || (x.foundDesign === 'fang_moon' && x.place === 'wood') || (x.foundDesign === 'bow_hunter' && x.place === 'fen')) || !(x.landmarkId === undefined || (typeof x.landmarkId==='string' && /^[a-z][a-z0-9-]{1,63}$/.test(x.landmarkId))) || !(x.field === undefined || (x.place==='wood' && F.valid(x.field))) || !(x.tower===undefined || (x.place==='tower'&&T.valid(x.tower))) || !(x.fen===undefined || (x.place==='fen'&&M.valid(x.fen))) || !s.unlocked.includes(x.place) || !int(x.depth,1,3) || !int(x.room,0,4) || !int(x.hp,1,maxHp(s)) || !int(x.stamina,0,3) || !allowedFocus.includes(x.focus) || typeof x.stagger !== 'boolean' || !int(x.sharpened,0,3) || typeof x.sharpenedApplied !== 'boolean' || !validExpeditionGrudge(x.grudge) || !int(x.potions,0,3) || !int(x.scrap,0,1000) || !validMaterials(x.materials) || !validLoot(x.gear,x.gearQuality) || !Array.isArray(x.seals) || x.seals.length > 3 || !x.seals.every(v => ids.includes(v)) || !['path','fight','cleared'].includes(x.stage) || !Array.isArray(x.log) || x.log.length > 10 || !x.log.every(v => typeof v === 'string' && v.length < 250)) throw Error('run');
         if (x.stage === 'fight') {
           const e = x.enemy;
           if (!e || Object.keys(e).some(k => !['kind','hp','maxHp','turn','depth','elite','risky','seed','frenzy','wounded','clue'].includes(k)) || !(e.seed === undefined || int(e.seed,0,99990)) || !(e.frenzy === undefined || typeof e.frenzy === 'boolean') || !(e.wounded === undefined || typeof e.wounded === 'boolean') || !(e.clue === undefined || typeof e.clue === 'boolean') || !ENEMIES[e.kind] || !int(e.maxHp,1,80) || !int(e.hp,1,e.maxHp) || !int(e.turn,0,1e6) || e.depth !== x.depth || typeof e.elite !== 'boolean' || typeof e.risky !== 'boolean') throw Error('enemy');
@@ -1017,7 +1038,7 @@
       }
       if (s.report) {
         const r = s.report;
-        if (Object.keys(r).some(k => !['died','place' ,'depth','scrap','materials','gear','gearQuality','newGear','duplicates','hp','cleared','defeatedBy','landmarkId','newDesign','newSkill'].includes(k)) || !(r.newSkill === undefined || r.newSkill === 'trailReading') || !(r.newDesign === undefined || r.newDesign === 'shield_thorn' || (r.newDesign === 'fang_moon' && r.place === 'wood')) || !(r.landmarkId === undefined || (typeof r.landmarkId==='string' && /^[a-z][a-z0-9-]{1,63}$/.test(r.landmarkId))) || typeof r.died !== 'boolean' || !ids.includes(r.place) || !int(r.depth,1,3) || !int(r.scrap,0,1000) || !validMaterials(r.materials) || !validLoot(r.gear,r.gearQuality) || !validArray(r.newGear,Object.keys(GEAR)) || !validDuplicates(r.duplicates) || !(r.defeatedBy === null || Object.prototype.hasOwnProperty.call(ENEMIES,r.defeatedBy)) || !int(r.hp,-30,80) || !Array.isArray(r.cleared) || r.cleared.length > 3 || !r.cleared.every(v => ids.includes(v))) throw Error('report');
+        if (Object.keys(r).some(k => !['died','place' ,'depth','scrap','materials','gear','gearQuality','newGear','duplicates','hp','cleared','defeatedBy','landmarkId','newDesign','newSkill'].includes(k)) || !(r.newSkill === undefined || r.newSkill === 'trailReading') || !(r.newDesign === undefined || r.newDesign === 'shield_thorn' || (r.newDesign === 'fang_moon' && r.place === 'wood') || (r.newDesign === 'bow_hunter' && r.place === 'fen')) || !(r.landmarkId === undefined || (typeof r.landmarkId==='string' && /^[a-z][a-z0-9-]{1,63}$/.test(r.landmarkId))) || typeof r.died !== 'boolean' || !ids.includes(r.place) || !int(r.depth,1,3) || !int(r.scrap,0,1000) || !validMaterials(r.materials) || !validLoot(r.gear,r.gearQuality) || !validArray(r.newGear,Object.keys(GEAR)) || !validDuplicates(r.duplicates) || !(r.defeatedBy === null || Object.prototype.hasOwnProperty.call(ENEMIES,r.defeatedBy)) || !int(r.hp,-30,80) || !Array.isArray(r.cleared) || r.cleared.length > 3 || !r.cleared.every(v => ids.includes(v))) throw Error('report');
       }
       if (s.neighborhood.active !== null && (!s.expedition || N.get(s.neighborhood,s.neighborhood.active).biome !== s.expedition.place)) throw Error('district');
       if (s.neighborhood.districts.some(d => !s.unlocked.includes(d.biome))) throw Error('district');
