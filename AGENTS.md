@@ -63,7 +63,7 @@ Related implementation work: #602, #708, #709, #710.
 - Prefer **Design → smallest implementation → run → play/inspect → improve**.
 - Make reasonable product and technical decisions without stopping for approval.
 
-Location-based asynchronous sandbox play is the current product hypothesis (ADR 0011). First validate one complete **material-only drop → safe return → smith-crafted usable weapon → next expedition** loop, with safe account-level character switching and save compatibility. Territory control remains one possible player trace, not the entire game's purpose. Do not build multiplayer infrastructure or a general economy before the small local slice is fun.
+Location-based asynchronous sandbox play is the current product hypothesis (ADR 0011). First validate one complete **non-combat gathering → safe return with materials → smith-crafted exploration tool → observably changed next expedition** loop (ADR 0013), then validate the **material-only drop → smith-crafted usable weapon → changed combat choices** loop (ADR 0011), with safe account-level character switching and save compatibility. Territory control remains one possible player trace, not the entire game's purpose. Do not build multiplayer infrastructure or a general economy before the small local slice is fun.
 
 ## Completion boundary
 
