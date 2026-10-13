@@ -1041,6 +1041,59 @@ async function main() {
       }finally{await ctx.close();}
     }
 
+    // Cross-region progression: a forest-trained traveler can physically uncover
+    // a new fen path, cross it safely and bring the bow design back alive.
+    // Use an already-earned skill in a valid demo save; all steps are real taps.
+    for(const width of [360,390]){
+      const ctx=await browser.newContext({viewport:{width,height:width===360?800:844},isMobile:true,hasTouch:true});
+      const page=await ctx.newPage(),errors=[];
+      page.on('pageerror',e=>errors.push(e.message));
+      const step=async id=>page.locator('.fen-field [data-action="fen-step"][data-value="'+id+'"]').click();
+      const saved=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+      try{
+        await page.goto(url);
+        await page.locator('[data-action="mode"][data-value="demo"]').click();
+        await page.evaluate(()=>{
+          const k='crownless-expedition-v1-demo',s=JSON.parse(localStorage.getItem(k));
+          s.characters[0].skills.trailReading=true;localStorage.setItem(k,JSON.stringify(s));
+        });
+        await page.reload();
+        await page.locator('[data-action="nearby-view"][data-value="scout"]').click();
+        await page.locator('[data-action="scout"][data-value="fen"]').click();
+        await page.locator('.nearby-tile[data-value="1,0"]').click();
+        await page.locator('.district-detail [data-action="depart"][data-value="fen"]').click();
+        assert.equal(await page.locator('.fen-field.world-painted').count(),1);
+        assert.equal(await page.locator('.fen-field[data-fen-reader="true"]').count(),1);
+        for(const id of [21,16,11])await step(id);
+        assert.equal(await page.locator('.fen-field .field-cell.causeway.walk-nav').count(),0);
+        assert.equal(await page.locator('.fen-field [data-action="fen-step"][data-value="6"]').count(),1,
+          'trained reader gets an investigation target on old deep water');
+        await page.screenshot({path:path.join(output,'fen-reader-track-'+width+'.png')});
+        await step(6);
+        let s=await saved();
+        assert.equal(s.expedition.fen.pos,11,'investigation only reveals the route');
+        assert.equal(s.expedition.fen.trail,true);
+        assert.equal(await page.locator('.fen-field .field-cell.causeway.walk-nav').count(),0,
+          'hidden causeway remains without navigation hints');
+        await page.screenshot({path:path.join(output,'fen-reader-causeway-'+width+'.png')});
+        await step(6);await step(7);
+        s=await saved();
+        assert.equal(s.expedition.hp,30,'skilled route is genuinely safe');
+        assert.equal(s.expedition.fen.pos,7,'walked onto the altar by adjacency');
+        assert.equal(s.expedition.foundDesign,'bow_hunter');
+        assert.equal(s.designs.bow_hunter,undefined,'find is not yet a permanent recipe');
+        await page.reload();
+        assert.equal(await page.locator('.fen-field.world-painted').count(),1,'new route reloads in place');
+        await page.screenshot({path:path.join(output,'fen-reader-altar-'+width+'.png')});
+        await page.locator('[data-action="return"]').click();
+        s=await saved();
+        assert.equal(s.designs.bow_hunter,'fen');
+        assert.match(await page.locator('#game').innerText(),/新しい製作レシピを解放：灰羽の長弓/);
+        await page.screenshot({path:path.join(output,'fen-reader-return-'+width+'.png')});
+        assert.deepEqual(errors,[],'trained route must not cause mobile JS errors');
+      }finally{await ctx.close();}
+    }
+
     // Corrupt game saves must not be silently overwritten during rendering.
     const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const page = await context.newPage();
