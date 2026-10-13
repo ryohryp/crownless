@@ -5,7 +5,7 @@ const vm = require('node:vm');
 const E = require('../src/slice-engine.js');
 const F = require('../src/travel-footprints.js');
 const code = fs.readFileSync(require('node:path').join(__dirname,'../src/slice-app.js'),'utf8');
-function browser(seed = {}, storageFails = false, realChronicle = false) {
+function browser(seed = {}, storageFails = false, realChronicle = false, walkableForest = false) {
   const store = new Map(Object.entries(seed)), callbacks = {}, elements = {};
   const chronicleContainer = {innerHTML:'',querySelectorAll:()=>[]};
   for (const id of ['#game','#save-status','#save-label','#help-toggle','#help','#home-name']) elements[id] = {innerHTML:'',hidden:true,textContent:'',value:'',addEventListener(type,fn){this[type]=fn;},setAttribute(){}};
@@ -15,6 +15,7 @@ function browser(seed = {}, storageFails = false, realChronicle = false) {
     navigator:{geolocation:{getCurrentPosition(ok,error){callbacks.ok=ok;callbacks.error=error;}}},
     addEventListener:(name,fn)=>{callbacks[name]=fn;},confirm:()=>callbacks.confirmRestart!==false,location:{reload(){callbacks.reloaded=true;}}};
   context.window=context;
+  if (walkableForest) context.CrownlessField=require('../src/expedition-field.js');
   context.CrownlessTravelFootprints=F;
   context.CrownlessTravelChronicleUI={
     getFootprints(mode='walk'){
@@ -790,7 +791,7 @@ test('first-screen skill unlock is unmistakable, persists through reload, then o
   assert.equal(s.characters[0].skills.trailReading,undefined,'finding tracks does not grant skills before return');
   assert.match(s.expedition.log[0],/生還すると、新しい探索技術《獣道読み》/);
   const key='crownless-expedition-v1-demo';
-  const b=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(s)});
+  const b=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(s)},false,false,true);
   assert.match(b.html(),/skill-learning-hint/);
   assert.match(b.html(),/無事に生還すると習得！/);
   b.click('return');
@@ -805,7 +806,7 @@ test('first-screen skill unlock is unmistakable, persists through reload, then o
   assert(html.indexOf('skill-unlock-spotlight')<html.indexOf('result-number'),
     'skill acquisition must precede and visually dominate ordinary scrap rewards');
   assert.match(html,/人物画面で新しい技能を確認/);
-  const again=browser({'crownless-expedition-mode':'demo',[key]:b.store.get(key)});
+  const again=browser({'crownless-expedition-mode':'demo',[key]:b.store.get(key)},false,false,true);
   assert.match(again.html(),/《獣道読み》を習得！/,'reload must not lose the skill-unlock report');
   b.click('continue');
   assert.match(b.html(),/プレイヤーのステータス/);
@@ -820,7 +821,7 @@ test('previously learned and failed expeditions never show a false new-skill cel
   trained.characters[0].skills.trailReading=true;
   trained=E.start(trained,'wood');
   for(const to of [21,22,23,18])trained=E.act(trained,'field-step:'+to);
-  const familiar=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(trained)});
+  const familiar=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(trained)},false,false,true);
   assert.doesNotMatch(familiar.html(),/skill-learning-hint/);
   familiar.click('return');
   assert.doesNotMatch(familiar.html(),/skill-unlock-spotlight/);
