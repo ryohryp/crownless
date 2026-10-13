@@ -6,42 +6,105 @@
   if (root) root.CrownlessNearbyHome=api;
 })(typeof globalThis==='object'?globalThis:this,function(root){
   'use strict';
+  // Each road edge is shared by its two adjacent tiles. Paths cannot visually
+  // break at a tile boundary, even when the destination is beyond the viewport.
+  function trackEdges(districts){
+    const edges=new Map();
+    const mark=(x,y,dir)=>{
+      const id=x+','+y;
+      if(!edges.has(id))edges.set(id,new Set());
+      edges.get(id).add(dir);
+    };
+    const step=(x,y,nx,ny)=>{
+      if(nx>x){mark(x,y,'E');mark(nx,ny,'W');}
+      else if(nx<x){mark(x,y,'W');mark(nx,ny,'E');}
+      else if(ny>y){mark(x,y,'N');mark(nx,ny,'S');}
+      else if(ny<y){mark(x,y,'S');mark(nx,ny,'N');}
+    };
+    for(const target of districts||[]){
+      if(!Number.isInteger(target?.x)||!Number.isInteger(target?.y))continue;
+      let x=0,y=0;
+      const xFirst=(Math.abs(target.x)+Math.abs(target.y))%2===0;
+      const walkX=()=>{while(x!==target.x){const next=x+Math.sign(target.x-x);step(x,y,next,y);x=next;}};
+      const walkY=()=>{while(y!==target.y){const next=y+Math.sign(target.y-y);step(x,y,x,next);y=next;}};
+      if(xFirst){walkX();walkY();}else{walkY();walkX();}
+    }
+    return edges;
+  }
+  function roadPath(directions){
+    const d=directions||new Set();
+    if(!d.size)return '';
+    const points={N:'50 0',E:'100 50',S:'50 100',W:'0 50'};
+    const active=Object.keys(points).filter(key=>d.has(key));
+    if(active.length===2&&!((d.has('N')&&d.has('S'))||(d.has('E')&&d.has('W')))){
+      return 'M'+points[active[0]]+' Q50 50 '+points[active[1]];
+    }
+    return active.map(key=>'M50 50 L'+points[key]).join(' ');
+  }
+  function landmarkIcon(biome){
+    const art={
+      wood:'<path d="M15 37l9-15 9 15H15zm7-15 6-11 7 13m-14 14v5m15-6 7-11 7 11h-14m7 0v6"/>',
+      tower:'<path d="M20 43V17h27v26M17 17h33v-5H17zM24 23h6m8 0h6M30 43v-11h8v11M15 43h39"/>',
+      fen:'<path d="M9 42h45M10 35q9-8 18 0t18 0m-31-12v13m-3-10 3 4 3-6m23-8v23m-4-17 4 3 4-6"/>',
+      crypt:'<path d="M13 43h41M18 43v-16l14-15 14 15v16M22 27h20M30 43v-9h7v9M26 19h12"/>'
+    }[biome]||'';
+    return '<svg viewBox="0 0 64 52" focusable="false" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">'+art+'</g></svg>';
+  }
   function render({state,N,E,A,button,scouting,landmarkFlagPreview,notice,nav,view='map',page=null}) {
     const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const n=state.neighborhood,d=N.get(n),p=E.place(d.biome),poi=N.pointOfInterest(d);
     const restored=state.designs?.shield_thorn===d.id;
     const materialId=E.REGIONAL_MATERIAL[d.biome],material=materialId&&E.MATERIALS[materialId];
     const locked=d.biome==='crypt'&&state.cleared.length<2,traveler=state.activeCharacter===0;
-    const pages=Math.max(1,Math.ceil(n.districts.length/6)),selectedIndex=n.districts.findIndex(item=>item.id===d.id),
-      currentPage=page===null?Math.floor(Math.max(0,selectedIndex)/6):Math.min(Math.max(0,page),pages-1);
-    const visible=n.districts.slice(currentPage*6,(currentPage+1)*6);
-    const tiles=visible.map(place=>{
-      const site=N.pointOfInterest(place),changed=state.designs?.shield_thorn===place.id;
-      const stamp=root.CrownlessMapPixelArt?.sprite?.(site.family)||A.poiStamp?.(place.biome,site.family)||esc(site.icon);
-      const trace=N.trace(place);
-      const label=changed?'🔔 鐘が戻った':place.claimed?'⚑ あなたの領域':
-        N.traveler(place)?'✦ 薬師の荷':trace?'✦ '+trace.name:site.family==='shop'?'◆ 店':'✦ 異変';
-      const active=place.id===d.id;
-      return '<button type="button" class="nearby-tile biome-'+place.biome+(active?' selected':'')+
-        (changed?' restored-bell':'')+'" data-poi-family="'+site.family+'" data-action="district" data-value="'+esc(place.id)+
-        '" aria-pressed="'+active+'" aria-label="'+esc(N.title(place)+'、'+label)+'">'+
-        '<span class="nearby-tile-stamp" aria-hidden="true">'+stamp+'</span><strong>'+esc(N.title(place))+
-        '</strong><small>'+esc(label)+'</small></button>';
-    }).join('');
-    const map='<div class="nearby-paper-map" role="group" aria-label="発見した土地の地図">'+
+    // A fixed 5x5 camera is deliberately centered on the selected district.
+    // Coordinates are fictional coarse districts, not live GPS or real roads.
+    const selectedIndex=Math.max(0,n.districts.findIndex(item=>item.id===d.id));
+    const track=trackEdges(n.districts);
+    const found=new Map(n.districts.map(place=>[place.id,place]));
+    const cells=[];
+    for(let y=d.y+2;y>=d.y-2;y--){
+      for(let x=d.x-2;x<=d.x+2;x++){
+        const id=x+','+y,place=found.get(id),home=x===0&&y===0;
+        const directions=track.get(id)||new Set();
+        const path=roadPath(directions);
+        const road=path?'<svg class="nearby-track-road" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">'+
+          '<path class="nearby-track-edge" d="'+path+'"/>'+
+          '<path class="nearby-track-earth" d="'+path+'"/>'+
+          '<path class="nearby-track-centerline" d="'+path+'"/></svg>':'';
+        const land=place?'<span class="nearby-track-icon" aria-hidden="true">'+landmarkIcon(place.biome)+'</span>':'';
+        const marker=place?(place.claimed?'⚑':place.visitor==='supplies'?'✦':place.aided?'✧':''):'';
+        const poi=place?N.pointOfInterest(place):null;
+        const kind=poi?(poi.family==='shop'?'店':'異変'):'';
+        const classes='nearby-track-tile'+(place?' track-'+place.biome:' track-fog')+
+          (id===d.id?' selected':'')+(home?' track-home':'')+
+          (place?.claimed?' claimed':'');
+        const inner=road+
+          (home?'<span class="nearby-track-camp" aria-hidden="true">⌂</span>':'')+
+          land+
+          (marker?'<span class="nearby-track-flag" aria-hidden="true">'+marker+'</span>':'')+
+          (place?'<span class="nearby-track-name">'+esc(N.title(place))+'</span>':'')+
+          (home?'<span class="nearby-track-home-label">拠点</span>':'');
+        if(place)cells.push('<button type="button" class="'+classes+'" data-action="district" data-value="'+esc(id)+
+          '" aria-pressed="'+(id===d.id)+'" aria-label="'+esc(N.title(place)+'、'+kind+(place.claimed?'、開拓済み':''))+'">'+inner+'</button>');
+        else if(home)cells.push('<button type="button" class="'+classes+'" data-action="tab" data-value="home" aria-label="拠点を開く">'+inner+'</button>');
+        else cells.push('<div class="'+classes+'" aria-hidden="true">'+inner+'<span class="nearby-track-mist">?</span></div>');
+      }
+    }
+    const previous=n.districts[(selectedIndex-1+n.districts.length)%n.districts.length];
+    const next=n.districts[(selectedIndex+1)%n.districts.length];
+    const switcher=n.districts.length>1?'<div class="nearby-track-switch">'+
+      button('district','‹ 前の発見','',{class:'secondary',value:previous.id})+
+      '<span>'+ (selectedIndex+1)+' / '+n.districts.length+'</span>'+
+      button('district','次の発見 ›','',{class:'secondary',value:next.id})+'</div>':'';
+    const map='<div class="nearby-paper-map nearby-track-map" role="group" aria-label="道がつながる近所のタイル地図">'+
       '<div class="nearby-map-top"><div><strong>'+esc(n.name)+'</strong><small>'+
       (state.mode==='demo'?'散策体験モード':'現実の散策モード')+' · 発見 '+n.districts.length+
       ' / 開拓 '+N.claims(n)+(n.buildings.length?' · 建物 '+n.buildings.length:'')+'</small></div>'+
       button('nearby-view','＋ 土地を発見','',{class:'nearby-top-action',value:'scout'})+
       button('settings','⚙','',{class:'nearby-map-settings'})+'</div>'+
-      '<div class="nearby-map-art" aria-hidden="true"><span>THE UNWRITTEN LANDS</span></div>'+
-      '<div class="nearby-tile-grid">'+tiles+'</div>'+
-      (pages>1?'<div class="nearby-pagination">'+
-        button('nearby-page','前の土地','',{class:'secondary',value:String(Math.max(0,currentPage-1)),disabled:currentPage===0})+
-        '<span>'+(currentPage+1)+' / '+pages+'</span>'+
-        button('nearby-page','次の土地','',{class:'secondary',value:String(Math.min(pages-1,currentPage+1)),disabled:currentPage===pages-1})+
-        '</div>':'')+
-      '<div class="nearby-map-legend">歩いて発見した土地が、ここへ刻まれる。</div></div>';
+      '<div class="nearby-track-scape"><div class="nearby-track-board" role="group" aria-label="中心が選択中の土地。道は模式図です。">'+
+      cells.join('')+'</div></div>'+
+      '<div class="nearby-track-footer"><span>道の先の霧は、まだ知らない土地。</span>'+switcher+'</div></div>';
     const stateLabel=restored?'🔔 鐘が戻った・ユノが滞在中':d.claimed?'⚑ あなたの領域':
       poi.family==='shop'?'未開拓 · ◆ 地域の店':'未開拓 · ✦ '+(material?'異変の手掛かり':'王墓の噂');
     // A crafted item often leaves the smith active. A dead-looking departure
@@ -101,5 +164,5 @@
       card+(notice?'<p class="nearby-notice" role="status">'+esc(notice)+'</p>':'')+'</section>'+
       nav+'</div>';
   }
-  return {render};
+  return {render,trackEdges,roadPath};
 });
