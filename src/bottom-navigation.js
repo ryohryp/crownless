@@ -6,7 +6,7 @@
   'use strict';
 
   function navLabel(value) {
-    return value === 'gear' ? '装備' : value === 'home' ? '拠点' : '近所';
+    return {explore:'近所',home:'拠点',gear:'装備',codex:'手記',chronicle:'冒険録',status:'人物'}[value] || '近所';
   }
 
   function enhance(rootEl) {

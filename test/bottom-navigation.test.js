@@ -8,6 +8,9 @@ test('bottom navigation exposes short thumb-friendly labels', () => {
   assert.equal(nav.navLabel('explore'), '近所');
   assert.equal(nav.navLabel('home'), '拠点');
   assert.equal(nav.navLabel('gear'), '装備');
+  assert.equal(nav.navLabel('codex'), '手記');
+  assert.equal(nav.navLabel('chronicle'), '冒険録');
+  assert.equal(nav.navLabel('status'), '人物');
 });
 
 test('expedition page loads bottom navigation assets', () => {
@@ -51,10 +54,10 @@ test('all six dock entries are declared in core and extensions never remove app 
   const chronicle=fs.readFileSync(path.join(__dirname,'..','src','travel-chronicle-ui.js'),'utf8');
   const css=fs.readFileSync(path.join(__dirname,'..','neighborhood.css'),'utf8');
 
-  for (const name of ['近所','拠点','装備','手記','冒険録']) {
+  for (const name of ['近所','拠点','装備','手記','冒険録','人物']) {
     assert.match(app,new RegExp("button\\('tab','"+name+"'"));
   }
-  assert.match(app,/button\('settings','設定'/);
+  assert.match(app,/button\('settings','⚙ 設定'/);
   assert.match(app,/CrownlessCodexUI\?\.renderCodex/);
   assert.match(app,/CrownlessTravelChronicleUI\?\.renderChronicle/);
   assert.match(codex,/CrownlessCodexUI = \{ renderCodex \}/);

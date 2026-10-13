@@ -86,6 +86,34 @@ async function main() {
         assert(nav && nav.y >= -1 && nav.y + nav.height <= height + 2, "bottom navigation must fit the viewport");
         assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth + 1), true, "no document-wide horizontal overflow");
         await page.screenshot({ path: path.join(output, "map-" + width + ".png") });
+
+        // The character screen is a real phone scene, not an inert document.
+        assert.equal(await page.locator('[data-action="settings"].nearby-map-settings').isVisible(),true,
+          'map must retain access to settings after adding character navigation');
+        const statusBefore=await page.evaluate(()=>localStorage.getItem('crownless-expedition-v1-demo'));
+        await page.locator('.bottom-navigation [data-action="tab"][data-value="status"]').click();
+        assert.equal(await page.locator('.character-status-layout').count(),1,'character sheet opens via thumb dock');
+        assert.match(await page.locator('.character-status-panel').innerText(),/獣道読み/);
+        assert.match(await page.locator('.character-status-panel').innerText(),/未習得/);
+        const statusFit=await page.evaluate(()=>{
+          const panel=document.querySelector('.status-panel-content').getBoundingClientRect();
+          const dock=document.querySelector('.bottom-navigation').getBoundingClientRect();
+          const roles=[...document.querySelectorAll('.status-role')].map(el=>el.getBoundingClientRect());
+          return {panelBottom:panel.bottom,dockTop:dock.top,roleWidths:roles.map(b=>b.width),
+            pageOverflow:document.documentElement.scrollWidth-innerWidth};
+        });
+        assert(statusFit.panelBottom <= statusFit.dockTop+4,
+          'status details may scroll internally but cannot hide behind the dock: '+JSON.stringify(statusFit));
+        assert(statusFit.roleWidths.every(w=>w>=60),'character view choices must be tappable: '+JSON.stringify(statusFit));
+        assert(statusFit.pageOverflow<=1,'status screen must not cause horizontal overflow');
+        await page.screenshot({path:path.join(output,'character-status-'+width+'.png')});
+        await page.locator('.status-role[data-value="1"]').click();
+        assert.match(await page.locator('.character-status-panel').innerText(),/鍛冶の仕事/);
+        assert.equal(await page.evaluate(()=>localStorage.getItem('crownless-expedition-v1-demo')),statusBefore,
+          'reading other characters never changes the active role or save');
+        await page.locator('.bottom-navigation [data-action="tab"][data-value="explore"]').click();
+        assert.equal(await page.locator('.nearby-paper-map').count(),1,'status viewing returns to playable map');
+
         
         // Real touch interaction, not DOM-dispatched click: every primary camp
         // destination and every Chronicle subtab must remain operable on 360/390px.
