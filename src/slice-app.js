@@ -73,7 +73,8 @@
       const icon=here?'<span class="field-hero" aria-hidden="true"><i></i></span>'
         : seen?(used?'✓':icons[kind]):'';
       const classes=['field-cell',seen?'revealed':'veiled',kind,here?'here':'',passable?'can-step':'',guided?'walk-nav':'',used?'spent':''].filter(Boolean).join(' ');
-      const label=here?'旅人の現在地':seen?names[kind]:'まだ見えない土地';
+      const inspectVines=kind==='secret'&&near&&!field.secret;
+      const label=here?'旅人の現在地':inspectVines?'揺れるツタ':seen?names[kind]:'まだ見えない土地';
       if(passable)return `<button type="button" class="${classes}" style="grid-column:${col+1};grid-row:${row+1}" data-action="field-step" data-value="${i}" aria-label="${label}${kind==='secret'&&!field.secret?'を調べる':'へ一歩進む'}">${icon}</button>`;
       return `<span class="${classes}" style="grid-column:${col+1};grid-row:${row+1}" aria-label="${label}">${icon}</span>`;
     }).join('');

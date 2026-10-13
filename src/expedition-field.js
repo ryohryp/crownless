@@ -38,8 +38,9 @@
   const adjacent=(a,b)=>neighbors(a).includes(b);
   // 49 cells fit exactly in a safe JS number. Never use 32-bit bitwise
   // operators: that would silently expose/hide cells past index 31.
+  // The secret remains under fog until the vines are deliberately investigated.
   const visible=(f,n)=>Boolean(f&&inBounds(n)&&
-    Math.floor(f.seen/(2**n))%2);
+    (n!==SECRET||f.secret===true)&&Math.floor(f.seen/(2**n))%2);
   const nextSeen=(mask,pos)=>[pos,...neighbors(pos)].reduce((value,n)=>
     value+(Math.floor(value/(2**n))%2?0:2**n),mask);
   const initial=()=>({pos:START,seen:nextSeen(0,START),
