@@ -55,3 +55,19 @@
   .status-numbers strong{font-size:23px}
   .status-numbers>div{padding:9px 7px}
 }
+
+/* The nearby map needs its own settings action when the dock gains Characters. */
+#game > .neighborhood-rebuild button.nearby-map-settings {
+  flex:0 0 44px; width:44px; min-height:44px; padding:0;
+  background:rgba(255,249,231,.85); border:1px solid #806743; border-radius:6px;
+  color:#493d2e; font-size:21px; text-align:center;
+}
+#game > .neighborhood-rebuild .nearby-secondary-actions button.nearby-map-settings {
+  flex:0 0 44px; width:44px;
+}
+@media(max-width:380px) {
+  #game > .neighborhood-rebuild .nearby-map-top {gap:5px;padding:8px}
+  #game > .neighborhood-rebuild button.nearby-top-action {font-size:11px;padding:7px 5px}
+  #game > .neighborhood-rebuild .nearby-map-top strong {font-size:15px}
+  #game > .neighborhood-rebuild .nearby-map-top small {font-size:9px}
+}
