@@ -314,3 +314,26 @@
     top:65px;left:8px;right:8px;padding:7px 7px;font-size:11px;
   }
 }
+
+/* The bell-less tower keeps the forest's responsive single-scene camera and
+   accessible tap targets, but uses five stone-floor columns and amber light. */
+#game > .field-layout .tower-field.world-painted {
+  background:linear-gradient(155deg,#26323a,#192630 68%,#131f27);
+  border-color:#7b817a;
+}
+#game > .field-layout .tower-field .field-worldspace {
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  grid-template-rows:repeat(5,minmax(0,1fr));
+}
+#game > .field-layout .tower-field.world-painted .field-terrain {
+  border-color:#9b8c70;
+  box-shadow:0 10px 32px #09121ac9,0 0 0 3px #9e947b62;
+}
+#game > .field-layout .tower-field.world-painted .forest-field-header {
+  background:linear-gradient(90deg,#182730ed,#263b4687 84%,transparent);
+  border-left-color:#e1c48f;
+}
+#game > .field-layout .tower-field.world-painted .forest-field-footer {
+  background:#1a2935e8;
+  border-top-color:#887c64;
+}
