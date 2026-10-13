@@ -72,20 +72,25 @@
           '<path class="nearby-track-earth" d="'+path+'"/>'+
           '<path class="nearby-track-centerline" d="'+path+'"/></svg>':'';
         const land=place?'<span class="nearby-track-icon" aria-hidden="true">'+landmarkIcon(place.biome)+'</span>':'';
-        const marker=place?(place.claimed?'⚑':place.visitor==='supplies'?'✦':place.aided?'✧':''):'';
+        const changed=Boolean(place&&state.designs?.shield_thorn===place.id);
+        const marker=place?(changed?'🔔':place.claimed?'⚑':place.visitor==='supplies'?'✦':place.aided?'✧':''):'';
         const poi=place?N.pointOfInterest(place):null;
-        const kind=poi?(poi.family==='shop'?'店':'異変'):'';
+        const kind=poi?(poi.family==='shop'?'◆ 店':'✦ 異変'):'';
+        const poiStamp=poi?(root.CrownlessMapPixelArt?.sprite?.(poi.family)||
+          A.poiStamp?.(place.biome,poi.family)||''):'';
         const classes='nearby-track-tile'+(place?' track-'+place.biome:' track-fog')+
-          (id===d.id?' selected':'')+(home?' track-home':'')+
+          (id===d.id?' selected':'')+(changed?' restored-bell':'')+(home?' track-home':'')+
           (place?.claimed?' claimed':'');
         const inner=road+
           (home?'<span class="nearby-track-camp" aria-hidden="true">⌂</span>':'')+
           land+
+          (poiStamp?'<span class="nearby-tile-stamp" aria-hidden="true">'+poiStamp+'</span>':'')+
           (marker?'<span class="nearby-track-flag" aria-hidden="true">'+marker+'</span>':'')+
           (place?'<span class="nearby-track-name">'+esc(N.title(place))+'</span>':'')+
           (home?'<span class="nearby-track-home-label">拠点</span>':'');
         if(place)cells.push('<button type="button" class="'+classes+'" data-action="district" data-value="'+esc(id)+
-          '" aria-pressed="'+(id===d.id)+'" aria-label="'+esc(N.title(place)+'、'+kind+(place.claimed?'、開拓済み':''))+'">'+inner+'</button>');
+          '" aria-pressed="'+(id===d.id)+'" aria-label="'+esc(N.title(place)+'、'+kind+
+            (changed?'、鐘が戻った':place.visitor==='supplies'?'、薬師の荷':place.claimed?'、開拓済み':''))+'">'+inner+'</button>');
         else if(home)cells.push('<button type="button" class="'+classes+'" data-action="tab" data-value="home" aria-label="拠点を開く">'+inner+'</button>');
         else cells.push('<div class="'+classes+'" aria-hidden="true">'+inner+'<span class="nearby-track-mist">?</span></div>');
       }
@@ -105,7 +110,7 @@
       '<div class="nearby-track-scape"><div class="nearby-track-board" role="group" aria-label="中心が選択中の土地。道は模式図です。">'+
       cells.join('')+'</div></div>'+
       '<div class="nearby-track-footer"><span>道の先の霧は、まだ知らない土地。</span>'+switcher+'</div></div>';
-    const stateLabel=restored?'🔔 鐘が戻った・ユノが滞在中':d.claimed?'⚑ あなたの領域':
+    const stateLabel=restored?'🔔 鐘が戻った・ユノが滞在中':N.traveler(d)?'✦ 薬師の荷':d.claimed?'⚑ あなたの領域':
       poi.family==='shop'?'未開拓 · ◆ 地域の店':'未開拓 · ✦ '+(material?'異変の手掛かり':'王墓の噂');
     // A crafted item often leaves the smith active. A dead-looking departure
     // button strands the player; make returning to the adventurer one tap.
