@@ -872,6 +872,76 @@ async function main() {
       }finally{await context.close();}
     }
 
+    // The first non-forest freely walkable map: a real stone tower, not the
+    // former selection menu. Run through discovery, guardian, ascent and return.
+    for(const width of [360,390]){
+      const ctx=await browser.newContext({viewport:{width,height:width===360?800:844},isMobile:true,hasTouch:true});
+      const page=await ctx.newPage(), errors=[];
+      page.on('pageerror',e=>errors.push(e.message));
+      const step=async id=>page.locator('.tower-field [data-action="tower-step"][data-value="'+id+'"]').click();
+      const saved=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+      try{
+        await page.goto(url);
+        await page.locator('[data-action="mode"][data-value="demo"]').click();
+        await page.locator('[data-action="nearby-view"][data-value="scout"]').click();
+        await page.locator('[data-action="scout"][data-value="tower"]').click();
+        await page.locator('.nearby-tile[data-value="0,1"]').click();
+        await page.locator('.district-detail [data-action="depart"][data-value="tower"]').click();
+        assert.equal(await page.locator('.tower-field.world-painted').count(),1,'tower is a real painted terrain view');
+        assert.equal(await page.locator('.tower-field .field-cell').count(),25);
+        assert.equal(await page.locator('.tower-field .wall button').count(),0);
+        assert.equal(await page.locator('.tower-field .field-cell.secret.walk-nav').count(),0);
+        assert.equal(await page.locator('.tower-field .field-cell.relic.veiled').count(),1,'sealed reliquary starts hidden');
+        assert(await page.locator('.tower-field .walk-nav').count()>=1,'regular stone pathways keep subtle guidance');
+        await page.screenshot({path:path.join(output,'tower-stone-entry-'+width+'.png')});
+        for(const id of [21,22,17])await step(id);
+        let s=await saved();
+        assert.equal(s.expedition.tower.echo,true);
+        assert.match(s.expedition.log[0],/鐘の欠片/);
+        assert.equal(await page.locator('.tower-field .field-cell.secret.walk-nav').count(),0);
+        await page.screenshot({path:path.join(output,'tower-bell-clue-'+width+'.png')});
+        await step(12);
+        s=await saved();
+        assert.equal(s.expedition.tower.pos,17,'investigating opens a real barrier but does not move');
+        assert.equal(s.expedition.tower.open,true);
+        assert.equal(await page.locator('.tower-field .field-cell.secret.walk-nav').count(),0,
+          'opened hidden staircase stays unsignposted');
+        await page.screenshot({path:path.join(output,'tower-hidden-stair-'+width+'.png')});
+        await step(12);await step(7);
+        s=await saved();
+        assert.equal(s.expedition.tower.relic,true);
+        assert.equal(s.expedition.materials.watchIron,1);
+        assert.equal(s.expedition.scrap,4);
+        await page.screenshot({path:path.join(output,'tower-found-reliquary-'+width+'.png')});
+        await page.reload();
+        assert.equal(await page.locator('.tower-field[data-tower-relic="true"]').count(),1);
+        for(const id of [12,17,18,19,14,9])await step(id);
+        s=await saved();
+        assert.equal(s.expedition.stage,'fight');
+        assert.equal(s.expedition.enemy.kind,'knight');
+        await page.evaluate(()=>{
+          const k='crownless-expedition-v1-demo',s=JSON.parse(localStorage.getItem(k));
+          s.expedition.enemy.hp=1;localStorage.setItem(k,JSON.stringify(s));
+        });
+        await page.reload();
+        await page.locator('[data-action="auto-fight"]').click();
+        s=await saved();
+        assert.equal(s.expedition.stage,'path','guardian win must return to the tower view');
+        assert.equal(s.expedition.tower.guard,true);
+        assert.equal(await page.locator('.tower-field.world-painted').count(),1);
+        await step(4);
+        s=await saved();
+        assert.equal(s.expedition.room,1,'tower connects to existing upper-level route');
+        assert.equal(await page.locator('.tower-field').count(),0);
+        await page.locator('[data-action="return"]').click();
+        s=await saved();
+        assert.equal(s.expedition,null);
+        assert.equal(s.materials.watchIron,2,'hidden reliquary and knight both give forge material');
+        assert.deepEqual(errors,[],'stone exploration generated no browser errors');
+        await page.screenshot({path:path.join(output,'tower-return-'+width+'.png')});
+      }finally{await ctx.close();}
+    }
+
     // Corrupt game saves must not be silently overwritten during rendering.
     const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const page = await context.newPage();
