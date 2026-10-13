@@ -22,6 +22,7 @@ test('the causeway stays actual deep water for an untrained traveler, not a hint
   assert.equal(untrained.expedition.fen.pos,M.APPROACH);
   assert.equal(untrained.expedition.fen.trail,false);
   assert.equal(M.kind(M.CAUSEWAY),'causeway');
+  assert.equal(M.visible(untrained.expedition.fen,M.CAUSEWAY),false,'untrained explorer cannot see the hidden route');
   assert.equal(M.canMove(untrained.expedition.fen,M.CAUSEWAY),false);
   assert.equal(M.uncover(untrained.expedition.fen,M.CAUSEWAY),null);
   assert.equal(E.act(untrained,'fen-step:'+M.CAUSEWAY),untrained);
@@ -32,9 +33,11 @@ test('trail reading discovers a separate safe route without teleporting or spoil
   const atBank=approach(true);
   const beforeHp=atBank.expedition.hp;
   assert.match(atBank.expedition.log[0],/獣の足跡/);
+  assert.equal(M.visible(atBank.expedition.fen,M.CAUSEWAY),false,'tracks are only a clue');
   const opened=E.act(atBank,'fen-step:'+M.CAUSEWAY);
   assert.equal(opened.expedition.fen.pos,M.APPROACH,'first tap investigates in place');
   assert.equal(opened.expedition.fen.trail,true);
+  assert.equal(M.visible(opened.expedition.fen,M.CAUSEWAY),true,'stones appear after deliberate investigation');
   assert.equal(opened.expedition.fen.shoal,false,'the dangerous old shoal remains separate');
   assert.equal(opened.expedition.fen.seen,atBank.expedition.fen.seen,'uncover must not move or reveal distant tiles');
   assert.equal(E.parse(E.serialize(opened)).expedition.fen.trail,true);
