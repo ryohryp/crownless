@@ -337,3 +337,26 @@
   background:#1a2935e8;
   border-top-color:#887c64;
 }
+
+/* First free-walkable wetland: real water barriers and reed-sound clues,
+   preserving 44px touch targets and regular-path-only navigation. */
+#game > .field-layout .fen-field.world-painted {
+  background:linear-gradient(155deg,#163745,#122934 68%,#0a1b26);
+  border-color:#649191;
+}
+#game > .field-layout .fen-field .field-worldspace {
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  grid-template-rows:repeat(5,minmax(0,1fr));
+}
+#game > .field-layout .fen-field.world-painted .field-terrain {
+  border-color:#709f9b;
+  box-shadow:0 10px 32px #061620bd,0 0 0 3px #729b9370;
+}
+#game > .field-layout .fen-field.world-painted .forest-field-header {
+  background:linear-gradient(90deg,#102b35ef,#1c4a4d8c 84%,transparent);
+  border-left-color:#b4d8ce;
+}
+#game > .field-layout .fen-field.world-painted .forest-field-footer {
+  background:#0e2936e8;
+  border-top-color:#6a9c95;
+}
