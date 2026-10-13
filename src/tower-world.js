@@ -156,6 +156,11 @@
       cache:section.dataset.towerCache==='true'};
     if(!T.valid(f))return;
     const ctx=canvas.getContext('2d',{alpha:false});if(!ctx)return;
+    // Remove fog from a separate transparent layer, never from painted stone.
+    // The mask changes only on player action, so compose it once per mount.
+    const mist=root.document.createElement('canvas');mist.width=W;mist.height=W;
+    const mistCtx=mist.getContext('2d');if(!mistCtx)return;
+    fog(mistCtx,f);
     section.classList.add('world-painted');
     const worldspace=section.querySelector('.field-worldspace');
     const size=worldspace?.clientWidth||0;
@@ -168,9 +173,10 @@
     let lastFrame=0;
     function frame(time){
       if(!canvas.isConnected||active!==instance)return;
-      instance.raf=root.requestAnimationFrame(frame);
-      if(time-lastFrame<45)return;lastFrame=time;
-      const t=reduced?1:Math.min(1,Math.max(0,(time-started)/400)),ease=1-(1-t)**3;
+      const t=reduced?1:Math.min(1,Math.max(0,(time-started)/400));
+      if(time-lastFrame<45&&t<1){instance.raf=root.requestAnimationFrame(frame);return;}
+      lastFrame=time;
+      const ease=1-(1-t)**3;
       const x=start[0]+(end[0]-start[0])*ease,y=start[1]+(end[1]-start[1])*ease;
       if(worldspace&&size){
         const edge=size*(1-zoom);
@@ -178,10 +184,12 @@
         const ty=Math.max(edge,Math.min(0,size/2-y/W*size*zoom));
         worldspace.style.transform='translate3d('+tx.toFixed(2)+'px,'+ty.toFixed(2)+'px,0) scale('+zoom+')';
       }
-      ruins(ctx,f,time);fog(ctx,f);traveler(ctx,x,y,time);
+      ruins(ctx,f,time);ctx.drawImage(mist,0,0);traveler(ctx,x,y,time);
       const grad=ctx.createRadialGradient(300,300,100,300,300,420);
       grad.addColorStop(0,'#0c171a00');grad.addColorStop(1,'#09131d9f');
       ctx.fillStyle=grad;ctx.fillRect(0,0,W,W);
+      // The tower is still after the step. Continuous redraws flash on phones.
+      instance.raf=t<1?root.requestAnimationFrame(frame):0;
     }
     frame(started+50);
   }
