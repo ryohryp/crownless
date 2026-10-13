@@ -1,8 +1,8 @@
 /* Pure game rules. The browser and node:test use the same deterministic transitions. */
 (function (root, factory) {
-  if (typeof module === 'object' && module.exports) module.exports = factory(require('./neighborhood.js'),require('./expedition-field.js'),require('./tower-field.js'));
-  else root.CrownlessSlice = factory(root.CrownlessNeighborhood,root.CrownlessField,root.CrownlessTowerField);
-})(typeof globalThis === 'object' ? globalThis : this, function (N,F,T) {
+  if (typeof module === 'object' && module.exports) module.exports = factory(require('./neighborhood.js'),require('./expedition-field.js'),require('./tower-field.js'),require('./fen-field.js'));
+  else root.CrownlessSlice = factory(root.CrownlessNeighborhood,root.CrownlessField,root.CrownlessTowerField,root.CrownlessFenField);
+})(typeof globalThis === 'object' ? globalThis : this, function (N,F,T,M) {
   'use strict';
   const VERSION = 1;
   const PLACES = [
@@ -315,7 +315,7 @@
       supported ? `${COMMISSIONS[id].requester}の支援で薬草 +1。鍛冶師の納品が帰ってきた。` : null,
       visitorGift ? `${visitorGift.name}（架空NPC）の補給袋を受け取った。薬草 +1。ここからの一度限りの支援。` : null,
     ].filter(Boolean).join(' ') || '火はここで待っている。まずは足跡をたどろう。';
-    n.expedition = { place: id, depth: 1, room: 0, hp: maxHp(s), stamina: 3, focus: 0, stagger: false, sharpened, sharpenedApplied: false, potions: (supported || visitorGift) ? 3 : 2, scrap: 0, materials:emptyMaterials(), gear: [], gearQuality: [], seals: [], grudge, enemy: null, stage: 'path', log: [intro], ...(id==='wood' ? {field:F.initial()} : id==='tower' ? {tower:T.initial()} : {}) };
+    n.expedition = { place: id, depth: 1, room: 0, hp: maxHp(s), stamina: 3, focus: 0, stagger: false, sharpened, sharpenedApplied: false, potions: (supported || visitorGift) ? 3 : 2, scrap: 0, materials:emptyMaterials(), gear: [], gearQuality: [], seals: [], grudge, enemy: null, stage: 'path', log: [intro], ...(id==='wood' ? {field:F.initial()} : id==='tower' ? {tower:T.initial()} : id==='fen' ? {fen:M.initial()} : {}) };
     return n;
   }
   // A landmark expedition is bound to one *discovered* fantasy place by the UI.
@@ -500,6 +500,11 @@
         x.log.push('古い武具はもう使えない。鉄片 +4。');
       }
       x.seals.push(x.place); x.stage = 'cleared';
+    } else if (x.place==='fen' && x.depth===1 && x.room===0 && x.fen
+        && e.kind==='wraith' && x.fen.pos===M.WRAITH) {
+      x.fen.wraith=true;
+      x.stage='path';
+      x.log.unshift('水面の亡霊は霧に溶けた。浅瀬にも帰路にも、まだ歩ける道がある。');
     } else if (x.place==='tower' && x.depth===1 && x.room===0 && x.tower
         && e.kind==='knight' && x.tower.pos===T.GUARD) {
       x.tower.guard=true;
@@ -552,6 +557,47 @@
       }
       // A real first-room terrain choice. Only ONE adjacent step per tap;
       // touching a covered non-adjacent tile never teleports the character.
+      if (x.place === 'fen' && x.depth===1 && x.room===0 && x.fen
+          && action.startsWith('fen-step:')) {
+        const to=Number(action.slice('fen-step:'.length));
+        const opened=M.uncover(x.fen,to);
+        if(opened){
+          x.fen=opened;
+          x.log=['葦の下を流れる水音に耳を澄ます。浮かぶ石を押すと、星明かりへ続く浅瀬が姿を現した。渡れば体力 −3。'];
+          return n;
+        }
+        const next=M.move(x.fen,to);
+        if(!next)return s;
+        if(to===M.SHOAL && x.hp<=3){
+          x.log=['冷たい水に足を入れかけた。体力が足りない。薬草を使うか、陸路へ引き返そう。'];
+          return n;
+        }
+        x.fen=next;
+        if(to===M.REEDS&&!next.sound){
+          next.sound=true;
+          x.log=['足元の葦が逆向きに揺れた。水の下から乾いた石を叩く音が聞こえる。渡れる場所があるのかもしれない。'];
+        }else if(to===M.SHOAL){
+          x.hp-=3;
+          x.log=['水音を頼りに浅瀬を渡った。泥に足を取られ体力 −3。水の向こうに青い星明かりが揺れる。'];
+        }else if(to===M.STAR&&!next.star){
+          next.star=true;
+          x.materials.marshFiber=Math.min(1000000,x.materials.marshFiber+1);
+          x.scrap=Math.min(1000,x.scrap+4);
+          x.log=['沈んだ星の祭壇を発見！ 霧葦 +1、鉄片 +4。持ち帰れれば鍛冶に使える。'];
+        }else if(to===M.HERBS&&!next.herbs){
+          next.herbs=true;
+          const herbs=Math.min(1,3-x.potions);
+          x.potions+=herbs;
+          x.log=[`水際の小島に薬草が残っていた。薬草 +${herbs}。亡霊を避ける準備ができた。`];
+        }else if(to===M.WRAITH&&!next.wraith){
+          encounter(x,true,n.runs);
+          x.log.unshift('水の上に青白い人影が立った。湿原の亡霊が道を塞ぐ。');
+        }else if(to===M.EXIT){
+          x.log=['乾いた岸へ帰り着いた。背嚢の素材を持ち帰る。'];
+          return finish(n,false);
+        }else x.log=['泥の少ない足場を選び、一歩進んだ。深い水には近寄らない。'];
+        return n;
+      }
       if (x.place === 'tower' && x.depth===1 && x.room===0 && x.tower
           && action.startsWith('tower-step:')) {
         const to=Number(action.slice('tower-step:'.length));
@@ -963,7 +1009,7 @@
       if (s.expedition) {
         const x = s.expedition;
         const allowedFocus = gearFamily(s.equipped) === 'fang' ? [0,3,4,5,6,7,8,9] : [0,3];
-        if (Object.keys(x).some(k => !['place','depth','room','field','tower','hp','stamina','focus','stagger','sharpened','sharpenedApplied','landmarkId' ,'potions','scrap','materials','gear','gearQuality','seals','grudge','enemy','stage','log','foundDesign'].includes(k)) || !(x.foundDesign === undefined || x.foundDesign === 'shield_thorn' || (x.foundDesign === 'fang_moon' && x.place === 'wood')) || !(x.landmarkId === undefined || (typeof x.landmarkId==='string' && /^[a-z][a-z0-9-]{1,63}$/.test(x.landmarkId))) || !(x.field === undefined || (x.place==='wood' && F.valid(x.field))) || !(x.tower===undefined || (x.place==='tower'&&T.valid(x.tower))) || !s.unlocked.includes(x.place) || !int(x.depth,1,3) || !int(x.room,0,4) || !int(x.hp,1,maxHp(s)) || !int(x.stamina,0,3) || !allowedFocus.includes(x.focus) || typeof x.stagger !== 'boolean' || !int(x.sharpened,0,3) || typeof x.sharpenedApplied !== 'boolean' || !validExpeditionGrudge(x.grudge) || !int(x.potions,0,3) || !int(x.scrap,0,1000) || !validMaterials(x.materials) || !validLoot(x.gear,x.gearQuality) || !Array.isArray(x.seals) || x.seals.length > 3 || !x.seals.every(v => ids.includes(v)) || !['path','fight','cleared'].includes(x.stage) || !Array.isArray(x.log) || x.log.length > 10 || !x.log.every(v => typeof v === 'string' && v.length < 250)) throw Error('run');
+        if (Object.keys(x).some(k => !['place','depth','room','field','tower','fen','hp','stamina','focus','stagger','sharpened','sharpenedApplied','landmarkId' ,'potions','scrap','materials','gear','gearQuality','seals','grudge','enemy','stage','log','foundDesign'].includes(k)) || !(x.foundDesign === undefined || x.foundDesign === 'shield_thorn' || (x.foundDesign === 'fang_moon' && x.place === 'wood')) || !(x.landmarkId === undefined || (typeof x.landmarkId==='string' && /^[a-z][a-z0-9-]{1,63}$/.test(x.landmarkId))) || !(x.field === undefined || (x.place==='wood' && F.valid(x.field))) || !(x.tower===undefined || (x.place==='tower'&&T.valid(x.tower))) || !(x.fen===undefined || (x.place==='fen'&&M.valid(x.fen))) || !s.unlocked.includes(x.place) || !int(x.depth,1,3) || !int(x.room,0,4) || !int(x.hp,1,maxHp(s)) || !int(x.stamina,0,3) || !allowedFocus.includes(x.focus) || typeof x.stagger !== 'boolean' || !int(x.sharpened,0,3) || typeof x.sharpenedApplied !== 'boolean' || !validExpeditionGrudge(x.grudge) || !int(x.potions,0,3) || !int(x.scrap,0,1000) || !validMaterials(x.materials) || !validLoot(x.gear,x.gearQuality) || !Array.isArray(x.seals) || x.seals.length > 3 || !x.seals.every(v => ids.includes(v)) || !['path','fight','cleared'].includes(x.stage) || !Array.isArray(x.log) || x.log.length > 10 || !x.log.every(v => typeof v === 'string' && v.length < 250)) throw Error('run');
         if (x.stage === 'fight') {
           const e = x.enemy;
           if (!e || Object.keys(e).some(k => !['kind','hp','maxHp','turn','depth','elite','risky','seed','frenzy','wounded','clue'].includes(k)) || !(e.seed === undefined || int(e.seed,0,99990)) || !(e.frenzy === undefined || typeof e.frenzy === 'boolean') || !(e.wounded === undefined || typeof e.wounded === 'boolean') || !(e.clue === undefined || typeof e.clue === 'boolean') || !ENEMIES[e.kind] || !int(e.maxHp,1,80) || !int(e.hp,1,e.maxHp) || !int(e.turn,0,1e6) || e.depth !== x.depth || typeof e.elite !== 'boolean' || typeof e.risky !== 'boolean') throw Error('enemy');
