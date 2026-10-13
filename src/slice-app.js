@@ -116,17 +116,19 @@
   }
   function fenField(x,title){
     const M=window.CrownlessFenField,f=x.fen;
-    const names={water:'深い水',start:'乾いた岸',exit:'帰還できる岸',bank:'湿った足場',
+    const trailReading=state.characters[0]?.skills?.trailReading===true;
+    const names={causeway:'発見した古い踏み石',water:'深い水',start:'乾いた岸',exit:'帰還できる岸',bank:'湿った足場',
       reeds:'水音の聞こえる葦',shoal:f.shoal?'発見した浅瀬':'揺れる水面',
       star:f.star?'光の消えた祭壇':'沈んだ星明かり',wraith:f.wraith?'消えた亡霊':'漂う青白い影',
       herbs:f.herbs?'刈り取った薬草':'水際の薬草'};
     const cells=Array.from({length:M.COUNT},(_,i)=>{
-      const kind=M.kind(i),seen=M.visible(f,i),canStep=M.canMove(f,i);
-      const investigate=i===M.SHOAL&&f.pos===M.REEDS&&f.sound&&!f.shoal;
+      const kind=i===M.CAUSEWAY&&!f.trail?'water':M.kind(i),seen=M.visible(f,i),canStep=M.canMove(f,i);
+      const investigate=(i===M.SHOAL&&f.pos===M.REEDS&&f.sound&&!f.shoal)||
+        (i===M.CAUSEWAY&&f.pos===M.APPROACH&&trailReading&&!f.trail);
       const [col,row]=M.coords(i),here=i===f.pos;
       const classes=['field-cell',kind,seen?'revealed':'veiled',here?'here':'',
-        canStep||investigate?'can-step':'',seen&&canStep&&kind!=='shoal'?'walk-nav':''].filter(Boolean).join(' ');
-      const label=here?'旅人の現在地':seen?names[kind]:'未踏の湿原';
+        canStep||investigate?'can-step':'',seen&&canStep&&kind!=='shoal'&&kind!=='causeway'?'walk-nav':''].filter(Boolean).join(' ');
+      const label=here?'旅人の現在地':investigate&&i===M.CAUSEWAY?'足跡が消えた水面':seen?names[kind]:'未踏の湿原';
       const style='grid-column:'+(col+1)+';grid-row:'+(row+1);
       if(canStep||investigate)return '<button type="button" class="'+classes+'" style="'+style+
         '" data-action="fen-step" data-value="'+i+'" aria-label="'+label+
@@ -135,13 +137,13 @@
     }).join('');
     return '<section class="forest-field fen-field" data-field-pos="'+f.pos+'" data-field-seen="'+f.seen+
       '" data-fen-sound="'+f.sound+'" data-fen-shoal="'+f.shoal+'" data-fen-star="'+f.star+
-      '" data-fen-wraith="'+f.wraith+'" data-fen-herbs="'+f.herbs+'" aria-label="歩いて探索する星沈みの湿原">'+
+      '" data-fen-wraith="'+f.wraith+'" data-fen-herbs="'+f.herbs+'" data-fen-trail="'+Boolean(f.trail)+'" data-fen-reader="'+trailReading+'" aria-label="歩いて探索する星沈みの湿原">'+
       '<div class="forest-field-header"><span class="kicker">FALLEN STARS · 沈む湿地</span><h2>'+esc(title)+
       '</h2><small>水の音を聞き、踏める足場を選んで進もう。</small></div>'+
       '<div class="field-terrain" role="group" aria-label="足場と深い水のある湿原を歩く">'+
       '<div class="field-worldspace"><canvas class="forest-world-canvas" width="600" height="600" aria-hidden="true"></canvas>'+cells+'</div></div>'+
       '<div class="forest-field-footer"><span>✧ 星沈みの湿原</span><strong>'+
-      (f.star?'✦ 星の祭壇を発見':f.shoal?'浅瀬の向こうへ':f.sound?'水底に不思議な音':'霧の中を進む')+
+      (f.star?'✦ 星の祭壇を発見':f.trail?'古い踏み石を発見':f.shoal?'浅瀬の向こうへ':f.sound?'水底に不思議な音':'霧の中を進む')+
       '</strong><span>'+(f.wraith?'亡霊は去った':'水面には気配がある')+'</span></div></section>';
   }
   function fenDecision(x){
@@ -313,7 +315,9 @@
       const done = state.owned.includes(recipeId);
       if (recipe.requiresBlueprint && !state.designs?.[recipeId]) return recipeId === 'fang_moon'
         ? '<div class="home-building blueprint-locked"><div><h3>？ 森の月影の製法</h3><p>獣の足跡を読んで生還すると、新しい隠し包みを見抜けるようになる。</p></div><p class="small">手掛かり：足跡調査 → 生還 → 森の小道を再探索</p></div>'
-        : '<div class="home-building blueprint-locked"><div><h3>？ 塔の秘伝設計図</h3><p>「鳴らない鐘の刻」の強敵から製法を見つけ、生きて帰れば新しい盾を製作できる。発見前は製作できない。</p></div><p class="small">手掛かり：塔の異変 → 強敵討伐 → 生還</p></div>';
+        : recipeId === 'bow_hunter'
+          ? '<div class="home-building blueprint-locked"><div><h3>？ 湿原の灰羽の製法</h3><p>森で身につけた《獣道読み》が、湿原の足跡にも役立つかもしれない。</p></div><p class="small">手掛かり：森で技を習得 → 湿原の水辺を探索 → 踏み石の先で製法を見つけて生還</p></div>'
+          : '<div class="home-building blueprint-locked"><div><h3>？ 塔の秘伝設計図</h3><p>「鳴らない鐘の刻」の強敵から製法を見つけ、生きて帰れば新しい盾を製作できる。発見前は製作できない。</p></div><p class="small">手掛かり：塔の異変 → 強敵討伐 → 生還</p></div>';
       const info = `${materials} + 鉄片 ${recipe.scrap} · 産地：${recipe.origin}`;
       const learnedAt = recipe.requiresBlueprint && state.designs?.[recipeId] ? N.get(state.neighborhood,state.designs[recipeId]) : null;
       const missing = Object.entries(recipe.materials)
@@ -400,11 +404,12 @@
         : '交易技能は今後の実装対象。現在は所持品と記録を確認できる。'
       : !learnedTrail ? '囁きの森で獣の足跡を調べ、無事に生還する。'
       : !state.designs?.fang_moon ? 'もう一度囁きの森へ。覚えた《獣道読み》で小道を調べる。'
-      : !state.owned.includes('fang_moon') ? '見つけた月影の製法を鍛冶師に渡し、狼牙から短剣を作る。'
-      : '月影の短剣を装備して、回避の戦い方を試す。';
+      : !state.designs?.bow_hunter ? '星沈みの湿原へ。足跡が水面に消える場所を探し、踏み石の先へ進む。'
+      : !state.owned.includes('bow_hunter') ? '湿原で見つけた灰羽の長弓の製法を鍛冶師に渡す。'
+      : '灰羽の長弓を装備して、敵の隙を狙った攻撃を試す。';
     const skillBody = person.role === 'adventurer'
       ? learnedTrail
-        ? '<div class="status-skill unlocked"><span class="status-skill-mark" aria-hidden="true">⌁</span><div><strong>獣道読み <small>習得済み</small></strong><p>森の足跡から見逃した秘密を見抜き、隠された調査行動を選べる。</p></div></div>'
+        ? '<div class="status-skill unlocked"><span class="status-skill-mark" aria-hidden="true">⌁</span><div><strong>獣道読み <small>習得済み</small></strong><p>森の隠し包みだけでなく、湿原でも水面へ続く獣道の痕跡を読み取れる。</p></div></div>'
         : '<div class="status-skill"><span class="status-skill-mark" aria-hidden="true">⌁</span><div><strong>獣道読み <small>未習得</small></strong><p>森の足跡を調べ、生還すると身につく探索技術。</p></div></div>'
       : person.role === 'smith'
         ? '<div class="status-skill"><span class="status-skill-mark" aria-hidden="true">⚒</span><div><strong>鍛冶の仕事 '+person.experience+' 回</strong><p>製作とNPC向け納品を合わせた実績。技量ボーナスではない。</p></div></div>'
@@ -554,7 +559,8 @@
     const readyToCraft = !r.died && Object.keys(E.RECIPES).some(id => canCraft(state,id));
     const commissionFinished = !r.died && state.commission.lastResult === r.place;
     const blueprintReward = r.newDesign === 'shield_thorn' && !r.died ? '<div class="home-return" role="status"><strong>✦ 新しい製作レシピを解放：返し棘の盾</strong><p>「鳴らない鐘の刻」の亡兵から盾の製法を持ち帰った。鍛冶師に交代すれば製作可能。さらにこの場所の鐘が戻り、再訪すると鐘守の弟子・ユノに会える。</p><small>必要：鐘鉄 2個＋森の狼牙 1個＋鉄片 6個。防御の軽減は薄いが、反撃が強い。</small></div>'
-      : r.newDesign === 'fang_moon' && !r.died ? '<div class="home-return" role="status"><strong>✦ 新しい製作レシピを解放：月影の短剣</strong><p>《獣道読み》で隠し包みを見つけ、製法を持ち帰った。鍛冶師に交代すれば製作できる。</p><small>必要：狼牙 3個＋鉄片 6個。回避時の気力消費を抑える短剣。</small></div>' : '';
+      : r.newDesign === 'fang_moon' && !r.died ? '<div class="home-return" role="status"><strong>✦ 新しい製作レシピを解放：月影の短剣</strong><p>《獣道読み》で隠し包みを見つけ、製法を持ち帰った。鍛冶師に交代すれば製作できる。</p><small>必要：狼牙 3個＋鉄片 6個。回避時の気力消費を抑える短剣。</small></div>'
+      : r.newDesign === 'bow_hunter' && !r.died ? '<div class="home-return" role="status"><strong>✦ 新しい製作レシピを解放：灰羽の長弓</strong><p>森で覚えた《獣道読み》が湿原の隠し道を開いた。生還して製法を鍛冶師に渡した。</p><small>必要：霧葦 3個＋狼牙 1個＋鉄片 6個。敵が隙を見せた時に攻撃 +3。</small></div>' : '';
     const skillReward = r.newSkill === 'trailReading' && !r.died ? '<div class="home-return" role="status"><strong>✦ 探索技術を習得：《獣道読み》</strong><p>足跡を調べ、生きて帰った。今なら以前歩いた囁きの森の小道にも、新しい痕跡を見つけられそうだ。</p></div>' : '';
     const resultDistrict = state.neighborhood.result && N.get(state.neighborhood,state.neighborhood.result.id);
     const placedTrace = commissionFinished && N.trace(resultDistrict);
