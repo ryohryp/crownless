@@ -9,7 +9,7 @@ function browser(seed = {}, storageFails = false, realChronicle = false) {
   const store = new Map(Object.entries(seed)), callbacks = {}, elements = {};
   const chronicleContainer = {innerHTML:'',querySelectorAll:()=>[]};
   for (const id of ['#game','#save-status','#save-label','#help-toggle','#help','#home-name']) elements[id] = {innerHTML:'',hidden:true,textContent:'',value:'',addEventListener(type,fn){this[type]=fn;},setAttribute(){}};
-  const context = {CrownlessSlice:E,CrownlessNearbyHome:require('../src/nearby-home-view.js'),CrownlessNeighborhood:require('../src/neighborhood.js'),CrownlessArt:{scene:()=>'<svg></svg>',icon:()=>'<svg></svg>'},isSecureContext:true,
+  const context = {CrownlessSlice:E,CrownlessFenField:require('../src/fen-field.js'),CrownlessNearbyHome:require('../src/nearby-home-view.js'),CrownlessNeighborhood:require('../src/neighborhood.js'),CrownlessArt:{scene:()=>'<svg></svg>',icon:()=>'<svg></svg>'},isSecureContext:true,
     document:{querySelector:selector=>elements[selector] || null},
     localStorage:{getItem:k=>{if(storageFails)throw Error('blocked');return store.get(k)??null;},setItem:(k,v)=>{if(storageFails)throw Error('blocked');store.set(k,v);},removeItem:k=>{if(storageFails)throw Error('blocked');store.delete(k);}},
     navigator:{geolocation:{getCurrentPosition(ok,error){callbacks.ok=ok;callbacks.error=error;}}},
@@ -738,4 +738,47 @@ test('status screen remains accessible with old migrated character records', () 
   assert.doesNotMatch(b.html(),/NaN|undefined/);
   b.click('settings');
   assert.equal(b.elements['#help'].hidden,false);
+});
+
+test('trained explorer can reveal a hidden fen route from the phone UI and return with new recipe',()=>{
+  let s=E.discover({...E.initial(),mode:'demo'},'fen');
+  s.characters[0].skills.trailReading=true;
+  s=E.start(s,'fen');
+  for(const id of [21,16,11])s=E.act(s,'fen-step:'+id);
+  const key='crownless-expedition-v1-demo';
+  const b=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(s)});
+  assert.match(b.html(),/data-fen-reader="true"/);
+  assert.match(b.html(),/data-fen-trail="false"/);
+  assert.match(b.html(),/data-action="fen-step" data-value="6"/);
+  assert.match(b.html(),/足跡が消えた水面を調べる/);
+  b.click('fen-step','6');
+  assert.match(b.html(),/古い踏み石が現れた/);
+  assert.match(b.html(),/data-fen-trail="true"/);
+  b.click('fen-step','6');
+  assert.equal(E.parse(b.store.get(key)).expedition.fen.pos,6);
+  b.click('fen-step','7');
+  assert.match(b.html(),/灰羽の長弓/);
+  assert.equal(E.parse(b.store.get(key)).designs.bow_hunter,undefined);
+  b.click('return');
+  assert.match(b.html(),/新しい製作レシピを解放：灰羽の長弓/);
+  assert.equal(E.parse(b.store.get(key)).designs.bow_hunter,'fen');
+  b.click('continue');
+  b.click('tab','gear');
+  assert.match(b.html(),/灰羽の長弓/);
+  assert.doesNotMatch(b.html(),/湿原の灰羽の製法/);
+  b.click('tab','status');
+  assert.match(b.html(),/湿原でも水面へ続く獣道/);
+  assert.deepEqual(E.parse(b.store.get(key)).designs,{bow_hunter:'fen'});
+});
+
+test('untrained explorer receives no UI action on the hidden fen causeway',()=>{
+  let s=E.discover({...E.initial(),mode:'demo'},'fen');
+  s=E.start(s,'fen');
+  for(const id of [21,16,11])s=E.act(s,'fen-step:'+id);
+  const key='crownless-expedition-v1-demo';
+  const b=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(s)});
+  assert.match(b.html(),/data-fen-reader="false"/);
+  assert.doesNotMatch(b.html(),/data-action="fen-step" data-value="6"/);
+  b.click('fen-step','6');
+  assert.equal(E.parse(b.store.get(key)).expedition.fen.trail,false);
 });
