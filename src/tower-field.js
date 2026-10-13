@@ -19,7 +19,9 @@
   const neighbors=n=>inBounds(n)?Array.from({length:COUNT},(_,i)=>i).filter(i=>adjacent(n,i)):[];
   const visible=(f,n)=>Boolean(f&&inBounds(n)&&Math.floor(f.seen/(2**n))%2);
   const mark=(seen,n)=>seen+(Math.floor(seen/(2**n))%2?0:2**n);
-  const reveal=(seen,pos)=>[pos,...neighbors(pos)].reduce(mark,seen);
+  // The cracked stair is not a known map tile just because the traveler
+  // approaches the bell. It becomes visible only after investigating the echo.
+  const reveal=(seen,pos,open=false)=>[pos,...neighbors(pos).filter(n=>open||n!==SECRET)].reduce(mark,seen);
   const initial=()=>({pos:START,seen:reveal(0,START),echo:false,open:false,relic:false,cache:false,guard:false});
   const valid=f=>!!f&&typeof f==='object'&&!Array.isArray(f)&&Object.keys(f).every(k=>
     ['pos','seen','echo','open','relic','cache','guard'].includes(k))&&
@@ -29,9 +31,9 @@
     (f.pos!==SECRET&&f.pos!==RELIC||f.open);
   const canMove=(f,to)=>valid(f)&&inBounds(to)&&!WALLS.includes(to)&&
     adjacent(f.pos,to)&&(to!==SECRET||f.open)&&(to!==STAIRS||f.guard);
-  const move=(f,to)=>canMove(f,to)?{...f,pos:to,seen:reveal(f.seen,to)}:null;
+  const move=(f,to)=>canMove(f,to)?{...f,pos:to,seen:reveal(f.seen,to,f.open)}:null;
   const uncover=(f,to)=>valid(f)&&f.pos===ECHO&&to===SECRET&&!f.open?
-    {...f,open:true}:null;
+    {...f,open:true,seen:reveal(f.seen,f.pos,true)}:null;
   function kind(id){
     if(WALLS.includes(id))return 'wall';
     return ({[START]:'start',[GUARD]:'guard',[STAIRS]:'stairs',[ECHO]:'echo',
