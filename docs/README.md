@@ -30,6 +30,7 @@ Start here:
 - [ADR 0010 — selective game-development tooling before engine migration](adr/0010-selective-game-tooling-before-engine-migration.md)
 - [ADR 0011 — location-based asynchronous sandbox economy](adr/0011-async-sandbox-economy.md) — active product pivot; replaces finished-gear drop and territory-only motivation.
 - [ADR 0012 — landmark control grants passive blessings](adr/0012-landmark-control-passive-buffs.md) — accepted decision, **not yet implemented**; automatic passive benefits with stacking limits.
+- [ADR 0013 — first safe return enables an exploration-changing craft](adr/0013-first-return-exploration-craft.md) — accepted decision, **not yet implemented**; one non-combat gather → artisan craft → changed next exploration experiment.
 
 - [Visual Canon](visual-canon.md) — single global visual authority; specialized `visual/` documents must conform to it
 - [Deployment strategy](deployment-strategy.md)
