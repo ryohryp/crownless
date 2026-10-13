@@ -851,7 +851,7 @@ test('earned skill has a visible, intentional forest button and clear activation
 });
 test('earned skill is a visible fen investigation that reveals physical stepping stones',()=>{
   const N=require('../src/neighborhood.js');
-  let s=E.discoverDistrict({...E.initial(),mode:'demo'},N.cell(N.CELL_METERS,0));
+  let s=E.discoverDistrict({...E.initial(),mode:'demo'},N.cell(0,N.CELL_METERS));
   s.characters[0].skills.trailReading=true;
   s=E.start(s,'fen');
   for(const to of [21,16,11])s=E.act(s,'fen-step:'+to);
