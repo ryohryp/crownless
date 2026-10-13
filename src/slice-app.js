@@ -415,31 +415,31 @@
     const roles = state.characters.map((c,i) =>
       button('status-view',c.name+(i===state.activeCharacter?' · 操作中':''),'',
         {class:'status-role'+(i===index?' selected':''),value:String(i),current:i===index})).join('');
-    return \`<div class="game-layout character-status-layout">
-      <section class="status-visual" aria-label="\${esc(person.name)}の人物像">
-        \${A.scene('camp',null,gearId)}
+    return `<div class="game-layout character-status-layout">
+      <section class="status-visual" aria-label="${esc(person.name)}の人物像">
+        ${A.scene('camp',null,gearId)}
         <div class="status-identity"><p class="kicker">CHARACTER RECORD</p>
-          <span class="status-mark" aria-hidden="true">\${mark}</span>
-          <h1>\${esc(person.name)}</h1><p>\${title} · \${active?'操作中':'閲覧中'}</p></div>
+          <span class="status-mark" aria-hidden="true">${mark}</span>
+          <h1>${esc(person.name)}</h1><p>${title} · ${active?'操作中':'閲覧中'}</p></div>
       </section>
       <section class="panel character-status-panel" aria-label="プレイヤーのステータス">
         <div class="status-panel-content">
-          <header class="status-heading"><div><p class="kicker">PERSONAL RECORD</p><h2>人物と成長</h2></div>\${button('settings','⚙ 設定','',{class:'status-settings'})}</header>
-          <nav class="status-roles" aria-label="人物の記録を選ぶ">\${roles}</nav>
+          <header class="status-heading"><div><p class="kicker">PERSONAL RECORD</p><h2>人物と成長</h2></div>${button('settings','⚙ 設定','',{class:'status-settings'})}</header>
+          <nav class="status-roles" aria-label="人物の記録を選ぶ">${roles}</nav>
           <p class="status-role-note">閲覧しても操作キャラクターは変わりません。交代は装備画面から。</p>
-          \${statCards}
-          <section class="status-section"><h3>装備</h3><strong>\${esc(gear.name)}</strong><p>\${esc(E.gearText(preview,gearId))}</p></section>
-          <section class="status-section"><h3>\${person.role === 'adventurer'?'探索技能':'仕事と技能'}</h3>\${skillBody}</section>
-          <section class="status-section status-next"><h3>次の成長の手掛かり</h3><p>\${next}</p></section>
+          ${statCards}
+          <section class="status-section"><h3>装備</h3><strong>${esc(gear.name)}</strong><p>${esc(E.gearText(preview,gearId))}</p></section>
+          <section class="status-section"><h3>${person.role === 'adventurer'?'探索技能':'仕事と技能'}</h3>${skillBody}</section>
+          <section class="status-section status-next"><h3>次の成長の手掛かり</h3><p>${next}</p></section>
           <section class="status-section status-shared"><h3>旅の記録 <small>アカウント共有</small></h3>
-            <div class="status-history"><span>遠征 <b>\${state.runs}</b> 回</span><span>帰還 <b>\${state.victories}</b> 回</span><span>踏破した地域 <b>\${state.cleared.length}</b></span></div>
-            <p>発見した製法 \${learnedDesigns} 種 · 支配した名所 \${state.claimedLandmarks.length} か所。人物ごとの遠征回数ではありません。</p>
+            <div class="status-history"><span>遠征 <b>${state.runs}</b> 回</span><span>帰還 <b>${state.victories}</b> 回</span><span>踏破した地域 <b>${state.cleared.length}</b></span></div>
+            <p>発見した製法 ${learnedDesigns} 種 · 支配した名所 ${state.claimedLandmarks.length} か所。人物ごとの遠征回数ではありません。</p>
           </section>
-          \${button('tab','装備と役割を確認する','',{class:'secondary status-gear-link',value:'gear'})}
+          ${button('tab','装備と役割を確認する','',{class:'secondary status-gear-link',value:'gear'})}
         </div>
       </section>
-      \${nav}
-    </div>\`;
+      ${nav}
+    </div>`;
   }
 
   function camp() {
