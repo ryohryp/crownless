@@ -1088,7 +1088,13 @@ async function main() {
         assert.equal(await page.locator('.fen-field [data-action="fen-step"][data-value="6"]').count(),1,
           'trained reader gets an investigation target on old deep water');
         await page.screenshot({path:path.join(output,'fen-reader-track-'+width+'.png')});
-        await step(6);
+        // Use the learned skill as an actual thumb action, rather than
+        // requiring the player to guess an invisible deep-water tap target.
+        assert.equal(await page.locator('[data-action="skill-trail-read"]').count(),1,
+          'a learned skill must have an explicit usable button');
+        await page.locator('[data-action="skill-trail-read"]').click();
+        assert.match(await page.locator('.field-moment').innerText(),/獣道読み/);
+        assert.equal(await page.locator('.field-moment.skill-result').count(),1);
         let s=await saved();
         assert.equal(s.expedition.fen.pos,11,'investigation only reveals the route');
         assert.equal(s.expedition.fen.trail,true);

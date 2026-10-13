@@ -553,13 +553,36 @@
     } else if (x.stage === 'cleared' && action === 'deeper' && x.depth < 3) {
       x.depth++; x.room = 0; x.stage = 'path'; x.log = [`さらに深く。${lootCue(x.place, x.depth)}`]; return n;
     } else if (x.stage === 'path') {
-      if (action === 'field-follow-trail') {
-        if (x.place !== 'wood' || x.depth !== 1 || x.room !== 0 || !x.field ||
-            x.field.pos !== 22 || !n.characters[0].skills?.trailReading ||
-            n.designs.fang_moon || x.foundDesign) return s;
-        x.foundDesign = 'fang_moon';
-        x.log = ['《獣道読み》で古い足跡を辿ると、落ち葉の下から小さな隠し包みを発見。月影の短剣の製法だ。生還して鍛冶師に渡そう。'];
-        return n;
+      // A learned exploration skill is an intentional action, not just an
+      // invisible condition on terrain. Scope it to meaningful clues, so the
+      // player never has to press "scan" on every tile.
+      if (action === 'skill-trail-read' || action === 'field-follow-trail') {
+        if (x.depth !== 1 || x.room !== 0 ||
+            n.activeCharacter !== 0 || !n.characters[0].skills?.trailReading) return s;
+        if (x.place === 'wood' && x.field) {
+          if (x.field.pos === 22 && !n.designs.fang_moon && !x.foundDesign) {
+            x.foundDesign = 'fang_moon';
+            x.log = ['《獣道読み》発動！ 古い足跡を辿ると、落ち葉の下から小さな隠し包みを発見。月影の短剣の製法だ。生還して鍛冶師に渡そう。'];
+            return n;
+          }
+          // Reusable tactical knowledge: a deliberate read beside the living
+          // wolf helps prepare one strike, but cannot stack or be farmed.
+          if (action === 'skill-trail-read' && !x.field.wolf &&
+              F.wolfAwareness(x.field) === 'alert' && x.focus < 3) {
+            x.focus = 3;
+            x.log = ['《獣道読み》発動！ 爪跡と足運びから狼の間合いを見切った。集中 +3。巣穴へ踏み込めば先手を狙える。別の道へ引き返すこともできる。'];
+            return n;
+          }
+        }
+        if (action === 'skill-trail-read' && x.place === 'fen' && x.fen) {
+          const opened = M.uncover(x.fen, M.CAUSEWAY, true);
+          if (opened) {
+            x.fen = opened;
+            x.log = ['《獣道読み》発動！ 水面に消える足跡を追うと、泥の下から古い踏み石が現れた！ 体力を削る浅瀬を通らず、星の祭壇へ歩いて渡れる。'];
+            return n;
+          }
+        }
+        return s;
       }
       // A real first-room terrain choice. Only ONE adjacent step per tap;
       // touching a covered non-adjacent tile never teleports the character.
@@ -720,7 +743,7 @@
           x.log=['北の茂みがかすかに揺れた。金色の目が一瞬こちらを見た。小さな足音が聞こえる。'];
         } else x.log=['霧が少し晴れた。まだ踏み込んでいない道が見えてくる。'];
         if(to === 22 && n.characters[0].skills?.trailReading && !n.designs.fang_moon && !x.foundDesign) {
-          x.log=['《獣道読み》で気づいた。普通の小道に見えるが、落ち葉の下に不自然な足跡が続いている。調べてみよう。'];
+          x.log=['落ち葉に不自然な足跡が続いている。《獣道読み》を使えば、何が隠れているか調べられそうだ。'];
         }
         if (to !== F.DEN && to !== F.EXIT) {
           const wolfNow=F.wolfAwareness(field);
