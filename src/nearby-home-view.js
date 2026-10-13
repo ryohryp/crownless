@@ -77,7 +77,7 @@
         const poi=place?N.pointOfInterest(place):null;
         const kind=poi?(poi.family==='shop'?'◆ 店':'✦ 異変'):'';
         const poiStamp=poi?(root.CrownlessMapPixelArt?.sprite?.(poi.family)||
-          A.poiStamp?.(place.biome,poi.family)||''):'';
+          A.poiStamp?.(place.biome,poi.family)||(poi.family==='shop'?'◆':'✦')):'';
         const classes='nearby-track-tile'+(place?' track-'+place.biome:' track-fog')+
           (id===d.id?' selected':'')+(changed?' restored-bell':'')+(home?' track-home':'')+
           (place?.claimed?' claimed':'');
