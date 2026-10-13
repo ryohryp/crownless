@@ -711,7 +711,9 @@
           } else x.log=['倒木の根元には何かあるが、今は拾えない。'];
         } else if (to === F.TRACKS && !field.tracks) {
           field.tracks=true; x.focus=Math.max(3,x.focus);
-          x.log=['獣の足取りが読めた。次の一撃に集中 +3。危険な巣穴を迂回する道も見える。'];
+          x.log=[n.characters[0].skills?.trailReading
+            ? '獣の足取りが読めた。次の一撃に集中 +3。危険な巣穴を迂回する道も見える。'
+            : '獣の足跡から道の読み方をつかんだ。次の一撃に集中 +3。無事に生還すると、新しい探索技術《獣道読み》を習得できる！'];
         } else if(to === 10 && !field.fox){
           // Approach cue without announcing the fox or showing a quest marker.
           // It appears before the player chooses to investigate the bushes.
