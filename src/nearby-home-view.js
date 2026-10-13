@@ -32,7 +32,8 @@
       '<div class="nearby-map-top"><div><strong>'+esc(n.name)+'</strong><small>'+
       (state.mode==='demo'?'散策体験モード':'現実の散策モード')+' · 発見 '+n.districts.length+
       ' / 開拓 '+N.claims(n)+(n.buildings.length?' · 建物 '+n.buildings.length:'')+'</small></div>'+
-      button('nearby-view','＋ 土地を発見','',{class:'nearby-top-action',value:'scout'})+'</div>'+
+      button('nearby-view','＋ 土地を発見','',{class:'nearby-top-action',value:'scout'})+
+      button('settings','⚙','',{class:'nearby-map-settings'})+'</div>'+
       '<div class="nearby-map-art" aria-hidden="true"><span>THE UNWRITTEN LANDS</span></div>'+
       '<div class="nearby-tile-grid">'+tiles+'</div>'+
       (pages>1?'<div class="nearby-pagination">'+
@@ -91,7 +92,8 @@
       : '<div class="nearby-secondary-content">'+entries.join('')+'</div>';
     const card=view==='map'?mainCard:
       '<div class="nearby-secondary-actions"><strong>'+(view==='scout'?'新しい土地を探す':esc(N.title(d))+'の情報')+'</strong>'+
-      button('nearby-view','← 地図に戻る','',{class:'secondary',value:'map'})+'</div>';
+      button('nearby-view','← 地図に戻る','',{class:'secondary',value:'map'})+
+      button('settings','⚙','',{class:'nearby-map-settings'})+'</div>';
     return '<div class="game-layout neighborhood-rebuild living-map-home">'+
       '<section class="nearby-scene'+(view!=='map'?' nearby-scene--reading':'')+'">'+
       (view==='map'?map:secondaryScene)+'</section>'+
