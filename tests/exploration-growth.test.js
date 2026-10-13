@@ -111,7 +111,7 @@ test('trail reading prepares the wolf encounter without stacking or forced comba
 
 test('trail skill action opens a fen causeway from the approach only and can be reused in later runs',()=>{
   const N=require('../src/neighborhood.js');
-  let s=E.discoverDistrict(fresh(),N.cell(N.CELL_METERS,0));
+  let s=E.discoverDistrict(fresh(),N.cell(0,N.CELL_METERS));
   s.characters[0].skills.trailReading=true;
   s=E.start(s,'fen');
   assert.deepEqual(E.act(s,'skill-trail-read'),s,'no remote scan');
