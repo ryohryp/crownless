@@ -479,7 +479,13 @@ async function main() {
       assert.equal(signaled.expedition.focus,3,'optional local NPC signal affects a real expedition');
       await bellPage.reload();
       assert.match(await bellPage.locator('#game').innerText(),/修復された鐘が鳴る/);
-      await bellPage.locator('.path-actions [data-action="careful"]').click();
+      // The restored-bell ally still helps in combat, but the entrance is
+      // now a real walkable tower. Walk to the guardian instead of skipping it
+      // through the old text-only "careful" button.
+      for(const id of [21,22,23,24,19,14,9]){
+        await bellPage.locator('.tower-field [data-action="tower-step"][data-value="'+id+'"]').click();
+      }
+      assert.equal(await bellPage.locator('.battle-layout').count(),1);
       const signalDamage=await bellPage.evaluate(()=>{
         const saved=JSON.parse(localStorage.getItem('crownless-expedition-v1-demo'));
         const baseline=JSON.parse(JSON.stringify(saved)); baseline.expedition.focus=0;
