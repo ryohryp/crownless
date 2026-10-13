@@ -60,6 +60,10 @@ async function main() {
         await page.goto(url);
         await page.locator('[data-action="mode"][data-value="demo"]').click();
         assert.equal(await page.locator(".nearby-paper-map").count(), 1, "demo should show the map");
+        assert.equal(await page.locator('.nearby-tile.selected .nearby-traveler').count(),1,
+          'selected fantasy district shows one visible traveler token rather than only a menu highlight');
+        assert.equal(await page.locator('.nearby-map-trail').count(),0,
+          'one discovered place must not fabricate a trail through undiscovered locations');
         const layout = await page.evaluate(() => {
           const rect = selector => {
             const r = document.querySelector(selector).getBoundingClientRect();
@@ -298,7 +302,20 @@ async function main() {
           await page.locator('[data-action="scout"][data-value="tower"]').click();
           assert(await page.locator('.nearby-tile[data-poi-family="shop"] .district-pixel-art').count() >= 1);
           assert(await page.locator('.nearby-tile[data-poi-family="event"] .district-pixel-art').count() >= 1);
-          await page.screenshot({ path: path.join(output, "hybrid-discovery-390.png") });
+          assert.equal(await page.locator('.nearby-map-trail path').count(),1,
+            'multiple discoveries should visibly connect on the fantasy sketch');
+          const mapTargets=await page.locator('.nearby-tile').evaluateAll(buttons=>buttons.map(btn=>{
+            const r=btn.getBoundingClientRect(),hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
+            return {id:btn.dataset.value,hit:hit===btn || btn.contains(hit),height:r.height};
+          }));
+          assert(mapTargets.every(x=>x.hit && x.height>=44),
+            'ink-wash destination pins preserve real touch hit areas: '+JSON.stringify(mapTargets));
+          await page.screenshot({ path: path.join(output, "ink-map-discovered-390.png") });
+          await page.locator('.nearby-tile[data-value="-1,0"]').click();
+          assert.equal(await page.locator('.nearby-tile[data-value="-1,0"] .nearby-traveler').count(),1,
+            'tapping another land moves the player marker to that land');
+          assert.equal(await page.locator('.nearby-traveler').count(),1,'map never shows two player positions');
+          await page.screenshot({ path: path.join(output, "ink-map-traveler-moved-390.png") });
           await page.locator('.nearby-tile[data-poi-family="shop"]').last().click();
           assert.match(await page.locator(".district-detail").innerText(), /見張り跡/);
           await page.locator('[data-action="nearby-view"][data-value="detail"]').click();
