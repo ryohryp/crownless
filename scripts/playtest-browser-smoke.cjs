@@ -948,6 +948,71 @@ async function main() {
       }finally{await ctx.close();}
     }
 
+    // Walkable non-forest wetland: tangible water, sound clue, intentional risk,
+    // hidden materials and a single optional wraith fight. Real phone taps.
+    for(const width of [360,390]){
+      const ctx=await browser.newContext({viewport:{width,height:width===360?800:844},isMobile:true,hasTouch:true});
+      const page=await ctx.newPage(),errors=[];
+      page.on('pageerror',e=>errors.push(e.message));
+      const step=async id=>page.locator('.fen-field [data-action="fen-step"][data-value="'+id+'"]').click();
+      const saved=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+      try{
+        await page.goto(url);
+        await page.locator('[data-action="mode"][data-value="demo"]').click();
+        await page.locator('[data-action="nearby-view"][data-value="scout"]').click();
+        await page.locator('[data-action="scout"][data-value="fen"]').click();
+        await page.locator('.nearby-tile[data-value="1,0"]').click();
+        await page.locator('.district-detail [data-action="depart"][data-value="fen"]').click();
+        assert.equal(await page.locator('.fen-field.world-painted').count(),1,'marsh is genuine painted walkable terrain');
+        assert.equal(await page.locator('.fen-field .field-cell').count(),25);
+        assert.equal(await page.locator('.fen-field .field-cell.water button').count(),0,'deep water is not a tap target');
+        assert.equal(await page.locator('.fen-field .field-cell.shoal.walk-nav').count(),0,'hidden shoal never advertises itself');
+        assert(await page.locator('.fen-field .walk-nav').count()>=1);
+        await page.screenshot({path:path.join(output,'fen-entry-'+width+'.png')});
+        for(const id of [21,16,17])await step(id);
+        let s=await saved();
+        assert.equal(s.expedition.fen.sound,true);
+        assert.match(s.expedition.log[0],/水の下から/);
+        assert.equal(await page.locator('.fen-field .field-cell.shoal.walk-nav').count(),0);
+        await page.screenshot({path:path.join(output,'fen-reed-sound-'+width+'.png')});
+        await step(12);
+        s=await saved();
+        assert.equal(s.expedition.fen.pos,17,'first tap opens hidden shoal without teleporting');
+        assert.equal(s.expedition.fen.shoal,true);
+        assert.equal(await page.locator('.fen-field .field-cell.shoal.walk-nav').count(),0);
+        await page.screenshot({path:path.join(output,'fen-shoal-open-'+width+'.png')});
+        await step(12);await step(7);
+        s=await saved();
+        assert.equal(s.expedition.hp,27);
+        assert.equal(s.expedition.fen.star,true);
+        assert.equal(s.expedition.materials.marshFiber,1);
+        assert.equal(s.expedition.scrap,4);
+        await page.screenshot({path:path.join(output,'fen-star-found-'+width+'.png')});
+        await page.reload();
+        assert.equal(await page.locator('.fen-field[data-fen-star="true"]').count(),1);
+        for(const id of [12,17,18,13,8])await step(id);
+        s=await saved();
+        assert.equal(s.expedition.stage,'fight');
+        assert.equal(s.expedition.enemy.kind,'wraith');
+        await page.evaluate(()=>{
+          const k='crownless-expedition-v1-demo',s=JSON.parse(localStorage.getItem(k));
+          s.expedition.enemy.hp=1;localStorage.setItem(k,JSON.stringify(s));
+        });
+        await page.reload();
+        await page.locator('[data-action="auto-fight"]').click();
+        s=await saved();
+        assert.equal(s.expedition.stage,'path','wraith battle returns to wetland');
+        assert.equal(s.expedition.fen.wraith,true);
+        assert.equal(await page.locator('.fen-field.world-painted').count(),1);
+        for(const id of [13,18,23,24])await step(id);
+        s=await saved();
+        assert.equal(s.expedition,null);
+        assert(s.materials.marshFiber>=2,'star and wraith both return crafting material');
+        assert.deepEqual(errors,[],'marsh must not generate browser JS errors');
+        await page.screenshot({path:path.join(output,'fen-return-'+width+'.png')});
+      }finally{await ctx.close();}
+    }
+
     // Corrupt game saves must not be silently overwritten during rendering.
     const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const page = await context.newPage();
