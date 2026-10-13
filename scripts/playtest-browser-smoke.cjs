@@ -997,6 +997,25 @@ async function main() {
         assert.equal(await page.locator('.fen-field .field-cell.shoal.walk-nav').count(),0,'hidden shoal never advertises itself');
         assert(await page.locator('.fen-field .walk-nav').count()>=1);
         await page.screenshot({path:path.join(output,'fen-entry-'+width+'.png')});
+        // Android Canvas stability: after the brief step animation, unchanged
+        // terrain must stop repainting. Constant full-canvas redraw flickers
+        // on mobile even if ordinary snapshots look fine.
+        const fenFingerprint=()=>page.locator('.fen-field canvas.forest-world-canvas').evaluate(canvas=>{
+          const ctx=canvas.getContext('2d');
+          const bytes=ctx.getImageData(0,0,canvas.width,canvas.height).data;
+          let hash=2166136261;
+          for(let i=0;i<bytes.length;i+=37){
+            hash=Math.imul(hash^bytes[i],16777619)>>>0;
+          }
+          const transform=canvas.parentElement.style.transform;
+          return {hash,transform};
+        });
+        await page.waitForTimeout(600);
+        const stableA=await fenFingerprint();
+        await page.waitForTimeout(320);
+        const stableB=await fenFingerprint();
+        assert.deepEqual(stableB,stableA,
+          'marsh Canvas and camera should remain pixel-stable at rest, without flashing');
         for(const id of [21,16,17])await step(id);
         let s=await saved();
         assert.equal(s.expedition.fen.sound,true);
