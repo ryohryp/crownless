@@ -819,6 +819,59 @@ async function main() {
       }finally{await ctx.close();}
     }
 
+    // The new discovery is a two-stage noncombat surprise, not a new fight or
+    // glowing waypoint. It is played using real smartphone movement taps.
+    for(const width of [360,390]){
+      const context=await browser.newContext({viewport:{width,height:width===360?800:844},isMobile:true,hasTouch:true});
+      const page=await context.newPage();
+      const errors=[];page.on('pageerror',e=>errors.push(e.message));
+      const step=async id=>page.locator('.forest-field [data-action="field-step"][data-value="'+id+'"]').click();
+      const saved=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+      try{
+        await page.goto(url);
+        await page.locator('[data-action="mode"][data-value="demo"]').click();
+        await page.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
+        assert.equal(await page.locator('.forest-field[data-field-fox="false"][data-field-fox-cache="false"]').count(),1);
+        assert.equal(await page.locator('.field-cell.fox.veiled').count(),1,'fox starts off-camera under fog');
+        await step(15);
+        await step(10);
+        const clue=await saved();
+        assert.match(clue.expedition.log[0],/茂み.*揺れた/);
+        assert.equal(clue.expedition.field.fox,false,'sighting clue alone must not trigger reward');
+        assert.equal(await page.locator('.field-cell.fox.revealed').count(),1);
+        assert.equal(await page.locator('.field-cell.fox-nest.veiled').count(),1,'fox destination is still a mystery');
+        await page.waitForTimeout(460);
+        await page.screenshot({path:path.join(output,'forest-fox-rustle-'+width+'.png')});
+        await step(5);
+        const sighting=await saved();
+        assert.equal(sighting.expedition.stage,'path','fox appearance never forces wolf combat');
+        assert.equal(sighting.expedition.field.fox,true);
+        assert.equal(sighting.expedition.field.foxCache,false);
+        assert.match(sighting.expedition.log[0],/白い狐/);
+        assert.equal(await page.locator('.forest-field[data-field-fox="true"][data-field-fox-cache="false"]').count(),1);
+        await page.waitForTimeout(460);
+        await page.screenshot({path:path.join(output,'forest-fox-fled-'+width+'.png')});
+        await page.reload();
+        assert.equal(await page.locator('.forest-field[data-field-fox="true"][data-field-fox-cache="false"]').count(),1,
+          'fox already chased away stays gone across reload');
+        await step(0);
+        const reward=await saved();
+        assert.equal(reward.expedition.stage,'path');
+        assert.equal(reward.expedition.field.foxCache,true);
+        assert.equal(reward.expedition.scrap,3);
+        assert.equal(reward.expedition.potions,3);
+        assert.match(await page.locator('.field-moment').innerText(),/革袋を発見/);
+        await page.screenshot({path:path.join(output,'forest-fox-pouch-'+width+'.png')});
+        await step(5);await step(0);
+        const again=await saved();
+        assert.equal(again.expedition.scrap,3,'fox payout must be once per expedition');
+        await page.locator('.field-choices [data-action="return"]').click();
+        const banked=await saved();
+        assert.equal(banked.scrap,3,'noncombat discovery must bring real loot back');
+        assert.deepEqual(errors,[],'fox trail must not trigger mobile JS errors');
+      }finally{await context.close();}
+    }
+
     // Corrupt game saves must not be silently overwritten during rendering.
     const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const page = await context.newPage();
