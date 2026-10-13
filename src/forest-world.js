@@ -518,7 +518,7 @@
     return off;
   }
   function mount(scope){
-    const section=scope&&scope.querySelector&&scope.querySelector('.forest-field');
+    const section=scope&&scope.querySelector&&scope.querySelector('.forest-field:not(.tower-field)');
     const canvas=section&&section.querySelector('.forest-world-canvas');
     if(active&&active.raf)root.cancelAnimationFrame(active.raf);
     active=null;
