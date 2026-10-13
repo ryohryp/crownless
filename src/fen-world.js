@@ -170,6 +170,9 @@
    // canvas would erase the illuminated terrain as well as the fog.
    const mist=root.document.createElement('canvas');mist.width=W;mist.height=W;
    const mistCtx=mist.getContext('2d');if(!mistCtx)return;
+   // Fog only changes when the explorer takes an action. Compose it once,
+   // rather than recreating a full-screen translucent mask every frame.
+   fog(mistCtx,f);
    section.classList.add('world-painted');
    const worldspace=section.querySelector('.field-worldspace'),size=worldspace?.clientWidth||0;
    const last=previous;previous=f.pos;
@@ -179,9 +182,14 @@
    const inst={raf:0};active=inst;let lastFrame=0;
    function frame(time){
      if(!canvas.isConnected||active!==inst)return;
-     inst.raf=root.requestAnimationFrame(frame);
-     if(time-lastFrame<45)return;lastFrame=time;
      const t=reduced?1:Math.min(1,Math.max(0,(time-started)/430));
+     // Drawing the entire enlarged 600px scene forever caused constant
+     // Canvas/GPU layer invalidation on Android, perceived as flashing.
+     // Animate the actual step, render its last frame, and then go idle.
+     if(time-lastFrame<45&&t<1){
+       inst.raf=root.requestAnimationFrame(frame);return;
+     }
+     lastFrame=time;
      const ease=1-(1-t)**3;
      const x=start[0]+(end[0]-start[0])*ease,y=start[1]+(end[1]-start[1])*ease;
      if(worldspace&&size){
@@ -190,10 +198,11 @@
        const ty=Math.max(edge,Math.min(0,size/2-y/W*size*zoom));
        worldspace.style.transform='translate3d('+tx.toFixed(2)+'px,'+ty.toFixed(2)+'px,0) scale('+zoom+')';
      }
-     scene(ctx,f,time,reader);fog(mistCtx,f);ctx.drawImage(mist,0,0);hero(ctx,x,y,time);
+     scene(ctx,f,time,reader);ctx.drawImage(mist,0,0);hero(ctx,x,y,time);
      const dark=ctx.createRadialGradient(300,300,120,300,300,425);
      dark.addColorStop(0,'#071d2300');dark.addColorStop(1,'#08151ca8');
      ctx.fillStyle=dark;ctx.fillRect(0,0,W,W);
+     inst.raf=t<1?root.requestAnimationFrame(frame):0;
    }
    frame(started+50);
  }
