@@ -1013,6 +1013,62 @@ async function main() {
       }finally{await ctx.close();}
     }
 
+    // Grey-Crown Crypt: a fourth existing biome with real taps, ordered
+    // torch discovery, a non-navigated seal and preserved deeper king route.
+    for(const width of [360,390]){
+      const ctx=await browser.newContext({viewport:{width,height:width===360?800:844},isMobile:true,hasTouch:true});
+      const page=await ctx.newPage(),errors=[];
+      page.on('pageerror',e=>errors.push(e.message));
+      const step=async id=>page.locator('.crypt-field [data-action="crypt-step"][data-value="'+id+'"]').click();
+      const saved=()=>page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+      try{
+        await page.goto(url);
+        await page.locator('[data-action="mode"][data-value="demo"]').click();
+        await page.evaluate(()=>{
+          const E=window.CrownlessSlice;
+          let s=E.initial();s.mode='demo';s.cleared=['wood','tower'];
+          s=E.start(E.discover(s,'crypt'),'crypt');
+          if(!s.expedition?.crypt)throw Error('crypt entry not available');
+          localStorage.setItem('crownless-expedition-v1-demo',E.serialize(s));
+        });
+        await page.reload();
+        assert.equal(await page.locator('.crypt-field.world-painted').count(),1,'crypt must paint a playable Canvas scene');
+        assert.equal(await page.locator('.crypt-field .field-cell').count(),25);
+        assert.equal(await page.locator('.crypt-field .wall button').count(),0);
+        assert.equal(await page.locator('.crypt-field .seal.walk-nav').count(),0,'sealed path never advertises itself');
+        await page.screenshot({path:path.join(output,'crypt-entry-'+width+'.png')});
+        for(const id of [21,22,23])await step(id);
+        let s=await saved();
+        assert.equal(s.expedition.crypt.second,false,'second brazier cannot light first');
+        for(const id of [22,17])await step(id);
+        s=await saved();
+        assert.equal(s.expedition.crypt.first,true);
+        assert.equal(await page.locator('.crypt-field .seal.walk-nav').count(),0);
+        for(const id of [22,23])await step(id);
+        s=await saved();
+        assert.equal(s.expedition.crypt.second,true);
+        assert.equal(await page.locator('.crypt-field .seal.walk-nav').count(),0);
+        await page.screenshot({path:path.join(output,'crypt-braziers-'+width+'.png')});
+        for(const id of [22,17,12,7])await step(id);
+        s=await saved();
+        assert.equal(s.expedition.crypt.archive,true);
+        assert.equal(s.expedition.scrap,5);
+        await page.screenshot({path:path.join(output,'crypt-epitaph-'+width+'.png')});
+        await page.reload();
+        assert.equal(await page.locator('.crypt-field[data-crypt-archive="true"]').count(),1);
+        for(const id of [12,13,14,9,4])await step(id);
+        s=await saved();
+        assert.equal(s.expedition.room,1,'arch enters the existing deeper crypt');
+        assert.equal(await page.locator('.crypt-field').count(),0);
+        await page.locator('[data-action="return"]').click();
+        s=await saved();
+        assert.equal(s.expedition,null);
+        assert.equal(s.scrap,5,'epitaph material banks only on safe return');
+        assert.deepEqual(errors,[]);
+        await page.screenshot({path:path.join(output,'crypt-return-'+width+'.png')});
+      }finally{await ctx.close();}
+    }
+
     // Corrupt game saves must not be silently overwritten during rendering.
     const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const page = await context.newPage();

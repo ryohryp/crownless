@@ -144,6 +144,44 @@
       (f.star?'✦ 星の祭壇を発見':f.shoal?'浅瀬の向こうへ':f.sound?'水底に不思議な音':'霧の中を進む')+
       '</strong><span>'+(f.wraith?'亡霊は去った':'水面には気配がある')+'</span></div></section>';
   }
+  // Two distant braziers open a real sealed corridor in the tomb.
+  function cryptField(x,title){
+    const C=window.CrownlessCryptField,f=x.crypt;
+    const names={wall:'封じられた石壁',start:'王墓の入口',floor:'灰色の石床',
+      first:f.first?'赤い灯が点いた燭台':'赤い燭台',second:f.second?'紫の灯が点いた燭台':'紫の燭台',
+      seal:f.second?'影が裂いた封印':'閉ざされた影の封印',
+      archive:f.archive?'読み終えた碑文':'隠された灰冠の碑文',exit:'王墓の奥への門'};
+    const cells=Array.from({length:C.COUNT},(_,i)=>{
+      const kind=C.kind(i),seen=C.visible(f,i),canStep=C.canMove(f,i);
+      const [col,row]=C.coords(i),here=i===f.pos;
+      const classes=['field-cell',kind,seen?'revealed':'veiled',here?'here':'',
+        canStep?'can-step':'',seen&&canStep&&kind!=='seal'?'walk-nav':''].filter(Boolean).join(' ');
+      const style='grid-column:'+(col+1)+';grid-row:'+(row+1);
+      const label=here?'旅人の現在地':seen?names[kind]:'未踏の地下墓所';
+      if(canStep)return '<button type="button" class="'+classes+'" style="'+style+
+        '" data-action="crypt-step" data-value="'+i+'" aria-label="'+label+'へ進む"></button>';
+      return '<span class="'+classes+'" style="'+style+'" aria-label="'+label+'"></span>';
+    }).join('');
+    return '<section class="forest-field crypt-field" data-field-pos="'+f.pos+'" data-field-seen="'+f.seen+
+      '" data-crypt-first="'+f.first+'" data-crypt-second="'+f.second+
+      '" data-crypt-archive="'+f.archive+'" aria-label="歩いて探索できる灰冠の廟">'+
+      '<div class="forest-field-header"><span class="kicker">THE ASHEN CROWN · 灯と影の廟</span>'+
+      '<h2>'+esc(title)+'</h2><small>燭台を探し、灯りが作る影の変化を見よう。</small></div>'+
+      '<div class="field-terrain" role="group" aria-label="燭台と封印のある地下墓所を歩く">'+
+      '<div class="field-worldspace"><canvas class="forest-world-canvas" width="600" height="600" aria-hidden="true"></canvas>'+
+      cells+'</div></div><div class="forest-field-footer"><span>♜ 灰冠の廟</span><strong>'+
+      (f.archive?'✦ 灰冠の碑文を発見':f.second?'二つの灯が封印を解いた':f.first?'もう一つの燭台を探す':'闇に眠る灯りを探す')+
+      '</strong><span>'+(f.second?'王墓の奥への門が開く':'影の封印が道を塞ぐ')+'</span></div></section>';
+  }
+  function cryptDecision(x){
+    return '<div class="field-decision"><div class="field-status">'+vitals(x)+
+      '<div class="path-risk"><span>持ち帰れる鉄片</span><strong>'+x.scrap+
+      '</strong><small>倒れれば失う</small></div></div>'+
+      '<p class="field-moment" role="status">'+esc(x.log[0]||'燭台の灯りが封印を解く。')+'</p>'+
+      '<div class="field-choices">'+button('return','ここで生還する','灰冠の碑文で見つけた鉄片を確定する',{class:'secondary'})+
+      button('heal','薬草 '+x.potions+' · 体力 +12','',{class:'text-button',disabled:x.potions===0||x.hp===E.maxHp(state)})+
+      '</div></div>';
+  }
   function fenDecision(x){
     return '<div class="field-decision"><div class="field-status">'+vitals(x)+
       '<div class="path-risk"><span>持ち帰れる鉄片</span><strong>'+x.scrap+
@@ -448,8 +486,9 @@
     const fieldActive=x.place==='wood'&&x.depth===1&&x.room===0&&x.stage==='path'&&Boolean(x.field)&&Boolean(window.CrownlessField);
     const towerActive=x.place==='tower'&&x.depth===1&&x.room===0&&x.stage==='path'&&Boolean(x.tower)&&Boolean(window.CrownlessTowerField);
     const fenActive=x.place==='fen'&&x.depth===1&&x.room===0&&x.stage==='path'&&Boolean(x.fen)&&Boolean(window.CrownlessFenField);
-    const worldActive=fieldActive||towerActive||fenActive;
-    return `<div class="game-layout expedition-layout ${isFight ? 'battle-layout' : ''} ${worldActive?'field-layout':''}" data-combat-result="${x.log.some(line => line.startsWith('崩し追撃！')) ? 'follow-up' : ''}" data-combat-turn="${x.depth}:${x.room}:${x.enemy?.turn ?? 'path'}"><section class="visual-column">${fieldActive?forestField(x,siege ? siege.name : localDistrict ? N.title(localDistrict) : p.name):towerActive?towerField(x,siege ? siege.name : localDistrict ? N.title(localDistrict) : p.name):fenActive?fenField(x,siege ? siege.name : localDistrict ? N.title(localDistrict) : p.name):scene(x.place,siege ? siege.name : localDistrict ? N.title(localDistrict) : p.name,`DEPTH ${String(x.depth).padStart(2,'0')} · ${x.stage === 'cleared' ? '踏破' : `${x.room+1} / 5`}`,enemyArt,`${E.GEAR[state.equipped].name}`,isFight ? null : x)}${worldActive?'':route(x)+vitals(x)}<div class="journey-note"><b>${String(x.depth).padStart(2,'0')}</b><span>深層 ${x.depth} · 戦利品を失っても、持ち込んだ装備は残る。<br>深層ほど敵は強く、より多くの希少素材を持ち帰れる。</span></div></section><section class="panel ${isFight ? 'combat-panel' : 'path-panel'} ${worldActive ? 'field-panel' : ''}">${isFight ? fight(x) : fieldActive ? fieldDecision(x) : towerActive ? towerDecision(x) : fenActive ? fenDecision(x) : pathPanel(x)}</section></div>`;
+    const cryptActive=x.place==='crypt'&&x.depth===1&&x.room===0&&x.stage==='path'&&Boolean(x.crypt)&&Boolean(window.CrownlessCryptField);
+    const worldActive=fieldActive||towerActive||fenActive||cryptActive;
+    return `<div class="game-layout expedition-layout ${isFight ? 'battle-layout' : ''} ${worldActive?'field-layout':''}" data-combat-result="${x.log.some(line => line.startsWith('崩し追撃！')) ? 'follow-up' : ''}" data-combat-turn="${x.depth}:${x.room}:${x.enemy?.turn ?? 'path'}"><section class="visual-column">${fieldActive?forestField(x,siege ? siege.name : localDistrict ? N.title(localDistrict) : p.name):towerActive?towerField(x,siege ? siege.name : localDistrict ? N.title(localDistrict) : p.name):fenActive?fenField(x,siege ? siege.name : localDistrict ? N.title(localDistrict) : p.name):cryptActive?cryptField(x,siege ? siege.name : localDistrict ? N.title(localDistrict) : p.name):scene(x.place,siege ? siege.name : localDistrict ? N.title(localDistrict) : p.name,`DEPTH ${String(x.depth).padStart(2,'0')} · ${x.stage === 'cleared' ? '踏破' : `${x.room+1} / 5`}`,enemyArt,`${E.GEAR[state.equipped].name}`,isFight ? null : x)}${worldActive?'':route(x)+vitals(x)}<div class="journey-note"><b>${String(x.depth).padStart(2,'0')}</b><span>深層 ${x.depth} · 戦利品を失っても、持ち込んだ装備は残る。<br>深層ほど敵は強く、より多くの希少素材を持ち帰れる。</span></div></section><section class="panel ${isFight ? 'combat-panel' : 'path-panel'} ${worldActive ? 'field-panel' : ''}">${isFight ? fight(x) : fieldActive ? fieldDecision(x) : towerActive ? towerDecision(x) : fenActive ? fenDecision(x) : cryptActive ? cryptDecision(x) : pathPanel(x)}</section></div>`;
   }
   function ending() {
     return `<div class="game-layout report-layout"><section class="visual-column">${scene('camp','灰の冠は、火のそばに。','THE CROWN CAME HOME',null,'旅の到達点')}</section><section class="panel report-panel"><div class="report-scroll"><p class="kicker">EPILOGUE · 名もなき旅人</p><h1>冠を持ち帰った。<br>それでも、旅は続く。</h1><p class="intro">霧の王墓から持ち帰った灰の冠を、あなたは焚き火のそばへ置いた。名は刻まれない。けれど、歩いた土地と、生きて帰った夜だけは残る。</p><div class="result-number">${state.victories} <small>回の生還 / 遠征 ${state.runs} 回</small></div><p class="notice">灰の王冠 · 最大体力 +6。ここから先も、まだ見ぬ素材と職人の仕事が残っている。</p><p class="small rule-line">これは終わりではなく、最初の物語の区切り。地図へ戻れば、踏破した土地にも再び遠征できる。</p></div><div class="report-actions">${button('ending-continue','旅の地図へ戻る','',{class:'primary'})}</div></section></div>`;
@@ -528,6 +567,7 @@
     window.CrownlessForestWorld?.mount?.(root);
     window.CrownlessTowerWorld?.mount?.(root);
     window.CrownlessFenWorld?.mount?.(root);
+    window.CrownlessCryptWorld?.mount?.(root);
     const codexPanel = root.querySelector?.('.codex-panel');
     if (codexPanel) window.CrownlessCodexUI?.renderCodex?.(codexPanel);
     const chroniclePanel = root.querySelector?.('.chronicle-panel');
@@ -695,6 +735,7 @@
     else if (action === 'field-step') { state=E.act(state,'field-step:'+value); }
     else if (action === 'tower-step') { state=E.act(state,'tower-step:'+value); }
     else if (action === 'fen-step') { state=E.act(state,'fen-step:'+value); }
+    else if (action === 'crypt-step') { state=E.act(state,'crypt-step:'+value); }
     else if (action === 'auto-fight') { state = E.resolveFight(state); }
     else if (action === 'character') { state = E.switchCharacter(state,Number(value)); notice = state !== before ? `${state.characters[state.activeCharacter].name}に切り替えた。` : ''; tab='gear'; }
     else if (action === 'commission') { state = E.supplyCommission(state,value); notice = state !== before ? E.COMMISSIONS[value].requester+'へ装備を納品した。旅人に切り替え、'+E.place(value).name+'から生還すると報告が届く。' : ''; tab='gear'; }

@@ -360,3 +360,26 @@
   background:#0e2936e8;
   border-top-color:#6a9c95;
 }
+
+/* Grey-Crown Crypt: torchlight and sealed corridors, with the same accessible
+   phone-sized touch surfaces but an independent underground palette. */
+#game > .field-layout .crypt-field.world-painted {
+  background:linear-gradient(155deg,#312a35,#1c1925 68%,#13111b);
+  border-color:#897276;
+}
+#game > .field-layout .crypt-field .field-worldspace {
+  grid-template-columns:repeat(5,minmax(0,1fr));
+  grid-template-rows:repeat(5,minmax(0,1fr));
+}
+#game > .field-layout .crypt-field.world-painted .field-terrain {
+  border-color:#9d817b;
+  box-shadow:0 10px 32px #0d0b15cc,0 0 0 3px #ad8c7866;
+}
+#game > .field-layout .crypt-field.world-painted .forest-field-header {
+  background:linear-gradient(90deg,#241e2dec,#4d313b88 84%,transparent);
+  border-left-color:#e1b88c;
+}
+#game > .field-layout .crypt-field.world-painted .forest-field-footer {
+  background:#231d2fe8;
+  border-top-color:#95747a;
+}
