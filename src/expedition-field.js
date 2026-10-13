@@ -9,7 +9,7 @@
   'use strict';
   const SIZE=7, COUNT=49;
   const START=20, EXIT=4, CACHE=16, TRACKS=18, DEN=8,
-    TREASURE=17, SHRINE=7, SECRET=12, GLADE=40;
+    TREASURE=17, SHRINE=7, SECRET=12, GLADE=40, FOX=5, FOX_NEST=0;
   // Dense, actually IMPASSABLE forest around the ordinary winding trails.
   // Shrine 7 is additionally enclosed by rock and reachable ONLY from 12.
   const WALLS=Object.freeze([6,11,25,26,27,28,29,30,31,32,35,36,37,38,42,43,44,45,46]);
@@ -43,11 +43,11 @@
   const nextSeen=(mask,pos)=>[pos,...neighbors(pos)].reduce((value,n)=>
     value+(Math.floor(value/(2**n))%2?0:2**n),mask);
   const initial=()=>({pos:START,seen:nextSeen(0,START),
-    cache:false,tracks:false,treasure:false,wolf:false,secret:false,shrine:false,glade:false});
+    cache:false,tracks:false,treasure:false,wolf:false,secret:false,shrine:false,glade:false,fox:false,foxCache:false});
   const valid=f=>f&&typeof f==='object'&&!Array.isArray(f)&&
-    Object.keys(f).every(k=>['pos','seen','cache','tracks','treasure','wolf','secret','shrine','glade'].includes(k))&&
+    Object.keys(f).every(k=>['pos','seen','cache','tracks','treasure','wolf','secret','shrine','glade','fox','foxCache'].includes(k))&&
     ['pos','seen','cache','tracks'].every(k=>Object.prototype.hasOwnProperty.call(f,k))&&
-    ['treasure','wolf','secret','shrine','glade'].every(k=>f[k]===undefined||typeof f[k]==='boolean')&&
+    ['treasure','wolf','secret','shrine','glade','fox','foxCache'].every(k=>f[k]===undefined||typeof f[k]==='boolean')&&
     (f.pos!==SECRET||f.secret===true)&&
     inBounds(f.pos)&&!WALLS.includes(f.pos)&&
     Number.isSafeInteger(f.seen)&&f.seen>0&&f.seen<=MAX_SEEN&&
@@ -81,9 +81,11 @@
     if(n===SHRINE)return 'shrine';
     if(n===SECRET)return 'secret';
     if(n===GLADE)return 'glade';
+    if(n===FOX)return 'fox';
+    if(n===FOX_NEST)return 'fox-nest';
     if(n===START)return 'camp';
     return 'trail';
   }
   return {SIZE,COUNT,START,EXIT,CACHE,TRACKS,DEN,TREASURE,SHRINE,SECRET,GLADE,
-    WALLS,coords,initial,valid,move,uncover,canMove,visible,adjacent,neighbors,landmark,wolfAwareness};
+    FOX,FOX_NEST,WALLS,coords,initial,valid,move,uncover,canMove,visible,adjacent,neighbors,landmark,wolfAwareness};
 });
