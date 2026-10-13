@@ -146,12 +146,34 @@
       (f.star?'✦ 星の祭壇を発見':f.trail?'古い踏み石を発見':f.shoal?'浅瀬の向こうへ':f.sound?'水底に不思議な音':'霧の中を進む')+
       '</strong><span>'+(f.wraith?'亡霊は去った':'水面には気配がある')+'</span></div></section>';
   }
+  // Only offer an explicit skill action when it can change this expedition.
+  // Showing it everywhere would turn discovery into repetitive "scan" taps.
+  function trailSkillOpportunity(x) {
+    if (!state.characters[0]?.skills?.trailReading || x.depth!==1 || x.room!==0 || x.stage!=='path') return null;
+    if(x.place==='wood' && x.field) {
+      if(x.field.pos===22 && !state.designs?.fang_moon && !x.foundDesign)
+        return ['⌁ 獣道読みを使う','落ち葉の下に続く奇妙な足跡を追う'];
+      if(!x.field.wolf && window.CrownlessField?.wolfAwareness(x.field)==='alert' && x.focus<3)
+        return ['⌁ 獣道読みを使う','狼の間合いを見切り、集中 +3 で備える'];
+    }
+    if(x.place==='fen' && x.fen && x.fen.pos===window.CrownlessFenField?.APPROACH && !x.fen.trail)
+      return ['⌁ 獣道読みを使う','水に消えた足跡から隠れた踏み石を探す'];
+    return null;
+  }
+  const trailSkillButton = x => {
+    const choice=trailSkillOpportunity(x);
+    return choice ? button('skill-trail-read',choice[0],choice[1],{class:'skill-active'}) : '';
+  };
+  const trailSkillResult = x => (x.log[0]||'').startsWith('《獣道読み》発動！');
+  const trailResultLabel = '<span class="skill-activation-label">⌁ SKILL USED · 獣道読み</span>';
+
   function fenDecision(x){
     return '<div class="field-decision"><div class="field-status">'+vitals(x)+
       '<div class="path-risk"><span>持ち帰れる鉄片</span><strong>'+x.scrap+
       '</strong><small>倒れれば失う</small></div></div>'+
-      '<p class="field-moment" role="status">'+esc(x.log[0]||'深い水には踏み込めない。小島を選んで進もう。')+'</p>'+
-      '<div class="field-choices">'+button('return','ここで生還する','拾った霧葦と鉄片を持ち帰る',{class:'secondary'})+
+      '<p class="field-moment'+(trailSkillResult(x)?' skill-result':'')+'" role="status">'+
+      (trailSkillResult(x)?trailResultLabel:'')+esc(x.log[0]||'深い水には踏み込めない。小島を選んで進もう。')+'</p>'+
+      '<div class="field-choices">'+trailSkillButton(x)+button('return','ここで生還する','拾った霧葦と鉄片を持ち帰る',{class:'secondary'})+
       button('heal','薬草 '+x.potions+' · 体力 +12','',{class:'text-button',disabled:x.potions===0||x.hp===E.maxHp(state)})+
       '</div></div>';
   }
@@ -168,9 +190,8 @@
     const event=x.field.wolf?'狼を倒した！ 同じ森を探索できる。残る宝箱を探してもいい。':wolfStatus==='alert'?'狼の視線がこちらを追っている。巣穴へ踏み込んで戦うか、横道へ逃げるか。':x.field.pos===20?'森の入り口。どこへ踏み込む？':x.field.cache&&x.field.tracks?'素材と足跡を見つけた。奥に進むか、生還するか。':x.field.cache?'傷つきながら鉄片を拾った。持ち帰るか先へ進むか。':x.field.tracks?'獣の足跡を読んだ。危険な巣穴を避ける道を探せ。':'足元の霧が晴れた。知らない道が現れた。';
     return `<div class="field-decision"><div class="field-status">${vitals(x)}<div class="path-risk"><span>持ち帰れる鉄片</span><strong>${x.scrap}</strong><small>倒れれば失う</small></div></div>
       ${skillPending?'<p class="skill-learning-hint" role="status">⌁ 新しい探索技術《獣道読み》の手掛かりを得た。<strong>無事に生還すると習得！</strong></p>':''}
-      <p class="field-moment" role="status">${esc(x.log[0]||event)}</p>
-      <div class="field-choices">${state.characters[0]?.skills?.trailReading && x.field.pos===22 && !state.designs?.fang_moon && !x.foundDesign
-        ? button('field-follow-trail','月影の獣道を調べる','《獣道読み》で見抜いた不自然な足跡を追う',{class:'primary'}) : ''}
+      <p class="field-moment${trailSkillResult(x)?' skill-result':''}" role="status">${trailSkillResult(x)?trailResultLabel:''}${esc(x.log[0]||event)}</p>
+      <div class="field-choices">${trailSkillButton(x)}
       ${x.foundDesign==='fang_moon' ? '<p class="notice" role="status">✦ 月影の短剣の設計図を背嚢に入れた。生還するまで失う可能性がある。</p>' : ''}
       ${button('return','ここで生還する','拾った素材を確定する',{class:'secondary'})}
       ${button('heal',`薬草 ${x.potions} · 体力 +12`,'',{class:'text-button',disabled:x.potions===0||x.hp===E.maxHp(state)})}</div>
