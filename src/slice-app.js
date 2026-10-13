@@ -652,6 +652,7 @@
       }
     }
     else if (action === 'field-step') { state=E.act(state,'field-step:'+value); }
+    else if (action === 'tower-step') { state=E.act(state,'tower-step:'+value); }
     else if (action === 'auto-fight') { state = E.resolveFight(state); }
     else if (action === 'character') { state = E.switchCharacter(state,Number(value)); notice = state !== before ? `${state.characters[state.activeCharacter].name}に切り替えた。` : ''; tab='gear'; }
     else if (action === 'commission') { state = E.supplyCommission(state,value); notice = state !== before ? E.COMMISSIONS[value].requester+'へ装備を納品した。旅人に切り替え、'+E.place(value).name+'から生還すると報告が届く。' : ''; tab='gear'; }
