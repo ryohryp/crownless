@@ -1094,6 +1094,44 @@ async function main() {
       }finally{await ctx.close();}
     }
 
+    // An earned skill must be immediately visible after return, rather than
+    // buried beneath the scrap ledger. Exercise real phone taps at both widths.
+    for(const width of [360,390]){
+      const ctx=await browser.newContext({viewport:{width,height:width===360?800:844},isMobile:true,hasTouch:true});
+      const page=await ctx.newPage(),errors=[];
+      page.on('pageerror',e=>errors.push(e.message));
+      try{
+        await page.goto(url);
+        await page.locator('[data-action="mode"][data-value="demo"]').click();
+        await page.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
+        for(const id of [21,22,23,18]){
+          await page.locator('.forest-field [data-action="field-step"][data-value="'+id+'"]').click();
+        }
+        assert.equal(await page.locator('.skill-learning-hint').count(),1,
+          'first-time track discovery promises the earned knowledge before the return');
+        assert.match(await page.locator('.skill-learning-hint').innerText(),/無事に生還すると習得/);
+        await page.screenshot({path:path.join(output,'skill-learning-pending-'+width+'.png')});
+        await page.locator('.field-choices [data-action="return"]').click();
+        const s=await page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+        assert.equal(s.characters[0].skills.trailReading,true);
+        assert.equal(s.report.newSkill,'trailReading');
+        assert.equal(await page.locator('.report-scroll > .skill-unlock-spotlight:first-child').count(),1);
+        assert.match(await page.locator('.skill-unlock-spotlight').innerText(),/《獣道読み》を習得/);
+        const card=await page.locator('.skill-unlock-spotlight').boundingBox();
+        assert(card&&card.y<((width===360)?800:844),'skill card must be near the first screen');
+        assert(card&&card.y+card.height<=((width===360)?800:844)+3,
+          'skill reward must fit inside the phone view rather than requiring scrolling');
+        await page.screenshot({path:path.join(output,'skill-unlocked-'+width+'.png')});
+        await page.reload();
+        assert.equal(await page.locator('.skill-unlock-spotlight').count(),1,
+          'reload never suppresses a previously banked unlock report');
+        await page.locator('[data-action="continue"]').click();
+        assert.match(await page.locator('.character-status-panel').innerText(),/獣道読み/);
+        assert.match(await page.locator('.character-status-panel').innerText(),/習得済み/);
+        assert.deepEqual(errors,[],'acquisition animation and status navigation cannot throw JS errors');
+      }finally{await ctx.close();}
+    }
+
     // Corrupt game saves must not be silently overwritten during rendering.
     const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
     const page = await context.newPage();

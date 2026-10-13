@@ -164,8 +164,10 @@
   }
   function fieldDecision(x){
     const wolfStatus=window.CrownlessField?.wolfAwareness(x.field);
+    const skillPending=x.field.tracks&&!state.characters[0]?.skills?.trailReading;
     const event=x.field.wolf?'狼を倒した！ 同じ森を探索できる。残る宝箱を探してもいい。':wolfStatus==='alert'?'狼の視線がこちらを追っている。巣穴へ踏み込んで戦うか、横道へ逃げるか。':x.field.pos===20?'森の入り口。どこへ踏み込む？':x.field.cache&&x.field.tracks?'素材と足跡を見つけた。奥に進むか、生還するか。':x.field.cache?'傷つきながら鉄片を拾った。持ち帰るか先へ進むか。':x.field.tracks?'獣の足跡を読んだ。危険な巣穴を避ける道を探せ。':'足元の霧が晴れた。知らない道が現れた。';
     return `<div class="field-decision"><div class="field-status">${vitals(x)}<div class="path-risk"><span>持ち帰れる鉄片</span><strong>${x.scrap}</strong><small>倒れれば失う</small></div></div>
+      ${skillPending?'<p class="skill-learning-hint" role="status">⌁ 新しい探索技術《獣道読み》の手掛かりを得た。<strong>無事に生還すると習得！</strong></p>':''}
       <p class="field-moment" role="status">${esc(x.log[0]||event)}</p>
       <div class="field-choices">${state.characters[0]?.skills?.trailReading && x.field.pos===22 && !state.designs?.fang_moon && !x.foundDesign
         ? button('field-follow-trail','月影の獣道を調べる','《獣道読み》で見抜いた不自然な足跡を追う',{class:'primary'}) : ''}
@@ -561,7 +563,14 @@
     const blueprintReward = r.newDesign === 'shield_thorn' && !r.died ? '<div class="home-return" role="status"><strong>✦ 新しい製作レシピを解放：返し棘の盾</strong><p>「鳴らない鐘の刻」の亡兵から盾の製法を持ち帰った。鍛冶師に交代すれば製作可能。さらにこの場所の鐘が戻り、再訪すると鐘守の弟子・ユノに会える。</p><small>必要：鐘鉄 2個＋森の狼牙 1個＋鉄片 6個。防御の軽減は薄いが、反撃が強い。</small></div>'
       : r.newDesign === 'fang_moon' && !r.died ? '<div class="home-return" role="status"><strong>✦ 新しい製作レシピを解放：月影の短剣</strong><p>《獣道読み》で隠し包みを見つけ、製法を持ち帰った。鍛冶師に交代すれば製作できる。</p><small>必要：狼牙 3個＋鉄片 6個。回避時の気力消費を抑える短剣。</small></div>'
       : r.newDesign === 'bow_hunter' && !r.died ? '<div class="home-return" role="status"><strong>✦ 新しい製作レシピを解放：灰羽の長弓</strong><p>森で覚えた《獣道読み》が湿原の隠し道を開いた。生還して製法を鍛冶師に渡した。</p><small>必要：霧葦 3個＋狼牙 1個＋鉄片 6個。敵が隙を見せた時に攻撃 +3。</small></div>' : '';
-    const skillReward = r.newSkill === 'trailReading' && !r.died ? '<div class="home-return" role="status"><strong>✦ 探索技術を習得：《獣道読み》</strong><p>足跡を調べ、生きて帰った。今なら以前歩いた囁きの森の小道にも、新しい痕跡を見つけられそうだ。</p></div>' : '';
+    const learnedSkill = r.newSkill === 'trailReading' && !r.died;
+    const skillReward = learnedSkill ? `<section class="skill-unlock-spotlight" role="status" aria-label="新しい探索技能を習得">
+      <span class="skill-unlock-mark" aria-hidden="true">⌁</span>
+      <p class="kicker">SKILL UNLOCKED · 新しい探索技能</p>
+      <h2>《獣道読み》を習得！</h2>
+      <p>森の獣の足跡を読んだ経験が、生還によって身についた。</p>
+      <p class="skill-unlock-effect"><strong>新しくできること</strong> 以前歩いた森の小道や、湿原の水辺に隠された道を見抜ける。</p>
+    </section>` : '';
     const resultDistrict = state.neighborhood.result && N.get(state.neighborhood,state.neighborhood.result.id);
     const placedTrace = commissionFinished && N.trace(resultDistrict);
     const commissionFeedback = commissionFinished ? '<p class="notice">架空のNPCからの報告：'+E.COMMISSIONS[r.place].outcome+' 鉄片 +'+E.COMMISSIONS[r.place].reward+'。次の同地域遠征で薬草 +1。'+(placedTrace ? ' 【'+N.title(resultDistrict)+'】に「'+placedTrace.name+'」が残った。再訪すると採集が変わる。' : '')+'</p>' : '';
@@ -576,8 +585,8 @@
     const visitorNews = visitorDistrict && N.traveler(visitorDistrict)
       ? '<p class="notice">✦ 別の旅人の痕跡：'+N.TRAVELER.name+'（架空NPC）が【'+esc(N.title(visitorDistrict))+'】に補給袋を残した。そこから次の遠征へ出ると薬草 +1。</p>'
       : '';
-    const nextLabel = commissionFinished ? '鍛冶師に報告を伝える' : readyToCraft ? '職人に素材を渡す' : unresolved ? `同名武器をあと ${unresolved} 本整理する` : keptDuplicate ? '入れ替えた装備を確認する' : homeOpportunity ? '拠点を育てる' : hasNewBattleGear ? '持ち帰った装備を比べる' : canPowerUp ? '補強へ進む' : '焚き火で次の準備をする';
-    return `<div class="game-layout report-layout"><section class="visual-column">${scene('camp',r.died ? '火は、まだ消えていない。' : 'おかえり、旅人。',r.died ? 'THE ROAD IS NOT OVER' : 'YOU MADE IT HOME')}</section><section class="panel report-panel"><div class="report-scroll"><p class='kicker'>${r.died ? 'EXPEDITION LOST' : 'SAFE RETURN'} / ${E.place(r.place).name}</p><h1>${r.died ? '命だけを、持ち帰った。' : duplicates.length ? '持ち帰った一本を、比べる。' : r.newGear.length ? '新しい一本を、火へ。' : '欲張らずに、帰る強さ。'}</h1><p class='intro'>${r.died ? defeatIntro : '背嚢の素材を確保した。鍛冶師に渡せば、次の遠征で使う装備を製作できる。'}</p><div class='result-number'>${r.died ? '' : '+'}${r.scrap} <small>${r.died ? '鉄片を落とした' : '鉄片を確保'}</small></div>${materialList(r.materials) ? `<p class='notice'>${r.died ? '失った素材' : '持ち帰った素材'}：${materialList(r.materials)}。鍛冶師の仕事に使える。</p>` : ''}${skillReward}${blueprintReward}${commissionFeedback}${visitorNews}${landmarkOutcome}${state.neighborhood.result ? `<div class="home-return"><strong>${state.neighborhood.result.claimed ? '⚑ '+N.title(N.get(state.neighborhood,state.neighborhood.result.id))+'を開拓！' : state.neighborhood.result.died ? '土地と拠点は残っている。' : '拠点へ建材を持ち帰った。'}</strong><p>木材 +${state.neighborhood.result.wood} · 石材 +${state.neighborhood.result.stone}</p><small>${state.neighborhood.result.claimed ? 'この土地に、あなたの旗が立つ。' : '持ち帰った建材で、拠点に建物を増やせる。'}</small></div>` : ''}${lootRows}${duplicateRows}${recovery?.scrap ? `<div class='reward'><span class='reward-icon'>↺</span><div><strong>敗走跡：鉄片 ${recovery.scrap}</strong><small>次に同じ土地へ出れば背嚢へ戻る。生還するまで未確定。</small></div></div>` : ''}${!r.died && state.owned.includes('crown') ? `<p class='notice'>灰冠の廟を越えた。名もなき旅人の、最初の物語が残った。</p>` : ''}<p class='small rule-line'>${r.died ? (recovery ? '敗走は全損ではない。取り戻しに行くか、別の土地へ向かうかを選べる。' : '遠征の失敗で、恒久的な進行は失われません。') : state.cleared.length >= 2 && !state.owned.includes('crown') ? '二つの土地を越えた。次は「灰冠の廟」の主に挑める。' : '別の土地では異なる素材が見つかる。鍛冶師なら武具に変えられる。'}</p></div><div class="report-actions">${button('continue',r.died && recovery ? '敗走跡を回収する準備へ' : nextLabel,'',{class:'primary',disabled:unresolved > 0})}</div></section></div>`;
+    const nextLabel = learnedSkill ? '人物画面で新しい技能を確認' : commissionFinished ? '鍛冶師に報告を伝える' : readyToCraft ? '職人に素材を渡す' : unresolved ? `同名武器をあと ${unresolved} 本整理する` : keptDuplicate ? '入れ替えた装備を確認する' : homeOpportunity ? '拠点を育てる' : hasNewBattleGear ? '持ち帰った装備を比べる' : canPowerUp ? '補強へ進む' : '焚き火で次の準備をする';
+    return `<div class="game-layout report-layout${learnedSkill?' skill-unlock-report':''}"><section class="visual-column">${scene('camp',r.died ? '火は、まだ消えていない。' : learnedSkill ? '世界が、少し違って見える。' : 'おかえり、旅人。',r.died ? 'THE ROAD IS NOT OVER' : learnedSkill ? 'A NEW WAY TO SEE' : 'YOU MADE IT HOME')}</section><section class="panel report-panel"><div class="report-scroll">${skillReward}<p class='kicker'>${r.died ? 'EXPEDITION LOST' : 'SAFE RETURN'} / ${E.place(r.place).name}</p><h1>${r.died ? '命だけを、持ち帰った。' : learnedSkill ? '新たな技を手にした。' : duplicates.length ? '持ち帰った一本を、比べる。' : r.newGear.length ? '新しい一本を、火へ。' : '欲張らずに、帰る強さ。'}</h1><p class='intro'>${r.died ? defeatIntro : learnedSkill ? '足跡から学んだ知識が、次の冒険への可能性を広げた。' : '背嚢の素材を確保した。鍛冶師に渡せば、次の遠征で使う装備を製作できる。'}</p><div class='result-number'>${r.died ? '' : '+'}${r.scrap} <small>${r.died ? '鉄片を落とした' : '鉄片を確保'}</small></div>${materialList(r.materials) ? `<p class='notice'>${r.died ? '失った素材' : '持ち帰った素材'}：${materialList(r.materials)}。鍛冶師の仕事に使える。</p>` : ''}${blueprintReward}${commissionFeedback}${visitorNews}${landmarkOutcome}${state.neighborhood.result ? `<div class="home-return"><strong>${state.neighborhood.result.claimed ? '⚑ '+N.title(N.get(state.neighborhood,state.neighborhood.result.id))+'を開拓！' : state.neighborhood.result.died ? '土地と拠点は残っている。' : '拠点へ建材を持ち帰った。'}</strong><p>木材 +${state.neighborhood.result.wood} · 石材 +${state.neighborhood.result.stone}</p><small>${state.neighborhood.result.claimed ? 'この土地に、あなたの旗が立つ。' : '持ち帰った建材で、拠点に建物を増やせる。'}</small></div>` : ''}${lootRows}${duplicateRows}${recovery?.scrap ? `<div class='reward'><span class='reward-icon'>↺</span><div><strong>敗走跡：鉄片 ${recovery.scrap}</strong><small>次に同じ土地へ出れば背嚢へ戻る。生還するまで未確定。</small></div></div>` : ''}${!r.died && state.owned.includes('crown') ? `<p class='notice'>灰冠の廟を越えた。名もなき旅人の、最初の物語が残った。</p>` : ''}<p class='small rule-line'>${r.died ? (recovery ? '敗走は全損ではない。取り戻しに行くか、別の土地へ向かうかを選べる。' : '遠征の失敗で、恒久的な進行は失われません。') : state.cleared.length >= 2 && !state.owned.includes('crown') ? '二つの土地を越えた。次は「灰冠の廟」の主に挑める。' : '別の土地では異なる素材が見つかる。鍛冶師なら武具に変えられる。'}</p></div><div class="report-actions">${button('continue',r.died && recovery ? '敗走跡を回収する準備へ' : nextLabel,'',{class:'primary',disabled:unresolved > 0})}</div></section></div>`;
   }
   function render() {
     const help = document.querySelector('#help'), helpToggle = document.querySelector('#help-toggle');
@@ -794,6 +803,7 @@
       const commissionFinished = !state.report.died && state.commission.lastResult === state.report.place;
       tab = homeOpportunity ? 'home' : gearStep ? 'gear' : 'explore';
       if (forgeReady || commissionFinished || state.report.newDesign) tab = 'gear';
+      if (state.report.newSkill === 'trailReading' && !state.report.died) { tab = 'status'; statusCharacter = 0; }
       if (keptDuplicate) { lastReturnedPlace = state.report.place; prioritizeReinforcement = false; tab = 'gear'; }
       const completedLandmark = state.report.landmarkId &&
         state.claimedLandmarks?.includes(state.report.landmarkId) &&
