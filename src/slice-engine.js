@@ -544,7 +544,19 @@
         const wolfBefore=F.wolfAwareness(x.field);
         x.field=field;
         let discovered=false;
-        if(to === F.GLADE && !field.glade){
+        if(to === F.FOX && !field.fox){
+          discovered=true;
+          field.fox=true;
+          x.log=['茂みから白い狐が飛び出した！ 狼かと思ったが、狐は戦わずに奥の倒木へ駆けていく。'];
+        } else if(to === F.FOX_NEST && field.fox && !field.foxCache){
+          discovered=true;
+          field.foxCache=true;
+          const scrap=Math.min(3,1000-x.scrap);
+          const herb=x.potions<3?1:0;
+          x.scrap+=scrap;
+          x.potions+=herb;
+          x.log=[`狐が消えた倒木の根元に、古い旅人の革袋を発見。鉄片 +${scrap}、薬草 +${herb}。戦わずに得られた戦利品だ。`];
+        } else if(to === F.GLADE && !field.glade){
           discovered=true;
           field.glade=true;
           x.scrap=Math.min(1000,x.scrap+4);
@@ -576,6 +588,10 @@
         } else if (to === F.TRACKS && !field.tracks) {
           field.tracks=true; x.focus=Math.max(3,x.focus);
           x.log=['獣の足取りが読めた。次の一撃に集中 +3。危険な巣穴を迂回する道も見える。'];
+        } else if(to === 10 && !field.fox){
+          // Approach cue without announcing the fox or showing a quest marker.
+          // It appears before the player chooses to investigate the bushes.
+          x.log=['北の茂みがかすかに揺れた。金色の目が一瞬こちらを見た。小さな足音が聞こえる。'];
         } else x.log=['霧が少し晴れた。まだ踏み込んでいない道が見えてくる。'];
         if (to !== F.DEN && to !== F.EXIT) {
           const wolfNow=F.wolfAwareness(field);
