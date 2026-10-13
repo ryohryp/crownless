@@ -60,8 +60,8 @@
   function forestField(x, title) {
     const F=window.CrownlessField, field=x.field;
     const wolfStatus=F.wolfAwareness(field);
-    const names={wall:'絡む木々',exit:'生還できる霧の石門',cache:'倒木の下の光',tracks:'獣の足跡',den:field.wolf?'空になった獣の巣穴':'獣の巣穴',treasure:field.treasure?'開いた宝箱':'まだ閉じた宝箱',glade:field.glade?'発見した古い石環':'苔むした石環',shrine:field.shrine?'光が消えた祠':'苔むした祠',secret:field.secret?'開けた隠し道':'揺れるツタ',camp:'遠征の起点',trail:'森の小道'};
-    const icons={wall:'♠',exit:'⛩',cache:'✦',tracks:'⌁',den:field.wolf?'✓':'⚔',treasure:field.treasure?'□':'✧',glade:field.glade?'◉':'◇',shrine:field.shrine?'▤':'✴',secret:field.secret?'⌁':'♧',camp:'⌂',trail:'·'};
+    const names={wall:'絡む木々',exit:'生還できる霧の石門',cache:'倒木の下の光',tracks:'獣の足跡',den:field.wolf?'空になった獣の巣穴':'獣の巣穴',treasure:field.treasure?'開いた宝箱':'まだ閉じた宝箱',glade:field.glade?'発見した古い石環':'苔むした石環',fox:field.fox?'狐が飛び出した茂み':'草の揺れる小道','fox-nest':field.foxCache?'空になった革袋':field.fox?'狐が逃げ込んだ倒木':'古い倒木',shrine:field.shrine?'光が消えた祠':'苔むした祠',secret:field.secret?'開けた隠し道':'揺れるツタ',camp:'遠征の起点',trail:'森の小道'};
+    const icons={wall:'♠',exit:'⛩',cache:'✦',tracks:'⌁',den:field.wolf?'✓':'⚔',treasure:field.treasure?'□':'✧',glade:field.glade?'◉':'◇',fox:field.fox?'⌁':'♧','fox-nest':field.foxCache?'□':'♧',shrine:field.shrine?'▤':'✴',secret:field.secret?'⌁':'♧',camp:'⌂',trail:'·'};
     const cells=Array.from({length:F.COUNT},(_,i)=>{
       const kind=F.landmark(i), seen=F.visible(field,i), near=F.adjacent(field.pos,i);
       const [col,row]=F.coords(i);
@@ -69,7 +69,7 @@
       // Navigation marks only ordinary, currently traversable adjacent land.
       // Secret vines are intentionally never marked, even after discovery.
       const guided=seen&&kind!=='secret'&&F.canMove(field,i);
-      const used=(kind==='cache'&&field.cache)||(kind==='tracks'&&field.tracks)||(kind==='treasure'&&field.treasure)||(kind==='den'&&field.wolf)||(kind==='shrine'&&field.shrine)||(kind==='secret'&&field.secret)||(kind==='glade'&&field.glade);
+      const used=(kind==='cache'&&field.cache)||(kind==='tracks'&&field.tracks)||(kind==='treasure'&&field.treasure)||(kind==='den'&&field.wolf)||(kind==='shrine'&&field.shrine)||(kind==='secret'&&field.secret)||(kind==='glade'&&field.glade)||(kind==='fox'&&field.fox)||(kind==='fox-nest'&&field.foxCache);
       const icon=here?'<span class="field-hero" aria-hidden="true"><i></i></span>'
         : seen?(used?'✓':icons[kind]):'';
       const classes=['field-cell',seen?'revealed':'veiled',kind,here?'here':'',passable?'can-step':'',guided?'walk-nav':'',used?'spent':''].filter(Boolean).join(' ');
@@ -77,7 +77,7 @@
       if(passable)return `<button type="button" class="${classes}" style="grid-column:${col+1};grid-row:${row+1}" data-action="field-step" data-value="${i}" aria-label="${label}${kind==='secret'&&!field.secret?'を調べる':'へ一歩進む'}">${icon}</button>`;
       return `<span class="${classes}" style="grid-column:${col+1};grid-row:${row+1}" aria-label="${label}">${icon}</span>`;
     }).join('');
-    return `<section class="forest-field" data-field-pos="${field.pos}" data-field-seen="${field.seen}" data-field-cache="${field.cache}" data-field-tracks="${field.tracks}" data-field-treasure="${Boolean(field.treasure)}" data-field-wolf="${Boolean(field.wolf)}" data-field-secret="${Boolean(field.secret)}" data-field-shrine="${Boolean(field.shrine)}" data-field-glade="${Boolean(field.glade)}" data-wolf-state="${wolfStatus}" aria-label="探索できる森のフィールド">
+    return `<section class="forest-field" data-field-pos="${field.pos}" data-field-seen="${field.seen}" data-field-cache="${field.cache}" data-field-tracks="${field.tracks}" data-field-treasure="${Boolean(field.treasure)}" data-field-wolf="${Boolean(field.wolf)}" data-field-secret="${Boolean(field.secret)}" data-field-shrine="${Boolean(field.shrine)}" data-field-glade="${Boolean(field.glade)}" data-field-fox="${Boolean(field.fox)}" data-field-fox-cache="${Boolean(field.foxCache)}" data-wolf-state="${wolfStatus}" aria-label="探索できる森のフィールド">
       <div class="forest-field-header"><span class="kicker">THE UNCHARTED WOOD · 霧の森</span><h2>${esc(title)}</h2>${wolfStatus==='alert'?'': '<small>行きたい方向の地面をタップして歩こう。</small>'}</div>
       ${wolfStatus==='alert' ? '<div class="forest-wolf-warning" role="status">⚠ 狼に気づかれた · 巣穴へ進むと戦闘</div>' : ''}
       <div class="field-terrain" role="group" aria-label="霧の森を歩く"><div class="field-worldspace"><canvas class="forest-world-canvas" width="840" height="840" aria-hidden="true"></canvas>${cells}</div></div>
