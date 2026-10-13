@@ -3,6 +3,23 @@
 > **Status:** Active. User-approved visual direction on 2026-10-08.
 > **Authority:** AGENTS.md and accepted ADRs govern gameplay; this file governs the global visual language. Specialized character/runtime anchors govern their own anatomy, camera, and animation contracts.
 
+## Map-specific direction update — 2026-10-14
+
+The user refined the map target: **Orna-like RPG field presence**, and, if the
+world remains square-grid-based, **interlocking path tiles inspired by
+チクタクバンバン** instead of an isolated list of place cards. Treat the road
+network as a readable connected board; blend forest, marsh, tower and ruins
+into distinguishable terrain tiles, keep POIs interactive, and veil undiscovered
+land. This new user direction overrides earlier sumi-e-only map prescriptions
+where they conflict. Town, equipment and combat scenes retain their prior
+approved art anchors until specifically changed.
+
+The first playable slice draws **fictional routes connecting already earned
+districts**. It must never imply that a path is a real navigable street or
+that a selected tile is the user's current GPS position. Do not add tile
+sliding, timers or a new puzzle system until playing the field calls for it.
+Keep the real-world discovery trigger and existing game actions intact.
+
 ## Approved direction — Western medieval fantasy × sumi-e
 
 The user explicitly approved the **ink-wash map / town / forge / local-event composite** on 2026-10-08. It replaces the former blue-green/aged-gold medieval manuscript board as the **global style direction**. The approved chat reference is **not yet archived as a repository binary**: do not claim an older `docs/assets/*` board is that image, and do not substitute a new generated candidate for it without review.

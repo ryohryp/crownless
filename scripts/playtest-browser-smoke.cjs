@@ -60,12 +60,15 @@ async function main() {
         await page.goto(url);
         await page.locator('[data-action="mode"][data-value="demo"]').click();
         assert.equal(await page.locator(".nearby-paper-map").count(), 1, "demo should show the map");
+        assert.equal(await page.locator('.nearby-track-tile').count(),25,'the neighborhood is a 5x5 connected tile board');
+        assert.equal(await page.locator('.nearby-track-tile.selected').count(),1,'the current destination is centered and selected');
+        assert((await page.locator('.nearby-track-road').count())>=2,'known lands are linked by rendered paths');
         const layout = await page.evaluate(() => {
           const rect = selector => {
             const r = document.querySelector(selector).getBoundingClientRect();
             return {top:r.top,bottom:r.bottom,height:r.height,left:r.left,right:r.right};
           };
-          const selectors=['.nearby-tile','.nearby-top-action','.nearby-card-actions button.primary','.nearby-card-actions button.secondary'];
+          const selectors=['.nearby-track-tile.selected','.nearby-top-action','.nearby-card-actions button.primary','.nearby-card-actions button.secondary'];
           const blocked=selectors.filter(selector=>{
             const e=document.querySelector(selector);
             if (!e || e.disabled) return false;
@@ -319,15 +322,15 @@ async function main() {
         if (width === 390) {
           // The map must reveal distinct shop/event sprites by player discovery,
           // not by artificially stamping a record into localStorage.
-          assert.equal(await page.locator('.nearby-tile[data-poi-family="event"] .district-pixel-art').count(), 1);
+          assert.equal(await page.locator('.nearby-track-tile[data-poi-family="event"] .district-pixel-art').count(), 1);
           await page.locator('[data-action="nearby-view"][data-value="scout"]').click();
           await page.locator('[data-action="scout"][data-value="tower"]').click();
           await page.locator('[data-action="nearby-view"][data-value="scout"]').click();
           await page.locator('[data-action="scout"][data-value="tower"]').click();
-          assert(await page.locator('.nearby-tile[data-poi-family="shop"] .district-pixel-art').count() >= 1);
-          assert(await page.locator('.nearby-tile[data-poi-family="event"] .district-pixel-art').count() >= 1);
+          assert(await page.locator('.nearby-track-tile[data-poi-family="shop"] .district-pixel-art').count() >= 1);
+          assert(await page.locator('.nearby-track-tile[data-poi-family="event"] .district-pixel-art').count() >= 1);
           await page.screenshot({ path: path.join(output, "hybrid-discovery-390.png") });
-          await page.locator('.nearby-tile[data-poi-family="shop"]').last().click();
+          await page.locator('.nearby-track-tile[data-poi-family="shop"]').last().click();
           assert.match(await page.locator(".district-detail").innerText(), /見張り跡/);
           await page.locator('[data-action="nearby-view"][data-value="detail"]').click();
       assert.match(await page.locator(".district-poi-card").innerText(), /鐘守の鍛冶台/);
@@ -415,7 +418,7 @@ async function main() {
       assert.equal(trade.scrap,4);
       assert.equal(trade.materials.watchIron,1);
       await poiPage.locator('[data-action="nearby-view"][data-value="map"]').click();
-      await poiPage.locator('.nearby-tile[data-value="0,1"]').click();
+      await poiPage.locator('.nearby-track-tile[data-value="0,1"]').click();
       await poiPage.locator('[data-action="nearby-view"][data-value="detail"]').click();
       await poiPage.screenshot({ path: path.join(output, "poi-clue-390.png") });
       await poiPage.locator('[data-action="poi"][data-value="clue"]').click();
@@ -468,7 +471,7 @@ async function main() {
       await poiPage.locator('[data-action="tab"][data-value="gear"]').click();
       assert.match(await poiPage.locator('#game').innerText(),/返し棘の盾/);
       await poiPage.locator('[data-action="tab"][data-value="explore"]').click();
-      await poiPage.locator('.nearby-tile[data-value="-1,0"]').click();
+      await poiPage.locator('.nearby-track-tile[data-value="-1,0"]').click();
       await poiPage.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
       await walkForestToWolf(poiPage);
       assert.equal(await poiPage.locator('.combat-manual').getAttribute('open'),'','four choices should appear by default');
@@ -495,10 +498,10 @@ async function main() {
       },forgedSaved);
       await bellPage.goto(url);
       await bellPage.locator('[data-action="tab"][data-value="explore"]').click();
-      await bellPage.locator('.nearby-tile[data-value="0,2"]').click();
+      await bellPage.locator('.nearby-track-tile[data-value="0,2"]').click();
       assert.equal(await bellPage.locator('.restored-bell-notice').count(),0,'the neighboring tower shop did not change');
-      await bellPage.locator('.nearby-tile[data-value="0,1"]').click();
-      assert.equal(await bellPage.locator('.nearby-tile.restored-bell').count(),1,'exact source tower is visibly changed');
+      await bellPage.locator('.nearby-track-tile[data-value="0,1"]').click();
+      assert.equal(await bellPage.locator('.nearby-track-tile.restored-bell').count(),1,'exact source tower is visibly changed');
       await bellPage.locator('[data-action="nearby-view"][data-value="detail"]').click();
       assert.match(await bellPage.locator('.restored-bell-notice').innerText(),/鐘守の弟子・ユノ/);
       await bellPage.screenshot({path:path.join(output,'bell-restored-revisit-390.png')});
@@ -919,7 +922,7 @@ async function main() {
         await page.locator('[data-action="mode"][data-value="demo"]').click();
         await page.locator('[data-action="nearby-view"][data-value="scout"]').click();
         await page.locator('[data-action="scout"][data-value="tower"]').click();
-        await page.locator('.nearby-tile[data-value="0,1"]').click();
+        await page.locator('.nearby-track-tile[data-value="0,1"]').click();
         await page.locator('.district-detail [data-action="depart"][data-value="tower"]').click();
         assert.equal(await page.locator('.tower-field.world-painted').count(),1,'tower is a real painted terrain view');
         assert.equal(await page.locator('.tower-field .field-cell').count(),25);
@@ -989,7 +992,7 @@ async function main() {
         await page.locator('[data-action="mode"][data-value="demo"]').click();
         await page.locator('[data-action="nearby-view"][data-value="scout"]').click();
         await page.locator('[data-action="scout"][data-value="fen"]').click();
-        await page.locator('.nearby-tile[data-value="1,0"]').click();
+        await page.locator('.nearby-track-tile[data-value="1,0"]').click();
         await page.locator('.district-detail [data-action="depart"][data-value="fen"]').click();
         assert.equal(await page.locator('.fen-field.world-painted').count(),1,'marsh is genuine painted walkable terrain');
         assert.equal(await page.locator('.fen-field .field-cell').count(),25);
@@ -1079,7 +1082,7 @@ async function main() {
         await page.reload();
         await page.locator('[data-action="nearby-view"][data-value="scout"]').click();
         await page.locator('[data-action="scout"][data-value="fen"]').click();
-        await page.locator('.nearby-tile[data-value="1,0"]').click();
+        await page.locator('.nearby-track-tile[data-value="1,0"]').click();
         await page.locator('.district-detail [data-action="depart"][data-value="fen"]').click();
         assert.equal(await page.locator('.fen-field.world-painted').count(),1);
         assert.equal(await page.locator('.fen-field[data-fen-reader="true"]').count(),1);

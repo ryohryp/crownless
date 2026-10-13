@@ -1,0 +1,3 @@
+#game > .neighborhood-rebuild .nearby-track-tile .nearby-tile-stamp{position:absolute;z-index:3;top:2px;left:2px;display:grid;place-items:center;width:21px;height:21px;min-height:0;padding:2px;background:rgba(239,230,200,.92)}
+#game > .neighborhood-rebuild .nearby-track-tile .nearby-tile-stamp svg{width:17px;height:17px;max-width:100%}
+#game > .neighborhood-rebuild .nearby-track-tile.restored-bell:not(.selected){border:2px solid #b37b35}
