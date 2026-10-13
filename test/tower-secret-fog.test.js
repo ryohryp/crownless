@@ -1,0 +1,20 @@
+const test=require('node:test'),assert=require('node:assert/strict');
+const E=require('../src/slice-engine.js'),T=require('../src/tower-field.js');
+test('tower hidden stair requires an explicit discovery',()=>{
+ let s=E.start(E.discover({...E.initial(),mode:'demo'},'tower'),'tower');
+ for(const to of [21,22,T.ECHO])s=E.act(s,'tower-step:'+to);
+ assert.equal(T.visible(s.expedition.tower,T.SECRET),false);
+ assert.equal(T.canMove(s.expedition.tower,T.SECRET),false);
+ assert.deepEqual(E.parse(E.serialize(s)),s);
+ s=E.act(s,'tower-step:'+T.SECRET);
+ assert.equal(s.expedition.tower.pos,T.ECHO);
+ assert.equal(T.visible(s.expedition.tower,T.SECRET),true);
+ assert.equal(T.visible(s.expedition.tower,T.RELIC),false);
+ s=E.act(s,'tower-step:'+T.SECRET);
+ s=E.act(s,'tower-step:'+T.RELIC);
+ assert.equal(s.expedition.materials.watchIron,1);
+ assert.equal(s.materials.watchIron,0);
+ const home=E.act(s,'return');
+ assert.equal(home.materials.watchIron,1);
+ assert.deepEqual(E.parse(E.serialize(home)),home);
+});
