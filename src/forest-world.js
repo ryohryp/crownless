@@ -125,7 +125,7 @@
       }
     }
   }
-  function landmarks(ctx,cache,tracks,treasure,wolfDefeated,secret,shrine,glade,time){
+  function landmarks(ctx,cache,tracks,treasure,wolfDefeated,secret,shrine,glade,foxFled,foxCache,time){
     // Camp fire at the entrance: a tangible safe starting place.
     {
       const [x,y]=center(F.START);
@@ -276,6 +276,64 @@
         ellipse(ctx,x,y-17,53,50,g);
         ellipse(ctx,x,y-16+Math.sin(time/360)*4,5,6,'#d9f1c3');
       }
+    }
+    // A suspicious rustle on the quiet westward dead end first looks like
+    // another dangerous beast. It turns out to be a harmless white fox.
+    // On approach the animal flees one step deeper, where it has hidden a
+    // traveller's pouch. All positions are real cells, not floating UI.
+    function whiteFox(id,peeking){
+      const [x,y]=center(id);
+      const breath=Math.sin(time/390)*2;
+      const wag=Math.sin(time/220)*10;
+      ctx.save();ctx.translate(x,y+breath);
+      ellipse(ctx,0,21,31,11,'#071d17a0');
+      // Wagging pale tail, warm ears, pointed muzzle and bright amber eyes.
+      ctx.save();ctx.translate(-21,0);ctx.rotate(wag*Math.PI/550);
+      ellipse(ctx,-13,4,26,13,'#dce3d3');
+      ellipse(ctx,-29,3,8,9,'#f7f4da');
+      ctx.restore();
+      ellipse(ctx,3,0,27,17,'#bac9bd');
+      ellipse(ctx,16,-15,20,17,'#edf0de');
+      ctx.beginPath();ctx.moveTo(4,-23);ctx.lineTo(8,-43);ctx.lineTo(18,-25);
+      ctx.lineTo(22,-43);ctx.lineTo(30,-18);ctx.closePath();
+      ctx.fillStyle='#d4dbcd';ctx.fill();
+      ellipse(ctx,29,-9,15,9,'#f2f0da');
+      ellipse(ctx,37,-8,3,2,'#493e37');
+      ellipse(ctx,18,-18,3.3,3,'#b17d4a');
+      ellipse(ctx,19,-18,1.5,1.5,'#ffe5a4');
+      ellipse(ctx,10,19,6,11,'#b8c5b9');
+      ellipse(ctx,24,18,6,10,'#d6dcd0');
+      ctx.restore();
+      if(peeking){
+        // A bush hides most of its body. Only the rustle and warm eye hint
+        // at a creature; do not preannounce 'fox' on a navigation marker.
+        const sway=Math.sin(time/240)*5;
+        for(let i=0;i<4;i++){
+          ellipse(ctx,x-27+i*20+sway*(i%2?.6:-.6),y+10+(i%2)*10,23,25,i%2?'#28543b':'#1f4537');
+        }
+        const amber=ctx.createRadialGradient(x+18,y-20,1,x+18,y-20,24);
+        amber.addColorStop(0,'#f9c67c76');amber.addColorStop(1,'#f9c67c00');
+        ellipse(ctx,x+18,y-20,24,24,amber);
+      }
+    }
+    if(!foxFled)whiteFox(F.FOX,true);
+    else if(!foxCache)whiteFox(F.FOX_NEST,false);
+    // The small leather bag appears only after the fox has moved out.
+    if(foxFled){
+      const [x,y]=center(F.FOX_NEST);
+      ellipse(ctx,x+2,y+22,30,13,'#071b19a3');
+      ctx.save();ctx.translate(x+1,y+6);ctx.rotate(-.13);
+      ctx.fillStyle='#745139';ctx.fillRect(-20,-4,39,27);
+      ctx.fillStyle='#a27a4e';ctx.fillRect(-18,-13,35,14);
+      ctx.fillStyle='#4b3126';ctx.fillRect(-6,-9,14,13);
+      ctx.fillStyle='#d3b57b';ctx.fillRect(-2,-2,6,6);
+      if(!foxCache){
+        const gleam=.5+.5*Math.sin(time/380);
+        ellipse(ctx,4,-20-gleam*7,4+gleam*2,5+gleam,'#ffe5a2');
+      }else{
+        ctx.fillStyle='#122822';ctx.fillRect(-13,2,27,17);
+      }
+      ctx.restore();
     }
     // The wolf den is a physically distinct danger spot.
     {
@@ -468,6 +526,7 @@
     const treasure=section.dataset.fieldTreasure==='true',wolfDefeated=section.dataset.fieldWolf==='true';
     const secret=section.dataset.fieldSecret==='true',shrine=section.dataset.fieldShrine==='true';
     const glade=section.dataset.fieldGlade==='true';
+    const foxFled=section.dataset.fieldFox==='true',foxCache=section.dataset.fieldFoxCache==='true';
     const wolfStatus=F.wolfAwareness({pos,seen,cache,tracks,treasure,wolf:wolfDefeated,secret,shrine});
     const base=staticWorld(secret);
     if(!base)return;
@@ -514,7 +573,7 @@
       const y=start[1]+(end[1]-start[1])*ease;
       camera(x,y);
       ctx.drawImage(base,0,0);
-      landmarks(ctx,cache,tracks,treasure,wolfDefeated,secret,shrine,glade,time);
+      landmarks(ctx,cache,tracks,treasure,wolfDefeated,secret,shrine,glade,foxFled,foxCache,time);
       if(wolfStatus==='watching'||wolfStatus==='alert')wolf(ctx,time,wolfStatus==='alert');
       ctx.drawImage(mist,0,0);
       // Traversable destinations are deliberately not highlighted. Read the
