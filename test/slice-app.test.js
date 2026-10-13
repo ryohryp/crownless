@@ -832,3 +832,37 @@ test('previously learned and failed expeditions never show a false new-skill cel
   const failed=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(died)});
   assert.doesNotMatch(failed.html(),/skill-unlock-spotlight/);
 });
+
+test('earned skill has a visible, intentional forest button and clear activation feedback',()=>{
+  let s={...E.initial(),mode:'demo'};
+  s.characters[0].skills.trailReading=true;
+  s=E.start(s,'wood');
+  for(const to of [21,22])s=E.act(s,'field-step:'+to);
+  const key='crownless-expedition-v1-demo';
+  const b=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(s)},false,false,true);
+  assert.match(b.html(),/data-action="skill-trail-read"/);
+  assert.match(b.html(),/⌁ 獣道読みを使う/);
+  assert.match(b.html(),/落ち葉の下に続く奇妙な足跡/);
+  b.click('skill-trail-read');
+  assert.match(b.html(),/SKILL USED · 獣道読み/);
+  assert.match(b.html(),/月影の短剣の設計図/);
+  assert.doesNotMatch(b.html(),/data-action="skill-trail-read"/,'once discovered, the action disappears');
+  assert.equal(E.parse(b.store.get(key)).expedition.foundDesign,'fang_moon');
+});
+test('earned skill is a visible fen investigation that reveals physical stepping stones',()=>{
+  const N=require('../src/neighborhood.js');
+  let s=E.discoverDistrict({...E.initial(),mode:'demo'},N.cell(N.CELL_METERS,0));
+  s.characters[0].skills.trailReading=true;
+  s=E.start(s,'fen');
+  for(const to of [21,16,11])s=E.act(s,'fen-step:'+to);
+  const key='crownless-expedition-v1-demo';
+  const b=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(s)});
+  assert.match(b.html(),/data-action="skill-trail-read"/);
+  assert.match(b.html(),/水に消えた足跡/);
+  b.click('skill-trail-read');
+  assert.match(b.html(),/SKILL USED · 獣道読み/);
+  assert.match(b.html(),/data-fen-trail="true"/);
+  assert.equal(E.parse(b.store.get(key)).expedition.fen.pos,11);
+  assert.equal(E.parse(b.store.get(key)).expedition.fen.trail,true);
+  assert.doesNotMatch(b.html(),/data-action="skill-trail-read"/);
+});
