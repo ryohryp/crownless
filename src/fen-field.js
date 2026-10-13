@@ -23,8 +23,9 @@
  const adjacent=(a,b)=>touching(a,b)&&connected(a,b);
  const neighbors=id=>inBounds(id)?Array.from({length:COUNT},(_,i)=>i).filter(i=>adjacent(id,i)):[];
  // Keep the forgotten causeway under fog until trail reading uncovers it.
- const visible=(f,id)=>Boolean(f&&inBounds(id)&&(id!==CAUSEWAY||f.trail===true)&&Math.floor(f.seen/2**id)%2);
- const reveal=(seen,id)=>[id,...neighbors(id)].reduce((v,n)=>visible({seen:v},n)?v:v+2**n,seen);
+ const seenBit=(seen,id)=>Math.floor(seen/2**id)%2;
+ const visible=(f,id)=>Boolean(f&&inBounds(id)&&(id!==CAUSEWAY||f.trail===true)&&seenBit(f.seen,id));
+ const reveal=(seen,id)=>[id,...neighbors(id)].reduce((v,n)=>seenBit(v,n)?v:v+2**n,seen);
  const initial=()=>({pos:START,seen:reveal(0,START),sound:false,shoal:false,star:false,herbs:false,wraith:false,trail:false});
  const valid=f=>!!f&&typeof f==='object'&&!Array.isArray(f)&&
    Object.keys(f).every(k=>['pos','seen','sound','shoal','star','herbs','wraith','trail'].includes(k))&&
