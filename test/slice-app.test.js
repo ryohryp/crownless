@@ -274,10 +274,10 @@ test('core camp nav owns six stable buttons and journal views are reversible', (
   const buttons=[...nav[1].matchAll(/<button\b[^>]*>/g)].map(m=>m[0]);
   assert.equal(buttons.length,6);
   for(const button of buttons) assert.match(button,/class="[^"]*bottom-navigation-item/);
-  assert.deepEqual(buttons.map(v=>(v.match(/data-action="([^"]+)"/)||[])[1]),['tab','tab','tab','tab','tab','settings']);
-  assert.deepEqual(buttons.slice(0,5).map(v=>(v.match(/aria-current="([^"]+)"/)||[])[1]),['page','false','false','false','false']);
-  assert.deepEqual(buttons.slice(0,5).map(v=>(v.match(/data-value="([^"]+)"/)||[])[1]),
-    ['explore','home','gear','codex','chronicle']);
+  assert.deepEqual(buttons.map(v=>(v.match(/data-action="([^"]+)"/)||[])[1]),['tab','tab','tab','tab','tab','tab']);
+  assert.deepEqual(buttons.map(v=>(v.match(/aria-current="([^"]+)"/)||[])[1]),['page','false','false','false','false','false']);
+  assert.deepEqual(buttons.map(v=>(v.match(/data-value="([^"]+)"/)||[])[1]),
+    ['explore','home','gear','codex','chronicle','status']);
   b.click('tab','gear');
   const gear=b.html().match(/<nav class="camp-tabs bottom-navigation"[^>]*>([\s\S]*?)<\/nav>/)[1];
   assert.match(gear,/data-value="gear" aria-current="page"/);
@@ -685,4 +685,57 @@ test('restored tower map and Yuno are visible after safe return, and bell signal
   assert.equal(departed.expedition.focus,3);
   assert.match(returned.html(),/修復された鐘が鳴る/);
   assert.deepEqual(E.parse(E.serialize(departed)),departed);
+});
+
+
+test('character sheet shows actual equipped stats and learned exploration skill', () => {
+  const s={...E.initial(),mode:'demo',runs:4,victories:3,designs:{fang_moon:'wood'},scrap:24};
+  s.characters[0].skills.trailReading=true;
+  s.owned.push('fang_moon'); s.equipped='fang_moon';s.characters[0].equipped='fang_moon';
+  const key='crownless-expedition-v1-demo';
+  const b=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(s)});
+  const before=b.store.get(key);
+  b.click('tab','status');
+  assert.match(b.html(),/プレイヤーのステータス/);
+  assert.match(b.html(),/獣道読み/);
+  assert.match(b.html(),/習得済み/);
+  assert.match(b.html(),/月影の短剣/);
+  assert.match(b.html(),/武器の基礎攻撃/);
+  assert.match(b.html(),/遠征 <b>4<\/b> 回/);
+  assert.match(b.html(),/帰還 <b>3<\/b> 回/);
+  assert.match(b.html(),/アカウント共有/);
+  assert.equal(b.store.get(key),before,'visiting status must not change save');
+  b.click('tab','gear'); assert.match(b.html(),/class="gear-list"/);
+  b.click('tab','status'); assert.match(b.html(),/獣道読み/);
+});
+test('status character browsing is read-only and shows role-specific real progress', () => {
+  const s={...E.initial(),mode:'demo'};
+  s.characters[1].experience=3;
+  const key='crownless-expedition-v1-demo';
+  const b=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(s)});
+  b.click('tab','status'); const saved=b.store.get(key);
+  assert.match(b.html(),/未習得/);
+  b.click('status-view','1');
+  assert.match(b.html(),/見習い鍛冶師/);
+  assert.match(b.html(),/鍛冶の仕事 3 回/);
+  assert.match(b.html(),/閲覧中/);
+  b.click('status-view','2');
+  assert.match(b.html(),/交易技術は未実装/);
+  assert.equal(b.store.get(key),saved);
+  b.click('tab','gear');
+  b.click('character','1');
+  b.click('tab','status');
+  assert.match(b.html(),/鍛冶職人 · 操作中/);
+  assert.equal(E.parse(b.store.get(key)).activeCharacter,1);
+});
+test('status screen remains accessible with old migrated character records', () => {
+  const s={...E.initial(),mode:'demo'}; s.characters.forEach(c=>delete c.skills);
+  const key='crownless-expedition-v1-demo';
+  const b=browser({'crownless-expedition-mode':'demo',[key]:JSON.stringify(s)});
+  b.click('tab','status');
+  assert.match(b.html(),/探索技能/);
+  assert.match(b.html(),/獣道読み/);
+  assert.doesNotMatch(b.html(),/NaN|undefined/);
+  b.click('settings');
+  assert.equal(b.elements['#help'].hidden,false);
 });
