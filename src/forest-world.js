@@ -125,7 +125,7 @@
       }
     }
   }
-  function landmarks(ctx,cache,tracks,treasure,wolfDefeated,secret,shrine,glade,foxFled,foxCache,time){
+  function landmarks(ctx,cache,tracks,treasure,wolfDefeated,secret,shrine,glade,foxFled,foxCache,time,foxRun){
     // Camp fire at the entrance: a tangible safe starting place.
     {
       const [x,y]=center(F.START);
@@ -281,8 +281,25 @@
     // another dangerous beast. It turns out to be a harmless white fox.
     // On approach the animal flees one step deeper, where it has hidden a
     // traveller's pouch. All positions are real cells, not floating UI.
-    function whiteFox(id,peeking){
-      const [x,y]=center(id);
+    function whiteFox(id,peeking,runT=1){
+      const [destX,destY]=center(id);
+      const [fromX,fromY]=center(F.FOX);
+      const x=fromX+(destX-fromX)*runT,y=fromY+(destY-fromY)*runT;
+      if(peeking){
+        // The important mystery beat: rustling leaves and ONE amber eye.
+        // No animal silhouette until the player really approaches.
+        const sway=Math.sin(time/240)*5;
+        ellipse(ctx,x,y+20,42,15,'#0b261ab0');
+        for(let i=0;i<5;i++){
+          ellipse(ctx,x-33+i*16+sway*(i%2?.6:-.6),y+3+(i%2)*12,23,26,
+            i%2?'#28543b':'#1f4537');
+        }
+        const amber=ctx.createRadialGradient(x+16,y-14,1,x+16,y-14,24);
+        amber.addColorStop(0,'#f9c67c8e');amber.addColorStop(1,'#f9c67c00');
+        ellipse(ctx,x+16,y-14,24,24,amber);
+        ellipse(ctx,x+16,y-14,2.5,2,'#ffd69a');
+        return;
+      }
       const breath=Math.sin(time/390)*2;
       const wag=Math.sin(time/220)*10;
       ctx.save();ctx.translate(x,y+breath);
@@ -304,20 +321,9 @@
       ellipse(ctx,10,19,6,11,'#b8c5b9');
       ellipse(ctx,24,18,6,10,'#d6dcd0');
       ctx.restore();
-      if(peeking){
-        // A bush hides most of its body. Only the rustle and warm eye hint
-        // at a creature; do not preannounce 'fox' on a navigation marker.
-        const sway=Math.sin(time/240)*5;
-        for(let i=0;i<4;i++){
-          ellipse(ctx,x-27+i*20+sway*(i%2?.6:-.6),y+10+(i%2)*10,23,25,i%2?'#28543b':'#1f4537');
-        }
-        const amber=ctx.createRadialGradient(x+18,y-20,1,x+18,y-20,24);
-        amber.addColorStop(0,'#f9c67c76');amber.addColorStop(1,'#f9c67c00');
-        ellipse(ctx,x+18,y-20,24,24,amber);
-      }
     }
     if(!foxFled)whiteFox(F.FOX,true);
-    else if(!foxCache)whiteFox(F.FOX_NEST,false);
+    else if(!foxCache)whiteFox(F.FOX_NEST,false,foxRun);
     // The small leather bag appears only after the fox has moved out.
     if(foxFled){
       const [x,y]=center(F.FOX_NEST);
@@ -573,7 +579,11 @@
       const y=start[1]+(end[1]-start[1])*ease;
       camera(x,y);
       ctx.drawImage(base,0,0);
-      landmarks(ctx,cache,tracks,treasure,wolfDefeated,secret,shrine,glade,foxFled,foxCache,time);
+      // The first fox encounter includes a brief dash toward the old tree.
+      // A reload displays the settled fox there rather than replaying it.
+      const firstFoxEncounter=last===10&&pos===F.FOX&&foxFled&&!foxCache;
+      const foxRun=firstFoxEncounter?Math.min(1,Math.max(0,(time-startTime)/800)):1;
+      landmarks(ctx,cache,tracks,treasure,wolfDefeated,secret,shrine,glade,foxFled,foxCache,time,foxRun);
       if(wolfStatus==='watching'||wolfStatus==='alert')wolf(ctx,time,wolfStatus==='alert');
       ctx.drawImage(mist,0,0);
       // Traversable destinations are deliberately not highlighted. Read the
