@@ -84,6 +84,43 @@
       <div class="forest-field-footer"><span>♧ 深い森</span><strong>${field.treasure?'✦ 宝箱を発見':'霧の森を探索中'}</strong><span>${field.shrine?'祠の加護':field.secret?'隠し道を発見':'霧の石門へ'}</span></div>
     </section>`;
   }
+  // Tower entry is a *different* actual field, not a forest reskin:
+  // hard stone walls, a sound clue and a deliberately unsignposted secret stair.
+  function towerField(x,title){
+    const T=window.CrownlessTowerField, f=x.tower;
+    const names={wall:'崩れた石壁',start:'塔の入口',floor:'冷たい石床',echo:'反響する鐘の欠片',
+      secret:f.open?'発見した隠し階段':'ひびの入った石壁',relic:f.relic?'空の納骨室':'封じられた納骨室',
+      cache:'崩れた階段',guard:f.guard?'退いた番人':'鎧の足音',stairs:'上階への階段'};
+    const cells=Array.from({length:T.COUNT},(_,i)=>{
+      const kind=T.kind(i),seen=T.visible(f,i),near=T.adjacent(f.pos,i);
+      const canStep=T.canMove(f,i),investigate=i===T.SECRET&&f.pos===T.ECHO&&!f.open;
+      const [col,row]=T.coords(i),here=i===f.pos;
+      const classes=['field-cell',kind,seen?'revealed':'veiled',here?'here':'',canStep||investigate?'can-step':'',
+        seen&&canStep&&kind!=='secret'?'walk-nav':''].filter(Boolean).join(' ');
+      const label=here?'旅人の現在地':seen?names[kind]:'未踏の塔内';
+      const style=`grid-column:${col+1};grid-row:${row+1}`;
+      if(canStep||investigate)return `<button type="button" class="${classes}" style="${style}"
+        data-action="tower-step" data-value="${i}" aria-label="${label}${investigate?'を調べる':'へ進む'}"></button>`;
+      return `<span class="${classes}" style="${style}" aria-label="${label}"></span>`;
+    }).join('');
+    return `<section class="forest-field tower-field" data-field-pos="${f.pos}" data-field-seen="${f.seen}"
+      data-tower-echo="${f.echo}" data-tower-open="${f.open}" data-tower-relic="${f.relic}"
+      data-tower-guard="${f.guard}" data-tower-cache="${f.cache}" aria-label="歩いて探索できる鐘なき塔の入口階">
+      <div class="forest-field-header"><span class="kicker">THE SILENT BELL · 石の塔</span>
+      <h2>${esc(title)}</h2><small>鐘の反響をたどって、石床をタップして進もう。</small></div>
+      <div class="field-terrain" role="group" aria-label="鐘なき塔の入口階を歩く">
+      <div class="field-worldspace"><canvas class="forest-world-canvas" width="600" height="600" aria-hidden="true"></canvas>${cells}</div></div>
+      <div class="forest-field-footer"><span>♜ 崩れた塔</span>
+      <strong>${f.relic?'✦ 秘密の納骨室を発見':f.open?'隠し階段を発見':'鐘の残響を探す'}</strong>
+      <span>${f.guard?'上階への道が開いた':'鎧の足音が響く'}</span></div></section>`;
+  }
+  function towerDecision(x){
+    return `<div class="field-decision"><div class="field-status">${vitals(x)}
+      <div class="path-risk"><span>持ち帰れる鉄片</span><strong>${x.scrap}</strong><small>倒れれば失う</small></div></div>
+      <p class="field-moment" role="status">${esc(x.log[0]||'静かな石の塔。音のする方へ進める。')}</p>
+      <div class="field-choices">${button('return','ここで生還する','集めた素材を確定する',{class:'secondary'})}
+      ${button('heal',`薬草 ${x.potions} · 体力 +12`,'',{class:'text-button',disabled:x.potions===0||x.hp===E.maxHp(state)})}</div></div>`;
+  }
   function fieldDecision(x){
     const wolfStatus=window.CrownlessField?.wolfAwareness(x.field);
     const event=x.field.wolf?'狼を倒した！ 同じ森を探索できる。残る宝箱を探してもいい。':wolfStatus==='alert'?'狼の視線がこちらを追っている。巣穴へ踏み込んで戦うか、横道へ逃げるか。':x.field.pos===20?'森の入り口。どこへ踏み込む？':x.field.cache&&x.field.tracks?'素材と足跡を見つけた。奥に進むか、生還するか。':x.field.cache?'傷つきながら鉄片を拾った。持ち帰るか先へ進むか。':x.field.tracks?'獣の足跡を読んだ。危険な巣穴を避ける道を探せ。':'足元の霧が晴れた。知らない道が現れた。';
@@ -370,7 +407,9 @@
     const siege=landmarkOf(x.landmarkId);
     const enemyArt = x.enemy ? (E.ENEMIES[x.enemy.kind].art || x.enemy.kind) : null;
     const fieldActive=x.place==='wood'&&x.depth===1&&x.room===0&&x.stage==='path'&&Boolean(x.field)&&Boolean(window.CrownlessField);
-    return `<div class="game-layout expedition-layout ${isFight ? 'battle-layout' : ''} ${fieldActive?'field-layout':''}" data-combat-result="${x.log.some(line => line.startsWith('崩し追撃！')) ? 'follow-up' : ''}" data-combat-turn="${x.depth}:${x.room}:${x.enemy?.turn ?? 'path'}"><section class="visual-column">${fieldActive?forestField(x,siege ? siege.name : localDistrict ? N.title(localDistrict) : p.name):scene(x.place,siege ? siege.name : localDistrict ? N.title(localDistrict) : p.name,`DEPTH ${String(x.depth).padStart(2,'0')} · ${x.stage === 'cleared' ? '踏破' : `${x.room+1} / 5`}`,enemyArt,`${E.GEAR[state.equipped].name}`,isFight ? null : x)}${fieldActive?'':route(x)+vitals(x)}<div class="journey-note"><b>${String(x.depth).padStart(2,'0')}</b><span>深層 ${x.depth} · 戦利品を失っても、持ち込んだ装備は残る。<br>深層ほど敵は強く、より多くの希少素材を持ち帰れる。</span></div></section><section class="panel ${isFight ? 'combat-panel' : 'path-panel'} ${fieldActive ? 'field-panel' : ''}">${isFight ? fight(x) : fieldActive ? fieldDecision(x) : pathPanel(x)}</section></div>`;
+    const towerActive=x.place==='tower'&&x.depth===1&&x.room===0&&x.stage==='path'&&Boolean(x.tower)&&Boolean(window.CrownlessTowerField);
+    const worldActive=fieldActive||towerActive;
+    return `<div class="game-layout expedition-layout ${isFight ? 'battle-layout' : ''} ${worldActive?'field-layout':''}" data-combat-result="${x.log.some(line => line.startsWith('崩し追撃！')) ? 'follow-up' : ''}" data-combat-turn="${x.depth}:${x.room}:${x.enemy?.turn ?? 'path'}"><section class="visual-column">${fieldActive?forestField(x,siege ? siege.name : localDistrict ? N.title(localDistrict) : p.name):towerActive?towerField(x,siege ? siege.name : localDistrict ? N.title(localDistrict) : p.name):scene(x.place,siege ? siege.name : localDistrict ? N.title(localDistrict) : p.name,`DEPTH ${String(x.depth).padStart(2,'0')} · ${x.stage === 'cleared' ? '踏破' : `${x.room+1} / 5`}`,enemyArt,`${E.GEAR[state.equipped].name}`,isFight ? null : x)}${worldActive?'':route(x)+vitals(x)}<div class="journey-note"><b>${String(x.depth).padStart(2,'0')}</b><span>深層 ${x.depth} · 戦利品を失っても、持ち込んだ装備は残る。<br>深層ほど敵は強く、より多くの希少素材を持ち帰れる。</span></div></section><section class="panel ${isFight ? 'combat-panel' : 'path-panel'} ${worldActive ? 'field-panel' : ''}">${isFight ? fight(x) : fieldActive ? fieldDecision(x) : towerActive ? towerDecision(x) : pathPanel(x)}</section></div>`;
   }
   function ending() {
     return `<div class="game-layout report-layout"><section class="visual-column">${scene('camp','灰の冠は、火のそばに。','THE CROWN CAME HOME',null,'旅の到達点')}</section><section class="panel report-panel"><div class="report-scroll"><p class="kicker">EPILOGUE · 名もなき旅人</p><h1>冠を持ち帰った。<br>それでも、旅は続く。</h1><p class="intro">霧の王墓から持ち帰った灰の冠を、あなたは焚き火のそばへ置いた。名は刻まれない。けれど、歩いた土地と、生きて帰った夜だけは残る。</p><div class="result-number">${state.victories} <small>回の生還 / 遠征 ${state.runs} 回</small></div><p class="notice">灰の王冠 · 最大体力 +6。ここから先も、まだ見ぬ素材と職人の仕事が残っている。</p><p class="small rule-line">これは終わりではなく、最初の物語の区切り。地図へ戻れば、踏破した土地にも再び遠征できる。</p></div><div class="report-actions">${button('ending-continue','旅の地図へ戻る','',{class:'primary'})}</div></section></div>`;
@@ -447,6 +486,7 @@
     // Paint only when the new forest is active; retain accessible tile controls.
     // No engine mutation: the terrain renderer reads already validated DOM state.
     window.CrownlessForestWorld?.mount?.(root);
+    window.CrownlessTowerWorld?.mount?.(root);
     const codexPanel = root.querySelector?.('.codex-panel');
     if (codexPanel) window.CrownlessCodexUI?.renderCodex?.(codexPanel);
     const chroniclePanel = root.querySelector?.('.chronicle-panel');
