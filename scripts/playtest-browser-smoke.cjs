@@ -60,12 +60,15 @@ async function main() {
         await page.goto(url);
         await page.locator('[data-action="mode"][data-value="demo"]').click();
         assert.equal(await page.locator(".nearby-paper-map").count(), 1, "demo should show the map");
+        assert.equal(await page.locator('.nearby-track-tile').count(),25,'the neighborhood is a 5x5 connected tile board');
+        assert.equal(await page.locator('.nearby-track-tile.selected').count(),1,'the current destination is centered and selected');
+        assert((await page.locator('.nearby-track-road').count())>=2,'known lands are linked by rendered paths');
         const layout = await page.evaluate(() => {
           const rect = selector => {
             const r = document.querySelector(selector).getBoundingClientRect();
             return {top:r.top,bottom:r.bottom,height:r.height,left:r.left,right:r.right};
           };
-          const selectors=['.nearby-tile','.nearby-top-action','.nearby-card-actions button.primary','.nearby-card-actions button.secondary'];
+          const selectors=['.nearby-track-tile.selected','.nearby-top-action','.nearby-card-actions button.primary','.nearby-card-actions button.secondary'];
           const blocked=selectors.filter(selector=>{
             const e=document.querySelector(selector);
             if (!e || e.disabled) return false;
