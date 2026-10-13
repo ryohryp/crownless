@@ -782,3 +782,52 @@ test('untrained explorer receives no UI action on the hidden fen causeway',()=>{
   b.click('fen-step','6');
   assert.equal(E.parse(b.store.get(key)).expedition.fen.trail,false);
 });
+
+test('first-screen skill unlock is unmistakable, persists through reload, then opens the learned status',()=>{
+  let s=E.start({...E.initial(),mode:'demo'},'wood');
+  for(const to of [21,22,23,18])s=E.act(s,'field-step:'+to);
+  assert.equal(s.expedition.field.tracks,true,'player must really inspect the tracks');
+  assert.equal(s.characters[0].skills.trailReading,undefined,'finding tracks does not grant skills before return');
+  assert.match(s.expedition.log[0],/生還すると、新しい探索技術《獣道読み》/);
+  const key='crownless-expedition-v1-demo';
+  const b=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(s)});
+  assert.match(b.html(),/skill-learning-hint/);
+  assert.match(b.html(),/無事に生還すると習得！/);
+  b.click('return');
+  const reported=E.parse(b.store.get(key));
+  assert.equal(reported.report.newSkill,'trailReading');
+  assert.equal(reported.characters[0].skills.trailReading,true);
+  const html=b.html();
+  assert.match(html,/skill-unlock-report/);
+  assert.match(html,/SKILL UNLOCKED · 新しい探索技能/);
+  assert.match(html,/《獣道読み》を習得！/);
+  assert.match(html,/以前歩いた森の小道や、湿原の水辺/);
+  assert(html.indexOf('skill-unlock-spotlight')<html.indexOf('result-number'),
+    'skill acquisition must precede and visually dominate ordinary scrap rewards');
+  assert.match(html,/人物画面で新しい技能を確認/);
+  const again=browser({'crownless-expedition-mode':'demo',[key]:b.store.get(key)});
+  assert.match(again.html(),/《獣道読み》を習得！/,'reload must not lose the skill-unlock report');
+  b.click('continue');
+  assert.match(b.html(),/プレイヤーのステータス/);
+  assert.match(b.html(),/獣道読み/);
+  assert.match(b.html(),/習得済み/);
+  assert.equal(E.parse(b.store.get(key)).report,null);
+});
+
+test('previously learned and failed expeditions never show a false new-skill celebration',()=>{
+  const key='crownless-expedition-v1-demo';
+  let trained={...E.initial(),mode:'demo'};
+  trained.characters[0].skills.trailReading=true;
+  trained=E.start(trained,'wood');
+  for(const to of [21,22,23,18])trained=E.act(trained,'field-step:'+to);
+  const familiar=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(trained)});
+  assert.doesNotMatch(familiar.html(),/skill-learning-hint/);
+  familiar.click('return');
+  assert.doesNotMatch(familiar.html(),/skill-unlock-spotlight/);
+  assert.equal(E.parse(familiar.store.get(key)).report.newSkill,undefined);
+  const died={...E.initial(),mode:'demo'};
+  died.report={died:true,place:'wood',depth:1,scrap:0,materials:{wolfFang:0,watchIron:0,marshFiber:0},
+    gear:[],gearQuality:[],newGear:[],duplicates:[],hp:0,cleared:[],defeatedBy:null};
+  const failed=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(died)});
+  assert.doesNotMatch(failed.html(),/skill-unlock-spotlight/);
+});
