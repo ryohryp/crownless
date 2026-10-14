@@ -9,6 +9,6 @@
     "playtest": "node scripts/evaluate-playtest-jev.cjs",
     "playtest:browser": "node scripts/playtest-browser-jev.cjs",
     "playtest:browser:full": "node scripts/playtest-browser-jev.cjs --full",
-    "playtest:smoke": "node scripts/playtest-browser-smoke.cjs && node scripts/test-tower-bag-phone.cjs"
+    "playtest:smoke": "node scripts/playtest-browser-smoke.cjs && node scripts/verify-tower-bag-phone.cjs"
   }
 }
