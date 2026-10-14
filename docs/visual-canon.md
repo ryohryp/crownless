@@ -5,6 +5,9 @@
 
 ## Map-specific direction update — 2026-10-14
 
+The durable map presentation decision and gameplay/privacy boundaries are in
+[ADR 0014](adr/0014-connected-path-tile-map.md).
+
 The user refined the map target: **Orna-like RPG field presence**, and, if the
 world remains square-grid-based, **interlocking path tiles inspired by
 チクタクバンバン** instead of an isolated list of place cards. Treat the road

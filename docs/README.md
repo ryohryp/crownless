@@ -31,6 +31,7 @@ Start here:
 - [ADR 0011 — location-based asynchronous sandbox economy](adr/0011-async-sandbox-economy.md) — active product pivot; replaces finished-gear drop and territory-only motivation.
 - [ADR 0012 — landmark control grants passive blessings](adr/0012-landmark-control-passive-buffs.md) — accepted decision, **not yet implemented**; automatic passive benefits with stacking limits.
 - [ADR 0013 — first safe return enables an exploration-changing craft](adr/0013-first-return-exploration-craft.md) — accepted decision, **not yet implemented**; one non-combat gather → artisan craft → changed next exploration experiment.
+- [ADR 0014 — connected path tiles for neighborhood maps](adr/0014-connected-path-tile-map.md) — accepted and implemented; joined fictional terrain tiles, earned discovery and actionable places without real-world route claims.
 
 - [Visual Canon](visual-canon.md) — single global visual authority; specialized `visual/` documents must conform to it
 - [Deployment strategy](deployment-strategy.md)
