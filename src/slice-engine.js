@@ -553,6 +553,22 @@
     } else if (x.stage === 'cleared' && action === 'deeper' && x.depth < 3) {
       x.depth++; x.room = 0; x.stage = 'path'; x.log = [`さらに深く。${lootCue(x.place, x.depth)}`]; return n;
     } else if (x.stage === 'path') {
+      // The collapsed stair offers combat preparation or at-risk smithing material.
+      if ((action === 'tower-cache-focus' || action === 'tower-cache-iron') &&
+          x.place === 'tower' && x.depth === 1 && x.room === 0 && x.tower &&
+          x.tower.pos === T.CACHE && !x.tower.cache) {
+        if (action === 'tower-cache-iron') {
+          if (x.hp <= 2 || x.materials.watchIron >= 1000000) return s;
+          x.hp -= 2;
+          x.materials.watchIron += 1;
+          x.log = ['崩れた石をこじ開け、鐘鉄 +1 を拾った。体力 −2。生還するまで素材は背嚢の中だ。'];
+        } else {
+          x.focus = Math.max(3, x.focus);
+          x.log = ['古い兵士の訓練刻印を読み解いた。集中を3以上に整えた。鐘鉄は残したが、次の戦闘に備えられる。'];
+        }
+        x.tower.cache = true;
+        return n;
+      }
       // A learned exploration skill is an intentional action, not just an
       // invisible condition on terrain. Scope it to meaningful clues, so the
       // player never has to press "scan" on every tile.
@@ -663,9 +679,7 @@
           x.scrap=Math.min(1000,x.scrap+4);
           x.log=['秘密の納骨室を発見！ 鐘鉄 +1、鉄片 +4。素材は生還して初めて確定する。'];
         }else if(to===T.CACHE&&!next.cache){
-          next.cache=true;
-          x.focus=Math.max(3,x.focus);
-          x.log=['崩れた階段の下に兵士の訓練刻印。次の戦闘の最初の一撃に集中 +3。'];
+          x.log=['崩れた階段の奥から鐘鉄の響き。石をこじ開ければ傷つくが素材が手に入る。壁の訓練刻印を読めば安全に戦闘へ備えられる。'];
         }else if(to===T.GUARD&&!next.guard){
           encounter(x,true,n.runs);
           x.log.unshift('鎧の足音！ 鐘なき塔の番人が立ちはだかる。戦って退ければ上へ進める。');
