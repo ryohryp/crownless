@@ -179,10 +179,15 @@
       '</div></div>';
   }
   function towerDecision(x){
+    const cacheChoices=x.tower?.pos===window.CrownlessTowerField?.CACHE&&!x.tower.cache
+      ? button('tower-cache-iron','鐘鉄をこじ取る','体力 −2 / 鐘鉄 +1 · 生還で確定',
+          {disabled:x.hp<=2||x.materials.watchIron>=1000000})+
+        button('tower-cache-focus','刻印を読み解く','集中を3以上に / 次の戦闘に備える')
+      : '';
     return `<div class="field-decision"><div class="field-status">${vitals(x)}
       <div class="path-risk"><span>持ち帰れる鉄片</span><strong>${x.scrap}</strong><small>倒れれば失う</small></div></div>
       <p class="field-moment" role="status">${esc(x.log[0]||'静かな石の塔。音のする方へ進める。')}</p>
-      <div class="field-choices">${button('return','ここで生還する','集めた素材を確定する',{class:'secondary'})}
+      <div class="field-choices">${cacheChoices}${button('return','ここで生還する','集めた素材を確定する',{class:'secondary'})}
       ${button('heal',`薬草 ${x.potions} · 体力 +12`,'',{class:'text-button',disabled:x.potions===0||x.hp===E.maxHp(state)})}</div></div>`;
   }
   function fieldDecision(x){
