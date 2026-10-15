@@ -56,6 +56,8 @@ jobs:
           npx playwright install --with-deps chromium
       - name: Phone map, landmark and save smoke
         run: npm run playtest:smoke
+      - name: Visual candidate temporary placement smoke
+        run: node --test test/asset-quality-phone.test.js
       - name: Upload PR and failure screenshots (short-lived)
         if: ${{ failure() || github.event_name == 'pull_request' }}
         uses: actions/upload-artifact@v4
