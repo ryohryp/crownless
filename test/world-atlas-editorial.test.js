@@ -36,7 +36,7 @@ test('existing real-world discovery and character-specific departures keep their
   let state = E.initial();
   state.mode = 'walk';
   let html=render(state);
-  assert.match(html,/現実の発見/);
+  assert.match(html,/現実の散策モード/);
   assert.match(html,/data-action="depart"/);
   state = E.switchCharacter(state,1);
   html=render(state);
