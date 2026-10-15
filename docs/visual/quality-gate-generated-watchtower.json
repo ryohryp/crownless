@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "kind": "background",
+  "candidate": ".qa/candidates/generated-watchtower-inkwash-512.jpg",
+  "subject": "fictional ruined medieval watchtower on a rocky ridge, ancient stone stairway, distant misty valley",
+  "usage": "UNAPPROVED generated discovered-place background; temporary demo-map composition review, not automatic runtime adoption",
+  "generationPrompt": "Original standalone 16:9 environment illustration of an abandoned stone watchtower above a remote valley, a broken masonry silhouette, rocky stairway and misty mountains. Western medieval fantasy painted as sumi-e-like charcoal wash on warm washi, airy negative space, no people, text, logos, UI or real-world route. No historical board source reference.",
+  "targetSize": [
+    512,
+    288
+  ],
+  "transparent": false,
+  "references": [],
+  "attempt": 0,
+  "integration": {
+    "selector": ".nearby-secondary-content",
+    "mode": "insert",
+    "view": "detail",
+    "demoBiome": "tower",
+    "expectedTitle": "見張り跡"
+  }
+}
