@@ -192,4 +192,4 @@ if(require.main===module)(async()=>{
   if(r.asset?.status!=="accept_candidate"||(args.stage==="all"&&r.phone?.status!=="accept_candidate"))process.exitCode=2;
  }catch(e){console.error("image_gate: "+e.message);process.exitCode=2;}
 })();
-module.exports={validateManifest,validateGeometry,questions,interpret,run,cli};
+module.exports={validateManifest,validateGeometry,questions,interpret,evaluate,run,cli};

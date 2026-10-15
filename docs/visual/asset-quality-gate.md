@@ -15,3 +15,7 @@ Authority: AGENTS.md; docs/visual-canon.md; docs/visual/GLOBAL_VISUAL_STYLE.md; 
 The baseline pilot manifest points to an EXISTING ruined-watchtower image and temporarily places it behind the in-game map. It is a wiring fixture, not a newly generated image and not a claim of approval under the 2026-10-08 global Canon. A complete new-image E2E requires generating a fresh candidate, running the two gates, correcting defects and checking the actual adopted integration.
 
 TypeSafe image support is experimental: https://docs.typesafe.ai/images . The official SDK uploads images as multipart with the TypeSafe-Danger-Zone-Images header. Supported format PNG/JPEG, 16 MiB per image, side 256–1568 pixels, area 78,400–2,458,624 pixels, total request 32 MiB. The source remains untouched even if smaller than minimum.
+
+## Official SDK wire regression test
+
+CI now installs the pinned official JS SDK and sharp in the existing `test` job. The `test/asset-quality-sdk.test.js` regression uses synthetic PNG bytes and a mocked `fetch` implementation attached to the **real TypeSafeClient**, verifying image multipart upload, opt-in header, asset/reference binding, Choice/Score/Noul questions, and separation of transport errors from art rejection. It sends **no live API traffic and no private location**. This closes the previously untested request-serialization path but **does not prove live Jev Vision judgments**. A trusted execution environment holding `TYPESAFE_API_KEY` must still complete one real image evaluation before production use.
