@@ -13,4 +13,5 @@ test("manual Jev image review runs only against tracked candidate manifests",()=
  assert.match(runner,/approved:false/);
  assert.match(runner,/semantic_asset_review_unavailable/);
  assert.doesNotMatch(flow,/pull_request:/);
+ assert.doesNotMatch(flow,/^  push:/m,"Image QA must never run on push");
 });

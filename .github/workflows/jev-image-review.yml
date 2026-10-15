@@ -7,8 +7,6 @@ on:
         required: true
         default: 'docs/visual/quality-gate-generated-watchtower.json'
         type: string
-  push: # TEST ONLY: remove before PR review
-    branches: [feat/manual-jev-image-review]
 
 permissions:
   contents: read
