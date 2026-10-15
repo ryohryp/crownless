@@ -954,7 +954,10 @@ async function main() {
         await page.screenshot({path:path.join(output,'tower-found-reliquary-'+width+'.png')});
         await page.reload();
         assert.equal(await page.locator('.tower-field[data-tower-relic="true"]').count(),1);
-        for(const id of [12,17,18,19,14,9])await step(id);
+        for(const id of [12,17,18,19,14])await step(id);
+        assert.match((await saved()).expedition.log[0],/鎧が石床を打つ足音/,
+          'guardian warning should be legible before choosing combat on a phone');
+        await step(9);
         s=await saved();
         assert.equal(s.expedition.stage,'fight');
         assert.equal(s.expedition.enemy.kind,'knight');
