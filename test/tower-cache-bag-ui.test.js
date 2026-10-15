@@ -94,6 +94,9 @@ test('tower echo investigation is a deliberate choice, not hidden-route navigati
   assert.equal(saved.expedition.tower.pos,T.ECHO,'investigating does not teleport');
   assert.equal(saved.expedition.tower.open,true);
   assert.equal(T.visible(saved.expedition.tower,T.SECRET),true);
+  const revealedSecret=b.html().match(/<button\b[^>]*data-action="tower-step" data-value="12"[^>]*>/)?.[0];
+  assert.ok(revealedSecret,'discovered secret stair remains an explicit tile');
+  assert.doesNotMatch(revealedSecret,/walk-nav/,'secret stair must not become ordinary navigation after discovery');
   assert.doesNotMatch(b.html(),/鐘の反響を確かめる/);
   const resumed=browser(saved);
   assert.doesNotMatch(resumed.html(),/鐘の反響を確かめる/);
