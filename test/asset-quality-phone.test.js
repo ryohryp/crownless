@@ -7,11 +7,11 @@ import { createRequire } from "node:module";
 const require=createRequire(import.meta.url);
 const { capturePhoneScreens }=require("../scripts/asset-quality-phone.cjs");
 const playwrightReady=(()=>{try{require.resolve("playwright");return true;}catch{return false;}})();
-test("real demo temporarily renders watchtower candidate at three phone widths",{
+test("real demo temporarily renders newly generated watchtower proxy at three phone widths",{
  skip:!playwrightReady?"Playwright installed only in mobile-browser CI":false,
  timeout:120000
 },async()=>{
- const manifest=JSON.parse(await readFile(new URL("../docs/visual/quality-gate-pilot-watchtower.json",import.meta.url),"utf8"));
+ const manifest=JSON.parse(await readFile(new URL("../docs/visual/quality-gate-generated-watchtower.json",import.meta.url),"utf8"));
  const root=new URL("../",import.meta.url);
  const tmp=await mkdtemp(join(tmpdir(),"crownless-art-qa-"));
  try{
