@@ -132,11 +132,16 @@ test('phone-smoke artifacts are short-lived and cleanup cannot touch Pages artif
   const cleanup = read('.github/workflows/prune-phone-smoke-artifacts.yml');
 
   assert.match(workflow, /failure\(\) \|\| github\.event_name == 'pull_request'/);
-  assert.match(workflow, /retention-days:\s*2/);
+  assert.match(workflow, /retention-days:\s*1/);
   assert.match(cleanup, /github\.repository == 'ryohryp\/crownless'/);
   assert.match(cleanup, /a\.name === 'crownless-phone-smoke'/);
   assert.match(cleanup, /screenshots\.slice\(0, 10\)/);
-  assert.match(cleanup, /now - 7 \* 24 \* 60 \* 60 \* 1000/);
+  assert.match(cleanup, /default: '168'/);
+  assert.match(cleanup, /- '24'/);
+  assert.match(cleanup, /default: true/);
+  assert.match(cleanup, /context\.actor !== 'ryohryp'/);
+  assert.match(cleanup, /context\.eventName !== 'workflow_dispatch' && ageHours !== '168'/);
+  assert.match(cleanup, /const cutoffMs = now - Number\(ageHours\) \* 60 \* 60 \* 1000/);
   assert.match(cleanup, /\.slice\(0, 500\)/);
   assert.doesNotMatch(cleanup, /a\.name === 'github-pages'/);
 });

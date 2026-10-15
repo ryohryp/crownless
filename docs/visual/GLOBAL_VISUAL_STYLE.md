@@ -12,9 +12,23 @@ The user approved a **Western medieval fantasy × Japanese sumi-e** map/town/for
 Western medieval fantasy illustrated in expressive Japanese sumi-e on warm handmade washi. Black and charcoal-gray ink washes, feathered edges, irregular dry-brush contours, layered atmospheric distance and generous unpainted paper. Distinct silhouettes for tower, village, bridge, forest, river, shop and relic. Sparse muted vermilion only for danger, rivals, seals or meaningful focus. Map, town, forge, event and UI feel drawn on the same page; compact readable annotation-like controls. Not a simple sepia filter on clean vector graphics.
 ```
 
-## Avoid
+## Fixed Avoid Block
 
-Glossy RPG chrome, photorealism, oil-paint fantasy concept art, anime-gacha framing, neon effects, dominant teal/green, decorative aged-gold borders, flat clean clip-art, dense textures over labels, huge opaque cards over the map, baked-in text on scene art.
+```text
+AVOID: glossy RPG chrome, photorealism, oil-paint fantasy concept art, anime-gacha framing, neon effects, dominant teal or blue-green palette, decorative aged-gold borders, flat clean clip-art, dense textures over labels, huge opaque cards over the map, baked-in text on scene art, historical blue-green board as current approved global reference
+```
+
+## Allowed Changes
+
+- Adapt lighting, ruins, vegetation, ink density and landmark composition within the active sumi-e-on-washi Canon.
+- For characters, preserve each approved anchor's silhouette, clothing, fixed combat camera and pivot.
+- Apply the newer connected-field map direction (ADR-0014) only to maps, without overruling non-map gameplay art.
+
+## Forbidden Changes
+
+- Do not treat the historical board as the unarchived 2026-10-08 approved global image.
+- Do not adopt a new candidate as Canon or derive approved anchors from rejected candidates.
+- Do not substitute generic glossy fantasy, dominant teal/gold, anime, or clean-vector art for expressive ink wash.
 
 ## Authority order
 

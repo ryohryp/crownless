@@ -8,7 +8,7 @@ The goal is to ensure that a production visual request produces the requested ga
 
 Before invoking any image generator for a Crownless production asset:
 
-1. Resolve the current repository Canon first. Use `AGENTS.md`, `docs/gameplay-spec.md`, `docs/visual-canon.md`, the Global Visual Reference, and the relevant specialized visual / Grand Design / compiled Canon contract.
+1. Resolve the current repository Canon first. Use `AGENTS.md`, `docs/gameplay-spec.md`, `docs/visual-canon.md`, the current Global Visual Style (and only an actually archived approved Global Visual Reference, if one exists), and the relevant specialized visual / Grand Design / compiled Canon contract.
 2. Build an **asset-only handoff**. The final generation request must describe only the requested asset, its composition, required scene facts, style lock, allowed changes, forbidden changes, and approved/reference assets that are valid for that generation.
 3. Keep development metadata outside the generation request. Do not ask the image model to render or reproduce Issue numbers, PRs, task status, progress percentages, dashboards, reports, validation summaries, commit SHAs, acceptance-checklist UI, or tool output unless the requested production asset is explicitly one of those things.
 4. Do not let unrelated conversation images become implicit parents. If the host cannot mechanically restrict image bindings to the current Generation Package or an explicit empty/approved reference set, fail closed instead of guessing.
@@ -59,6 +59,6 @@ For subjectless discovered-location backgrounds such as the exploration journal 
 - keep characters and creatures absent unless explicitly requested
 - keep text, labels, logos, game UI, issue UI, and progress UI out of the image
 - preserve the requested wide environmental composition and phone-scale landmark readability
-- use parchment negative space, rough hand-inked / woodcut grammar, restrained semantic color, and avoid photoreal / painterly / cinematic generic dark-fantasy drift
+- use warm washi and expressive sumi-e charcoal wash, dry-brush contours and sparse semantically meaningful vermilion; do not reuse the superseded blue-green/aged-gold woodcut board or drift to generic photoreal/painterly fantasy
 
 Generated output remains a Candidate until Canon review passes.

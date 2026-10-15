@@ -9,6 +9,11 @@
     "playtest": "node scripts/evaluate-playtest-jev.cjs",
     "playtest:browser": "node scripts/playtest-browser-jev.cjs",
     "playtest:browser:full": "node scripts/playtest-browser-jev.cjs --full",
-    "playtest:smoke": "node scripts/playtest-browser-smoke.cjs && node scripts/verify-tower-bag-phone.cjs"
+    "playtest:smoke": "node scripts/playtest-browser-smoke.cjs && node scripts/verify-tower-bag-phone.cjs",
+    "asset:quality": "node scripts/asset-quality-gate.cjs"
+  },
+  "devDependencies": {
+    "@typesafe-ai/sdk": "0.7.0",
+    "sharp": "0.35.4"
   }
 }

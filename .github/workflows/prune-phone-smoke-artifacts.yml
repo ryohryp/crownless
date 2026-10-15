@@ -10,6 +10,13 @@ on:
     - cron: '31 3 * * *'
   workflow_dispatch:
     inputs:
+      prune_age_hours:
+        description: 'Age threshold for owner-requested pruning (scheduled runs remain at 168h)'
+        type: choice
+        default: '168'
+        options:
+          - '168'
+          - '24'
       dry_run:
         description: Preview eligible artifacts without deleting
         type: boolean
@@ -33,6 +40,7 @@ jobs:
         uses: actions/github-script@v7
         env:
           DRY_RUN: ${{ inputs.dry_run || false }}
+          PRUNE_AGE_HOURS: ${{ github.event_name == 'workflow_dispatch' && inputs.prune_age_hours || '168' }}
         with:
           script: |
             if (context.repo.owner !== 'ryohryp' || context.repo.repo !== 'crownless') {
@@ -44,7 +52,12 @@ jobs:
             const dryRun = context.eventName === 'workflow_dispatch' &&
               process.env.DRY_RUN === 'true';
             const now = Date.now();
-            const cutoffMs = now - 7 * 24 * 60 * 60 * 1000;
+            const ageHours = process.env.PRUNE_AGE_HOURS;
+            if (!['24', '168'].includes(ageHours) ||
+                (context.eventName !== 'workflow_dispatch' && ageHours !== '168')) {
+              throw new Error('Invalid prune age for this event; refusing cleanup');
+            }
+            const cutoffMs = now - Number(ageHours) * 60 * 60 * 1000;
             const all = await github.paginate(github.rest.actions.listArtifactsForRepo, {
               ...context.repo,
               per_page: 100,
@@ -62,7 +75,7 @@ jobs:
               .sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at))
               .slice(0, 500);
             const bytes = eligible.reduce((n, a) => n + a.size_in_bytes, 0);
-            core.info(`inventory=${all.length} screenshots=${screenshots.length} eligible=${eligible.length} candidate_mib=${(bytes / 1048576).toFixed(2)} dry_run=${dryRun}`);
+            core.info(`inventory=${all.length} screenshots=${screenshots.length} eligible=${eligible.length} candidate_mib=${(bytes / 1048576).toFixed(2)} age_hours=${ageHours} dry_run=${dryRun}`);
             let deleted = 0;
             let failures = 0;
             for (const artifact of eligible) {

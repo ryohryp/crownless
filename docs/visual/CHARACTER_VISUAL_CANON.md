@@ -4,8 +4,8 @@ This file maps Crownless combat subjects to the current character rules used by 
 
 ## Common rules
 
-- Use `docs/assets/crownless-visual-design-reference-v0.1.jpg` for global linework, palette, material, and manuscript-family calibration.
-- Use `assets/combat/minimal-v0.1/actors/` as the current authority for combat-character proportion, deformation, silhouette width, facial simplification, and battlefield viewpoint.
+- Use `docs/visual-canon.md` and `docs/visual/GLOBAL_VISUAL_STYLE.md` for current global ink-wash/washi language. The former `docs/assets/crownless-visual-design-reference-v0.1.jpg` is historical only where its palette/woodcut treatment conflicts.
+- Historical `assets/combat/minimal-v0.1/actors/` art was removed under ADR-0005, and is **not** a current runtime dependency or approved generation parent. Preserve the archived role silhouettes only as history.
 - Older character / battle reference sheets are supporting style references only where they do not conflict with the accepted actor set.
 - Keep humanoid figures approximately **3–3.5 heads tall**, strongly deformed, compact, weathered, asymmetrical, and readable at phone scale.
 - Keep faces tiny, restrained, crude, and folk-art-like rather than cute, anime-like, painterly, or realistic.
@@ -22,9 +22,9 @@ This anchor is the approved identity, clothing/material, palette, silhouette, an
 
 The v0.4 replacement was generated from the approved v0.3 identity anchor after the prior v0.2 WebP failed local decode validation. The replacement is recorded in `docs/assets/player-unarmed-approved-anchor-v0.4.json`. The previous v0.3 plate remains historical calibration only; the unreadable v0.2 file remains a legacy reference and must not be used as a generation parent.
 
-### Reference calibration
+### Historical reference calibration (not a current global image)
 
-- `docs/assets/crownless-visual-design-reference-v0.1.jpg`
+- `docs/assets/crownless-visual-design-reference-v0.1.jpg` — legacy, only where consistent with current style; never use as mandatory image parent
 
 ### Approved Sprite Sheet Reference
 
@@ -32,18 +32,18 @@ The v0.4 replacement was generated from the approved v0.3 identity anchor after 
 
 Use this sheet as a historical presentation/reference for the protagonist's directional pose family and unarmed action language only if it decodes correctly. It is not the runtime atlas, and its labels, background treatment, and sheet layout must not appear in gameplay sprites. The v0.4 Approved Visual Anchor above is the generation parent for subject identity, clothing/material language, palette, silhouette, and unarmed combat identity.
 
-### Directional Combat Source — not runtime-eligible
+### Historical directional combat source — removed from current runtime
 
 - `assets/combat/minimal-v0.1/actors/player-unarmed-combat-sprite-sheet-v0.1.png`
 
-This transparent 768×512 derivative is retained as a directional-pose source. Pixel and runtime review established that its eight columns are direction variants rather than temporal frames; cycling them produces a rotating actor. Its hair, collar, and clothing silhouette also do not preserve the Approved Visual Anchor's subject identity. It must not replace `assets/combat/minimal-v0.1/actors/player-unarmed.png`. A future runtime animation set must be authored from the v0.4 Approved Visual Anchor and pass `docs/visual/generation-packages/player-unarmed-runtime-sprite-acceptance-v0.1.md`.
+This older 768×512 derivative is no longer present in the current repository; its past directional-pose analysis is recorded only for historical context. Pixel and runtime review established that its eight columns are direction variants rather than temporal frames; cycling them produces a rotating actor. Its hair, collar, and clothing silhouette also do not preserve the Approved Visual Anchor's subject identity. It must not replace `assets/combat/minimal-v0.1/actors/player-unarmed.png`. A future runtime animation set must be authored from the v0.4 Approved Visual Anchor and pass `docs/visual/generation-packages/player-unarmed-runtime-sprite-acceptance-v0.1.md`.
 
-### Accepted MVP Runtime Animation
+### Historical MVP runtime animation — removed under ADR-0005
 
 - `assets/combat/minimal-v0.1/actors/player-unarmed-combat-sprite-sheet-v0.3.png`
 - `assets/combat/minimal-v0.1/player-unarmed-animation.json`
 
-The user-approved v3 atlas is the accepted runtime source for `idle`, `walk`, `jab`, and `hurt`. It preserves the v0.4 Approved Visual Anchor's identity and unarmed equipment language across one fixed oblique top-down facing. Each action has four temporal frames on a transparent 512×512 cell with an authored ground pivot at `(256, 480)`. The existing `player-unarmed.png` remains the static decode/load fallback; the v0.4 Anchor remains the generation parent and is not replaced by this atlas.
+The formerly accepted v3 atlas (now removed from current runtime) was the source for `idle`, `walk`, `jab`, and `hurt`. It preserves the v0.4 Approved Visual Anchor's identity and unarmed equipment language across one fixed oblique top-down facing. Each action has four temporal frames on a transparent 512×512 cell with an authored ground pivot at `(256, 480)`. The existing `player-unarmed.png` remains the static decode/load fallback; the v0.4 Anchor remains the generation parent and is not replaced by this atlas.
 
 ### Accepted visual conditions
 
@@ -58,9 +58,9 @@ The approved base state is the unarmed expedition survivor. Equipment changes si
 
 ## 敵：Rusher
 
-### Approved Visual Anchor
+### Historical actor reference — **not a current Approved Visual Anchor**
 
-- `assets/combat/minimal-v0.1/actors/enemy-rusher.png`
+- `assets/combat/minimal-v0.1/actors/enemy-rusher.png` — removed from `main` when real-time combat was retired (ADR-0005); do not use this file as a live anchor.
 
 ### Accepted visual conditions
 
@@ -75,9 +75,9 @@ This is the ordinary Rusher archetype, not 灰牙 unless requested separately.
 
 ## 敵：Guard
 
-### Approved Visual Anchor
+### Historical actor reference — **not a current Approved Visual Anchor**
 
-- `assets/combat/minimal-v0.1/actors/enemy-guard.png`
+- `assets/combat/minimal-v0.1/actors/enemy-guard.png` — removed from `main` when real-time combat was retired (ADR-0005); do not use this file as a live anchor.
 
 ### Accepted visual conditions
 
@@ -92,9 +92,9 @@ This is the ordinary Guard archetype, not 鐘なき騎士 unless requested separ
 
 ## 敵：Skirmisher
 
-### Approved Visual Anchor
+### Historical actor reference — **not a current Approved Visual Anchor**
 
-- `assets/combat/minimal-v0.1/actors/enemy-skirmisher.png`
+- `assets/combat/minimal-v0.1/actors/enemy-skirmisher.png` — removed from `main` when real-time combat was retired (ADR-0005); do not use this file as a live anchor.
 
 ### Accepted visual conditions
 
