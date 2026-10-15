@@ -62,10 +62,8 @@ test('tower navigation never marks fog, walls, or undiscovered secret stairs',()
   assert.equal(state.expedition.tower.open,false);
   assert.equal(T.visible(state.expedition.tower,T.SECRET),false);
   const html=browser(state).html();
-  const secret=html.match(/<button\b[^>]*data-action="tower-step" data-value="12"[^>]*>/)?.[0];
-  assert.ok(secret,'the echo can be investigated without revealing a route');
-  assert.match(secret,/veiled/);
-  assert.doesNotMatch(secret,/walk-nav/);
+  assert.doesNotMatch(html,/<button\b[^>]*class="field-cell[^"]*"[^>]*data-action="tower-step" data-value="12"/,
+    'hidden stair must not be a clickable fog tile before discovery');
   const steps=[...html.matchAll(/<button\b[^>]*class="([^"]*)"[^>]*data-action="tower-step" data-value="(\d+)"/g)];
   assert.ok(steps.length>0);
   for(const [,classes,id] of steps){
@@ -85,10 +83,8 @@ test('tower echo investigation is a deliberate choice, not hidden-route navigati
   assert.equal(T.visible(state.expedition.tower,T.SECRET),false);
   const b=browser(state);
   assert.match(b.html(),/鐘の反響を確かめる/);
-  assert.match(b.html(),/data-action="tower-step" data-value="12"/);
-  const secret=b.html().match(/<button\b[^>]*data-action="tower-step" data-value="12"[^>]*>/)?.[0];
-  assert.ok(secret);
-  assert.doesNotMatch(secret,/walk-nav/);
+  assert.doesNotMatch(b.html(),/<button\b[^>]*class="field-cell[^"]*"[^>]*data-action="tower-step" data-value="12"/,
+    'investigation remains a panel choice, not a fog marker');
   b.click('tower-step',String(T.SECRET));
   const saved=E.parse(b.store.get(key));
   assert.equal(saved.expedition.tower.pos,T.ECHO,'investigating does not teleport');
@@ -101,4 +97,23 @@ test('tower echo investigation is a deliberate choice, not hidden-route navigati
   const resumed=browser(saved);
   assert.doesNotMatch(resumed.html(),/鐘の反響を確かめる/);
   assert.match(resumed.html(),/隠し階段を発見/);
+});
+
+
+test('tower approach whispers before the echo without revealing a secret route',()=>{
+  let state=E.start(E.discover({...E.initial(),mode:'demo'},'tower'),'tower');
+  state=E.act(state,'tower-step:21');
+  assert.doesNotMatch(state.expedition.log[0],/鐘の余韻/);
+  state=E.act(state,'tower-step:22');
+  assert.match(state.expedition.log[0],/鐘の余韻/);
+  assert.equal(state.expedition.tower.pos,22);
+  assert.equal(state.expedition.tower.echo,false);
+  assert.equal(T.visible(state.expedition.tower,T.SECRET),false);
+  assert.doesNotMatch(browser(state).html(),/鐘の反響を確かめる/);
+  state=E.act(state,'tower-step:17');
+  assert.equal(state.expedition.tower.echo,true);
+  assert.match(state.expedition.log[0],/壁の向こう/);
+  state=E.act(state,'tower-step:22');
+  assert.doesNotMatch(state.expedition.log[0],/鐘の余韻/,
+    'the approach clue must not repeat after the echo has been found');
 });

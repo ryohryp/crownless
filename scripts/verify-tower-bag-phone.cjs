@@ -83,9 +83,8 @@ async function main() {
         const investigate = page.locator('.field-choices [data-action="tower-step"][data-value="12"]');
         assert.equal(await investigate.count(), 1, "echo must offer a contextual investigation");
         const hidden = page.locator('.tower-field [data-action="tower-step"][data-value="12"]');
-        assert.equal(await hidden.count(), 1);
-        assert.equal(await hidden.evaluate(el => el.classList.contains("walk-nav")), false,
-          "hidden stair must never have an ordinary movement waypoint");
+        assert.equal(await hidden.count(), 0,
+          "hidden stair must not be a clickable fog tile before discovery");
         await page.screenshot({ path: path.join(output, "tower-echo-" + width + ".png") });
         const retreatBottom = await page.locator('.field-choices [data-action="return"]')
           .evaluate(el => el.getBoundingClientRect().bottom);
@@ -94,6 +93,9 @@ async function main() {
         assert.equal((await saved()).expedition.tower.pos, 17,
           "investigating the sound must not teleport");
         assert.equal((await saved()).expedition.tower.open, true);
+        assert.equal(await hidden.count(), 1, "discovered secret stair becomes an explicit tile");
+        assert.equal(await hidden.evaluate(el => el.classList.contains("walk-nav")), false,
+          "discovered secret stair is never an ordinary waypoint");
         assert.equal(await investigate.count(), 0, "discovery action must disappear once opened");
         await page.reload();
         assert.equal((await saved()).expedition.tower.open, true, "discovery survives reload");
