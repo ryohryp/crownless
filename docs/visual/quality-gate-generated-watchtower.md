@@ -2,6 +2,8 @@
 
 The candidate `.qa/candidates/generated-watchtower-inkwash-512.jpg` is a **lossy 512×288 review proxy** derived from a newly generated 1672×941 PNG environment image. It is not the previous legacy watchtower fixture and is **not adopted into runtime or global Canon**. Review source provenance: created for this Crownless image QA iteration, original PNG held outside the repo until selected for human review.
 
+The Git-tracked review proxy must match SHA-256 `02109e5f4a5b952d2f561b9b9ab0756aa15eb7ba418878a45ef0dc6c52491b4c`. The phone QA injects it temporarily into the land detail scene; the old map background insertion was almost fully obscured by opaque map tiles.
+
 The candidate was reduced heavily to minimize evaluation payload; fine-detail/texture judgments and eventual production adoption MUST use the original full-resolution asset, never this low-quality proxy.
 
 Run the existing quality gate with a trusted `TYPESAFE_API_KEY`:

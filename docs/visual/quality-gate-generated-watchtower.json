@@ -13,7 +13,8 @@
   "references": [],
   "attempt": 0,
   "integration": {
-    "selector": ".nearby-paper-map",
-    "mode": "background"
+    "selector": ".nearby-secondary-content",
+    "mode": "insert",
+    "view": "detail"
   }
 }

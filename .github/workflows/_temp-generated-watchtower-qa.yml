@@ -41,13 +41,10 @@ jobs:
             if(report.geometry?.problems?.length||report.phone?.checks?.issues?.length||report.asset?.error==='image_preparation_failed'||report.phone?.error==='phone_capture_failed')process.exitCode=1;
           })().catch(error=>{console.error(error);process.exitCode=1});
           NODE
-      - name: Candidate binary integrity debug
+      - name: Candidate binary integrity
         run: |
+          echo "Source preview SHA-256:"
           sha256sum .qa/candidates/generated-watchtower-inkwash-512.jpg
-          echo "CANDIDATE_B64_BEGIN"
-          base64 -w0 .qa/candidates/generated-watchtower-inkwash-512.jpg
-          echo
-          echo "CANDIDATE_B64_END"
       - name: Archive candidate report and phone screenshots
         if: always()
         uses: actions/upload-artifact@v4
