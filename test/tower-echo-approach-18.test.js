@@ -6,9 +6,14 @@ const T = require('../src/tower-field.js');
 
 test('tile 18 hints at bell echo without revealing hidden stairs', () => {
   let state = E.start(E.discover({...E.initial(), mode:'demo'}, 'tower'), 'tower');
-  for (const to of [21, 22, 23, 18]) state = E.act(state, 'tower-step:' + to);
+  for (const to of [21, 22]) state = E.act(state, 'tower-step:' + to);
+  assert.equal(state.expedition.tower.pos, 22);
+  assert.match(state.expedition.log[0], /かすかな鐘の余韻/);
+  const distant = state.expedition.log[0];
+  for (const to of [23, 18]) state = E.act(state, 'tower-step:' + to);
   assert.equal(state.expedition.tower.pos, 18);
-  assert.match(state.expedition.log[0], /鐘の余韻/);
+  assert.match(state.expedition.log[0], /近い鐘の余韻/);
+  assert.notEqual(state.expedition.log[0], distant, 'approach changes the clue without revealing the route');
   assert.equal(state.expedition.tower.echo, false);
   assert.equal(T.visible(state.expedition.tower, T.SECRET), false);
   state = E.parse(E.serialize(state));
