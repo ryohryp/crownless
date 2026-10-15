@@ -2,72 +2,76 @@
   "schema_version": 1,
   "project_id": "crownless",
   "source_documents": [
-    "docs/visual-design-guide-v0.2.md",
+    "AGENTS.md",
+    "docs/visual-canon.md",
     "docs/visual/GLOBAL_VISUAL_STYLE.md",
     "docs/visual/WORLD_DIRECTION.md",
-    "docs/exploration-location-spec.md",
+    "docs/visual/CHARACTER_VISUAL_CANON.md",
     "docs/assets/README.md"
   ],
-  "visual_dna": "Crownless is a playable living medieval manuscript: rough hand-inked and woodcut visuals on parchment, with restrained semantic color. Exploration writes discovered places into the world as visual knowledge rather than presenting generic realistic dark-fantasy concept art.",
+  "visual_dna": "Western medieval fantasy as expressive Japanese sumi-e on warm washi, in one legible illustrated travel journal. Rough dry-brush charcoal ink, feathered atmospheric washes and unpainted negative space make each discovered place feel memorable. Restrained muted vermilion communicates meaningful danger, seals or rivals; do not default to old blue-green/aged-gold manuscript styling. Preserve already approved combat actor identity and oblique camera anchors.",
   "shared_rules": {
-    "living_medieval_manuscript": true,
-    "rough_hand_inked_contours": true,
-    "woodcut_crosshatched_shadow": true,
-    "parchment_negative_space": true,
-    "restrained_semantic_color": true,
-    "faded_blue_green_means_discovered_knowledge": true,
-    "phone_scale_readability": true,
-    "no_generic_dark_fantasy_drift": true,
+    "western_medieval_fantasy_sumi_e_on_washi": true,
+    "expressive_ink_wash_and_dry_brush": true,
+    "layered_charcoal_and_warm_ivory": true,
+    "atmospheric_negative_space": true,
+    "sparse_vermilion_only_for_meaningful_signals": true,
+    "readable_distinct_landmarks_at_phone_scale": true,
+    "approved_combat_actor_identity_preserved": true,
+    "map_specific_adr0014_connected_field_override": true,
+    "never_use_historical_board_as_current_global_reference": true,
     "must_not_chain_from_candidate": true
   },
   "fixed_avoid": [
     "photorealism",
     "realistic fantasy concept art",
-    "painterly rendering",
+    "oil-paint painterly fantasy",
     "realistic AAA 3D",
-    "cinematic movie-poster composition",
+    "cinematic poster composition",
     "glossy mobile RPG presentation",
-    "clean vector cartoon",
+    "clean vector clip art",
     "anime-gacha rendering",
-    "generic Diablo imitation",
     "neon magic",
-    "cinematic black-map presentation",
+    "default teal or blue-green wash",
+    "decorative aged-gold borders",
+    "giant opaque UI cards",
     "satellite-map rendering",
-    "glowing territory borders",
-    "high-frequency texture clutter"
+    "unconnected road tiles where ADR-0014 applies",
+    "high-frequency texture clutter",
+    "characters in subjectless discovered-location art",
+    "baked-in labels, logos or process UI"
   ],
   "asset_types": {
     "background": {
-      "purpose": "Represent a discovered Crownless location as a visual memory that can be unlocked and revisited from the exploration journal without becoming a generic cinematic background.",
+      "purpose": "Render one discovered Crownless location as an evocative but readable medieval-fantasy sumi-e illustration on warm washi, with clear landmark identity and a sense that the player may return.",
       "source_reference_required": false,
       "composition": {
         "primary_aspect_ratio": "16:9",
-        "framing": "wide environmental location art with one clear landmark and a readable approach path or spatial cue",
+        "framing": "wide 16:9 ink-wash environment with one distinct discoverable landmark, readable approach and generous paper negative space",
         "phone_readability": true,
         "characters_by_default": false,
         "baked_ui_or_text": false
       },
       "palette": [
-        "parchment bone",
-        "charcoal ink",
-        "ash grey",
-        "weathered stone and earth",
-        "restrained faded blue-green for discovered knowledge",
-        "muted vermilion only when semantically justified"
+        "warm washi ivory",
+        "layered charcoal-black dry brush",
+        "soft gray-brown weathered stone and earth",
+        "small muted vermilion for gameplay-significant threat or seal only"
       ],
       "discovery_language": [
-        "the place should feel newly found rather than fully catalogued",
-        "visual detail may suggest age, danger, history and traversal",
-        "the landmark must remain readable at mobile size",
-        "the image should feel like another page from the same Crownless manuscript"
+        "the place reads as newly found, with hints of history and traversal",
+        "one clear landmark silhouette remains recognizable at 360–430 CSS px",
+        "atmospheric ink wash is expressive, not a sepia effect on stock vector art",
+        "world imagery shares the Western medieval fantasy × sumi-e on washi language"
       ],
       "forbidden": [
         "characters or creatures unless explicitly requested",
-        "text, labels, logos or game UI baked into the image",
-        "photoreal or painterly fantasy scenery",
-        "blackened grimdark treatment that destroys parchment readability",
-        "glowing magical spectacle used only for decoration",
-        "borrowing composition or location identity from a rejected or unrelated generated candidate",
+        "text, labels, logos, game UI or process metadata baked into art",
+        "photorealistic, painterly or cinematic generic fantasy scenery",
+        "default teal/blue-green or aged-gold old-board palette",
+        "blackened grimdark background that destroys warm washi readability",
+        "glowing magical spectacle as generic decoration",
+        "copying identity, objects or composition from rejected or unrelated candidates",
         "using real-world POI photographs as the location visual"
       ]
     }
@@ -75,17 +79,18 @@
   "review_contract": {
     "cross_asset_visual_audit_required": true,
     "compare": [
-      "manuscript and woodcut drawing grammar",
-      "parchment material language",
-      "semantic palette",
-      "phone-scale landmark readability",
-      "exploration discovery feeling"
+      "expressive sumi-e dry-brush and ink-wash grammar on warm washi",
+      "current ivory/charcoal/sparse-vermilion palette rather than historical board",
+      "distinct landmark silhouette and phone-scale readability",
+      "background belongs to current map/town/forge/event image family",
+      "discoverable location mood without baked-in text"
     ],
     "reject_even_if_beautiful_when": [
-      "the result could belong to another dark-fantasy RPG by swapping the logo",
-      "the result becomes photorealistic or painterly",
-      "the visual no longer reads as a Crownless manuscript page",
-      "the location identity is borrowed from an unrelated candidate instead of the current request and Canon"
+      "it resembles the outdated blue-green/aged-gold manuscript board instead of approved 2026-10-08 sumi-e",
+      "it could be generic glossy or cinematic fantasy from another RPG",
+      "it is vector-clean or relies only on a sepia CSS-like treatment",
+      "it copies unrelated rejected image composition or adds characters or text",
+      "the landmark is unrecognizable inside the actual phone UI"
     ]
   }
 }

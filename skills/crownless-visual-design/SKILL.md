@@ -1,6 +1,6 @@
 ---
 name: crownless-visual-design
-description: Create or review Crownless visuals for a coherent, readable medieval dark-fantasy game experience.
+description: Create or review Crownless visuals for a readable Western medieval fantasy × Japanese sumi-e on washi game experience.
 ---
 
 # Crownless Visual Design
@@ -9,7 +9,7 @@ Use this Skill when creating or reviewing Crownless visuals.
 
 ## Goal
 
-Create a coherent medieval dark-fantasy world that works clearly on a smartphone.
+Create a coherent medieval fantasy world in the approved sumi-e/washi visual language that works clearly on a smartphone.
 
 Prioritize:
 

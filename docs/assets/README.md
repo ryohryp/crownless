@@ -2,13 +2,13 @@
 
 These assets calibrate `docs/visual-design-guide-v0.2.md` and `skills/crownless-visual-design/SKILL.md`.
 
-## Global Visual Canon
+## Global visual direction (2026-10-08 onward)
 
-- `crownless-visual-design-reference-v0.1.jpg` — **the approved Global Visual Canon for Crownless** and the first visual reference to inspect for every visual task.
+The active approved direction is **Western medieval fantasy × expressive Japanese sumi-e on warm washi**, as recorded in `docs/visual-canon.md` and `docs/visual/GLOBAL_VISUAL_STYLE.md`. The approved reference composite has not yet been archived in the repository; do not claim otherwise.
 
-It establishes the shared living-medieval-manuscript / rough-woodcut family: irregular hand ink, parchment negative space, crosshatched shadow, restrained semantic color, world-map grammar, encounter presentation, Grey Hearth/base growth, sparse annotation-like UI, physical ink effects, and paper/print material treatment.
+- `crownless-visual-design-reference-v0.1.jpg` — **historical woodcut/blue-green board**, not the active global image reference. It may inform older asset provenance but must not be sent automatically to a generator as the current global reference.
 
-When a detail conflicts with current textual Canon or an approved subject Anchor, the more specific current rule wins.
+Until the current approved composite is securely archived, Visual Director uses **text-only global style + separately approved subject anchors**. Follow the newer ADR-0014 connected-field map rules where they override older map-only imagery. Do not automatically approve a generated candidate.
 
 ## Approved protagonist visual Anchor
 

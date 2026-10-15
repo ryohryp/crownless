@@ -13,8 +13,8 @@ test('exploration location visuals are explicit subjectless Grand Design assets'
   assert.equal(grandDesign.asset_types.background.composition.primary_aspect_ratio, '16:9');
   assert.equal(grandDesign.asset_types.background.composition.baked_ui_or_text, false);
   assert.ok(grandDesign.fixed_avoid.includes('photorealism'));
-  assert.ok(grandDesign.fixed_avoid.includes('painterly rendering'));
-  assert.ok(grandDesign.asset_types.background.forbidden.some((rule) => rule.includes('rejected or unrelated generated candidate')));
+  assert.ok(grandDesign.fixed_avoid.some((term) => term.includes('painterly')));
+  assert.ok(grandDesign.asset_types.background.forbidden.some((rule) => rule.includes('rejected or unrelated')));
 });
 
 test('compiled Canon exposes the subjectless background policy', () => {
@@ -25,5 +25,10 @@ test('compiled Canon exposes the subjectless background policy', () => {
   });
   assert.equal(compiledCanon.grand_design.asset_types.background.source_reference_required, false);
   assert.match(compiledCanon.source_revision, /^[a-f0-9]{64}$/);
-  assert.equal(compiledCanon.global_reference_path, 'docs/assets/crownless-visual-design-reference-v0.1.jpg');
+  assert.equal(manifest.documents.globalReference, null, 'do not pass the historical board as a current visual reference');
+  assert.deepEqual(Object.keys(manifest.subjects), ['player-unarmed'], 'removed combat enemies have no present approved anchors');
+  assert.equal(compiledCanon.global_reference_path, undefined);
+  assert.match(compiledCanon.global_style_lock, /Japanese sumi-e.*washi/i);
+  assert.deepEqual(compiledCanon.grand_design, grandDesign);
+  assert.equal(grandDesign.shared_rules.never_use_historical_board_as_current_global_reference, true);
 });
