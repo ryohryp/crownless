@@ -1,0 +1,163 @@
+/* Crownless x Argon v0.4: borrow editorial hierarchy, not Argon's sci-fi map.
+   Scope changes to control surfaces. Keep approved sumi-e/washi scenes, state,
+   location discovery and touch geometry untouched. */
+#game > .game-layout.camp-layout > .camp-tabs.bottom-navigation {
+  padding: 0;
+  gap: 0;
+  border: 1px solid #898274;
+  background: #242724;
+  border-radius: 2px;
+  box-shadow: none;
+}
+#game > .game-layout.camp-layout > .camp-tabs.bottom-navigation > .bottom-navigation-item {
+  border: 0;
+  border-right: 1px solid rgba(231, 220, 197, .23);
+  border-radius: 0;
+  min-height: 48px;
+  color: #e7ddcb;
+  background: transparent;
+  box-shadow: none;
+}
+#game > .game-layout.camp-layout > .camp-tabs.bottom-navigation > .bottom-navigation-item:last-child {
+  border-right: 0;
+}
+#game > .game-layout.camp-layout > .camp-tabs.bottom-navigation > .bottom-navigation-item[aria-current="page"] {
+  color: #282723;
+  background: #eee6d8;
+  outline: none;
+}
+#game > .game-layout.camp-layout > .camp-tabs.bottom-navigation > .bottom-navigation-item[aria-current="page"]::before {
+  color: #282723;
+}
+#game > .game-layout.camp-layout > .camp-tabs.bottom-navigation > .bottom-navigation-item:focus-visible {
+  outline: 2px solid #b86554;
+  outline-offset: -3px;
+}
+
+/* Read the next action immediately after returning: secured, craft, depart.
+   It is explanatory only; actual return/craft/depart actions stay with the engine. */
+#game > .report-layout .editorial-return-loop {
+  margin: 10px 0 12px;
+  padding: 10px 11px;
+  background: rgba(239, 230, 213, .08);
+  border: 1px solid rgba(239, 230, 213, .4);
+  border-radius: 2px;
+  box-shadow: none;
+}
+#game > .report-layout .editorial-return-steps {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 3px;
+}
+#game > .report-layout .editorial-return-steps > span {
+  display: grid;
+  place-items: center;
+  min-width: 0;
+  min-height: 28px;
+  padding: 4px;
+  border: 1px solid rgba(239, 230, 213, .26);
+  color: #dbd0bb;
+  font-size: 10px;
+  font-weight: 700;
+  text-align: center;
+}
+#game > .report-layout .editorial-return-steps > .is-complete,
+#game > .report-layout .editorial-return-steps > .is-ready {
+  background: #eee6d8;
+  border-color: #eee6d8;
+  color: #282723;
+}
+#game > .report-layout .editorial-return-steps > .is-warning {
+  border-color: #b86554;
+  color: #ebafa1;
+}
+#game > .report-layout .editorial-return-loop p {
+  margin: 8px 0 0;
+  color: #e4d9c8;
+  font-size: 12px;
+  line-height: 1.5;
+}
+#game > .report-layout .report-actions .primary {
+  background: #eee6d8;
+  color: #282723;
+  border: 1px solid #eee6d8;
+  border-radius: 2px;
+  box-shadow: none;
+}
+
+/* Workshop: show a real craft opportunity before the recipe catalogue. */
+#game > .gear-home .editorial-forge-cue,
+#game > .gear-home .gear-quick-craft {
+  margin: 9px 0;
+  padding: 10px 11px;
+  border: 1px solid #655d50;
+  border-left: 3px solid #9d6558;
+  border-radius: 2px;
+  background: #ece3d2;
+  box-shadow: none;
+  color: #302d28;
+}
+#game > .gear-home .editorial-forge-cue strong,
+#game > .gear-home .editorial-forge-cue span {
+  display: block;
+  color: #302d28;
+}
+#game > .gear-home .editorial-forge-cue strong {
+  font-size: 13px;
+}
+#game > .gear-home .editorial-forge-cue span,
+#game > .gear-home .gear-quick-craft p.small {
+  margin: 4px 0;
+  font-size: 12px;
+  line-height: 1.5;
+  color: #504a40;
+}
+#game > .gear-home .gear-quick-craft .primary {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid #302d28;
+  border-radius: 2px;
+  background: #302d28;
+  color: #f6efdf;
+  box-shadow: none;
+}
+
+/* At-risk loot stays distinct from banked resources. Never relabel a bag
+   as secured until the existing safe-return action finishes. */
+#game > .expedition-layout .path-risk {
+  border: 1px solid #a36f63;
+  border-left: 3px solid #b86554;
+  border-radius: 2px;
+  background: #282826;
+  box-shadow: none;
+}
+#game > .expedition-layout .path-risk span,
+#game > .expedition-layout .path-risk small {
+  color: #e4d6c3;
+}
+#game > .expedition-layout .path-risk strong {
+  color: #f5e9d6;
+}
+#game > .field-layout .field-choices button[data-action="return"],
+#game > .expedition-layout .path-actions button[data-action="return"] {
+  min-height: 48px;
+  border: 1px solid #eee6d8;
+  border-radius: 2px;
+  background: #eee6d8;
+  color: #272722;
+  box-shadow: none;
+}
+#game > .field-layout .field-choices button[data-action="return"] strong,
+#game > .field-layout .field-choices button[data-action="return"] small,
+#game > .expedition-layout .path-actions button[data-action="return"] strong,
+#game > .expedition-layout .path-actions button[data-action="return"] small {
+  color: #272722;
+}
+@media (max-width: 480px) {
+  #game > .report-layout .editorial-return-loop {
+    margin: 8px 0;
+    padding: 8px;
+  }
+  #game > .report-layout .editorial-return-steps > span { font-size: 10px; }
+  #game > .report-layout .editorial-return-loop p { font-size: 11px; }
+}
