@@ -937,7 +937,9 @@ async function main() {
         assert.match(s.expedition.log[0],/鐘の欠片/);
         assert.equal(await page.locator('.tower-field .field-cell.secret.walk-nav').count(),0);
         await page.screenshot({path:path.join(output,'tower-bell-clue-'+width+'.png')});
-        await step(12);
+        assert.equal(await page.locator('.tower-field [data-action="tower-step"][data-value="12"]').count(),0,
+          'undiscovered stair must not be clickable in the fog');
+        await page.locator('.field-choices [data-action="tower-step"][data-value="12"]').click();
         s=await saved();
         assert.equal(s.expedition.tower.pos,17,'investigating opens a real barrier but does not move');
         assert.equal(s.expedition.tower.open,true);
