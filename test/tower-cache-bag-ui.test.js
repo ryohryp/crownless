@@ -37,7 +37,7 @@ function browser(state) {
   context.window=context;
   vm.runInNewContext(fs.readFileSync(path.join(__dirname,'../src/slice-app.js'),'utf8'),context);
   return {store,html:()=>elements['#game'].innerHTML,
-    click(action){elements['#game'].click({target:{closest:()=>({dataset:{action},disabled:false})}});}};
+    click(action,value){elements['#game'].click({target:{closest:()=>({dataset:{action,value},disabled:false})}});}};
 }
 
 test('tower bag shows at-risk bell iron and scrap, including after save and safe return',()=>{
@@ -76,4 +76,29 @@ test('tower navigation never marks fog, walls, or undiscovered secret stairs',()
     assert.notEqual(T.kind(to),'wall');
     assert.notEqual(T.kind(to),'secret');
   }
+});
+
+test('tower echo investigation is a deliberate choice, not hidden-route navigation',()=>{
+  let state=E.start(E.discover({...E.initial(),mode:'demo'},'tower'),'tower');
+  assert.doesNotMatch(browser(state).html(),/鐘の反響を確かめる/);
+  for(const to of [21,22,T.ECHO]) state=E.act(state,'tower-step:'+to);
+  assert.equal(T.visible(state.expedition.tower,T.SECRET),false);
+  const b=browser(state);
+  assert.match(b.html(),/鐘の反響を確かめる/);
+  assert.match(b.html(),/data-action="tower-step" data-value="12"/);
+  const secret=b.html().match(/<button\b[^>]*data-action="tower-step" data-value="12"[^>]*>/)?.[0];
+  assert.ok(secret);
+  assert.doesNotMatch(secret,/walk-nav/);
+  b.click('tower-step',String(T.SECRET));
+  const saved=E.parse(b.store.get(key));
+  assert.equal(saved.expedition.tower.pos,T.ECHO,'investigating does not teleport');
+  assert.equal(saved.expedition.tower.open,true);
+  assert.equal(T.visible(saved.expedition.tower,T.SECRET),true);
+  const revealedSecret=b.html().match(/<button\b[^>]*data-action="tower-step" data-value="12"[^>]*>/)?.[0];
+  assert.ok(revealedSecret,'discovered secret stair remains an explicit tile');
+  assert.doesNotMatch(revealedSecret,/walk-nav/,'secret stair must not become ordinary navigation after discovery');
+  assert.doesNotMatch(b.html(),/鐘の反響を確かめる/);
+  const resumed=browser(saved);
+  assert.doesNotMatch(resumed.html(),/鐘の反響を確かめる/);
+  assert.match(resumed.html(),/隠し階段を発見/);
 });
