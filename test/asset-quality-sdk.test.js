@@ -58,8 +58,12 @@ test("official TypeSafe SDK sends candidate/reference images as multipart with o
             const headers = new Headers(observed.init.headers);
             assert.equal(headers.get("TypeSafe-Danger-Zone-Images"), "true");
             assert.equal(headers.get("Authorization"), "Bearer local-only-test-key");
-            assert.ok(observed.init.body instanceof FormData, "official SDK must construct multipart FormData");
-            const requestPart = observed.init.body.get("request");
+            // Fetch implementations can receive the official SDK multipart payload as a byte body,
+            // stream, or FormData; parse the wire representation rather than relying on its JS class.
+            const form = observed.init.body instanceof FormData
+              ? observed.init.body
+              : await new Response(observed.init.body, { headers: observed.init.headers }).formData();
+            const requestPart = form.get("request");
             assert.ok(requestPart);
             const requestBody = JSON.parse(typeof requestPart === "string" ? requestPart : await requestPart.text());
             assert.equal(requestBody.model, "jev-latest");
@@ -74,7 +78,7 @@ test("official TypeSafe SDK sends candidate/reference images as multipart with o
             assert.ok(assets[requestBody.state.candidate], "candidate reference is present");
             assert.ok(assets[requestBody.state.approvedReference], "approved anchor is referenced");
             for (const entry of Object.values(assets)) {
-              const file = observed.init.body.get(entry.part);
+              const file = form.get(entry.part);
               assert.ok(file, "multipart image part exists");
               assert.ok(file.size > 100, "nonempty file image");
               assert.equal(file.type, "image/png");
