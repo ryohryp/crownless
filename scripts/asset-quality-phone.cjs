@@ -19,13 +19,15 @@ async function capturePhoneScreens({manifest,candidate,output}){
  if(!target||!["img","background","insert"].includes(target.mode)||typeof target.selector!=="string"||
   !/^[.#][\w-]+(?:[\w\s.#>[\]="':-]+)?$/.test(target.selector))throw Error("invalid_integration_selector");
  if(target.view!==undefined&&!["map","detail"].includes(target.view))throw Error("invalid_integration_view");
+ if(target.demoBiome!==undefined&&!["wood","tower","fen","crypt"].includes(target.demoBiome))throw Error("invalid_demo_biome");
+ if(target.expectedTitle!==undefined&&(typeof target.expectedTitle!=="string"||target.expectedTitle.length>80))throw Error("invalid_expected_title");
  const {chromium}=require("playwright");
  const server=spawn(process.execPath,["scripts/serve-slice.cjs"],{cwd:ROOT,env:{...process.env,PORT:"0"},stdio:["ignore","pipe","pipe"]});
  let browser;
  try{
   const port=await ready(server);
   browser=await chromium.launch({headless:true});
-  const screenshots=[],issues=[],visibility={};
+  const screenshots=[],issues=[],visibility={},sceneTitles={};
   for(const width of [360,390,430]){
    const context=await browser.newContext({viewport:{width,height:width===360?800:width===390?844:932},deviceScaleFactor:1,isMobile:true,hasTouch:true});
    const page=await context.newPage();
@@ -36,9 +38,24 @@ async function capturePhoneScreens({manifest,candidate,output}){
     contentType:candidate.endsWith(".png")?"image/png":"image/jpeg",
     body:require("node:fs").readFileSync(candidate)}));
    await page.goto("http://127.0.0.1:"+port+"/expedition.html",{waitUntil:"domcontentloaded"});
+   if(target.demoBiome){
+    // Explicitly synthetic demo-only progress, fresh isolated context; never ask
+    // for browser geolocation or alter a real player's saved discoveries.
+    await page.evaluate(biome=>{
+     const E=window.CrownlessSlice,N=window.CrownlessNeighborhood;
+     const offsets={wood:[0,-800],tower:[800,0],fen:[0,800],crypt:[-800,0]};
+     const [north,east]=offsets[biome];
+     const state=E.discoverDistrict(E.initial(),N.cell(north,east));
+     state.mode="demo";
+     localStorage.setItem("crownless-expedition-v1-demo",E.serialize(state));
+    },target.demoBiome);
+   }
    await page.locator('[data-action="mode"][data-value="demo"]').click();
    if(target.view==="detail")await page.locator('[data-action="nearby-view"][data-value="detail"]').first().click();
    await page.locator(target.selector).first().waitFor({state:"visible"});
+   const sceneTitle=target.view==="detail"?await page.locator(".nearby-info-piece h2").first().textContent().catch(()=>""):"";
+   sceneTitles[width]=sceneTitle||"";
+   if(target.expectedTitle&&!sceneTitle?.includes(target.expectedTitle))issues.push("context_mismatch_"+width);
    const metrics=await page.evaluate(async({selector,mode,url})=>{
     const element=document.querySelector(selector);
     if(!element)return {loaded:false};
@@ -90,7 +107,7 @@ async function capturePhoneScreens({manifest,candidate,output}){
    await page.screenshot({path:screenshot});screenshots.push(screenshot);
    await context.close();
   }
-  return {screenshots,checks:{widths:[360,390,430],issues,visibility}};
+  return {screenshots,checks:{widths:[360,390,430],issues,visibility,sceneTitles}};
  }finally{if(browser)await browser.close().catch(()=>{});server.kill();}
 }
 module.exports={capturePhoneScreens};

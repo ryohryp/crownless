@@ -20,6 +20,7 @@ test("real demo temporarily renders watchtower candidate at three phone widths",
   assert.deepEqual(result.checks.widths,[360,390,430]);
   assert.deepEqual(result.checks.issues,[]);
   assert.ok(Object.values(result.checks.visibility).every(v=>v>=.22), "candidate must actually be visible");
+  assert.ok(Object.values(result.checks.sceneTitles).every(title=>title.includes("見張り跡")), "candidate must be shown in a tower district");
   assert.equal(result.screenshots.length,3);
   for(const file of result.screenshots)assert.ok((await stat(file)).size>1000);
  }finally{await rm(tmp,{recursive:true,force:true});}
