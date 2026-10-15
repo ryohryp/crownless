@@ -67,4 +67,4 @@ jobs:
           name: crownless-phone-smoke
           path: .qa/browser/
           if-no-files-found: ignore
-          retention-days: 2
+          retention-days: 1
