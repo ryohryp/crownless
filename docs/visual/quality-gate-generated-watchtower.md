@@ -29,3 +29,16 @@ No GPS, new player data, or production art path changes. An unacceptable image s
 - The one-off QA workflow used to produce this report was removed after running. The permanent phone regression and reusable `asset:quality` script remain.
 
 To complete semantic approval, supply a credential only to a trusted execution environment and rerun the above command using the **full-resolution original image**, then review the result on a phone. Do not merge artwork into a runtime path solely because deterministic checks passed.
+
+## Subsequent live Jev Vision E2E — 2026-10-15 16:00 UTC
+
+After `TYPESAFE_API_KEY` was configured as a GitHub Actions repository secret, an isolated branch-scoped run called the **real** official TypeSafe Jev Vision API. The secret value was never printed or committed.
+
+- **Run:** [live Jev Vision review](https://github.com/ryohryp/crownless/actions/runs/38765186613); [short-lived JSON report and 360/390/430 px screenshots](https://github.com/ryohryp/crownless/actions/runs/38765186613/artifacts/11989245036).
+- **Model:** `jev-1.13.0`; **2 successful image calls** (asset and three-phone-screenshot assessment); input 7,036 tokens; output 362 tokens.
+- **Asset:** model verdict `accept_candidate` at confidence **0.53**, interpreted as **`needs_review`**, not accepted. Style alignment **2.99 / 4** (confidence 0.62); quality **2.71 / 4** (confidence 0.29). Possible style drift remains meaningful (27% `main_issue=style` probability).
+- **Phone:** verdict `accept_candidate` at confidence **0.65**, interpreted as `accept_candidate`; readability **3.87 / 4**, no clear UI obstruction (noul 0.12). Deterministic tests show 100% visibility on all three phone widths, no blocked controls, no horizontal overflow, and the matching fictional tower district.
+- **Decision:** keep the newly generated 512×288 JPEG as an **unapproved review-only proxy**. The live evaluation proves SDK image transport + semantic model response + gameplay screenshot evaluation, **not final aesthetic acceptance of full-resolution source art**. User review of the full-resolution PNG and an actual phone playtest remain before any production image adoption.
+- **Cleanup:** the branch-scoped one-off workflow `_temp-live-jev-watchtower.yml` was removed after the report was captured; no recurring calls or secrets-bearing workflow remain on this branch.
+
+All non-image gameplay, location privacy, save behavior, and existing approved visual anchors are unchanged.
