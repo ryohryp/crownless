@@ -19,3 +19,11 @@ TypeSafe image support is experimental: https://docs.typesafe.ai/images . The of
 ## Official SDK wire regression test
 
 CI now installs the pinned official JS SDK and sharp in the existing `test` job. The `test/asset-quality-sdk.test.js` regression uses synthetic PNG bytes and a mocked `fetch` implementation attached to the **real TypeSafeClient**, verifying image multipart upload, opt-in header, asset/reference binding, Choice/Score/Noul questions, and separation of transport errors from art rejection. It sends **no live API traffic and no private location**. This closes the previously untested request-serialization path but **does not prove live Jev Vision judgments**. A trusted execution environment holding `TYPESAFE_API_KEY` must still complete one real image evaluation before production use.
+
+## Manual Jev Vision review after configuring the repository secret
+
+The repository owner can run the **Image candidate Jev Vision review** workflow manually from GitHub Actions. It reads `TYPESAFE_API_KEY` from repository Actions secrets in the evaluation step only, never writes that key to code or browser. Choose a manifest path of the form `docs/visual/quality-gate-<name>.json`, committed with its unapproved candidate image, then **Run workflow** on the desired trusted branch.
+
+The runner uses the existing `asset-quality-gate.cjs` with `stage: all` and `force: true`: official TypeSafe Jev Vision evaluation of a temporary image preview, actual 360/390/430px screenshots in isolated demo mode, and deterministic visibility/overflow/tap checks. It prints a minimal `JEV_IMAGE_REVIEW` summary and stores the full temporary reports and screenshots in a two-day GitHub Actions artifact.
+
+A green action only means a real semantic evaluation completed without transport/technical faults. **It does not approve an image**. `needs_review`, `revise`, `reject_candidate`, or `accept_candidate` remain advisory statuses and require human review. Missing secrets or an unavailable live API fail the action. Generated candidates never enter the runtime or global visual Canon automatically. The workflow is deliberately manual, not a scheduled or PR-triggered background consumer of API credits.

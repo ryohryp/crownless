@@ -1,0 +1,46 @@
+name: Image candidate Jev Vision review
+on:
+  workflow_dispatch:
+    inputs:
+      manifest:
+        description: 'Tracked candidate manifest under docs/visual/'
+        required: true
+        default: 'docs/visual/quality-gate-generated-watchtower.json'
+        type: string
+  push: # TEST ONLY: remove before PR review
+    branches: [feat/manual-jev-image-review]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: image-review-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  evaluate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install image QA dependencies
+        run: |
+          npm install --package-lock=false --no-audit --no-fund
+          npm install --no-save --package-lock=false playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Evaluate image and actual phone screenshots with Jev Vision
+        env:
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+          ASSET_QA_MANIFEST: ${{ inputs.manifest || 'docs/visual/quality-gate-generated-watchtower.json' }}
+        run: node scripts/run-image-review-ci.cjs
+      - name: Retain bounded review evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: unapproved-jev-image-review
+          path: .qa/asset-quality/
+          retention-days: 2
+          if-no-files-found: ignore
