@@ -1,0 +1,76 @@
+name: Temporary live Jev Vision review
+on:
+  push:
+    branches: [test/watchtower-image-vision-e2e]
+
+permissions:
+  contents: read
+
+jobs:
+  live-review:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Install pinned QA tools before receiving secrets
+        run: |
+          npm install --no-save --package-lock=false playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Live generated candidate and phone evaluation
+        env:
+          TYPESAFE_API_KEY: ${{ secrets.TYPESAFE_API_KEY }}
+        run: |
+          node - <<'NODE'
+          const {run}=require('./scripts/asset-quality-gate.cjs');
+          (async()=>{
+            if(!process.env.TYPESAFE_API_KEY){
+              console.error('LIVE_JEV_BLOCKED: TYPESAFE_API_KEY is not available to this workflow');
+              process.exitCode=1;
+              return;
+            }
+            const report=await run('docs/visual/quality-gate-generated-watchtower.json',{stage:'all',force:true});
+            const summary={
+              candidateSha256:report.sha256,
+              geometry:report.geometry,
+              asset:{
+                status:report.asset?.status,
+                issues:report.asset?.issues,
+                error:report.asset?.error,
+                verdict:report.asset?.answers?.verdict?.choice,
+                confidence:report.asset?.answers?.verdict?.confidence,
+                style:report.asset?.answers?.style?.score,
+                quality:report.asset?.answers?.quality?.score
+              },
+              phone:{
+                status:report.phone?.status,
+                issues:report.phone?.issues,
+                error:report.phone?.error,
+                checks:report.phone?.checks,
+                verdict:report.phone?.answers?.verdict?.choice,
+                readability:report.phone?.answers?.readability?.score
+              },
+              api:report.api,
+              humanApproval:'REQUIRED: no auto-adoption of generated art'
+            };
+            console.log('LIVE_JEV_REVIEW '+JSON.stringify(summary));
+            if(report.api.requests<1||report.asset?.status==='evaluation_unavailable'){
+              console.error('LIVE_JEV_BLOCKED: no usable semantic asset assessment; see review report');
+              process.exitCode=1;
+            }else if(!['revise','reject_candidate'].includes(report.asset.status)
+              &&report.phone?.status==='evaluation_unavailable'){
+              console.error('LIVE_JEV_BLOCKED: usable asset review but no semantic phone assessment');
+              process.exitCode=1;
+            }
+          })().catch(error=>{console.error('LIVE_JEV_ERROR '+error?.name);process.exitCode=1});
+          NODE
+      - name: Upload short-lived private candidate QA evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: live-jev-watchtower-unapproved-review
+          path: .qa/asset-quality/
+          retention-days: 2
+          if-no-files-found: ignore
