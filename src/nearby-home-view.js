@@ -50,6 +50,35 @@
     }[biome]||'';
     return '<svg viewBox="0 0 64 52" focusable="false" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">'+art+'</g></svg>';
   }
+  // Decorative ink-wash terrain, not a second map or a reveal of hidden POIs.
+  // Every scene is derived from the already-discovered fantasy biome only.
+  function terrainWash(biome) {
+    const scenes = {
+      wood: '<path class="terrain-hill" d="M-10 78Q16 46 37 65T110 45V110H-10Z"/>'+
+        '<path class="terrain-ridge" d="M-6 56Q18 26 42 45T105 31M0 84Q45 70 100 81"/>'+
+        '<path class="terrain-ink" d="M13 75l9-39 10 39m-18-18 8-15 8 15m-6 15V86M43 67l9-44 13 44m-17-16 5-19 7 19m-7 17V83M70 70l10-30 10 30m-16-14 6-12 6 12m-6 15V85"/>'+
+        '<path class="terrain-grass" d="M1 88l4-11m1 11 6-9m76 11 3-11m0 12 8-10"/>',
+      tower: '<path class="terrain-hill" d="M-5 89L24 59 37 66 61 38 87 61 109 45V110H-5Z"/>'+
+        '<path class="terrain-ridge" d="M-5 90L24 59 37 66 61 38 87 61 109 45"/>'+
+        '<path class="terrain-stone" d="M32 68V30H67V69M28 30H70V23H28ZM39 37h8v10h-8zm17 0h6v10h-6zM43 68V54h12v14M21 72h58"/>'+
+        '<path class="terrain-ink" d="M29 23v-8l8 5v-5m32 8-4-9m-30 58 6 8 9-8m19-8 8 6"/>'+
+        '<path class="terrain-grass" d="M9 92l4-13m2 12 6-12m65 13 6-12"/>',
+      fen: '<path class="terrain-hill" d="M-10 74Q29 53 47 67T110 51V110H-10Z"/>'+
+        '<path class="terrain-water" d="M-15 36Q18 18 31 42T65 58Q91 64 112 79M-10 45Q17 29 25 51T62 69Q89 75 108 88"/>'+
+        '<path class="terrain-ridge" d="M-7 18Q23 3 41 20T100 14"/>'+
+        '<path class="terrain-ink" d="M13 64V35m-5 14 5-8 5 7m0 19V44m38 48V61m-5 9 5-6 5 8m24-16V29m-5 11 5-7 6 8"/>'+
+        '<path class="terrain-grass" d="M4 91l4-15m1 14 6-9m51 16 5-14m-1 13 9-10"/>',
+      crypt: '<path class="terrain-hill" d="M-7 95Q12 49 35 44T81 53Q95 63 107 96V110H-7Z"/>'+
+        '<path class="terrain-ridge" d="M0 91Q11 55 35 44T81 53Q96 65 102 92"/>'+
+        '<path class="terrain-stone" d="M26 82V54L50 35 76 54V83H26ZM36 82V65Q50 47 64 65V82M19 83h65"/>'+
+        '<path class="terrain-ink" d="M36 83h28m-12-8 6-3m-43 19 9-5m53 1 10 5m-34-53 7-5"/>'+
+        '<path class="terrain-grass" d="M5 96l6-12m75 12 6-11"/>'
+    };
+    const veiled='<path class="terrain-hill" d="M-10 99Q19 72 37 88T91 69L110 91V110H-10Z"/>'+
+      '<path class="terrain-ridge" d="M-5 98Q23 71 40 86T105 73"/>';
+    return '<span class="nearby-terrain-wash" aria-hidden="true"><svg viewBox="0 0 100 100" preserveAspectRatio="none">'+
+      (scenes[biome]||veiled)+'</svg></span>';
+  }
   function render({state,N,E,A,button,scouting,landmarkFlagPreview,notice,nav,view='map',page=null}) {
     const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const n=state.neighborhood,d=N.get(n),p=E.place(d.biome),poi=N.pointOfInterest(d);
@@ -81,7 +110,7 @@
         const classes='nearby-track-tile'+(place?' track-'+place.biome:' track-fog')+
           (id===d.id?' selected':'')+(changed?' restored-bell':'')+(home?' track-home':'')+
           (place?.claimed?' claimed':'');
-        const inner=road+
+        const inner=terrainWash(place?.biome)+road+
           (home?'<span class="nearby-track-camp" aria-hidden="true">⌂</span>':'')+
           land+
           (poiStamp?'<span class="nearby-tile-stamp" aria-hidden="true">'+poiStamp+'</span>':'')+
