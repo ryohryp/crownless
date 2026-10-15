@@ -85,6 +85,9 @@
     const restored=state.designs?.shield_thorn===d.id;
     const materialId=E.REGIONAL_MATERIAL[d.biome],material=materialId&&E.MATERIALS[materialId];
     const locked=d.biome==='crypt'&&state.cleared.length<2,traveler=state.activeCharacter===0;
+    // Only an undisputed tower event has the bell-echo lead. A shop, a
+    // restored bell or a different biome must not pretend to offer it.
+    const towerMystery=d.biome==='tower'&&poi.family==='event'&&!restored;
     // A fixed 5x5 camera is deliberately centered on the selected district.
     // Coordinates are fictional coarse districts, not live GPS or real roads.
     const selectedIndex=Math.max(0,n.districts.findIndex(item=>item.id===d.id));
@@ -152,12 +155,13 @@
     // Choosing the contextual action changes the scene; transactions and NPC
     // departures remain in exactly one detail view at a time.
     const secondary=button('nearby-view',
-      restored?'ユノに会う':poi.family==='event'&&material?'異変を調べる':
+      restored?'ユノに会う':towerMystery?'鐘の謎を調べる':poi.family==='event'&&material?'異変を調べる':
       poi.family==='shop'&&material?'店を開く':'土地の情報を見る','',
       {class:'secondary',value:'detail'});
     const mainCard='<div class="nearby-card-copy"><div class="nearby-card-eyebrow"><span class="nearby-card-index">SELECTED LAND / '+
       String(selectedIndex+1).padStart(2,'0')+'</span><small>'+esc(p.name)+' · '+esc(stateLabel)+'</small></div>'+
-      '<h2>'+esc(N.title(d))+'</h2><p>'+esc(restored?'鐘が再び鳴る。鐘守の弟子ユノが旅を助ける。':p.teaser)+'</p></div>'+
+      '<h2>'+esc(N.title(d))+'</h2><p>'+esc(restored?'鐘が再び鳴る。鐘守の弟子ユノが旅を助ける。':
+        towerMystery?'鐘のない塔から音がする。石段の奥に、鍛冶へつながる手掛かり。':p.teaser)+'</p></div>'+
       '<div class="nearby-card-actions">'+primary+secondary+'</div>';
     const entries=['<section class="nearby-info-piece"><span class="kicker">ABOUT THIS LAND</span>'+
       '<h2>'+esc(N.title(d))+'</h2><p>'+esc(p.name)+' · '+esc(poi.description)+'</p><p>'+
@@ -166,12 +170,20 @@
       '<p>亡兵を倒して帰還した夜、鐘が街道に響いた。<strong>鐘守の弟子・ユノ</strong>がこの地を守っている。</p>'+
       '<p>ユノの合図で出発すると、最初の一撃に集中 +3。</p>'+
       button('bell-depart','ユノの鐘の合図で遠征','',{class:'secondary',disabled:!traveler})+'</section>');
-    if(material&&poi.family==='event')entries.push('<section class="nearby-info-piece district-poi-card">'+
-      '<h3>'+esc(poi.name)+'</h3><p>強敵の手掛かりを追う。討伐すると'+esc(material.name)+
-      'を通常より1個多く持ち帰れる。生還できなければ失う。</p>'+
-      (d.biome==='tower'&&!state.designs?.shield_thorn?
-        '<p>✦ 固有の発見：鐘守の亡兵は「返し棘の盾」の設計図を守る。倒して生還すれば製作解放。森の狼牙も必要。</p>':'')+
-      button('poi','強敵の手掛かりを追って出発','',{class:'primary',value:'clue',disabled:!traveler})+'</section>');
+    if(material&&poi.family==='event'){
+      const clueCard='<section class="nearby-info-piece district-poi-card">'+
+        (towerMystery?'<span class="kicker">UNRESOLVED / 鐘の反響</span>':'')+
+        '<h3>'+esc(poi.name)+'</h3><p>強敵の手掛かりを追う。討伐すると'+esc(material.name)+
+        'を通常より1個多く持ち帰れる。生還できなければ失う。</p>'+
+        (d.biome==='tower'&&!state.designs?.shield_thorn?
+          '<p>✦ 固有の発見：鐘守の亡兵は「返し棘の盾」の設計図を守る。倒して生還すれば製作解放。森の狼牙も必要。</p>':'')+
+        button('poi',towerMystery?'鐘の手掛かりを追って出発':'強敵の手掛かりを追って出発','',
+          {class:'primary',value:'clue',disabled:!traveler})+'</section>';
+      // Put the actionable mystery above general lore, without introducing a
+      // second button or a scroll-heavy new card.
+      if(towerMystery)entries.unshift(clueCard);
+      else entries.push(clueCard);
+    }
     if(material&&poi.family==='shop')entries.push('<section class="nearby-info-piece district-poi-card">'+
       '<h3>交易路を発見：'+esc(poi.name)+'</h3><p>鉄片 '+E.LOCAL_MATERIAL_COST+'で'+esc(material.name)+
       'を1個購入。現在の所持数：'+(state.materials[materialId]||0)+'。</p>'+
