@@ -957,6 +957,17 @@ async function main() {
         for(const id of [12,17,18,19,14])await step(id);
         assert.match((await saved()).expedition.log[0],/鎧が石床を打つ足音/,
           'guardian warning should be legible before choosing combat on a phone');
+        const retreat=page.locator('.field-choices [data-action="return"]');
+        assert.match(await retreat.innerText(),/戦利品を守って生還/,
+          'carried loot makes the guardian retreat choice explicit');
+        const retreatRect=await retreat.evaluate(el=>{
+          const r=el.getBoundingClientRect();
+          return {left:r.left,right:r.right,top:r.top,bottom:r.bottom};
+        });
+        assert(retreatRect.left>=-1 && retreatRect.right<=width+1 &&
+          retreatRect.top>=-1 && retreatRect.bottom<=(width===360?800:844)+2,
+          'guardian retreat must remain tappable in the phone viewport: '+JSON.stringify(retreatRect));
+        await page.screenshot({path:path.join(output,'tower-guardian-choice-'+width+'.png')});
         await step(9);
         s=await saved();
         assert.equal(s.expedition.stage,'fight');

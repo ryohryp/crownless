@@ -187,10 +187,16 @@
     const echoChoice=x.tower?.pos===window.CrownlessTowerField?.ECHO&&!x.tower.open
       ? button('tower-step','鐘の反響を確かめる','壁の向こうに響く音を調べる',
           {value:String(window.CrownlessTowerField.SECRET),class:'tower-echo-investigate'}) : '';
+    // At the guardian's threshold, make the safe-return alternative explicit.
+    const guardAhead=x.tower?.pos===14&&!x.tower.guard;
+    const safeReturnLabel=guardAhead
+      ? ((x.materials?.watchIron||x.scrap)?'戦利品を守って生還':'番人を避けて生還')
+      : 'ここで生還する';
+    const safeReturnHint=guardAhead?'番人とは戦わず素材を確定する':'集めた素材を確定する';
     return `<div class="field-decision"><div class="field-status">${vitals(x)}
       <div class="path-risk" data-tower-bag="true"><span>背嚢の戦利品</span><strong>鐘鉄 ${x.materials?.watchIron || 0} · 鉄片 ${x.scrap}</strong><small>生還で確定 · 倒れれば失う</small></div></div>
       <p class="field-moment" role="status">${esc(x.log[0]||'静かな石の塔。音のする方へ進める。')}</p>
-      <div class="field-choices">${cacheChoices}${echoChoice}${button('return','ここで生還する','集めた素材を確定する',{class:'secondary'})}
+      <div class="field-choices">${cacheChoices}${echoChoice}${button('return',safeReturnLabel,safeReturnHint,{class:'secondary'})}
       ${button('heal',`薬草 ${x.potions} · 体力 +12`,'',{class:'text-button',disabled:x.potions===0||x.hp===E.maxHp(state)})}</div></div>`;
   }
   function fieldDecision(x){
@@ -381,10 +387,15 @@
       '<p class="small">実プレイヤーではない依頼主に、素材から装備を作って渡す。同じ土地で1戦以上して生還すると結果が届く。持ち物に武器は複製されない。</p>'+
       '<p class="small">完了 '+state.commission.completed+' 件 · '+commissioned+'</p>'+
       (commissionNews ? '<p class="notice">'+commissionNews+'</p>' : '')+'<div class="choice-grid">'+commissionRows+'</div></details>';
+    // The workshop already owns recipes and role switching. Surface its next
+    // actionable step instead of importing a parallel Argon crafting system.
+    const forgeCue = state.activeCharacter !== 1 && Object.keys(E.RECIPES).some(id => canCraft(state,id))
+      ? '<div class="editorial-forge-cue" role="status"><strong>共同倉庫に製作できる素材があります</strong><span>鍛冶師へ交代すると武具を製作できます。</span></div>'
+      : '';
     const workshop = `<section class="rule-line" aria-label="冒険者と鍛冶師の製作">
       <h3>冒険者と職人の仕事</h3>
       <p class="small">戦闘で得るのは素材。遠征は旅人、装備を生み出すのは鍛冶師。安全な拠点で交代し、倉庫を共有する。</p>
-      ${quickCraft}
+      ${forgeCue}${quickCraft}
       <div class="choice-grid">${roleChoices}</div>
       <p class="small">共同倉庫：${materialList(state.materials) || '素材なし'} · 鉄片 ${state.scrap}</p>
       <div class="home-buildings">${recipes}</div>
@@ -616,7 +627,15 @@
       ? '<p class="notice">✦ 別の旅人の痕跡：'+N.TRAVELER.name+'（架空NPC）が【'+esc(N.title(visitorDistrict))+'】に補給袋を残した。そこから次の遠征へ出ると薬草 +1。</p>'
       : '';
     const nextLabel = learnedSkill ? '人物画面で新しい技能を確認' : commissionFinished ? '鍛冶師に報告を伝える' : readyToCraft ? '職人に素材を渡す' : unresolved ? `同名武器をあと ${unresolved} 本整理する` : keptDuplicate ? '入れ替えた装備を確認する' : homeOpportunity ? '拠点を育てる' : hasNewBattleGear ? '持ち帰った装備を比べる' : canPowerUp ? '補強へ進む' : '焚き火で次の準備をする';
-    return `<div class="game-layout report-layout${learnedSkill?' skill-unlock-report':''}"><section class="visual-column">${scene('camp',r.died ? '火は、まだ消えていない。' : learnedSkill ? '世界が、少し違って見える。' : 'おかえり、旅人。',r.died ? 'THE ROAD IS NOT OVER' : learnedSkill ? 'A NEW WAY TO SEE' : 'YOU MADE IT HOME')}</section><section class="panel report-panel"><div class="report-scroll">${skillReward}<p class='kicker'>${r.died ? 'EXPEDITION LOST' : 'SAFE RETURN'} / ${E.place(r.place).name}</p><h1>${r.died ? '命だけを、持ち帰った。' : learnedSkill ? '新たな技を手にした。' : duplicates.length ? '持ち帰った一本を、比べる。' : r.newGear.length ? '新しい一本を、火へ。' : '欲張らずに、帰る強さ。'}</h1><p class='intro'>${r.died ? defeatIntro : learnedSkill ? '足跡から学んだ知識が、次の冒険への可能性を広げた。' : '背嚢の素材を確保した。鍛冶師に渡せば、次の遠征で使う装備を製作できる。'}</p><div class='result-number'>${r.died ? '' : '+'}${r.scrap} <small>${r.died ? '鉄片を落とした' : '鉄片を確保'}</small></div>${materialList(r.materials) ? `<p class='notice'>${r.died ? '失った素材' : '持ち帰った素材'}：${materialList(r.materials)}。鍛冶師の仕事に使える。</p>` : ''}${blueprintReward}${commissionFeedback}${visitorNews}${landmarkOutcome}${state.neighborhood.result ? `<div class="home-return"><strong>${state.neighborhood.result.claimed ? '⚑ '+N.title(N.get(state.neighborhood,state.neighborhood.result.id))+'を開拓！' : state.neighborhood.result.died ? '土地と拠点は残っている。' : '拠点へ建材を持ち帰った。'}</strong><p>木材 +${state.neighborhood.result.wood} · 石材 +${state.neighborhood.result.stone}</p><small>${state.neighborhood.result.claimed ? 'この土地に、あなたの旗が立つ。' : '持ち帰った建材で、拠点に建物を増やせる。'}</small></div>` : ''}${lootRows}${duplicateRows}${recovery?.scrap ? `<div class='reward'><span class='reward-icon'>↺</span><div><strong>敗走跡：鉄片 ${recovery.scrap}</strong><small>次に同じ土地へ出れば背嚢へ戻る。生還するまで未確定。</small></div></div>` : ''}${!r.died && state.owned.includes('crown') ? `<p class='notice'>灰冠の廟を越えた。名もなき旅人の、最初の物語が残った。</p>` : ''}<p class='small rule-line'>${r.died ? (recovery ? '敗走は全損ではない。取り戻しに行くか、別の土地へ向かうかを選べる。' : '遠征の失敗で、恒久的な進行は失われません。') : state.cleared.length >= 2 && !state.owned.includes('crown') ? '二つの土地を越えた。次は「灰冠の廟」の主に挑める。' : '別の土地では異なる素材が見つかる。鍛冶師なら武具に変えられる。'}</p></div><div class="report-actions">${button('continue',r.died && recovery ? '敗走跡を回収する準備へ' : nextLabel,'',{class:'primary',disabled:unresolved > 0})}</div></section></div>`;
+    // Short editorial return loop: guide an actual action without promising
+    // a craft when ingredients/blueprints are still missing.
+    const returnLoop = r.died
+      ? '<section class="editorial-return-loop editorial-return-loop--lost" aria-label="敗走後の次の行動"><div class="editorial-return-steps"><span class="is-warning">01 敗走</span><span>02 準備</span><span>03 再遠征</span></div><p>持ち帰れなかった素材は製作に使えません。装備を見直して、次は早めの生還も選べます。</p></section>'
+      : `<section class="editorial-return-loop" aria-label="生還から次の遠征まで">
+          <div class="editorial-return-steps"><span class="is-complete">01 生還 ✓</span><span class="${readyToCraft ? 'is-ready' : ''}">02 ${readyToCraft ? '製作可能' : '製作準備'}</span><span>03 次の遠征</span></div>
+          <p>${readyToCraft ? '共同倉庫の素材で製作できる武具があります。装備画面で鍛冶師に交代しましょう。' : (materialList(r.materials) || r.scrap > 0) ? '持ち帰った素材を共同倉庫に確保しました。製作に足りない素材を確認しましょう。' : '次の探索で素材を集め、無事に持ち帰ることが製作につながります。'}</p>
+        </section>`;
+    return `<div class="game-layout report-layout${learnedSkill?' skill-unlock-report':''}"><section class="visual-column">${scene('camp',r.died ? '火は、まだ消えていない。' : learnedSkill ? '世界が、少し違って見える。' : 'おかえり、旅人。',r.died ? 'THE ROAD IS NOT OVER' : learnedSkill ? 'A NEW WAY TO SEE' : 'YOU MADE IT HOME')}</section><section class="panel report-panel"><div class="report-scroll">${skillReward}<p class='kicker'>${r.died ? 'EXPEDITION LOST' : 'SAFE RETURN'} / ${E.place(r.place).name}</p><h1>${r.died ? '命だけを、持ち帰った。' : learnedSkill ? '新たな技を手にした。' : duplicates.length ? '持ち帰った一本を、比べる。' : r.newGear.length ? '新しい一本を、火へ。' : '欲張らずに、帰る強さ。'}</h1><p class='intro'>${r.died ? defeatIntro : learnedSkill ? '足跡から学んだ知識が、次の冒険への可能性を広げた。' : '背嚢の素材を確保した。鍛冶師に渡せば、次の遠征で使う装備を製作できる。'}</p>${returnLoop}<div class='result-number'>${r.died ? '' : '+'}${r.scrap} <small>${r.died ? '鉄片を落とした' : '鉄片を確保'}</small></div>${materialList(r.materials) ? `<p class='notice'>${r.died ? '失った素材' : '持ち帰った素材'}：${materialList(r.materials)}。鍛冶師の仕事に使える。</p>` : ''}${blueprintReward}${commissionFeedback}${visitorNews}${landmarkOutcome}${state.neighborhood.result ? `<div class="home-return"><strong>${state.neighborhood.result.claimed ? '⚑ '+N.title(N.get(state.neighborhood,state.neighborhood.result.id))+'を開拓！' : state.neighborhood.result.died ? '土地と拠点は残っている。' : '拠点へ建材を持ち帰った。'}</strong><p>木材 +${state.neighborhood.result.wood} · 石材 +${state.neighborhood.result.stone}</p><small>${state.neighborhood.result.claimed ? 'この土地に、あなたの旗が立つ。' : '持ち帰った建材で、拠点に建物を増やせる。'}</small></div>` : ''}${lootRows}${duplicateRows}${recovery?.scrap ? `<div class='reward'><span class='reward-icon'>↺</span><div><strong>敗走跡：鉄片 ${recovery.scrap}</strong><small>次に同じ土地へ出れば背嚢へ戻る。生還するまで未確定。</small></div></div>` : ''}${!r.died && state.owned.includes('crown') ? `<p class='notice'>灰冠の廟を越えた。名もなき旅人の、最初の物語が残った。</p>` : ''}<p class='small rule-line'>${r.died ? (recovery ? '敗走は全損ではない。取り戻しに行くか、別の土地へ向かうかを選べる。' : '遠征の失敗で、恒久的な進行は失われません。') : state.cleared.length >= 2 && !state.owned.includes('crown') ? '二つの土地を越えた。次は「灰冠の廟」の主に挑める。' : '別の土地では異なる素材が見つかる。鍛冶師なら武具に変えられる。'}</p></div><div class="report-actions">${button('continue',r.died && recovery ? '敗走跡を回収する準備へ' : nextLabel,'',{class:'primary',disabled:unresolved > 0})}</div></section></div>`;
   }
   function render() {
     const help = document.querySelector('#help'), helpToggle = document.querySelector('#help-toggle');
