@@ -396,3 +396,14 @@
     width:min(100%,calc(55dvh - 86px),390px);
   }
 }
+
+/* Investigating a bell echo is a choice, not a movement waypoint. */
+#game > .field-layout .field-choices button.tower-echo-investigate {
+  grid-column:1/-1;min-height:52px;padding:8px 12px;
+  border:1px solid #d8c38d;border-radius:6px;
+  background:linear-gradient(120deg,#453d2e,#2c4144);
+  color:#fff0c9;text-align:left;font-size:13px;
+}
+#game > .field-layout .field-choices button.tower-echo-investigate small {
+  display:block;margin-top:3px;color:#e5d4af;font-size:11px;
+}

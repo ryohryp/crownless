@@ -76,6 +76,27 @@ async function main() {
         await page.reload();
         assert.match(await bag.innerText(), /鐘鉄 1 · 鉄片 0/,
           "saved carried loot must be visible after reload");
+        // The sound suggests an investigation, without marking the hidden stair.
+        for (const id of [18, 17]) {
+          await page.locator('.tower-field [data-action="tower-step"][data-value="' + id + '"]').click();
+        }
+        const investigate = page.locator('.field-choices [data-action="tower-step"][data-value="12"]');
+        assert.equal(await investigate.count(), 1, "echo must offer a contextual investigation");
+        const hidden = page.locator('.tower-field [data-action="tower-step"][data-value="12"]');
+        assert.equal(await hidden.count(), 1);
+        assert.equal(await hidden.evaluate(el => el.classList.contains("walk-nav")), false,
+          "hidden stair must never have an ordinary movement waypoint");
+        await page.screenshot({ path: path.join(output, "tower-echo-" + width + ".png") });
+        const retreatBottom = await page.locator('.field-choices [data-action="return"]')
+          .evaluate(el => el.getBoundingClientRect().bottom);
+        assert(retreatBottom <= height + 2, "safe return must remain on-screen: " + retreatBottom);
+        await investigate.click();
+        assert.equal((await saved()).expedition.tower.pos, 17,
+          "investigating the sound must not teleport");
+        assert.equal((await saved()).expedition.tower.open, true);
+        assert.equal(await investigate.count(), 0, "discovery action must disappear once opened");
+        await page.reload();
+        assert.equal((await saved()).expedition.tower.open, true, "discovery survives reload");
         await page.locator('.field-choices [data-action="return"]').click();
         assert.equal((await saved()).materials.watchIron, 1,
           "safe return must bank collected iron");
@@ -85,7 +106,7 @@ async function main() {
         await context.close();
       }
     }
-    console.log("[tower-bag-phone] PASS: 360x800 and 390x844, gather, reload, return");
+    console.log("[tower-bag-phone] PASS: 360x800 and 390x844, gather, echo investigation, reload, return");
   } finally {
     if (browser) await browser.close();
     server.kill();
