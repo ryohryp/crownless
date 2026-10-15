@@ -55,3 +55,25 @@ test('tower bag shows at-risk bell iron and scrap, including after save and safe
   assert.equal(E.parse(resumed.store.get(key)).materials.watchIron,1);
   assert.match(resumed.html(),/持ち帰った素材/);
 });
+
+test('tower navigation never marks fog, walls, or undiscovered secret stairs',()=>{
+  let state=E.start(E.discover({...E.initial(),mode:'demo'},'tower'),'tower');
+  for(const to of [21,22,T.ECHO]) state=E.act(state,'tower-step:'+to);
+  assert.equal(state.expedition.tower.open,false);
+  assert.equal(T.visible(state.expedition.tower,T.SECRET),false);
+  const html=browser(state).html();
+  const secret=html.match(/<button\b[^>]*data-action="tower-step" data-value="12"[^>]*>/)?.[0];
+  assert.ok(secret,'the echo can be investigated without revealing a route');
+  assert.match(secret,/veiled/);
+  assert.doesNotMatch(secret,/walk-nav/);
+  const steps=[...html.matchAll(/<button\b[^>]*class="([^"]*)"[^>]*data-action="tower-step" data-value="(\d+)"/g)];
+  assert.ok(steps.length>0);
+  for(const [,classes,id] of steps){
+    if(!classes.includes('walk-nav')) continue;
+    const to=Number(id);
+    assert.equal(T.visible(state.expedition.tower,to),true);
+    assert.equal(T.canMove(state.expedition.tower,to),true);
+    assert.notEqual(T.kind(to),'wall');
+    assert.notEqual(T.kind(to),'secret');
+  }
+});
