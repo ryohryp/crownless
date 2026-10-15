@@ -390,10 +390,10 @@
    tower scenery allocation, and leave the forest/fen layout unchanged. */
 @media (max-width:480px) and (min-height:701px) {
   #game > .field-layout:has(.tower-field.world-painted) {
-    grid-template-rows:minmax(0,55dvh) minmax(0,1fr)!important;
+    grid-template-rows:minmax(0,52dvh) minmax(0,1fr)!important;
   }
   #game > .field-layout .tower-field.world-painted .field-terrain {
-    width:min(100%,calc(55dvh - 86px),390px);
+    width:min(100%,calc(52dvh - 86px),390px);
   }
 }
 
