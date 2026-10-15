@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "kind": "background",
+  "candidate": ".qa/candidates/watchtower-inkwash-brush-v2-640.jpg",
+  "subject": "fictional ruined medieval stone watchtower on a rocky ridge, arched openings and ancient steps, fading misty mountain valley",
+  "usage": "UNAPPROVED new visual candidate for discovered watchtower; low-resolution lossy 640x360 review proxy, temporary demo tower-detail scene only; not game runtime art",
+  "generationPrompt": "A watchtower and stone steps clearly outlined above a broad pale misty valley. Western medieval fantasy expressed as sumi-e charcoal ink washes on handmade warm washi; less busy masonry, softer fading distance, stronger ink silhouette, generous paper negative space. No UI, writing, label, GPS or route. Avoid glossy fantasy, dense oil-paint rendering and historical blue-green boards.",
+  "targetSize": [
+    640,
+    360
+  ],
+  "transparent": false,
+  "references": [],
+  "attempt": 1,
+  "integration": {
+    "selector": ".nearby-secondary-content",
+    "mode": "insert",
+    "view": "detail",
+    "demoBiome": "tower",
+    "expectedTitle": "見張り跡"
+  }
+}
