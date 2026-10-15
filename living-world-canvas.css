@@ -219,7 +219,7 @@
 #game > .neighborhood-rebuild .nearby-track-switch span {font-size:11px}
 #game > .neighborhood-rebuild .nearby-card.district-detail {
   z-index:9;
-  margin-top:-7px;
+  margin-top:0;
   padding:9px 12px 10px;
   border-top:2px solid #a45042;
   box-shadow:0 -5px 15px rgba(33,32,26,.13);
