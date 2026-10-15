@@ -21,21 +21,6 @@
       "display_name": "素手の主人公",
       "character_file": "docs/visual/CHARACTER_VISUAL_CANON.md",
       "canon_heading": "素手の主人公"
-    },
-    "enemy-rusher": {
-      "display_name": "敵：Rusher",
-      "character_file": "docs/visual/CHARACTER_VISUAL_CANON.md",
-      "canon_heading": "敵：Rusher"
-    },
-    "enemy-guard": {
-      "display_name": "敵：Guard",
-      "character_file": "docs/visual/CHARACTER_VISUAL_CANON.md",
-      "canon_heading": "敵：Guard"
-    },
-    "enemy-skirmisher": {
-      "display_name": "敵：Skirmisher",
-      "character_file": "docs/visual/CHARACTER_VISUAL_CANON.md",
-      "canon_heading": "敵：Skirmisher"
     }
   }
 }

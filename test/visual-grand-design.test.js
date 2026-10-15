@@ -26,6 +26,7 @@ test('compiled Canon exposes the subjectless background policy', () => {
   assert.equal(compiledCanon.grand_design.asset_types.background.source_reference_required, false);
   assert.match(compiledCanon.source_revision, /^[a-f0-9]{64}$/);
   assert.equal(manifest.documents.globalReference, null, 'do not pass the historical board as a current visual reference');
+  assert.deepEqual(Object.keys(manifest.subjects), ['player-unarmed'], 'removed combat enemies have no present approved anchors');
   assert.equal(compiledCanon.global_reference_path, undefined);
   assert.match(compiledCanon.global_style_lock, /Japanese sumi-e.*washi/i);
   assert.deepEqual(compiledCanon.grand_design, grandDesign);
