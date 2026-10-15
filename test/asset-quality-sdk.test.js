@@ -19,7 +19,7 @@ test("official TypeSafe SDK sends candidate/reference images as multipart with o
       background: { r: 235, g: 226, b: 212, alpha: 1 } } }).png().toBuffer());
     await writeFile(second, await sharp({ create: { width: 512, height: 512, channels: 4,
       background: { r: 25, g: 31, b: 35, alpha: 1 } } }).png().toBuffer());
-    let requests = 0;
+    let requests = 0, observed;
     class MockWireClient extends sdk.TypeSafeClient {
       constructor() {
         super({
@@ -28,31 +28,7 @@ test("official TypeSafe SDK sends candidate/reference images as multipart with o
           retry: { maxRetries: 0 },
           fetch: async (url, init) => {
             requests++;
-            assert.match(String(url), /\/v1\/systemone$/);
-            const headers = new Headers(init.headers);
-            assert.equal(headers.get("TypeSafe-Danger-Zone-Images"), "true");
-            assert.equal(headers.get("Authorization"), "Bearer local-only-test-key");
-            assert.ok(init.body instanceof FormData, "official SDK must construct multipart FormData");
-            const requestPart = init.body.get("request");
-            assert.ok(requestPart);
-            const requestBody = JSON.parse(typeof requestPart === "string" ? requestPart : await requestPart.text());
-            assert.equal(requestBody.model, "jev-latest");
-            assert.equal(requestBody.questions.verdict.type, "choice");
-            assert.equal(requestBody.questions.quality.type, "score");
-            assert.equal(requestBody.questions.artifacts.type, "noul");
-            assert.ok(Array.isArray(requestBody.state.canon));
-            assert.ok(requestBody.state.canon.some(x => x.file === "docs/visual-canon.md"));
-            assert.equal(requestBody.state.contract.subject, "test fictional watchtower");
-            const assets = requestBody.assets;
-            assert.ok(assets && Object.keys(assets).length === 2, "candidate and approved reference are both sent");
-            assert.ok(assets[requestBody.state.candidate], "candidate reference is present");
-            assert.ok(assets[requestBody.state.approvedReference], "approved anchor is referenced");
-            for (const entry of Object.values(assets)) {
-              const file = init.body.get(entry.part);
-              assert.ok(file, "multipart image part exists");
-              assert.ok(file.size > 100, "nonempty file image");
-              assert.equal(file.type, "image/png");
-            }
+            observed = {url, init};
             return Response.json({
               model: "jev-latest",
               usage: { input_tokens: 101, output_tokens: 9 },
@@ -77,6 +53,33 @@ test("official TypeSafe SDK sends candidate/reference images as multipart with o
       image: sdk.image
     });
     assert.equal(result.available, true, JSON.stringify(result));
+    assert.ok(observed, "the official SDK must reach the mocked fetch");
+            assert.match(String(observed.url), /\/v1\/systemone$/);
+            const headers = new Headers(observed.init.headers);
+            assert.equal(headers.get("TypeSafe-Danger-Zone-Images"), "true");
+            assert.equal(headers.get("Authorization"), "Bearer local-only-test-key");
+            assert.ok(observed.init.body instanceof FormData, "official SDK must construct multipart FormData");
+            const requestPart = observed.init.body.get("request");
+            assert.ok(requestPart);
+            const requestBody = JSON.parse(typeof requestPart === "string" ? requestPart : await requestPart.text());
+            assert.equal(requestBody.model, "jev-latest");
+            assert.equal(requestBody.questions.verdict.type, "choice");
+            assert.equal(requestBody.questions.quality.type, "score");
+            assert.equal(requestBody.questions.artifacts.type, "noul");
+            assert.ok(Array.isArray(requestBody.state.canon));
+            assert.ok(requestBody.state.canon.some(x => x.file === "docs/visual-canon.md"));
+            assert.equal(requestBody.state.contract.subject, "test fictional watchtower");
+            const assets = requestBody.assets;
+            assert.ok(assets && Object.keys(assets).length === 2, "candidate and approved reference are both sent");
+            assert.ok(assets[requestBody.state.candidate], "candidate reference is present");
+            assert.ok(assets[requestBody.state.approvedReference], "approved anchor is referenced");
+            for (const entry of Object.values(assets)) {
+              const file = observed.init.body.get(entry.part);
+              assert.ok(file, "multipart image part exists");
+              assert.ok(file.size > 100, "nonempty file image");
+              assert.equal(file.type, "image/png");
+            }
+
     assert.equal(result.calls, 1);
     assert.equal(result.answers.verdict.choice, "accept_candidate");
     assert.equal(result.usage.input_tokens, 101);
