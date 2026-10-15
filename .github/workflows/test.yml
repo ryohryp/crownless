@@ -15,7 +15,7 @@ concurrency:
 jobs:
   test:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 8
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -39,6 +39,8 @@ jobs:
           node --check src/territory-world-trace.js
           node --check src/territory-mobile-declutter.js
           node --check src/expedition-presentation.js
+      - name: Install official image-evaluation SDK for transport smoke
+        run: npm install --package-lock=false --no-audit --no-fund
       - name: Unit tests
         run: npm test
 
