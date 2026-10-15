@@ -686,8 +686,11 @@
         }else if(to===T.CACHE&&!next.cache){
           x.log=['崩れた階段の奥から鐘鉄の響き。石をこじ開ければ傷つくが素材が手に入る。壁の訓練刻印を読めば安全に戦闘へ備えられる。'];
         }else if(to===14&&!next.guard){
-          // Warn about the guardian one step before a fight: returning with loot is a real choice.
-          x.log=['上階の石段から、鎧が石床を打つ足音。背嚢を守って生還するか、番人のいる先へ進むか。'];
+          // Make the unbanked stake explicit before an optional guardian fight.
+          const carried=x.materials.watchIron||x.scrap
+            ? `背嚢の鐘鉄 ${x.materials.watchIron}・鉄片 ${x.scrap} を守って`
+            : '背嚢はまだ空だ。';
+          x.log=[`上階の石段から、鎧が石床を打つ足音。${carried}生還するか、番人のいる先へ進むか。`];
         }else if(to===T.GUARD&&!next.guard){
           encounter(x,true,n.runs);
           x.log.unshift('鎧の足音！ 鐘なき塔の番人が立ちはだかる。戦って退ければ上へ進める。');
