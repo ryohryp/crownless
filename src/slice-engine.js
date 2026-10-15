@@ -553,6 +553,12 @@
     } else if (x.stage === 'cleared' && action === 'deeper' && x.depth < 3) {
       x.depth++; x.room = 0; x.stage = 'path'; x.log = [`さらに深く。${lootCue(x.place, x.depth)}`]; return n;
     } else if (x.stage === 'path') {
+      // A voluntary listening action reveals a risk clue without moving or starting combat.
+      if (action === 'tower-listen' && x.place === 'tower' && x.depth === 1 &&
+          x.room === 0 && x.tower && x.tower.pos === 19 && !x.tower.guard) {
+        x.log = ['耳を澄ますと、上階へ続く石段の先で鎧がこすれた。まだ姿は見えない。先へ進むか、戦利品を持ち帰るか。'];
+        return n;
+      }
       // The collapsed stair offers combat preparation or at-risk smithing material.
       if ((action === 'tower-cache-focus' || action === 'tower-cache-iron') &&
           x.place === 'tower' && x.depth === 1 && x.room === 0 && x.tower &&
@@ -685,6 +691,8 @@
           x.log=['秘密の納骨室を発見！ 鐘鉄 +1、鉄片 +4。素材は生還して初めて確定する。'];
         }else if(to===T.CACHE&&!next.cache){
           x.log=['崩れた階段の奥から鐘鉄の響き。石をこじ開ければ傷つくが素材が手に入る。壁の訓練刻印を読めば安全に戦闘へ備えられる。'];
+        }else if(to===19&&!next.guard){
+          x.log=['石段の奥で金属が石をこする音がした。耳を澄ませば、何か分かりそうだ。'];
         }else if(to===14&&!next.guard){
           // Make the unbanked stake explicit before an optional guardian fight.
           const carried=x.materials.watchIron||x.scrap

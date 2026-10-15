@@ -35,3 +35,16 @@ test('tower guardian warns without inventing carried loot when the bag is empty'
   assert.doesNotMatch(s.expedition.log[0], /鐘鉄 1/);
   assert.deepEqual(E.parse(E.serialize(s)), s, 'empty-bag warning survives resume');
 });
+
+test('listening does not start combat or grant loot', () => {
+  let s=E.start(E.discover({...E.initial(),mode:'demo'},'tower'),'tower');
+  for(const tile of [21,22,23,18,19])s=E.act(s,'tower-step:'+tile);
+  assert.match(s.expedition.log[0],/金属が石をこする音/);
+  const after=E.act(s,'tower-listen');
+  assert.equal(after.expedition.stage,'path');
+  assert.deepEqual(after.expedition.tower,s.expedition.tower);
+  assert.deepEqual(after.expedition.materials,s.expedition.materials);
+  assert.match(after.expedition.log[0],/まだ姿は見えない/);
+  assert.match(E.parse(E.serialize(after)).expedition.log[0],/戦利品を持ち帰るか/);
+  assert.equal(E.act(after,'return').expedition,null);
+});
