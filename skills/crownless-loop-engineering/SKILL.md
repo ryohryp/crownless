@@ -134,3 +134,7 @@ This is calibration data, not a success report. Preserve `no_action`, skips, fai
 ### Efficiency rule
 
 A Jev call should reduce branches, context, or expensive reasoning. If it does not change what the agent needs to inspect, run, implement, or verify, skip it. Batch independent questions that share the same state, and do not make a second call without materially new evidence.
+
+## Asset-change Jev Vision gate
+
+Only when the current hourly task generates/changes a meaningful image, follow docs/visual/asset-quality-gate.md. Do not rerun on identical hashes or create another scheduler. Jev is advisory; keep normal commit-only workflow, never auto-merge.
