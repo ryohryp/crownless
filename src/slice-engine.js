@@ -701,7 +701,9 @@
           const carried=x.materials.watchIron||x.scrap
             ? `背嚢の鐘鉄 ${x.materials.watchIron}・鉄片 ${x.scrap} を守って`
             : '背嚢はまだ空だ。';
-          x.log=[`上階の石段から、鎧が石床を打つ足音。${carried}生還するか、番人のいる先へ進むか。`];
+          // Bring back the earned tactical clue at the moment it can change the decision.
+          const clue=next.listened?'耳に残る盾の音。初手は強撃が効きそうだ。':'';
+          x.log=[`上階の石段から、鎧が石床を打つ足音。${clue}${carried}生還するか、番人のいる先へ進むか。`];
         }else if(to===T.GUARD&&!next.guard){
           encounter(x,true,n.runs);
           x.log.unshift('鎧の足音！ 鐘なき塔の番人が立ちはだかる。戦って退ければ上へ進める。');

@@ -32,6 +32,8 @@ test('tower guardian warns without inventing carried loot when the bag is empty'
   assert.equal(s.expedition.materials.watchIron, 0);
   assert.equal(s.expedition.scrap, 0);
   assert.match(s.expedition.log[0], /背嚢はまだ空だ。生還するか/);
+  assert.doesNotMatch(s.expedition.log[0], /初手は強撃/,
+    'players who did not investigate should not receive the tactical clue');
   assert.doesNotMatch(s.expedition.log[0], /鐘鉄 1/);
   assert.deepEqual(E.parse(E.serialize(s)), s, 'empty-bag warning survives resume');
 });
@@ -52,7 +54,15 @@ test('listening does not start combat or grant loot', () => {
   const resumed=E.parse(E.serialize(after));
   assert.equal(resumed.expedition.tower.listened,true,'listening persists across reload');
   assert.match(resumed.expedition.log[0],/戦利品を持ち帰るか/);
-  const challenge=E.act(E.act(resumed,'tower-step:14'),'tower-step:9');
+  const threshold=E.act(resumed,'tower-step:14');
+  assert.match(threshold.expedition.log[0],/耳に残る盾の音。初手は強撃が効きそうだ。/,
+    'earned clue is recalled at the actual retreat-or-fight decision');
+  assert.equal(threshold.expedition.tower.pos,14);
+  assert.equal(threshold.expedition.stage,'path','recalling a clue never forces combat');
+  assert.deepEqual(threshold.expedition.materials,resumed.expedition.materials);
+  assert.match(E.parse(E.serialize(threshold)).expedition.log[0],/初手は強撃/,
+    'clue remains visible after reloading at the guardian threshold');
+  const challenge=E.act(threshold,'tower-step:9');
   assert.equal(challenge.expedition.stage,'fight');
   assert.equal(E.intent(challenge.expedition.enemy).id,'guard','heard shield matches first enemy intent');
   assert(E.attackPreview(challenge,'heavy')>E.attackPreview(challenge,'strike'),

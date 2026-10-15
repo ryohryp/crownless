@@ -980,6 +980,10 @@ async function main() {
         await step(14);
         assert.match((await saved()).expedition.log[0],/鎧が石床を打つ足音/,
           'guardian warning should be legible before choosing combat on a phone');
+        assert.match((await saved()).expedition.log[0],/初手は強撃が効きそうだ/,
+          'previously discovered shield clue must be recalled at the choice');
+        assert.match(await page.locator('.field-moment').innerText(),/初手は強撃/,
+          'phone UI must actually show the earned clue, not just save it');
         const retreat=page.locator('.field-choices [data-action="return"]');
         assert.match(await retreat.innerText(),/戦利品を守って生還/,
           'carried loot makes the guardian retreat choice explicit');
