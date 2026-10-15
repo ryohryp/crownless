@@ -187,10 +187,19 @@
     const echoChoice=x.tower?.pos===window.CrownlessTowerField?.ECHO&&!x.tower.open
       ? button('tower-step','鐘の反響を確かめる','壁の向こうに響く音を調べる',
           {value:String(window.CrownlessTowerField.SECRET),class:'tower-echo-investigate'}) : '';
+    const listenChoice=x.tower?.pos===19&&!x.tower.guard&&!x.tower.listened
+      ? button('tower-listen','足音に耳を澄ます','石段の奥の気配を確かめる',
+          {class:'tower-echo-investigate'}) : '';
+    // At the guardian's threshold, make the safe-return alternative explicit.
+    const guardAhead=x.tower?.pos===14&&!x.tower.guard;
+    const safeReturnLabel=guardAhead
+      ? ((x.materials?.watchIron||x.scrap)?'戦利品を守って生還':'番人を避けて生還')
+      : 'ここで生還する';
+    const safeReturnHint=guardAhead?'番人とは戦わず素材を確定する':'集めた素材を確定する';
     return `<div class="field-decision"><div class="field-status">${vitals(x)}
       <div class="path-risk" data-tower-bag="true"><span>背嚢の戦利品</span><strong>鐘鉄 ${x.materials?.watchIron || 0} · 鉄片 ${x.scrap}</strong><small>生還で確定 · 倒れれば失う</small></div></div>
       <p class="field-moment" role="status">${esc(x.log[0]||'静かな石の塔。音のする方へ進める。')}</p>
-      <div class="field-choices">${cacheChoices}${echoChoice}${button('return','ここで生還する','集めた素材を確定する',{class:'secondary'})}
+      <div class="field-choices">${cacheChoices}${echoChoice}${listenChoice}${button('return',safeReturnLabel,safeReturnHint,{class:'secondary'})}
       ${button('heal',`薬草 ${x.potions} · 体力 +12`,'',{class:'text-button',disabled:x.potions===0||x.hp===E.maxHp(state)})}</div></div>`;
   }
   function fieldDecision(x){

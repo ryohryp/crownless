@@ -954,7 +954,44 @@ async function main() {
         await page.screenshot({path:path.join(output,'tower-found-reliquary-'+width+'.png')});
         await page.reload();
         assert.equal(await page.locator('.tower-field[data-tower-relic="true"]').count(),1);
-        for(const id of [12,17,18,19,14,9])await step(id);
+        for(const id of [12,17,18,19])await step(id);
+        assert.match((await saved()).expedition.log[0],/金属が石をこする音/);
+        const listen=page.locator('.field-choices [data-action="tower-listen"]');
+        assert.equal(await listen.count(),1,'listening is an optional investigation');
+        const listenRect=await listen.evaluate(el=>{
+          const r=el.getBoundingClientRect();
+          return {left:r.left,right:r.right,top:r.top,bottom:r.bottom};
+        });
+        assert(listenRect.left>=-1 && listenRect.right<=width+1 &&
+          listenRect.top>=-1 && listenRect.bottom<=(width===360?800:844)+2,
+          'listen action must be tappable in the phone viewport: '+JSON.stringify(listenRect));
+        await listen.click();
+        s=await saved();
+        assert.equal(s.expedition.tower.pos,19,'listening does not move the traveler');
+        assert.equal(s.expedition.stage,'path','listening does not start combat');
+        assert.equal(s.expedition.tower.listened,true,'tactical clue is earned once');
+        assert.match(s.expedition.log[0],/盾を据える音/);
+        assert.equal(await listen.count(),0,'listen button disappears after investigating');
+        await page.reload();
+        assert.equal(await page.locator('.field-choices [data-action="tower-listen"]').count(),0,
+          'investigated clue stays completed after reload');
+        assert.equal((await saved()).expedition.tower.listened,true);
+        await page.screenshot({path:path.join(output,'tower-listening-choice-'+width+'.png')});
+        await step(14);
+        assert.match((await saved()).expedition.log[0],/鎧が石床を打つ足音/,
+          'guardian warning should be legible before choosing combat on a phone');
+        const retreat=page.locator('.field-choices [data-action="return"]');
+        assert.match(await retreat.innerText(),/戦利品を守って生還/,
+          'carried loot makes the guardian retreat choice explicit');
+        const retreatRect=await retreat.evaluate(el=>{
+          const r=el.getBoundingClientRect();
+          return {left:r.left,right:r.right,top:r.top,bottom:r.bottom};
+        });
+        assert(retreatRect.left>=-1 && retreatRect.right<=width+1 &&
+          retreatRect.top>=-1 && retreatRect.bottom<=(width===360?800:844)+2,
+          'guardian retreat must remain tappable in the phone viewport: '+JSON.stringify(retreatRect));
+        await page.screenshot({path:path.join(output,'tower-guardian-choice-'+width+'.png')});
+        await step(9);
         s=await saved();
         assert.equal(s.expedition.stage,'fight');
         assert.equal(s.expedition.enemy.kind,'knight');
