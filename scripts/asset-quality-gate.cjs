@@ -38,6 +38,7 @@ function validateManifest(m){
  if(typeof m.transparent!=="boolean")throw Error("missing_transparency");
  if(!Array.isArray(m.references)||m.references.length>2||m.references.some(r=>typeof r!=="string"))throw Error("invalid_references");
  if(!Number.isInteger(m.attempt)||m.attempt<0||m.attempt>2)throw Error("retry_limit_exceeded");
+ if(m.specPath!==undefined&&typeof m.specPath!=="string")throw Error("invalid_spec_path");
  if(/api[_ -]?key|bearer |password|https?:\/\/|(?:latitude|longitude|緯度|経度)\s*[:=]|-?\d{2,3}\.\d{5,}\s*[,/]\s*-?\d{2,3}\.\d{5,}/i.test([m.subject,m.usage,m.generationPrompt].join(" ")))throw Error("private_metadata");
  return m;
 }
@@ -108,9 +109,14 @@ async function evaluate({images,manifest,screen=false},sdk){
   const {TypeSafeClient,image}=sdk||require("@typesafe-ai/sdk");
   const {openAsBlob}=require("node:fs");
   const files=await Promise.all(images.map(async p=>image(await openAsBlob(p))));
+  const canonPaths=["docs/visual-canon.md","docs/visual/GLOBAL_VISUAL_STYLE.md","docs/visual/WORLD_DIRECTION.md"];
+  if(["character","enemy","equipment"].includes(manifest.kind))canonPaths.push("docs/visual/CHARACTER_VISUAL_CANON.md");
+  if(manifest.kind==="map")canonPaths.push("docs/adr/0014-connected-path-tile-map.md");
+  if(manifest.specPath)canonPaths.push(manifest.specPath);
+  const canonEntries=screen?[]:await Promise.all(canonPaths.map(async p=>({file:p,excerpt:(await fsp.readFile(localPath(p),"utf8")).slice(0,5500)})));
   const state=screen
     ?{game:"Crownless demo, fictional map, no actual GPS",phoneScreens:{width360:files[0],width390:files[1],width430:files[2]}}
-    :{candidate:files[0],...(files[1]?{approvedReference:files[1]}:{}),contract:{
+    :{candidate:files[0],...(files[1]?{approvedReference:files[1]}:{}),...(files[2]?{secondaryApprovedReference:files[2]}:{}),canon:canonEntries,contract:{
       type:manifest.kind,subject:manifest.subject,usage:manifest.usage,prompt:manifest.generationPrompt.slice(0,2400),
       targetSize:manifest.targetSize,transparent:manifest.transparent,
       style:manifest.kind==="map"?"ADR-0014 connected tile paths override older map prescriptions":"medieval sumi-e on washi; existing actor identity/camera anchors remain binding"}};
@@ -123,7 +129,7 @@ async function evaluate({images,manifest,screen=false},sdk){
 async function run(manifestPath,{stage="asset",force=false,dependencies={}}={}){
  const m=validateManifest(JSON.parse(await fsp.readFile(localPath(manifestPath),"utf8")));
  const candidate=localPath(m.candidate),refs=m.references.map(localPath);
- const contents=await Promise.all([candidate,...refs,...CANON.map(localPath)].map(x=>fsp.readFile(x)));
+ const contents=await Promise.all([candidate,...refs,...CANON.map(localPath),...(m.specPath?[localPath(m.specPath)]:[]),...(m.kind==="map"?[localPath("docs/adr/0014-connected-path-tile-map.md")]:[])].map(x=>fsp.readFile(x)));
  const sha256=hash(contents[0]);
  const key=hash(JSON.stringify({VERSION,m,hashes:contents.map(hash)}));
  const dir=path.join(ROOT,".qa/asset-quality",key);
@@ -135,6 +141,7 @@ async function run(manifestPath,{stage="asset",force=false,dependencies={}}={}){
   }catch{}
  }
  const report={schemaVersion:1,key,candidate:m.candidate,sha256,kind:m.kind,attempt:m.attempt,
+  declaredGenerationAttempts:m.attempt+1,declaredRegenerations:m.attempt,
   maxRegenerations:2,asset:null,phone:null,api:{requests:0,inputTokens:0,outputTokens:0}};
  const tally=e=>{report.api.requests+=e.calls||0;report.api.inputTokens+=e.usage?.input_tokens||0;report.api.outputTokens+=e.usage?.output_tokens||0;};
  try{
@@ -147,12 +154,12 @@ async function run(manifestPath,{stage="asset",force=false,dependencies={}}={}){
    const img=path.join(dir,"candidate.png");
    report.preview=await preview(candidate,img,sharp);
    const prepared=[img];
-   if(refs.length){const reference=path.join(dir,"approved-reference.png");await preview(refs[0],reference,sharp);prepared.push(reference);}
+   for(let i=0;i<refs.length;i++){const reference=path.join(dir,"approved-reference-"+i+".png");await preview(refs[i],reference,sharp);prepared.push(reference);}
    const evaluation=dependencies.evaluate?await dependencies.evaluate({images:prepared,manifest:m,screen:false}):await evaluate({images:prepared,manifest:m});
    tally(evaluation);
    report.asset={...interpret(evaluation),...(evaluation.available?{answers:evaluation.answers,model:evaluation.model}:{error:evaluation.error})};
   }
-  if(stage==="all"&&!problems.length){
+  if(stage==="all"&&!problems.length&&!["revise","reject_candidate"].includes(report.asset?.status)){
    try{
     const capture=dependencies.capture||require("./asset-quality-phone.cjs").capturePhoneScreens;
     const images=await capture({manifest:m,candidate,output:dir});
