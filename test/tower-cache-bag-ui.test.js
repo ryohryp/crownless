@@ -102,3 +102,22 @@ test('tower echo investigation is a deliberate choice, not hidden-route navigati
   assert.doesNotMatch(resumed.html(),/鐘の反響を確かめる/);
   assert.match(resumed.html(),/隠し階段を発見/);
 });
+
+
+test('tower approach whispers before the echo without revealing a secret route',()=>{
+  let state=E.start(E.discover({...E.initial(),mode:'demo'},'tower'),'tower');
+  state=E.act(state,'tower-step:21');
+  assert.doesNotMatch(state.expedition.log[0],/鐘の余韻/);
+  state=E.act(state,'tower-step:22');
+  assert.match(state.expedition.log[0],/鐘の余韻/);
+  assert.equal(state.expedition.tower.pos,22);
+  assert.equal(state.expedition.tower.echo,false);
+  assert.equal(T.visible(state.expedition.tower,T.SECRET),false);
+  assert.doesNotMatch(browser(state).html(),/鐘の反響を確かめる/);
+  state=E.act(state,'tower-step:17');
+  assert.equal(state.expedition.tower.echo,true);
+  assert.match(state.expedition.log[0],/壁の向こう/);
+  state=E.act(state,'tower-step:22');
+  assert.doesNotMatch(state.expedition.log[0],/鐘の余韻/,
+    'the approach clue must not repeat after the echo has been found');
+});
