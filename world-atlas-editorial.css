@@ -177,6 +177,7 @@
     repeating-linear-gradient(132deg,rgba(243,240,226,.23) 0 4px,transparent 4px 13px),
     linear-gradient(50deg,rgba(49,52,49,.10),transparent 67%);
 }
+#game > .neighborhood-rebuild .nearby-track-road {opacity:.96;stroke-linecap:butt}
 #game > .neighborhood-rebuild .nearby-track-edge {stroke:#74716a;stroke-width:30}
 #game > .neighborhood-rebuild .nearby-track-earth {stroke:#e6dbc5;stroke-width:20}
 #game > .neighborhood-rebuild .nearby-track-centerline {stroke:#797366;stroke-width:1.6}
