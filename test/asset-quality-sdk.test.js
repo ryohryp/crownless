@@ -76,7 +76,7 @@ test("official TypeSafe SDK sends candidate/reference images as multipart with o
       TypeSafeClient: MockWireClient,
       image: sdk.image
     });
-    assert.equal(result.available, true, result.error || "no error");
+    assert.equal(result.available, true, JSON.stringify(result));
     assert.equal(result.calls, 1);
     assert.equal(result.answers.verdict.choice, "accept_candidate");
     assert.equal(result.usage.input_tokens, 101);
