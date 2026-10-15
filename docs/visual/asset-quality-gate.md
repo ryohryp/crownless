@@ -1,0 +1,17 @@
+# CROWNLESS — Jev Vision candidate quality gate
+
+Authority: AGENTS.md; docs/visual-canon.md; docs/visual/GLOBAL_VISUAL_STYLE.md; docs/visual/CHARACTER_VISUAL_CANON.md; docs/visual/WORLD_DIRECTION.md; relevant approved character, location and asset references. The newer ADR-0014 map-specific directions take precedence where they differ from older map prescriptions. Old boards are not automatically current approved references.
+
+## Run only when an image changed
+
+1. Inspect the Canon and relevant approved asset first. Generate one needed PNG/JPEG asset using an asset-only generation prompt. Store the candidate under .qa/candidates/ or another unapproved location, not an adopted runtime path.
+2. Supply a JSON manifest with the candidate path, one of character/enemy/background/map/building/equipment/item/event, subject, usage, full generationPrompt, targetSize in pixels, transparent requirement, up to two approved reference paths, attempt 0..2 and intended game integration selector. See docs/visual/quality-gate-pilot-watchtower.json.
+3. Run npm install for the dedicated dev dependencies (Node.js 22+, sharp, @typesafe-ai/sdk 0.7.0) and Playwright with Chromium for screen mode. Set TYPESAFE_API_KEY only in a trusted worker/CLI, never in a browser:
+   npm run asset:quality -- --manifest docs/visual/quality-gate-pilot-watchtower.json --stage all
+4. The tool validates source format/dimensions/alpha/animation/references separately from Jev. It creates a padded/resized temporary copy ONLY for evaluation; original pixels and source files are not modified. Jev Choice, Score and Noul return advisory status and defect categories. A second evaluation checks screenshots after temporary asset placement in the actual Crownless demo at 360, 390 and 430 CSS px, plus deterministic load/tap/overflow checks.
+5. Read the JSON report in .qa/asset-quality: assessment, issue codes, finite correction text, images, request count, token usage. Cached results are reused when asset, references, manifest and Canon hashes do not change, unless the API was unavailable. If Jev fails, record evaluation_unavailable, never a quality rejection. No secrets or real GPS values are transmitted.
+6. Correct clear issues with the generated correction text in the NEXT asset-only prompt. Regenerate at most twice (attempt 1 then 2); preserve candidates and findings for review on failure. Do not auto-adopt an image, rewrite the Canon, or auto-merge. Follow the existing game integration and human phone-playtest process.
+
+The baseline pilot manifest points to an EXISTING ruined-watchtower image and temporarily places it behind the in-game map. It is a wiring fixture, not a newly generated image and not a claim of approval under the 2026-10-08 global Canon. A complete new-image E2E requires generating a fresh candidate, running the two gates, correcting defects and checking the actual adopted integration.
+
+TypeSafe image support is experimental: https://docs.typesafe.ai/images . The official SDK uploads images as multipart with the TypeSafe-Danger-Zone-Images header. Supported format PNG/JPEG, 16 MiB per image, side 256–1568 pixels, area 78,400–2,458,624 pixels, total request 32 MiB. The source remains untouched even if smaller than minimum.

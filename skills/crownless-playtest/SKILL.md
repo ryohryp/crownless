@@ -80,3 +80,7 @@ CROWNLESS_JEV_TASK="..." CROWNLESS_JEV_MAX_STEPS=30 CROWNLESS_JEV_MAX_SECONDS=90
    For complex multi-screen flows (expedition → safe return → reinforce at camp → re-expedition), set `CROWNLESS_JEV_MAX_STEPS=30` and `CROWNLESS_JEV_MAX_SECONDS=90~120` to avoid premature step-cap cutoff.
 
 This is a reachability/speed smoke test. Treat the returned step trace, browser errors, and elapsed time as evidence, then still use a 360–430 CSS px browser/phone playtest for tactile UI and fun. Do not use automation alone to claim the 15-minute goal is met.
+
+## Image-change phone verification
+
+For new/changed important images, follow docs/visual/asset-quality-gate.md. Inspect 360/390/430px screenshots and deterministic UI controls. Jev Vision is advisory, not a replacement for human play or evidence of fun.

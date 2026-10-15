@@ -23,3 +23,7 @@ Do not preserve old Crownless art styles unless they improve the current game.
 Generate only the assets needed for the current playable slice. Evaluate visuals inside the actual game, not in isolation.
 
 If the visual direction is undefined, establish the smallest useful direction and let real play decide what survives.
+
+## Current source and image QA
+
+Read AGENTS.md, current docs/visual-canon.md and specialized visual Canon, then use docs/visual/asset-quality-gate.md for new/changed important PNG/JPEG assets. Newer map guidance overrides older map prescriptions; approved actor identity anchors remain binding. No automatic Canon promotion.

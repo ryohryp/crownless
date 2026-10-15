@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "kind": "background",
+  "candidate": "assets/locations/ruined-watchtower.png",
+  "subject": "fictional ruined stone watchtower",
+  "usage": "temporary discovered map background fixture",
+  "generationPrompt": "Existing ruined watchtower illustration as wiring fixture only. Not newly generated and not an approved 2026 visual candidate.",
+  "targetSize": [
+    1280,
+    720
+  ],
+  "transparent": false,
+  "references": [],
+  "attempt": 0,
+  "integration": {
+    "selector": ".nearby-paper-map",
+    "mode": "background"
+  }
+}
