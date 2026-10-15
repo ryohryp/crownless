@@ -969,7 +969,13 @@ async function main() {
         s=await saved();
         assert.equal(s.expedition.tower.pos,19,'listening does not move the traveler');
         assert.equal(s.expedition.stage,'path','listening does not start combat');
-        assert.match(s.expedition.log[0],/まだ姿は見えない/);
+        assert.equal(s.expedition.tower.listened,true,'tactical clue is earned once');
+        assert.match(s.expedition.log[0],/盾を据える音/);
+        assert.equal(await listen.count(),0,'listen button disappears after investigating');
+        await page.reload();
+        assert.equal(await page.locator('.field-choices [data-action="tower-listen"]').count(),0,
+          'investigated clue stays completed after reload');
+        assert.equal((await saved()).expedition.tower.listened,true);
         await page.screenshot({path:path.join(output,'tower-listening-choice-'+width+'.png')});
         await step(14);
         assert.match((await saved()).expedition.log[0],/鎧が石床を打つ足音/,

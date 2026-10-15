@@ -555,8 +555,11 @@
     } else if (x.stage === 'path') {
       // A voluntary listening action reveals a risk clue without moving or starting combat.
       if (action === 'tower-listen' && x.place === 'tower' && x.depth === 1 &&
-          x.room === 0 && x.tower && x.tower.pos === 19 && !x.tower.guard) {
-        x.log = ['耳を澄ますと、上階へ続く石段の先で鎧がこすれた。まだ姿は見えない。先へ進むか、戦利品を持ち帰るか。'];
+          x.room === 0 && x.tower && x.tower.pos === 19 &&
+          !x.tower.guard && !x.tower.listened) {
+        // Earn one tactical clue, not repeatable loot or a free combat buff.
+        x.tower.listened = true;
+        x.log = ['耳を澄ますと、鎧の足音が止み、盾を据える音がした。姿はまだ見えないが、初手は守りを固めそうだ。強撃で攻めるか、戦利品を持ち帰るか。'];
         return n;
       }
       // The collapsed stair offers combat preparation or at-risk smithing material.

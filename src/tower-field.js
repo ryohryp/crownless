@@ -22,12 +22,14 @@
   // The cracked stair is not a known map tile just because the traveler
   // approaches the bell. It becomes visible only after investigating the echo.
   const reveal=(seen,pos,open=false)=>[pos,...neighbors(pos).filter(n=>open||n!==SECRET)].reduce(mark,seen);
-  const initial=()=>({pos:START,seen:reveal(0,START),echo:false,open:false,relic:false,cache:false,guard:false});
+  const initial=()=>({pos:START,seen:reveal(0,START),echo:false,open:false,relic:false,cache:false,guard:false,listened:false});
   const valid=f=>!!f&&typeof f==='object'&&!Array.isArray(f)&&Object.keys(f).every(k=>
-    ['pos','seen','echo','open','relic','cache','guard'].includes(k))&&
+    ['pos','seen','echo','open','relic','cache','guard','listened'].includes(k))&&
     inBounds(f.pos)&&!WALLS.includes(f.pos)&&Number.isSafeInteger(f.seen)&&
     f.seen>0&&f.seen<2**COUNT&&visible(f,f.pos)&&
     ['echo','open','relic','cache','guard'].every(k=>typeof f[k]==='boolean')&&
+    // Existing in-progress tower saves did not yet have the optional listen flag.
+    (f.listened===undefined||typeof f.listened==='boolean')&&
     (f.pos!==SECRET&&f.pos!==RELIC||f.open);
   const canMove=(f,to)=>valid(f)&&inBounds(to)&&!WALLS.includes(to)&&
     adjacent(f.pos,to)&&(to!==SECRET||f.open)&&(to!==STAIRS||f.guard);

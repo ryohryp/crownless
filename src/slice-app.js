@@ -187,7 +187,7 @@
     const echoChoice=x.tower?.pos===window.CrownlessTowerField?.ECHO&&!x.tower.open
       ? button('tower-step','鐘の反響を確かめる','壁の向こうに響く音を調べる',
           {value:String(window.CrownlessTowerField.SECRET),class:'tower-echo-investigate'}) : '';
-    const listenChoice=x.tower?.pos===19&&!x.tower.guard
+    const listenChoice=x.tower?.pos===19&&!x.tower.guard&&!x.tower.listened
       ? button('tower-listen','足音に耳を澄ます','石段の奥の気配を確かめる',
           {class:'tower-echo-investigate'}) : '';
     // At the guardian's threshold, make the safe-return alternative explicit.

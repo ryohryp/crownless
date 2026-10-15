@@ -42,9 +42,32 @@ test('listening does not start combat or grant loot', () => {
   assert.match(s.expedition.log[0],/金属が石をこする音/);
   const after=E.act(s,'tower-listen');
   assert.equal(after.expedition.stage,'path');
-  assert.deepEqual(after.expedition.tower,s.expedition.tower);
+  assert.equal(after.expedition.tower.pos,19);
+  assert.equal(after.expedition.tower.listened,true,'one investigation is recorded');
   assert.deepEqual(after.expedition.materials,s.expedition.materials);
-  assert.match(after.expedition.log[0],/まだ姿は見えない/);
-  assert.match(E.parse(E.serialize(after)).expedition.log[0],/戦利品を持ち帰るか/);
+  assert.equal(after.expedition.focus,s.expedition.focus,'clue is knowledge, not a free buff');
+  assert.match(after.expedition.log[0],/盾を据える音/);
+  assert.match(after.expedition.log[0],/強撃で攻めるか/);
+  assert.strictEqual(E.act(after,'tower-listen'),after,'repeated listening cannot farm a new result');
+  const resumed=E.parse(E.serialize(after));
+  assert.equal(resumed.expedition.tower.listened,true,'listening persists across reload');
+  assert.match(resumed.expedition.log[0],/戦利品を持ち帰るか/);
+  const challenge=E.act(E.act(resumed,'tower-step:14'),'tower-step:9');
+  assert.equal(challenge.expedition.stage,'fight');
+  assert.equal(E.intent(challenge.expedition.enemy).id,'guard','heard shield matches first enemy intent');
+  assert(E.attackPreview(challenge,'heavy')>E.attackPreview(challenge,'strike'),
+    'the earned clue informs a meaningful first attack choice');
   assert.equal(E.act(after,'return').expedition,null);
+});
+
+test('in-progress tower saves without the new listen flag remain loadable', () => {
+  let s=E.start(E.discover({...E.initial(),mode:'demo'},'tower'),'tower');
+  for(const tile of [21,22,23,18,19])s=E.act(s,'tower-step:'+tile);
+  delete s.expedition.tower.listened;
+  const loaded=E.parse(E.serialize(s));
+  assert(loaded,'pre-existing tower saves must still resume');
+  assert.equal(loaded.expedition.tower.pos,19);
+  const listened=E.act(loaded,'tower-listen');
+  assert.equal(listened.expedition.tower.listened,true);
+  assert(E.parse(E.serialize(listened)));
 });
