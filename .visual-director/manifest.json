@@ -6,7 +6,7 @@
     "characterCanon": "docs/visual/CHARACTER_VISUAL_CANON.md",
     "worldDirection": "docs/visual/WORLD_DIRECTION.md",
     "assetManifest": "docs/assets/README.md",
-    "globalReference": "docs/assets/crownless-visual-design-reference-v0.1.jpg",
+    "globalReference": null,
     "grandDesign": ".visual-director/grand-design.json"
   },
   "labels": {

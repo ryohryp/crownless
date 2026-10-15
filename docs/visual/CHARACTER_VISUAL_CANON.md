@@ -4,7 +4,7 @@ This file maps Crownless combat subjects to the current character rules used by 
 
 ## Common rules
 
-- Use `docs/assets/crownless-visual-design-reference-v0.1.jpg` for global linework, palette, material, and manuscript-family calibration.
+- Use `docs/visual-canon.md` and `docs/visual/GLOBAL_VISUAL_STYLE.md` for current global ink-wash/washi language. The former `docs/assets/crownless-visual-design-reference-v0.1.jpg` is historical only where its palette/woodcut treatment conflicts.
 - Use `assets/combat/minimal-v0.1/actors/` as the current authority for combat-character proportion, deformation, silhouette width, facial simplification, and battlefield viewpoint.
 - Older character / battle reference sheets are supporting style references only where they do not conflict with the accepted actor set.
 - Keep humanoid figures approximately **3–3.5 heads tall**, strongly deformed, compact, weathered, asymmetrical, and readable at phone scale.
@@ -22,9 +22,9 @@ This anchor is the approved identity, clothing/material, palette, silhouette, an
 
 The v0.4 replacement was generated from the approved v0.3 identity anchor after the prior v0.2 WebP failed local decode validation. The replacement is recorded in `docs/assets/player-unarmed-approved-anchor-v0.4.json`. The previous v0.3 plate remains historical calibration only; the unreadable v0.2 file remains a legacy reference and must not be used as a generation parent.
 
-### Reference calibration
+### Historical reference calibration (not a current global image)
 
-- `docs/assets/crownless-visual-design-reference-v0.1.jpg`
+- `docs/assets/crownless-visual-design-reference-v0.1.jpg` — legacy, only where consistent with current style; never use as mandatory image parent
 
 ### Approved Sprite Sheet Reference
 

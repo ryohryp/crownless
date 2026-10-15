@@ -25,5 +25,9 @@ test('compiled Canon exposes the subjectless background policy', () => {
   });
   assert.equal(compiledCanon.grand_design.asset_types.background.source_reference_required, false);
   assert.match(compiledCanon.source_revision, /^[a-f0-9]{64}$/);
-  assert.equal(compiledCanon.global_reference_path, 'docs/assets/crownless-visual-design-reference-v0.1.jpg');
+  assert.equal(manifest.documents.globalReference, null, 'do not pass the historical board as a current visual reference');
+  assert.equal(compiledCanon.global_reference_path, undefined);
+  assert.match(compiledCanon.global_style_lock, /Japanese sumi-e.*washi/i);
+  assert.deepEqual(compiledCanon.grand_design, grandDesign);
+  assert.equal(grandDesign.shared_rules.never_use_historical_board_as_current_global_reference, true);
 });
