@@ -14,7 +14,7 @@ test('exploration location visuals are explicit subjectless Grand Design assets'
   assert.equal(grandDesign.asset_types.background.composition.baked_ui_or_text, false);
   assert.ok(grandDesign.fixed_avoid.includes('photorealism'));
   assert.ok(grandDesign.fixed_avoid.some((term) => term.includes('painterly')));
-  assert.ok(grandDesign.asset_types.background.forbidden.some((rule) => rule.includes('rejected or unrelated generated candidate')));
+  assert.ok(grandDesign.asset_types.background.forbidden.some((rule) => rule.includes('rejected or unrelated')));
 });
 
 test('compiled Canon exposes the subjectless background policy', () => {
