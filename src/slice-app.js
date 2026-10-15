@@ -94,14 +94,14 @@
       cache:'崩れた階段',guard:f.guard?'退いた番人':'鎧の足音',stairs:'上階への階段'};
     const cells=Array.from({length:T.COUNT},(_,i)=>{
       const kind=T.kind(i),seen=T.visible(f,i),near=T.adjacent(f.pos,i);
-      const canStep=T.canMove(f,i),investigate=i===T.SECRET&&f.pos===T.ECHO&&!f.open;
+      const canStep=T.canMove(f,i);
       const [col,row]=T.coords(i),here=i===f.pos;
-      const classes=['field-cell',kind,seen?'revealed':'veiled',here?'here':'',canStep||investigate?'can-step':'',
+      const classes=['field-cell',kind,seen?'revealed':'veiled',here?'here':'',canStep?'can-step':'',
         seen&&canStep&&kind!=='secret'?'walk-nav':''].filter(Boolean).join(' ');
       const label=here?'旅人の現在地':seen?names[kind]:'未踏の塔内';
       const style=`grid-column:${col+1};grid-row:${row+1}`;
-      if(canStep||investigate)return `<button type="button" class="${classes}" style="${style}"
-        data-action="tower-step" data-value="${i}" aria-label="${label}${investigate?'を調べる':'へ進む'}"></button>`;
+      if(canStep)return `<button type="button" class="${classes}" style="${style}"
+        data-action="tower-step" data-value="${i}" aria-label="${label}へ進む"></button>`;
       return `<span class="${classes}" style="${style}" aria-label="${label}"></span>`;
     }).join('');
     return `<section class="forest-field tower-field" data-field-pos="${f.pos}" data-field-seen="${f.seen}"
