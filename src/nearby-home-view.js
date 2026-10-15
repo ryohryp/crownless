@@ -103,9 +103,9 @@
       button('district','次の発見 ›','',{class:'secondary',value:next.id})+'</div>':'';
     const map='<div class="nearby-paper-map nearby-track-map" role="group" aria-label="道がつながる近所のタイル地図">'+
       '<header class="nearby-map-top"><div class="nearby-atlas-heading"><span class="nearby-atlas-overline">CROWNLESS / WORLD ATLAS</span>'+
-      '<strong>世界図</strong><small>'+esc(n.name)+' · '+(state.mode==='demo'?'体験世界':'現実の発見')+'</small></div>'+
+      '<strong>世界図</strong><small>'+esc(n.name)+' · '+(state.mode==='demo'?'散策体験モード':'現実の散策モード')+'</small></div>'+
       '<div class="nearby-atlas-metrics" aria-label="探索の記録"><span>発見 <b>'+n.districts.length+'</b></span>'+
-      '<span>開拓 <b>'+N.claims(n)+'</b></span><span>建物 <b>'+n.buildings.length+'</b></span></div>'+
+      '<span>開拓 <b>'+N.claims(n)+'</b></span><span>建物 '+n.buildings.length+'</span></div>+'
       button('nearby-view','＋ 土地を発見','',{class:'nearby-top-action',value:'scout'})+
       button('settings','⚙','',{class:'nearby-map-settings'})+'</header>'+
       '<div class="nearby-track-scape"><div class="nearby-track-board" role="group" aria-label="中心が選択中の土地。道は模式図です。">'+
@@ -127,7 +127,7 @@
       poi.family==='shop'&&material?'店を開く':'土地の情報を見る','',
       {class:'secondary',value:'detail'});
     const mainCard='<div class="nearby-card-copy"><div class="nearby-card-eyebrow"><span class="nearby-card-index">SELECTED LAND / '+
-      String(selectedIndex+1).padStart(2,'0')+'</span><small>'+esc(stateLabel)+'</small></div>'+
+      String(selectedIndex+1).padStart(2,'0')+'</span><small>'+esc(p.name)+' · '+esc(stateLabel)+'</small></div>+'
       '<h2>'+esc(N.title(d))+'</h2><p>'+esc(restored?'鐘が再び鳴る。鐘守の弟子ユノが旅を助ける。':p.teaser)+'</p></div>'+
       '<div class="nearby-card-actions">'+primary+secondary+'</div>';
     const entries=['<section class="nearby-info-piece"><span class="kicker">ABOUT THIS LAND</span>'+
