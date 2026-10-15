@@ -102,14 +102,15 @@
       '<span>'+ (selectedIndex+1)+' / '+n.districts.length+'</span>'+
       button('district','次の発見 ›','',{class:'secondary',value:next.id})+'</div>':'';
     const map='<div class="nearby-paper-map nearby-track-map" role="group" aria-label="道がつながる近所のタイル地図">'+
-      '<div class="nearby-map-top"><div><strong>'+esc(n.name)+'</strong><small>'+
-      (state.mode==='demo'?'散策体験モード':'現実の散策モード')+' · 発見 '+n.districts.length+
-      ' / 開拓 '+N.claims(n)+(n.buildings.length?' · 建物 '+n.buildings.length:'')+'</small></div>'+
+      '<header class="nearby-map-top"><div class="nearby-atlas-heading"><span class="nearby-atlas-overline">CROWNLESS / WORLD ATLAS</span>'+
+      '<strong>世界図</strong><small>'+esc(n.name)+' · '+(state.mode==='demo'?'散策体験モード':'現実の散策モード')+'</small></div>'+
+      '<div class="nearby-atlas-metrics" aria-label="探索の記録"><span>発見 <b>'+n.districts.length+'</b></span>'+
+      '<span>開拓 <b>'+N.claims(n)+'</b></span><span>建物 '+n.buildings.length+'</span></div>'+
       button('nearby-view','＋ 土地を発見','',{class:'nearby-top-action',value:'scout'})+
-      button('settings','⚙','',{class:'nearby-map-settings'})+'</div>'+
+      button('settings','⚙','',{class:'nearby-map-settings'})+'</header>'+
       '<div class="nearby-track-scape"><div class="nearby-track-board" role="group" aria-label="中心が選択中の土地。道は模式図です。">'+
       cells.join('')+'</div></div>'+
-      '<div class="nearby-track-footer"><span>道の先の霧は、まだ知らない土地。</span>'+switcher+'</div></div>';
+      '<div class="nearby-track-footer"><span>未知の土地は霧の向こう · 架空の道の地図</span>'+switcher+'</div></div>';
     const stateLabel=restored?'🔔 鐘が戻った・ユノが滞在中':N.traveler(d)?'✦ 薬師の荷':d.claimed?'⚑ あなたの領域':
       poi.family==='shop'?'未開拓 · ◆ 地域の店':'未開拓 · ✦ '+(material?'異変の手掛かり':'王墓の噂');
     // A crafted item often leaves the smith active. A dead-looking departure
@@ -125,8 +126,9 @@
       restored?'ユノに会う':poi.family==='event'&&material?'異変を調べる':
       poi.family==='shop'&&material?'店を開く':'土地の情報を見る','',
       {class:'secondary',value:'detail'});
-    const mainCard='<div class="nearby-card-copy"><small>'+esc(stateLabel)+' · '+esc(p.name)+'</small><h2>'+esc(N.title(d))+'</h2>'+
-      '<p>'+esc(restored?'鐘が再び鳴る。鐘守の弟子ユノが旅を助ける。':p.teaser)+'</p></div>'+
+    const mainCard='<div class="nearby-card-copy"><div class="nearby-card-eyebrow"><span class="nearby-card-index">SELECTED LAND / '+
+      String(selectedIndex+1).padStart(2,'0')+'</span><small>'+esc(p.name)+' · '+esc(stateLabel)+'</small></div>'+
+      '<h2>'+esc(N.title(d))+'</h2><p>'+esc(restored?'鐘が再び鳴る。鐘守の弟子ユノが旅を助ける。':p.teaser)+'</p></div>'+
       '<div class="nearby-card-actions">'+primary+secondary+'</div>';
     const entries=['<section class="nearby-info-piece"><span class="kicker">ABOUT THIS LAND</span>'+
       '<h2>'+esc(N.title(d))+'</h2><p>'+esc(p.name)+' · '+esc(poi.description)+'</p><p>'+
