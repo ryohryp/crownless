@@ -112,7 +112,7 @@
       <div class="field-terrain" role="group" aria-label="鐘なき塔の入口階を歩く">
       <div class="field-worldspace"><canvas class="forest-world-canvas" width="600" height="600" aria-hidden="true"></canvas>${cells}</div></div>
       <div class="forest-field-footer"><span>♜ 崩れた塔</span>
-      <strong>${f.relic?'✦ 秘密の納骨室を発見':f.open?'隠し階段を発見':'鐘の残響を探す'}</strong>
+      <strong>${f.relic?'✦ 秘密の納骨室を発見':f.open?'隠し階段を発見':f.echo?'✦ 鐘の反響を発見':f.pos===18?'鐘の余韻が近い':f.pos===22?'かすかな鐘の余韻':'鐘の残響を探す'}</strong>
       <span>${f.guard?'上階への道が開いた':'鎧の足音が響く'}</span></div></section>`;
   }
   function fenField(x,title){

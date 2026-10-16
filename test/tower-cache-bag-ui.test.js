@@ -182,3 +182,32 @@ test('earned shield clue appears only for the investigated guardian opening',()=
   assert.doesNotMatch(browser(laterTurn).html(),/耳に残る盾の音/,
     'the opening clue must not clutter subsequent attack choices');
 });
+
+test('tower sound indicator grows with investigation without revealing a hidden route',()=>{
+  let s=E.start(E.discover({...E.initial(),mode:'demo'},'tower'),'tower');
+  const footer=state=>browser(state).html().split('class="forest-field-footer">')[1]?.split('<strong>')[1]?.split('</strong>')[0];
+  assert.equal(footer(s),'鐘の残響を探す');
+  for(const to of [21,22])s=E.act(s,'tower-step:'+to);
+  assert.equal(footer(s),'かすかな鐘の余韻');
+  for(const to of [23,18])s=E.act(s,'tower-step:'+to);
+  assert.equal(footer(s),'鐘の余韻が近い');
+  assert.equal(s.expedition.tower.echo,false);
+  assert.equal(T.visible(s.expedition.tower,T.SECRET),false);
+  for(const to of [23,22,T.ECHO])s=E.act(s,'tower-step:'+to);
+  assert.equal(footer(s),'✦ 鐘の反響を発見');
+  assert.equal(s.expedition.tower.open,false,'sound alone never opens the stair');
+  assert.equal(T.visible(s.expedition.tower,T.SECRET),false);
+  assert.match(browser(s).html(),/鐘の反響を確かめる/,'earned clue offers an intentional choice');
+  s=E.parse(E.serialize(s));
+  assert.equal(footer(s),'✦ 鐘の反響を発見','discovery survives reload');
+  s=E.act(s,'tower-step:'+T.SECRET);
+  assert.equal(footer(s),'隠し階段を発見');
+  assert.equal(s.expedition.tower.pos,T.ECHO,'investigation does not teleport');
+  assert.equal(T.visible(s.expedition.tower,T.SECRET),true);
+  s=E.act(s,'tower-step:'+T.SECRET);
+  s=E.act(s,'tower-step:'+T.RELIC);
+  assert.equal(footer(s),'✦ 秘密の納骨室を発見');
+  const loot=s.expedition.materials.watchIron;
+  assert.equal(E.act(E.parse(E.serialize(s)),'return').materials.watchIron,loot,
+    'sound guidance never changes the safe-return material contract');
+});
