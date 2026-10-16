@@ -515,7 +515,15 @@
         && e.kind==='knight' && x.tower.pos===T.GUARD) {
       x.tower.guard=true;
       x.stage='path';
-      x.log.unshift('塔の番人が退いた。上階への階段が開いた。残る隠し部屋を調べるか、階段を上るかは自由だ。');
+      // Keep the secret room a discovery, not an unsolicited victory spoiler.
+      const mystery=x.tower.relic
+        ? '背嚢の素材を持ち帰るか、上階へ進むか。'
+        : x.tower.open
+          ? '見つけた隠し階段の奥も、まだ調べられる。'
+          : x.tower.echo
+            ? 'さっきの鐘の反響は、まだ石壁の向こうから聞こえる。'
+            : 'どこからか鐘に似た音が聞こえる。';
+      x.log.unshift('塔の番人が退いた。上階への階段が開いた。'+mystery);
     } else if (x.place==='wood' && x.depth===1 && x.room===0 && x.field
         && e.kind==='wolf' && (x.field.pos===F.DEN || x.field.pos===F.EXIT)) {
       // This wolf belongs to the physical forest scene, not the legacy five-fight

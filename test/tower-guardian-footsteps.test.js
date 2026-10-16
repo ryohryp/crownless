@@ -81,3 +81,37 @@ test('in-progress tower saves without the new listen flag remain loadable', () =
   assert.equal(listened.expedition.tower.listened,true);
   assert(E.parse(E.serialize(listened)));
 });
+
+test('guardian victory hints at unexplored bell echoes without spoiling the hidden room', () => {
+  const defeat = steps => {
+    let s = E.start(E.discover({...E.initial(),mode:'demo'},'tower'),'tower');
+    for (const to of steps) s = E.act(s,'tower-step:'+to);
+    assert.equal(s.expedition.stage,'fight');
+    s = structuredClone(s);
+    s.expedition.enemy.hp = 1;
+    const won = E.act(s,'heavy');
+    assert.equal(won.expedition.stage,'path','defeating the guardian resumes the map');
+    assert.equal(won.expedition.tower.guard,true);
+    return won;
+  };
+  const direct = defeat([21,22,23,18,19,14,9]);
+  assert.match(direct.expedition.log[0],/鐘に似た音/);
+  assert.doesNotMatch(direct.expedition.log[0],/隠し部屋|隠し階段/,
+    'undiscovered rooms must remain a surprise after the fight');
+  const heard = defeat([21,22,17,22,23,18,19,14,9]);
+  assert.match(heard.expedition.log[0],/鐘の反響は、まだ石壁の向こう/);
+  assert.doesNotMatch(heard.expedition.log[0],/隠し部屋|隠し階段/);
+  const opened = defeat([21,22,17,12,22,23,18,19,14,9]);
+  assert.match(opened.expedition.log[0],/見つけた隠し階段の奥/);
+  const explored = defeat([21,22,17,12,12,7,12,17,22,23,18,19,14,9]);
+  assert.equal(explored.expedition.tower.relic,true);
+  assert.match(explored.expedition.log[0],/背嚢の素材を持ち帰るか/);
+  assert.doesNotMatch(explored.expedition.log[0],/まだ調べられる/);
+  const resumed = E.parse(E.serialize(explored));
+  assert.equal(resumed.expedition.tower.guard,true);
+  assert.equal(resumed.expedition.tower.relic,true);
+  const returned = E.act(resumed,'return');
+  assert.equal(returned.expedition,null);
+  assert.equal(returned.materials.watchIron,explored.expedition.materials.watchIron,
+    'discovered bell iron remains banked only on safe return');
+});
