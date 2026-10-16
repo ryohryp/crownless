@@ -80,7 +80,7 @@ test('tower waypoint markers stay adjacent through discovery and guardian return
   const start=()=>E.start(E.discover({...E.initial(),mode:'demo'},'tower'),'tower');
   const check=(state,phase)=>{
     const f=state.expedition.tower;
-    const steps=[...browser(state).html().matchAll(/<button\\b[^>]*class="([^"]*)"[^>]*data-action="tower-step" data-value="(\\d+)"/g)]
+    const steps=[...browser(state).html().matchAll(/<button\b[^>]*class="([^"]*)"[^>]*data-action="tower-step" data-value="(\d+)"/g)]
       .filter(([,classes])=>classes.split(' ').includes('walk-nav'));
     assert(steps.length>0,'ordinary guidance exists at '+phase);
     for(const [,classes,id] of steps){
