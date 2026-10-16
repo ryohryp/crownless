@@ -50,34 +50,56 @@
     }[biome]||'';
     return '<svg viewBox="0 0 64 52" focusable="false" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">'+art+'</g></svg>';
   }
-  // Decorative ink-wash terrain, not a second map or a reveal of hidden POIs.
-  // Every scene is derived from the already-discovered fantasy biome only.
-  function terrainWash(biome) {
-    const scenes = {
-      wood: '<path class="terrain-hill" d="M-10 78Q16 46 37 65T110 45V110H-10Z"/>'+
-        '<path class="terrain-ridge" d="M-6 56Q18 26 42 45T105 31M0 84Q45 70 100 81"/>'+
-        '<path class="terrain-ink" d="M13 75l9-39 10 39m-18-18 8-15 8 15m-6 15V86M43 67l9-44 13 44m-17-16 5-19 7 19m-7 17V83M70 70l10-30 10 30m-16-14 6-12 6 12m-6 15V85"/>'+
-        '<path class="terrain-grass" d="M1 88l4-11m1 11 6-9m76 11 3-11m0 12 8-10"/>',
-      tower: '<path class="terrain-hill" d="M-5 89L24 59 37 66 61 38 87 61 109 45V110H-5Z"/>'+
-        '<path class="terrain-ridge" d="M-5 90L24 59 37 66 61 38 87 61 109 45"/>'+
-        '<path class="terrain-stone" d="M32 68V30H67V69M28 30H70V23H28ZM39 37h8v10h-8zm17 0h6v10h-6zM43 68V54h12v14M21 72h58"/>'+
-        '<path class="terrain-ink" d="M29 23v-8l8 5v-5m32 8-4-9m-30 58 6 8 9-8m19-8 8 6"/>'+
-        '<path class="terrain-grass" d="M9 92l4-13m2 12 6-12m65 13 6-12"/>',
-      fen: '<path class="terrain-hill" d="M-10 74Q29 53 47 67T110 51V110H-10Z"/>'+
-        '<path class="terrain-water" d="M-15 36Q18 18 31 42T65 58Q91 64 112 79M-10 45Q17 29 25 51T62 69Q89 75 108 88"/>'+
-        '<path class="terrain-ridge" d="M-7 18Q23 3 41 20T100 14"/>'+
-        '<path class="terrain-ink" d="M13 64V35m-5 14 5-8 5 7m0 19V44m38 48V61m-5 9 5-6 5 8m24-16V29m-5 11 5-7 6 8"/>'+
-        '<path class="terrain-grass" d="M4 91l4-15m1 14 6-9m51 16 5-14m-1 13 9-10"/>',
-      crypt: '<path class="terrain-hill" d="M-7 95Q12 49 35 44T81 53Q95 63 107 96V110H-7Z"/>'+
-        '<path class="terrain-ridge" d="M0 91Q11 55 35 44T81 53Q96 65 102 92"/>'+
-        '<path class="terrain-stone" d="M26 82V54L50 35 76 54V83H26ZM36 82V65Q50 47 64 65V82M19 83h65"/>'+
-        '<path class="terrain-ink" d="M36 83h28m-12-8 6-3m-43 19 9-5m53 1 10 5m-34-53 7-5"/>'+
-        '<path class="terrain-grass" d="M5 96l6-12m75 12 6-11"/>'
-    };
-    const veiled='<path class="terrain-hill" d="M-10 99Q19 72 37 88T91 69L110 91V110H-10Z"/>'+
-      '<path class="terrain-ridge" d="M-5 98Q23 71 40 86T105 73"/>';
-    return '<span class="nearby-terrain-wash" aria-hidden="true"><svg viewBox="0 0 100 100" preserveAspectRatio="none">'+
-      (scenes[biome]||veiled)+'</svg></span>';
+  // One continuous illustrated surface behind the existing 5x5 discovery
+  // hit targets. Only saved, earned fictional biomes receive landmarks.
+  // The parchment, hills and stream reveal NO undiscovered place identity.
+  function worldCanvas(selected, found, track) {
+    const wood = '<path class="world-tree-mass" d="M-48 40q13-33 28-29t28 8q11-32 25-20t20 37v21h-101z"/>'+
+      '<path class="world-tree" d="M-35 42l13-38 13 38m-20-13 7-15 7 15m-7 13v17M5 38l12-43 14 43m-21-13 7-17 8 17m-8 15v16M27 47l11-27 11 27m-17-9 6-9 5 9m-5 11v11"/>';
+    const tower = '<path class="world-stone" d="M-33 51v-13h11V-6h43v57h12v7h-66zM-27-6h53v-9h-53z"/>'+
+      '<path class="world-detail" d="M-13 51V30q11-17 23 0v21M-15 3h9v14h-9M7 3h9v14H7M-30-15v-7m14 7v-7m14 7v-7m14 7v-7m14 7v-7"/>'+
+      '<path class="world-flag" d="M8-23v-21l19 7-19 6z"/>';
+    const fen = '<path class="world-water" d="M-54 23q23-26 43-6t35 7q19-10 33-26M-58 38q22-23 44-4t39 5q18-12 32-26"/>'+
+      '<path class="world-reed" d="M-34 47v-33m-6 14 6-7 7 9M-12 38V0m-7 14 7-7 7 9M18 51V12m-7 13 7-8 6 8M39 33V-9m-7 13 7-9 8 11"/>';
+    const crypt = '<path class="world-hill" d="M-58 50q10-53 55-56t62 56z"/>'+
+      '<path class="world-stone" d="M-34 56V6l31-27L31 6v50zM-39 7l36-36L37 7"/>'+
+      '<path class="world-detail" d="M-13 56V24q11-22 23 0v32m-53 0h86M-27 14h8m33 0h8"/>';
+    const siteArt={wood,tower,fen,crypt};
+    const marks=[],segments=[];
+    for(let row=0;row<5;row++)for(let col=0;col<5;col++){
+      const x=selected.x+col-2, y=selected.y+2-row, id=x+','+y;
+      const place=found.get(id), directions=track.get(id);
+      if(directions?.size)segments.push('<path transform="translate('+(col*100)+' '+(row*100)+')" d="'+roadPath(directions)+'"/>');
+      if(place&&Object.hasOwn(siteArt,place.biome)){
+        marks.push('<g class="world-site world-site-'+place.biome+'" transform="translate('+(col*100+50)+' '+(row*100+50)+')">'+siteArt[place.biome]+'</g>');
+      }
+    }
+    const roads=segments.join('');
+    return '<svg class="nearby-world-canvas" viewBox="0 0 500 500" preserveAspectRatio="none" aria-hidden="true" focusable="false">'+
+      '<defs><linearGradient id="crownless-land" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ece7d8"/><stop offset=".56" stop-color="#c6c5b2"/><stop offset="1" stop-color="#ded6c6"/></linearGradient>'+
+      '<linearGradient id="crownless-mist" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#f6f3e9" stop-opacity=".15"/><stop offset=".55" stop-color="#f8f4e9" stop-opacity=".1"/><stop offset="1" stop-color="#e9e6dc" stop-opacity=".6"/></linearGradient></defs>'+
+      '<rect width="500" height="500" fill="url(#crownless-land)"/>'+
+      '<g class="world-landmass">'+
+        '<path d="M-20 135Q46 28 107 79T243 55T391 99T520 39V0H-20Z"/>'+
+        '<path d="M-20 253Q75 139 146 184T309 128T520 167V285Q390 215 303 259T120 230T-20 314Z"/>'+
+        '<path d="M-20 440Q70 349 154 397T321 348T520 385V520H-20Z"/></g>'+
+      '<g class="world-contour">'+
+        '<path d="M-15 154Q46 65 103 112T237 88T394 132T520 64"/>'+
+        '<path d="M-12 273Q65 179 158 209T318 170T517 203"/>'+
+        '<path d="M-15 461Q69 376 151 427T320 381T518 416"/></g>'+
+      '<g class="world-river">'+
+        '<path d="M381-25Q317 80 359 132T333 260Q283 318 356 383T321 525"/>'+
+        '<path d="M389-25Q325 80 367 133T341 261Q293 317 364 383T329 525"/></g>'+
+      '<g class="world-roads nearby-track-road" aria-hidden="true">'+
+        '<g class="world-road-edge">'+roads+'</g>'+
+        '<g class="world-road-surface">'+roads+'</g>'+
+        '<g class="world-road-trail">'+roads+'</g></g>'+
+      '<g class="world-earned-sites">'+marks.join('')+'</g>'+
+      '<g class="world-wisps">'+
+        '<path d="M-15 83Q89 37 169 81T352 69T516 97"/>'+
+        '<path d="M-11 335Q88 300 168 329T355 308T514 339"/>'+
+        '<path d="M-14 488Q81 446 188 472T364 465T515 486"/></g>'+
+      '<rect width="500" height="500" fill="url(#crownless-mist)" pointer-events="none"/></svg>';
   }
   function render({state,N,E,A,button,scouting,landmarkFlagPreview,notice,nav,view='map',page=null}) {
     const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
@@ -97,12 +119,6 @@
     for(let y=d.y+2;y>=d.y-2;y--){
       for(let x=d.x-2;x<=d.x+2;x++){
         const id=x+','+y,place=found.get(id),home=x===0&&y===0;
-        const directions=track.get(id)||new Set();
-        const path=roadPath(directions);
-        const road=path?'<svg class="nearby-track-road" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">'+
-          '<path class="nearby-track-edge" d="'+path+'"/>'+
-          '<path class="nearby-track-earth" d="'+path+'"/>'+
-          '<path class="nearby-track-centerline" d="'+path+'"/></svg>':'';
         const land=place?'<span class="nearby-track-icon" aria-hidden="true">'+landmarkIcon(place.biome)+'</span>':'';
         const changed=Boolean(place&&state.designs?.shield_thorn===place.id);
         const marker=place?(changed?'🔔':place.claimed?'⚑':place.visitor==='supplies'?'✦':place.aided?'✧':''):'';
@@ -113,7 +129,7 @@
         const classes='nearby-track-tile'+(place?' track-'+place.biome:' track-fog')+
           (id===d.id?' selected':'')+(changed?' restored-bell':'')+(home?' track-home':'')+
           (place?.claimed?' claimed':'');
-        const inner=terrainWash(place?.biome)+road+
+        const inner=
           (home?'<span class="nearby-track-camp" aria-hidden="true">⌂</span>':'')+
           land+
           (poiStamp?'<span class="nearby-tile-stamp" aria-hidden="true">'+poiStamp+'</span>':'')+
@@ -124,7 +140,7 @@
           '" aria-pressed="'+(id===d.id)+'" aria-label="'+esc(N.title(place)+'、'+kind+
             (changed?'、鐘が戻った':place.visitor==='supplies'?'、薬師の荷':place.claimed?'、開拓済み':''))+'">'+inner+'</button>');
         else if(home)cells.push('<button type="button" class="'+classes+'" data-action="tab" data-value="home" aria-label="拠点を開く">'+inner+'</button>');
-        else cells.push('<div class="'+classes+'" aria-hidden="true">'+inner+'<span class="nearby-track-mist">?</span></div>');
+        else cells.push('<div class="'+classes+'" aria-hidden="true">'+inner+'</div>');
       }
     }
     const previous=n.districts[(selectedIndex-1+n.districts.length)%n.districts.length];
@@ -141,7 +157,7 @@
       button('nearby-view','＋ 土地を発見','',{class:'nearby-top-action',value:'scout'})+
       button('settings','⚙','',{class:'nearby-map-settings'})+'</header>'+
       '<div class="nearby-track-scape"><div class="nearby-track-board" role="group" aria-label="中心が選択中の土地。道は模式図です。">'+
-      cells.join('')+'</div></div>'+
+      worldCanvas(d,found,track)+cells.join('')+'</div></div>'+
       '<div class="nearby-track-footer"><span>未知の土地は霧の向こう · 架空の道の地図</span>'+switcher+'</div></div>';
     const stateLabel=restored?'🔔 鐘が戻った・ユノが滞在中':N.traveler(d)?'✦ 薬師の荷':d.claimed?'⚑ あなたの領域':
       poi.family==='shop'?'未開拓 · ◆ 地域の店':'未開拓 · ✦ '+(material?'異変の手掛かり':'王墓の噂');
