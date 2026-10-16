@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "kind": "background",
+  "candidate": ".qa/candidates/a_wide_atmospheric_landscape_illustration_paintin.png",
+  "subject": "fictional ruined medieval watchtower on a rocky ridge, ancient stone stairway, distant misty valley",
+  "usage": "UNAPPROVED full-resolution generated discovered-landmark background; temporary synthetic tower detail review, never automatic runtime adoption",
+  "generationPrompt": "Original standalone 16:9 environment illustration of an abandoned stone watchtower above a remote valley, a broken masonry silhouette, rocky stairway and misty mountains. Western medieval fantasy rendered as expressive Japanese sumi-e with charcoal wash on warm handmade washi, airy negative space, no people, text, logos, UI or real-world route. No historical woodcut-board reference.",
+  "targetSize": [
+    1672,
+    941
+  ],
+  "transparent": false,
+  "references": [],
+  "attempt": 0,
+  "integration": {
+    "selector": ".nearby-secondary-content",
+    "mode": "insert",
+    "view": "detail",
+    "demoBiome": "tower",
+    "expectedTitle": "見張り跡"
+  }
+}
