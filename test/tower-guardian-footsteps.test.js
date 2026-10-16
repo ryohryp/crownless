@@ -135,13 +135,17 @@ test('guardian backtracking offers a new bell lead without revealing the secret 
   assert.match(resumed.expedition.log[0],/上階とは逆の石壁から/);
   s=E.act(resumed,'tower-step:17');
   assert.equal(s.expedition.tower.echo,true,'player discovers the echo by moving');
+  const ironBeforeRelic=s.expedition.materials.watchIron;
   s=E.act(s,'tower-step:12');
   assert.equal(s.expedition.tower.open,true,'hidden stairs require deliberate investigation');
   assert.equal(s.expedition.tower.pos,17,'uncovering is not teleportation');
   for(const to of [12,7])s=E.act(s,'tower-step:'+to);
   assert.equal(s.expedition.tower.relic,true);
-  assert.equal(s.expedition.materials.watchIron,1);
+  assert.equal(s.expedition.materials.watchIron,ironBeforeRelic+1,
+    'the hidden relic adds exactly one bell iron to guardian loot');
+  const carriedIron=s.expedition.materials.watchIron;
   const returned=E.act(E.parse(E.serialize(s)),'return');
   assert.equal(returned.expedition,null);
-  assert.equal(returned.materials.watchIron,1,'newly discovered material banks only on safe return');
+  assert.equal(returned.materials.watchIron,carriedIron,
+    'all guardian and hidden-room materials bank only on safe return');
 });
