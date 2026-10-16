@@ -76,6 +76,42 @@ test('tower navigation never marks fog, walls, or undiscovered secret stairs',()
   }
 });
 
+test('tower waypoint markers stay adjacent through discovery and guardian return',()=>{
+  const start=()=>E.start(E.discover({...E.initial(),mode:'demo'},'tower'),'tower');
+  const check=(state,phase)=>{
+    const f=state.expedition.tower;
+    const steps=[...browser(state).html().matchAll(/<button\\b[^>]*class="([^"]*)"[^>]*data-action="tower-step" data-value="(\\d+)"/g)]
+      .filter(([,classes])=>classes.split(' ').includes('walk-nav'));
+    assert(steps.length>0,'ordinary guidance exists at '+phase);
+    for(const [,classes,id] of steps){
+      const to=Number(id);
+      const distance=Math.abs(to%T.SIZE-f.pos%T.SIZE)+
+        Math.abs(Math.floor(to/T.SIZE)-Math.floor(f.pos/T.SIZE));
+      assert.equal(distance,1,'only adjacent cells are marked at '+phase);
+      assert(T.visible(f,to),'fog is never marked at '+phase);
+      assert(T.canMove(f,to),'blocked cells are never marked at '+phase);
+      assert(!['wall','secret'].includes(T.kind(to)),'walls and secrets stay unmarked at '+phase);
+      assert(classes.includes('revealed')&&!classes.includes('veiled'));
+    }
+  };
+  let s=start();check(s,'entrance');
+  for(const to of [21,22,T.ECHO])s=E.act(s,'tower-step:'+to);
+  check(s,'bell echo');
+  s=E.act(s,'tower-step:'+T.SECRET);
+  assert(s.expedition.tower.open,'investigation opens the concealed passage');
+  check(s,'secret discovered');
+  s=E.act(s,'tower-step:'+T.SECRET);
+  check(s,'inside secret stair');
+  let guardian=start();
+  for(const to of [21,22,23,18,19,14,T.GUARD])guardian=E.act(guardian,'tower-step:'+to);
+  assert.equal(guardian.expedition.stage,'fight');
+  guardian=structuredClone(guardian);
+  guardian.expedition.enemy.hp=1;
+  guardian=E.act(guardian,'heavy');
+  assert.equal(guardian.expedition.stage,'path','guardian defeat resumes exploration');
+  check(E.parse(E.serialize(guardian)),'after guardian and save/resume');
+});
+
 test('tower echo investigation is a deliberate choice, not hidden-route navigation',()=>{
   let state=E.start(E.discover({...E.initial(),mode:'demo'},'tower'),'tower');
   assert.doesNotMatch(browser(state).html(),/鐘の反響を確かめる/);
