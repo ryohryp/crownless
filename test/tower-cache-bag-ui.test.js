@@ -134,6 +134,9 @@ test('earned shield clue appears only for the investigated guardian opening',()=
   assert.equal(E.intent(investigated.expedition.enemy).id,'guard');
   assert.match(browser(investigated).html(),/耳に残る盾の音。初手は強撃が効きそうだ。/,
     'the earned hint must survive the transition to the attack screen');
+  const resumedFight=E.parse(E.serialize(investigated));
+  assert.match(browser(resumedFight).html(),/耳に残る盾の音。初手は強撃が効きそうだ。/,
+    'earned tactic must remain visible when the player resumes in combat');
   const afterGuardian=E.parse(E.serialize(investigated));
   afterGuardian.expedition.tower.guard=true;
   assert.doesNotMatch(browser(afterGuardian).html(),/耳に残る盾の音/,
