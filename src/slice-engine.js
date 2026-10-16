@@ -692,9 +692,11 @@
           x.log=['崩れた鐘の欠片に触れると、音が壁の向こうから返る。床下に別の空間があるようだ。'];
         }else if((to===22||to===18)&&!next.echo&&!next.open){
           // A distant, ambiguous sound invites investigation without a route marker.
-          x.log=[to===22
-            ? '石壁の奥から、かすかな鐘の余韻が聞こえる。どこから響くのだろう。'
-            : '足元の石床に、先ほどより近い鐘の余韻が伝わる。石の下に何かあるのだろうか。'];
+          x.log=[next.guard
+            ? '番人のいた上階とは逆の石壁から、鐘の余韻が響く。引き返して音の出どころを探せそうだ。'
+            : to===22
+              ? '石壁の奥から、かすかな鐘の余韻が聞こえる。どこから響くのだろう。'
+              : '足元の石床に、先ほどより近い鐘の余韻が伝わる。石の下に何かあるのだろうか。'];
         }else if(to===T.RELIC&&!next.relic){
           next.relic=true;
           x.materials.watchIron=Math.min(1000000,x.materials.watchIron+1);

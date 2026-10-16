@@ -115,3 +115,33 @@ test('guardian victory hints at unexplored bell echoes without spoiling the hidd
   assert.equal(returned.materials.watchIron,explored.expedition.materials.watchIron,
     'discovered bell iron remains banked only on safe return');
 });
+
+test('guardian backtracking offers a new bell lead without revealing the secret or losing loot', () => {
+  let s = E.start(E.discover({...E.initial(),mode:'demo'},'tower'),'tower');
+  for (const to of [21,22,23,18,19,14,9]) s=E.act(s,'tower-step:'+to);
+  assert.equal(s.expedition.stage,'fight');
+  s=structuredClone(s);
+  s.expedition.enemy.hp=1;
+  s=E.act(s,'heavy');
+  assert.equal(s.expedition.stage,'path','guardian victory returns to exploration');
+  for (const to of [14,19,18]) s=E.act(s,'tower-step:'+to);
+  assert.equal(s.expedition.tower.pos,18,'return trip uses ordinary adjacent steps');
+  assert.match(s.expedition.log[0],/上階とは逆の石壁から、鐘の余韻/);
+  assert.doesNotMatch(s.expedition.log[0],/隠し部屋|隠し階段/,
+    'a new lead is not a secret-room spoiler');
+  assert.equal(s.expedition.tower.echo,false);
+  assert.equal(s.expedition.tower.open,false);
+  const resumed=E.parse(E.serialize(s));
+  assert.match(resumed.expedition.log[0],/上階とは逆の石壁から/);
+  s=E.act(resumed,'tower-step:17');
+  assert.equal(s.expedition.tower.echo,true,'player discovers the echo by moving');
+  s=E.act(s,'tower-step:12');
+  assert.equal(s.expedition.tower.open,true,'hidden stairs require deliberate investigation');
+  assert.equal(s.expedition.tower.pos,17,'uncovering is not teleportation');
+  for(const to of [12,7])s=E.act(s,'tower-step:'+to);
+  assert.equal(s.expedition.tower.relic,true);
+  assert.equal(s.expedition.materials.watchIron,1);
+  const returned=E.act(E.parse(E.serialize(s)),'return');
+  assert.equal(returned.expedition,null);
+  assert.equal(returned.materials.watchIron,1,'newly discovered material banks only on safe return');
+});
