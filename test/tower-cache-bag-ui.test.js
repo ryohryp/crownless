@@ -117,3 +117,29 @@ test('tower approach whispers before the echo without revealing a secret route',
   assert.doesNotMatch(state.expedition.log[0],/鐘の余韻/,
     'the approach clue must not repeat after the echo has been found');
 });
+
+test('earned shield clue appears only for the investigated guardian opening',()=>{
+  const approach=()=>{
+    let s=E.start(E.discover({...E.initial(),mode:'demo'},'tower'),'tower');
+    for(const to of [21,22,23,18,19])s=E.act(s,'tower-step:'+to);
+    return s;
+  };
+  const uninvestigated=approach();
+  const enter=s=>E.act(E.act(s,'tower-step:14'),'tower-step:9');
+  const ordinary=enter(uninvestigated);
+  assert.equal(ordinary.expedition.stage,'fight');
+  assert.doesNotMatch(browser(ordinary).html(),/耳に残る盾の音/,
+    'a player who skipped listening must not get the tactic');
+  const investigated=enter(E.act(approach(),'tower-listen'));
+  assert.equal(E.intent(investigated.expedition.enemy).id,'guard');
+  assert.match(browser(investigated).html(),/耳に残る盾の音。初手は強撃が効きそうだ。/,
+    'the earned hint must survive the transition to the attack screen');
+  const afterGuardian=E.parse(E.serialize(investigated));
+  afterGuardian.expedition.tower.guard=true;
+  assert.doesNotMatch(browser(afterGuardian).html(),/耳に残る盾の音/,
+    'the defeated guardian must not leak its clue to later knights');
+  const laterTurn=E.parse(E.serialize(investigated));
+  laterTurn.expedition.enemy.turn=1;
+  assert.doesNotMatch(browser(laterTurn).html(),/耳に残る盾の音/,
+    'the opening clue must not clutter subsequent attack choices');
+});

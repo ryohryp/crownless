@@ -512,7 +512,7 @@
     const strike = E.attackPreview(state,'strike'), strong = E.attackPreview(state,'heavy');
     const opening = x.stagger ? `<div class="combat-opening" role="status"><strong>体勢を崩した！</strong><span>今の一手だけ、攻撃に追加ダメージ。${next.damage ? '敵の反撃にも注意。' : '敵は攻撃してこない。'}</span></div>` : '';
     // Only an investigated guardian reveals the earned tactic at the first attack choice.
-    const earnedClue=x.place==='tower'&&x.tower?.listened&&e.kind==='knight'&&e.turn===0&&next.id==='guard'
+    const earnedClue=x.place==='tower'&&x.tower?.listened&&!x.tower.guard&&e.kind==='knight'&&e.turn===0&&next.id==='guard'
       ? ' · 耳に残る盾の音。初手は強撃が効きそうだ。' : '';
     const strikeLabel = x.stagger ? '崩し追撃' : E.gearFamily(state.equipped) === 'bow' ? '射る' : '斬る';
     const enemyTag = `${info.archetype}${info.trait ? ` · 《${info.trait.name}》${info.trait.help}` : ''}`;
