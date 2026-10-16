@@ -198,8 +198,8 @@
       : '';
     const safeReturnLabel=guardAhead
       ? ((x.materials?.watchIron||x.scrap)?'戦利品を守って生還':'番人を避けて生還')
-      : relicFound?'鐘鉄を持って生還':'ここで生還する';
-    const safeReturnHint=guardAhead?'番人とは戦わず素材を確定する':relicFound?'背嚢の鐘鉄と鉄片を確定する':'集めた素材を確定する';
+      : (x.materials?.watchIron||0)>0?'鐘鉄を持って生還':x.scrap>0?'鉄片を持って生還':'ここで生還する';
+    const safeReturnHint=guardAhead?'番人とは戦わず素材を確定する':(x.materials?.watchIron||0)>0?'背嚢の鐘鉄と鉄片を確定する':x.scrap>0?'背嚢の鉄片を確定する':'集めた素材を確定する';
     return `<div class="field-decision"><div class="field-status">${vitals(x)}
       <div class="path-risk" data-tower-bag="true"><span>背嚢の戦利品</span><strong>鐘鉄 ${x.materials?.watchIron || 0} · 鉄片 ${x.scrap}</strong><small>生還で確定 · 倒れれば失う</small></div></div>
       <p class="field-moment" role="status">${esc(x.log[0]||'静かな石の塔。音のする方へ進める。')}${relicChoice?`<br>${esc(relicChoice)}`:''}</p>

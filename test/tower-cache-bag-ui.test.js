@@ -49,11 +49,25 @@ test('tower bag shows at-risk bell iron and scrap, including after save and safe
   assert.match(b.html(),/鐘鉄 1 · 鉄片 0/);
   assert.equal(E.parse(b.store.get(key)).materials.watchIron,0);
   assert.equal(E.parse(b.store.get(key)).expedition.materials.watchIron,1);
+  b.click('tower-step','18');
+  assert.equal(E.parse(b.store.get(key)).expedition.tower.pos,18);
+  assert.match(b.html(),/鐘鉄を持って生還/,'carried loot remains visible away from the cache');
   const resumed=browser(E.parse(b.store.get(key)));
   assert.match(resumed.html(),/鐘鉄 1 · 鉄片 0/);
+  assert.match(resumed.html(),/鐘鉄を持って生還/,'return label survives save/resume');
   resumed.click('return');
   assert.equal(E.parse(resumed.store.get(key)).materials.watchIron,1);
   assert.match(resumed.html(),/持ち帰った素材/);
+});
+
+test('tower return choice reflects scrap-only loot without overriding guardian warning',()=>{
+  let s=atCache();
+  assert.match(browser(s).html(),/ここで生還する/);
+  s.expedition.scrap=2;
+  assert.match(browser(s).html(),/鉄片を持って生還/);
+  s=E.act(s,'tower-step:14');
+  assert.equal(s.expedition.tower.pos,14);
+  assert.match(browser(s).html(),/戦利品を守って生還/);
 });
 
 test('tower navigation never marks fog, walls, or undiscovered secret stairs',()=>{
