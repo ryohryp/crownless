@@ -999,6 +999,8 @@ async function main() {
         s=await saved();
         assert.equal(s.expedition.stage,'fight');
         assert.equal(s.expedition.enemy.kind,'knight');
+        assert.match(await page.locator('.intent').innerText(),/耳に残る盾の音。初手は強撃が効きそうだ。/,
+          'earned clue must be visible at the first actual attack choice on a phone');
         await page.evaluate(()=>{
           const k='crownless-expedition-v1-demo',s=JSON.parse(localStorage.getItem(k));
           s.expedition.enemy.hp=1;localStorage.setItem(k,JSON.stringify(s));
