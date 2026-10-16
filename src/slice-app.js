@@ -192,13 +192,17 @@
           {class:'tower-echo-investigate'}) : '';
     // At the guardian's threshold, make the safe-return alternative explicit.
     const guardAhead=x.tower?.pos===14&&!x.tower.guard;
+    const relicFound=x.tower?.pos===window.CrownlessTowerField?.RELIC&&x.tower.relic;
+    const relicChoice=relicFound
+      ? (x.tower.guard?'鐘鉄を持ち帰るか、開いた上階への石段へ戻るか。':'鐘鉄を持ち帰るか、鎧の足音を追うか。')
+      : '';
     const safeReturnLabel=guardAhead
       ? ((x.materials?.watchIron||x.scrap)?'戦利品を守って生還':'番人を避けて生還')
-      : 'ここで生還する';
-    const safeReturnHint=guardAhead?'番人とは戦わず素材を確定する':'集めた素材を確定する';
+      : relicFound?'鐘鉄を持って生還':'ここで生還する';
+    const safeReturnHint=guardAhead?'番人とは戦わず素材を確定する':relicFound?'背嚢の鐘鉄と鉄片を確定する':'集めた素材を確定する';
     return `<div class="field-decision"><div class="field-status">${vitals(x)}
       <div class="path-risk" data-tower-bag="true"><span>背嚢の戦利品</span><strong>鐘鉄 ${x.materials?.watchIron || 0} · 鉄片 ${x.scrap}</strong><small>生還で確定 · 倒れれば失う</small></div></div>
-      <p class="field-moment" role="status">${esc(x.log[0]||'静かな石の塔。音のする方へ進める。')}</p>
+      <p class="field-moment" role="status">${esc(x.log[0]||'静かな石の塔。音のする方へ進める。')}${relicChoice?`<br>${esc(relicChoice)}`:''}</p>
       <div class="field-choices">${cacheChoices}${echoChoice}${listenChoice}${button('return',safeReturnLabel,safeReturnHint,{class:'secondary'})}
       ${button('heal',`薬草 ${x.potions} · 体力 +12`,'',{class:'text-button',disabled:x.potions===0||x.hp===E.maxHp(state)})}</div></div>`;
   }
