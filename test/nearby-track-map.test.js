@@ -52,3 +52,29 @@ test('track map CSS is loaded after the old scene styles',()=>{
   assert.match(css,/nearby-track-road/);
   assert.match(css,/track-fog/);
 });
+
+test('unresolved tower bell clue is visible on the map and actionable first in details',()=>{
+  let state=E.initial();state.mode='demo';
+  state=E.discoverDistrict(state,N.cell(400,0));
+  const render=view=>map.render({state,N,E,A:{},view,
+    button:(action,title,body='',options={})=>'<button data-action="'+action+'" data-value="'+(options.value||'')+'">'+title+(body?' — '+body:'')+'</button>',
+    scouting:()=>'',landmarkFlagPreview:()=>'',notice:'',nav:''
+  });
+  const mapHtml=render('map'),detailHtml=render('detail');
+  assert.match(mapHtml,/鐘の謎を調べる/);
+  assert.match(mapHtml,/石段の奥に、鍛冶へつながる手掛かり/);
+  assert.ok(detailHtml.indexOf('UNRESOLVED \/ 鐘の反響')<detailHtml.indexOf('ABOUT THIS LAND'),
+    'bell clue and meaningful departure should appear before generic lore');
+  assert.match(detailHtml,/data-action="poi" data-value="clue">鐘の手掛かりを追って出発/);
+  assert.match(detailHtml,/生還できなければ失う/);
+  assert.doesNotMatch(detailHtml,/generated-watchtower-inkwash|a_wide_atmospheric/, 'unapproved art is never added to runtime');
+
+  state=E.discoverDistrict(state,N.cell(800,0));
+  assert.equal(N.pointOfInterest(N.get(state.neighborhood)).family,'shop');
+  const shopHtml=render('map');
+  assert.doesNotMatch(shopHtml,/鐘の謎を調べる|石段の奥に、鍛冶へつながる手掛かり/);
+  state=E.selectDistrict(state,'0,1');
+  state={...state,designs:{...state.designs,shield_thorn:'0,1'}};
+  assert.doesNotMatch(render('map'),/鐘の謎を調べる/,'restored bell should show its own established action');
+  assert.match(render('map'),/ユノに会う/);
+});
