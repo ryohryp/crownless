@@ -961,7 +961,19 @@ async function main() {
         await page.screenshot({path:path.join(output,'tower-found-reliquary-'+width+'.png')});
         await page.reload();
         assert.equal(await page.locator('.tower-field[data-tower-relic="true"]').count(),1);
-        for(const id of [12,17,18,19])await step(id);
+        for(const id of [12,17,18,19]){
+          await step(id);
+          if(id===18){
+            const carriedReturn=page.locator('.field-choices [data-action="return"]');
+            assert.match(await carriedReturn.innerText(),/鐘鉄を持って生還/,
+              'carried bell iron must remain visible after leaving the reliquary');
+            const rect=await carriedReturn.boundingBox();
+            assert(rect && rect.x>=-1 && rect.x+rect.width<=width+1 &&
+              rect.y>=-1 && rect.y+rect.height<=(width===360?800:844)+2,
+              'carried-loot return choice must remain in the phone viewport');
+            await page.screenshot({path:path.join(output,'tower-carried-return-'+width+'.png')});
+          }
+        }
         assert.match((await saved()).expedition.log[0],/金属が石をこする音/);
         const listen=page.locator('.field-choices [data-action="tower-listen"]');
         assert.equal(await listen.count(),1,'listening is an optional investigation');
