@@ -179,6 +179,11 @@ async function main() {
                 css.animationName==='none';
             }),
             guidedCells:tiles.filter(el=>el.classList.contains('walk-nav')).map(el=>Number(el.dataset.value)),
+            nonAdjacentNav:tiles.filter(el=>el.classList.contains('walk-nav')).filter(el=>{
+              const here=document.querySelector('.forest-field .field-cell.here');
+              return Math.abs(Number(el.style.gridColumn)-Number(here.style.gridColumn))+
+                Math.abs(Number(el.style.gridRow)-Number(here.style.gridRow))!==1;
+            }).map(el=>Number(el.dataset.value)),
             visibleWaypoint:tiles.filter(el=>el.classList.contains('walk-nav')).every(el=>{
               const hint=getComputedStyle(el,'::after');
               return hint.content!=='none' && parseFloat(hint.width)>=10 && hint.borderTopStyle==='dashed';
@@ -194,6 +199,8 @@ async function main() {
           'walkable tap cells must remain full-sized transparent inputs: '+JSON.stringify(canvasProof));
         assert.deepEqual(canvasProof.guidedCells.slice().sort((a,b)=>a-b),[15,21],
           'only the two ordinary walkable neighbors of the camp get visible waypoints');
+        assert.deepEqual(canvasProof.nonAdjacentNav,[],
+          'every visible forest waypoint must be exactly one map cell from the traveler');
         assert(canvasProof.visibleWaypoint && canvasProof.unexpectedNav.length===0,
           'CSS waypoints visible on standard paths only; neither walls, secrets nor fog get marked: '+JSON.stringify(canvasProof));
         assert(!/宝箱.*未発見|森の秘密/.test(await page.locator('.forest-field-footer').innerText()),
