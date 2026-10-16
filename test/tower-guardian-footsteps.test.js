@@ -126,13 +126,19 @@ test('guardian backtracking offers a new bell lead without revealing the secret 
   assert.equal(s.expedition.stage,'path','guardian victory returns to exploration');
   for (const to of [14,19,18]) s=E.act(s,'tower-step:'+to);
   assert.equal(s.expedition.tower.pos,18,'return trip uses ordinary adjacent steps');
-  assert.match(s.expedition.log[0],/上階とは逆の石壁から、鐘の余韻/);
+  assert.match(s.expedition.log[0],/鐘の余韻が足元に強く響く/);
   assert.doesNotMatch(s.expedition.log[0],/隠し部屋|隠し階段/,
-    'a new lead is not a secret-room spoiler');
+    'a stronger nearby sound must not reveal the secret');
   assert.equal(s.expedition.tower.echo,false);
   assert.equal(s.expedition.tower.open,false);
+  const nearCue=s.expedition.log[0];
+  for(const to of [23,22])s=E.act(s,'tower-step:'+to);
+  assert.match(s.expedition.log[0],/鐘の余韻がかすかに聞こえる/,
+    'moving away from the echo should weaken the audible clue');
+  assert.notEqual(s.expedition.log[0],nearCue,'two rooms must not repeat an identical hint');
+  assert.equal(s.expedition.tower.echo,false,'sound alone must not auto-discover the echo');
   const resumed=E.parse(E.serialize(s));
-  assert.match(resumed.expedition.log[0],/上階とは逆の石壁から/);
+  assert.match(resumed.expedition.log[0],/余韻がかすかに聞こえる/);
   s=E.act(resumed,'tower-step:17');
   assert.equal(s.expedition.tower.echo,true,'player discovers the echo by moving');
   const ironBeforeRelic=s.expedition.materials.watchIron;
