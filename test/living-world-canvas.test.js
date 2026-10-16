@@ -13,18 +13,19 @@ function render(state){
   });
 }
 
-test('25 continuous field cells include ink terrain without changing location ownership',()=>{
+test('one continuous ink illustration sits behind 25 earned-destination hit targets',()=>{
   const state=E.initial();
   state.mode='demo';
   const html=render(state);
   const tiles=html.match(/class="nearby-track-tile[^"]*"/g)||[];
-  const paintings=html.match(/class="nearby-terrain-wash"/g)||[];
+  const world=html.match(/class="nearby-world-canvas"/g)||[];
   assert.equal(tiles.length,25);
-  assert.equal(paintings.length,25,'all map cells have paint, including blank fog');
+  assert.equal(world.length,1,'the landscape is painted as one SVG, not 25 tiled scenes');
+  assert.doesNotMatch(html,/class="nearby-terrain-wash"/);
   assert.match(tiles[12],/selected/);
   assert.match(html,/nearby-track-road/);
-  assert.match(html,/terrain-ink/);
-  assert.match(html,/terrain-hill/);
+  assert.match(html,/world-road-surface/);
+  assert.match(html,/world-landmass/);
   assert.match(html,/track-fog/);
   assert.match(html,/data-action="district"/);
   assert.match(html,/data-action="nearby-view" data-value="scout"/);
@@ -51,9 +52,9 @@ test('full-bleed map is declared after atlas styling with visible, reachable con
   const css=fs.readFileSync('living-world-canvas.css','utf8');
   assert(html.indexOf('world-atlas-editorial.css')<html.indexOf('living-world-canvas.css'));
   assert.match(css,/\.nearby-track-board\s*\{[\s\S]*?width:100%;[\s\S]*?height:100%;[\s\S]*?aspect-ratio:auto;/);
-  assert.match(css,/\.nearby-terrain-wash/);
-  assert.match(css,/\.terrain-water/);
-  assert.match(css,/\.terrain-stone/);
+  assert.match(css,/\.nearby-world-canvas/);
+  assert.match(css,/\.world-river/);
+  assert.match(css,/\.world-stone/);
   assert.match(css,/\.nearby-track-road/);
   assert.match(css,/\.nearby-card-actions button/);
   assert.match(css,/\.bottom-navigation-item\.active/);
