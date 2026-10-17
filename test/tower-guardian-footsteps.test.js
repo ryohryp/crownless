@@ -32,6 +32,8 @@ test('tower guardian warns without inventing carried loot when the bag is empty'
   assert.equal(s.expedition.materials.watchIron, 0);
   assert.equal(s.expedition.scrap, 0);
   assert.match(s.expedition.log[0], /背嚢はまだ空だ。生還するか/);
+  assert.doesNotMatch(s.expedition.log[0], /初手は強撃/,
+    'players who did not investigate should not receive the tactical clue');
   assert.doesNotMatch(s.expedition.log[0], /鐘鉄 1/);
   assert.deepEqual(E.parse(E.serialize(s)), s, 'empty-bag warning survives resume');
 });
@@ -52,7 +54,15 @@ test('listening does not start combat or grant loot', () => {
   const resumed=E.parse(E.serialize(after));
   assert.equal(resumed.expedition.tower.listened,true,'listening persists across reload');
   assert.match(resumed.expedition.log[0],/戦利品を持ち帰るか/);
-  const challenge=E.act(E.act(resumed,'tower-step:14'),'tower-step:9');
+  const threshold=E.act(resumed,'tower-step:14');
+  assert.match(threshold.expedition.log[0],/耳に残る盾の音。初手は強撃が効きそうだ。/,
+    'earned clue is recalled at the actual retreat-or-fight decision');
+  assert.equal(threshold.expedition.tower.pos,14);
+  assert.equal(threshold.expedition.stage,'path','recalling a clue never forces combat');
+  assert.deepEqual(threshold.expedition.materials,resumed.expedition.materials);
+  assert.match(E.parse(E.serialize(threshold)).expedition.log[0],/初手は強撃/,
+    'clue remains visible after reloading at the guardian threshold');
+  const challenge=E.act(threshold,'tower-step:9');
   assert.equal(challenge.expedition.stage,'fight');
   assert.equal(E.intent(challenge.expedition.enemy).id,'guard','heard shield matches first enemy intent');
   assert(E.attackPreview(challenge,'heavy')>E.attackPreview(challenge,'strike'),
@@ -70,4 +80,105 @@ test('in-progress tower saves without the new listen flag remain loadable', () =
   const listened=E.act(loaded,'tower-listen');
   assert.equal(listened.expedition.tower.listened,true);
   assert(E.parse(E.serialize(listened)));
+});
+
+test('guardian victory hints at unexplored bell echoes without spoiling the hidden room', () => {
+  const defeat = steps => {
+    let s = E.start(E.discover({...E.initial(),mode:'demo'},'tower'),'tower');
+    for (const to of steps) s = E.act(s,'tower-step:'+to);
+    assert.equal(s.expedition.stage,'fight');
+    s = structuredClone(s);
+    s.expedition.enemy.hp = 1;
+    const won = E.act(s,'heavy');
+    assert.equal(won.expedition.stage,'path','defeating the guardian resumes the map');
+    assert.equal(won.expedition.tower.guard,true);
+    return won;
+  };
+  const direct = defeat([21,22,23,18,19,14,9]);
+  assert.match(direct.expedition.log[0],/鐘に似た音/);
+  assert.doesNotMatch(direct.expedition.log[0],/隠し部屋|隠し階段/,
+    'undiscovered rooms must remain a surprise after the fight');
+  const heard = defeat([21,22,17,22,23,18,19,14,9]);
+  assert.match(heard.expedition.log[0],/鐘の反響は、まだ石壁の向こう/);
+  assert.doesNotMatch(heard.expedition.log[0],/隠し部屋|隠し階段/);
+  const opened = defeat([21,22,17,12,22,23,18,19,14,9]);
+  assert.match(opened.expedition.log[0],/見つけた隠し階段の奥/);
+  const explored = defeat([21,22,17,12,12,7,12,17,22,23,18,19,14,9]);
+  assert.equal(explored.expedition.tower.relic,true);
+  assert.match(explored.expedition.log[0],/背嚢の素材を持ち帰るか/);
+  assert.doesNotMatch(explored.expedition.log[0],/まだ調べられる/);
+  const resumed = E.parse(E.serialize(explored));
+  assert.equal(resumed.expedition.tower.guard,true);
+  assert.equal(resumed.expedition.tower.relic,true);
+  const returned = E.act(resumed,'return');
+  assert.equal(returned.expedition,null);
+  assert.equal(returned.materials.watchIron,explored.expedition.materials.watchIron,
+    'discovered bell iron remains banked only on safe return');
+});
+
+test('guardian backtracking offers a new bell lead without revealing the secret or losing loot', () => {
+  let s = E.start(E.discover({...E.initial(),mode:'demo'},'tower'),'tower');
+  for (const to of [21,22,23,18,19,14,9]) s=E.act(s,'tower-step:'+to);
+  assert.equal(s.expedition.stage,'fight');
+  s=structuredClone(s);
+  s.expedition.enemy.hp=1;
+  s=E.act(s,'heavy');
+  assert.equal(s.expedition.stage,'path','guardian victory returns to exploration');
+  for (const to of [14,19,18]) s=E.act(s,'tower-step:'+to);
+  assert.equal(s.expedition.tower.pos,18,'return trip uses ordinary adjacent steps');
+  assert.match(s.expedition.log[0],/鐘の余韻が足元に強く響く/);
+  assert.doesNotMatch(s.expedition.log[0],/隠し部屋|隠し階段/,
+    'a stronger nearby sound must not reveal the secret');
+  assert.equal(s.expedition.tower.echo,false);
+  assert.equal(s.expedition.tower.open,false);
+  const nearCue=s.expedition.log[0];
+  for(const to of [23,22])s=E.act(s,'tower-step:'+to);
+  assert.match(s.expedition.log[0],/鐘の余韻がかすかに聞こえる/,
+    'moving away from the echo should weaken the audible clue');
+  assert.notEqual(s.expedition.log[0],nearCue,'two rooms must not repeat an identical hint');
+  assert.equal(s.expedition.tower.echo,false,'sound alone must not auto-discover the echo');
+  const resumed=E.parse(E.serialize(s));
+  assert.match(resumed.expedition.log[0],/余韻がかすかに聞こえる/);
+  s=E.act(resumed,'tower-step:17');
+  assert.equal(s.expedition.tower.echo,true,'player discovers the echo by moving');
+  const ironBeforeRelic=s.expedition.materials.watchIron;
+  s=E.act(s,'tower-step:12');
+  assert.equal(s.expedition.tower.open,true,'hidden stairs require deliberate investigation');
+  assert.equal(s.expedition.tower.pos,17,'uncovering is not teleportation');
+  for(const to of [12,7])s=E.act(s,'tower-step:'+to);
+  assert.equal(s.expedition.tower.relic,true);
+  assert.equal(s.expedition.materials.watchIron,ironBeforeRelic+1,
+    'the hidden relic adds exactly one bell iron to guardian loot');
+  const carriedIron=s.expedition.materials.watchIron;
+  const returned=E.act(E.parse(E.serialize(s)),'return');
+  assert.equal(returned.expedition,null);
+  assert.equal(returned.materials.watchIron,carriedIron,
+    'all guardian and hidden-room materials bank only on safe return');
+});
+
+test('earned shield clue gives first-turn choice feedback without changing damage or later turns', () => {
+  const approach = listen => {
+    let s = E.start(E.discover({...E.initial(),mode:'demo'},'tower'),'tower');
+    for (const to of [21,22,23,18,19]) s = E.act(s,'tower-step:'+to);
+    if (listen) s = E.act(s,'tower-listen');
+    for (const to of [14,9]) s = E.act(s,'tower-step:'+to);
+    assert.equal(s.expedition.stage,'fight');
+    assert.equal(E.intent(s.expedition.enemy).id,'guard');
+    return s;
+  };
+  const heard = approach(true), unheard = approach(false);
+  assert.equal(E.attackPreview(heard,'heavy'),E.attackPreview(unheard,'heavy'),
+    'listening grants knowledge, not a free combat damage bonus');
+  const heavy = E.act(E.parse(E.serialize(heard)),'heavy');
+  assert.match(heavy.expedition.log.join(' '),/耳で覚えた盾の音に合わせて強撃/,
+    'the player sees their investigation pay off when choosing heavy');
+  const strike = E.act(heard,'strike');
+  assert.match(strike.expedition.log.join(' '),/盾の構えを知っていたが/,
+    'ignoring the heard clue also has contextual feedback');
+  const unearned = E.act(unheard,'heavy');
+  assert.doesNotMatch(unearned.expedition.log.join(' '),/耳で覚えた盾の音|盾の構えを知っていたが/,
+    'players who skipped investigation never get earned-clue feedback');
+  const later = E.act(heavy,'strike');
+  assert.doesNotMatch(later.expedition.log.join(' '),/耳で覚えた盾の音|盾の構えを知っていたが/,
+    'the shield clue does not repeat on later combat turns');
 });

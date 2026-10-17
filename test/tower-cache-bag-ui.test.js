@@ -49,11 +49,25 @@ test('tower bag shows at-risk bell iron and scrap, including after save and safe
   assert.match(b.html(),/鐘鉄 1 · 鉄片 0/);
   assert.equal(E.parse(b.store.get(key)).materials.watchIron,0);
   assert.equal(E.parse(b.store.get(key)).expedition.materials.watchIron,1);
+  b.click('tower-step','18');
+  assert.equal(E.parse(b.store.get(key)).expedition.tower.pos,18);
+  assert.match(b.html(),/鐘鉄を持って生還/,'carried loot remains visible away from the cache');
   const resumed=browser(E.parse(b.store.get(key)));
   assert.match(resumed.html(),/鐘鉄 1 · 鉄片 0/);
+  assert.match(resumed.html(),/鐘鉄を持って生還/,'return label survives save/resume');
   resumed.click('return');
   assert.equal(E.parse(resumed.store.get(key)).materials.watchIron,1);
   assert.match(resumed.html(),/持ち帰った素材/);
+});
+
+test('tower return choice reflects scrap-only loot without overriding guardian warning',()=>{
+  let s=atCache();
+  assert.match(browser(s).html(),/ここで生還する/);
+  s.expedition.scrap=2;
+  assert.match(browser(s).html(),/鉄片を持って生還/);
+  s=E.act(s,'tower-step:14');
+  assert.equal(s.expedition.tower.pos,14);
+  assert.match(browser(s).html(),/鉄片を守って生還/);
 });
 
 test('tower navigation never marks fog, walls, or undiscovered secret stairs',()=>{
@@ -74,6 +88,42 @@ test('tower navigation never marks fog, walls, or undiscovered secret stairs',()
     assert.notEqual(T.kind(to),'wall');
     assert.notEqual(T.kind(to),'secret');
   }
+});
+
+test('tower waypoint markers stay adjacent through discovery and guardian return',()=>{
+  const start=()=>E.start(E.discover({...E.initial(),mode:'demo'},'tower'),'tower');
+  const check=(state,phase)=>{
+    const f=state.expedition.tower;
+    const steps=[...browser(state).html().matchAll(/<button\b[^>]*class="([^"]*)"[^>]*data-action="tower-step" data-value="(\d+)"/g)]
+      .filter(([,classes])=>classes.split(' ').includes('walk-nav'));
+    assert(steps.length>0,'ordinary guidance exists at '+phase);
+    for(const [,classes,id] of steps){
+      const to=Number(id);
+      const distance=Math.abs(to%T.SIZE-f.pos%T.SIZE)+
+        Math.abs(Math.floor(to/T.SIZE)-Math.floor(f.pos/T.SIZE));
+      assert.equal(distance,1,'only adjacent cells are marked at '+phase);
+      assert(T.visible(f,to),'fog is never marked at '+phase);
+      assert(T.canMove(f,to),'blocked cells are never marked at '+phase);
+      assert(!['wall','secret'].includes(T.kind(to)),'walls and secrets stay unmarked at '+phase);
+      assert(classes.includes('revealed')&&!classes.includes('veiled'));
+    }
+  };
+  let s=start();check(s,'entrance');
+  for(const to of [21,22,T.ECHO])s=E.act(s,'tower-step:'+to);
+  check(s,'bell echo');
+  s=E.act(s,'tower-step:'+T.SECRET);
+  assert(s.expedition.tower.open,'investigation opens the concealed passage');
+  check(s,'secret discovered');
+  s=E.act(s,'tower-step:'+T.SECRET);
+  check(s,'inside secret stair');
+  let guardian=start();
+  for(const to of [21,22,23,18,19,14,T.GUARD])guardian=E.act(guardian,'tower-step:'+to);
+  assert.equal(guardian.expedition.stage,'fight');
+  guardian=structuredClone(guardian);
+  guardian.expedition.enemy.hp=1;
+  guardian=E.act(guardian,'heavy');
+  assert.equal(guardian.expedition.stage,'path','guardian defeat resumes exploration');
+  check(E.parse(E.serialize(guardian)),'after guardian and save/resume');
 });
 
 test('tower echo investigation is a deliberate choice, not hidden-route navigation',()=>{
@@ -116,4 +166,175 @@ test('tower approach whispers before the echo without revealing a secret route',
   state=E.act(state,'tower-step:22');
   assert.doesNotMatch(state.expedition.log[0],/鐘の余韻/,
     'the approach clue must not repeat after the echo has been found');
+});
+
+test('earned shield clue appears only for the investigated guardian opening',()=>{
+  const approach=()=>{
+    let s=E.start(E.discover({...E.initial(),mode:'demo'},'tower'),'tower');
+    for(const to of [21,22,23,18,19])s=E.act(s,'tower-step:'+to);
+    return s;
+  };
+  const uninvestigated=approach();
+  const enter=s=>E.act(E.act(s,'tower-step:14'),'tower-step:9');
+  const ordinary=enter(uninvestigated);
+  assert.equal(ordinary.expedition.stage,'fight');
+  assert.doesNotMatch(browser(ordinary).html(),/耳に残る盾の音/,
+    'a player who skipped listening must not get the tactic');
+  const investigated=enter(E.act(approach(),'tower-listen'));
+  assert.equal(E.intent(investigated.expedition.enemy).id,'guard');
+  assert.match(browser(investigated).html(),/耳に残る盾の音。初手は強撃が効きそうだ。/,
+    'the earned hint must survive the transition to the attack screen');
+  const resumedFight=E.parse(E.serialize(investigated));
+  assert.match(browser(resumedFight).html(),/耳に残る盾の音。初手は強撃が効きそうだ。/,
+    'earned tactic must remain visible when the player resumes in combat');
+  const afterGuardian=E.parse(E.serialize(investigated));
+  afterGuardian.expedition.tower.guard=true;
+  assert.doesNotMatch(browser(afterGuardian).html(),/耳に残る盾の音/,
+    'the defeated guardian must not leak its clue to later knights');
+  const laterTurn=E.parse(E.serialize(investigated));
+  laterTurn.expedition.enemy.turn=1;
+  assert.doesNotMatch(browser(laterTurn).html(),/耳に残る盾の音/,
+    'the opening clue must not clutter subsequent attack choices');
+});
+
+test('tower sound indicator grows with investigation without revealing a hidden route',()=>{
+  let s=E.start(E.discover({...E.initial(),mode:'demo'},'tower'),'tower');
+  const footer=state=>browser(state).html().split('class="forest-field-footer">')[1]?.split('<strong>')[1]?.split('</strong>')[0];
+  assert.equal(footer(s),'鐘の残響を探す');
+  for(const to of [21,22])s=E.act(s,'tower-step:'+to);
+  assert.equal(footer(s),'かすかな鐘の余韻');
+  for(const to of [23,18])s=E.act(s,'tower-step:'+to);
+  assert.equal(footer(s),'鐘の余韻が近い');
+  assert.equal(s.expedition.tower.echo,false);
+  assert.equal(T.visible(s.expedition.tower,T.SECRET),false);
+  for(const to of [23,22,T.ECHO])s=E.act(s,'tower-step:'+to);
+  assert.equal(footer(s),'✦ 鐘の反響を発見');
+  assert.equal(s.expedition.tower.open,false,'sound alone never opens the stair');
+  assert.equal(T.visible(s.expedition.tower,T.SECRET),false);
+  assert.match(browser(s).html(),/鐘の反響を確かめる/,'earned clue offers an intentional choice');
+  s=E.parse(E.serialize(s));
+  assert.equal(footer(s),'✦ 鐘の反響を発見','discovery survives reload');
+  s=E.act(s,'tower-step:'+T.SECRET);
+  assert.equal(footer(s),'隠し階段を発見');
+  assert.equal(s.expedition.tower.pos,T.ECHO,'investigation does not teleport');
+  assert.equal(T.visible(s.expedition.tower,T.SECRET),true);
+  s=E.act(s,'tower-step:'+T.SECRET);
+  s=E.act(s,'tower-step:'+T.RELIC);
+  assert.equal(footer(s),'✦ 秘密の納骨室を発見');
+  const loot=s.expedition.materials.watchIron;
+  assert.equal(E.act(E.parse(E.serialize(s)),'return').materials.watchIron,loot,
+    'sound guidance never changes the safe-return material contract');
+});
+
+test('guardian threshold names at-risk loot on return after save/resume without forcing combat',()=>{
+  const carried=E.act(E.act(atCache(),'tower-cache-iron'),'tower-step:14');
+  assert.equal(carried.expedition.tower.pos,14);
+  assert.equal(carried.expedition.stage,'path');
+  const saved=E.parse(E.serialize(carried));
+  const b=browser(saved);
+  assert.match(b.html(),/鐘鉄を守って生還/);
+  assert.match(b.html(),/鐘鉄を持ち帰るか、鎧の足音を追うか。/);
+  const before=E.parse(b.store.get(key));
+  assert.equal(before.materials.watchIron,0,'at-risk iron is not banked early');
+  b.click('tower-step','9');
+  assert.equal(E.parse(b.store.get(key)).expedition.stage,'fight',
+    'the adjacent guardian tile remains an explicit optional challenge');
+  const retreat=browser(saved);
+  retreat.click('return');
+  assert.equal(E.parse(retreat.store.get(key)).materials.watchIron,1,
+    'safe return banks the same iron without fighting');
+  const scrap=E.parse(E.serialize(carried));
+  scrap.expedition.materials.watchIron=0;
+  scrap.expedition.scrap=2;
+  assert.match(browser(scrap).html(),/鉄片を守って生還/);
+  const empty=E.parse(E.serialize(scrap));
+  empty.expedition.scrap=0;
+  assert.match(browser(empty).html(),/番人を避けて生還/);
+  assert.doesNotMatch(browser(empty).html(),/鐘鉄を守って生還|鉄片を守って生還/);
+});
+
+test('tower return hint lists only carried materials across save, movement and guardian choice',()=>{
+  const onlyIron=E.act(atCache(),'tower-cache-iron');
+  const returnButton=s=>browser(s).html().split('data-action="return"')[1]?.split('</button>')[0]||'';
+  assert.match(returnButton(onlyIron),/背嚢の鐘鉄を確定する/);
+  assert.doesNotMatch(returnButton(onlyIron),/鐘鉄と鉄片を確定する/,
+    'zero scrap must not be advertised as carried loot');
+  const resumed=E.parse(E.serialize(E.act(onlyIron,'tower-step:18')));
+  assert.match(returnButton(resumed),/背嚢の鐘鉄を確定する/,
+    'the exact return reward stays visible after moving and resuming');
+  assert.equal(E.act(resumed,'return').materials.watchIron,1);
+  const both=structuredClone(onlyIron);
+  both.expedition.scrap=2;
+  assert.match(returnButton(both),/背嚢の鐘鉄と鉄片を確定する/);
+  const scrapOnly=structuredClone(both);
+  scrapOnly.expedition.materials.watchIron=0;
+  assert.match(returnButton(scrapOnly),/背嚢の鉄片を確定する/);
+  const empty=structuredClone(scrapOnly);
+  empty.expedition.scrap=0;
+  assert.match(returnButton(empty),/集めた素材を確定する/);
+  const threshold=E.act(onlyIron,'tower-step:14');
+  assert.equal(threshold.expedition.stage,'path');
+  assert.match(returnButton(threshold),/番人とは戦わず素材を確定する/,
+    'the last safe choice still warns about the optional guardian');
+});
+
+test('tower guardian approach is marked as danger, not an ordinary walking waypoint',()=>{
+  let s=E.start(E.discover({...E.initial(),mode:'demo'},'tower'),'tower');
+  for(const to of [21,22,23,18,19,14])s=E.act(s,'tower-step:'+to);
+  const tile=html=>html.match(/<button[^>]*data-action="tower-step" data-value="9"[^>]*>/)?.[0];
+  const before=tile(browser(s).html());
+  assert.ok(before,'guardian is still a reachable adjacent choice');
+  assert.match(before,/guardian-threat/);
+  assert.doesNotMatch(before,/walk-nav/,'combat must not look like a safe waypoint');
+  assert.match(before,/踏み込むと戦闘/,'the consequence is accessible to screen readers');
+  const inCombat=E.act(s,'tower-step:9');
+  assert.equal(inCombat.expedition.stage,'fight');
+  const almostWon=structuredClone(inCombat);
+  almostWon.expedition.enemy.hp=1;
+  const won=E.act(almostWon,'heavy');
+  assert.equal(won.expedition.stage,'path','combat returns to exploration');
+  assert.equal(won.expedition.tower.guard,true);
+  const back=E.act(won,'tower-step:14');
+  const cleared=tile(browser(back).html());
+  assert.ok(cleared);
+  assert.match(cleared,/walk-nav/,'cleared guardian tile becomes an ordinary route');
+  assert.doesNotMatch(cleared,/guardian-threat/);
+  assert.deepEqual(E.parse(E.serialize(back)),back,'the cleared route survives save/resume');
+});
+
+test('tower cache preserves its one-time iron choice when focus is already sufficient',()=>{
+  const s=atCache();
+  s.expedition.focus=3;
+  const before=E.serialize(s);
+  const b=browser(s);
+  assert.match(b.html(),/data-action="tower-cache-focus"[^>]*disabled/,
+    'a redundant focus action must be visibly unavailable');
+  assert.match(b.html(),/集中は既に十分/);
+  assert.strictEqual(E.act(s,'tower-cache-focus'),s,
+    'direct actions cannot silently consume the cache at full focus');
+  assert.equal(E.serialize(s),before);
+  b.click('tower-cache-iron');
+  const carried=E.parse(b.store.get(key));
+  assert.equal(carried.expedition.tower.cache,true);
+  assert.equal(carried.expedition.materials.watchIron,1);
+  assert.equal(carried.expedition.hp,s.expedition.hp-2);
+  const resumed=browser(carried);
+  resumed.click('return');
+  assert.equal(E.parse(resumed.store.get(key)).materials.watchIron,1,
+    'the remaining iron choice survives save and banks only on safe return');
+});
+
+test('tower cache explains that focus preparation forfeits its iron',()=>{
+  const s=atCache();
+  assert.equal(s.expedition.focus,0);
+  const b=browser(s);
+  assert.match(b.html(),/鐘鉄を諦めて集中を3以上に/);
+  b.click('tower-cache-focus');
+  const saved=E.parse(b.store.get(key));
+  assert.equal(saved.expedition.focus,3);
+  assert.equal(saved.expedition.tower.cache,true);
+  assert.equal(saved.expedition.materials.watchIron,0);
+  assert.match(saved.expedition.log[0],/鐘鉄の採掘は諦め/);
+  assert.strictEqual(E.act(saved,'tower-cache-iron'),saved,
+    'the choice remains exclusive after saving and resuming');
 });

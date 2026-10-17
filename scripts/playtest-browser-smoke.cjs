@@ -179,6 +179,11 @@ async function main() {
                 css.animationName==='none';
             }),
             guidedCells:tiles.filter(el=>el.classList.contains('walk-nav')).map(el=>Number(el.dataset.value)),
+            nonAdjacentNav:tiles.filter(el=>el.classList.contains('walk-nav')).filter(el=>{
+              const here=document.querySelector('.forest-field .field-cell.here');
+              return Math.abs(Number(el.style.gridColumn)-Number(here.style.gridColumn))+
+                Math.abs(Number(el.style.gridRow)-Number(here.style.gridRow))!==1;
+            }).map(el=>Number(el.dataset.value)),
             visibleWaypoint:tiles.filter(el=>el.classList.contains('walk-nav')).every(el=>{
               const hint=getComputedStyle(el,'::after');
               return hint.content!=='none' && parseFloat(hint.width)>=10 && hint.borderTopStyle==='dashed';
@@ -194,6 +199,8 @@ async function main() {
           'walkable tap cells must remain full-sized transparent inputs: '+JSON.stringify(canvasProof));
         assert.deepEqual(canvasProof.guidedCells.slice().sort((a,b)=>a-b),[15,21],
           'only the two ordinary walkable neighbors of the camp get visible waypoints');
+        assert.deepEqual(canvasProof.nonAdjacentNav,[],
+          'every visible forest waypoint must be exactly one map cell from the traveler');
         assert(canvasProof.visibleWaypoint && canvasProof.unexpectedNav.length===0,
           'CSS waypoints visible on standard paths only; neither walls, secrets nor fog get marked: '+JSON.stringify(canvasProof));
         assert(!/宝箱.*未発見|森の秘密/.test(await page.locator('.forest-field-footer').innerText()),
@@ -231,9 +238,28 @@ async function main() {
         const knownAfterStep=await page.locator('.forest-field .field-cell.revealed').count();
         assert(knownAfterStep>3,'moving reveals genuinely new local ground');
         await page.screenshot({path:path.join(output,'forest-fog-revealed-'+width+'.png')});
-        for(const pos of [22,23,18,13,8]){
+        for(const pos of [22,23,18,13]){
           await page.locator('.forest-field [data-action="field-step"][data-value="'+pos+'"]').click();
         }
+        const wolfGate=page.locator('.forest-field [data-action="field-step"][data-value="8"]');
+        assert.equal(await wolfGate.count(),1,'wolf encounter remains an adjacent tappable choice');
+        assert.equal(await wolfGate.evaluate(el=>el.classList.contains('walk-nav')),false,
+          'a live wolf den must never look like an ordinary safe walking waypoint');
+        // A wolf sighting adds warning copy: keep both thumb actions visible.
+        const wolfChoiceBounds = await page.evaluate(() => [...document.querySelectorAll(
+          '#game > .field-layout .field-choices button'
+        )].map(el => {
+          const r = el.getBoundingClientRect();
+          const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+          return { label: el.textContent.trim().slice(0, 35), top: r.top,
+            bottom: r.bottom, height: r.height,
+            reachable: r.top >= 0 && r.bottom <= innerHeight - 2 && r.height >= 44 &&
+              (el.disabled || hit === el || el.contains(hit)) };
+        }));
+        assert(wolfChoiceBounds.length >= 2 && wolfChoiceBounds.every(x => x.reachable),
+          'wolf sighting must leave both thumb actions entirely on-screen: ' + JSON.stringify(wolfChoiceBounds));
+        await page.screenshot({path:path.join(output,'forest-wolf-risk-no-waypoint-'+width+'.png')});
+        await wolfGate.click();
         assert.equal(await page.locator(".battle-layout .combat-enemy-summary").count(), 1, "the wolf den must render exactly one actual battle");
         const battleLayout=await page.evaluate(()=>{
           const names=['.combat-situation','.combat-decision','.combat-support'];
@@ -290,6 +316,8 @@ async function main() {
           'defeated wolf state survives saved reload');
         // Re-entering the now-empty den must NEVER launch a second wolf fight.
         await page.locator('.forest-field [data-action="field-step"][data-value="13"]').click();
+        assert.equal(await page.locator('.forest-field .field-cell.den.walk-nav').count(),1,
+          'the defeated wolf den becomes ordinary safe navigation again');
         await page.locator('.forest-field [data-action="field-step"][data-value="8"]').click();
         assert.equal(await page.locator('.battle-layout').count(),0,'wolf can be fought only once');
         for(const id of [13,18,17]){
@@ -1023,7 +1051,46 @@ async function main() {
         await page.screenshot({path:path.join(output,'tower-found-reliquary-'+width+'.png')});
         await page.reload();
         assert.equal(await page.locator('.tower-field[data-tower-relic="true"]').count(),1);
-        for(const id of [12,17,18,19])await step(id);
+        for(const id of [12,17,18,19]){
+          await step(id);
+          if(id===18){
+            const carriedReturn=page.locator('.field-choices [data-action="return"]');
+            assert.match(await carriedReturn.innerText(),/鐘鉄を持って生還/,
+              'carried bell iron must remain visible after leaving the reliquary');
+            const rect=await carriedReturn.boundingBox();
+            assert(rect && rect.x>=-1 && rect.x+rect.width<=width+1 &&
+              rect.y>=-1 && rect.y+rect.height<=(width===360?800:844)+2,
+              'carried-loot return choice must remain in the phone viewport');
+            await page.screenshot({path:path.join(output,'tower-carried-return-'+width+'.png')});
+            // The optional cache is a one-shot tradeoff: a redundant focus
+            // action must be disabled, while the iron path stays available.
+            await step(13);
+            const focusChoice=page.locator('.field-choices [data-action="tower-cache-focus"]');
+            assert.equal(await focusChoice.isEnabled(),true,
+              'a fresh cache offers preparation when focus is low');
+            await page.evaluate(()=>{
+              const k='crownless-expedition-v1-demo',s=JSON.parse(localStorage.getItem(k));
+              s.expedition.focus=3;localStorage.setItem(k,JSON.stringify(s));
+            });
+            await page.reload();
+            assert.equal(await focusChoice.isDisabled(),true,
+              'a redundant one-shot focus choice must not consume the cache');
+            assert.match(await focusChoice.innerText(),/集中は既に十分/);
+            assert.equal(await page.locator('.field-choices [data-action="tower-cache-iron"]').isEnabled(),true,
+              'bell iron remains the available choice');
+            const focusRect=await focusChoice.boundingBox();
+            assert(focusRect&&focusRect.x>=-1&&focusRect.x+focusRect.width<=width+1&&
+              focusRect.y>=-1&&focusRect.y+focusRect.height<=(width===360?800:844)+2,
+              'disabled cache choice stays readable on the phone');
+            await page.screenshot({path:path.join(output,'tower-cache-full-focus-'+width+'.png')});
+            await page.evaluate(()=>{
+              const k='crownless-expedition-v1-demo',s=JSON.parse(localStorage.getItem(k));
+              s.expedition.focus=0;localStorage.setItem(k,JSON.stringify(s));
+            });
+            await page.reload();
+            await step(18);
+          }
+        }
         assert.match((await saved()).expedition.log[0],/金属が石をこする音/);
         const listen=page.locator('.field-choices [data-action="tower-listen"]');
         assert.equal(await listen.count(),1,'listening is an optional investigation');
@@ -1049,8 +1116,12 @@ async function main() {
         await step(14);
         assert.match((await saved()).expedition.log[0],/鎧が石床を打つ足音/,
           'guardian warning should be legible before choosing combat on a phone');
+        assert.match((await saved()).expedition.log[0],/初手は強撃が効きそうだ/,
+          'previously discovered shield clue must be recalled at the choice');
+        assert.match(await page.locator('.field-moment').innerText(),/初手は強撃/,
+          'phone UI must actually show the earned clue, not just save it');
         const retreat=page.locator('.field-choices [data-action="return"]');
-        assert.match(await retreat.innerText(),/戦利品を守って生還/,
+        assert.match(await retreat.innerText(),/鐘鉄を守って生還/,
           'carried loot makes the guardian retreat choice explicit');
         const retreatRect=await retreat.evaluate(el=>{
           const r=el.getBoundingClientRect();
@@ -1059,11 +1130,51 @@ async function main() {
         assert(retreatRect.left>=-1 && retreatRect.right<=width+1 &&
           retreatRect.top>=-1 && retreatRect.bottom<=(width===360?800:844)+2,
           'guardian retreat must remain tappable in the phone viewport: '+JSON.stringify(retreatRect));
+        const guardianTile=page.locator('.tower-field [data-action="tower-step"][data-value="9"]');
+        assert.equal(await guardianTile.count(),1,'guardian remains a real adjacent tap target');
+        assert.equal(await guardianTile.evaluate(el=>el.classList.contains('guardian-threat')),true,
+          'uncleared guardian is marked as a dangerous choice');
+        assert.equal(await guardianTile.evaluate(el=>el.classList.contains('guardian-clue-earned')),true,
+          'the listened shield clue adds a persistent visual cue on the guardian tile');
+        assert.match(await guardianTile.getAttribute('aria-label'),/盾を据える音を聞き取った番人/,
+          'the earned visual cue must also be accessible on a phone');
+        assert.match(await guardianTile.evaluate(el=>getComputedStyle(el,'::after').boxShadow),/3px/,
+          'the earned shield clue must render as a distinct outline');
+        assert.equal(await guardianTile.evaluate(el=>el.classList.contains('walk-nav')),false,
+          'the guardian must not use an ordinary safe-path waypoint');
+        const dangerMark=await guardianTile.evaluate(el=>{
+          const marker=getComputedStyle(el,'::after');
+          const r=el.getBoundingClientRect();
+          return {content:marker.content,width:parseFloat(marker.width),height:parseFloat(marker.height),
+            left:r.left,right:r.right,top:r.top,bottom:r.bottom};
+        });
+        assert(dangerMark.content.includes('!')&&dangerMark.width>=24&&dangerMark.height>=24,
+          'the danger mark must actually render at phone size: '+JSON.stringify(dangerMark));
+        assert(dangerMark.left>=-1&&dangerMark.right<=width+1&&dangerMark.top>=-1&&
+          dangerMark.bottom<=(width===360?800:844)+2,
+          'the guardian tap area must remain in the viewport: '+JSON.stringify(dangerMark));
         await page.screenshot({path:path.join(output,'tower-guardian-choice-'+width+'.png')});
         await step(9);
         s=await saved();
         assert.equal(s.expedition.stage,'fight');
         assert.equal(s.expedition.enemy.kind,'knight');
+        assert.match(await page.locator('.intent').innerText(),/耳に残る盾の音。初手は強撃が効きそうだ。/,
+          'earned clue must be visible at the first actual attack choice on a phone');
+        await page.locator('[data-action="heavy"]').click();
+        s=await saved();
+        assert.match(s.expedition.log.join(' '),/耳で覚えた盾の音に合わせて強撃/,
+          'earned clue must react to the first actual player attack');
+        const clueResult=page.locator('.combat-clue-outcome');
+        assert.equal(await clueResult.count(),1,'earned result is surfaced outside collapsed combat logs');
+        assert.match(await clueResult.innerText(),/耳で覚えた盾の音に合わせて強撃/);
+        const clueRect=await clueResult.evaluate(el=>{
+          const r=el.getBoundingClientRect();
+          return {left:r.left,right:r.right,top:r.top,bottom:r.bottom};
+        });
+        assert(clueRect.left>=-1&&clueRect.right<=width+1&&clueRect.top>=-1&&
+          clueRect.bottom<=(width===360?800:844)+2,
+          'earned attack feedback stays in the phone viewport: '+JSON.stringify(clueRect));
+        await page.screenshot({path:path.join(output,'tower-guardian-clue-outcome-'+width+'.png')});
         await page.evaluate(()=>{
           const k='crownless-expedition-v1-demo',s=JSON.parse(localStorage.getItem(k));
           s.expedition.enemy.hp=1;localStorage.setItem(k,JSON.stringify(s));
@@ -1148,7 +1259,35 @@ async function main() {
         await page.screenshot({path:path.join(output,'fen-star-found-'+width+'.png')});
         await page.reload();
         assert.equal(await page.locator('.fen-field[data-fen-star="true"]').count(),1);
-        for(const id of [12,17,18,13,8])await step(id);
+        for(const id of [12,17,18,13])await step(id);
+        const wraithGate=page.locator('.fen-field [data-action="fen-step"][data-value="8"]');
+        assert.equal(await wraithGate.count(),1,'wraith remains an adjacent tappable risk');
+        assert.equal(await wraithGate.evaluate(el=>el.classList.contains('walk-nav')),false,
+          'an undefeated wraith must not be marked as a safe walking waypoint');
+        assert.equal(await wraithGate.evaluate(el=>el.classList.contains('fen-wraith-threat')),true,
+          'an adjacent living wraith gets a danger marker, not a safe waypoint');
+        const threatVisual=await wraithGate.evaluate(el=>({
+          content:getComputedStyle(el,'::after').content,
+          pointerEvents:getComputedStyle(el,'::after').pointerEvents,
+          width:el.getBoundingClientRect().width,
+          label:el.getAttribute('aria-label')
+        }));
+        assert(threatVisual.content.includes('!'),'risk marker must actually render');
+        assert.equal(threatVisual.pointerEvents,'none','marker must not block tapping');
+        assert(threatVisual.width>=25,'danger tile retains a usable tap area');
+        assert.match(threatVisual.label,/戦闘の危険/);
+        await page.screenshot({path:path.join(output,'fen-wraith-risk-no-waypoint-'+width+'.png')});
+        await wraithGate.click();
+        s=await saved();
+        assert.equal(s.expedition.stage,'path','first tap scouts the wraith from safety');
+        assert.equal(s.expedition.fen.pos,13,'scouting does not move');
+        assert.equal(s.expedition.fen.scouted,true);
+        assert.equal(await page.locator('.fen-field[data-fen-scouted="true"]').count(),1);
+        assert.match(await page.locator('.fen-field .forest-field-footer').innerText(),/戦うか帰るか/);
+        await page.screenshot({path:path.join(output,'fen-wraith-scouted-choice-'+width+'.png')});
+        await page.reload();
+        assert.equal((await saved()).expedition.fen.scouted,true,'save/reload preserves scouting');
+        await wraithGate.click();
         s=await saved();
         assert.equal(s.expedition.stage,'fight');
         assert.equal(s.expedition.enemy.kind,'wraith');
@@ -1162,7 +1301,12 @@ async function main() {
         assert.equal(s.expedition.stage,'path','wraith battle returns to wetland');
         assert.equal(s.expedition.fen.wraith,true);
         assert.equal(await page.locator('.fen-field.world-painted').count(),1);
-        for(const id of [13,18,23,24])await step(id);
+        await step(13);
+        assert.equal(await page.locator('.fen-field .field-cell.wraith.walk-nav').count(),1,
+          'defeated wraith tile is an ordinary traversable neighbor');
+        assert.equal(await page.locator('.fen-field .fen-wraith-threat').count(),0,
+          'danger mark disappears once the wraith is defeated');
+        for(const id of [18,23,24])await step(id);
         s=await saved();
         assert.equal(s.expedition,null);
         assert(s.materials.marshFiber>=2,'star and wraith both return crafting material');

@@ -520,7 +520,15 @@
         && e.kind==='knight' && x.tower.pos===T.GUARD) {
       x.tower.guard=true;
       x.stage='path';
-      x.log.unshift('塔の番人が退いた。上階への階段が開いた。残る隠し部屋を調べるか、階段を上るかは自由だ。');
+      // Keep the secret room a discovery, not an unsolicited victory spoiler.
+      const mystery=x.tower.relic
+        ? '背嚢の素材を持ち帰るか、上階へ進むか。'
+        : x.tower.open
+          ? '見つけた隠し階段の奥も、まだ調べられる。'
+          : x.tower.echo
+            ? 'さっきの鐘の反響は、まだ石壁の向こうから聞こえる。'
+            : 'どこからか鐘に似た音が聞こえる。';
+      x.log.unshift('塔の番人が退いた。上階への階段が開いた。'+mystery);
     } else if (x.place==='wood' && x.depth===1 && x.room===0 && x.field
         && e.kind==='wolf' && (x.field.pos===F.DEN || x.field.pos===F.EXIT)) {
       // This wolf belongs to the physical forest scene, not the legacy five-fight
@@ -581,6 +589,8 @@
       if ((action === 'tower-cache-focus' || action === 'tower-cache-iron') &&
           x.place === 'tower' && x.depth === 1 && x.room === 0 && x.tower &&
           x.tower.pos === T.CACHE && !x.tower.cache) {
+        // Do not consume the one-shot cache for a focus boost that cannot help.
+        if (action === 'tower-cache-focus' && x.focus >= 3) return s;
         if (action === 'tower-cache-iron') {
           if (x.hp <= 2 || x.materials.watchIron >= 1000000) return s;
           x.hp -= 2;
@@ -588,7 +598,7 @@
           x.log = ['崩れた石をこじ開け、鐘鉄 +1 を拾った。体力 −2。生還するまで素材は背嚢の中だ。'];
         } else {
           x.focus = Math.max(3, x.focus);
-          x.log = ['古い兵士の訓練刻印を読み解いた。集中を3以上に整えた。鐘鉄は残したが、次の戦闘に備えられる。'];
+          x.log = ['鐘鉄の採掘は諦め、古い兵士の訓練刻印を読み解いた。集中を3以上に整えた。崩れた石段からはもう素材を取れない。'];
         }
         x.tower.cache = true;
         return n;
@@ -639,6 +649,13 @@
           return n;
         }
         const from=x.fen.pos;
+        // First contact is an earned, safe observation. A second deliberate
+        // tap starts combat; neither tap can bypass adjacency or hidden fog.
+        if(to===M.WRAITH&&!x.fen.wraith&&!x.fen.scouted&&M.canMove(x.fen,to)){
+          x.fen={...x.fen,scouted:true};
+          x.log=['水面の波紋が先に走った。亡霊の初手は速い薙ぎ払い。防御で受け流せば反撃の好機になる。今なら素材を持って生還できる。もう一度青白い影を選べば戦闘。'];
+          return n;
+        }
         const next=M.move(x.fen,to);
         if(!next)return s;
         if(to===M.SHOAL && x.hp<=3){
@@ -699,9 +716,11 @@
           x.log=['崩れた鐘の欠片に触れると、音が壁の向こうから返る。床下に別の空間があるようだ。'];
         }else if((to===22||to===18)&&!next.echo&&!next.open){
           // A distant, ambiguous sound invites investigation without a route marker.
-          x.log=[to===22
-            ? '石壁の奥から、かすかな鐘の余韻が聞こえる。どこから響くのだろう。'
-            : '足元の石床に、先ほどより近い鐘の余韻が伝わる。石の下に何かあるのだろうか。'];
+          x.log=[next.guard
+            ? (to===22 ? '上階を離れた通路で、鐘の余韻がかすかに聞こえる。' : '上階から離れた石床で、鐘の余韻が足元に強く響く。')
+            : to===22
+              ? '石壁の奥から、かすかな鐘の余韻が聞こえる。どこから響くのだろう。'
+              : '足元の石床に、先ほどより近い鐘の余韻が伝わる。石の下に何かあるのだろうか。'];
         }else if(to===T.RELIC&&!next.relic){
           next.relic=true;
           x.materials.watchIron=Math.min(1000000,x.materials.watchIron+1);
@@ -716,7 +735,9 @@
           const carried=x.materials.watchIron||x.scrap
             ? `背嚢の鐘鉄 ${x.materials.watchIron}・鉄片 ${x.scrap} を守って`
             : '背嚢はまだ空だ。';
-          x.log=[`上階の石段から、鎧が石床を打つ足音。${carried}生還するか、番人のいる先へ進むか。`];
+          // Bring back the earned tactical clue at the moment it can change the decision.
+          const clue=next.listened?'耳に残る盾の音。初手は強撃が効きそうだ。':'';
+          x.log=[`上階の石段から、鎧が石床を打つ足音。${clue}${carried}生還するか、番人のいる先へ進むか。`];
         }else if(to===T.GUARD&&!next.guard){
           encounter(x,true,n.runs);
           x.log.unshift('鎧の足音！ 鐘なき塔の番人が立ちはだかる。戦って退ければ上へ進める。');
@@ -859,6 +880,14 @@
     let damage = 0;
     if (action === 'strike' || action === 'heavy') {
       damage = attackPreview(n, action);
+      // Listening is tactical knowledge, not a free damage buff. Acknowledge
+      // the player's earned read only on the guardian's first shield stance.
+      if (x.place === 'tower' && x.depth === 1 && x.room === 0 &&
+          x.tower?.listened && e.kind === 'knight' && e.turn === 0 && next.id === 'guard') {
+        x.log.push(action === 'heavy'
+          ? '耳で覚えた盾の音に合わせて強撃を放った。調査が戦いの判断につながった。'
+          : '盾の構えを知っていたが、斬撃は守りに阻まれた。');
+      }
       if (x.sharpened > 0 && !x.sharpenedApplied) { x.sharpened--; x.sharpenedApplied = true; x.log.push('研ぎ澄まされた刃が走る！ 初撃に勢いが乗った（与えるダメージ +3）。'); }
       if (x.grudge && !x.grudge.used && x.grudge.enemy === e.kind) { x.grudge.used = true; n.grudge = null; x.log.push('敗走の執念を一撃に乗せた。与えるダメージ +3。'); }
       if (action === 'heavy' && p.heavyBonus > 4) { x.log.push(`補強の重み！ 強撃の威力が ${p.heavyBonus - 4} 底上げされた。`); }
