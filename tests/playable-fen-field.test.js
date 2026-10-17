@@ -69,7 +69,9 @@ test('herb island is one-time, wraith battle once and resumes the same terrain',
  assert.equal(s.expedition.potions,3);
  const restored=E.parse(E.serialize(s));
  assert.equal(walk(restored,23,18).expedition.potions,3,'herbs cannot duplicate');
- const foe=walk(s,13,8);
+ const scouted=walk(s,13,8);
+ assert.equal(scouted.expedition.stage,'path','first tap scouts from shore');
+ const foe=walk(E.parse(E.serialize(scouted)),8);
  assert.equal(foe.expedition.stage,'fight');
  assert.equal(foe.expedition.enemy.kind,'wraith');
  assert.equal(foe.expedition.fen.pos,8);
