@@ -1173,6 +1173,9 @@
       if (s.expedition) {
         const x = s.expedition;
         const allowedFocus = gearFamily(s.equipped) === 'fang' ? [0,3,4,5,6,7,8,9] : [0,3];
+        // The hidden bell relic grants exactly +1 focus on the tower rumor route.
+        // Accept that earned value on reload, without relaxing unrelated saves.
+        if (x.place === 'tower' && x.tower?.rumor && x.tower?.relic) allowedFocus.push(1);
         if (Object.keys(x).some(k => !['place','depth','room','field','tower','fen','hp','stamina','focus','stagger','sharpened','sharpenedApplied','landmarkId' ,'potions','scrap','materials','gear','gearQuality','seals','grudge','enemy','stage','log','foundDesign'].includes(k)) || !(x.foundDesign === undefined || x.foundDesign === 'shield_thorn' || (x.foundDesign === 'fang_moon' && x.place === 'wood') || (x.foundDesign === 'bow_hunter' && x.place === 'fen')) || !(x.landmarkId === undefined || (typeof x.landmarkId==='string' && /^[a-z][a-z0-9-]{1,63}$/.test(x.landmarkId))) || !(x.field === undefined || (x.place==='wood' && F.valid(x.field))) || !(x.tower===undefined || (x.place==='tower'&&T.valid(x.tower))) || !(x.fen===undefined || (x.place==='fen'&&M.valid(x.fen))) || !s.unlocked.includes(x.place) || !int(x.depth,1,3) || !int(x.room,0,4) || !int(x.hp,1,maxHp(s)) || !int(x.stamina,0,3) || !allowedFocus.includes(x.focus) || typeof x.stagger !== 'boolean' || !int(x.sharpened,0,3) || typeof x.sharpenedApplied !== 'boolean' || !validExpeditionGrudge(x.grudge) || !int(x.potions,0,3) || !int(x.scrap,0,1000) || !validMaterials(x.materials) || !validLoot(x.gear,x.gearQuality) || !Array.isArray(x.seals) || x.seals.length > 3 || !x.seals.every(v => ids.includes(v)) || !['path','fight','cleared'].includes(x.stage) || !Array.isArray(x.log) || x.log.length > 10 || !x.log.every(v => typeof v === 'string' && v.length < 250)) throw Error('run');
         if (x.stage === 'fight') {
           const e = x.enemy;
