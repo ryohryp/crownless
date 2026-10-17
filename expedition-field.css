@@ -439,6 +439,16 @@
   }
 }
 
+/* The rumor fork adds a decision row: reserve room for safe return on 360px. */
+@media (max-width:380px) and (min-height:701px) {
+  #game > .field-layout:has(.tower-field.world-painted):has(.tower-rumor-fork) {
+    grid-template-rows:minmax(0,46dvh) minmax(0,1fr)!important;
+  }
+  #game > .field-layout:has(.tower-rumor-fork) .tower-field.world-painted .field-terrain {
+    width:min(100%,calc(46dvh - 86px),390px);
+  }
+}
+
 /* Investigating a bell echo is a choice, not a movement waypoint. */
 #game > .field-layout .field-choices button.tower-echo-investigate {
   grid-column:1/-1;min-height:52px;padding:8px 12px;
