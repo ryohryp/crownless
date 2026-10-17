@@ -886,11 +886,18 @@
       lastReturnedPlace = gearStep ? state.report.place : null;
       prioritizeReinforcement = gearStep && !hasNewBattleGear && canPowerUp;
       const homeOpportunity = state.neighborhood.result && !state.report.died && (state.neighborhood.result.claimed || Object.keys(N.BUILDINGS).some(id => N.canBuild(state.neighborhood,id)));
-      const forgeReady = !state.report.died && Object.keys(E.RECIPES).some(id => canCraft(state,id));
+      const forgeReady = !state.report.died && (Object.keys(E.RECIPES).some(id => canCraft(state,id)) ||
+        (!state.ownedTools?.includes(E.SCOUT_LANTERN.id) &&
+          state.scrap>=E.SCOUT_LANTERN.scrap &&
+          (state.materials?.[E.SCOUT_LANTERN.material]||0)>=E.SCOUT_LANTERN.count));
       const commissionFinished = !state.report.died && state.commission.lastResult === state.report.place;
       tab = homeOpportunity ? 'home' : gearStep ? 'gear' : 'explore';
       if (forgeReady || commissionFinished || state.report.newDesign) tab = 'gear';
       if (state.report.newSkill === 'trailReading' && !state.report.died) { tab = 'status'; statusCharacter = 0; }
+      // First non-combat return should land next to its now affordable tool.
+      if (forgeReady && !state.ownedTools?.includes(E.SCOUT_LANTERN.id) &&
+          state.scrap>=E.SCOUT_LANTERN.scrap &&
+          (state.materials?.[E.SCOUT_LANTERN.material]||0)>=E.SCOUT_LANTERN.count) tab='gear';
       if (keptDuplicate) { lastReturnedPlace = state.report.place; prioritizeReinforcement = false; tab = 'gear'; }
       const completedLandmark = state.report.landmarkId &&
         state.claimedLandmarks?.includes(state.report.landmarkId) &&
