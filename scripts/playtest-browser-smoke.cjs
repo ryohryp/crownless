@@ -1073,7 +1073,7 @@ async function main() {
         await page.locator('[data-action="heavy"]').click();
         s=await saved();
         assert.match(s.expedition.log.join(' '),/耳で覚えた盾の音に合わせて強撃/,
-          'earned clue must react to the player's actual first attack');
+          'earned clue must react to the first actual player attack');
         const clueResult=page.locator('.combat-clue-outcome');
         assert.equal(await clueResult.count(),1,'earned result is surfaced outside collapsed combat logs');
         assert.match(await clueResult.innerText(),/耳で覚えた盾の音に合わせて強撃/);
