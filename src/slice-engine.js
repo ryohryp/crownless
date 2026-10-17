@@ -858,6 +858,14 @@
     let damage = 0;
     if (action === 'strike' || action === 'heavy') {
       damage = attackPreview(n, action);
+      // Listening is tactical knowledge, not a free damage buff. Acknowledge
+      // the player's earned read only on the guardian's first shield stance.
+      if (x.place === 'tower' && x.depth === 1 && x.room === 0 &&
+          x.tower?.listened && e.kind === 'knight' && e.turn === 0 && next.id === 'guard') {
+        x.log.push(action === 'heavy'
+          ? '耳で覚えた盾の音に合わせて強撃を放った。調査が戦いの判断につながった。'
+          : '盾の構えを知っていたが、斬撃は守りに阻まれた。');
+      }
       if (x.sharpened > 0 && !x.sharpenedApplied) { x.sharpened--; x.sharpenedApplied = true; x.log.push('研ぎ澄まされた刃が走る！ 初撃に勢いが乗った（与えるダメージ +3）。'); }
       if (x.grudge && !x.grudge.used && x.grudge.enemy === e.kind) { x.grudge.used = true; n.grudge = null; x.log.push('敗走の執念を一撃に乗せた。与えるダメージ +3。'); }
       if (action === 'heavy' && p.heavyBonus > 4) { x.log.push(`補強の重み！ 強撃の威力が ${p.heavyBonus - 4} 底上げされた。`); }

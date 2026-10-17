@@ -155,3 +155,30 @@ test('guardian backtracking offers a new bell lead without revealing the secret 
   assert.equal(returned.materials.watchIron,carriedIron,
     'all guardian and hidden-room materials bank only on safe return');
 });
+
+test('earned shield clue gives first-turn choice feedback without changing damage or later turns', () => {
+  const approach = listen => {
+    let s = E.start(E.discover({...E.initial(),mode:'demo'},'tower'),'tower');
+    for (const to of [21,22,23,18,19]) s = E.act(s,'tower-step:'+to);
+    if (listen) s = E.act(s,'tower-listen');
+    for (const to of [14,9]) s = E.act(s,'tower-step:'+to);
+    assert.equal(s.expedition.stage,'fight');
+    assert.equal(E.intent(s.expedition.enemy).id,'guard');
+    return s;
+  };
+  const heard = approach(true), unheard = approach(false);
+  assert.equal(E.attackPreview(heard,'heavy'),E.attackPreview(unheard,'heavy'),
+    'listening grants knowledge, not a free combat damage bonus');
+  const heavy = E.act(E.parse(E.serialize(heard)),'heavy');
+  assert.match(heavy.expedition.log.join(' '),/耳で覚えた盾の音に合わせて強撃/,
+    'the player sees their investigation pay off when choosing heavy');
+  const strike = E.act(heard,'strike');
+  assert.match(strike.expedition.log.join(' '),/盾の構えを知っていたが/,
+    'ignoring the heard clue also has contextual feedback');
+  const unearned = E.act(unheard,'heavy');
+  assert.doesNotMatch(unearned.expedition.log.join(' '),/耳で覚えた盾の音|盾の構えを知っていたが/,
+    'players who skipped investigation never get earned-clue feedback');
+  const later = E.act(heavy,'strike');
+  assert.doesNotMatch(later.expedition.log.join(' '),/耳で覚えた盾の音|盾の構えを知っていたが/,
+    'the shield clue does not repeat on later combat turns');
+});
