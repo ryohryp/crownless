@@ -407,13 +407,14 @@
 
 /* A live wolf sighting adds a decision paragraph to the forest scene.
    Reserve room for both thumb actions at 360/390px without shrinking their
-   tap targets. Tower and fen keep their independently tuned layouts. */
+   tap targets. 56dvh clipped the lower row at 360x800, so 52dvh
+   preserves both actions. Tower and fen keep their tuned layouts. */
 @media (max-width:480px) and (min-height:701px) {
   #game > .field-layout:has(.forest-field.world-painted:not(.tower-field):not(.fen-field)) {
-    grid-template-rows:minmax(0,56dvh) minmax(0,1fr)!important;
+    grid-template-rows:minmax(0,52dvh) minmax(0,1fr)!important;
   }
   #game > .field-layout .forest-field.world-painted:not(.tower-field):not(.fen-field) .field-terrain {
-    width:min(100%,calc(56dvh - 86px),390px);
+    width:min(100%,calc(52dvh - 86px),390px);
   }
 }
 

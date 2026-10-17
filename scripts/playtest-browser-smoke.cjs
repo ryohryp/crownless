@@ -245,6 +245,19 @@ async function main() {
         assert.equal(await wolfGate.count(),1,'wolf encounter remains an adjacent tappable choice');
         assert.equal(await wolfGate.evaluate(el=>el.classList.contains('walk-nav')),false,
           'a live wolf den must never look like an ordinary safe walking waypoint');
+        // A wolf sighting adds warning copy: keep both thumb actions visible.
+        const wolfChoiceBounds = await page.evaluate(() => [...document.querySelectorAll(
+          '#game > .field-layout .field-choices button:not(:disabled)'
+        )].map(el => {
+          const r = el.getBoundingClientRect();
+          const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+          return { label: el.textContent.trim().slice(0, 35), top: r.top,
+            bottom: r.bottom, height: r.height,
+            reachable: r.top >= 0 && r.bottom <= innerHeight - 2 && r.height >= 44 &&
+              (hit === el || el.contains(hit)) };
+        }));
+        assert(wolfChoiceBounds.length >= 2 && wolfChoiceBounds.every(x => x.reachable),
+          'wolf sighting must leave both thumb actions entirely on-screen: ' + JSON.stringify(wolfChoiceBounds));
         await page.screenshot({path:path.join(output,'forest-wolf-risk-no-waypoint-'+width+'.png')});
         await wolfGate.click();
         assert.equal(await page.locator(".battle-layout .combat-enemy-summary").count(), 1, "the wolf den must render exactly one actual battle");
