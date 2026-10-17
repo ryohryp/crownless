@@ -374,6 +374,12 @@
     if (!d || !REGIONAL_MATERIAL[d.biome] || N.pointOfInterest(d)?.family!=='event') return s;
     const n=start(s,d.biome);
     if (n===s) return s;
+    if(d.biome==='tower'){
+      // Enter the actual bell-and-guardian labyrinth, not an instant fight.
+      n.expedition.tower.rumor=true;
+      n.expedition.log=['鐘がないのに、石床の下から音がする。残響を探すか、鎧の足音を追うか。隣の石床を進めば分かれ道に着く。戦わず帰れる道もある。'];
+      return n;
+    }
     encounter(n.expedition,true,n.runs);
     n.expedition.enemy.clue=true;
     n.expedition.enemy.maxHp+=4;
@@ -740,7 +746,12 @@
           x.log=[`上階の石段から、鎧が石床を打つ足音。${clue}${carried}生還するか、番人のいる先へ進むか。`];
         }else if(to===T.GUARD&&!next.guard){
           encounter(x,true,n.runs);
-          x.log.unshift('鎧の足音！ 鐘なき塔の番人が立ちはだかる。戦って退ければ上へ進める。');
+          if(next.rumor){
+            x.enemy.clue=true;
+            x.enemy.maxHp+=4;
+            x.enemy.hp+=4;
+            x.log.unshift('鐘の謎を追って番人に踏み込んだ。倒せば鐘鉄 +1 と盾の製法の手掛かり。生還までは未確定。');
+          }else x.log.unshift('鎧の足音！ 鐘なき塔の番人が立ちはだかる。戦って退ければ上へ進める。');
         }else if(to===T.STAIRS){
           x.room=1;
           x.log=['鐘の残響を背に上階へ進む。さらに奥には別の選択と敵が待つ。'];
@@ -857,6 +868,7 @@
         x.room++; if (x.hp <= 0) return finish(n, true); return n;
       }
       if (!['careful', 'risky'].includes(action)) return s;
+      if(x.place==='tower'&&x.room===0&&x.depth===1&&x.tower?.rumor)return s;
       encounter(x, action === 'risky', n.runs); return n;
     } else if (x.stage === 'fight') {
       if (!['strike', 'heavy', 'guard', 'dodge', 'flee'].includes(action)) return s;

@@ -4,12 +4,16 @@ const E=require('../src/slice-engine.js');
 const N=require('../src/neighborhood.js');
 const tower=N.cell(400,0);
 const shop=N.cell(800,0);
+const towerField=require('../src/tower-field.js');
 const demo=()=>({...E.initial(),mode:'demo'});
 const event=()=>E.discoverDistrict(demo(),tower);
 function defeatFirstClue(s=event()) {
-  const fight=E.startWithLocalClue(s);
+  let fight=E.startWithLocalClue(s);
+  assert.equal(fight.expedition.stage,'path');
+  for(const tile of [21,22,23,18,19,14,9])fight=E.act(fight,'tower-step:'+tile);
   assert.equal(fight.expedition.stage,'fight');
-  fight.expedition.enemy.hp=1; // Normal victory through act(), not a minted schematic.
+  assert.equal(fight.expedition.enemy.clue,true);
+  fight.expedition.enemy.hp=1;
   return E.act(fight,'strike');
 }
 
@@ -37,7 +41,7 @@ test('no blueprint on failed run, shop discovery, other biome, or repeated clear
   const atShop=E.discoverDistrict(found,shop);
   assert.equal(E.startWithLocalClue(atShop),atShop);
   const won=defeatFirstClue();
-  const advance=E.act(won,E.isRoadsideEvent(won)?'pray':'rest');
+  const advance=E.act(won,'tower-step:4');
   const battle=E.act(advance,'careful');
   assert.equal(battle.expedition.stage,'fight');
   battle.expedition.hp=1;
@@ -51,7 +55,8 @@ test('no blueprint on failed run, shop discovery, other biome, or repeated clear
   forest.expedition.enemy.hp=1;
   assert.equal(E.act(forest,'strike').expedition.foundDesign,undefined);
   const safe=E.act(defeatFirstClue(),'return');
-  const replay=E.startWithLocalClue({...safe,report:null});
+  let replay=E.startWithLocalClue({...safe,report:null});
+  for(const tile of [21,22,23,18,19,14,9])replay=E.act(replay,'tower-step:'+tile);
   replay.expedition.enemy.hp=1;
   const another=E.act(replay,'strike');
   assert.equal(another.expedition.foundDesign,undefined);
@@ -89,4 +94,27 @@ test('old saves migrate safely; forged or unknown blueprint origins fail closed'
   assert.deepEqual(E.parse(E.serialize(found)),found);
   found.designs={secret_wand:'0,1'};
   assert.equal(E.parse(E.serialize(found)),null,'unknown design is never silently accepted');
+});
+
+test('bell rumor offers a real noncombat find without a free guardian blueprint',()=>{
+  let s=E.startWithLocalClue(event());
+  assert.equal(s.expedition.stage,'path');
+  assert.equal(s.expedition.tower.rumor,true);
+  assert.equal(E.act(s,'careful'),s,'cannot bypass exploration with a generic combat action');
+  assert.deepEqual(E.parse(E.serialize(s)),s);
+  for(const tile of [21,22,towerField.ECHO])s=E.act(s,'tower-step:'+tile);
+  assert.equal(s.expedition.tower.open,false);
+  s=E.act(s,'tower-step:'+towerField.SECRET);
+  assert.equal(s.expedition.tower.pos,towerField.ECHO,'investigation never teleports');
+  assert.equal(s.expedition.tower.open,true);
+  for(const tile of [towerField.SECRET,towerField.RELIC])s=E.act(s,'tower-step:'+tile);
+  assert.equal(s.expedition.materials.watchIron,1);
+  assert.equal(s.expedition.scrap,4);
+  assert.equal(s.expedition.enemy,null);
+  assert.equal(s.expedition.foundDesign,undefined);
+  const returned=E.act(E.parse(E.serialize(s)),'return');
+  assert.equal(returned.materials.watchIron,1);
+  assert.equal(returned.scrap,4);
+  assert.equal(returned.designs.shield_thorn,undefined);
+  assert.equal(returned.neighborhood.districts.find(x=>x.id===tower.id).claimed,false);
 });
