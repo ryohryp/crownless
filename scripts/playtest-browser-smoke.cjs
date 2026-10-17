@@ -62,7 +62,7 @@ async function main() {
         assert.equal(await page.locator(".nearby-paper-map").count(), 1, "demo should show the map");
         assert.equal(await page.locator('.nearby-track-tile').count(),25,'the neighborhood is a 5x5 connected tile board');
         assert.equal(await page.locator('.nearby-track-tile.selected').count(),1,'the current destination is centered and selected');
-        assert((await page.locator('.nearby-track-road').count())>=2,'known lands are linked by rendered paths');
+        assert((await page.locator('.nearby-world-canvas .world-road-surface path').count())>=2,'known lands are linked by rendered roads on the shared world canvas');
         const layout = await page.evaluate(() => {
           const rect = selector => {
             const r = document.querySelector(selector).getBoundingClientRect();

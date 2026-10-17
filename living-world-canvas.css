@@ -268,3 +268,182 @@
   #game > .neighborhood-rebuild .nearby-card-actions button {min-height:48px}
   #game > .neighborhood-rebuild .nearby-map-top {padding-top:5px;padding-bottom:4px}
 }
+
+/* Connected landscape v2: a single world illustration, not 25 framed images.
+   The grid is now only an invisible pointer/keyboard hit-test layer. */
+#game > .neighborhood-rebuild .nearby-track-map {
+  grid-template-rows:auto minmax(0,1fr) auto;
+}
+#game > .neighborhood-rebuild .nearby-track-board {
+  isolation:isolate;
+  background:#d4d0be;
+}
+#game > .neighborhood-rebuild .nearby-world-canvas {
+  position:absolute;
+  inset:0;
+  z-index:0;
+  width:100%;
+  height:100%;
+  pointer-events:none;
+  display:block;
+}
+#game > .neighborhood-rebuild .nearby-world-canvas .world-landmass {
+  fill:rgba(102,116,101,.22);
+  stroke:none;
+}
+#game > .neighborhood-rebuild .nearby-world-canvas .world-contour {
+  fill:none;
+  stroke:rgba(69,82,72,.33);
+  stroke-width:1.6;
+  stroke-linecap:round;
+}
+#game > .neighborhood-rebuild .nearby-world-canvas .world-river {
+  fill:none;
+  stroke:rgba(110,143,141,.6);
+  stroke-width:5;
+  stroke-linecap:round;
+}
+#game > .neighborhood-rebuild .nearby-world-canvas .world-road-edge,
+#game > .neighborhood-rebuild .nearby-world-canvas .world-road-surface,
+#game > .neighborhood-rebuild .nearby-world-canvas .world-road-trail {
+  fill:none;
+  stroke-linejoin:round;
+  stroke-linecap:round;
+}
+#game > .neighborhood-rebuild .nearby-world-canvas .world-road-edge {
+  stroke:rgba(80,78,67,.44);
+  stroke-width:21;
+}
+#game > .neighborhood-rebuild .nearby-world-canvas .world-road-surface {
+  stroke:#e7d5ae;
+  stroke-width:14;
+}
+#game > .neighborhood-rebuild .nearby-world-canvas .world-road-trail {
+  stroke:rgba(95,83,69,.37);
+  stroke-width:1.3;
+  stroke-dasharray:1 8;
+}
+#game > .neighborhood-rebuild .nearby-world-canvas .world-site {
+  stroke-linecap:round;
+  stroke-linejoin:round;
+}
+#game > .neighborhood-rebuild .nearby-world-canvas .world-tree-mass {fill:rgba(70,92,72,.29)}
+#game > .neighborhood-rebuild .nearby-world-canvas .world-tree {
+  fill:none;stroke:#425547;stroke-width:2.3;
+}
+#game > .neighborhood-rebuild .nearby-world-canvas .world-stone {
+  fill:rgba(205,200,186,.82);stroke:#59594f;stroke-width:2;
+}
+#game > .neighborhood-rebuild .nearby-world-canvas .world-detail {
+  fill:none;stroke:#57574d;stroke-width:2;
+}
+#game > .neighborhood-rebuild .nearby-world-canvas .world-flag {
+  fill:#a7544b;stroke:none;
+}
+#game > .neighborhood-rebuild .nearby-world-canvas .world-water {
+  fill:none;stroke:rgba(95,134,131,.62);stroke-width:5;
+}
+#game > .neighborhood-rebuild .nearby-world-canvas .world-reed {
+  fill:none;stroke:#556b60;stroke-width:2;
+}
+#game > .neighborhood-rebuild .nearby-world-canvas .world-hill {
+  fill:rgba(108,113,103,.32);stroke:none;
+}
+#game > .neighborhood-rebuild .nearby-world-canvas .world-wisps {
+  fill:none;
+  stroke:rgba(250,247,234,.63);
+  stroke-width:26;
+  stroke-linecap:round;
+  pointer-events:none;
+}
+/* Completely remove the old tiled-paper appearance and question-mark carpet.
+   Keep 25 accessible hit targets with no new gameplay/navigation behavior. */
+#game > .neighborhood-rebuild .nearby-track-tile,
+#game > .neighborhood-rebuild .nearby-track-tile.track-wood,
+#game > .neighborhood-rebuild .nearby-track-tile.track-fen,
+#game > .neighborhood-rebuild .nearby-track-tile.track-tower,
+#game > .neighborhood-rebuild .nearby-track-tile.track-crypt,
+#game > .neighborhood-rebuild .nearby-track-tile.track-home,
+#game > .neighborhood-rebuild .nearby-track-tile.track-fog {
+  position:relative;
+  z-index:1;
+  background:transparent;
+  border:0;
+  box-shadow:none;
+  border-radius:0;
+}
+#game > .neighborhood-rebuild .nearby-track-tile.track-fog::after {display:none}
+#game > .neighborhood-rebuild .nearby-track-tile .nearby-terrain-wash,
+#game > .neighborhood-rebuild .nearby-track-tile .nearby-track-icon,
+#game > .neighborhood-rebuild .nearby-track-tile .nearby-track-mist {display:none}
+#game > .neighborhood-rebuild button.nearby-track-tile.selected {
+  outline:0;
+  border:0;
+  box-shadow:none;
+}
+#game > .neighborhood-rebuild button.nearby-track-tile.selected::before {
+  content:"";
+  position:absolute;
+  z-index:2;
+  left:22%;right:22%;top:18%;bottom:25%;
+  border:2px solid #9f4e43;
+  border-radius:50%;
+  box-shadow:0 0 0 4px rgba(255,247,228,.54),0 0 22px rgba(151,73,62,.25);
+  pointer-events:none;
+}
+#game > .neighborhood-rebuild button.nearby-track-tile:focus-visible {
+  outline:3px solid #2b302b;
+  outline-offset:-4px;
+  z-index:7;
+}
+#game > .neighborhood-rebuild .nearby-track-name,
+#game > .neighborhood-rebuild .nearby-track-home-label {
+  z-index:4;
+  bottom:9px;
+  padding:4px 3px;
+  color:#28332c;
+  background:rgba(246,239,220,.94);
+  box-shadow:0 1px 5px rgba(49,44,38,.17);
+}
+#game > .neighborhood-rebuild .nearby-track-tile .nearby-tile-stamp {
+  z-index:4;
+  top:7px;left:7px;
+}
+#game > .neighborhood-rebuild .nearby-track-camp {
+  z-index:4;
+  color:#383e36;
+}
+/* Navigation no longer overlays / hides the last discovered landscape row. */
+#game > .neighborhood-rebuild .nearby-track-footer {
+  position:relative;
+  inset:auto;
+  z-index:8;
+  display:flex;
+  justify-content:center;
+  width:100%;
+  max-width:none;
+  min-height:48px;
+  margin:0;
+  padding:3px 7px;
+  border:0;
+  border-top:1px solid rgba(82,77,68,.36);
+  border-radius:0;
+  background:#e9dfcd;
+  box-shadow:none;
+}
+#game > .neighborhood-rebuild .nearby-track-switch button {
+  min-height:44px;
+  padding:7px 16px;
+}
+@media(max-width:480px) {
+  #game > .neighborhood-rebuild .nearby-track-footer {
+    bottom:auto;right:auto;min-height:45px;
+    padding:2px 5px;
+  }
+  #game > .neighborhood-rebuild .nearby-track-switch button {
+    min-height:42px;padding:6px 11px;
+  }
+}
+@media(max-height:670px) {
+  #game > .neighborhood-rebuild .nearby-track-footer {min-height:44px}
+}
