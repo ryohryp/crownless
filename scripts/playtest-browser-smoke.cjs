@@ -972,6 +972,33 @@ async function main() {
               rect.y>=-1 && rect.y+rect.height<=(width===360?800:844)+2,
               'carried-loot return choice must remain in the phone viewport');
             await page.screenshot({path:path.join(output,'tower-carried-return-'+width+'.png')});
+            // The optional cache is a one-shot tradeoff: a redundant focus
+            // action must be disabled, while the iron path stays available.
+            await step(13);
+            const focusChoice=page.locator('.field-choices [data-action="tower-cache-focus"]');
+            assert.equal(await focusChoice.isEnabled(),true,
+              'a fresh cache offers preparation when focus is low');
+            await page.evaluate(()=>{
+              const k='crownless-expedition-v1-demo',s=JSON.parse(localStorage.getItem(k));
+              s.expedition.focus=3;localStorage.setItem(k,JSON.stringify(s));
+            });
+            await page.reload();
+            assert.equal(await focusChoice.isDisabled(),true,
+              'a redundant one-shot focus choice must not consume the cache');
+            assert.match(await focusChoice.innerText(),/集中は既に十分/);
+            assert.equal(await page.locator('.field-choices [data-action="tower-cache-iron"]').isEnabled(),true,
+              'bell iron remains the available choice');
+            const focusRect=await focusChoice.boundingBox();
+            assert(focusRect&&focusRect.x>=-1&&focusRect.x+focusRect.width<=width+1&&
+              focusRect.y>=-1&&focusRect.y+focusRect.height<=(width===360?800:844)+2,
+              'disabled cache choice stays readable on the phone');
+            await page.screenshot({path:path.join(output,'tower-cache-full-focus-'+width+'.png')});
+            await page.evaluate(()=>{
+              const k='crownless-expedition-v1-demo',s=JSON.parse(localStorage.getItem(k));
+              s.expedition.focus=0;localStorage.setItem(k,JSON.stringify(s));
+            });
+            await page.reload();
+            await step(18);
           }
         }
         assert.match((await saved()).expedition.log[0],/金属が石をこする音/);
