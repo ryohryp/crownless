@@ -646,7 +646,7 @@ async function main() {
       const found=await relicPage.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
       assert.equal(found.expedition.tower.relic,true,'relic survives reload');
       assert.equal(found.expedition.materials.watchIron,1,'unbanked bell iron remains at risk');
-      assert.equal(found.materials.watchIron,0,'relic cannot bank before return');
+      assert.equal(found.materials.watchIron,towerRumorSaved.materials.watchIron,'relic cannot bank before return');
       for(const width of [390,360]){
         await relicPage.setViewportSize({width,height:width===360?800:844});
         const fork=relicPage.locator('.tower-rumor-fork');
@@ -668,7 +668,7 @@ async function main() {
       await relicPage.locator('.tower-rumor-fork [data-action="return"]').click();
       const banked=await relicPage.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
       assert.equal(banked.expedition,null);
-      assert.equal(banked.materials.watchIron,1,'safe return banks the bell iron');
+      assert.equal(banked.materials.watchIron,towerRumorSaved.materials.watchIron+1,'safe return banks only new iron');
       assert.equal(banked.designs.shield_thorn,undefined,'noncombat route never grants shield recipe');
     } finally {await relicContext.close();}
 
