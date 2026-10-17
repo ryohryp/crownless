@@ -301,3 +301,40 @@ test('tower guardian approach is marked as danger, not an ordinary walking waypo
   assert.doesNotMatch(cleared,/guardian-threat/);
   assert.deepEqual(E.parse(E.serialize(back)),back,'the cleared route survives save/resume');
 });
+
+test('tower cache preserves its one-time iron choice when focus is already sufficient',()=>{
+  const s=atCache();
+  s.expedition.focus=3;
+  const before=E.serialize(s);
+  const b=browser(s);
+  assert.match(b.html(),/data-action="tower-cache-focus"[^>]*disabled/,
+    'a redundant focus action must be visibly unavailable');
+  assert.match(b.html(),/集中は既に十分/);
+  assert.strictEqual(E.act(s,'tower-cache-focus'),s,
+    'direct actions cannot silently consume the cache at full focus');
+  assert.equal(E.serialize(s),before);
+  b.click('tower-cache-iron');
+  const carried=E.parse(b.store.get(key));
+  assert.equal(carried.expedition.tower.cache,true);
+  assert.equal(carried.expedition.materials.watchIron,1);
+  assert.equal(carried.expedition.hp,s.expedition.hp-2);
+  const resumed=browser(carried);
+  resumed.click('return');
+  assert.equal(E.parse(resumed.store.get(key)).materials.watchIron,1,
+    'the remaining iron choice survives save and banks only on safe return');
+});
+
+test('tower cache explains that focus preparation forfeits its iron',()=>{
+  const s=atCache();
+  assert.equal(s.expedition.focus,0);
+  const b=browser(s);
+  assert.match(b.html(),/鐘鉄を諦めて集中を3以上に/);
+  b.click('tower-cache-focus');
+  const saved=E.parse(b.store.get(key));
+  assert.equal(saved.expedition.focus,3);
+  assert.equal(saved.expedition.tower.cache,true);
+  assert.equal(saved.expedition.materials.watchIron,0);
+  assert.match(saved.expedition.log[0],/鐘鉄の採掘は諦め/);
+  assert.strictEqual(E.act(saved,'tower-cache-iron'),saved,
+    'the choice remains exclusive after saving and resuming');
+});

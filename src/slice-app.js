@@ -184,7 +184,9 @@
     const cacheChoices=x.tower?.pos===window.CrownlessTowerField?.CACHE&&!x.tower.cache
       ? button('tower-cache-iron','鐘鉄をこじ取る','体力 −2 / 鐘鉄 +1 · 生還で確定',
           {disabled:x.hp<=2||x.materials.watchIron>=1000000})+
-        button('tower-cache-focus','刻印を読み解く','集中を3以上に / 次の戦闘に備える')
+        button('tower-cache-focus','刻印を読み解く',
+          x.focus>=3?'集中は既に十分 · 鐘鉄を選べる':'鐘鉄を諦めて集中を3以上に / 次の戦闘に備える',
+          {disabled:x.focus>=3})
       : '';
     const echoChoice=x.tower?.pos===window.CrownlessTowerField?.ECHO&&!x.tower.open
       ? button('tower-step','鐘の反響を確かめる','壁の向こうに響く音を調べる',

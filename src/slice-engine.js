@@ -574,6 +574,8 @@
       if ((action === 'tower-cache-focus' || action === 'tower-cache-iron') &&
           x.place === 'tower' && x.depth === 1 && x.room === 0 && x.tower &&
           x.tower.pos === T.CACHE && !x.tower.cache) {
+        // Do not consume the one-shot cache for a focus boost that cannot help.
+        if (action === 'tower-cache-focus' && x.focus >= 3) return s;
         if (action === 'tower-cache-iron') {
           if (x.hp <= 2 || x.materials.watchIron >= 1000000) return s;
           x.hp -= 2;
@@ -581,7 +583,7 @@
           x.log = ['崩れた石をこじ開け、鐘鉄 +1 を拾った。体力 −2。生還するまで素材は背嚢の中だ。'];
         } else {
           x.focus = Math.max(3, x.focus);
-          x.log = ['古い兵士の訓練刻印を読み解いた。集中を3以上に整えた。鐘鉄は残したが、次の戦闘に備えられる。'];
+          x.log = ['鐘鉄の採掘は諦め、古い兵士の訓練刻印を読み解いた。集中を3以上に整えた。崩れた石段からはもう素材を取れない。'];
         }
         x.tower.cache = true;
         return n;
