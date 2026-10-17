@@ -193,7 +193,7 @@
     const foundRelicAtFork=Boolean(f?.rumor&&f.pos===22&&f.relic&&!f.guard);
     const fork=f?.rumor&&f.pos===22&&!f.guard
       ? '<div class="tower-rumor-fork" aria-label="鐘の謎の分かれ道"><p>'+
-        (foundRelicAtFork?'納骨室で鐘鉄を発見。帰れば確定、鎧を追えば背嚢ごと失うかもしれない。':'床下には鐘の音。奥には鎧の足音。どちらを追う？')+'</p>'+
+        (foundRelicAtFork?'納骨室で鐘鉄を発見。鎧の足音に、背嚢の鐘鉄がかすかに応える。帰れば確定、進めば失うかもしれない。':'床下には鐘の音。奥には鎧の足音。どちらを追う？')+'</p>'+
         (foundRelicAtFork
           ? button('return','鐘鉄を守って生還','背嚢の素材を確定する',{class:'secondary'})
           : button('tower-step','床下の鐘の音を追う','石の向こうで残響が揺れる。何がある？',{value:String(T.ECHO),class:'secondary'}))+

@@ -377,7 +377,7 @@
     if(d.biome==='tower'){
       // Enter the actual bell-and-guardian labyrinth, not an instant fight.
       n.expedition.tower.rumor=true;
-      n.expedition.log=['鐘がないのに、石床の下から音がする。残響を探すか、鎧の足音を追うか。隣の石床を進めば分かれ道に着く。戦わず帰れる道もある。'];
+      n.expedition.log=['鐘がないのに、石床の下から音がする。奥からは鎧の足音。隣の石床を進めば分かれ道に着く。'];
       return n;
     }
     encounter(n.expedition,true,n.runs);
@@ -755,6 +755,12 @@
             x.enemy.maxHp+=4;
             x.enemy.hp+=4;
             x.log.unshift('鐘の謎を追って番人に踏み込んだ。倒せば鐘鉄 +1 と盾の製法の手掛かり。生還までは未確定。');
+            // Carrying the discovered bell iron makes the dangerous second route
+            // tactically different, without a new buff field or free loot.
+            if(next.relic&&x.focus<3){
+              x.focus++;
+              x.log.unshift('納骨室の鐘鉄が番人の盾に共鳴した。初手の攻撃に集中 +1。');
+            }
           }else x.log.unshift('鎧の足音！ 鐘なき塔の番人が立ちはだかる。戦って退ければ上へ進める。');
         }else if(to===T.STAIRS){
           x.room=1;
