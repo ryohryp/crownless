@@ -405,6 +405,18 @@
   letter-spacing:.09em;margin-bottom:4px;
 }
 
+/* A live wolf sighting adds a decision paragraph to the forest scene.
+   Reserve room for both thumb actions at 360/390px without shrinking their
+   tap targets. Tower and fen keep their independently tuned layouts. */
+@media (max-width:480px) and (min-height:701px) {
+  #game > .field-layout:has(.forest-field.world-painted:not(.tower-field):not(.fen-field)) {
+    grid-template-rows:minmax(0,56dvh) minmax(0,1fr)!important;
+  }
+  #game > .field-layout .forest-field.world-painted:not(.tower-field):not(.fen-field) .field-terrain {
+    width:min(100%,calc(56dvh - 86px),390px);
+  }
+}
+
 /* The tower's two-line at-risk bag must not push safe-return actions below
    the phone viewport. Keep ordinary 44px+ touch targets, shrink only the
    tower scenery allocation, and leave the forest/fen layout unchanged. */
