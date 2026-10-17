@@ -559,11 +559,13 @@
     const opening = x.stagger ? `<div class="combat-opening" role="status"><strong>体勢を崩した！</strong><span>今の一手だけ、攻撃に追加ダメージ。${next.damage ? '敵の反撃にも注意。' : '敵は攻撃してこない。'}</span></div>` : '';
     // Only an investigated guardian reveals the earned tactic at the first attack choice.
     const earnedClue=x.place==='tower'&&x.tower?.listened&&!x.tower.guard&&e.kind==='knight'&&e.turn===0&&next.id==='guard'
-      ? ' · 耳に残る盾の音。初手は強撃が効きそうだ。' : '';
+      ? ' · 耳に残る盾の音。初手は強撃が効きそうだ。' : x.place==='fen'&&x.fen?.scouted&&!x.fen.wraith&&e.kind==='wraith'&&e.turn===0&&next.id==='quick'
+        ? ' · 水面で読んだ薙ぎ払い。防御で受け流せば崩し追撃の好機。' : '';
     // The combat log lives in a collapsed support panel on phones. Surface
     // the first earned shield read beside the next combat decision instead.
     const earnedClueOutcome=x.place==='tower'&&x.tower?.listened&&e.kind==='knight'&&e.turn===1
-      ? x.log.find(line=>/^(耳で覚えた盾の音|盾の構えを知っていたが)/.test(line)) : null;
+      ? x.log.find(line=>/^(耳で覚えた盾の音|盾の構えを知っていたが)/.test(line)) : x.place==='fen'&&x.fen?.scouted&&e.kind==='wraith'&&e.turn===1
+        ? x.log.find(line=>line.startsWith('薙ぎ払いを受け流した！')) : null;
     const strikeLabel = x.stagger ? '崩し追撃' : E.gearFamily(state.equipped) === 'bow' ? '射る' : '斬る';
     const enemyTag = `${info.archetype}${info.trait ? ` · 《${info.trait.name}》${info.trait.help}` : ''}`;
     const strongHelp = `気力 −${profile.heavyCost} / 大きな一撃${profile.heavyBonus > 4 ? ` · 補強 +${profile.heavyBonus - 4}` : ''}`;
