@@ -714,6 +714,7 @@
           x.log=['壁の裂け目に耳を寄せると、鐘の音が床下から響いた。石を押すと隠し階段が開いた！'];
           return n;
         }
+        const from=x.tower.pos;
         const next=T.move(x.tower,to);
         if(!next)return s;
         x.tower=next;
@@ -734,6 +735,9 @@
           x.log=['秘密の納骨室を発見！ 鐘鉄 +1、鉄片 +4。素材は生還して初めて確定する。'];
         }else if(to===T.CACHE&&!next.cache){
           x.log=['崩れた階段の奥から鐘鉄の響き。石をこじ開ければ傷つくが素材が手に入る。壁の訓練刻印を読めば安全に戦闘へ備えられる。'];
+        }else if(from===22&&to===23&&next.rumor&&!next.guard){
+          // The chosen danger has a consequence before combat; turning back remains possible.
+          x.log=['足音が急に近づいた。曲がり角の壁に大きな盾の影。番人はまだ見えない。ここなら引き返せる。'];
         }else if(to===19&&!next.guard){
           x.log=['石段の奥で金属が石をこする音がした。耳を澄ませば、何か分かりそうだ。'];
         }else if(to===14&&!next.guard){

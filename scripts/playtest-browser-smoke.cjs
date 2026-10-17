@@ -527,6 +527,7 @@ async function main() {
         await poiPage.locator('.tower-field [data-action="tower-step"][data-value="'+id+'"]').click();
       const fork=poiPage.locator('.tower-rumor-fork');
       assert.match(await fork.innerText(),/鐘の音|鎧の足音/);
+      assert.doesNotMatch(await fork.innerText(),/戦わず発見を持ち帰れる|盾の製法|鐘鉄 \+/, 'the choice must not spoil the reward or safe route');
       assert.equal(await fork.locator('button').count(),2,'both real adjacent branches must be selectable');
       const fit=await fork.evaluate(el=>{
         const r=el.getBoundingClientRect(),btns=[...el.querySelectorAll('button')].map(b=>b.getBoundingClientRect());
@@ -535,7 +536,24 @@ async function main() {
       assert(fit.left>=-1&&fit.right<=391&&fit.buttons.every(b=>b.left>=-1&&b.right<=391&&b.width>=120),
         'two actions fit at 390px: '+JSON.stringify(fit));
       await poiPage.screenshot({path:path.join(output,'tower-mystery-fork-390.png')});
+      await poiPage.setViewportSize({width:360,height:800});
+      const narrow=await fork.evaluate(el=>{
+        const dock=document.querySelector('.bottom-navigation').getBoundingClientRect();
+        return [...el.querySelectorAll('button')].map(b=>{
+          const r=b.getBoundingClientRect(),hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
+          return {left:r.left,right:r.right,bottom:r.bottom,dockTop:dock.top,width:r.width,
+            tappable:hit===b||b.contains(hit)};
+        });
+      });
+      assert(narrow.every(b=>b.left>=-1&&b.right<=361&&b.width>=110&&b.tappable&&b.bottom<=b.dockTop+2),
+        'both fork choices must fit and receive touch above the 360px dock: '+JSON.stringify(narrow));
+      await poiPage.screenshot({path:path.join(output,'tower-mystery-fork-360.png')});
       await fork.locator('[data-action="tower-step"][data-value="23"]').click();
+      assert.match(await poiPage.locator('.field-moment').innerText(),/盾の影.*引き返せる/,
+        'choosing the footsteps must reveal new danger without starting a fight');
+      const stillWalking=await poiPage.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+      assert.equal(stillWalking.expedition.stage,'path','the player may still retreat after choosing danger');
+      await poiPage.setViewportSize({width:390,height:844});
       for(const id of [18,19,14,9])
         await poiPage.locator('.tower-field [data-action="tower-step"][data-value="'+id+'"]').click();
       const fight=await poiPage.evaluate(() => JSON.parse(localStorage.getItem("crownless-expedition-v1-demo")));

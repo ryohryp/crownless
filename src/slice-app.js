@@ -190,8 +190,8 @@
     // First real fork: two ways forward, one adjacent cell per click.
     const fork=f?.rumor&&f.pos===22&&!f.guard
       ? '<div class="tower-rumor-fork" aria-label="鐘の謎の分かれ道"><p>床下には鐘の音。奥には鎧の足音。どちらを追う？</p>'+
-        button('tower-step','床下の鐘の音を追う','戦わず発見を持ち帰れるかもしれない',{value:String(T.ECHO),class:'secondary'})+
-        button('tower-step','鎧の足音を追う','番人へ続く危険な通路',{value:'23',class:'secondary'})+
+        button('tower-step','床下の鐘の音を追う','石の向こうで残響が揺れる。何がある？',{value:String(T.ECHO),class:'secondary'})+
+        button('tower-step','鎧の足音を追う','重い足音が近づく。まだ引き返せる',{value:'23',class:'secondary'})+
         '</div>'
       : '';
     const cacheChoices=x.tower?.pos===window.CrownlessTowerField?.CACHE&&!x.tower.cache
