@@ -192,7 +192,7 @@
     const next=n.districts[(selectedIndex+1)%n.districts.length];
     const switcher=n.districts.length>1?'<div class="nearby-track-switch">'+
       button('district','‹ 前の発見','',{class:'secondary',value:previous.id})+
-      '<span>'+ (selectedIndex+1)+' / '+n.districts.length+'</span>'+
+      '<span class="nearby-track-position" aria-label="発見した土地 '+(selectedIndex+1)+' / '+n.districts.length+'">'+(selectedIndex+1)+' / '+n.districts.length+'</span>'+
       button('district','次の発見 ›','',{class:'secondary',value:next.id})+'</div>':'';
     const map='<div class="nearby-paper-map nearby-track-map" role="group" aria-label="道がつながる近所のタイル地図">'+
       '<header class="nearby-map-top"><div class="nearby-atlas-heading"><span class="nearby-atlas-overline">CROWNLESS / WORLD ATLAS</span>'+
@@ -273,5 +273,5 @@
       card+(notice?'<p class="nearby-notice" role="status">'+esc(notice)+'</p>':'')+'</section>'+
       nav+'</div>';
   }
-  return {render,trackEdges,roadPath};
+  return {render,trackEdges,roadPath,scenicRoadPath};
 });
