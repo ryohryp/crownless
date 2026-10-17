@@ -131,13 +131,16 @@
       const investigate=(i===M.SHOAL&&f.pos===M.REEDS&&f.sound&&!f.shoal)||
         (i===M.CAUSEWAY&&f.pos===M.APPROACH&&trailReading&&!f.trail);
       const [col,row]=M.coords(i),here=i===f.pos;
+      // Mark only a visible, adjacent living threat; never reveal fog or a hidden path.
+      const wraithThreat=kind==='wraith'&&!f.wraith&&seen&&canStep;
       const classes=['field-cell',kind,seen?'revealed':'veiled',here?'here':'',
-        canStep||investigate?'can-step':'',seen&&canStep&&kind!=='shoal'&&kind!=='causeway'&&!(kind==='wraith'&&!f.wraith)?'walk-nav':''].filter(Boolean).join(' ');
+        canStep||investigate?'can-step':'',wraithThreat?'fen-wraith-threat':'',
+        seen&&canStep&&kind!=='shoal'&&kind!=='causeway'&&!(kind==='wraith'&&!f.wraith)?'walk-nav':''].filter(Boolean).join(' ');
       const label=here?'旅人の現在地':investigate&&i===M.CAUSEWAY?'足跡が消えた水面':seen?names[kind]:'未踏の湿原';
       const style='grid-column:'+(col+1)+';grid-row:'+(row+1);
       if(canStep||investigate)return '<button type="button" class="'+classes+'" style="'+style+
         '" data-action="fen-step" data-value="'+i+'" aria-label="'+label+
-        (investigate?'を調べる':i===M.SHOAL?'へ進む（体力−3）':'へ進む')+'"></button>';
+        (investigate?'を調べる':i===M.SHOAL?'へ進む（体力−3）':'へ進む')+(wraithThreat?' · 戦闘の危険':'')+'"></button>';
       return '<span class="'+classes+'" style="'+style+'" aria-label="'+label+'"></span>';
     }).join('');
     return '<section class="forest-field fen-field" data-field-pos="'+f.pos+'" data-field-seen="'+f.seen+

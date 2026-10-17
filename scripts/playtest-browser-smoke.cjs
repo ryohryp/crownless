@@ -1195,6 +1195,18 @@ async function main() {
         assert.equal(await wraithGate.count(),1,'wraith remains an adjacent tappable risk');
         assert.equal(await wraithGate.evaluate(el=>el.classList.contains('walk-nav')),false,
           'an undefeated wraith must not be marked as a safe walking waypoint');
+        assert.equal(await wraithGate.evaluate(el=>el.classList.contains('fen-wraith-threat')),true,
+          'an adjacent living wraith gets a danger marker, not a safe waypoint');
+        const threatVisual=await wraithGate.evaluate(el=>({
+          content:getComputedStyle(el,'::after').content,
+          pointerEvents:getComputedStyle(el,'::after').pointerEvents,
+          width:el.getBoundingClientRect().width,
+          label:el.getAttribute('aria-label')
+        }));
+        assert(threatVisual.content.includes('!'),'risk marker must actually render');
+        assert.equal(threatVisual.pointerEvents,'none','marker must not block tapping');
+        assert(threatVisual.width>=25,'danger tile retains a usable tap area');
+        assert.match(threatVisual.label,/戦闘の危険/);
         await page.screenshot({path:path.join(output,'fen-wraith-risk-no-waypoint-'+width+'.png')});
         await wraithGate.click();
         s=await saved();
@@ -1213,6 +1225,8 @@ async function main() {
         await step(13);
         assert.equal(await page.locator('.fen-field .field-cell.wraith.walk-nav').count(),1,
           'defeated wraith tile is an ordinary traversable neighbor');
+        assert.equal(await page.locator('.fen-field .fen-wraith-threat').count(),0,
+          'danger mark disappears once the wraith is defeated');
         for(const id of [18,23,24])await step(id);
         s=await saved();
         assert.equal(s.expedition,null);

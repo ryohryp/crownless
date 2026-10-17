@@ -239,7 +239,8 @@
 }
 /* An undefeated guardian is a deliberate combat risk, not a safe waypoint.
    The danger mark stays inside the full-size tap area on small phones. */
-#game > .field-layout .tower-field.world-painted button.field-cell.guardian-threat::after {
+#game > .field-layout .tower-field.world-painted button.field-cell.guardian-threat::after,
+#game > .field-layout .fen-field.world-painted button.field-cell.fen-wraith-threat::after {
   content:'!';
   position:absolute;left:50%;top:73%;
   transform:translate(-50%,-50%);
@@ -249,6 +250,13 @@
   font:700 16px/1 system-ui,sans-serif;
   box-shadow:0 0 12px #c86b5488;
   pointer-events:none;z-index:1;
+}
+/* Cold blue: the wraith's risk is visible only when it becomes a real choice. */
+#game > .field-layout .fen-field.world-painted button.field-cell.fen-wraith-threat::after {
+  border-color:#a7cfe0;
+  background:#263d50e8;
+  color:#e5f8ff;
+  box-shadow:0 0 12px #75c5d788;
 }
 /* Listening earns a visible memory of the shield clue, without making the
    guardian look safe or turning its tile into a walking waypoint. */
