@@ -96,7 +96,7 @@ test('phone recipe card and forest clue use only real saved craft/expedition sta
   assert.match(app,/data-action="craft-tool"|button\('craft-tool'/);
   assert.match(app,/state = E\.craftScoutLantern\(state\)/);
   assert.match(app,/action === 'lantern-examine'/);
-  assert.match(app,/state = E\.act\(state,'lantern-examine'\)/);
+  assert.match(app,/state\s*=\s*E\.act\(state,'lantern-examine'\)/);
   assert.match(app,/argon-tool-materials/);
   assert.match(css,/\.argon-tool-spec/);
   assert.match(css,/min-height:48px/);
