@@ -80,9 +80,32 @@ test('safe return unlocks smith-only gray-feather bow and its existing opening a
   assert.equal(E.craftItem(smith,'bow_hunter'),smith,'cannot repeatedly manufacture a unique owned gear ID');
 });
 
+test('wraith scouting earns a first-turn warning without entering combat or losing return choice',()=>{
+  const before=walk(E.start(fresh(),'fen'),21,22,M.REEDS,M.HERBS,13);
+  assert.equal(M.canMove(before.expedition.fen,M.WRAITH),true);
+  const scouted=E.act(before,'fen-step:'+M.WRAITH);
+  assert.equal(scouted.expedition.stage,'path','first tap only listens from safe ground');
+  assert.equal(scouted.expedition.fen.pos,13,'scouting must not teleport');
+  assert.equal(scouted.expedition.fen.scouted,true);
+  assert.equal(scouted.expedition.enemy,null);
+  assert.match(scouted.expedition.log[0],/薙ぎ払い.*防御.*生還/);
+  const resumed=E.parse(E.serialize(scouted));
+  assert.deepEqual(resumed,scouted,'the earned warning survives save and reload');
+  const returned=E.act(resumed,'return');
+  assert.equal(returned.report.died,false,'retreat with materials remains available');
+  const fight=E.act(resumed,'fen-step:'+M.WRAITH);
+  assert.equal(fight.expedition.stage,'fight','second tap is the intentional risk');
+  assert.equal(fight.expedition.enemy.kind,'wraith');
+  assert.equal(fight.expedition.fen.pos,M.WRAITH);
+  assert.equal(E.act(before,'fen-step:'+M.WRAITH).expedition.stage,'path');
+  assert.equal(E.act(before,'fen-step:'+M.STAR),before,'non-adjacent movement stays blocked');
+});
+
 test('dying before return loses the blueprint; returning over the old path cannot fake it',()=>{
   const atStar=reachStar();
   let fight=walk(atStar,M.CAUSEWAY,M.APPROACH,16,M.REEDS,M.HERBS,13,M.WRAITH);
+  assert.equal(fight.expedition.stage,'path','first contact scouts without fighting');
+  fight=E.act(fight,'fen-step:'+M.WRAITH);
   assert.equal(fight.expedition.stage,'fight');
   fight.expedition.hp=1;
   const dead=E.act(fight,'strike');

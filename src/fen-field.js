@@ -26,14 +26,15 @@
  const seenBit=(seen,id)=>Math.floor(seen/2**id)%2;
  const visible=(f,id)=>Boolean(f&&inBounds(id)&&(id!==CAUSEWAY||f.trail===true)&&seenBit(f.seen,id));
  const reveal=(seen,id)=>[id,...neighbors(id)].reduce((v,n)=>seenBit(v,n)?v:v+2**n,seen);
- const initial=()=>({pos:START,seen:reveal(0,START),sound:false,shoal:false,star:false,herbs:false,wraith:false,trail:false});
+ const initial=()=>({pos:START,seen:reveal(0,START),sound:false,shoal:false,star:false,herbs:false,wraith:false,scouted:false,trail:false});
  const valid=f=>!!f&&typeof f==='object'&&!Array.isArray(f)&&
-   Object.keys(f).every(k=>['pos','seen','sound','shoal','star','herbs','wraith','trail'].includes(k))&&
+   Object.keys(f).every(k=>['pos','seen','sound','shoal','star','herbs','wraith','scouted','trail'].includes(k))&&
    inBounds(f.pos)&&(!WALLS.includes(f.pos)||f.pos===CAUSEWAY)&&
    (f.pos!==CAUSEWAY||f.trail===true)&&
    Number.isSafeInteger(f.seen)&&f.seen>0&&f.seen<2**COUNT&&visible(f,f.pos)&&
    ['sound','shoal','star','herbs','wraith'].every(k=>typeof f[k]==='boolean')&&
    (f.trail===undefined||typeof f.trail==='boolean')&&
+   (f.scouted===undefined||typeof f.scouted==='boolean')&&
    (!(f.pos===SHOAL||f.pos===STAR)||f.shoal||f.trail===true)&&
    (!f.star||f.shoal||f.trail===true);
  const canMove=(f,to)=>valid(f)&&inBounds(to)&&

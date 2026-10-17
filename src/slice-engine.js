@@ -634,6 +634,13 @@
           return n;
         }
         const from=x.fen.pos;
+        // First contact is an earned, safe observation. A second deliberate
+        // tap starts combat; neither tap can bypass adjacency or hidden fog.
+        if(to===M.WRAITH&&!x.fen.wraith&&!x.fen.scouted&&M.canMove(x.fen,to)){
+          x.fen={...x.fen,scouted:true};
+          x.log=['水面の波紋が先に走った。亡霊の初手は速い薙ぎ払い。防御で受け流せば反撃の好機になる。今なら素材を持って生還できる。もう一度青白い影を選べば戦闘。'];
+          return n;
+        }
         const next=M.move(x.fen,to);
         if(!next)return s;
         if(to===M.SHOAL && x.hp<=3){

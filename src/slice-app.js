@@ -136,23 +136,23 @@
       const classes=['field-cell',kind,seen?'revealed':'veiled',here?'here':'',
         canStep||investigate?'can-step':'',wraithThreat?'fen-wraith-threat':'',
         seen&&canStep&&kind!=='shoal'&&kind!=='causeway'&&!(kind==='wraith'&&!f.wraith)?'walk-nav':''].filter(Boolean).join(' ');
-      const label=here?'旅人の現在地':investigate&&i===M.CAUSEWAY?'足跡が消えた水面':seen?names[kind]:'未踏の湿原';
+      const label=here?'旅人の現在地':investigate&&i===M.CAUSEWAY?'足跡が消えた水面':wraithThreat&&f.scouted?'薙ぎ払いの気配を読んだ亡霊（再選択で戦闘）':seen?names[kind]:'未踏の湿原';
       const style='grid-column:'+(col+1)+';grid-row:'+(row+1);
       if(canStep||investigate)return '<button type="button" class="'+classes+'" style="'+style+
         '" data-action="fen-step" data-value="'+i+'" aria-label="'+label+
-        (investigate?'を調べる':i===M.SHOAL?'へ進む（体力−3）':'へ進む')+(wraithThreat?' · 戦闘の危険':'')+'"></button>';
+        (investigate?'を調べる':wraithThreat&&!f.scouted?'の気配を探る':i===M.SHOAL?'へ進む（体力−3）':'へ進む')+(wraithThreat?' · 戦闘の危険':'')+'"></button>';
       return '<span class="'+classes+'" style="'+style+'" aria-label="'+label+'"></span>';
     }).join('');
     return '<section class="forest-field fen-field" data-field-pos="'+f.pos+'" data-field-seen="'+f.seen+
       '" data-fen-sound="'+f.sound+'" data-fen-shoal="'+f.shoal+'" data-fen-star="'+f.star+
-      '" data-fen-wraith="'+f.wraith+'" data-fen-herbs="'+f.herbs+'" data-fen-trail="'+Boolean(f.trail)+'" data-fen-reader="'+trailReading+'" aria-label="歩いて探索する星沈みの湿原">'+
+      '" data-fen-wraith="'+f.wraith+'" data-fen-scouted="'+Boolean(f.scouted)+'" data-fen-herbs="'+f.herbs+'" data-fen-trail="'+Boolean(f.trail)+'" data-fen-reader="'+trailReading+'" aria-label="歩いて探索する星沈みの湿原">'+
       '<div class="forest-field-header"><span class="kicker">FALLEN STARS · 沈む湿地</span><h2>'+esc(title)+
       '</h2><small>水の音を聞き、踏める足場を選んで進もう。</small></div>'+
       '<div class="field-terrain" role="group" aria-label="足場と深い水のある湿原を歩く">'+
       '<div class="field-worldspace"><canvas class="forest-world-canvas" width="600" height="600" aria-hidden="true"></canvas>'+cells+'</div></div>'+
       '<div class="forest-field-footer"><span>✧ 星沈みの湿原</span><strong>'+
       (f.star?'✦ 星の祭壇を発見':f.trail?'古い踏み石を発見':f.shoal?'浅瀬の向こうへ':f.sound?'水底に不思議な音':'霧の中を進む')+
-      '</strong><span>'+(f.wraith?'亡霊は去った':'水面には気配がある')+'</span></div></section>';
+      '</strong><span>'+(f.wraith?'亡霊は去った':f.scouted?'薙ぎ払いを見切った · 戦うか帰るか':'水面には気配がある')+'</span></div></section>';
   }
   // Only offer an explicit skill action when it can change this expedition.
   // Showing it everywhere would turn discovery into repetitive "scan" taps.

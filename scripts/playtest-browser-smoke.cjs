@@ -1210,6 +1210,16 @@ async function main() {
         await page.screenshot({path:path.join(output,'fen-wraith-risk-no-waypoint-'+width+'.png')});
         await wraithGate.click();
         s=await saved();
+        assert.equal(s.expedition.stage,'path','first tap scouts the wraith from safety');
+        assert.equal(s.expedition.fen.pos,13,'scouting does not move');
+        assert.equal(s.expedition.fen.scouted,true);
+        assert.equal(await page.locator('.fen-field[data-fen-scouted="true"]').count(),1);
+        assert.match(await page.locator('.fen-field .forest-field-footer').innerText(),/戦うか帰るか/);
+        await page.screenshot({path:path.join(output,'fen-wraith-scouted-choice-'+width+'.png')});
+        await page.reload();
+        assert.equal((await saved()).expedition.fen.scouted,true,'save/reload preserves scouting');
+        await wraithGate.click();
+        s=await saved();
         assert.equal(s.expedition.stage,'fight');
         assert.equal(s.expedition.enemy.kind,'wraith');
         await page.evaluate(()=>{
