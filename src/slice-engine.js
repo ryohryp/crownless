@@ -374,6 +374,12 @@
     if (!d || !REGIONAL_MATERIAL[d.biome] || N.pointOfInterest(d)?.family!=='event') return s;
     const n=start(s,d.biome);
     if (n===s) return s;
+    if(d.biome==='tower'){
+      // Enter the actual bell-and-guardian labyrinth, not an instant fight.
+      n.expedition.tower.rumor=true;
+      n.expedition.log=['鐘がないのに、石床の下から音がする。奥からは鎧の足音。隣の石床を進めば分かれ道に着く。'];
+      return n;
+    }
     encounter(n.expedition,true,n.runs);
     n.expedition.enemy.clue=true;
     n.expedition.enemy.maxHp+=4;
@@ -708,6 +714,7 @@
           x.log=['壁の裂け目に耳を寄せると、鐘の音が床下から響いた。石を押すと隠し階段が開いた！'];
           return n;
         }
+        const from=x.tower.pos;
         const next=T.move(x.tower,to);
         if(!next)return s;
         x.tower=next;
@@ -728,6 +735,9 @@
           x.log=['秘密の納骨室を発見！ 鐘鉄 +1、鉄片 +4。素材は生還して初めて確定する。'];
         }else if(to===T.CACHE&&!next.cache){
           x.log=['崩れた階段の奥から鐘鉄の響き。石をこじ開ければ傷つくが素材が手に入る。壁の訓練刻印を読めば安全に戦闘へ備えられる。'];
+        }else if(from===22&&to===23&&next.rumor&&!next.guard){
+          // The chosen danger has a consequence before combat; turning back remains possible.
+          x.log=['足音が急に近づいた。曲がり角の壁に大きな盾の影。番人はまだ見えない。ここなら引き返せる。'];
         }else if(to===19&&!next.guard){
           x.log=['石段の奥で金属が石をこする音がした。耳を澄ませば、何か分かりそうだ。'];
         }else if(to===14&&!next.guard){
@@ -740,7 +750,18 @@
           x.log=[`上階の石段から、鎧が石床を打つ足音。${clue}${carried}生還するか、番人のいる先へ進むか。`];
         }else if(to===T.GUARD&&!next.guard){
           encounter(x,true,n.runs);
-          x.log.unshift('鎧の足音！ 鐘なき塔の番人が立ちはだかる。戦って退ければ上へ進める。');
+          if(next.rumor){
+            x.enemy.clue=true;
+            x.enemy.maxHp+=4;
+            x.enemy.hp+=4;
+            x.log.unshift('鐘の謎を追って番人に踏み込んだ。倒せば鐘鉄 +1 と盾の製法の手掛かり。生還までは未確定。');
+            // Carrying the discovered bell iron makes the dangerous second route
+            // tactically different, without a new buff field or free loot.
+            if(next.relic&&x.focus<3){
+              x.focus++;
+              x.log.unshift('納骨室の鐘鉄が番人の盾に共鳴した。初手の攻撃に集中 +1。');
+            }
+          }else x.log.unshift('鎧の足音！ 鐘なき塔の番人が立ちはだかる。戦って退ければ上へ進める。');
         }else if(to===T.STAIRS){
           x.room=1;
           x.log=['鐘の残響を背に上階へ進む。さらに奥には別の選択と敵が待つ。'];
@@ -857,6 +878,7 @@
         x.room++; if (x.hp <= 0) return finish(n, true); return n;
       }
       if (!['careful', 'risky'].includes(action)) return s;
+      if(x.place==='tower'&&x.room===0&&x.depth===1&&x.tower?.rumor)return s;
       encounter(x, action === 'risky', n.runs); return n;
     } else if (x.stage === 'fight') {
       if (!['strike', 'heavy', 'guard', 'dodge', 'flee'].includes(action)) return s;
@@ -1151,6 +1173,9 @@
       if (s.expedition) {
         const x = s.expedition;
         const allowedFocus = gearFamily(s.equipped) === 'fang' ? [0,3,4,5,6,7,8,9] : [0,3];
+        // The hidden bell relic grants exactly +1 focus on the tower rumor route.
+        // Accept that earned value on reload, without relaxing unrelated saves.
+        if (x.place === 'tower' && x.tower?.rumor && x.tower?.relic) allowedFocus.push(1);
         if (Object.keys(x).some(k => !['place','depth','room','field','tower','fen','hp','stamina','focus','stagger','sharpened','sharpenedApplied','landmarkId' ,'potions','scrap','materials','gear','gearQuality','seals','grudge','enemy','stage','log','foundDesign'].includes(k)) || !(x.foundDesign === undefined || x.foundDesign === 'shield_thorn' || (x.foundDesign === 'fang_moon' && x.place === 'wood') || (x.foundDesign === 'bow_hunter' && x.place === 'fen')) || !(x.landmarkId === undefined || (typeof x.landmarkId==='string' && /^[a-z][a-z0-9-]{1,63}$/.test(x.landmarkId))) || !(x.field === undefined || (x.place==='wood' && F.valid(x.field))) || !(x.tower===undefined || (x.place==='tower'&&T.valid(x.tower))) || !(x.fen===undefined || (x.place==='fen'&&M.valid(x.fen))) || !s.unlocked.includes(x.place) || !int(x.depth,1,3) || !int(x.room,0,4) || !int(x.hp,1,maxHp(s)) || !int(x.stamina,0,3) || !allowedFocus.includes(x.focus) || typeof x.stagger !== 'boolean' || !int(x.sharpened,0,3) || typeof x.sharpenedApplied !== 'boolean' || !validExpeditionGrudge(x.grudge) || !int(x.potions,0,3) || !int(x.scrap,0,1000) || !validMaterials(x.materials) || !validLoot(x.gear,x.gearQuality) || !Array.isArray(x.seals) || x.seals.length > 3 || !x.seals.every(v => ids.includes(v)) || !['path','fight','cleared'].includes(x.stage) || !Array.isArray(x.log) || x.log.length > 10 || !x.log.every(v => typeof v === 'string' && v.length < 250)) throw Error('run');
         if (x.stage === 'fight') {
           const e = x.enemy;
