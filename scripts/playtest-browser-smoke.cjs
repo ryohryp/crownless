@@ -562,6 +562,8 @@ async function main() {
       const fight=await poiPage.evaluate(() => JSON.parse(localStorage.getItem("crownless-expedition-v1-demo")));
       assert.equal(fight.expedition.enemy.clue,true);
       assert.equal(fight.expedition.stage,"fight");
+      assert.equal(await poiPage.locator('.combat-clue-outcome').count(),0,
+        'the direct guardian route must not display an unearned relic resonance');
       await poiPage.reload();
       assert.match(await poiPage.locator("#game").innerText(), /鐘守の亡兵/);
       await poiPage.evaluate(()=>{
@@ -665,6 +667,32 @@ async function main() {
           width+'px relic choices must fit and receive touch: '+JSON.stringify(boxes));
         await relicPage.screenshot({path:path.join(output,'tower-relic-return-fork-'+width+'.png')});
       }
+      // Branch from the same unbanked discovery to verify its earned combat payoff.
+      // Keep the original page at the fork to test safe banking independently.
+      const riskContext=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+      try {
+        const riskPage=await riskContext.newPage();
+        await riskPage.addInitScript(saved=>{
+          localStorage.setItem('crownless-expedition-mode','demo');
+          localStorage.setItem('crownless-expedition-v1-demo',JSON.stringify(saved));
+        },found);
+        await riskPage.goto(url);
+        for(const id of [23,18,19,14,9])
+          await riskPage.locator('.tower-field [data-action="tower-step"][data-value="'+id+'"]').click();
+        const risky=await riskPage.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+        assert.equal(risky.expedition.stage,'fight');
+        assert.equal(risky.expedition.focus,1,'discovered relic earns opening focus');
+        for(const width of [390,360]) {
+          const height=width===360?800:844;
+          await riskPage.setViewportSize({width,height});
+          const feedback=riskPage.locator('.combat-clue-outcome');
+          assert.match(await feedback.innerText(),/鐘鉄の共鳴.*次の攻撃 \+1/);
+          const box=await feedback.boundingBox();
+          assert(box&&box.y>=0&&box.y+box.height<=height+2,
+            width+'px earned resonance must be visible at the opening choice');
+          await riskPage.screenshot({path:path.join(output,'tower-relic-combat-'+width+'.png')});
+        }
+      } finally {await riskContext.close();}
       await relicPage.locator('.tower-rumor-fork [data-action="return"]').click();
       const banked=await relicPage.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
       assert.equal(banked.expedition,null);

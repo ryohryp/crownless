@@ -576,8 +576,12 @@
       ? ' · 耳に残る盾の音。初手は強撃が効きそうだ。' : '';
     // The combat log lives in a collapsed support panel on phones. Surface
     // the first earned shield read beside the next combat decision instead.
+    // The relic's earned +1 also belongs beside the opening choice, not in the log.
     const earnedClueOutcome=x.place==='tower'&&x.tower?.listened&&e.kind==='knight'&&e.turn===1
-      ? x.log.find(line=>/^(耳で覚えた盾の音|盾の構えを知っていたが)/.test(line)) : null;
+      ? x.log.find(line=>/^(耳で覚えた盾の音|盾の構えを知っていたが)/.test(line))
+      : x.place==='tower'&&x.tower?.rumor&&x.tower?.relic&&e.kind==='knight'&&e.turn===0&&x.focus>0&&
+        x.log.some(line=>line.startsWith('納骨室の鐘鉄が番人の盾に共鳴した'))
+        ? '✦ 鐘鉄の共鳴：次の攻撃 +1。納骨室での発見が力になる。' : null;
     const strikeLabel = x.stagger ? '崩し追撃' : E.gearFamily(state.equipped) === 'bow' ? '射る' : '斬る';
     const enemyTag = `${info.archetype}${info.trait ? ` · 《${info.trait.name}》${info.trait.help}` : ''}`;
     const strongHelp = `気力 −${profile.heavyCost} / 大きな一撃${profile.heavyBonus > 4 ? ` · 補強 +${profile.heavyBonus - 4}` : ''}`;
