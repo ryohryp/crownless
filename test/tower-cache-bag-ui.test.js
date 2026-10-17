@@ -255,7 +255,7 @@ test('guardian threshold names at-risk loot on return after save/resume without 
 
 test('tower return hint lists only carried materials across save, movement and guardian choice',()=>{
   const onlyIron=E.act(atCache(),'tower-cache-iron');
-  const returnButton=s=>browser(s).html().match(/<button\\b[^>]*data-action="return"[^>]*>[\\s\\S]*?<\\/button>/)?.[0]||'';
+  const returnButton=s=>browser(s).html().split('data-action="return"')[1]?.split('</button>')[0]||'';
   assert.match(returnButton(onlyIron),/背嚢の鐘鉄を確定する/);
   assert.doesNotMatch(returnButton(onlyIron),/鐘鉄と鉄片を確定する/,
     'zero scrap must not be advertised as carried loot');
