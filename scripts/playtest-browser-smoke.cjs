@@ -1013,6 +1013,23 @@ async function main() {
         assert(retreatRect.left>=-1 && retreatRect.right<=width+1 &&
           retreatRect.top>=-1 && retreatRect.bottom<=(width===360?800:844)+2,
           'guardian retreat must remain tappable in the phone viewport: '+JSON.stringify(retreatRect));
+        const guardianTile=page.locator('.tower-field [data-action="tower-step"][data-value="9"]');
+        assert.equal(await guardianTile.count(),1,'guardian remains a real adjacent tap target');
+        assert.equal(await guardianTile.evaluate(el=>el.classList.contains('guardian-threat')),true,
+          'uncleared guardian is marked as a dangerous choice');
+        assert.equal(await guardianTile.evaluate(el=>el.classList.contains('walk-nav')),false,
+          'the guardian must not use an ordinary safe-path waypoint');
+        const dangerMark=await guardianTile.evaluate(el=>{
+          const marker=getComputedStyle(el,'::after');
+          const r=el.getBoundingClientRect();
+          return {content:marker.content,width:parseFloat(marker.width),height:parseFloat(marker.height),
+            left:r.left,right:r.right,top:r.top,bottom:r.bottom};
+        });
+        assert(dangerMark.content.includes('!')&&dangerMark.width>=24&&dangerMark.height>=24,
+          'the danger mark must actually render at phone size: '+JSON.stringify(dangerMark));
+        assert(dangerMark.left>=-1&&dangerMark.right<=width+1&&dangerMark.top>=-1&&
+          dangerMark.bottom<=(width===360?800:844)+2,
+          'the guardian tap area must remain in the viewport: '+JSON.stringify(dangerMark));
         await page.screenshot({path:path.join(output,'tower-guardian-choice-'+width+'.png')});
         await step(9);
         s=await saved();
