@@ -188,9 +188,15 @@
   function towerDecision(x){
     const T=window.CrownlessTowerField,f=x.tower;
     // First real fork: two ways forward, one adjacent cell per click.
+    // Finding the reliquary changes the next choice: bank the discovery or risk it.
+    // Before discovery, do not spoil the safe route or its reward.
+    const foundRelicAtFork=Boolean(f?.rumor&&f.pos===22&&f.relic&&!f.guard);
     const fork=f?.rumor&&f.pos===22&&!f.guard
-      ? '<div class="tower-rumor-fork" aria-label="鐘の謎の分かれ道"><p>床下には鐘の音。奥には鎧の足音。どちらを追う？</p>'+
-        button('tower-step','床下の鐘の音を追う','石の向こうで残響が揺れる。何がある？',{value:String(T.ECHO),class:'secondary'})+
+      ? '<div class="tower-rumor-fork" aria-label="鐘の謎の分かれ道"><p>'+
+        (foundRelicAtFork?'鐘の音の先に納骨室があった。鐘鉄を背嚢に入れた。持ち帰るか、鎧の足音を追うか。':'床下には鐘の音。奥には鎧の足音。どちらを追う？')+'</p>'+
+        (foundRelicAtFork
+          ? button('return','鐘鉄を守って生還','背嚢の素材を確定する',{class:'secondary'})
+          : button('tower-step','床下の鐘の音を追う','石の向こうで残響が揺れる。何がある？',{value:String(T.ECHO),class:'secondary'}))+
         button('tower-step','鎧の足音を追う','重い足音が近づく。まだ引き返せる',{value:'23',class:'secondary'})+
         '</div>'
       : '';
@@ -227,7 +233,7 @@
     return `<div class="field-decision"><div class="field-status">${vitals(x)}
       <div class="path-risk" data-tower-bag="true"><span>背嚢の戦利品</span><strong>鐘鉄 ${x.materials?.watchIron || 0} · 鉄片 ${x.scrap}</strong><small>生還で確定 · 倒れれば失う</small></div></div>
       <p class="field-moment" role="status">${esc(x.log[0]||'静かな石の塔。音のする方へ進める。')}${(relicChoice||thresholdChoice)?`<br>${esc(relicChoice||thresholdChoice)}`:''}</p>
-      <div class="field-choices">${fork}${cacheChoices}${echoChoice}${listenChoice}${button('return',safeReturnLabel,safeReturnHint,{class:'secondary'})}
+      <div class="field-choices">${fork}${cacheChoices}${echoChoice}${listenChoice}${foundRelicAtFork?'':button('return',safeReturnLabel,safeReturnHint,{class:'secondary'})}
       ${button('heal',`薬草 ${x.potions} · 体力 +12`,'',{class:'text-button',disabled:x.potions===0||x.hp===E.maxHp(state)})}</div></div>`;
   }
   function fieldDecision(x){
