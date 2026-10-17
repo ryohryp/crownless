@@ -237,6 +237,19 @@
   pointer-events:none;
   z-index:1;
 }
+/* An undefeated guardian is a deliberate combat risk, not a safe waypoint.
+   The danger mark stays inside the full-size tap area on small phones. */
+#game > .field-layout .tower-field.world-painted button.field-cell.guardian-threat::after {
+  content:'!';
+  position:absolute;left:50%;top:73%;
+  transform:translate(-50%,-50%);
+  width:26px;height:26px;display:grid;place-items:center;
+  border:2px solid #f0bd83;border-radius:50%;
+  background:#542d2be8;color:#ffe2b0;
+  font:700 16px/1 system-ui,sans-serif;
+  box-shadow:0 0 12px #c86b5488;
+  pointer-events:none;z-index:1;
+}
 #game > .field-layout .forest-field.world-painted button.field-cell.can-step:active {
   background:radial-gradient(ellipse at center,#f9e9af93,#fbdf8c38 55%,transparent 75%)!important;
 }

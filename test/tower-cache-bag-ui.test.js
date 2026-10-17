@@ -277,3 +277,27 @@ test('tower return hint lists only carried materials across save, movement and g
   assert.match(returnButton(threshold),/番人とは戦わず素材を確定する/,
     'the last safe choice still warns about the optional guardian');
 });
+
+test('tower guardian approach is marked as danger, not an ordinary walking waypoint',()=>{
+  let s=E.start(E.discover({...E.initial(),mode:'demo'},'tower'),'tower');
+  for(const to of [21,22,23,18,19,14])s=E.act(s,'tower-step:'+to);
+  const tile=html=>html.match(/<button[^>]*data-action="tower-step" data-value="9"[^>]*>/)?.[0];
+  const before=tile(browser(s).html());
+  assert.ok(before,'guardian is still a reachable adjacent choice');
+  assert.match(before,/guardian-threat/);
+  assert.doesNotMatch(before,/walk-nav/,'combat must not look like a safe waypoint');
+  assert.match(before,/踏み込むと戦闘/,'the consequence is accessible to screen readers');
+  const inCombat=E.act(s,'tower-step:9');
+  assert.equal(inCombat.expedition.stage,'fight');
+  const almostWon=structuredClone(inCombat);
+  almostWon.expedition.enemy.hp=1;
+  const won=E.act(almostWon,'heavy');
+  assert.equal(won.expedition.stage,'path','combat returns to exploration');
+  assert.equal(won.expedition.tower.guard,true);
+  const back=E.act(won,'tower-step:14');
+  const cleared=tile(browser(back).html());
+  assert.ok(cleared);
+  assert.match(cleared,/walk-nav/,'cleared guardian tile becomes an ordinary route');
+  assert.doesNotMatch(cleared,/guardian-threat/);
+  assert.deepEqual(E.parse(E.serialize(back)),back,'the cleared route survives save/resume');
+});
