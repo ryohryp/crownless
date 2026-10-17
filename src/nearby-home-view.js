@@ -50,10 +50,23 @@
     }[biome]||'';
     return '<svg viewBox="0 0 64 52" focusable="false" aria-hidden="true"><g fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">'+art+'</g></svg>';
   }
+  // Curved segments meet at the exact same mid-edge point, so neighboring
+  // fictional roads still connect even though their interior bends vary.
+  function scenicRoadPath(directions,x,y){
+    const turns={
+      N:(v)=>'M50 50 C'+(50+v)+' 34 50 18 50 0',
+      S:(v)=>'M50 50 C'+(50-v)+' 66 50 82 50 100',
+      E:(v)=>'M50 50 C66 '+(50+v)+' 82 50 100 50',
+      W:(v)=>'M50 50 C34 '+(50-v)+' 18 50 0 50'
+    };
+    const dirs=['N','E','S','W'].filter(dir=>directions?.has(dir));
+    const drift=7+Math.abs(x*17+y*11)%7;
+    return dirs.map(dir=>turns[dir](((x*31+y*19+dir.charCodeAt(0))%2===0)?drift:-drift)).join(' ');
+  }
   // One continuous illustrated surface behind the existing 5x5 discovery
   // hit targets. Only saved, earned fictional biomes receive landmarks.
   // The parchment, hills and stream reveal NO undiscovered place identity.
-  function worldCanvas(selected, found, track) {
+  function worldCanvas(selected, found, track, getPoi, restoredId) {
     const wood = '<path class="world-tree-mass" d="M-48 40q13-33 28-29t28 8q11-32 25-20t20 37v21h-101z"/>'+
       '<path class="world-tree" d="M-35 42l13-38 13 38m-20-13 7-15 7 15m-7 13v17M5 38l12-43 14 43m-21-13 7-17 8 17m-8 15v16M27 47l11-27 11 27m-17-9 6-9 5 9m-5 11v11"/>';
     const tower = '<path class="world-stone" d="M-33 51v-13h11V-6h43v57h12v7h-66zM-27-6h53v-9h-53z"/>'+
@@ -64,15 +77,47 @@
     const crypt = '<path class="world-hill" d="M-58 50q10-53 55-56t62 56z"/>'+
       '<path class="world-stone" d="M-34 56V6l31-27L31 6v50zM-39 7l36-36L37 7"/>'+
       '<path class="world-detail" d="M-13 56V24q11-22 23 0v32m-53 0h86M-27 14h8m33 0h8"/>';
-    const siteArt={wood,tower,fen,crypt};
+    // Distinct place silhouettes are earned from the same saved district:
+    // coordinate, POI family, ownership, NPC trace, and restored bell state.
+    // Variant is deterministic and adds no fictional event to the save.
+    const towerShapes=[
+      '<path class="world-stone" d="M-37 54V18h11V-4h24v58h9V11h25v43h8v7h-77zM-31-4h36v-7h-36z"/>'+
+        '<path class="world-detail" d="M-22 9h10v12h-10m27-1h11v10H5M-18 55V38q8-12 16 0v17M16 55V34q7-11 14 0v21"/>',
+      '<path class="world-stone" d="M-28 55V12h9V-13h38v68h12v7h-59zM-25-13h9v-7h8v7h9v-7h8v7h12"/>'+
+        '<path class="world-detail" d="M-12-1h8v13h-8m18-13h8v13H6M-7 55V35q8-15 16 0v20M-28 26h46m-44 12h44"/>',
+      '<path class="world-stone" d="M-37 55V32h12V4h36v50h20V27h7v35h-75zM-28 4h11v-8h10v8h10v-8h12"/>'+
+        '<path class="world-detail" d="M-16 16h9v12h-9m18-12h8v12H2M-22 55V40q8-11 16 0v15M12 53h16M-36 26h12"/>'
+    ];
+    const props={wood,tower,fen,crypt};
+    function siteDrawing(place,col,row){
+      const variant=Math.abs(place.x*13+place.y*7)%3;
+      const poi=getPoi(place);
+      const family=poi?.family==='shop'?'shop':'event';
+      const restored=place.id===restoredId;
+      const base=place.biome==='tower'?towerShapes[variant]:(props[place.biome]||'');
+      const accent=family==='shop'
+        ? '<path class="world-trader" d="M-44 52l10-14h18l10 14zm10-14v-6h18v6M-39 52v11m28-11v11"/>'
+        : '<path class="world-mystery" d="M35 48l8-23 8 23zM39 43h8M43 25v-7"/>';
+      const earned=restored
+        ? '<path class="world-bell" d="M-11-26q0-10 11-10t11 10l5 13h-32zM-9-11h18M-3-9q3 6 6 0"/>'+
+          '<path class="world-light" d="M-21-22l-9-9m51 9 9-9"/>'
+        : place.claimed
+          ? '<path class="world-owned" d="M-45-10v-19l20 7-20 6M-45-10v22"/>'
+          : '';
+      const trace=place.aided?'<path class="world-trace" d="M23 46v-18l13-7v25M23 28h13"/>':'';
+      const visitor=place.visitor==='supplies'
+        ? '<path class="world-parcel" d="M25 55h23v17H25zM25 55l11 8 12-8m-12 8v9"/>':'';
+      const state=restored?'restored':place.claimed?'claimed':place.visitor==='supplies'?'supplied':place.aided?'aided':'unclaimed';
+      return '<g class="world-site world-site-'+place.biome+' world-variant-'+variant+
+        ' world-family-'+family+' world-state-'+state+'" transform="translate('+
+        (col*100+50)+' '+(row*100+50)+')">'+base+accent+earned+trace+visitor+'</g>';
+    }
     const marks=[],segments=[];
     for(let row=0;row<5;row++)for(let col=0;col<5;col++){
       const x=selected.x+col-2, y=selected.y+2-row, id=x+','+y;
       const place=found.get(id), directions=track.get(id);
-      if(directions?.size)segments.push('<path transform="translate('+(col*100)+' '+(row*100)+')" d="'+roadPath(directions)+'"/>');
-      if(place&&Object.hasOwn(siteArt,place.biome)){
-        marks.push('<g class="world-site world-site-'+place.biome+'" transform="translate('+(col*100+50)+' '+(row*100+50)+')">'+siteArt[place.biome]+'</g>');
-      }
+      if(directions?.size)segments.push('<path transform="translate('+(col*100)+' '+(row*100)+')" d="'+scenicRoadPath(directions,x,y)+'"/>');
+      if(place&&Object.hasOwn(props,place.biome))marks.push(siteDrawing(place,col,row));
     }
     const roads=segments.join('');
     return '<svg class="nearby-world-canvas" viewBox="0 0 500 500" preserveAspectRatio="none" aria-hidden="true" focusable="false">'+
@@ -157,7 +202,7 @@
       button('nearby-view','＋ 土地を発見','',{class:'nearby-top-action',value:'scout'})+
       button('settings','⚙','',{class:'nearby-map-settings'})+'</header>'+
       '<div class="nearby-track-scape"><div class="nearby-track-board" role="group" aria-label="中心が選択中の土地。道は模式図です。">'+
-      worldCanvas(d,found,track)+cells.join('')+'</div></div>'+
+      worldCanvas(d,found,track,N.pointOfInterest,state.designs?.shield_thorn)+cells.join('')+'</div></div>'+
       '<div class="nearby-track-footer"><span>未知の土地は霧の向こう · 架空の道の地図</span>'+switcher+'</div></div>';
     const stateLabel=restored?'🔔 鐘が戻った・ユノが滞在中':N.traveler(d)?'✦ 薬師の荷':d.claimed?'⚑ あなたの領域':
       poi.family==='shop'?'未開拓 · ◆ 地域の店':'未開拓 · ✦ '+(material?'異変の手掛かり':'王墓の噂');
