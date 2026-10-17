@@ -68,7 +68,8 @@
       const here=i===field.pos, known=seen&&!here, passable=near&&kind!=='wall';
       // Navigation marks only ordinary, currently traversable adjacent land.
       // Secret vines are intentionally never marked, even after discovery.
-      const guided=seen&&kind!=='secret'&&F.canMove(field,i);
+      // A live wolf den is a combat choice, never a safe-path waypoint.
+      const guided=seen&&kind!=='secret'&&!(kind==='den'&&!field.wolf)&&F.canMove(field,i);
       const used=(kind==='cache'&&field.cache)||(kind==='tracks'&&field.tracks)||(kind==='treasure'&&field.treasure)||(kind==='den'&&field.wolf)||(kind==='shrine'&&field.shrine)||(kind==='secret'&&field.secret)||(kind==='glade'&&field.glade)||(kind==='fox'&&field.fox)||(kind==='fox-nest'&&field.foxCache);
       const icon=here?'<span class="field-hero" aria-hidden="true"><i></i></span>'
         : seen?(used?'✓':icons[kind]):'';
@@ -131,7 +132,7 @@
         (i===M.CAUSEWAY&&f.pos===M.APPROACH&&trailReading&&!f.trail);
       const [col,row]=M.coords(i),here=i===f.pos;
       const classes=['field-cell',kind,seen?'revealed':'veiled',here?'here':'',
-        canStep||investigate?'can-step':'',seen&&canStep&&kind!=='shoal'&&kind!=='causeway'?'walk-nav':''].filter(Boolean).join(' ');
+        canStep||investigate?'can-step':'',seen&&canStep&&kind!=='shoal'&&kind!=='causeway'&&!(kind==='wraith'&&!f.wraith)?'walk-nav':''].filter(Boolean).join(' ');
       const label=here?'旅人の現在地':investigate&&i===M.CAUSEWAY?'足跡が消えた水面':seen?names[kind]:'未踏の湿原';
       const style='grid-column:'+(col+1)+';grid-row:'+(row+1);
       if(canStep||investigate)return '<button type="button" class="'+classes+'" style="'+style+

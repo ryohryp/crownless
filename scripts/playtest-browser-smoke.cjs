@@ -238,9 +238,15 @@ async function main() {
         const knownAfterStep=await page.locator('.forest-field .field-cell.revealed').count();
         assert(knownAfterStep>3,'moving reveals genuinely new local ground');
         await page.screenshot({path:path.join(output,'forest-fog-revealed-'+width+'.png')});
-        for(const pos of [22,23,18,13,8]){
+        for(const pos of [22,23,18,13]){
           await page.locator('.forest-field [data-action="field-step"][data-value="'+pos+'"]').click();
         }
+        const wolfGate=page.locator('.forest-field [data-action="field-step"][data-value="8"]');
+        assert.equal(await wolfGate.count(),1,'wolf encounter remains an adjacent tappable choice');
+        assert.equal(await wolfGate.evaluate(el=>el.classList.contains('walk-nav')),false,
+          'a live wolf den must never look like an ordinary safe walking waypoint');
+        await page.screenshot({path:path.join(output,'forest-wolf-risk-no-waypoint-'+width+'.png')});
+        await wolfGate.click();
         assert.equal(await page.locator(".battle-layout .combat-enemy-summary").count(), 1, "the wolf den must render exactly one actual battle");
         const battleLayout=await page.evaluate(()=>{
           const names=['.combat-situation','.combat-decision','.combat-support'];
@@ -297,6 +303,8 @@ async function main() {
           'defeated wolf state survives saved reload');
         // Re-entering the now-empty den must NEVER launch a second wolf fight.
         await page.locator('.forest-field [data-action="field-step"][data-value="13"]').click();
+        assert.equal(await page.locator('.forest-field .field-cell.den.walk-nav').count(),1,
+          'the defeated wolf den becomes ordinary safe navigation again');
         await page.locator('.forest-field [data-action="field-step"][data-value="8"]').click();
         assert.equal(await page.locator('.battle-layout').count(),0,'wolf can be fought only once');
         for(const id of [13,18,17]){
@@ -1169,7 +1177,13 @@ async function main() {
         await page.screenshot({path:path.join(output,'fen-star-found-'+width+'.png')});
         await page.reload();
         assert.equal(await page.locator('.fen-field[data-fen-star="true"]').count(),1);
-        for(const id of [12,17,18,13,8])await step(id);
+        for(const id of [12,17,18,13])await step(id);
+        const wraithGate=page.locator('.fen-field [data-action="fen-step"][data-value="8"]');
+        assert.equal(await wraithGate.count(),1,'wraith remains an adjacent tappable risk');
+        assert.equal(await wraithGate.evaluate(el=>el.classList.contains('walk-nav')),false,
+          'an undefeated wraith must not be marked as a safe walking waypoint');
+        await page.screenshot({path:path.join(output,'fen-wraith-risk-no-waypoint-'+width+'.png')});
+        await wraithGate.click();
         s=await saved();
         assert.equal(s.expedition.stage,'fight');
         assert.equal(s.expedition.enemy.kind,'wraith');
@@ -1183,7 +1197,10 @@ async function main() {
         assert.equal(s.expedition.stage,'path','wraith battle returns to wetland');
         assert.equal(s.expedition.fen.wraith,true);
         assert.equal(await page.locator('.fen-field.world-painted').count(),1);
-        for(const id of [13,18,23,24])await step(id);
+        await step(13);
+        assert.equal(await page.locator('.fen-field .field-cell.wraith.walk-nav').count(),1,
+          'defeated wraith tile is an ordinary traversable neighbor');
+        for(const id of [18,23,24])await step(id);
         s=await saved();
         assert.equal(s.expedition,null);
         assert(s.materials.marshFiber>=2,'star and wraith both return crafting material');
