@@ -10,7 +10,9 @@ const startEvent = () => E.discoverDistrict(demo(),towerEvent);
 test('revealing an event unlocks a saved, harder clue hunt with real crafting material', () => {
   const found = startEvent();
   const regular = E.act(E.start(found,'tower'),'risky');
-  const hunt = E.startWithLocalClue(found);
+  let hunt = E.startWithLocalClue(found);
+  assert.equal(hunt.expedition.stage,'path');
+  for(const tile of [21,22,23,18,19,14,9])hunt=E.act(hunt,'tower-step:'+tile);
   assert.equal(hunt.expedition.stage,'fight');
   assert.equal(hunt.expedition.enemy.clue,true);
   assert.equal(hunt.expedition.enemy.maxHp,regular.expedition.enemy.maxHp+4);

@@ -678,6 +678,7 @@ test('restored tower map and Yuno are visible after safe return, and bell signal
   assert.doesNotMatch(before.html(),/鐘守の弟子・ユノ/);
   assert.doesNotMatch(before.html(),/data-action="bell-depart"/);
   state=E.startWithLocalClue(state);
+  for(const tile of [21,22,23,18,19,14,9])state=E.act(state,'tower-step:'+tile);
   state.expedition.enemy.hp=1;
   state=E.act(E.act(state,'strike'),'return');
   const returned=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(state)});

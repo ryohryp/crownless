@@ -42,14 +42,15 @@ test('no blueprint on failed run, shop discovery, other biome, or repeated clear
   assert.equal(E.startWithLocalClue(atShop),atShop);
   const won=defeatFirstClue();
   const advance=E.act(won,'tower-step:4');
-  const battle=E.act(advance,'careful');
+  const afterRoad=E.act(advance,E.isRoadsideEvent(advance)?'pray':'rest');
+  const battle=E.act(afterRoad,'careful');
   assert.equal(battle.expedition.stage,'fight');
   battle.expedition.hp=1;
   const dead=E.act(battle,'flee');
   assert.equal(dead.report.died,true);
   assert.deepEqual(dead.designs,{},'found-but-lost design does not unlock anything');
   assert.equal(dead.report.newDesign,undefined);
-  const early=E.act(E.startWithLocalClue(event()),'flee');
+  const early=E.act(E.startWithLocalClue(event()),'return');
   assert.deepEqual(early.designs,{},'retreat before victory does not give design');
   const forest=E.startWithLocalClue(demo());
   forest.expedition.enemy.hp=1;
