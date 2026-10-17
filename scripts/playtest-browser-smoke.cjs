@@ -482,7 +482,7 @@ async function main() {
     }
 
     // A discovered POI must change REAL banked resources and expedition choices.
-    let forgedSaved=null;
+    let forgedSaved=null, towerRumorSaved=null;
     const poiContext = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
     const poiPage = await poiContext.newPage();
     try {
@@ -522,6 +522,7 @@ async function main() {
       const explored=await poiPage.evaluate(() => JSON.parse(localStorage.getItem("crownless-expedition-v1-demo")));
       assert.equal(explored.expedition.stage,'path','bell rumor starts real exploration, not instant combat');
       assert.equal(explored.expedition.tower.rumor,true);
+      towerRumorSaved=explored;
       await poiPage.screenshot({path:path.join(output,'tower-mystery-entrance-390.png')});
       for(const id of [21,22])
         await poiPage.locator('.tower-field [data-action="tower-step"][data-value="'+id+'"]').click();
@@ -616,6 +617,60 @@ async function main() {
     } finally {
       await poiContext.close();
     }
+
+
+    // Re-enter from the real discovered POI, then earn the relic manually.
+    const relicContext=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+    const relicPage=await relicContext.newPage();
+    try {
+      assert(towerRumorSaved?.expedition?.tower?.rumor);
+      await relicPage.addInitScript(saved=>{
+        const key='crownless-expedition-v1-demo';
+        if(!localStorage.getItem(key)){
+          localStorage.setItem('crownless-expedition-mode','demo');
+          localStorage.setItem(key,JSON.stringify(saved));
+        }
+      },towerRumorSaved);
+      await relicPage.goto(url);
+      for(const id of [21,22,17])
+        await relicPage.locator('.tower-field [data-action="tower-step"][data-value="'+id+'"]').click();
+      assert.equal(await relicPage.locator('.tower-field [data-action="tower-step"][data-value="12"]').count(),0,
+        'hidden stair must not appear as normal navigation');
+      await relicPage.locator('.tower-echo-investigate').click();
+      const opened=await relicPage.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+      assert.equal(opened.expedition.tower.pos,17,'investigation must not teleport');
+      assert.equal(opened.expedition.tower.open,true);
+      for(const id of [12,7,12,17,18,23,22])
+        await relicPage.locator('.tower-field [data-action="tower-step"][data-value="'+id+'"]').click();
+      await relicPage.reload();
+      const found=await relicPage.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+      assert.equal(found.expedition.tower.relic,true,'relic survives reload');
+      assert.equal(found.expedition.materials.watchIron,1,'unbanked bell iron remains at risk');
+      assert.equal(found.materials.watchIron,0,'relic cannot bank before return');
+      for(const width of [390,360]){
+        await relicPage.setViewportSize({width,height:width===360?800:844});
+        const fork=relicPage.locator('.tower-rumor-fork');
+        assert.match(await fork.innerText(),/鐘鉄を守って生還/);
+        assert.match(await fork.innerText(),/鎧の足音を追う/);
+        assert.equal(await fork.locator('button').count(),2);
+        assert.equal(await relicPage.locator('.field-choices [data-action="return"]').count(),1,
+          'only one return button at the relic fork');
+        const boxes=await fork.locator('button').evaluateAll(btns=>btns.map(b=>{
+          const r=b.getBoundingClientRect(),at=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
+          return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,
+            tappable:at===b||b.contains(at),height:innerHeight};
+        }));
+        assert(boxes.every(b=>b.left>=-1&&b.right<=width+1&&b.width>=110&&
+          b.top>=0&&b.bottom<=b.height+2&&b.tappable),
+          width+'px relic choices must fit and receive touch: '+JSON.stringify(boxes));
+        await relicPage.screenshot({path:path.join(output,'tower-relic-return-fork-'+width+'.png')});
+      }
+      await relicPage.locator('.tower-rumor-fork [data-action="return"]').click();
+      const banked=await relicPage.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+      assert.equal(banked.expedition,null);
+      assert.equal(banked.materials.watchIron,1,'safe return banks the bell iron');
+      assert.equal(banked.designs.shield_thorn,undefined,'noncombat route never grants shield recipe');
+    } finally {await relicContext.close();}
 
     // Continue with the REAL crafted character from the successful play loop in
     // an independent browser to test the solved place, not a fabricated unlock.
