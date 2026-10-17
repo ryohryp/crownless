@@ -449,3 +449,16 @@
 #game > .field-layout .field-choices button.tower-echo-investigate small {
   display:block;margin-top:3px;color:#e5d4af;font-size:11px;
 }
+
+/* A real, reachable branch choice after two adjacent steps in the bell tower. */
+#game > .field-layout .field-choices .tower-rumor-fork {
+  grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:7px;padding:8px;border:1px solid #b5a176;border-radius:7px;background:#22372f;
+}
+#game > .field-layout .field-choices .tower-rumor-fork p {
+  grid-column:1/-1;color:#f2dfb3;font-size:13px;line-height:1.4;margin:0;
+}
+#game > .field-layout .field-choices .tower-rumor-fork button {
+  max-width:none;min-width:0;width:100%;min-height:54px;padding:8px 6px;
+  font-size:12px;line-height:1.35;white-space:normal;
+}

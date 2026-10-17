@@ -519,6 +519,25 @@ async function main() {
       await poiPage.locator('[data-action="nearby-view"][data-value="detail"]').click();
       await poiPage.screenshot({ path: path.join(output, "poi-clue-390.png") });
       await poiPage.locator('[data-action="poi"][data-value="clue"]').click();
+      const explored=await poiPage.evaluate(() => JSON.parse(localStorage.getItem("crownless-expedition-v1-demo")));
+      assert.equal(explored.expedition.stage,'path','bell rumor starts real exploration, not instant combat');
+      assert.equal(explored.expedition.tower.rumor,true);
+      await poiPage.screenshot({path:path.join(output,'tower-mystery-entrance-390.png')});
+      for(const id of [21,22])
+        await poiPage.locator('.tower-field [data-action="tower-step"][data-value="'+id+'"]').click();
+      const fork=poiPage.locator('.tower-rumor-fork');
+      assert.match(await fork.innerText(),/鐘の音|鎧の足音/);
+      assert.equal(await fork.locator('button').count(),2,'both real adjacent branches must be selectable');
+      const fit=await fork.evaluate(el=>{
+        const r=el.getBoundingClientRect(),btns=[...el.querySelectorAll('button')].map(b=>b.getBoundingClientRect());
+        return {left:r.left,right:r.right,buttons:btns.map(b=>({left:b.left,right:b.right,width:b.width}))};
+      });
+      assert(fit.left>=-1&&fit.right<=391&&fit.buttons.every(b=>b.left>=-1&&b.right<=391&&b.width>=120),
+        'two actions fit at 390px: '+JSON.stringify(fit));
+      await poiPage.screenshot({path:path.join(output,'tower-mystery-fork-390.png')});
+      await fork.locator('[data-action="tower-step"][data-value="23"]').click();
+      for(const id of [18,19,14,9])
+        await poiPage.locator('.tower-field [data-action="tower-step"][data-value="'+id+'"]').click();
       const fight=await poiPage.evaluate(() => JSON.parse(localStorage.getItem("crownless-expedition-v1-demo")));
       assert.equal(fight.expedition.enemy.clue,true);
       assert.equal(fight.expedition.stage,"fight");
@@ -535,7 +554,7 @@ async function main() {
       assert.equal(found.expedition?.foundDesign,'shield_thorn','tower event victory reveals a carried design');
       assert.equal(found.designs.shield_thorn,undefined,'unreturned design must not be banked');
       await poiPage.screenshot({path:path.join(output,'blueprint-risk-390.png')});
-      await poiPage.locator('.path-actions [data-action="return"]').click();
+      await poiPage.locator('.field-choices [data-action="return"]').click();
       assert.match(await poiPage.locator('.report-layout').innerText(),/新しい製作レシピを解放：返し棘の盾/);
       await poiPage.locator('[data-action="continue"]').click();
       await poiPage.locator('[data-action="tab"][data-value="gear"]').click();
