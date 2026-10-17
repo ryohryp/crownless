@@ -1070,6 +1070,21 @@ async function main() {
         assert.equal(s.expedition.enemy.kind,'knight');
         assert.match(await page.locator('.intent').innerText(),/耳に残る盾の音。初手は強撃が効きそうだ。/,
           'earned clue must be visible at the first actual attack choice on a phone');
+        await page.locator('[data-action="heavy"]').click();
+        s=await saved();
+        assert.match(s.expedition.log.join(' '),/耳で覚えた盾の音に合わせて強撃/,
+          'earned clue must react to the player's actual first attack');
+        const clueResult=page.locator('.combat-clue-outcome');
+        assert.equal(await clueResult.count(),1,'earned result is surfaced outside collapsed combat logs');
+        assert.match(await clueResult.innerText(),/耳で覚えた盾の音に合わせて強撃/);
+        const clueRect=await clueResult.evaluate(el=>{
+          const r=el.getBoundingClientRect();
+          return {left:r.left,right:r.right,top:r.top,bottom:r.bottom};
+        });
+        assert(clueRect.left>=-1&&clueRect.right<=width+1&&clueRect.top>=-1&&
+          clueRect.bottom<=(width===360?800:844)+2,
+          'earned attack feedback stays in the phone viewport: '+JSON.stringify(clueRect));
+        await page.screenshot({path:path.join(output,'tower-guardian-clue-outcome-'+width+'.png')});
         await page.evaluate(()=>{
           const k='crownless-expedition-v1-demo',s=JSON.parse(localStorage.getItem(k));
           s.expedition.enemy.hp=1;localStorage.setItem(k,JSON.stringify(s));
