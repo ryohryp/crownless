@@ -54,3 +54,54 @@ test('new canvas never adds GPS tracking, movement actions, or an unearned POI',
   assert.doesNotMatch(html,/data-action="move|data-action="walk-to|geolocation\.watchPosition/);
   assert.equal((html.match(/class="nearby-world-canvas"/g)||[]).length,1);
 });
+
+test('three earned northern towers have distinct silhouettes and honest shop/event cues',()=>{
+  let state=E.initial();
+  state.mode='demo';
+  for(const meters of [400,800,1200])state=E.discoverDistrict(state,N.cell(meters,0));
+  const html=render(state);
+  const art=html.match(/<svg class="nearby-world-canvas"[^>]*>[\s\S]*?<\/svg>/)?.[0];
+  assert.ok(art);
+  const towers=[...art.matchAll(/class="world-site world-site-tower world-variant-(\d) world-family-(\w+) world-state-(\w+)"/g)];
+  assert.equal(towers.length,3,'three discovered tower locations retain three visible landmarks');
+  assert.deepEqual(new Set(towers.map(m=>m[1])).size,3,'different watchtowers do not share one copied silhouette');
+  assert.deepEqual(new Set(towers.map(m=>m[2])),new Set(['shop','event']));
+  assert.equal((html.match(/class="nearby-track-tile[^"]*"/g)||[]).length,25);
+  assert.doesNotMatch(art,/world-site-fen|world-site-crypt/,'no unearned biome appears');
+
+  state.neighborhood.districts.find(d=>d.id==='0,2').claimed=true;
+  state.neighborhood.districts.find(d=>d.id==='0,2').aided=true;
+  state.neighborhood.districts.find(d=>d.id==='0,1').visitor='supplies';
+  state.designs={...state.designs,shield_thorn:'0,3'};
+  const changed=render(state);
+  assert.match(changed,/world-state-restored/);
+  assert.match(changed,/world-bell/);
+  assert.match(changed,/world-owned/);
+  assert.match(changed,/world-trace/);
+  assert.match(changed,/world-parcel/);
+  assert.equal((changed.match(/class="nearby-world-canvas"/g)||[]).length,1);
+});
+
+test('curved local road arms keep exact shared edge midpoint and do not alter canonical track geometry',()=>{
+  const north=field.scenicRoadPath(new Set(['N']),0,1);
+  const south=field.scenicRoadPath(new Set(['S']),0,2);
+  assert.match(north,/^M50 50 C\d+ 34 50 18 50 0$/);
+  assert.match(south,/^M50 50 C\d+ 66 50 82 50 100$/);
+  assert.notEqual(field.scenicRoadPath(new Set(['N']),0,1),field.scenicRoadPath(new Set(['N']),0,2));
+  assert.equal(field.scenicRoadPath(new Set(),0,0),'');
+  assert.equal(field.roadPath(new Set(['N','E'])),'M50 0 Q50 50 100 50');
+  assert.equal(field.trackEdges([{x:0,y:3}]).get('0,1').has('N'),true);
+});
+
+test('discovery pager has a dedicated unbroken number and phone-safe three-column layout',()=>{
+  let state=E.initial();state.mode='demo';
+  state=E.discoverDistrict(state,N.cell(400,0));
+  const html=render(state);
+  assert.match(html,/class="nearby-track-position" aria-label="発見した土地 2 \/ 2"/);
+  const css=fs.readFileSync('living-world-canvas.css','utf8');
+  assert.match(css,/\.nearby-track-footer \.nearby-track-switch\s*\{[\s\S]*?grid-template-columns:minmax\(0,1fr\) auto minmax\(0,1fr\)/);
+  assert.match(css,/\.nearby-track-footer \.nearby-track-position\s*\{[\s\S]*?white-space:nowrap/);
+  assert.match(css,/\.nearby-track-switch button\s*\{[\s\S]*?min-height:44px/);
+  assert.match(html,/前の発見/);
+  assert.match(html,/次の発見/);
+});
