@@ -247,14 +247,14 @@ async function main() {
           'a live wolf den must never look like an ordinary safe walking waypoint');
         // A wolf sighting adds warning copy: keep both thumb actions visible.
         const wolfChoiceBounds = await page.evaluate(() => [...document.querySelectorAll(
-          '#game > .field-layout .field-choices button:not(:disabled)'
+          '#game > .field-layout .field-choices button'
         )].map(el => {
           const r = el.getBoundingClientRect();
           const hit = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
           return { label: el.textContent.trim().slice(0, 35), top: r.top,
             bottom: r.bottom, height: r.height,
             reachable: r.top >= 0 && r.bottom <= innerHeight - 2 && r.height >= 44 &&
-              (hit === el || el.contains(hit)) };
+              (el.disabled || hit === el || el.contains(hit)) };
         }));
         assert(wolfChoiceBounds.length >= 2 && wolfChoiceBounds.every(x => x.reachable),
           'wolf sighting must leave both thumb actions entirely on-screen: ' + JSON.stringify(wolfChoiceBounds));
