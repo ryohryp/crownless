@@ -202,7 +202,7 @@
         : x.scrap>0?'鉄片を守って帰るか、鎧の足音を追うか。':''
       : '';
     const safeReturnLabel=guardAhead
-      ? ((x.materials?.watchIron||x.scrap)?'戦利品を守って生還':'番人を避けて生還')
+      ? (x.materials?.watchIron||0)>0?'鐘鉄を守って生還':x.scrap>0?'鉄片を守って生還':'番人を避けて生還'
       : (x.materials?.watchIron||0)>0?'鐘鉄を持って生還':x.scrap>0?'鉄片を持って生還':'ここで生還する';
     const safeReturnHint=guardAhead?'番人とは戦わず素材を確定する':(x.materials?.watchIron||0)>0?'背嚢の鐘鉄と鉄片を確定する':x.scrap>0?'背嚢の鉄片を確定する':'集めた素材を確定する';
     return `<div class="field-decision"><div class="field-status">${vitals(x)}

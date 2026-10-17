@@ -67,7 +67,7 @@ test('tower return choice reflects scrap-only loot without overriding guardian w
   assert.match(browser(s).html(),/鉄片を持って生還/);
   s=E.act(s,'tower-step:14');
   assert.equal(s.expedition.tower.pos,14);
-  assert.match(browser(s).html(),/戦利品を守って生還/);
+  assert.match(browser(s).html(),/鉄片を守って生還/);
 });
 
 test('tower navigation never marks fog, walls, or undiscovered secret stairs',()=>{
@@ -224,4 +224,31 @@ test('tower sound indicator grows with investigation without revealing a hidden 
   const loot=s.expedition.materials.watchIron;
   assert.equal(E.act(E.parse(E.serialize(s)),'return').materials.watchIron,loot,
     'sound guidance never changes the safe-return material contract');
+});
+
+test('guardian threshold names at-risk loot on return after save/resume without forcing combat',()=>{
+  const carried=E.act(E.act(atCache(),'tower-cache-iron'),'tower-step:14');
+  assert.equal(carried.expedition.tower.pos,14);
+  assert.equal(carried.expedition.stage,'path');
+  const saved=E.parse(E.serialize(carried));
+  const b=browser(saved);
+  assert.match(b.html(),/鐘鉄を守って生還/);
+  assert.match(b.html(),/鐘鉄を持ち帰るか、鎧の足音を追うか。/);
+  const before=E.parse(b.store.get(key));
+  assert.equal(before.materials.watchIron,0,'at-risk iron is not banked early');
+  b.click('tower-step','9');
+  assert.equal(E.parse(b.store.get(key)).expedition.stage,'fight',
+    'the adjacent guardian tile remains an explicit optional challenge');
+  const retreat=browser(saved);
+  retreat.click('return');
+  assert.equal(E.parse(retreat.store.get(key)).materials.watchIron,1,
+    'safe return banks the same iron without fighting');
+  const scrap=E.parse(E.serialize(carried));
+  scrap.expedition.materials.watchIron=0;
+  scrap.expedition.scrap=2;
+  assert.match(browser(scrap).html(),/鉄片を守って生還/);
+  const empty=E.parse(E.serialize(scrap));
+  empty.expedition.scrap=0;
+  assert.match(browser(empty).html(),/番人を避けて生還/);
+  assert.doesNotMatch(browser(empty).html(),/鐘鉄を守って生還|鉄片を守って生還/);
 });

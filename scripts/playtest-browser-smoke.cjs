@@ -1004,7 +1004,7 @@ async function main() {
         assert.match(await page.locator('.field-moment').innerText(),/初手は強撃/,
           'phone UI must actually show the earned clue, not just save it');
         const retreat=page.locator('.field-choices [data-action="return"]');
-        assert.match(await retreat.innerText(),/戦利品を守って生還/,
+        assert.match(await retreat.innerText(),/鐘鉄を守って生還/,
           'carried loot makes the guardian retreat choice explicit');
         const retreatRect=await retreat.evaluate(el=>{
           const r=el.getBoundingClientRect();
