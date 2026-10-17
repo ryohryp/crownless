@@ -251,8 +251,9 @@
   box-shadow:0 0 12px #c86b5488;
   pointer-events:none;z-index:1;
 }
-/* Cold blue: the wraith's risk is visible only when it becomes a real choice. */
+/* Cold blue: keep the wraith's marker legible at the clipped upper map edge. */
 #game > .field-layout .fen-field.world-painted button.field-cell.fen-wraith-threat::after {
+  top:85%;
   border-color:#a7cfe0;
   background:#263d50e8;
   color:#e5f8ff;
