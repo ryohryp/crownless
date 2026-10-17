@@ -252,3 +252,28 @@ test('guardian threshold names at-risk loot on return after save/resume without 
   assert.match(browser(empty).html(),/番人を避けて生還/);
   assert.doesNotMatch(browser(empty).html(),/鐘鉄を守って生還|鉄片を守って生還/);
 });
+
+test('tower return hint lists only carried materials across save, movement and guardian choice',()=>{
+  const onlyIron=E.act(atCache(),'tower-cache-iron');
+  const returnButton=s=>browser(s).html().match(/<button\\b[^>]*data-action="return"[^>]*>[\\s\\S]*?<\\/button>/)?.[0]||'';
+  assert.match(returnButton(onlyIron),/背嚢の鐘鉄を確定する/);
+  assert.doesNotMatch(returnButton(onlyIron),/鐘鉄と鉄片を確定する/,
+    'zero scrap must not be advertised as carried loot');
+  const resumed=E.parse(E.serialize(E.act(onlyIron,'tower-step:18')));
+  assert.match(returnButton(resumed),/背嚢の鐘鉄を確定する/,
+    'the exact return reward stays visible after moving and resuming');
+  assert.equal(E.act(resumed,'return').materials.watchIron,1);
+  const both=structuredClone(onlyIron);
+  both.expedition.scrap=2;
+  assert.match(returnButton(both),/背嚢の鐘鉄と鉄片を確定する/);
+  const scrapOnly=structuredClone(both);
+  scrapOnly.expedition.materials.watchIron=0;
+  assert.match(returnButton(scrapOnly),/背嚢の鉄片を確定する/);
+  const empty=structuredClone(scrapOnly);
+  empty.expedition.scrap=0;
+  assert.match(returnButton(empty),/集めた素材を確定する/);
+  const threshold=E.act(onlyIron,'tower-step:14');
+  assert.equal(threshold.expedition.stage,'path');
+  assert.match(returnButton(threshold),/番人とは戦わず素材を確定する/,
+    'the last safe choice still warns about the optional guardian');
+});
