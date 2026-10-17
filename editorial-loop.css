@@ -161,3 +161,78 @@
   #game > .report-layout .editorial-return-steps > span { font-size: 10px; }
   #game > .report-layout .editorial-return-loop p { font-size: 11px; }
 }
+
+/* Argon-inspired tool spec: a real earn/craft/revisit affordance, not a new
+   synthetic catalog. Contrast is restrained to approved wash/ink surfaces. */
+#game .argon-tool-spec {
+  display:grid;
+  gap:9px;
+  min-width:0;
+  margin:12px 0;
+  padding:12px;
+  color:#292b29;
+  background:#eee5d4;
+  border:1px solid #7c7569;
+  border-left:3px solid #8c7355;
+  border-radius:2px;
+}
+#game .argon-tool-spec-title {
+  display:flex;
+  align-items:start;
+  gap:10px;
+  min-width:0;
+}
+#game .argon-tool-spec-title > div {min-width:0;flex:1}
+#game .argon-tool-spec-title .kicker {color:#635a4b;font-size:10px}
+#game .argon-tool-spec-title h3 {
+  color:#242825;
+  font-size:17px;
+  line-height:1.3;
+  margin:3px 0;
+}
+#game .argon-tool-spec-title .small,
+#game .argon-tool-next {
+  color:#4d514b;
+  font-size:12px;
+  line-height:1.45;
+  margin:2px 0;
+}
+#game .argon-tool-mark {
+  font-size:24px;
+  color:#776b51;
+  line-height:1;
+}
+#game .argon-tool-status {
+  flex-shrink:0;
+  border:1px solid #6b7164;
+  padding:5px 6px;
+  color:#3e503e;
+  font-size:11px;
+  font-weight:700;
+  white-space:nowrap;
+}
+#game .argon-tool-materials {display:flex;flex-wrap:wrap;gap:6px}
+#game .argon-tool-materials span {
+  padding:6px 9px;
+  border:1px solid #79796c;
+  font:700 12px/1.3 system-ui,sans-serif;
+  white-space:nowrap;
+}
+#game .argon-tool-materials .enough {color:#355441;border-color:#68846e}
+#game .argon-tool-materials .missing {color:#7b473e;border-color:#a37b6b}
+#game .argon-tool-spec button {
+  display:block;
+  width:100%;
+  min-height:48px;
+  font-size:13px;
+}
+#game .scout-lantern-clue {
+  width:100%;
+  padding:8px 10px;
+  color:#e8e2c7;
+  background:rgba(60,74,61,.92);
+  border:1px solid #b8a88a;
+  border-left:3px solid #d9c395;
+  font-size:12px;
+  line-height:1.45;
+}

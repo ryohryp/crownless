@@ -383,6 +383,50 @@ async function main() {
       }
     }
 
+    // ADR 0013 / Argon: genuine combat-free exploration -> safe return ->
+    // smith-made tool -> a deliberate new clue on a second expedition.
+    // Fresh context keeps all prior combat/browser scenarios unchanged.
+    {
+      const context=await browser.newContext({viewport:{width:390,height:844},deviceScaleFactor:1,isMobile:true,hasTouch:true});
+      const page=await context.newPage();
+      try{
+        await page.goto(url);
+        await page.locator('[data-action="mode"][data-value="demo"]').click();
+        await page.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
+        for(const pos of [21,22,23,18,17])
+          await page.locator('.forest-field [data-action="field-step"][data-value="'+pos+'"]').click();
+        assert.equal(await page.locator('.forest-field').getAttribute('data-field-wolf'),'false',
+          'first tool is obtained without combat');
+        await page.locator('.field-choices [data-action="return"]').click();
+        assert.match(await page.locator('.report-panel').innerText(),/狼牙/);
+        assert.match(await page.locator('.report-panel').innerText(),/斥候の灯/);
+        await page.locator('[data-action="continue"]').click();
+        await page.locator('.bottom-navigation [data-action="tab"][data-value="gear"]').click();
+        assert.match(await page.locator('.argon-tool-spec').innerText(),/狼牙 1 \/ 1/);
+        await page.locator('[data-action="character"][data-value="1"]').click();
+        const craft=page.locator('.argon-tool-spec [data-action="craft-tool"]');
+        assert.equal(await craft.isEnabled(),true,'saved gathered ingredients enable the smith action');
+        await page.screenshot({path:path.join(output,'scout-lantern-craft-before-390.png')});
+        await craft.click();
+        assert.match(await page.locator('.argon-tool-spec').innerText(),/製作済み/);
+        await page.reload();
+        await page.locator('.bottom-navigation [data-action="tab"][data-value="gear"]').click();
+        assert.match(await page.locator('.argon-tool-spec').innerText(),/製作済み/,
+          'crafted tool survives save/reload');
+        await page.locator('[data-action="character"][data-value="0"]').click();
+        await page.locator('.bottom-navigation [data-action="tab"][data-value="explore"]').click();
+        await page.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
+        for(const pos of [21,22,23,18])
+          await page.locator('.forest-field [data-action="field-step"][data-value="'+pos+'"]').click();
+        assert.equal(await page.locator('.forest-field').getAttribute('data-field-secret'),'false');
+        await page.locator('.field-choices [data-action="lantern-examine"]').click();
+        assert.match(await page.locator('.scout-lantern-clue').innerText(),/倒木/);
+        assert.equal(await page.locator('.forest-field').getAttribute('data-field-secret'),'false',
+          'lamp cannot automatically unseal secret route');
+        await page.screenshot({path:path.join(output,'scout-lantern-second-trip-390.png')});
+      }finally{await context.close();}
+    }
+
     // Separate compact and desktop viewport checks, without repeating the
     // expensive multi-stage adventure tests for each added breakpoint.
     for (const [width,height] of [[430,932],[1280,900]]) {

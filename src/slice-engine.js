@@ -54,6 +54,11 @@
     watchIron: { name:'鐘鉄', source:'鐘なき塔' },
     marshFiber: { name:'霧葦', source:'星沈みの湿原' }
   });
+  // ADR 0013: one explorer-made tool, no speculative equipment/effects framework.
+  // The starter wood treasure already yields one fang and enough scrap without combat.
+  const SCOUT_LANTERN=Object.freeze({id:'scout_lantern',name:'斥候の灯',
+    material:'wolfFang',count:1,scrap:4,
+    effect:'森の古い倒木付近で、霧の乱れを調べられる。秘密の入口は自動で開かない。'});
   const MATERIAL_IDS = Object.freeze(Object.keys(MATERIALS));
   const emptyMaterials = () => Object.fromEntries(MATERIAL_IDS.map(id => [id,0]));
   const RECIPES = Object.freeze({
@@ -171,7 +176,7 @@
     { id:'smith', name:'見習い鍛冶師', role:'smith', equipped:'rust', experience:0, skills:{} },
     { id:'merchant', name:'行商人', role:'merchant', equipped:'rust', experience:0, skills:{} }
   ];
-  const initial = () => ({ version: VERSION, mode: null, designs:{}, unlocked: ['wood'], cleared: [], owned: ['rust'], equipped: 'rust', qualities: emptyQualities(), scrap: 0, materials:emptyMaterials(), characters:startingCharacters(), activeCharacter:0, commission:emptyCommission(), level: 0, upgrades: emptyUpgrades(), runs: 0, victories: 0, grudge: null, maintenance: null, claimedLandmarks: [], expedition: null, report: null, neighborhood:N.initial() });
+  const initial = () => ({ version: VERSION, mode: null, designs:{}, unlocked: ['wood'], cleared: [], owned: ['rust'], equipped: 'rust', qualities: emptyQualities(), scrap: 0, materials:emptyMaterials(), characters:startingCharacters(), activeCharacter:0, commission:emptyCommission(), level: 0, upgrades: emptyUpgrades(), runs: 0, victories: 0, grudge: null, maintenance: null, claimedLandmarks: [], ownedTools: [], expedition: null, report: null, neighborhood:N.initial() });
   const maxHp = s => 30 + (Number.isInteger(s.level) ? s.level : 0) * 5 + (s.owned.includes('crown') ? 6 : 0) + (s.neighborhood?.buildings.includes('lodge') ? 4 : 0);
   function weaponLevel(s, id = s.equipped) {
     const legacy = LEGACY_UPGRADEABLE.has(id) && Number.isInteger(s?.level)
@@ -553,6 +558,16 @@
     } else if (x.stage === 'cleared' && action === 'deeper' && x.depth < 3) {
       x.depth++; x.room = 0; x.stage = 'path'; x.log = [`さらに深く。${lootCue(x.place, x.depth)}`]; return n;
     } else if (x.stage === 'path') {
+      // ADR 0013: the crafted lamp enables a deliberate, saved-in-expedition
+      // investigation on an ordinary forest tile. Never uncover the secret,
+      // bypass forest skills, or reveal any hidden tile from the tool alone.
+      if(action==='lantern-examine' && x.place==='wood' && x.depth===1 &&
+        x.room===0 && x.field?.pos===F.TRACKS && !x.field.lanternClue &&
+        n.ownedTools?.includes(SCOUT_LANTERN.id)){
+        x.field.lanternClue=true;
+        x.log=['斥候の灯の光が霧の流れを照らした。古い倒木の方から青白い反射が一瞬だけ返る。先を歩いて、周囲を自分の目で調べよう。'];
+        return n;
+      }
       // A voluntary listening action reveals a risk clue without moving or starting combat.
       if (action === 'tower-listen' && x.place === 'tower' && x.depth === 1 &&
           x.room === 0 && x.tower && x.tower.pos === 19 &&
@@ -963,6 +978,21 @@
     n.characters[1].experience += 1;
     return n;
   }
+  function canCraftScoutLantern(s) {
+    return Boolean(s && !s.expedition && !s.report && s.activeCharacter===1 &&
+      !s.ownedTools?.includes(SCOUT_LANTERN.id) &&
+      s.scrap>=SCOUT_LANTERN.scrap &&
+      (s.materials?.[SCOUT_LANTERN.material]||0)>=SCOUT_LANTERN.count);
+  }
+  function craftScoutLantern(s) {
+    if(!canCraftScoutLantern(s))return s;
+    const n=copy(s);
+    n.scrap-=SCOUT_LANTERN.scrap;
+    n.materials[SCOUT_LANTERN.material]-=SCOUT_LANTERN.count;
+    n.ownedTools.push(SCOUT_LANTERN.id);
+    n.characters[1].experience++;
+    return n;
+  }
   function craftWolfFang(s) { return craftItem(s,'forged_fang'); }
   // Repeatable commission: consumes real materials but produces a simulated NPC's gear,
   // never an extra player-owned copy of the unique equipment ID.
@@ -1041,6 +1071,7 @@
       const s = JSON.parse(raw);
       if (s.version === VERSION && s.claimedLandmarks === undefined) s.claimedLandmarks = [];
       if (s.version === VERSION && s.designs === undefined) s.designs = {};
+      if (s.version === VERSION && s.ownedTools === undefined) s.ownedTools = [];
       if (s.version === VERSION && s.neighborhood === undefined) s.neighborhood = N.migrate(s);
       if (s.version === VERSION) s.neighborhood = N.hydrateLegacy(s.neighborhood);
       if (!N.valid(s.neighborhood)) throw Error('neighborhood');
@@ -1087,7 +1118,7 @@
       const validDuplicates = d => Array.isArray(d) && d.length <= 12 && d.every(item => item && typeof item === 'object' && !Array.isArray(item) && Object.keys(item).length === 3 && Object.keys(item).every(k => ['id','quality','decision'].includes(k)) && Object.prototype.hasOwnProperty.call(GEAR,item.id) && item.id !== 'crown' && int(item.quality,-1,3) && [null,'keep','dismantle'].includes(item.decision));
       const validGrudge = g => g === null || (g && typeof g === 'object' && !Array.isArray(g) && Object.keys(g).length === 2 && ids.includes(g.place) && Object.prototype.hasOwnProperty.call(ENEMIES,g.enemy));
       const validExpeditionGrudge = g => g === null || (g && typeof g === 'object' && !Array.isArray(g) && Object.keys(g).length === 3 && ids.includes(g.place) && Object.prototype.hasOwnProperty.call(ENEMIES,g.enemy) && typeof g.used === 'boolean');
-      if (s.version !== VERSION || Object.keys(s).some(k => !keys.includes(k)) || ![null, 'demo', 'walk'].includes(s.mode) || (!Array.isArray(s.claimedLandmarks) || s.claimedLandmarks.length > 500 || new Set(s.claimedLandmarks).size !== s.claimedLandmarks.length || !s.claimedLandmarks.every(id=>typeof id==='string' && /^[a-z][a-z0-9-]{1,63}$/.test(id))) || !validArray(s.unlocked, ids) || !s.unlocked.includes('wood') || !validArray(s.cleared, ids) || !validArray(s.owned, Object.keys(GEAR)) || !s.owned.includes('rust') || !s.owned.includes(s.equipped) || s.equipped === 'crown' || !int(s.level, 0, 4) || !validUpgrades(s.upgrades) || !validQualities(s.qualities) || !validDesigns(s.designs) || !validGrudge(s.grudge) || ![null,'ready','sharp'].includes(s.maintenance) || !int(s.scrap, 0, 1e9) || !validMaterials(s.materials) || !validCharacters(s.characters,s.activeCharacter) || !validCommission(s.commission) || !int(s.runs, 0, 1e9) || !int(s.victories, 0, s.runs)) throw Error('save');
+      if (s.version !== VERSION || Object.keys(s).some(k => !keys.includes(k)) || ![null, 'demo', 'walk'].includes(s.mode) || (!Array.isArray(s.claimedLandmarks) || s.claimedLandmarks.length > 500 || new Set(s.claimedLandmarks).size !== s.claimedLandmarks.length || !s.claimedLandmarks.every(id=>typeof id==='string' && /^[a-z][a-z0-9-]{1,63}$/.test(id))) || !validArray(s.unlocked, ids) || !s.unlocked.includes('wood') || !validArray(s.cleared, ids) || !validArray(s.owned, Object.keys(GEAR)) || !validArray(s.ownedTools, [SCOUT_LANTERN.id]) || !s.owned.includes('rust') || !s.owned.includes(s.equipped) || s.equipped === 'crown' || !int(s.level, 0, 4) || !validUpgrades(s.upgrades) || !validQualities(s.qualities) || !validDesigns(s.designs) || !validGrudge(s.grudge) || ![null,'ready','sharp'].includes(s.maintenance) || !int(s.scrap, 0, 1e9) || !validMaterials(s.materials) || !validCharacters(s.characters,s.activeCharacter) || !validCommission(s.commission) || !int(s.runs, 0, 1e9) || !int(s.victories, 0, s.runs)) throw Error('save');
       if (s.expedition) {
         const x = s.expedition;
         const allowedFocus = gearFamily(s.equipped) === 'fang' ? [0,3,4,5,6,7,8,9] : [0,3];
@@ -1115,6 +1146,6 @@
       return s;
     } catch { return null; }
   }
-  const api = { VERSION, PLACES, GEAR, ENEMIES, INTENTS, landmarkBlessings, VARIANT_LOOT, MATERIALS, RECIPES, COMMISSIONS, DISMANTLE_SCRAP, LOCAL_HERB_COST, LOCAL_MATERIAL_COST, REGIONAL_MATERIAL, initial, maxHp, gearFamily, weaponLevel, weaponQuality, weaponAttack, qualityLabel, rollQuality, upgradeCost, combatProfile, gearText, enemyProfile, attackPreview, intent, lootCue, place, isRoadsideEvent, discover, start, startLandmark, startWithLocalHerb, startWithLocalClue, tradeLocalMaterial, startWithBellSignal, act, resolveFight, maintain, equip, switchCharacter, craftItem, craftWolfFang, supplyCommission, upgrade, resolveDuplicate, locationSession, observe, serialize, parse, discoverDistrict,selectDistrict,buildHome,renameHome };
+  const api = { VERSION, PLACES, GEAR, SCOUT_LANTERN, ENEMIES, INTENTS, landmarkBlessings, VARIANT_LOOT, MATERIALS, RECIPES, COMMISSIONS, DISMANTLE_SCRAP, LOCAL_HERB_COST, LOCAL_MATERIAL_COST, REGIONAL_MATERIAL, initial, maxHp, gearFamily, weaponLevel, weaponQuality, weaponAttack, qualityLabel, rollQuality, upgradeCost, combatProfile, gearText, enemyProfile, attackPreview, intent, lootCue, place, isRoadsideEvent, discover, start, startLandmark, startWithLocalHerb, startWithLocalClue, tradeLocalMaterial, startWithBellSignal, act, resolveFight, maintain, equip, switchCharacter, craftItem, canCraftScoutLantern, craftScoutLantern, craftWolfFang, supplyCommission, upgrade, resolveDuplicate, locationSession, observe, serialize, parse, discoverDistrict,selectDistrict,buildHome,renameHome };
   return api;
 });

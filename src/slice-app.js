@@ -209,7 +209,10 @@
     return `<div class="field-decision"><div class="field-status">${vitals(x)}<div class="path-risk"><span>持ち帰れる鉄片</span><strong>${x.scrap}</strong><small>倒れれば失う</small></div></div>
       ${skillPending?'<p class="skill-learning-hint" role="status">⌁ 新しい探索技術《獣道読み》の手掛かりを得た。<strong>無事に生還すると習得！</strong></p>':''}
       <p class="field-moment${trailSkillResult(x)?' skill-result':''}" role="status">${trailSkillResult(x)?trailResultLabel:''}${esc(x.log[0]||event)}</p>
-      <div class="field-choices">${trailSkillButton(x)}
+      <div class="field-choices">${x.field.pos===window.CrownlessField.TRACKS && state.ownedTools?.includes(E.SCOUT_LANTERN.id) && !x.field.lanternClue
+        ? button('lantern-examine','斥候の灯で霧を照らす','霧に隠れた手掛かりを探す',{class:'primary'}) : ''}
+      ${x.field.lanternClue ? '<p class="scout-lantern-clue" role="status">✦ 灯りが映した痕跡：倒木の近くで霧が揺らいでいる。周囲を歩いて調べよう。</p>' : ''}
+      ${trailSkillButton(x)}
       ${x.foundDesign==='fang_moon' ? '<p class="notice" role="status">✦ 月影の短剣の設計図を背嚢に入れた。生還するまで失う可能性がある。</p>' : ''}
       ${button('return','ここで生還する','拾った素材を確定する',{class:'secondary'})}
       ${button('heal',`薬草 ${x.potions} · 体力 +12`,'',{class:'text-button',disabled:x.potions===0||x.hp===E.maxHp(state)})}</div>
@@ -351,6 +354,28 @@
         +esc(E.GEAR[quickCraftId].name)+'。今ここで製作できる。</p>'
         +button('craft-item',esc(E.GEAR[quickCraftId].name)+'を製作','',{class:'primary',value:quickCraftId})+'</div>'
       : '';
+    // One discoverable starter exploration craft, sourced from the normal
+    // combat-free woodland chest and banked only after safe return.
+    const lantern=E.SCOUT_LANTERN;
+    const lanternOwned=state.ownedTools?.includes(lantern.id);
+    const lanternHave=state.materials?.[lantern.material]||0;
+    const lanternReady=E.canCraftScoutLantern(state);
+    const lanternSpec=`<section class="argon-tool-spec" aria-label="探索道具の製作">
+      <div class="argon-tool-spec-title"><span class="argon-tool-mark" aria-hidden="true">✧</span><div>
+        <span class="kicker">EXPLORE TOOL · 探索道具</span><h3>${lantern.name}</h3>
+        <p class="small">${lantern.effect}</p></div>
+        <span class="argon-tool-status">${lanternOwned?'製作済み':lanternReady?'製作可能':'製作準備'}</span></div>
+      <div class="argon-tool-materials" aria-label="必要素材と所持数">
+        <span class="${lanternHave>=lantern.count?'enough':'missing'}">${E.MATERIALS[lantern.material].name} ${lanternHave} / ${lantern.count}</span>
+        <span class="${state.scrap>=lantern.scrap?'enough':'missing'}">鉄片 ${state.scrap} / ${lantern.scrap}</span>
+      </div>
+      <p class="small argon-tool-next">${lanternOwned?'次の森の遠征で、獣の足跡付近から霧の反射を調べられる。'
+        : lanternHave<lantern.count?'森の宝箱から狼牙を持ち帰ろう。狼と戦わずに探せる。'
+        : state.scrap<lantern.scrap?'鉄片をあと'+(lantern.scrap-state.scrap)+'個集めて、生還しよう。'
+        : state.activeCharacter===1?'素材が揃った。鍛冶師が製作できる。':'素材が揃った。鍛冶師に交代すると製作できる。'}</p>
+      ${!lanternOwned&&state.activeCharacter===1
+        ? button('craft-tool',lanternReady?'斥候の灯を製作する':'素材を集めて製作する','',{class:lanternReady?'primary':'secondary',disabled:!lanternReady})
+        : ''}</section>`;
     const recipes = Object.entries(E.RECIPES).map(([recipeId,recipe]) => {
       const materials = Object.entries(recipe.materials).map(([materialId,count]) => `${E.MATERIALS[materialId].name} ${count}個`).join(' · ');
       const done = state.owned.includes(recipeId);
@@ -400,6 +425,7 @@
       <p class="small">戦闘で得るのは素材。遠征は旅人、装備を生み出すのは鍛冶師。安全な拠点で交代し、倉庫を共有する。</p>
       ${forgeCue}${quickCraft}
       <div class="choice-grid">${roleChoices}</div>
+      ${lanternSpec}
       <p class="small">共同倉庫：${materialList(state.materials) || '素材なし'} · 鉄片 ${state.scrap}</p>
       <div class="home-buildings">${recipes}</div>
       ${commissionSection}
@@ -602,7 +628,10 @@
       return `<div class='reward loot-compare'><span class='reward-icon'>↔</span><div><strong>${E.GEAR[d.id].name} · ${E.qualityLabel(d.quality)}</strong><small>今の一本 ${E.qualityLabel(currentQ)} / 攻撃 ${currentAttack} → 発見品 攻撃 ${foundAttack}。${compare}。</small>${actions}</div></div>`;
     }).join('')}</div>` : '';
     const homeOpportunity = state.neighborhood.result && !r.died && (state.neighborhood.result.claimed || Object.keys(N.BUILDINGS).some(id => N.canBuild(state.neighborhood,id)));
-    const readyToCraft = !r.died && Object.keys(E.RECIPES).some(id => canCraft(state,id));
+    const scoutReady = !r.died && !state.ownedTools?.includes(E.SCOUT_LANTERN.id) &&
+      state.scrap>=E.SCOUT_LANTERN.scrap &&
+      (state.materials?.[E.SCOUT_LANTERN.material]||0)>=E.SCOUT_LANTERN.count;
+    const readyToCraft = !r.died && (scoutReady || Object.keys(E.RECIPES).some(id => canCraft(state,id)));
     const commissionFinished = !r.died && state.commission.lastResult === r.place;
     const blueprintReward = r.newDesign === 'shield_thorn' && !r.died ? '<div class="home-return" role="status"><strong>✦ 新しい製作レシピを解放：返し棘の盾</strong><p>「鳴らない鐘の刻」の亡兵から盾の製法を持ち帰った。鍛冶師に交代すれば製作可能。さらにこの場所の鐘が戻り、再訪すると鐘守の弟子・ユノに会える。</p><small>必要：鐘鉄 2個＋森の狼牙 1個＋鉄片 6個。防御の軽減は薄いが、反撃が強い。</small></div>'
       : r.newDesign === 'fang_moon' && !r.died ? '<div class="home-return" role="status"><strong>✦ 新しい製作レシピを解放：月影の短剣</strong><p>《獣道読み》で隠し包みを見つけ、製法を持ち帰った。鍛冶師に交代すれば製作できる。</p><small>必要：狼牙 3個＋鉄片 6個。回避時の気力消費を抑える短剣。</small></div>'
@@ -636,7 +665,7 @@
       ? '<section class="editorial-return-loop editorial-return-loop--lost" aria-label="敗走後の次の行動"><div class="editorial-return-steps"><span class="is-warning">01 敗走</span><span>02 準備</span><span>03 再遠征</span></div><p>持ち帰れなかった素材は製作に使えません。装備を見直して、次は早めの生還も選べます。</p></section>'
       : `<section class="editorial-return-loop" aria-label="生還から次の遠征まで">
           <div class="editorial-return-steps"><span class="is-complete">01 生還 ✓</span><span class="${readyToCraft ? 'is-ready' : ''}">02 ${readyToCraft ? '製作可能' : '製作準備'}</span><span>03 次の遠征</span></div>
-          <p>${readyToCraft ? '共同倉庫の素材で製作できる武具があります。装備画面で鍛冶師に交代しましょう。' : (materialList(r.materials) || r.scrap > 0) ? '持ち帰った素材を共同倉庫に確保しました。製作に足りない素材を確認しましょう。' : '次の探索で素材を集め、無事に持ち帰ることが製作につながります。'}</p>
+          <p>${readyToCraft ? (scoutReady ? '森で持ち帰った素材で「斥候の灯」を製作できる。鍛冶師に交代し、次の遠征で霧の手掛かりを調べよう。' : '共同倉庫の素材で製作できる武具があります。装備画面で鍛冶師に交代しましょう。') : (materialList(r.materials) || r.scrap > 0) ? '持ち帰った素材を共同倉庫に確保しました。製作に足りない素材を確認しましょう。' : '次の探索で素材を集め、無事に持ち帰ることが製作につながります。'}</p>
         </section>`;
     return `<div class="game-layout report-layout${learnedSkill?' skill-unlock-report':''}"><section class="visual-column">${scene('camp',r.died ? '火は、まだ消えていない。' : learnedSkill ? '世界が、少し違って見える。' : 'おかえり、旅人。',r.died ? 'THE ROAD IS NOT OVER' : learnedSkill ? 'A NEW WAY TO SEE' : 'YOU MADE IT HOME')}</section><section class="panel report-panel"><div class="report-scroll">${skillReward}<p class='kicker'>${r.died ? 'EXPEDITION LOST' : 'SAFE RETURN'} / ${E.place(r.place).name}</p><h1>${r.died ? '命だけを、持ち帰った。' : learnedSkill ? '新たな技を手にした。' : duplicates.length ? '持ち帰った一本を、比べる。' : r.newGear.length ? '新しい一本を、火へ。' : '欲張らずに、帰る強さ。'}</h1><p class='intro'>${r.died ? defeatIntro : learnedSkill ? '足跡から学んだ知識が、次の冒険への可能性を広げた。' : '背嚢の素材を確保した。鍛冶師に渡せば、次の遠征で使う装備を製作できる。'}</p>${returnLoop}<div class='result-number'>${r.died ? '' : '+'}${r.scrap} <small>${r.died ? '鉄片を落とした' : '鉄片を確保'}</small></div>${materialList(r.materials) ? `<p class='notice'>${r.died ? '失った素材' : '持ち帰った素材'}：${materialList(r.materials)}。鍛冶師の仕事に使える。</p>` : ''}${blueprintReward}${commissionFeedback}${visitorNews}${landmarkOutcome}${state.neighborhood.result ? `<div class="home-return"><strong>${state.neighborhood.result.claimed ? '⚑ '+N.title(N.get(state.neighborhood,state.neighborhood.result.id))+'を開拓！' : state.neighborhood.result.died ? '土地と拠点は残っている。' : '拠点へ建材を持ち帰った。'}</strong><p>木材 +${state.neighborhood.result.wood} · 石材 +${state.neighborhood.result.stone}</p><small>${state.neighborhood.result.claimed ? 'この土地に、あなたの旗が立つ。' : '持ち帰った建材で、拠点に建物を増やせる。'}</small></div>` : ''}${lootRows}${duplicateRows}${recovery?.scrap ? `<div class='reward'><span class='reward-icon'>↺</span><div><strong>敗走跡：鉄片 ${recovery.scrap}</strong><small>次に同じ土地へ出れば背嚢へ戻る。生還するまで未確定。</small></div></div>` : ''}${!r.died && state.owned.includes('crown') ? `<p class='notice'>灰冠の廟を越えた。名もなき旅人の、最初の物語が残った。</p>` : ''}<p class='small rule-line'>${r.died ? (recovery ? '敗走は全損ではない。取り戻しに行くか、別の土地へ向かうかを選べる。' : '遠征の失敗で、恒久的な進行は失われません。') : state.cleared.length >= 2 && !state.owned.includes('crown') ? '二つの土地を越えた。次は「灰冠の廟」の主に挑める。' : '別の土地では異なる素材が見つかる。鍛冶師なら武具に変えられる。'}</p></div><div class="report-actions">${button('continue',r.died && recovery ? '敗走跡を回収する準備へ' : nextLabel,'',{class:'primary',disabled:unresolved > 0})}</div></section></div>`;
   }
@@ -827,11 +856,17 @@
       }
     }
     else if (action === 'field-step') { state=E.act(state,'field-step:'+value); }
+    else if (action === 'lantern-examine') { state=E.act(state,'lantern-examine'); }
     else if (action === 'tower-step') { state=E.act(state,'tower-step:'+value); }
     else if (action === 'fen-step') { state=E.act(state,'fen-step:'+value); }
     else if (action === 'auto-fight') { state = E.resolveFight(state); }
     else if (action === 'character') { state = E.switchCharacter(state,Number(value)); notice = state !== before ? `${state.characters[state.activeCharacter].name}に切り替えた。` : ''; tab='gear'; }
     else if (action === 'commission') { state = E.supplyCommission(state,value); notice = state !== before ? E.COMMISSIONS[value].requester+'へ装備を納品した。旅人に切り替え、'+E.place(value).name+'から生還すると報告が届く。' : ''; tab='gear'; }
+    else if (action === 'craft-tool') {
+      state = E.craftScoutLantern(state);
+      notice = state !== before ? '鍛冶師が斥候の灯を完成させた。旅人に交代して森の足跡を調べよう。' : '';
+      tab='gear';
+    }
     else if (action === 'craft-item' || action === 'craft-wolf-fang') { const recipeId = action === 'craft-item' ? value : 'forged_fang'; state = E.craftItem(state,recipeId); notice = state !== before ? `鍛冶師が${E.GEAR[recipeId].name}を完成させた。旅人に切り替えて試そう。` : ''; tab='gear'; }
     else if (action === 'equip') { state = E.equip(state,value); notice = `${E.GEAR[value].name}を装備した。`; }
     else if (action === 'maintain') { state = E.maintain(state); if (state !== before) notice = '刃を研いだ。次の遠征の最初の3戦で、初撃が +3 される。'; }
@@ -851,11 +886,18 @@
       lastReturnedPlace = gearStep ? state.report.place : null;
       prioritizeReinforcement = gearStep && !hasNewBattleGear && canPowerUp;
       const homeOpportunity = state.neighborhood.result && !state.report.died && (state.neighborhood.result.claimed || Object.keys(N.BUILDINGS).some(id => N.canBuild(state.neighborhood,id)));
-      const forgeReady = !state.report.died && Object.keys(E.RECIPES).some(id => canCraft(state,id));
+      const forgeReady = !state.report.died && (Object.keys(E.RECIPES).some(id => canCraft(state,id)) ||
+        (!state.ownedTools?.includes(E.SCOUT_LANTERN.id) &&
+          state.scrap>=E.SCOUT_LANTERN.scrap &&
+          (state.materials?.[E.SCOUT_LANTERN.material]||0)>=E.SCOUT_LANTERN.count));
       const commissionFinished = !state.report.died && state.commission.lastResult === state.report.place;
       tab = homeOpportunity ? 'home' : gearStep ? 'gear' : 'explore';
       if (forgeReady || commissionFinished || state.report.newDesign) tab = 'gear';
       if (state.report.newSkill === 'trailReading' && !state.report.died) { tab = 'status'; statusCharacter = 0; }
+      // First non-combat return should land next to its now affordable tool.
+      if (forgeReady && !state.ownedTools?.includes(E.SCOUT_LANTERN.id) &&
+          state.scrap>=E.SCOUT_LANTERN.scrap &&
+          (state.materials?.[E.SCOUT_LANTERN.material]||0)>=E.SCOUT_LANTERN.count) tab='gear';
       if (keptDuplicate) { lastReturnedPlace = state.report.place; prioritizeReinforcement = false; tab = 'gear'; }
       const completedLandmark = state.report.landmarkId &&
         state.claimedLandmarks?.includes(state.report.landmarkId) &&
