@@ -329,6 +329,31 @@ async function main() {
           await page.locator('[data-action="scout"][data-value="tower"]').click();
           assert(await page.locator('.nearby-track-tile[data-poi-family="shop"] .district-pixel-art').count() >= 1);
           assert(await page.locator('.nearby-track-tile[data-poi-family="event"] .district-pixel-art').count() >= 1);
+          // A numbered discovery pager must not wrap into a vertical fraction
+          // or hide its buttons at 390px. Check the actual computed geometry.
+          const pager=await page.locator('.nearby-track-switch').evaluate(el=>{
+            const counter=el.querySelector('.nearby-track-position');
+            const bounds=counter.getBoundingClientRect();
+            const buttons=[...el.querySelectorAll('button')].map(btn=>{
+              const r=btn.getBoundingClientRect();
+              return {width:r.width,height:r.height};
+            });
+            return {text:counter.textContent,whiteSpace:getComputedStyle(counter).whiteSpace,
+              counterHeight:bounds.height,counterWidth:bounds.width,
+              pagerWidth:el.getBoundingClientRect().width,buttons};
+          });
+          assert.match(pager.text,/\d+ \/ \d+/);
+          assert(pager.whiteSpace==='nowrap'&&pager.counterHeight<=22&&pager.counterWidth>=38,
+            'discovery count must stay horizontal: '+JSON.stringify(pager));
+          assert(pager.buttons.length===2&&pager.buttons.every(btn=>btn.height>=42&&btn.width>=84),
+            'previous and next destinations need full tap targets: '+JSON.stringify(pager));
+          const selectedBefore=await page.locator('.nearby-track-tile.selected').getAttribute('data-value');
+          await page.locator('.nearby-track-switch button').first().click();
+          assert.notEqual(await page.locator('.nearby-track-tile.selected').getAttribute('data-value'),selectedBefore,
+            'previous discovered land should react to a real touch');
+          await page.locator('.nearby-track-switch button').last().click();
+          assert.equal(await page.locator('.nearby-track-tile.selected').getAttribute('data-value'),selectedBefore,
+            'next discovered land should return to the original site');
           await page.screenshot({ path: path.join(output, "hybrid-discovery-390.png") });
           await page.locator('.nearby-track-tile[data-poi-family="shop"]').last().click();
           assert.match(await page.locator(".district-detail").innerText(), /見張り跡/);
