@@ -538,14 +538,16 @@ async function main() {
       await poiPage.screenshot({path:path.join(output,'tower-mystery-fork-390.png')});
       await poiPage.setViewportSize({width:360,height:800});
       const narrow=await fork.evaluate(el=>{
-        const dock=document.querySelector('.bottom-navigation').getBoundingClientRect();
+        const dock=document.querySelector('.bottom-navigation')?.getBoundingClientRect();
+        // Expedition scenes have no global dock: use the actual phone viewport.
+        const bottomLimit=dock?dock.top:innerHeight;
         return [...el.querySelectorAll('button')].map(b=>{
           const r=b.getBoundingClientRect(),hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
-          return {left:r.left,right:r.right,bottom:r.bottom,dockTop:dock.top,width:r.width,
+          return {left:r.left,right:r.right,bottom:r.bottom,bottomLimit,width:r.width,
             tappable:hit===b||b.contains(hit)};
         });
       });
-      assert(narrow.every(b=>b.left>=-1&&b.right<=361&&b.width>=110&&b.tappable&&b.bottom<=b.dockTop+2),
+      assert(narrow.every(b=>b.left>=-1&&b.right<=361&&b.width>=110&&b.tappable&&b.bottom<=b.bottomLimit+2),
         'both fork choices must fit and receive touch above the 360px dock: '+JSON.stringify(narrow));
       await poiPage.screenshot({path:path.join(output,'tower-mystery-fork-360.png')});
       await fork.locator('[data-action="tower-step"][data-value="23"]').click();
