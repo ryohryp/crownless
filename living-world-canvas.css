@@ -447,3 +447,96 @@
 @media(max-height:670px) {
   #game > .neighborhood-rebuild .nearby-track-footer {min-height:44px}
 }
+
+/* Living places v3: readable itinerant commerce, distinct watchtowers and
+   state-grounded changes. No shop/restoration cues for unearned sites. */
+#game > .neighborhood-rebuild .nearby-world-canvas .world-road-edge {stroke-width:15}
+#game > .neighborhood-rebuild .nearby-world-canvas .world-road-surface {stroke-width:9}
+#game > .neighborhood-rebuild .nearby-world-canvas .world-road-trail {
+  stroke-width:1.1;stroke-dasharray:1 9;
+}
+#game > .neighborhood-rebuild .nearby-world-canvas .world-trader {
+  fill:rgba(217,194,155,.76);
+  stroke:#665a48;
+  stroke-width:2;
+}
+#game > .neighborhood-rebuild .nearby-world-canvas .world-mystery {
+  fill:rgba(99,94,80,.34);
+  stroke:#585b51;
+  stroke-width:1.8;
+}
+#game > .neighborhood-rebuild .nearby-world-canvas .world-bell {
+  fill:rgba(218,181,111,.76);
+  stroke:#645039;
+  stroke-width:2;
+}
+#game > .neighborhood-rebuild .nearby-world-canvas .world-light {
+  fill:none;
+  stroke:#be9363;
+  stroke-width:2.5;
+}
+#game > .neighborhood-rebuild .nearby-world-canvas .world-owned {
+  fill:rgba(167,77,61,.62);
+  stroke:#875146;
+  stroke-width:1.7;
+}
+#game > .neighborhood-rebuild .nearby-world-canvas .world-trace {
+  fill:none;
+  stroke:#526e5d;
+  stroke-width:2.5;
+}
+#game > .neighborhood-rebuild .nearby-world-canvas .world-parcel {
+  fill:rgba(235,209,162,.9);
+  stroke:#615242;
+  stroke-width:2;
+}
+#game > .neighborhood-rebuild .nearby-world-canvas .world-site-tower.world-variant-0 {opacity:.89}
+#game > .neighborhood-rebuild .nearby-world-canvas .world-site-tower.world-variant-1 {opacity:.96}
+#game > .neighborhood-rebuild .nearby-world-canvas .world-site-tower.world-variant-2 {opacity:.88}
+#game > .neighborhood-rebuild .nearby-world-canvas .world-wisps {stroke-width:20;opacity:.82}
+/* All three pager columns are explicit: no more "2 / 7" split over 3 lines. */
+#game > .neighborhood-rebuild .nearby-track-footer .nearby-track-switch {
+  display:grid;
+  grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);
+  align-items:center;
+  justify-content:stretch;
+  column-gap:8px;
+  width:min(420px,100%);
+  min-width:0;
+  margin:0 auto;
+}
+#game > .neighborhood-rebuild .nearby-track-footer .nearby-track-switch button {
+  box-sizing:border-box;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  white-space:nowrap;
+  min-width:0;
+  width:100%;
+  min-height:44px;
+  padding:8px 6px;
+  border-radius:3px;
+  font:700 12px/1.2 system-ui,sans-serif;
+}
+#game > .neighborhood-rebuild .nearby-track-footer .nearby-track-position {
+  display:block;
+  min-width:52px;
+  width:auto;
+  padding:0 3px;
+  text-align:center;
+  white-space:nowrap;
+  word-break:keep-all;
+  overflow-wrap:normal;
+  font:700 13px/1.2 system-ui,sans-serif;
+  color:#433f38;
+}
+@media(max-width:480px) {
+  #game > .neighborhood-rebuild .nearby-track-footer .nearby-track-switch {
+    column-gap:5px;width:100%;
+  }
+  #game > .neighborhood-rebuild .nearby-track-footer .nearby-track-position {min-width:45px;font-size:12px}
+  #game > .neighborhood-rebuild .nearby-track-footer .nearby-track-switch button {min-height:44px;font-size:11px}
+}
+@media(max-height:670px) {
+  #game > .neighborhood-rebuild .nearby-track-footer .nearby-track-switch button {min-height:44px}
+}
