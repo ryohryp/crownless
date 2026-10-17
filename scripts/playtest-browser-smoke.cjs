@@ -1044,6 +1044,12 @@ async function main() {
         assert.equal(await guardianTile.count(),1,'guardian remains a real adjacent tap target');
         assert.equal(await guardianTile.evaluate(el=>el.classList.contains('guardian-threat')),true,
           'uncleared guardian is marked as a dangerous choice');
+        assert.equal(await guardianTile.evaluate(el=>el.classList.contains('guardian-clue-earned')),true,
+          'the listened shield clue adds a persistent visual cue on the guardian tile');
+        assert.match(await guardianTile.getAttribute('aria-label'),/盾を据える音を聞き取った番人/,
+          'the earned visual cue must also be accessible on a phone');
+        assert.match(await guardianTile.evaluate(el=>getComputedStyle(el,'::after').boxShadow),/3px/,
+          'the earned shield clue must render as a distinct outline');
         assert.equal(await guardianTile.evaluate(el=>el.classList.contains('walk-nav')),false,
           'the guardian must not use an ordinary safe-path waypoint');
         const dangerMark=await guardianTile.evaluate(el=>{

@@ -97,10 +97,11 @@
       const canStep=T.canMove(f,i);
       const [col,row]=T.coords(i),here=i===f.pos;
       const guardianThreat=kind==='guard'&&!f.guard&&seen&&canStep;
+      const earnedGuardianClue=guardianThreat&&f.listened===true;
       const classes=['field-cell',kind,seen?'revealed':'veiled',here?'here':'',canStep?'can-step':'',
         seen&&canStep&&kind!=='secret'&&!guardianThreat?'walk-nav':'',
-        guardianThreat?'guardian-threat':''].filter(Boolean).join(' ');
-      const label=here?'旅人の現在地':guardianThreat?'鎧の足音（踏み込むと戦闘）':seen?names[kind]:'未踏の塔内';
+        guardianThreat?'guardian-threat':'',earnedGuardianClue?'guardian-clue-earned':''].filter(Boolean).join(' ');
+      const label=here?'旅人の現在地':earnedGuardianClue?'盾を据える音を聞き取った番人（踏み込むと戦闘）':guardianThreat?'鎧の足音（踏み込むと戦闘）':seen?names[kind]:'未踏の塔内';
       const style=`grid-column:${col+1};grid-row:${row+1}`;
       if(canStep)return `<button type="button" class="${classes}" style="${style}"
         data-action="tower-step" data-value="${i}" aria-label="${label}へ進む"></button>`;

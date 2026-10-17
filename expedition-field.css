@@ -250,6 +250,13 @@
   box-shadow:0 0 12px #c86b5488;
   pointer-events:none;z-index:1;
 }
+/* Listening earns a visible memory of the shield clue, without making the
+   guardian look safe or turning its tile into a walking waypoint. */
+#game > .field-layout .tower-field.world-painted button.field-cell.guardian-threat.guardian-clue-earned::after {
+  border-color:#b6d6c1;
+  box-shadow:0 0 0 3px #8dbda477,0 0 12px #c86b5488;
+}
+
 #game > .field-layout .forest-field.world-painted button.field-cell.can-step:active {
   background:radial-gradient(ellipse at center,#f9e9af93,#fbdf8c38 55%,transparent 75%)!important;
 }
