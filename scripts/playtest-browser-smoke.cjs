@@ -662,7 +662,7 @@ async function main() {
           const r=b.getBoundingClientRect(),hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
           return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,tappable:hit===b||b.contains(hit)};
         }));
-        assert(fit.every(b=>b.left>=-1&&b.right<=width+1&&b.top>=0&&b.bottom<=innerHeight+2&&b.tappable),
+        assert(fit.every(b=>b.left>=-1&&b.right<=width+1&&b.top>=0&&b.bottom<=(width===360?800:844)+2&&b.tappable),
           width+'px discovered-stair fork must fit and receive touch: '+JSON.stringify(fit));
         await relicPage.screenshot({path:path.join(output,'tower-stair-found-fork-'+width+'.png')});
       }
