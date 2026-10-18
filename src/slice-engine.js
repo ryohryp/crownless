@@ -577,9 +577,23 @@
       // bypass forest skills, or reveal any hidden tile from the tool alone.
       if(action==='lantern-examine' && x.place==='wood' && x.depth===1 &&
         x.room===0 && x.field?.pos===F.TRACKS && !x.field.lanternClue &&
-        n.ownedTools?.includes(SCOUT_LANTERN.id)){
+        !x.field.tracksRisk && n.ownedTools?.includes(SCOUT_LANTERN.id)){
         x.field.lanternClue=true;
-        x.log=['斥候の灯の光が霧の流れを照らした。古い倒木の方から青白い反射が一瞬だけ返る。先を歩いて、周囲を自分の目で調べよう。'];
+        const scrap=Math.max(0,Math.min(2,1000-x.scrap));
+        x.scrap+=scrap;
+        x.log=[`斥候の灯で霧を照らすと、古い倒木の方から青白い反射が返った。根元に鉄片 +${scrap}。奥の道は自分の目で調べよう。生還まで背嚢の中だ。`];
+        return n;
+      }
+      // ADR 0015: the thorn search and lantern investigation are exclusive.
+      // Both rewards remain provisional until a genuine safe return.
+      if(action==='forest-tracks-risk' && x.place==='wood' && x.depth===1 &&
+        x.room===0 && x.field?.pos===F.TRACKS && x.field.tracks &&
+        !x.field.tracksRisk && !x.field.lanternClue &&
+        x.hp>4 && x.materials.wolfFang<1000000){
+        x.hp-=4;
+        x.materials.wolfFang++;
+        x.field.tracksRisk=true;
+        x.log=['獣の足跡を追って棘の茂みに踏み込んだ。体力 −4。古い獣骨から狼牙 +1 を拾った。生還まで失う危険がある。'];
         return n;
       }
       // A voluntary listening action reveals a risk clue without moving or starting combat.
