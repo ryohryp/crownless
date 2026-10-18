@@ -2,6 +2,7 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const E = require('../src/slice-engine.js');
 const N = require('../src/neighborhood.js');
+const T = require('../src/tower-field.js');
 
 test('bell relic changes the real fork into bank-now or risk-the-guardian without granting a blueprint', () => {
   const event = N.cell(400, 0);
@@ -46,4 +47,25 @@ test('bell relic changes the real fork into bank-now or risk-the-guardian withou
   assert.equal(safe.materials.watchIron, 1);
   assert.equal(safe.scrap, 4);
   assert.equal(safe.designs.shield_thorn, undefined, 'non-combat discovery cannot counterfeit the guardian recipe');
+});
+
+test('tower navigation requires discovered adjacent floor; fog and sealed stairs never offer shortcuts', () => {
+  const start = T.initial();
+  assert.equal(T.canMove(start, 21), true, 'normally revealed adjacent floor stays walkable');
+  assert.equal(T.canMove(start, 22), false, 'distant floor never becomes a shortcut');
+  assert.equal(T.canMove(start, 15), false, 'wall is not a navigation option');
+  const fogged = {...start, seen: 2 ** T.START};
+  assert.equal(T.valid(fogged), true, 'a valid save may have a smaller explored area');
+  assert.equal(T.visible(fogged, 21), false);
+  assert.equal(T.canMove(fogged, 21), false, 'adjacent but unrevealed floor is not walkable');
+  assert.equal(T.move(fogged, 21), null, 'direct movement cannot bypass fog');
+  const echo = {...start, pos: T.ECHO, seen: 2 ** T.ECHO};
+  assert.equal(T.canMove(echo, T.SECRET), false, 'undiscovered stair stays hidden');
+  const opened = T.uncover(echo, T.SECRET);
+  assert.equal(opened.pos, T.ECHO, 'investigation must not teleport');
+  assert.equal(T.visible(opened, T.SECRET), true, 'investigation reveals the stair');
+  assert.equal(T.canMove(opened, T.SECRET), true, 'earned secret becomes traversable');
+  const moved = T.move(opened, T.SECRET);
+  assert.equal(moved.pos, T.SECRET);
+  assert.equal(T.canMove(moved, T.RELIC), true, 'newly revealed reliquary is accessible');
 });

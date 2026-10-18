@@ -32,8 +32,11 @@
     (f.listened===undefined||typeof f.listened==='boolean')&&
     (f.rumor===undefined||typeof f.rumor==='boolean')&&
     (f.pos!==SECRET&&f.pos!==RELIC||f.open);
+  // A tile cannot become a navigation shortcut through unrevealed fog.
+  // Ordinary adjacent floors are revealed on approach; the secret is revealed
+  // only by deliberate investigation at the echo.
   const canMove=(f,to)=>valid(f)&&inBounds(to)&&!WALLS.includes(to)&&
-    adjacent(f.pos,to)&&(to!==SECRET||f.open)&&(to!==STAIRS||f.guard);
+    visible(f,to)&&adjacent(f.pos,to)&&(to!==SECRET||f.open)&&(to!==STAIRS||f.guard);
   const move=(f,to)=>canMove(f,to)?{...f,pos:to,seen:reveal(f.seen,to,f.open)}:null;
   const uncover=(f,to)=>valid(f)&&f.pos===ECHO&&to===SECRET&&!f.open?
     {...f,open:true,seen:reveal(f.seen,f.pos,true)}:null;
