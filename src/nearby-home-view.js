@@ -235,7 +235,7 @@
       const clueCard='<section class="nearby-info-piece district-poi-card">'+
         (towerMystery?'<span class="kicker">UNRESOLVED / 鐘の反響</span>':'')+
         '<h3>'+esc(poi.name)+'</h3><p>'+(towerMystery
-          ? '鐘のない塔から残響。音の出どころを探り、生還すれば拾った素材を持ち帰れる。'
+          ? '鐘のない塔から残響。音の出どころを探る。拾った素材は生還で確定し、生還できなければ失う。'
           : '強敵の手掛かりを追う。討伐すると'+esc(material.name)+'を通常より1個多く持ち帰れる。生還できなければ失う。')+'</p>'+
         (towerMystery?'<p>✦ 鎧の足音の奥に何があるのかは、まだ分からない。</p>':'')+
         button('poi',towerMystery?'鐘の手掛かりを追って出発':'強敵の手掛かりを追って出発','',
