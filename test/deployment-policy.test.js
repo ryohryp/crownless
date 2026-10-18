@@ -131,13 +131,18 @@ test('phone-smoke artifacts are short-lived and cleanup cannot touch Pages artif
   const workflow = read('.github/workflows/test.yml');
   const cleanup = read('.github/workflows/prune-phone-smoke-artifacts.yml');
 
-  assert.match(workflow, /failure\(\) \|\| github\.event_name == 'pull_request'/);
+  assert.match(workflow, /failure\(\) \|\| github\.event_name == 'workflow_dispatch'/);
+  assert.doesNotMatch(workflow, /failure\(\) \|\| github\.event_name == 'pull_request'/);
+  assert.match(workflow, /\n  workflow_dispatch:/);
   assert.match(workflow, /retention-days:\s*1/);
   assert.match(cleanup, /github\.repository == 'ryohryp\/crownless'/);
   assert.match(cleanup, /a\.name === 'crownless-phone-smoke'/);
   assert.match(cleanup, /screenshots\.slice\(0, 10\)/);
   assert.match(cleanup, /default: '168'/);
   assert.match(cleanup, /- '24'/);
+  assert.match(cleanup, /- '12'/);
+  assert.match(cleanup, /- '6'/);
+  assert.match(cleanup, /\['6', '12', '24', '168'\]/);
   assert.match(cleanup, /default: true/);
   assert.match(cleanup, /context\.actor !== 'ryohryp'/);
   assert.match(cleanup, /context\.eventName !== 'workflow_dispatch' && ageHours !== '168'/);
