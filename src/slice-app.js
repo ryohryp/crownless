@@ -108,11 +108,24 @@
         data-action="tower-step" data-value="${i}" aria-label="${label}へ進む"></button>`;
       return `<span class="${classes}" style="${style}" aria-label="${label}"></span>`;
     }).join('');
+    // Echoes and loot must change what the traveler understands on revisiting.
+    // Do not name the hidden chamber or its material before it is discovered.
+    const sceneCue=f.guard
+      ? '番人は退いた。上階への道が開いた。背嚢を持ち帰るか、先へ進むか。'
+      : f.relic
+        ? '納骨室で鐘鉄を見つけた。まだ背嚢の中だ。生還して持ち帰るか、番人に挑むか。'
+        : f.open
+          ? '隠し階段が開いた。奥はまだ未踏。自分の足で確かめよう。'
+          : f.echo
+            ? '鐘の欠片の反響が石壁の向こうから返る。壁を調べよう。'
+            : f.rumor
+              ? '鐘がないのに、石床の下から鳴る。床をタップして分かれ道へ。'
+              : '鐘の反響をたどって、石床をタップして進もう。';
     return `<section class="forest-field tower-field" data-field-pos="${f.pos}" data-field-seen="${f.seen}"
       data-tower-echo="${f.echo}" data-tower-open="${f.open}" data-tower-relic="${f.relic}"
       data-tower-guard="${f.guard}" data-tower-cache="${f.cache}" aria-label="歩いて探索できる鐘なき塔の入口階">
       <div class="forest-field-header"><span class="kicker">THE SILENT BELL · 石の塔</span>
-      <h2>${esc(title)}</h2><small>${f.rumor?'鐘がないのに、石床の下から鳴る。床をタップして分かれ道へ。':'鐘の反響をたどって、石床をタップして進もう。'}</small></div>
+      <h2>${esc(title)}</h2><small>${esc(sceneCue)}</small></div>
       <div class="field-terrain" role="group" aria-label="鐘なき塔の入口階を歩く">
       <div class="field-worldspace"><canvas class="forest-world-canvas" width="600" height="600" aria-hidden="true"></canvas>${cells}</div></div>
       <div class="forest-field-footer"><span>♜ 崩れた塔</span>
