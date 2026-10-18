@@ -335,7 +335,7 @@
     const towerDesignNote=d.biome==='tower' && poi.family==='event'
       ? designOrigin===d.id ? '<p class="notice">✓ この土地で「返し棘の盾」の設計図を発見済み。鍛冶師の製作一覧に残っている。</p>'
         : designOrigin ? '<p class="small">別の見張り跡で「返し棘の盾」の設計図を入手済み。</p>'
-        : '<p class="notice">✦ 固有の発見：鐘守の亡兵は「返し棘の盾」の設計図を守っている。倒して生還すれば製作解放。鐘鉄2個に加え、森の狼牙1個が必要。</p>'
+        : '<p class="small">鎧の足音の奥に何があるのかは、まだ分からない。</p>'
       : '';
     const poiArt=A.poiStamp?.(d.biome,poi.family) || poi.icon;
     const bellPanel=restoredBell
@@ -347,7 +347,7 @@
         + button('poi','薬草を買って、この森へ遠征','鉄片 '+E.LOCAL_HERB_COST+' / 薬草 +1',{class:'secondary',value:'herb',disabled:state.scrap < E.LOCAL_HERB_COST})
       : '';
     const poiCard='<details class="district-poi-card"><summary><span class="district-poi-icon" aria-hidden="true">'+poiArt+'</span><span class="district-poi-title"><small>'+esc(restoredBell ? '解決した異変' : poi.label)+'</small><strong>'+esc(restoredBell ? '鐘の戻った塔の残響' : poi.name)+'</strong></span><span class="district-poi-toggle" aria-hidden="true">＋</span></summary><div class="district-poi-content"><p>'+esc(restoredBell ? '亡兵の影は退き、街道に鐘が戻った。残響にはまだ危険があるが、強敵の手掛かりも追える。' : poi.description)+'</p>'+ (poi.family==='event' && material
-      ? button('poi','強敵の手掛かりを追って出発','討伐で'+esc(material.name)+' +1 / 生還で確定',{class:'primary',value:'clue',disabled:locked || state.activeCharacter!==0})
+      ? button('poi',d.biome==='tower'?'鐘の手掛かりを追って出発':'強敵の手掛かりを追って出発',d.biome==='tower'?'石床の鐘の音を調べる / 生還で素材を確定':'討伐で'+esc(material.name)+' +1 / 生還で確定',{class:'primary',value:'clue',disabled:locked || state.activeCharacter!==0})
       : button('poi',poi.actionLabel,'',{class:'secondary',value:poi.action,disabled:poi.action==='depart' && locked}))
       +opportunity+towerDesignNote+herbalist+'</div></details>';
     const localTrace = N.trace(d);

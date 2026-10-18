@@ -517,6 +517,10 @@ async function main() {
       await poiPage.locator('[data-action="nearby-view"][data-value="map"]').click();
       await poiPage.locator('.nearby-track-tile[data-value="0,1"]').click();
       await poiPage.locator('[data-action="nearby-view"][data-value="detail"]').click();
+      const towerEntry=poiPage.locator('.district-poi-card');
+      assert.match(await towerEntry.innerText(),/鐘の手掛かりを追って出発/);
+      assert.doesNotMatch(await towerEntry.innerText(),/返し棘の盾|固有の発見|討伐で鐘鉄/,
+        'tower event entry keeps the safe discovery and guardian reward surprising');
       await poiPage.screenshot({ path: path.join(output, "poi-clue-390.png") });
       await poiPage.locator('[data-action="poi"][data-value="clue"]').click();
       const explored=await poiPage.evaluate(() => JSON.parse(localStorage.getItem("crownless-expedition-v1-demo")));

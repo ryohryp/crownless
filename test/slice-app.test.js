@@ -643,8 +643,10 @@ test('tower mystery shows an actionable design reward and smith recipe after saf
   const key='crownless-expedition-v1-demo';
   const before=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(discovered)},false,false,false,true);
   before.click('nearby-view','detail');
-  assert.match(before.html(),/固有の発見：鐘守の亡兵/);
-  assert.match(before.html(),/返し棘の盾/);
+  assert.match(before.html(),/鐘の手掛かりを追って出発/);
+  assert.match(before.html(),/鎧の足音の奥に何があるのか/);
+  assert.doesNotMatch(before.html(),/固有の発見：鐘守の亡兵|返し棘の盾|討伐で鐘鉄/,
+    'the undiscovered bell mystery must not reveal the guardian reward');
   before.click('tab','gear');
   assert.match(before.html(),/塔の秘伝設計図/);
   assert.doesNotMatch(before.html(),/data-action="craft-item" data-value="shield_thorn"/);
