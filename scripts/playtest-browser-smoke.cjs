@@ -655,7 +655,7 @@ async function main() {
         await relicPage.setViewportSize({width,height:width===360?800:844});
         const openedFork=relicPage.locator('.tower-rumor-fork');
         assert.match(await openedFork.innerText(),/隠し階段を見つけた/);
-        assert.match(await relicPage.locator('.forest-field-header small').innerText(),/隠し階段が開いた。奥はまだ未踏/,
+        assert.match(await relicPage.locator('.forest-field-header small').innerText(),/隠し階段を見つけた石床は別の場所だ。足場をたどって戻ろう/,
           'the discovered stair changes the scene cue after reload without revealing loot');
         assert.match(await openedFork.innerText(),/見つけた階段を確かめる/);
         assert.doesNotMatch(await openedFork.innerText(),/床下の鐘の音を追う|鐘鉄を守って生還|盾の製法/);
