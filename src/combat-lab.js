@@ -41,7 +41,7 @@
     const scale = Math.min(devicePixelRatio || 1, 2);
     canvas.width = Math.round(r.width * scale);
     canvas.height = Math.round(r.height * scale);
-    width = Math.max(410, Math.min(1030, r.width / Math.max(1, r.height) * height));
+    width = Math.max(160, Math.min(1400, r.width / Math.max(1, r.height) * height));
     ctx.setTransform(canvas.width / width, 0, 0, canvas.height / height, 0, 0);
   }
   window.addEventListener('resize', resize);
