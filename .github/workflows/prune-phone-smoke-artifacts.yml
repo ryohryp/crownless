@@ -17,6 +17,8 @@ on:
         options:
           - '168'
           - '24'
+          - '12'
+          - '6'
       dry_run:
         description: Preview eligible artifacts without deleting
         type: boolean
@@ -53,7 +55,7 @@ jobs:
               process.env.DRY_RUN === 'true';
             const now = Date.now();
             const ageHours = process.env.PRUNE_AGE_HOURS;
-            if (!['24', '168'].includes(ageHours) ||
+            if (!['6', '12', '24', '168'].includes(ageHours) ||
                 (context.eventName !== 'workflow_dispatch' && ageHours !== '168')) {
               throw new Error('Invalid prune age for this event; refusing cleanup');
             }
