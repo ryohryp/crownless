@@ -234,10 +234,10 @@
     if(material&&poi.family==='event'){
       const clueCard='<section class="nearby-info-piece district-poi-card">'+
         (towerMystery?'<span class="kicker">UNRESOLVED / 鐘の反響</span>':'')+
-        '<h3>'+esc(poi.name)+'</h3><p>強敵の手掛かりを追う。討伐すると'+esc(material.name)+
-        'を通常より1個多く持ち帰れる。生還できなければ失う。</p>'+
-        (d.biome==='tower'&&!state.designs?.shield_thorn?
-          '<p>✦ 固有の発見：鐘守の亡兵は「返し棘の盾」の設計図を守る。倒して生還すれば製作解放。森の狼牙も必要。</p>':'')+
+        '<h3>'+esc(poi.name)+'</h3><p>'+(towerMystery
+          ? '鐘のない塔から残響。音の出どころを探り、生還すれば拾った素材を持ち帰れる。'
+          : '強敵の手掛かりを追う。討伐すると'+esc(material.name)+'を通常より1個多く持ち帰れる。生還できなければ失う。')+'</p>'+
+        (towerMystery?'<p>✦ 鎧の足音の奥に何があるのかは、まだ分からない。</p>':'')+
         button('poi',towerMystery?'鐘の手掛かりを追って出発':'強敵の手掛かりを追って出発','',
           {class:'primary',value:'clue',disabled:!traveler})+'</section>';
       // Put the actionable mystery above general lore, without introducing a
