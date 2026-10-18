@@ -197,7 +197,9 @@
         (foundRelicAtFork
           ? button('return','鐘鉄を守って生還','背嚢の素材を確定する',{class:'secondary'})
           : button('tower-step','床下の鐘の音を追う','石の向こうで残響が揺れる。何がある？',{value:String(T.ECHO),class:'secondary'}))+
-        button('tower-step','鎧の足音を追う','重い足音が近づく。まだ引き返せる',{value:'23',class:'secondary'})+
+        button('tower-step','鎧の足音を追う',foundRelicAtFork
+          ? (x.focus<3?'鐘鉄の共鳴で初手 +1。':'')+(state.designs?.shield_thorn?'勝てば鐘鉄 +1':'勝てば盾の製法')+'、敗れれば背嚢を失う'
+          : '重い足音が近づく。まだ引き返せる',{value:'23',class:'secondary'})+
         '</div>'
       : '';
     const cacheChoices=x.tower?.pos===window.CrownlessTowerField?.CACHE&&!x.tower.cache

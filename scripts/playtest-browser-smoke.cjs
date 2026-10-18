@@ -654,6 +654,8 @@ async function main() {
         const fork=relicPage.locator('.tower-rumor-fork');
         assert.match(await fork.innerText(),/鐘鉄を守って生還/);
         assert.match(await fork.innerText(),/鎧の足音を追う/);
+        assert.match(await fork.innerText(),/鐘鉄の共鳴で初手 \+1/,'earned resonance is visible before committing to risk');
+        assert.match(await fork.innerText(),/勝てば盾の製法、敗れれば背嚢を失う/,'the discovered fork states reward and loss');
         assert.equal(await fork.locator('button').count(),2);
         assert.equal(await relicPage.locator('.field-choices [data-action="return"]').count(),1,
           'only one return button at the relic fork');
