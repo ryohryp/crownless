@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>Crownless — 衝撃戦闘ラボ（独立試作）</title>
+<style>
+:root { color-scheme:dark; --paper:#d7c5a1; --ink:#201f22; --gold:#d8a65b; --red:#bf453b; }
+* { box-sizing:border-box; }
+html,body { margin:0; height:100%; overflow:hidden; background:#171c21; color:#f0e1c6;
+  font-family:system-ui,"Noto Sans JP",sans-serif; touch-action:none; }
+main { display:flex; flex-direction:column; height:100dvh; min-height:400px; }
+header { display:flex; align-items:center; justify-content:space-between; gap:8px; padding:calc(9px + env(safe-area-inset-top)) 12px 9px;
+  background:#25292d; border-bottom:2px solid #755c40; }
+.heading { min-width:0; }
+header h1 { font-size:16px; letter-spacing:.07em; margin:0; }
+header p { margin:3px 0 0; font-size:11px; color:#cfbd9e; }
+button { touch-action:none; -webkit-tap-highlight-color:transparent; cursor:pointer; }
+#reset { flex-shrink:0; background:#483c32; color:#f8e6c8; border:1px solid #947551;
+  border-radius:9px; padding:9px 12px; font-weight:700; font-size:12px; }
+#battle { position:relative; flex:1; min-height:220px; overflow:hidden;
+  background:linear-gradient(#373841,#51483c 50%,#9f8b6b 50%,#665c4b); }
+#arena { width:100%; height:100%; display:block; image-rendering:pixelated; }
+#hud { position:absolute; z-index:2; top:12px; left:12px; right:12px; display:flex; align-items:flex-start; gap:12px; pointer-events:none; }
+.pill { background:rgba(27,30,33,.88); border:1px solid #988164; border-radius:9px;
+  padding:8px 10px; font-size:12px; text-shadow:0 1px 2px #121212; }
+.pill strong { color:#f3d4a0; }
+#hpTrack { width:92px; height:8px; margin-top:5px; border:1px solid #95775a; border-radius:9px; overflow:hidden; background:#312c2c; }
+#hpFill { height:100%; width:100%; background:#84b77b; transition:width .12s; }
+#count { margin-left:auto; }
+#message { position:absolute; top:70px; left:10%; right:10%; z-index:2; text-align:center;
+ font-size:17px; font-weight:900; color:#fff1ce; text-shadow:1px 2px 1px #201815,0 0 16px #321b15;
+ pointer-events:none; }
+#touchpad { position:absolute; left:0; bottom:0; width:48%; height:45%; min-height:125px; z-index:4; touch-action:none; }
+#stickBase { position:absolute; width:102px; height:102px; border-radius:50%;
+  border:2px dashed #d8c29a; background:rgba(32,30,32,.45); transform:translate(-50%,-50%);
+  display:none; pointer-events:none; }
+#stickKnob { position:absolute; width:48px; height:48px; left:25px; top:25px; border-radius:50%;
+  background:#d4bb91; border:3px solid #fff1cf; box-shadow:0 0 12px #1a1717; }
+#moveHint { position:absolute; left:18px; bottom:calc(26px + env(safe-area-inset-bottom));
+  color:#fff1cf; font-size:12px; text-shadow:0 2px 4px #171414; opacity:.75; pointer-events:none; }
+#attack { position:absolute; right:calc(15px + env(safe-area-inset-right));
+  bottom:calc(25px + env(safe-area-inset-bottom)); z-index:5; width:110px; height:110px;
+  border-radius:50%; border:4px solid #ffdb9f; color:#fff6df;
+  background:linear-gradient(145deg,#e9694c,#9f292b);
+  box-shadow:0 8px 0 #592527,0 12px 18px #191718; font-size:16px; font-weight:900; }
+#attack:active, #attack.pressed { transform:translateY(5px) scale(.98); box-shadow:0 3px 0 #592527; }
+#attack small { display:block; font-size:10px; margin-top:3px; opacity:.9; }
+#help { position:absolute; bottom:calc(8px + env(safe-area-inset-bottom)); width:100%; text-align:center;
+  color:#f1debb; text-shadow:0 2px 4px #171414; font-size:10px; opacity:.78; pointer-events:none; }
+footer { flex-shrink:0; background:#25292d; border-top:1px solid #655442; padding:9px 12px calc(9px + env(safe-area-inset-bottom));
+ display:flex; flex-wrap:wrap; gap:8px; align-items:center; justify-content:space-between; font-size:11px; color:#e2cfb0; }
+footer strong { color:#f0c78c; }
+@media(min-width:650px) {
+ header { padding:12px 20px; }
+ #attack { right:7%; width:124px; height:124px; }
+ #touchpad { width:38%; }
+ #help { font-size:12px; }
+}
+@media(max-height:600px) {
+ #attack { width:87px; height:87px; bottom:18px; }
+ #touchpad { height:54%; }
+ #message { top:55px; }
+}
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <div class="heading"><h1>⚔ Crownless / 衝撃戦闘ラボ</h1><p>独立試作：吹き飛ばしが楽しいかだけを試す</p></div>
+    <button id="reset" type="button">↻ やり直す</button>
+  </header>
+  <section id="battle" aria-label="ゴブリン3体とのアクション戦闘">
+    <canvas id="arena" aria-label="戦闘画面"></canvas>
+    <div id="hud"><div class="pill">旅人 HP<div id="hpTrack"><div id="hpFill"></div></div></div>
+      <div class="pill" id="count">ゴブリン：<strong>3 / 3</strong></div></div>
+    <div id="message" aria-live="polite">移動して、ゴブリンを吹き飛ばそう！</div>
+    <div id="touchpad"><div id="stickBase"><div id="stickKnob"></div></div>
+      <span id="moveHint">左側をなぞって移動</span></div>
+    <button id="attack" type="button">斬り飛ばす<small>長押しで三連撃！</small></button>
+    <div id="help">PC：WASD / 矢印で移動・J / Space で攻撃</div>
+  </section>
+  <footer><span>命中で一瞬停止 → 大きく吹き飛ぶ → <strong>他の敵を巻き込む</strong></span>
+    <span id="stats">命中 0 ・ 巻き込み 0</span></footer>
+</main>
+<script src="src/impact-combat.js"></script>
+<script src="src/combat-lab.js"></script>
+</body>
+</html>
