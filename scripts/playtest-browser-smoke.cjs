@@ -655,7 +655,7 @@ async function main() {
         await relicPage.setViewportSize({width,height:width===360?800:844});
         const openedFork=relicPage.locator('.tower-rumor-fork');
         assert.match(await openedFork.innerText(),/隠し階段を見つけた/);
-        assert.match(await relicPage.locator('.tower-field-header small').innerText(),/隠し階段が開いた。奥はまだ未踏/,
+        assert.match(await relicPage.locator('.forest-field-header small').innerText(),/隠し階段が開いた。奥はまだ未踏/,
           'the discovered stair changes the scene cue after reload without revealing loot');
         assert.match(await openedFork.innerText(),/見つけた階段を確かめる/);
         assert.doesNotMatch(await openedFork.innerText(),/床下の鐘の音を追う|鐘鉄を守って生還|盾の製法/);
@@ -680,7 +680,7 @@ async function main() {
         await relicPage.setViewportSize({width,height:width===360?800:844});
         const fork=relicPage.locator('.tower-rumor-fork');
         assert.match(await fork.innerText(),/鐘鉄を守って生還/);
-        assert.match(await relicPage.locator('.tower-field-header small').innerText(),/鐘鉄を見つけた。まだ背嚢の中/,
+        assert.match(await relicPage.locator('.forest-field-header small').innerText(),/鐘鉄を見つけた。まだ背嚢の中/,
           'the recovered relic changes the scene cue and keeps unbanked loot at stake');
         assert.match(await fork.innerText(),/鎧の足音を追う/);
         assert.match(await fork.innerText(),/鐘鉄の共鳴で初手 \+1/,'earned resonance is visible before committing to risk');
