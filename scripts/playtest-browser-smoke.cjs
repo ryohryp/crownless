@@ -1203,10 +1203,20 @@ async function main() {
         s=await saved();
         assert.equal(s.expedition.tower.pos,17,'investigating opens a real barrier but does not move');
         assert.equal(s.expedition.tower.open,true);
+        assert.match(await page.locator('.forest-field-header small').innerText(),/この石床から進める/,
+          'opened stair is anchored to the discovered floor');
         assert.equal(await page.locator('.tower-field .field-cell.secret.walk-nav').count(),0,
           'opened hidden staircase stays unsignposted');
         await page.screenshot({path:path.join(output,'tower-hidden-stair-'+width+'.png')});
-        await step(12);await step(7);
+        await step(12);
+        assert.match(await page.locator('.forest-field-header small').innerText(),/隠し階段の中にいる/);
+        await step(17);await step(22);
+        assert.match(await page.locator('.forest-field-header small').innerText(),/足場をたどって戻ろう/,
+          'opened stair must not sound accessible from elsewhere');
+        await page.reload();
+        assert.match(await page.locator('.forest-field-header small').innerText(),/足場をたどって戻ろう/,
+          'opened stair location cue survives save/reload');
+        await step(17);await step(12);await step(7);
         s=await saved();
         assert.equal(s.expedition.tower.relic,true);
         assert.equal(s.expedition.materials.watchIron,1);
