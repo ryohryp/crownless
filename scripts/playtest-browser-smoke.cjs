@@ -1185,6 +1185,16 @@ async function main() {
         let s=await saved();
         assert.equal(s.expedition.tower.echo,true);
         assert.match(s.expedition.log[0],/鐘の欠片/);
+        assert.match(await page.locator('.forest-field-header small').innerText(),/この石床で壁を調べよう/,
+          'the echo can be investigated only at the discovered floor');
+        await step(22);
+        assert.match(await page.locator('.forest-field-header small').innerText(),/足場をたどって戻ろう/,
+          'walking away must not imply that any wall can be investigated');
+        await page.reload();
+        assert.match(await page.locator('.forest-field-header small').innerText(),/足場をたどって戻ろう/,
+          'the location-aware clue must survive save/reload');
+        await step(17);
+        assert.match(await page.locator('.forest-field-header small').innerText(),/この石床で壁を調べよう/);
         assert.equal(await page.locator('.tower-field .field-cell.secret.walk-nav').count(),0);
         await page.screenshot({path:path.join(output,'tower-bell-clue-'+width+'.png')});
         assert.equal(await page.locator('.tower-field [data-action="tower-step"][data-value="12"]').count(),0,
