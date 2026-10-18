@@ -24,15 +24,19 @@
   const reveal=(seen,pos,open=false)=>[pos,...neighbors(pos).filter(n=>open||n!==SECRET)].reduce(mark,seen);
   const initial=()=>({pos:START,seen:reveal(0,START),echo:false,open:false,relic:false,cache:false,guard:false,listened:false});
   const valid=f=>!!f&&typeof f==='object'&&!Array.isArray(f)&&Object.keys(f).every(k=>
-    ['pos','seen','echo','open','relic','cache','guard','listened'].includes(k))&&
+    ['pos','seen','echo','open','relic','cache','guard','listened','rumor'].includes(k))&&
     inBounds(f.pos)&&!WALLS.includes(f.pos)&&Number.isSafeInteger(f.seen)&&
     f.seen>0&&f.seen<2**COUNT&&visible(f,f.pos)&&
     ['echo','open','relic','cache','guard'].every(k=>typeof f[k]==='boolean')&&
     // Existing in-progress tower saves did not yet have the optional listen flag.
     (f.listened===undefined||typeof f.listened==='boolean')&&
+    (f.rumor===undefined||typeof f.rumor==='boolean')&&
     (f.pos!==SECRET&&f.pos!==RELIC||f.open);
+  // A tile cannot become a navigation shortcut through unrevealed fog.
+  // Ordinary adjacent floors are revealed on approach; the secret is revealed
+  // only by deliberate investigation at the echo.
   const canMove=(f,to)=>valid(f)&&inBounds(to)&&!WALLS.includes(to)&&
-    adjacent(f.pos,to)&&(to!==SECRET||f.open)&&(to!==STAIRS||f.guard);
+    visible(f,to)&&adjacent(f.pos,to)&&(to!==SECRET||f.open)&&(to!==STAIRS||f.guard);
   const move=(f,to)=>canMove(f,to)?{...f,pos:to,seen:reveal(f.seen,to,f.open)}:null;
   const uncover=(f,to)=>valid(f)&&f.pos===ECHO&&to===SECRET&&!f.open?
     {...f,open:true,seen:reveal(f.seen,f.pos,true)}:null;

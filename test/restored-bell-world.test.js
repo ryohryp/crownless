@@ -9,6 +9,7 @@ const demo=()=>({...E.initial(),mode:'demo'});
 const discoverEvent=()=>E.discoverDistrict(demo(),towerEvent);
 function solveEvent(){
   let fought=E.startWithLocalClue(discoverEvent());
+  for(const tile of [21,22,23,18,19,14,9])fought=E.act(fought,'tower-step:'+tile);
   fought.expedition.enemy.hp=1; // Shortened combat, normal victory and safe return.
   return E.act(E.act(fought,'strike'),'return');
 }
@@ -24,7 +25,8 @@ test('only safe return changes this tower; ordinary battle and incomplete expedi
   const plainReady={...ordinarySafe,report:null};
   assert.equal(E.startWithBellSignal(plainReady),plainReady,'ordinary battle never creates NPC');
   let clue=E.startWithLocalClue(discovered);
-  assert.equal(E.startWithBellSignal(clue),clue,'no service mid-battle');
+  assert.equal(E.startWithBellSignal(clue),clue,'no service mid-expedition');
+  for(const tile of [21,22,23,18,19,14,9])clue=E.act(clue,'tower-step:'+tile);
   clue.expedition.enemy.hp=1;
   const found=E.act(clue,'strike');
   assert.equal(E.startWithBellSignal(found),found,'unbanked design is not restored');

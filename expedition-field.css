@@ -439,6 +439,16 @@
   }
 }
 
+/* The rumor fork adds a decision row: reserve room for safe return on 360px. */
+@media (max-width:380px) and (min-height:701px) {
+  #game > .field-layout:has(.tower-field.world-painted):has(.tower-rumor-fork) {
+    grid-template-rows:minmax(0,46dvh) minmax(0,1fr)!important;
+  }
+  #game > .field-layout:has(.tower-rumor-fork) .tower-field.world-painted .field-terrain {
+    width:min(100%,calc(46dvh - 86px),390px);
+  }
+}
+
 /* Investigating a bell echo is a choice, not a movement waypoint. */
 #game > .field-layout .field-choices button.tower-echo-investigate {
   grid-column:1/-1;min-height:52px;padding:8px 12px;
@@ -448,4 +458,17 @@
 }
 #game > .field-layout .field-choices button.tower-echo-investigate small {
   display:block;margin-top:3px;color:#e5d4af;font-size:11px;
+}
+
+/* A real, reachable branch choice after two adjacent steps in the bell tower. */
+#game > .field-layout .field-choices .tower-rumor-fork {
+  grid-column:1/-1;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));
+  gap:7px;padding:8px;border:1px solid #b5a176;border-radius:7px;background:#22372f;
+}
+#game > .field-layout .field-choices .tower-rumor-fork p {
+  grid-column:1/-1;color:#f2dfb3;font-size:13px;line-height:1.4;margin:0;
+}
+#game > .field-layout .field-choices .tower-rumor-fork button {
+  max-width:none;min-width:0;width:100%;min-height:54px;padding:8px 6px;
+  font-size:12px;line-height:1.35;white-space:normal;
 }

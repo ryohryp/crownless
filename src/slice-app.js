@@ -112,7 +112,7 @@
       data-tower-echo="${f.echo}" data-tower-open="${f.open}" data-tower-relic="${f.relic}"
       data-tower-guard="${f.guard}" data-tower-cache="${f.cache}" aria-label="歩いて探索できる鐘なき塔の入口階">
       <div class="forest-field-header"><span class="kicker">THE SILENT BELL · 石の塔</span>
-      <h2>${esc(title)}</h2><small>鐘の反響をたどって、石床をタップして進もう。</small></div>
+      <h2>${esc(title)}</h2><small>${f.rumor?'鐘がないのに、石床の下から鳴る。床をタップして分かれ道へ。':'鐘の反響をたどって、石床をタップして進もう。'}</small></div>
       <div class="field-terrain" role="group" aria-label="鐘なき塔の入口階を歩く">
       <div class="field-worldspace"><canvas class="forest-world-canvas" width="600" height="600" aria-hidden="true"></canvas>${cells}</div></div>
       <div class="forest-field-footer"><span>♜ 崩れた塔</span>
@@ -186,6 +186,23 @@
       '</div></div>';
   }
   function towerDecision(x){
+    const T=window.CrownlessTowerField,f=x.tower;
+    // First real fork: two ways forward, one adjacent cell per click.
+    // Finding the reliquary changes the next choice: bank the discovery or risk it.
+    // Before discovery, do not spoil the safe route or its reward.
+    const foundRelicAtFork=Boolean(f?.rumor&&f.pos===22&&f.relic&&!f.guard);
+    const foundStairAtFork=Boolean(f?.rumor&&f.pos===22&&f.open&&!f.relic&&!f.guard);
+    const fork=f?.rumor&&f.pos===22&&!f.guard
+      ? '<div class="tower-rumor-fork" aria-label="鐘の謎の分かれ道"><p>'+
+        (foundRelicAtFork?'納骨室で鐘鉄を発見。鎧の足音に、背嚢の鐘鉄がかすかに応える。帰れば確定、進めば失うかもしれない。':foundStairAtFork?'鐘の反響を調べ、石壁の奥に隠し階段を見つけた。先を確かめるか、鎧の足音を追うか。':'床下には鐘の音。奥には鎧の足音。どちらを追う？')+'</p>'+
+        (foundRelicAtFork
+          ? button('return','鐘鉄を守って生還','背嚢の素材を確定する',{class:'secondary'})
+          : button('tower-step',foundStairAtFork?'見つけた階段を確かめる':'床下の鐘の音を追う',foundStairAtFork?'階段の先はまだ未踏。何が眠る？':'石の向こうで残響が揺れる。何がある？',{value:String(T.ECHO),class:'secondary'}))+
+        button('tower-step','鎧の足音を追う',foundRelicAtFork
+          ? (x.focus<3?'鐘鉄の共鳴で初手 +1。':'')+(state.designs?.shield_thorn?'勝てば鐘鉄 +1':'勝てば盾の製法')+'、敗れれば背嚢を失う'
+          : '重い足音が近づく。まだ引き返せる',{value:'23',class:'secondary'})+
+        '</div>'
+      : '';
     const cacheChoices=x.tower?.pos===window.CrownlessTowerField?.CACHE&&!x.tower.cache
       ? button('tower-cache-iron','鐘鉄をこじ取る','体力 −2 / 鐘鉄 +1 · 生還で確定',
           {disabled:x.hp<=2||x.materials.watchIron>=1000000})+
@@ -219,7 +236,7 @@
     return `<div class="field-decision"><div class="field-status">${vitals(x)}
       <div class="path-risk" data-tower-bag="true"><span>背嚢の戦利品</span><strong>鐘鉄 ${x.materials?.watchIron || 0} · 鉄片 ${x.scrap}</strong><small>生還で確定 · 倒れれば失う</small></div></div>
       <p class="field-moment" role="status">${esc(x.log[0]||'静かな石の塔。音のする方へ進める。')}${(relicChoice||thresholdChoice)?`<br>${esc(relicChoice||thresholdChoice)}`:''}</p>
-      <div class="field-choices">${cacheChoices}${echoChoice}${listenChoice}${button('return',safeReturnLabel,safeReturnHint,{class:'secondary'})}
+      <div class="field-choices">${fork}${cacheChoices}${echoChoice}${listenChoice}${foundRelicAtFork?'':button('return',safeReturnLabel,safeReturnHint,{class:'secondary'})}
       ${button('heal',`薬草 ${x.potions} · 体力 +12`,'',{class:'text-button',disabled:x.potions===0||x.hp===E.maxHp(state)})}</div></div>`;
   }
   function fieldDecision(x){
@@ -319,7 +336,7 @@
     const towerDesignNote=d.biome==='tower' && poi.family==='event'
       ? designOrigin===d.id ? '<p class="notice">✓ この土地で「返し棘の盾」の設計図を発見済み。鍛冶師の製作一覧に残っている。</p>'
         : designOrigin ? '<p class="small">別の見張り跡で「返し棘の盾」の設計図を入手済み。</p>'
-        : '<p class="notice">✦ 固有の発見：鐘守の亡兵は「返し棘の盾」の設計図を守っている。倒して生還すれば製作解放。鐘鉄2個に加え、森の狼牙1個が必要。</p>'
+        : '<p class="small">鎧の足音の奥に何があるのかは、まだ分からない。</p>'
       : '';
     const poiArt=A.poiStamp?.(d.biome,poi.family) || poi.icon;
     const bellPanel=restoredBell
@@ -331,7 +348,7 @@
         + button('poi','薬草を買って、この森へ遠征','鉄片 '+E.LOCAL_HERB_COST+' / 薬草 +1',{class:'secondary',value:'herb',disabled:state.scrap < E.LOCAL_HERB_COST})
       : '';
     const poiCard='<details class="district-poi-card"><summary><span class="district-poi-icon" aria-hidden="true">'+poiArt+'</span><span class="district-poi-title"><small>'+esc(restoredBell ? '解決した異変' : poi.label)+'</small><strong>'+esc(restoredBell ? '鐘の戻った塔の残響' : poi.name)+'</strong></span><span class="district-poi-toggle" aria-hidden="true">＋</span></summary><div class="district-poi-content"><p>'+esc(restoredBell ? '亡兵の影は退き、街道に鐘が戻った。残響にはまだ危険があるが、強敵の手掛かりも追える。' : poi.description)+'</p>'+ (poi.family==='event' && material
-      ? button('poi','強敵の手掛かりを追って出発','討伐で'+esc(material.name)+' +1 / 生還で確定',{class:'primary',value:'clue',disabled:locked || state.activeCharacter!==0})
+      ? button('poi',d.biome==='tower'?'鐘の手掛かりを追って出発':'強敵の手掛かりを追って出発',d.biome==='tower'?'石床の鐘の音を調べる / 生還で素材を確定':'討伐で'+esc(material.name)+' +1 / 生還で確定',{class:'primary',value:'clue',disabled:locked || state.activeCharacter!==0})
       : button('poi',poi.actionLabel,'',{class:'secondary',value:poi.action,disabled:poi.action==='depart' && locked}))
       +opportunity+towerDesignNote+herbalist+'</div></details>';
     const localTrace = N.trace(d);
@@ -563,9 +580,15 @@
         ? ' · 水面で読んだ薙ぎ払い。防御で受け流せば崩し追撃の好機。' : '';
     // The combat log lives in a collapsed support panel on phones. Surface
     // the first earned shield read beside the next combat decision instead.
+    // The relic's earned +1 also belongs beside the opening choice, not in the log.
     const earnedClueOutcome=x.place==='tower'&&x.tower?.listened&&e.kind==='knight'&&e.turn===1
       ? x.log.find(line=>/^(耳で覚えた盾の音|盾の構えを知っていたが)/.test(line)) : x.place==='fen'&&x.fen?.scouted&&e.kind==='wraith'&&e.turn===1
         ? x.log.find(line=>line.startsWith('薙ぎ払いを受け流した！')) : null;
+    // Keep tower resonance separate from fen/tower parry feedback.
+    const earnedResonanceOutcome=x.place==='tower'&&x.tower?.rumor&&x.tower?.relic&&e.kind==='knight'&&e.turn===0&&x.focus>0&&
+      x.log.some(line=>line.startsWith('納骨室の鐘鉄が番人の盾に共鳴した'))
+      ? '✦ 鐘鉄の共鳴：次の攻撃 +1。納骨室での発見が力になる。' : null;
+    const earnedOutcome=earnedClueOutcome||earnedResonanceOutcome;
     const strikeLabel = x.stagger ? '崩し追撃' : E.gearFamily(state.equipped) === 'bow' ? '射る' : '斬る';
     const enemyTag = `${info.archetype}${info.trait ? ` · 《${info.trait.name}》${info.trait.help}` : ''}`;
     const strongHelp = `気力 −${profile.heavyCost} / 大きな一撃${profile.heavyBonus > 4 ? ` · 補強 +${profile.heavyBonus - 4}` : ''}`;
@@ -584,7 +607,7 @@
     const combatNote = e.turn === 0
       ? ''
       : `<div class="combat-turn-note">${logs(x)}</div>`;
-    return `${siege ? `<p class="landmark-siege-progress" role="status">⚔ ${esc(siege.name)}の守護者を攻略中 · 倒して生還すると⚑支配</p>` : ''}${blessingText() ? `<p class="small combat-blessings" role="status">⚑ 領地の加護 · ${esc(blessingText())}</p>` : ''}<section class="combat-situation"><div class="combat-enemy-summary"><p class="kicker">${e.elite ? 'GUARDIAN' : 'ENCOUNTER'} / ${E.GEAR[state.equipped].name} · ${E.qualityLabel(E.weaponQuality(state,state.equipped))}${level > 0 ? ` · 補強 +${level}` : ''}</p><div class="hp-row"><h2 style="margin:0">${e.elite ? '主・' : ''}${E.ENEMIES[e.kind].name}</h2><span>${e.hp} <small class="small">/ ${e.maxHp}</small></span></div><p class="small combat-enemy-tag">${enemyTag}</p><div class="bar enemy-bar" role="meter" aria-label="敵の体力" aria-valuenow="${e.hp}" aria-valuemin="0" aria-valuemax="${e.maxHp}"><span style="width:${e.hp/e.maxHp*100}%"></span></div></div><div class="combat-vitals">${vitals(x)}</div><div class="intent" role="status"><p class="kicker">敵の次の行動 · 選ぶまで時間は進まない</p><span class="damage">${next.damage ? next.damage : '—'}</span><strong>${next.name}</strong><small>${next.help}${earnedClue}</small></div>${opening}${earnedClueOutcome?`<p class="combat-clue-outcome" role="status">${esc(earnedClueOutcome)}</p>`:''}</section><section class="combat-decision"><details class="combat-manual" open><summary>どう戦う？ · 4つの行動から選ぶ</summary><div class="choice-grid combat-choice-grid" data-opening="${x.stagger}">${button('strike',`${strikeLabel} <span class="cost">${strike}</span>`,strikeHelp)}${button('heavy',`${x.stagger ? '崩し強撃' : '強撃'} <span class="cost">${strong}</span>`,strongHelp,{disabled:x.stamina < profile.heavyCost})}${button('guard','防御',guardHelp)}${button('dodge','回避',dodgeHelp,{disabled:x.stamina < profile.dodgeCost})}</div></details><div class="combat-fast-choice">${button('auto-fight','自動で決着する','負傷・敗北の可能性あり',{class:'secondary'})}</div></section><details class="combat-support"><summary><span class="combat-support-closed">薬草・撤退・戦闘記録 · 背嚢の鉄片 ${x.scrap}</span><span class="combat-support-open">← 戦闘に戻る</span></summary><div class="combat-foot">${button('heal',`薬草 ${x.potions} · 体力 +12`,'敵も行動する',{class:'choice',disabled:x.potions === 0 || x.hp === E.maxHp(state)})}${button('flee',`撤退 · 体力 −${Math.max(2,next.damage)}`,x.hp <= Math.max(2,next.damage) ? '生還できない' : '残れば戦利品を持ち帰れる',{class:'choice',disabled:x.hp <= Math.max(2,next.damage)})}</div>${combatNote}<p class="small combat-bagline">背嚢：鉄片 ${x.scrap}${materialList(x.materials) ? ' / '+materialList(x.materials) : ''} · 生還で確定${x.focus ? ` / 追撃 +${x.focus}` : ''}</p></details>`;
+    return `${siege ? `<p class="landmark-siege-progress" role="status">⚔ ${esc(siege.name)}の守護者を攻略中 · 倒して生還すると⚑支配</p>` : ''}${blessingText() ? `<p class="small combat-blessings" role="status">⚑ 領地の加護 · ${esc(blessingText())}</p>` : ''}<section class="combat-situation"><div class="combat-enemy-summary"><p class="kicker">${e.elite ? 'GUARDIAN' : 'ENCOUNTER'} / ${E.GEAR[state.equipped].name} · ${E.qualityLabel(E.weaponQuality(state,state.equipped))}${level > 0 ? ` · 補強 +${level}` : ''}</p><div class="hp-row"><h2 style="margin:0">${e.elite ? '主・' : ''}${E.ENEMIES[e.kind].name}</h2><span>${e.hp} <small class="small">/ ${e.maxHp}</small></span></div><p class="small combat-enemy-tag">${enemyTag}</p><div class="bar enemy-bar" role="meter" aria-label="敵の体力" aria-valuenow="${e.hp}" aria-valuemin="0" aria-valuemax="${e.maxHp}"><span style="width:${e.hp/e.maxHp*100}%"></span></div></div><div class="combat-vitals">${vitals(x)}</div><div class="intent" role="status"><p class="kicker">敵の次の行動 · 選ぶまで時間は進まない</p><span class="damage">${next.damage ? next.damage : '—'}</span><strong>${next.name}</strong><small>${next.help}${earnedClue}</small></div>${opening}${earnedOutcome?`<p class="combat-clue-outcome" role="status">${esc(earnedOutcome)}</p>`:''}</section><section class="combat-decision"><details class="combat-manual" open><summary>どう戦う？ · 4つの行動から選ぶ</summary><div class="choice-grid combat-choice-grid" data-opening="${x.stagger}">${button('strike',`${strikeLabel} <span class="cost">${strike}</span>`,strikeHelp)}${button('heavy',`${x.stagger ? '崩し強撃' : '強撃'} <span class="cost">${strong}</span>`,strongHelp,{disabled:x.stamina < profile.heavyCost})}${button('guard','防御',guardHelp)}${button('dodge','回避',dodgeHelp,{disabled:x.stamina < profile.dodgeCost})}</div></details><div class="combat-fast-choice">${button('auto-fight','自動で決着する','負傷・敗北の可能性あり',{class:'secondary'})}</div></section><details class="combat-support"><summary><span class="combat-support-closed">薬草・撤退・戦闘記録 · 背嚢の鉄片 ${x.scrap}</span><span class="combat-support-open">← 戦闘に戻る</span></summary><div class="combat-foot">${button('heal',`薬草 ${x.potions} · 体力 +12`,'敵も行動する',{class:'choice',disabled:x.potions === 0 || x.hp === E.maxHp(state)})}${button('flee',`撤退 · 体力 −${Math.max(2,next.damage)}`,x.hp <= Math.max(2,next.damage) ? '生還できない' : '残れば戦利品を持ち帰れる',{class:'choice',disabled:x.hp <= Math.max(2,next.damage)})}</div>${combatNote}<p class="small combat-bagline">背嚢：鉄片 ${x.scrap}${materialList(x.materials) ? ' / '+materialList(x.materials) : ''} · 生還で確定${x.focus ? ` / 追撃 +${x.focus}` : ''}</p></details>`;
   }
   function landmarkOf(id) {
     return window.CrownlessTravelFootprints?.LANDMARKS?.find(place=>place.id===id) || null;

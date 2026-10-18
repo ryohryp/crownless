@@ -482,7 +482,7 @@ async function main() {
     }
 
     // A discovered POI must change REAL banked resources and expedition choices.
-    let forgedSaved=null;
+    let forgedSaved=null, towerRumorSaved=null;
     const poiContext = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
     const poiPage = await poiContext.newPage();
     try {
@@ -517,11 +517,57 @@ async function main() {
       await poiPage.locator('[data-action="nearby-view"][data-value="map"]').click();
       await poiPage.locator('.nearby-track-tile[data-value="0,1"]').click();
       await poiPage.locator('[data-action="nearby-view"][data-value="detail"]').click();
+      const towerEntry=poiPage.locator('.district-poi-card');
+      assert.match(await towerEntry.innerText(),/鐘の手掛かりを追って出発/);
+      assert.doesNotMatch(await towerEntry.innerText(),/返し棘の盾|固有の発見|討伐で鐘鉄/,
+        'tower event entry keeps the safe discovery and guardian reward surprising');
       await poiPage.screenshot({ path: path.join(output, "poi-clue-390.png") });
       await poiPage.locator('[data-action="poi"][data-value="clue"]').click();
+      const explored=await poiPage.evaluate(() => JSON.parse(localStorage.getItem("crownless-expedition-v1-demo")));
+      assert.equal(explored.expedition.stage,'path','bell rumor starts real exploration, not instant combat');
+      assert.equal(explored.expedition.tower.rumor,true);
+      towerRumorSaved=explored;
+      await poiPage.screenshot({path:path.join(output,'tower-mystery-entrance-390.png')});
+      for(const id of [21,22])
+        await poiPage.locator('.tower-field [data-action="tower-step"][data-value="'+id+'"]').click();
+      const fork=poiPage.locator('.tower-rumor-fork');
+      assert.match(await fork.innerText(),/鐘の音|鎧の足音/);
+      assert.doesNotMatch(await fork.innerText(),/戦わず発見を持ち帰れる|盾の製法|鐘鉄 \+/, 'the choice must not spoil the reward or safe route');
+      assert.equal(await fork.locator('button').count(),2,'both real adjacent branches must be selectable');
+      const fit=await fork.evaluate(el=>{
+        const r=el.getBoundingClientRect(),btns=[...el.querySelectorAll('button')].map(b=>b.getBoundingClientRect());
+        return {left:r.left,right:r.right,buttons:btns.map(b=>({left:b.left,right:b.right,width:b.width}))};
+      });
+      assert(fit.left>=-1&&fit.right<=391&&fit.buttons.every(b=>b.left>=-1&&b.right<=391&&b.width>=120),
+        'two actions fit at 390px: '+JSON.stringify(fit));
+      await poiPage.screenshot({path:path.join(output,'tower-mystery-fork-390.png')});
+      await poiPage.setViewportSize({width:360,height:800});
+      const narrow=await fork.evaluate(el=>{
+        const dock=document.querySelector('.bottom-navigation')?.getBoundingClientRect();
+        // Expedition scenes have no global dock: use the actual phone viewport.
+        const bottomLimit=dock?dock.top:innerHeight;
+        return [...el.querySelectorAll('button')].map(b=>{
+          const r=b.getBoundingClientRect(),hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
+          return {left:r.left,right:r.right,bottom:r.bottom,bottomLimit,width:r.width,
+            tappable:hit===b||b.contains(hit)};
+        });
+      });
+      assert(narrow.every(b=>b.left>=-1&&b.right<=361&&b.width>=110&&b.tappable&&b.bottom<=b.bottomLimit+2),
+        'both fork choices must fit and receive touch above the 360px dock: '+JSON.stringify(narrow));
+      await poiPage.screenshot({path:path.join(output,'tower-mystery-fork-360.png')});
+      await fork.locator('[data-action="tower-step"][data-value="23"]').click();
+      assert.match(await poiPage.locator('.field-moment').innerText(),/盾の影.*引き返せる/,
+        'choosing the footsteps must reveal new danger without starting a fight');
+      const stillWalking=await poiPage.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+      assert.equal(stillWalking.expedition.stage,'path','the player may still retreat after choosing danger');
+      await poiPage.setViewportSize({width:390,height:844});
+      for(const id of [18,19,14,9])
+        await poiPage.locator('.tower-field [data-action="tower-step"][data-value="'+id+'"]').click();
       const fight=await poiPage.evaluate(() => JSON.parse(localStorage.getItem("crownless-expedition-v1-demo")));
       assert.equal(fight.expedition.enemy.clue,true);
       assert.equal(fight.expedition.stage,"fight");
+      assert.equal(await poiPage.locator('.combat-clue-outcome').count(),0,
+        'the direct guardian route must not display an unearned relic resonance');
       await poiPage.reload();
       assert.match(await poiPage.locator("#game").innerText(), /鐘守の亡兵/);
       await poiPage.evaluate(()=>{
@@ -535,7 +581,7 @@ async function main() {
       assert.equal(found.expedition?.foundDesign,'shield_thorn','tower event victory reveals a carried design');
       assert.equal(found.designs.shield_thorn,undefined,'unreturned design must not be banked');
       await poiPage.screenshot({path:path.join(output,'blueprint-risk-390.png')});
-      await poiPage.locator('.path-actions [data-action="return"]').click();
+      await poiPage.locator('.field-choices [data-action="return"]').click();
       assert.match(await poiPage.locator('.report-layout').innerText(),/新しい製作レシピを解放：返し棘の盾/);
       await poiPage.locator('[data-action="continue"]').click();
       await poiPage.locator('[data-action="tab"][data-value="gear"]').click();
@@ -577,6 +623,109 @@ async function main() {
     } finally {
       await poiContext.close();
     }
+
+
+    // Re-enter from the real discovered POI, then earn the relic manually.
+    const relicContext=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+    const relicPage=await relicContext.newPage();
+    try {
+      assert(towerRumorSaved?.expedition?.tower?.rumor);
+      await relicPage.addInitScript(saved=>{
+        const key='crownless-expedition-v1-demo';
+        if(!localStorage.getItem(key)){
+          localStorage.setItem('crownless-expedition-mode','demo');
+          localStorage.setItem(key,JSON.stringify(saved));
+        }
+      },towerRumorSaved);
+      await relicPage.goto(url);
+      for(const id of [21,22,17])
+        await relicPage.locator('.tower-field [data-action="tower-step"][data-value="'+id+'"]').click();
+      assert.equal(await relicPage.locator('.tower-field [data-action="tower-step"][data-value="12"]').count(),0,
+        'hidden stair must not appear as normal navigation');
+      await relicPage.locator('.tower-echo-investigate').click();
+      const opened=await relicPage.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+      assert.equal(opened.expedition.tower.pos,17,'investigation must not teleport');
+      assert.equal(opened.expedition.tower.open,true);
+      // Returning to the fork after a deliberate investigation must remember
+      // the earned staircase without prematurely revealing the reliquary loot.
+      for(const id of [18,23,22])
+        await relicPage.locator('.tower-field [data-action="tower-step"][data-value="'+id+'"]').click();
+      await relicPage.reload();
+      for(const width of [390,360]){
+        await relicPage.setViewportSize({width,height:width===360?800:844});
+        const openedFork=relicPage.locator('.tower-rumor-fork');
+        assert.match(await openedFork.innerText(),/隠し階段を見つけた/);
+        assert.match(await openedFork.innerText(),/見つけた階段を確かめる/);
+        assert.doesNotMatch(await openedFork.innerText(),/床下の鐘の音を追う|鐘鉄を守って生還|盾の製法/);
+        assert.equal(await openedFork.locator('button').count(),2);
+        const fit=await openedFork.locator('button').evaluateAll(btns=>btns.map(b=>{
+          const r=b.getBoundingClientRect(),hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
+          return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,tappable:hit===b||b.contains(hit)};
+        }));
+        assert(fit.every(b=>b.left>=-1&&b.right<=width+1&&b.top>=0&&b.bottom<=(width===360?800:844)+2&&b.tappable),
+          width+'px discovered-stair fork must fit and receive touch: '+JSON.stringify(fit));
+        await relicPage.screenshot({path:path.join(output,'tower-stair-found-fork-'+width+'.png')});
+      }
+      await relicPage.locator('.tower-rumor-fork [data-action="tower-step"][data-value="17"]').click();
+      for(const id of [12,7,12,17,18,23,22])
+        await relicPage.locator('.tower-field [data-action="tower-step"][data-value="'+id+'"]').click();
+      await relicPage.reload();
+      const found=await relicPage.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+      assert.equal(found.expedition.tower.relic,true,'relic survives reload');
+      assert.equal(found.expedition.materials.watchIron,1,'unbanked bell iron remains at risk');
+      assert.equal(found.materials.watchIron,towerRumorSaved.materials.watchIron,'relic cannot bank before return');
+      for(const width of [390,360]){
+        await relicPage.setViewportSize({width,height:width===360?800:844});
+        const fork=relicPage.locator('.tower-rumor-fork');
+        assert.match(await fork.innerText(),/鐘鉄を守って生還/);
+        assert.match(await fork.innerText(),/鎧の足音を追う/);
+        assert.match(await fork.innerText(),/鐘鉄の共鳴で初手 \+1/,'earned resonance is visible before committing to risk');
+        assert.match(await fork.innerText(),/勝てば盾の製法、敗れれば背嚢を失う/,'the discovered fork states reward and loss');
+        assert.equal(await fork.locator('button').count(),2);
+        assert.equal(await relicPage.locator('.field-choices [data-action="return"]').count(),1,
+          'only one return button at the relic fork');
+        const boxes=await fork.locator('button').evaluateAll(btns=>btns.map(b=>{
+          const r=b.getBoundingClientRect(),at=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
+          return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,width:r.width,
+            tappable:at===b||b.contains(at),height:innerHeight};
+        }));
+        assert(boxes.every(b=>b.left>=-1&&b.right<=width+1&&b.width>=110&&
+          b.top>=0&&b.bottom<=b.height+2&&b.tappable),
+          width+'px relic choices must fit and receive touch: '+JSON.stringify(boxes));
+        await relicPage.screenshot({path:path.join(output,'tower-relic-return-fork-'+width+'.png')});
+      }
+      // Branch from the same unbanked discovery to verify its earned combat payoff.
+      // Keep the original page at the fork to test safe banking independently.
+      const riskContext=await browser.newContext({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+      try {
+        const riskPage=await riskContext.newPage();
+        await riskPage.addInitScript(saved=>{
+          localStorage.setItem('crownless-expedition-mode','demo');
+          localStorage.setItem('crownless-expedition-v1-demo',JSON.stringify(saved));
+        },found);
+        await riskPage.goto(url);
+        for(const id of [23,18,19,14,9])
+          await riskPage.locator('.tower-field [data-action="tower-step"][data-value="'+id+'"]').click();
+        const risky=await riskPage.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+        assert.equal(risky.expedition.stage,'fight');
+        assert.equal(risky.expedition.focus,1,'discovered relic earns opening focus');
+        for(const width of [390,360]) {
+          const height=width===360?800:844;
+          await riskPage.setViewportSize({width,height});
+          const feedback=riskPage.locator('.combat-clue-outcome');
+          assert.match(await feedback.innerText(),/鐘鉄の共鳴.*次の攻撃 \+1/);
+          const box=await feedback.boundingBox();
+          assert(box&&box.y>=0&&box.y+box.height<=height+2,
+            width+'px earned resonance must be visible at the opening choice');
+          await riskPage.screenshot({path:path.join(output,'tower-relic-combat-'+width+'.png')});
+        }
+      } finally {await riskContext.close();}
+      await relicPage.locator('.tower-rumor-fork [data-action="return"]').click();
+      const banked=await relicPage.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+      assert.equal(banked.expedition,null);
+      assert.equal(banked.materials.watchIron,towerRumorSaved.materials.watchIron+1,'safe return banks only new iron');
+      assert.equal(banked.designs.shield_thorn,undefined,'noncombat route never grants shield recipe');
+    } finally {await relicContext.close();}
 
     // Continue with the REAL crafted character from the successful play loop in
     // an independent browser to test the solved place, not a fabricated unlock.

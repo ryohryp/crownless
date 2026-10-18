@@ -5,7 +5,7 @@ const vm = require('node:vm');
 const E = require('../src/slice-engine.js');
 const F = require('../src/travel-footprints.js');
 const code = fs.readFileSync(require('node:path').join(__dirname,'../src/slice-app.js'),'utf8');
-function browser(seed = {}, storageFails = false, realChronicle = false, walkableForest = false) {
+function browser(seed = {}, storageFails = false, realChronicle = false, walkableForest = false, walkableTower = false) {
   const store = new Map(Object.entries(seed)), callbacks = {}, elements = {};
   const chronicleContainer = {innerHTML:'',querySelectorAll:()=>[]};
   for (const id of ['#game','#save-status','#save-label','#help-toggle','#help','#home-name']) elements[id] = {innerHTML:'',hidden:true,textContent:'',value:'',addEventListener(type,fn){this[type]=fn;},setAttribute(){}};
@@ -16,6 +16,7 @@ function browser(seed = {}, storageFails = false, realChronicle = false, walkabl
     addEventListener:(name,fn)=>{callbacks[name]=fn;},confirm:()=>callbacks.confirmRestart!==false,location:{reload(){callbacks.reloaded=true;}}};
   context.window=context;
   if (walkableForest) context.CrownlessField=require('../src/expedition-field.js');
+  if (walkableTower) context.CrownlessTowerField=require('../src/tower-field.js');
   context.CrownlessTravelFootprints=F;
   context.CrownlessTravelChronicleUI={
     getFootprints(mode='walk'){
@@ -605,7 +606,7 @@ test('a newly discovered event opens a higher-stakes hunt; a shop changes actual
   s=E.discoverDistrict(s,N.cell(400,0)); // First tower = event.
   s=E.discoverDistrict(s,N.cell(800,0)); // Second tower = shop.
   const key='crownless-expedition-v1-demo';
-  const b=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(s)});
+  const b=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(s)},false,false,false,true);
   b.click('nearby-view','detail');
   assert.match(b.html(),/交易路を発見/);
   assert.match(b.html(),/鐘鉄/);
@@ -620,9 +621,18 @@ test('a newly discovered event opens a higher-stakes hunt; a shop changes actual
   b.click('nearby-view','detail');
   assert.match(b.html(),/鐘の手掛かりを追って出発/);
   b.click('poi','clue');
-  const fight=E.parse(b.store.get(key));
-  assert.equal(fight.expedition.enemy.clue,true);
-  assert.equal(fight.expedition.enemy.risky,true);
+  let current=E.parse(b.store.get(key));
+  assert.equal(current.expedition.stage,'path');
+  assert.equal(current.expedition.tower.rumor,true);
+  assert.match(b.html(),/鐘がないのに/);
+  for(const tile of [21,22])b.click('tower-step',String(tile));
+  assert.match(b.html(),/床下の鐘の音を追う/);
+  assert.match(b.html(),/鎧の足音を追う/);
+  for(const tile of [23,18,19,14,9])b.click('tower-step',String(tile));
+  current=E.parse(b.store.get(key));
+  assert.equal(current.expedition.stage,'fight');
+  assert.equal(current.expedition.enemy.clue,true);
+  assert.equal(current.expedition.enemy.risky,true);
   assert.match(b.html(),/鐘守の亡兵/);
 });
 
@@ -631,15 +641,18 @@ test('tower mystery shows an actionable design reward and smith recipe after saf
   const N=require('../src/neighborhood.js');
   let discovered=E.discoverDistrict({...E.initial(),mode:'demo'},N.cell(400,0));
   const key='crownless-expedition-v1-demo';
-  const before=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(discovered)});
+  const before=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(discovered)},false,false,false,true);
   before.click('nearby-view','detail');
-  assert.match(before.html(),/固有の発見：鐘守の亡兵/);
-  assert.match(before.html(),/返し棘の盾/);
+  assert.match(before.html(),/鐘の手掛かりを追って出発/);
+  assert.match(before.html(),/鎧の足音の奥に何があるのか/);
+  assert.doesNotMatch(before.html(),/固有の発見：鐘守の亡兵|返し棘の盾|討伐で鐘鉄/,
+    'the undiscovered bell mystery must not reveal the guardian reward');
   before.click('tab','gear');
   assert.match(before.html(),/塔の秘伝設計図/);
   assert.doesNotMatch(before.html(),/data-action="craft-item" data-value="shield_thorn"/);
   before.click('tab','explore');
   before.click('poi','clue');
+  for(const tile of [21,22,23,18,19,14,9])before.click('tower-step',String(tile));
   const fight=JSON.parse(before.store.get(key));
   assert.equal(fight.expedition.enemy.clue,true);
   fight.expedition.enemy.hp=1;
@@ -667,6 +680,7 @@ test('restored tower map and Yuno are visible after safe return, and bell signal
   assert.doesNotMatch(before.html(),/鐘守の弟子・ユノ/);
   assert.doesNotMatch(before.html(),/data-action="bell-depart"/);
   state=E.startWithLocalClue(state);
+  for(const tile of [21,22,23,18,19,14,9])state=E.act(state,'tower-step:'+tile);
   state.expedition.enemy.hp=1;
   state=E.act(E.act(state,'strike'),'return');
   const returned=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(state)});
