@@ -191,12 +191,13 @@
     // Finding the reliquary changes the next choice: bank the discovery or risk it.
     // Before discovery, do not spoil the safe route or its reward.
     const foundRelicAtFork=Boolean(f?.rumor&&f.pos===22&&f.relic&&!f.guard);
+    const foundStairAtFork=Boolean(f?.rumor&&f.pos===22&&f.open&&!f.relic&&!f.guard);
     const fork=f?.rumor&&f.pos===22&&!f.guard
       ? '<div class="tower-rumor-fork" aria-label="鐘の謎の分かれ道"><p>'+
-        (foundRelicAtFork?'納骨室で鐘鉄を発見。鎧の足音に、背嚢の鐘鉄がかすかに応える。帰れば確定、進めば失うかもしれない。':'床下には鐘の音。奥には鎧の足音。どちらを追う？')+'</p>'+
+        (foundRelicAtFork?'納骨室で鐘鉄を発見。鎧の足音に、背嚢の鐘鉄がかすかに応える。帰れば確定、進めば失うかもしれない。':foundStairAtFork?'鐘の反響を調べ、石壁の奥に隠し階段を見つけた。先を確かめるか、鎧の足音を追うか。':'床下には鐘の音。奥には鎧の足音。どちらを追う？')+'</p>'+
         (foundRelicAtFork
           ? button('return','鐘鉄を守って生還','背嚢の素材を確定する',{class:'secondary'})
-          : button('tower-step','床下の鐘の音を追う','石の向こうで残響が揺れる。何がある？',{value:String(T.ECHO),class:'secondary'}))+
+          : button('tower-step',foundStairAtFork?'見つけた階段を確かめる':'床下の鐘の音を追う',foundStairAtFork?'階段の先はまだ未踏。何が眠る？':'石の向こうで残響が揺れる。何がある？',{value:String(T.ECHO),class:'secondary'}))+
         button('tower-step','鎧の足音を追う',foundRelicAtFork
           ? (x.focus<3?'鐘鉄の共鳴で初手 +1。':'')+(state.designs?.shield_thorn?'勝てば鐘鉄 +1':'勝てば盾の製法')+'、敗れれば背嚢を失う'
           : '重い足音が近づく。まだ引き返せる',{value:'23',class:'secondary'})+

@@ -646,6 +646,27 @@ async function main() {
       const opened=await relicPage.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
       assert.equal(opened.expedition.tower.pos,17,'investigation must not teleport');
       assert.equal(opened.expedition.tower.open,true);
+      // Returning to the fork after a deliberate investigation must remember
+      // the earned staircase without prematurely revealing the reliquary loot.
+      for(const id of [18,23,22])
+        await relicPage.locator('.tower-field [data-action="tower-step"][data-value="'+id+'"]').click();
+      await relicPage.reload();
+      for(const width of [390,360]){
+        await relicPage.setViewportSize({width,height:width===360?800:844});
+        const openedFork=relicPage.locator('.tower-rumor-fork');
+        assert.match(await openedFork.innerText(),/隠し階段を見つけた/);
+        assert.match(await openedFork.innerText(),/見つけた階段を確かめる/);
+        assert.doesNotMatch(await openedFork.innerText(),/床下の鐘の音を追う|鐘鉄を守って生還|盾の製法/);
+        assert.equal(await openedFork.locator('button').count(),2);
+        const fit=await openedFork.locator('button').evaluateAll(btns=>btns.map(b=>{
+          const r=b.getBoundingClientRect(),hit=document.elementFromPoint(r.left+r.width/2,r.top+r.height/2);
+          return {left:r.left,right:r.right,top:r.top,bottom:r.bottom,tappable:hit===b||b.contains(hit)};
+        }));
+        assert(fit.every(b=>b.left>=-1&&b.right<=width+1&&b.top>=0&&b.bottom<=innerHeight+2&&b.tappable),
+          width+'px discovered-stair fork must fit and receive touch: '+JSON.stringify(fit));
+        await relicPage.screenshot({path:path.join(output,'tower-stair-found-fork-'+width+'.png')});
+      }
+      await relicPage.locator('.tower-rumor-fork [data-action="tower-step"][data-value="17"]').click();
       for(const id of [12,7,12,17,18,23,22])
         await relicPage.locator('.tower-field [data-action="tower-step"][data-value="'+id+'"]').click();
       await relicPage.reload();
