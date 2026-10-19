@@ -61,7 +61,8 @@
       ctx.lineTo(x+32,y+8);ctx.closePath();ctx.fill();
       ctx.strokeStyle='#e0ce9a';ctx.lineWidth=4;
       ctx.beginPath();ctx.moveTo(x-34,y+16);ctx.quadraticCurveTo(x,y+35,x+35,y+10);ctx.stroke();
-      const pulse=16+(Math.sin(time/470)+1)*10;
+      // The bell's earned echo grows clearer once the concealed stair is opened.
+      const pulse=(f.open?24:16)+(Math.sin(time/(f.open?190:470))+1)*(f.open?14:10);
       ctx.beginPath();ctx.arc(x,y-4,pulse,0,Math.PI*2);
       ctx.strokeStyle='#eed8a654';ctx.lineWidth=3;ctx.stroke();
     }
