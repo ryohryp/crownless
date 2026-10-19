@@ -2263,6 +2263,12 @@
     updateRpgStatus();
     showRpgPanel();
   });
+  document.getElementById('rpgBackToMap').addEventListener('click', () => {
+    // Exit only from camp, after the player returned alive or lost this run.
+    // Do not import the lab's separate banked materials into production saves.
+    if (rpg.phase !== 'camp' || new URLSearchParams(location.search).get('from') !== 'discovered-wood') return;
+    window.location.assign('expedition.html');
+  });
   document.getElementById('rpgDepart').addEventListener('click', () => {
     if (!rpgRules.depart(rpg)) return;
     state.waveCount = 1;
