@@ -75,6 +75,14 @@ test('tower fog clears only its overlay and drawing goes idle after a step',()=>
 
   let opened=T.initial();
   for(const id of [21,22,T.ECHO])opened=T.move(opened,id);
+  section.dataset.fieldPos=String(opened.pos);
+  section.dataset.fieldSeen=String(opened.seen);
+  floor.arcs.length=0;
+  root.CrownlessTowerWorld.mount({querySelector(selector){
+    return selector==='.tower-field'?section:null;
+  }});
+  const beforePulse=Math.max(...floor.arcs.map(([,,radius])=>radius));
+  assert(Number.isFinite(beforePulse),'unopened bell has a visible ripple');
   opened=T.uncover(opened,T.SECRET);
   assert(opened?.open,'deliberate investigation reveals the hidden stair');
   section.dataset.fieldPos=String(opened.pos);
