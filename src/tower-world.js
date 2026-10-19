@@ -13,7 +13,9 @@
     ctx.fillStyle='#17242c';ctx.fillRect(0,0,W,W);
     // Tower floor is a single joined stone interior, not forest scenery.
     for(let id=0;id<T.COUNT;id++){
-      const [x,y]=center(id),col=id%5,row=Math.floor(id/5),wall=T.WALLS.includes(id)&&T.visible(f,id);
+      // Unseen cells have no floor or wall silhouette beneath the soft fog.
+      if(!T.visible(f,id))continue;
+      const [x,y]=center(id),col=id%5,row=Math.floor(id/5),wall=T.WALLS.includes(id);
       if(wall){
         ctx.fillStyle='#34414a';ctx.fillRect(x-59,y-59,118,118);
         ctx.fillStyle='#65716d';ctx.fillRect(x-57,y-58,114,8);
