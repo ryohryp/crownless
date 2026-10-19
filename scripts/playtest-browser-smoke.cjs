@@ -455,6 +455,38 @@ async function main() {
       }finally{await context.close();}
     }
 
+    // ADR 0015: the forest risk fork must remain touch-reachable on phones.
+    for (const [width,height] of [[360,800],[390,844]]) {
+      const context=await browser.newContext({viewport:{width,height},isMobile:true,hasTouch:true});
+      const page=await context.newPage();
+      try {
+        await page.goto(url);
+        await page.locator('[data-action="mode"][data-value="demo"]').click();
+        await page.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
+        for (const pos of [21,22,23,18])
+          await page.locator('.forest-field [data-action="field-step"][data-value="'+pos+'"]').click();
+        const fork=page.locator('.forest-tracks-fork');
+        assert.equal(await fork.isVisible(),true,'forest fork is visible on '+width+'px');
+        assert.doesNotMatch(await fork.innerText(),/狼牙 \+1/,'exact loot stays a discovery');
+        const risk=fork.locator('[data-action="forest-tracks-risk"]');
+        assert.equal(await risk.isEnabled(),true);
+        await risk.scrollIntoViewIfNeeded();
+        const box=await risk.boundingBox();
+        assert(box&&box.x>=0&&box.x+box.width<=width+2&&box.y>=0&&box.y+box.height<=height+2,
+          'risk choice must be tappable at '+width+'px');
+        await page.screenshot({path:path.join(output,'forest-risk-fork-'+width+'.png')});
+        await risk.click();
+        const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+        assert.equal(saved.expedition.materials.wolfFang,1,'reward remains in expedition bag');
+        assert.equal(saved.materials.wolfFang,0,'no banked loot before safe return');
+        await page.reload();
+        assert.equal(await page.locator('.forest-tracks-fork').count(),0,'fork cannot be farmed after reload');
+        await page.locator('.field-choices [data-action="return"]').click();
+        const banked=await page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+        assert.equal(banked.materials.wolfFang,1,'safe return banks the fang');
+      } finally { await context.close(); }
+    }
+
     // Separate compact and desktop viewport checks, without repeating the
     // expensive multi-stage adventure tests for each added breakpoint.
     for (const [width,height] of [[430,932],[1280,900]]) {
