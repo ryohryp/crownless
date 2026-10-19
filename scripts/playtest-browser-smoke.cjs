@@ -479,8 +479,12 @@ async function main() {
         const saved=await page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
         assert.equal(saved.expedition.materials.wolfFang,1,'reward remains in expedition bag');
         assert.equal(saved.materials.wolfFang,0,'no banked loot before safe return');
+        assert.match(await page.locator('.field-choices [data-action="return"]').innerText(),/狼牙を持って生還/,
+          'earned fang changes the safe-return decision on '+width+'px');
         await page.reload();
         assert.equal(await page.locator('.forest-tracks-fork').count(),0,'fork cannot be farmed after reload');
+        assert.match(await page.locator('.field-choices [data-action="return"]').innerText(),/狼牙を持って生還/,
+          'save/reload retains the earned safe-return label');
         await page.locator('.field-choices [data-action="return"]').click();
         const banked=await page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
         assert.equal(banked.materials.wolfFang,1,'safe return banks the fang');
