@@ -8,9 +8,10 @@ const vm=require('node:vm');
 const T=require('../src/tower-field.js');
 
 function fakeContext(){
-  const composites=[],images=[];
+  const composites=[],images=[],rects=[];
   const gradient=()=>({addColorStop(){}});
-  const ctx=new Proxy({createRadialGradient:gradient,drawImage(image){images.push(image);}}, {
+  const ctx=new Proxy({createRadialGradient:gradient,drawImage(image){images.push(image);},
+    fillRect(x,y,w,h){rects.push([x,y,w,h]);}}, {
     get(target,key){return key in target?target[key]:()=>{};},
     set(target,key,value){
       if(key==='globalCompositeOperation')composites.push(value);
@@ -18,7 +19,7 @@ function fakeContext(){
       return true;
     }
   });
-  return {ctx,composites,images};
+  return {ctx,composites,images,rects};
 }
 
 test('tower fog clears only its overlay and drawing goes idle after a step',()=>{
@@ -62,8 +63,27 @@ test('tower fog clears only its overlay and drawing goes idle after a step',()=>
   assert(fog.composites.includes('destination-out'),'visible cells clear the fog layer');
   assert(!floor.composites.includes('destination-out'),'fog never erases the stone floor');
   assert(floor.images.includes(overlay),'fog is drawn over the stone floor');
+  const painted=(x,y)=>floor.rects.some(r=>r[0]===x&&r[1]===y&&r[2]===118&&r[3]===118);
+  assert(painted(121,481),'discovered adjacent floor is drawn');
+  assert(!painted(241,241),'undiscovered secret has no floor silhouette under soft fog');
+  assert(!painted(241,121),'undiscovered reliquary has no floor silhouette under soft fog');
+  assert(!painted(1,1),'unseen wall is not disguised as a floor under fog');
 
   for(let time=220;time<=640&&pending.length;time+=70)pending.shift()(time);
   assert.equal(pending.length,0,'animation stops requesting frames after the step');
   assert.match(worldspace.style.transform,/translate3d/);
+
+  let opened=T.initial();
+  for(const id of [21,22,T.ECHO])opened=T.move(opened,id);
+  opened=T.uncover(opened,T.SECRET);
+  assert(opened?.open,'deliberate investigation reveals the hidden stair');
+  section.dataset.fieldPos=String(opened.pos);
+  section.dataset.fieldSeen=String(opened.seen);
+  section.dataset.towerOpen='true';
+  floor.rects.length=0;
+  root.CrownlessTowerWorld.mount({querySelector(selector){
+    return selector==='.tower-field'?section:null;
+  }});
+  assert(painted(241,241),'discovered stair floor becomes visible after investigation');
+  assert(!painted(241,121),'reliquary remains hidden until actually approached');
 });
