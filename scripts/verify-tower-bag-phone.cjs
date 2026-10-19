@@ -85,6 +85,14 @@ async function main() {
         const hidden = page.locator('.tower-field [data-action="tower-step"][data-value="12"]');
         assert.equal(await hidden.count(), 0,
           "hidden stair must not be a clickable fog tile before discovery");
+        // Capture the still-veiled secret before investigation; no stair silhouette leaks.
+        const sampleHidden = () => page.locator('.tower-field canvas.forest-world-canvas')
+          .evaluate(canvas => {
+            const ctx = canvas.getContext('2d');
+            const rgb = (x,y) => Array.from(ctx.getImageData(x,y,1,1).data).slice(0,3);
+            return { stairEdge: rgb(252,300), relicCenter: rgb(300,180) };
+          });
+        const beforeReveal = await sampleHidden();
         await page.screenshot({ path: path.join(output, "tower-echo-" + width + ".png") });
         const retreatBottom = await page.locator('.field-choices [data-action="return"]')
           .evaluate(el => el.getBoundingClientRect().bottom);
@@ -93,6 +101,14 @@ async function main() {
         assert.equal((await saved()).expedition.tower.pos, 17,
           "investigating the sound must not teleport");
         assert.equal((await saved()).expedition.tower.open, true);
+        await page.waitForTimeout(120);
+        const afterReveal = await sampleHidden();
+        const difference = beforeReveal.stairEdge.reduce(
+          (sum, value, i) => sum + Math.abs(value - afterReveal.stairEdge[i]), 0);
+        assert(difference > 18, "investigation visibly unveils the stair, difference=" + difference);
+        assert.deepEqual(afterReveal.relicCenter, beforeReveal.relicCenter,
+          "reliquary stays hidden until physically approached");
+        await page.screenshot({ path: path.join(output, "tower-stair-open-" + width + ".png") });
         assert.equal(await hidden.count(), 1, "discovered secret stair becomes an explicit tile");
         assert.equal(await hidden.evaluate(el => el.classList.contains("walk-nav")), false,
           "discovered secret stair is never an ordinary waypoint");
