@@ -229,8 +229,8 @@
           x.focus>=3?'集中は既に十分 · 鐘鉄を選べる':'鐘鉄を諦めて集中を3以上に / 次の戦闘に備える',
           {disabled:x.focus>=3})
       : '';
-    const echoChoice=x.tower?.pos===window.CrownlessTowerField?.ECHO&&!x.tower.open
-      ? button('tower-step','鐘の反響を確かめる','壁の向こうに響く音を調べる',
+    const echoChoice=x.tower?.pos===window.CrownlessTowerField?.ECHO
+      ? button('tower-step',x.tower.open?'見つけた隠し階段へ進む':'鐘の反響を確かめる',x.tower.open?'この石床からだけ進める · 戦利品は生還まで未確定':'壁の向こうに響く音を調べる',
           {value:String(window.CrownlessTowerField.SECRET),class:'tower-echo-investigate'}) : '';
     const listenChoice=x.tower?.pos===19&&!x.tower.guard&&!x.tower.listened
       ? button('tower-listen','足音に耳を澄ます','石段の奥の気配を確かめる',
