@@ -54,7 +54,24 @@ async function main() {
         };
       });
       try {
-        await page.goto('http://127.0.0.1:' + port + '/gemini-feel-lab.html', {
+        // Start in the real neighborhood scene, not via an invented deep link.
+        // Demo uses the same discovered-district selection UI as walk mode.
+        await page.goto('http://127.0.0.1:' + port + '/expedition.html', {
+          waitUntil: 'domcontentloaded', timeout: 30000,
+        });
+        await page.locator('[data-action="mode"][data-value="demo"]').click();
+        assert.equal(await page.locator('.nearby-track-tile.selected.track-wood').count(),1,
+          'a discovered woodland must be selected before the action gateway appears');
+        await page.locator('.nearby-card-actions [data-action="nearby-view"]').click();
+        assert.equal(await page.locator('[data-action="action-forest-lab"]').count(),1);
+        const saveBefore = await page.evaluate(
+          () => localStorage.getItem('crownless-expedition-v1-demo'));
+        await page.locator('[data-action="action-forest-lab"]').click();
+        await page.waitForURL('**/gemini-feel-lab.html?from=discovered-wood');
+        assert.equal(await page.evaluate(
+          () => localStorage.getItem('crownless-expedition-v1-demo')), saveBefore,
+          'entering action combat must not mutate production saves');
+        await page.goto('http://127.0.0.1:' + port + '/gemini-feel-lab.html?from=discovered-wood', {
           waitUntil: 'domcontentloaded', timeout: 30000,
         });
         await page.waitForFunction(() => {
