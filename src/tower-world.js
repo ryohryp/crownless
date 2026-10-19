@@ -13,7 +13,7 @@
     ctx.fillStyle='#17242c';ctx.fillRect(0,0,W,W);
     // Tower floor is a single joined stone interior, not forest scenery.
     for(let id=0;id<T.COUNT;id++){
-      const [x,y]=center(id),col=id%5,row=Math.floor(id/5),wall=T.WALLS.includes(id);
+      const [x,y]=center(id),col=id%5,row=Math.floor(id/5),wall=T.WALLS.includes(id)&&T.visible(f,id);
       if(wall){
         ctx.fillStyle='#34414a';ctx.fillRect(x-59,y-59,118,118);
         ctx.fillStyle='#65716d';ctx.fillRect(x-57,y-58,114,8);
@@ -33,8 +33,10 @@
         ellipse(ctx,x+35,y+29,13,5,'#2837409c');
       }
     }
+    // Paint real terrain clues only after discovery. Soft fog overlaps tile edges,
+    // so drawing hidden objects beneath it would leak the secret silhouette.
     // Sealed passage disguised as a stone wall. It has no waypoint.
-    {
+    if(T.visible(f,T.SECRET)){
       const [x,y]=center(T.SECRET);
       ctx.fillStyle=f.open?'#1d2a33':'#39474b';
       ctx.fillRect(x-55,y-54,110,108);
@@ -49,7 +51,7 @@
       }
     }
     // Bell fragment: the strange low ring leaks through the floor.
-    {
+    if(T.visible(f,T.ECHO)){
       const [x,y]=center(T.ECHO);
       ellipse(ctx,x,y+12,38,20,'#142c36d8');
       ctx.fillStyle='#bda46c';ctx.beginPath();
@@ -62,7 +64,7 @@
       ctx.strokeStyle='#eed8a654';ctx.lineWidth=3;ctx.stroke();
     }
     // A collapsed stair offers tactical focus, not more free treasure.
-    {
+    if(T.visible(f,T.CACHE)){
       const [x,y]=center(T.CACHE);
       ctx.save();ctx.translate(x,y);
       ctx.rotate(-.28);
@@ -72,7 +74,7 @@
       }ctx.restore();
     }
     // Stone sarcophagus is behind the hidden stair, not visible from the hall.
-    {
+    if(T.visible(f,T.RELIC)){
       const [x,y]=center(T.RELIC);
       ellipse(ctx,x,y+30,47,18,'#142732');
       ctx.fillStyle=f.relic?'#626864':'#9b9a7d';
@@ -86,7 +88,7 @@
       }
     }
     // Upward stairs are locked until the physical guard has been defeated.
-    {
+    if(T.visible(f,T.STAIRS)){
       const [x,y]=center(T.STAIRS);
       ctx.fillStyle='#132630';ctx.fillRect(x-43,y-55,86,111);
       for(let i=0;i<5;i++){
@@ -98,7 +100,7 @@
         ctx.moveTo(x+31,y-16);ctx.lineTo(x-31,y+26);ctx.stroke();}
     }
     // The guardian appears only when lit through exploration fog.
-    if(!f.guard){
+    if(!f.guard&&T.visible(f,T.GUARD)){
       const [x,y]=center(T.GUARD);
       ellipse(ctx,x,y+37,30,11,'#0c1c28b5');
       const bob=Math.sin(time/490)*2;
@@ -112,6 +114,7 @@
     }
     // Warm side torches make the halls feel different from green woodland.
     for(const id of [14,22]){
+      if(!T.visible(f,id))continue;
       const [x,y]=center(id);
       const n=Math.sin(time/250+id)*3;
       ctx.fillStyle='#282c2d';ctx.fillRect(x-42,y-45,7,48);
