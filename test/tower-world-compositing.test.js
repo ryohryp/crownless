@@ -89,9 +89,12 @@ test('tower fog clears only its overlay and drawing goes idle after a step',()=>
   section.dataset.fieldSeen=String(opened.seen);
   section.dataset.towerOpen='true';
   floor.rects.length=0;
+  floor.arcs.length=0;
   root.CrownlessTowerWorld.mount({querySelector(selector){
     return selector==='.tower-field'?section:null;
   }});
+  assert(floor.arcs.some(([,,radius])=>radius>beforePulse+8),
+    'earned stair discovery produces a visibly stronger bell ripple');
   assert(painted(241,241),'discovered stair floor becomes visible after investigation');
   assert(!painted(241,121),'reliquary remains hidden until actually approached');
 });
