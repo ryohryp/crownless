@@ -2224,6 +2224,7 @@
     document.getElementById('rpgPush').classList.toggle('hidden', !result);
     document.getElementById('rpgForge').classList.toggle('hidden', !camp || rpg.crafted);
     document.getElementById('rpgDepart').classList.toggle('hidden', !camp);
+    document.getElementById('rpgBackToMap').classList.toggle('hidden', !camp || new URLSearchParams(location.search).get('from') !== 'discovered-wood');
 
     document.getElementById('rpgBank').textContent =
       '🎒 未帰還素材 ' + rpg.unbanked + ' / 倉庫のゴブリンの牙 ' + rpg.banked;
