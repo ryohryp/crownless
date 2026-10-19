@@ -8,10 +8,10 @@ const vm=require('node:vm');
 const T=require('../src/tower-field.js');
 
 function fakeContext(){
-  const composites=[],images=[],rects=[];
+  const composites=[],images=[],rects=[],arcs=[];
   const gradient=()=>({addColorStop(){}});
   const ctx=new Proxy({createRadialGradient:gradient,drawImage(image){images.push(image);},
-    fillRect(x,y,w,h){rects.push([x,y,w,h]);}}, {
+    fillRect(x,y,w,h){rects.push([x,y,w,h]);},arc(x,y,r){arcs.push([x,y,r]);}}, {
     get(target,key){return key in target?target[key]:()=>{};},
     set(target,key,value){
       if(key==='globalCompositeOperation')composites.push(value);
@@ -19,7 +19,7 @@ function fakeContext(){
       return true;
     }
   });
-  return {ctx,composites,images,rects};
+  return {ctx,composites,images,rects,arcs};
 }
 
 test('tower fog clears only its overlay and drawing goes idle after a step',()=>{
