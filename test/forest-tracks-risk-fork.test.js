@@ -52,6 +52,13 @@ test('lantern gives safe scrap alternative, not a secret shortcut',()=>{
   assert.equal(returned.scrap,before.scrap+2,'scrap banks only after safe return');
 });
 
+test('choice hints disclose cost but not exact rewards',()=>{
+  const app=fs.readFileSync('src/slice-app.js','utf8');
+  assert.match(app,/体力 −4 · 獣骨を調べる/);
+  assert.match(app,/体力消費なし · 手掛かりを探す/);
+  assert.doesNotMatch(app,/体力 −4 · 狼牙 \+1/);
+});
+
 test('low HP blocks risk; controls use existing mobile choice area',()=>{
   const before=tracks({...E.initial(),mode:'demo'});
   const low={...before,expedition:{...before.expedition,hp:4}};
