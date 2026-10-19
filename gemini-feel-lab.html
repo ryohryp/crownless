@@ -108,9 +108,9 @@
         🤖 相棒: 同行AI
       </button>
       <button id="btnOpenShop" type="button" class="px-2 py-1 rounded font-bold bg-amber-500 hover:bg-amber-400 border border-amber-200 text-slate-950 shadow">
-        📜 冒険者アジト・野営地
+        📜 戦技試験場（デモ）
       </button>
-      <button id="btnSpawnWave" type="button" class="px-2 py-1 rounded font-bold bg-rose-700 hover:bg-rose-600 border border-rose-400/50 text-white">
+      <button id="btnSpawnWave" type="button" class="hidden px-2 py-1 rounded font-bold bg-rose-700 hover:bg-rose-600 border border-rose-400/50 text-white">
         ⚔️ 魔物増援
       </button>
       <button id="btnToggleSound" type="button" class="px-2 py-1 rounded font-bold bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200">
@@ -140,6 +140,9 @@
       <div class="absolute top-2 left-2 flex flex-col gap-1 pointer-events-none">
         <div id="weatherBadge" class="px-2 py-0.5 rounded bg-slate-900/85 border border-amber-400/40 text-amber-200 text-[10px] font-bold">
           🌅 刻限：茜色の古街道（第1陣）
+        </div>
+        <div id="rpgStatusBadge" class="px-2 py-0.5 rounded bg-amber-950/85 border border-amber-400/50 text-amber-100 text-[10px] font-bold">
+          🎒 未帰還 0　倉庫 0　武器：初期装備
         </div>
         <div id="zAxisBadge" class="hidden px-2 py-0.5 rounded bg-emerald-950/85 border border-emerald-400/60 text-emerald-300 text-[10px] font-bold">
           🎯 Z軸（奥行き）ロックオン中！攻撃が当たります
@@ -217,6 +220,24 @@
       </div>
     </div>
 
+    <!-- Tiny local RPG loop: encounter result, safe return and smithing.
+         It is intentionally separate from the original combat HUD / touch arc. -->
+    <div id="rpgPanel" class="hidden absolute inset-0 bg-slate-950/90 z-40 flex items-center justify-center p-3">
+      <div class="w-full max-w-sm rounded-xl border-2 border-amber-400 bg-slate-900 text-amber-50 shadow-xl p-4 space-y-3 max-h-full overflow-y-auto" role="dialog" aria-labelledby="rpgTitle" aria-modal="true">
+        <p class="text-[11px] text-amber-300 font-black">CROWNLESS / 遠征・生還・鍛冶</p>
+        <h2 id="rpgTitle" class="text-xl font-black">遠征の結果</h2>
+        <p id="rpgInfo" class="text-sm leading-relaxed text-slate-200"></p>
+        <p id="rpgBank" class="text-xs font-bold text-amber-200">持ち帰り前 0 / 倉庫 0</p>
+        <div class="grid gap-2">
+          <button id="rpgReturn" class="hidden min-h-12 bg-emerald-700 border border-emerald-400 rounded-lg font-black text-sm p-2" type="button">🏕 生還して素材を確保</button>
+          <button id="rpgPush" class="hidden min-h-12 bg-rose-900 border border-rose-500 rounded-lg font-bold text-sm p-2" type="button">⚔ さらに奥へ（敗北時は素材を失う）</button>
+          <button id="rpgForge" class="hidden min-h-12 bg-amber-600 border border-amber-300 rounded-lg font-black text-slate-950 text-sm p-2" type="button">⚒ 鍛冶で風裂きの剣を製作</button>
+          <button id="rpgDepart" class="hidden min-h-12 bg-sky-700 border border-sky-400 rounded-lg font-black text-sm p-2" type="button">🗺 もう一度、森へ遠征</button>
+        </div>
+        <p class="text-[10px] text-slate-400">独立した試遊版。素材と装備はこのページ内だけで保持され、リロードすると初期化されます。</p>
+      </div>
+    </div>
+
     <!-- 冒険者アジト・野営地ショップモーダル -->
     <div id="shopModal" class="hidden absolute inset-0 bg-slate-950/85 backdrop-blur-sm z-30 flex items-center justify-center p-4">
       <div class="w-full max-w-md bg-slate-900 border-2 border-amber-400 rounded-xl shadow-2xl overflow-hidden">
@@ -237,6 +258,7 @@
     </div>
   </main>
 
+<script src="src/gemini-rpg-loop.js"></script>
 <script>
 (() => {
   // ============================================================================
@@ -481,6 +503,9 @@
 
   let ginji = null;
   let sasuke = null;
+  // This page-only progression does not touch Crownless's production saves.
+  const rpgRules = window.CrownlessRpgLoop;
+  const rpg = rpgRules.create();
 
   function addIki(amount) {
     if (state.kabukiBurstTimer > 0) return;
@@ -564,7 +589,7 @@
     state.fighters.push(ginji, sasuke);
     spawnEnemyWave(1);
 
-    spawnItem('katana', 320, 320, 20);
+    // No found finished weapon: the stronger sword is crafted by the smith after a safe return.
     spawnItem('stone', 480, 290, 50);
     spawnItem('dango', 260, 255, 20, 45);
     updateUI();
@@ -1473,7 +1498,10 @@
 
   function performAttackHitbox(attacker, dmg, kbX, kbY, hitDowned, reachX = 56) {
     const burstMult = (attacker.team === 0 && state.kabukiBurstTimer > 0) ? 1.45 : 1.0;
-    const finalDmg = Math.round(dmg * burstMult);
+    // Crafting is felt in the original blowback physics, not only the damage number.
+    const forgedStrike = attacker === ginji && rpg.crafted;
+    const finalDmg = Math.round(dmg * burstMult * (forgedStrike ? 1.25 : 1));
+    const finalKnockback = forgedStrike ? kbX * 1.55 : kbX;
 
     for (const target of state.fighters) {
       if (target === attacker || target.team === attacker.team || target.state === 'DEAD') continue;
@@ -1482,7 +1510,7 @@
       const dz = Math.abs(target.z - attacker.z);
       const dy = Math.abs(target.y - attacker.y);
       if (dx >= -14 && dx <= reachX && dz <= 25 && dy <= 48) {
-        inflictDamage(target, finalDmg, attacker.facing * kbX, kbY, kbY >= 170 || hitDowned);
+        inflictDamage(target, finalDmg, attacker.facing * finalKnockback, kbY, kbY >= 170 || hitDowned);
         spawnSpark((attacker.x + target.x) * 0.5, target.z, target.y + 24, state.kabukiBurstTimer > 0);
         if (attacker.team === 0) {
           addIki(7);
@@ -1515,17 +1543,25 @@
       const q = quotes[Math.floor(Math.random() * quotes.length)];
       spawnPopup(q, target.x, target.z, target.y + 58, '#fde047');
       if (target.team === 1) {
+        if (rpgRules.claimMaterial(rpg)) {
+          spawnPopup('ゴブリンの牙 +1（未帰還）', target.x, target.z, target.y + 69, '#f4cf8f');
+          updateRpgStatus();
+        }
         addIki(16);
         spawnItem('coin', target.x, target.z, target.y + 12, target.isBoss ? 320 : 150);
       }
       sfx.play('heavy');
+      if (target === ginji && rpgRules.loseExpedition(rpg)) {
+        updateRpgStatus();
+        showRpgPanel();
+      }
       setTimeout(() => {
         const idx = state.fighters.indexOf(target);
         if (idx !== -1) state.fighters.splice(idx, 1);
         const remainingEnemies = state.fighters.filter(f => f.team === 1 && f.state !== 'DEAD');
-        if (remainingEnemies.length === 0) {
-          state.waveCount++;
-          spawnEnemyWave(state.waveCount);
+        if (remainingEnemies.length === 0 && rpgRules.clearWave(rpg)) {
+          updateRpgStatus();
+          showRpgPanel();
         }
         updateUI();
       }, 650);
@@ -1936,6 +1972,13 @@
     ctx.fillStyle = '#fed7aa';
     ctx.fillRect(8 + armReach, -24 - bob, 9, 8);
 
+    if (f === ginji && rpg.crafted) {
+      // The smith-forged blade is always visible, even after throwing a temporary pickup.
+      ctx.fillStyle = '#ffe5ac';
+      ctx.fillRect(14 + armReach, -30 - bob, 33, 5);
+      ctx.fillStyle = '#ca8d49';
+      ctx.fillRect(12 + armReach, -34 - bob, 4, 13);
+    }
     if (f.heldWeapon) {
       if (f.heldWeapon.type === 'katana') {
         ctx.fillStyle = '#e2e8f0';
@@ -2162,7 +2205,74 @@
   });
 
   // ============================================================================
-  // 14. メインゲームループ
+  // 14. 生還・鍛冶：元のアクションを変えない一画面の実験
+  // ============================================================================
+  function updateRpgStatus() {
+    const badge = document.getElementById('rpgStatusBadge');
+    badge.textContent = '🎒 未帰還 ' + rpg.unbanked + '　倉庫 ' + rpg.banked +
+      '　武器：' + (rpg.crafted ? '⚔ 風裂きの剣' : '初期装備');
+  }
+
+  function showRpgPanel() {
+    const panel = document.getElementById('rpgPanel');
+    const result = rpg.phase === 'return';
+    const camp = rpg.phase === 'camp';
+    panel.classList.toggle('hidden', !(result || camp));
+
+    document.getElementById('rpgReturn').classList.toggle('hidden', !result);
+    document.getElementById('rpgPush').classList.toggle('hidden', !result);
+    document.getElementById('rpgForge').classList.toggle('hidden', !camp || rpg.crafted);
+    document.getElementById('rpgDepart').classList.toggle('hidden', !camp);
+
+    document.getElementById('rpgBank').textContent =
+      '🎒 未帰還素材 ' + rpg.unbanked + ' / 倉庫のゴブリンの牙 ' + rpg.banked;
+    const forge = document.getElementById('rpgForge');
+    forge.disabled = rpg.banked < rpgRules.COST;
+    forge.textContent = '⚒ 風裂きの剣を製作（牙 ' + rpgRules.COST + '個）';
+    forge.classList.toggle('opacity-40', forge.disabled);
+    forge.classList.toggle('cursor-not-allowed', forge.disabled);
+    document.getElementById('rpgTitle').textContent = result ? '敵を退けた！ 帰還する？' :
+      (rpg.lastOutcome === 'defeated' ? '敗北。素材を失った……' :
+       rpg.lastOutcome === 'crafted' ? '鍛冶師の剣が完成！' : '無事に生還！');
+    document.getElementById('rpgInfo').textContent = result
+      ? '倒した魔物の牙は、まだ背嚢の中。生きて帰れば鍛冶の素材になる。奥へ進めば戦利品は増えるが、敗北すると今回の背嚢を失う。'
+      : (rpg.lastOutcome === 'defeated'
+         ? '今回の未帰還素材は失った。以前に倉庫へ持ち帰った分と制作済みの武器は残る。'
+         : rpg.crafted
+           ? '鍛冶師が仕立てた風裂きの剣を装備。次の遠征では打撃の威力だけでなく、敵を吹き飛ばす勢いも増す。'
+           : '倉庫に集めたゴブリンの牙3個から、鍛冶師が風裂きの剣を作れる。');
+  }
+
+  document.getElementById('rpgReturn').addEventListener('click', () => {
+    if (!rpgRules.returnAlive(rpg, ginji && ginji.hp)) return;
+    updateRpgStatus();
+    showRpgPanel();
+  });
+  document.getElementById('rpgPush').addEventListener('click', () => {
+    if (!rpgRules.pushDeeper(rpg)) return;
+    state.waveCount++;
+    spawnEnemyWave(state.waveCount);
+    updateRpgStatus();
+    showRpgPanel();
+  });
+  document.getElementById('rpgForge').addEventListener('click', () => {
+    if (!rpgRules.forge(rpg)) return;
+    sfx.play('heavy');
+    updateRpgStatus();
+    showRpgPanel();
+  });
+  document.getElementById('rpgDepart').addEventListener('click', () => {
+    if (!rpgRules.depart(rpg)) return;
+    state.waveCount = 1;
+    state.tokenManager = new BattleTokenManager(2);
+    state.kabukiBurstTimer = 0;
+    initStage();
+    updateRpgStatus();
+    showRpgPanel();
+  });
+
+  // ============================================================================
+  // 15. メインゲームループ
   // ============================================================================
   let lastTimestamp = performance.now();
   function gameLoop(now) {
@@ -2183,7 +2293,7 @@
       spawnSakuraBurst(ginji.x + (Math.random() - 0.5) * 420, 220, 120, 1);
     }
 
-    for (const f of state.fighters) {
+    if (rpg.phase === 'fight') for (const f of state.fighters) {
       let input;
       if (f === ginji) {
         input = samplePlayer1Input(dt);
@@ -2260,6 +2370,7 @@
   window.onload = () => {
     applyLayoutMode();
     initStage();
+    updateRpgStatus();
     requestAnimationFrame(gameLoop);
   };
 })();

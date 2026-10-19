@@ -79,6 +79,12 @@ async function main() {
         assert(status.punchTouchable && status.buttonWidth >= 60 && status.canvasHeight >= 180,
           'real thumb punch must be reachable: ' + JSON.stringify(status));
         assert(status.scrollWidth <= width + 1, 'no full-document horizontal overflow');
+        assert.equal(await page.locator('#rpgPanel').isVisible(), false,
+          'combat starts immediately without an RPG menu blocking original touch controls');
+        assert.match(await page.locator('#rpgStatusBadge').innerText(), /未帰還 0.*倉庫 0.*初期装備/,
+          'run starts with no material and no forged weapon');
+        assert.equal(await page.evaluate(() => typeof window.CrownlessRpgLoop.forge), 'function',
+          'isolated smithing rules load in the real browser');
 
         // Walk close to the original enemy wave and hold attack as the original invites.
         await page.keyboard.down('d');
