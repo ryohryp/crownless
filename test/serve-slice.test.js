@@ -31,6 +31,7 @@ test('serve-slice loopback server correctly allows playable slice assets', async
     });
 
     assert.equal(await get('/expedition.html'), 200);
+    assert.equal(await get('/gemini-feel-lab.html'), 200);
     assert.equal(await get('/phone-density.css'), 200);
     assert.equal(await get('/exploration-atlas.css'), 200);
     assert.equal(await get('/src/slice-app.js'), 200);
