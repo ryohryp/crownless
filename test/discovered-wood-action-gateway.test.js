@@ -24,7 +24,7 @@ test('only a discovered selected woodland advertises an optional action expediti
   state=E.discoverDistrict(state,N.cell(400,0));
   assert.notEqual(N.get(state.neighborhood).biome,'wood');
   assert.doesNotMatch(detail(state),/action-forest-lab/,'different discovered biome must not gain action combat');
-  state=E.selectDistrict(state,'0,0');
+  state=E.selectDistrict(state,'-1,0');
   assert.match(detail(state),/action-forest-lab/,'returning to discovered forest restores the optional action');
 });
 
