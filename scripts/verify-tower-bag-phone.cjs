@@ -96,9 +96,16 @@ async function main() {
         assert.equal(await hidden.count(), 1, "discovered secret stair becomes an explicit tile");
         assert.equal(await hidden.evaluate(el => el.classList.contains("walk-nav")), false,
           "discovered secret stair is never an ordinary waypoint");
-        assert.equal(await investigate.count(), 0, "discovery action must disappear once opened");
+        assert.equal(await investigate.count(), 1, "opened stair offers an explicit entry action");
+        assert.match(await investigate.innerText(), /見つけた隠し階段へ進む/,
+          "investigation becomes earned entry, not a repeatable discovery");
+        await investigate.click();
+        assert.equal((await saved()).expedition.tower.pos, 12,
+          "entry moves exactly one adjacent step onto the discovered stair");
         await page.reload();
         assert.equal((await saved()).expedition.tower.open, true, "discovery survives reload");
+        assert.equal((await saved()).expedition.tower.pos, 12,
+          "current save resumes on the earned stair");
         await page.locator('.field-choices [data-action="return"]').click();
         assert.equal((await saved()).materials.watchIron, 1,
           "safe return must bank collected iron");
