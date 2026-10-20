@@ -62,11 +62,13 @@ async function main() {
         await page.locator('[data-action="mode"][data-value="demo"]').click();
         assert.equal(await page.locator('.nearby-track-tile.selected.track-wood').count(),1,
           'a discovered woodland must be selected before the action gateway appears');
-        await page.locator('.nearby-card-actions [data-action="nearby-view"]').click();
-        assert.equal(await page.locator('[data-action="action-forest-lab"]').count(),1);
+        const mainAction = page.locator('.nearby-card-actions button:first-child');
+        assert.equal(await mainAction.getAttribute('data-action'), 'action-forest-lab',
+          'the most prominent forest departure must start real-time combat');
+        assert.match(await mainAction.innerText(), /アクション遠征/);
         const saveBefore = await page.evaluate(
           () => localStorage.getItem('crownless-expedition-v1-demo'));
-        await page.locator('[data-action="action-forest-lab"]').click();
+        await mainAction.click();
         await page.waitForURL('**/gemini-feel-lab.html?from=discovered-wood');
         assert.equal(await page.evaluate(
           () => localStorage.getItem('crownless-expedition-v1-demo')), saveBefore,
