@@ -7,6 +7,22 @@ const F=require('../src/expedition-field.js');
 const walk=(s,steps)=>steps.reduce((state,pos)=>E.act(state,'field-step:'+pos),s);
 const tracks=s=>walk(E.start(s,'wood'),[21,22,23,F.TRACKS]);
 
+test('a nearby rustle invites discovery before the forest fork, without awarding loot',()=>{
+  const start=E.start({...E.initial(),mode:'demo'},'wood');
+  const far=walk(start,[21,22]);
+  assert.doesNotMatch(far.expedition.log[0],/爪跡/,'clue only appears beside the tracks');
+  const before=E.act(far,'field-step:23');
+  assert.match(before.expedition.log[0],/爪跡/);
+  assert.equal(before.expedition.field.tracks,false,'tracks require a deliberate step');
+  assert.equal(before.expedition.field.secret,false,'no hidden path reveal');
+  assert.equal(before.expedition.materials.wolfFang,0,'no free material');
+  const discovered=E.act(before,'field-step:'+F.TRACKS);
+  assert.equal(discovered.expedition.field.tracks,true);
+  assert.doesNotMatch(discovered.expedition.log[0],/爪跡/,'discovery has its own message');
+  const away=E.act(discovered,'field-step:23');
+  assert.doesNotMatch(away.expedition.log[0],/爪跡/,'cue does not repeat after discovery');
+});
+
 function lanternOwner(){
   let s={...E.initial(),mode:'demo'};
   s=walk(E.start(s,'wood'),[21,22,23,F.TRACKS,F.TREASURE]);
