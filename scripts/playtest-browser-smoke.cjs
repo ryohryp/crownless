@@ -31,6 +31,16 @@ async function walkForestToWolf(page) {
   }
 }
 
+// The discovered forest's primary CTA now opens action combat. Existing
+// tactical/exploration smoke scenarios deliberately choose the preserved route.
+async function departClassicForest(page) {
+  const legacy=page.locator('.action-forest-preview [data-action="depart"][data-value="wood"]');
+  if (!await legacy.count()) {
+    await page.locator('.nearby-card-actions [data-action="nearby-view"]').click();
+  }
+  await legacy.click();
+}
+
 async function main() {
   let chromium;
   try {
@@ -149,9 +159,11 @@ async function main() {
         assert.equal(await page.locator(".nearby-paper-map").count(), 1, "travel tabs must return to map");
 
 
-        // Real pointer/touch regression: a normal expedition must lead into
-        // combat and a resolved first fight, not merely set a path save.
-        await page.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
+        // The forest's main card now launches real-time action combat.
+        // The original walkable/tactical forest is still available by explicit
+        // choice from the details panel; verify that legacy path separately.
+        await page.locator('.nearby-card-actions [data-action="nearby-view"]').click();
+        await page.locator('.action-forest-preview [data-action="depart"][data-value="wood"]').click();
         assert.equal(await page.locator(".expedition-layout.path-stage").count(), 0);
         assert.equal(await page.locator(".expedition-layout:not(.battle-layout)").count(), 1);
         const world = page.locator('.forest-field');
@@ -420,7 +432,7 @@ async function main() {
       try{
         await page.goto(url);
         await page.locator('[data-action="mode"][data-value="demo"]').click();
-        await page.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
+        await departClassicForest(page);
         for(const pos of [21,22,23,18,17])
           await page.locator('.forest-field [data-action="field-step"][data-value="'+pos+'"]').click();
         assert.equal(await page.locator('.forest-field').getAttribute('data-field-wolf'),'false',
@@ -443,7 +455,7 @@ async function main() {
           'crafted tool survives save/reload');
         await page.locator('[data-action="character"][data-value="0"]').click();
         await page.locator('.bottom-navigation [data-action="tab"][data-value="explore"]').click();
-        await page.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
+        await departClassicForest(page);
         for(const pos of [21,22,23,18])
           await page.locator('.forest-field [data-action="field-step"][data-value="'+pos+'"]').click();
         assert.equal(await page.locator('.forest-field').getAttribute('data-field-secret'),'false');
@@ -470,7 +482,7 @@ async function main() {
           width+'px: no scroll-sheet may paint over the map');
         assert(map.height>300,width+'px: map must be large enough to explore');
         await page.screenshot({path:path.join(output,'map-production-'+width+'.png')});
-        await page.locator('.nearby-card-actions [data-action="depart"][data-value="wood"]').click();
+        await departClassicForest(page);
         await walkForestToWolf(page);
         assert.equal(await page.locator('.combat-choice-grid .choice').count(),4,'wide phones/desktop share the same tactical options');
         assert.equal(await page.locator('.combat-choice-grid [data-action="guard"]').isVisible(),true);
@@ -489,7 +501,7 @@ async function main() {
       await poiPage.goto(url);
       await poiPage.locator('[data-action="mode"][data-value="demo"]').click();
       // Earn the other region's required material in an actual forest combat.
-      await poiPage.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
+      await departClassicForest(poiPage);
       await walkForestToWolf(poiPage);
       await poiPage.locator('[data-action="auto-fight"]').click();
       await poiPage.locator('.field-choices [data-action="return"]').click();
@@ -615,7 +627,7 @@ async function main() {
       assert.match(await poiPage.locator('#game').innerText(),/返し棘の盾/);
       await poiPage.locator('[data-action="tab"][data-value="explore"]').click();
       await poiPage.locator('.nearby-track-tile[data-value="-1,0"]').click();
-      await poiPage.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
+      await departClassicForest(poiPage);
       await walkForestToWolf(poiPage);
       assert.equal(await poiPage.locator('.combat-manual').getAttribute('open'),'','four choices should appear by default');
       assert.match(await poiPage.locator('.combat-manual').innerText(),/反撃/,'new shield changes the available guard decision');
@@ -823,7 +835,7 @@ async function main() {
       try {
         await rolePage.goto(url);
         await rolePage.locator('[data-action="mode"][data-value="demo"]').click();
-        const defaultDepart=rolePage.locator('.district-detail [data-action="depart"][data-value="wood"]');
+        const defaultDepart=rolePage.locator('.nearby-card-actions [data-action="action-forest-lab"]');
         assert.equal(await defaultDepart.isEnabled(),true,'normal adventurer departure must remain enabled on '+width);
         const centerHit=async locator=>locator.evaluate(el=>{
           const r=el.getBoundingClientRect();
@@ -837,10 +849,12 @@ async function main() {
         const asSmith=await rolePage.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
         assert.equal(asSmith.activeCharacter,1,'smith role is the actual saved state');
         await rolePage.locator('.bottom-navigation [data-action="tab"][data-value="explore"]').click();
-        const readyDepart=rolePage.locator('.district-detail [data-action="depart-as-adventurer"][data-value="wood"]');
+        await rolePage.locator('.nearby-card-actions [data-action="nearby-view"]').click();
+        const readyDepart=rolePage.locator('.action-forest-preview [data-action="depart-as-adventurer"][data-value="wood"]');
         assert.equal(await readyDepart.count(),1,'smith can see the explicit role-switching departure');
         assert.equal(await readyDepart.isEnabled(),true,'smith departure must not be a dead disabled control');
-        assert.match(await readyDepart.innerText(),/冒険者に交代して遠征/);
+        assert.match(await readyDepart.innerText(),/従来の探索遠征（ターン制）/);
+        await readyDepart.scrollIntoViewIfNeeded();
         const smithHit=await centerHit(readyDepart);
         assert(smithHit.hit && smithHit.rect.top>=0 && smithHit.rect.bottom<=height+2,
           'smith departure must be a real unobscured first-screen tap on '+width+': '+JSON.stringify(smithHit));
@@ -868,7 +882,7 @@ async function main() {
       try{
         await page.goto(url);
         await page.locator('[data-action="mode"][data-value="demo"]').click();
-        await page.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
+        await departClassicForest(page);
         const fog=await page.locator('.field-cell.veiled').count();
         await page.locator('.field-cell[data-value="21"]').click();
         assert((await page.locator('.field-cell.veiled').count())<fog,
@@ -907,7 +921,7 @@ async function main() {
       try{
         await page.goto(url);
         await page.locator('[data-action="mode"][data-value="demo"]').click();
-        await page.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
+        await departClassicForest(page);
         assert.equal(await page.locator('.forest-field[data-wolf-state="hidden"]').count(),1,
           'wolf must not appear through an unexplored fog-of-war region');
         assert.equal(await page.locator('.forest-wolf-warning').count(),0);
@@ -960,7 +974,7 @@ async function main() {
         try{
           await escape.goto(url);
           await escape.locator('[data-action="mode"][data-value="demo"]').click();
-          await escape.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
+          await departClassicForest(escape);
           for(const id of [21,22,23,18,13,14]){
             await escape.locator('.forest-field [data-action="field-step"][data-value="'+id+'"]').click();
           }
@@ -990,7 +1004,7 @@ async function main() {
       try{
         await page.goto(url);
         await page.locator('[data-action="mode"][data-value="demo"]').click();
-        await page.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
+        await departClassicForest(page);
         assert.equal(await page.locator('.forest-field[data-field-secret="false"][data-field-shrine="false"]').count(),1);
         assert.equal(await page.locator('.field-cell[data-value="12"]').count(),0,'hidden path must not be a reachable teleport from the entrance');
         await step(21);await step(16); // Collecting old iron shards costs three HP.
@@ -1078,7 +1092,7 @@ async function main() {
       try{
         await page.goto(url);
         await page.locator('[data-action="mode"][data-value="demo"]').click();
-        await page.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
+        await departClassicForest(page);
         assert.equal(await page.locator('.forest-field .field-cell').count(),49);
         assert.equal(await page.locator('.forest-field button.field-cell.wall').count(),0,
           'all forest walls must be physically impassable, not invisible tappable passageways');
@@ -1113,7 +1127,7 @@ async function main() {
       try{
         await page.goto(url);
         await page.locator('[data-action="mode"][data-value="demo"]').click();
-        await page.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
+        await departClassicForest(page);
         assert.equal(await page.locator('.forest-field[data-field-fox="false"][data-field-fox-cache="false"]').count(),1);
         assert.equal(await page.locator('.field-cell.fox.veiled').count(),1,'fox starts off-camera under fog');
         await step(15);
@@ -1538,7 +1552,7 @@ async function main() {
       try{
         await page.goto(url);
         await page.locator('[data-action="mode"][data-value="demo"]').click();
-        await page.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
+        await departClassicForest(page);
         for(const id of [21,22,23,18]){
           await page.locator('.forest-field [data-action="field-step"][data-value="'+id+'"]').click();
         }

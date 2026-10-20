@@ -206,12 +206,19 @@
       '<div class="nearby-track-footer"><span>未知の土地は霧の向こう · 架空の道の地図</span>'+switcher+'</div></div>';
     const stateLabel=restored?'🔔 鐘が戻った・ユノが滞在中':N.traveler(d)?'✦ 薬師の荷':d.claimed?'⚑ あなたの領域':
       poi.family==='shop'?'未開拓 · ◆ 地域の店':'未開拓 · ✦ '+(material?'異変の手掛かり':'王墓の噂');
-    // A crafted item often leaves the smith active. A dead-looking departure
-    // button strands the player; make returning to the adventurer one tap.
-    const primary=button(traveler?'depart':'depart-as-adventurer',
-      locked?'他の土地を2か所踏破':traveler?'この土地へ遠征':'冒険者に交代して遠征',
-      !locked&&!traveler?'鍛冶師から切り替えて出発':'',
-      {class:'primary',value:p.id,disabled:locked});
+    // Player-visible default: the discovered forest launches the actual action
+    // battle, not the old turn-based expedition hiding behind an ambiguous CTA.
+    // The original exploration expedition remains selectable in land details.
+    const actionWood = d.biome === 'wood' && n.districts.some(site => site.id === d.id);
+    const primary = actionWood
+      ? button('action-forest-lab',
+          traveler?'⚔ アクション遠征へ':'旅人に交代してアクション遠征',
+          'ゴブリンとリアルタイム戦闘 · 試遊版（素材は本編と別）',
+          {class:'primary',disabled:!traveler||Boolean(state.expedition)||Boolean(state.report)})
+      : button(traveler?'depart':'depart-as-adventurer',
+          locked?'他の土地を2か所踏破':traveler?'この土地へ遠征':'冒険者に交代して遠征',
+          !locked&&!traveler?'鍛冶師から切り替えて出発':'',
+          {class:'primary',value:p.id,disabled:locked});
     // The summary card never contains duplicate actions from the detail scene.
     // Choosing the contextual action changes the scene; transactions and NPC
     // departures remain in exactly one detail view at a time.
@@ -251,16 +258,19 @@
       button('poi','この店で'+esc(material.name)+'を買う','',{class:'secondary',value:'trade-material',disabled:state.scrap<E.LOCAL_MATERIAL_COST})+
       (d.biome==='wood'?button('poi','薬草を買って遠征','',{class:'secondary',value:'herb',disabled:!traveler||state.scrap<E.LOCAL_HERB_COST}):'')+
       '</section>');
-    // Optional combat experiment only for a genuinely discovered, selected woodland.
-    // The production expedition CTA above remains intact and the lab has no GPS/save link.
-    if(d.biome==='wood' && n.districts.some(site=>site.id===d.id)) {
+    // The default forest button uses the action lab. Expose the established
+    // non-action exploration route separately with an honest descriptive label.
+    if(actionWood) {
       entries.push('<section class="nearby-info-piece action-forest-preview">'+
         '<span class="kicker">PLAYABLE EXPERIMENT / BATTLE</span>'+
         '<h3>⚔ 発見した森でアクション遠征を試す</h3>'+
         '<p>Gemini版の爽快な吹き飛ばし戦闘を、この森から試せる。討伐した牙を生還で確保し、鍛冶の剣を作って再遠征しよう。</p>'+
         '<p><small>試遊専用：獲得した素材・装備は既存の遠征セーブや倉庫には加算されません。</small></p>'+
-        button('action-forest-lab','⚔ この森でアクション遠征','',{class:'primary',
+        button('action-forest-lab','⚔ アクション遠征へ','',{class:'primary',
           disabled:!traveler||Boolean(state.expedition)||Boolean(state.report)})+
+        button(traveler?'depart':'depart-as-adventurer',
+          '従来の探索遠征（ターン制）','森の探索・狼の戦闘はこちら',
+          {class:'secondary',value:'wood',disabled:Boolean(state.expedition)||Boolean(state.report)})+
         '</section>');
     }
     const trace=N.trace(d);

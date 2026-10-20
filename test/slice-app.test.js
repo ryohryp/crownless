@@ -260,7 +260,7 @@ test('camp home presents a persistent neighborhood and local expedition action',
   assert.match(b.html(),/nearby-tile-stamp/);
   assert.match(b.html(),/nearby-paper-map/);
   assert.match(b.html(),/<\/section><nav class="camp-tabs bottom-navigation"/);
-  assert.match(b.html(),/この土地へ遠征/);
+  assert.match(b.html(),/アクション遠征へ/);
   assert.match(b.html(),/土地を発見/);
   b.click('scout','tower');
   assert.match(b.html(),/鐘なき塔/);
@@ -291,7 +291,7 @@ test('core camp nav owns six stable buttons and journal views are reversible', (
   assert.match(b.html(),/data-value="chronicle" aria-current="page"/);
   b.click('tab','explore');
   assert.match(b.html(),/class="nearby-track-board"/);
-  assert.match(b.html(),/この土地へ遠征/);
+  assert.match(b.html(),/アクション遠征へ/);
   b.click('tab','home');
   assert.match(b.html(),/class="home-portrait"/);
   b.click('tab','gear');
@@ -405,7 +405,7 @@ test('revisited district reveals a named persistent NPC trace in its main detail
   state.neighborhood.districts[0].aided=true;
   const seed={'crownless-expedition-mode':'demo','crownless-expedition-v1-demo':E.serialize(state)};
   const b=browser(seed);
-  assert.match(b.html(),/data-action="depart"/);
+  assert.match(b.html(),/data-action="action-forest-lab"/);
   b.click('nearby-view','detail');
   assert.match(b.html(),/district-trace/);
   assert.match(b.html(),/この土地に残った変化：斥候の道標/);
