@@ -47,6 +47,10 @@ test('action experiment is a one-way optional switch with no precise location or
   assert.match(source,/id="rpgBackToMap"/);
   assert.match(source,/if \(rpg\.phase !== 'camp'/);
   assert.match(source,/window\.location\.assign\('expedition\.html'\)/);
-  assert.doesNotMatch(source,/localStorage|sessionStorage|geolocation|navigator\.geolocation/);
+  assert.match(source,/CrownlessActionSave/);
+  assert.match(source,/saveActionProgress\(\)/);
+  assert.match(source,/localStorage\.getItem\('crownless-expedition-mode'\)/);
+  assert.doesNotMatch(source,/localStorage\.setItem\('crownless-expedition/);
+  assert.doesNotMatch(source,/sessionStorage|geolocation|navigator\.geolocation/);
   assert.doesNotMatch(source,/src\/slice-engine\.js|src\/slice-app\.js/);
 });
