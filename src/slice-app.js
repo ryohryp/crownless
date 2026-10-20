@@ -246,10 +246,9 @@
     return `<div class="field-decision"><div class="field-status">${vitals(x)}<div class="path-risk" data-forest-bag="true"><span>背嚢の戦利品</span><strong>${x.materials?.wolfFang>0?'狼牙 '+x.materials.wolfFang+' · ':''}鉄片 ${x.scrap}</strong><small>生還で確定 · 倒れれば失う</small></div></div>
       ${skillPending?'<p class="skill-learning-hint" role="status">⌁ 新しい探索技術《獣道読み》の手掛かりを得た。<strong>無事に生還すると習得！</strong></p>':''}
       <p class="field-moment${trailSkillResult(x)?' skill-result':''}" role="status">${trailSkillResult(x)?trailResultLabel:''}${esc(x.log[0]||event)}</p>
-      <div class="field-choices">${x.field.pos===window.CrownlessField.TRACKS && state.ownedTools?.includes(E.SCOUT_LANTERN.id) && !x.field.lanternClue
-        && !x.field.tracksRisk ? button('lantern-examine','斥候の灯で霧を照らす','体力消費なし · 手掛かりを探す',{class:'primary'}) : ''}
-      ${x.field.pos===window.CrownlessField.TRACKS && x.field.tracks && !x.field.lanternClue && !x.field.tracksRisk
+      <div class="field-choices">${x.field.pos===window.CrownlessField.TRACKS && x.field.tracks && !x.field.lanternClue && !x.field.tracksRisk
         ? '<div class="forest-tracks-fork" role="group" aria-label="獣の足跡の分かれ道"><p>茂みの奥に獣骨の気配。棘を越えれば何か見つかるかもしれない。斥候の灯があれば安全に別の痕跡を調べられる。どちらも生還まで未確定。</p>'+
+          (state.ownedTools?.includes(E.SCOUT_LANTERN.id) ? button('lantern-examine','斥候の灯で霧を照らす','体力消費なし · 手掛かりを探す',{class:'primary'}) : '')+
           button('forest-tracks-risk','棘の茂みへ踏み込む','体力 −4 · 獣骨を調べる（危険）',{class:'secondary',disabled:x.hp<=4||x.materials.wolfFang>=1000000})+'</div>' : ''}
       ${x.field.lanternClue ? '<p class="scout-lantern-clue" role="status">✦ 灯りが映した痕跡：倒木の近くで霧が揺らいでいる。周囲を歩いて調べよう。</p>' : ''}
       ${trailSkillButton(x)}
