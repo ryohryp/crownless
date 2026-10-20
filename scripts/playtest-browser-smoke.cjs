@@ -467,6 +467,8 @@ async function main() {
           await page.locator('.forest-field [data-action="field-step"][data-value="'+pos+'"]').click();
         const fork=page.locator('.forest-tracks-fork');
         assert.equal(await fork.isVisible(),true,'forest fork is visible on '+width+'px');
+        assert.equal(await fork.locator('[data-action="lantern-examine"]').count(),0,'no lantern option without the crafted tool');
+        assert.equal(await page.locator('.field-choices > [data-action="lantern-examine"]').count(),0,'lantern option never escapes the fork group');
         assert.doesNotMatch(await fork.innerText(),/狼牙 \+1/,'exact loot stays a discovery');
         const risk=fork.locator('[data-action="forest-tracks-risk"]');
         assert.equal(await risk.isEnabled(),true);
