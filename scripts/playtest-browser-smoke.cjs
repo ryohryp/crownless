@@ -853,7 +853,7 @@ async function main() {
         const readyDepart=rolePage.locator('.action-forest-preview [data-action="depart-as-adventurer"][data-value="wood"]');
         assert.equal(await readyDepart.count(),1,'smith can see the explicit role-switching departure');
         assert.equal(await readyDepart.isEnabled(),true,'smith departure must not be a dead disabled control');
-        assert.match(await readyDepart.innerText(),/冒険者に交代して遠征/);
+        assert.match(await readyDepart.innerText(),/従来の探索遠征（ターン制）/);
         await readyDepart.scrollIntoViewIfNeeded();
         const smithHit=await centerHit(readyDepart);
         assert(smithHit.hit && smithHit.rect.top>=0 && smithHit.rect.bottom<=height+2,
