@@ -149,9 +149,11 @@ async function main() {
         assert.equal(await page.locator(".nearby-paper-map").count(), 1, "travel tabs must return to map");
 
 
-        // Real pointer/touch regression: a normal expedition must lead into
-        // combat and a resolved first fight, not merely set a path save.
-        await page.locator('.district-detail [data-action="depart"][data-value="wood"]').click();
+        // The forest's main card now launches real-time action combat.
+        // The original walkable/tactical forest is still available by explicit
+        // choice from the details panel; verify that legacy path separately.
+        await page.locator('.nearby-card-actions [data-action="nearby-view"]').click();
+        await page.locator('.action-forest-preview [data-action="depart"][data-value="wood"]').click();
         assert.equal(await page.locator(".expedition-layout.path-stage").count(), 0);
         assert.equal(await page.locator(".expedition-layout:not(.battle-layout)").count(), 1);
         const world = page.locator('.forest-field');
