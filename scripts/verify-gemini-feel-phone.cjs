@@ -126,6 +126,39 @@ async function main() {
         assert.equal(await page.locator('#shopModal').isVisible(), false);
         await page.locator('#btnToggleAI').click();
         assert.match(await page.locator('#btnToggleAI').innerText(), /2P|相棒|同行/);
+        // The scenery must have a genuinely collidable lower-right timber
+        // barrier; protect all fighters after walks, knockback and camera pans.
+        const collisionProof = async () => page.evaluate(() => {
+          const info = window.CrownlessActionBarrierReadout();
+          return {
+            ...info,
+            blocked: info.fighters.filter(f =>
+              window.CrownlessControlBarricade.excluded(f, info.zone, info.cameraX)),
+          };
+        });
+        let barricade = await collisionProof();
+        assert(barricade.zone && barricade.zone.left>10 &&
+          barricade.zone.top>220 && barricade.zone.top<400,
+          'portrait touch arc must reserve lower-right obstacle: '+JSON.stringify(barricade));
+        assert.deepEqual(barricade.blocked,[],'all player, ally and enemy fighters start outside button footprint');
+        await page.keyboard.down('d');
+        await page.keyboard.down('s');
+        await page.waitForTimeout(1500);
+        await page.keyboard.up('d');
+        await page.keyboard.up('s');
+        barricade=await collisionProof();
+        assert.deepEqual(barricade.blocked,[],'fighters cannot walk into or get knocked under right thumb buttons');
+        await page.screenshot({
+          path:path.resolve(__dirname,'../.qa/browser/action-control-barricade-'+width+'.png'),
+        });
+        await page.locator('#btnToggleLayout').click();
+        await page.waitForTimeout(150);
+        assert.equal((await collisionProof()).zone,null,
+          'separate control deck frees the full stage: no ghost fence');
+        await page.locator('#btnToggleLayout').click();
+        await page.waitForTimeout(150);
+        assert((await collisionProof()).zone,'overlay layout restores the button-protection barrier');
+
         // Simulate a completed safe return through the same pure rules,
         // then prove the real browser restores ONLY banked/crafted values.
         await page.evaluate(() => {
