@@ -138,6 +138,7 @@
 
       <!-- ゲーム画面内の軽量フローティング通知（Z軸ライン一致＆天候インジケーター） -->
       <div class="absolute top-2 left-2 flex flex-col gap-1 pointer-events-none">
+        <div id="rpgSaveWarning" class="hidden rounded border border-rose-400 bg-rose-950/95 px-2 py-1 max-w-60 text-[10px] text-rose-100 font-bold" role="alert"></div>
         <div id="weatherBadge" class="px-2 py-0.5 rounded bg-slate-900/85 border border-amber-400/40 text-amber-200 text-[10px] font-bold">
           🌅 刻限：茜色の古街道（第1陣）
         </div>
@@ -233,8 +234,10 @@
           <button id="rpgPush" class="hidden min-h-12 bg-rose-900 border border-rose-500 rounded-lg font-bold text-sm p-2" type="button">⚔ さらに奥へ（敗北時は素材を失う）</button>
           <button id="rpgForge" class="hidden min-h-12 bg-amber-600 border border-amber-300 rounded-lg font-black text-slate-950 text-sm p-2" type="button">⚒ 鍛冶で風裂きの剣を製作</button>
           <button id="rpgDepart" class="hidden min-h-12 bg-sky-700 border border-sky-400 rounded-lg font-black text-sm p-2" type="button">🗺 もう一度、森へ遠征</button>
+          <button id="rpgBackToMap" class="hidden min-h-12 bg-slate-700 border border-slate-500 rounded-lg font-bold text-sm p-2" type="button">← 発見した森の地図へ戻る</button>
         </div>
-        <p class="text-[10px] text-slate-400">独立した試遊版。素材と装備はこのページ内だけで保持され、リロードすると初期化されます。</p>
+        <p id="rpgSaveNote" class="text-[10px] text-slate-400">独立した試遊版。帰還する前に中断すると、未帰還の素材は失われます。</p>
+        
       </div>
     </div>
 
@@ -259,6 +262,7 @@
   </main>
 
 <script src="src/gemini-rpg-loop.js"></script>
+<script src="src/gemini-action-save.js"></script>
 <script>
 (() => {
   // ============================================================================
@@ -506,6 +510,63 @@
   // This page-only progression does not touch Crownless's production saves.
   const rpgRules = window.CrownlessRpgLoop;
   const rpg = rpgRules.create();
+  const actionSave = window.CrownlessActionSave;
+  const actionFromMap = new URLSearchParams(window.location.search).get('from') === 'discovered-wood';
+  let actionKey = null;
+  let actionPreviousRaw = null;
+  let actionSaveBlocked = false;
+  function actionSaveError(message) {
+    actionSaveBlocked = true;
+    const warning = document.getElementById('rpgSaveWarning');
+    warning.textContent = message;
+    warning.classList.remove('hidden');
+    const note = document.getElementById('rpgSaveNote');
+    note.textContent = 'この試遊の進行は保存できません。閉じる前に注意してください。';
+  }
+  if (actionFromMap) {
+    try {
+      // Only the existing demo/walk mode is read. We do not read/write game saves,
+      // store real coordinates, or share the prototype weapon with production.
+      actionKey = actionSave.key(localStorage.getItem('crownless-expedition-mode'));
+      if (actionKey) {
+        actionPreviousRaw = localStorage.getItem(actionKey);
+        const snapshot = actionSave.decode(actionPreviousRaw);
+        if (snapshot) {
+          actionSave.restore(rpg, snapshot);
+          document.getElementById('rpgSaveNote').textContent =
+            '試遊専用の素材倉庫・製作済み装備は生還時に自動保存。未帰還素材は中断すると失われます。本編の倉庫とは別です。';
+        } else {
+          actionSaveError('以前の試遊データを読み込めません。上書きを防ぐため、この画面では保存を停止しました。');
+        }
+      } else {
+        actionSaveError('散策モードを確認できず、試遊の進行は保存されません。');
+      }
+    } catch {
+      actionSaveError('端末の保存を利用できません。試遊の進行はこの画面限りです。');
+    }
+  }
+  window.addEventListener('storage', event => {
+    if (actionKey && event.key === actionKey && event.newValue !== actionPreviousRaw) {
+      actionSaveError('別のタブで試遊の進行が変わりました。上書きを防ぐため保存を停止しました。');
+    }
+  });
+  function saveActionProgress() {
+    if (!actionKey || actionSaveBlocked) return false;
+    try {
+      if (localStorage.getItem(actionKey) !== actionPreviousRaw) {
+        actionSaveError('別のタブで試遊の進行が変わりました。上書きを防ぐため保存を停止しました。');
+        return false;
+      }
+      const raw = actionSave.encode(rpg);
+      localStorage.setItem(actionKey, raw);
+      if (localStorage.getItem(actionKey) !== raw) throw new Error('storage did not persist');
+      actionPreviousRaw = raw;
+      return true;
+    } catch {
+      actionSaveError('試遊の進行を端末へ保存できません。今回の成果は画面を閉じると失われます。');
+      return false;
+    }
+  }
 
   function addIki(amount) {
     if (state.kabukiBurstTimer > 0) return;
@@ -2223,6 +2284,7 @@
     document.getElementById('rpgPush').classList.toggle('hidden', !result);
     document.getElementById('rpgForge').classList.toggle('hidden', !camp || rpg.crafted);
     document.getElementById('rpgDepart').classList.toggle('hidden', !camp);
+    document.getElementById('rpgBackToMap').classList.toggle('hidden', !camp || new URLSearchParams(location.search).get('from') !== 'discovered-wood');
 
     document.getElementById('rpgBank').textContent =
       '🎒 未帰還素材 ' + rpg.unbanked + ' / 倉庫のゴブリンの牙 ' + rpg.banked;
@@ -2245,6 +2307,7 @@
 
   document.getElementById('rpgReturn').addEventListener('click', () => {
     if (!rpgRules.returnAlive(rpg, ginji && ginji.hp)) return;
+    saveActionProgress();
     updateRpgStatus();
     showRpgPanel();
   });
@@ -2257,9 +2320,16 @@
   });
   document.getElementById('rpgForge').addEventListener('click', () => {
     if (!rpgRules.forge(rpg)) return;
+    saveActionProgress();
     sfx.play('heavy');
     updateRpgStatus();
     showRpgPanel();
+  });
+  document.getElementById('rpgBackToMap').addEventListener('click', () => {
+    // Exit only from camp, after the player returned alive or lost this run.
+    // Do not import the lab's separate banked materials into production saves.
+    if (rpg.phase !== 'camp' || new URLSearchParams(location.search).get('from') !== 'discovered-wood') return;
+    window.location.assign('expedition.html');
   });
   document.getElementById('rpgDepart').addEventListener('click', () => {
     if (!rpgRules.depart(rpg)) return;

@@ -36,6 +36,9 @@ test('fantasy reskin is isolated from active Crownless player state and GPS', ()
   assert.match(html, /苔牙ゴブリン/);
   assert.match(html, /黒鉄のオーク/);
   assert.match(html, /霧晴れの囁きの森/);
-  assert.doesNotMatch(inline[1], /localStorage|sessionStorage|geolocation|fetch\s*\(/);
+  assert.match(html, /src\/gemini-action-save\.js/);
+  assert.match(inline[1], /saveActionProgress\(\)/);
+  assert.doesNotMatch(inline[1], /localStorage\.setItem\('crownless-expedition/);
+  assert.doesNotMatch(inline[1], /sessionStorage|geolocation|fetch\s*\(/);
   assert.doesNotMatch(html, /src\/slice-engine\.js|src\/slice-app\.js/);
 });

@@ -251,6 +251,18 @@
       button('poi','この店で'+esc(material.name)+'を買う','',{class:'secondary',value:'trade-material',disabled:state.scrap<E.LOCAL_MATERIAL_COST})+
       (d.biome==='wood'?button('poi','薬草を買って遠征','',{class:'secondary',value:'herb',disabled:!traveler||state.scrap<E.LOCAL_HERB_COST}):'')+
       '</section>');
+    // Optional combat experiment only for a genuinely discovered, selected woodland.
+    // The production expedition CTA above remains intact and the lab has no GPS/save link.
+    if(d.biome==='wood' && n.districts.some(site=>site.id===d.id)) {
+      entries.push('<section class="nearby-info-piece action-forest-preview">'+
+        '<span class="kicker">PLAYABLE EXPERIMENT / BATTLE</span>'+
+        '<h3>⚔ 発見した森でアクション遠征を試す</h3>'+
+        '<p>Gemini版の爽快な吹き飛ばし戦闘を、この森から試せる。討伐した牙を生還で確保し、鍛冶の剣を作って再遠征しよう。</p>'+
+        '<p><small>試遊専用：獲得した素材・装備は既存の遠征セーブや倉庫には加算されません。</small></p>'+
+        button('action-forest-lab','⚔ この森でアクション遠征','',{class:'primary',
+          disabled:!traveler||Boolean(state.expedition)||Boolean(state.report)})+
+        '</section>');
+    }
     const trace=N.trace(d);
     if(trace)entries.push('<section class="nearby-info-piece district-trace"><h3>✦ この土地に残った変化：'+esc(trace.name)+
       '</h3><p>'+esc(trace.story)+'</p><p>'+esc(trace.benefit)+'</p></section>');

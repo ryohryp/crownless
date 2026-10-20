@@ -819,6 +819,19 @@
     if (action === 'mode') { loadMode(value); save(); return; }
     if (action === 'switch-mode') { loadMode(state.mode === 'demo' ? 'walk' : 'demo'); save(); return; }
     if (action === 'district') { state = E.selectDistrict(state,value); selected = N.get(state.neighborhood).biome; tab = 'explore'; nearbyView = 'map'; nearbyPage=null; notice = ''; }
+    else if (action === 'action-forest-lab') {
+      // Only a selected, already-discovered woodland in the current mode can
+      // launch the optional lab. No coordinate, route, inventory or save is sent.
+      const d = N.get(state.neighborhood);
+      const discoveredWood = state.mode && d?.biome === 'wood' &&
+        state.neighborhood?.districts?.some(site => site.id === d.id);
+      if (discoveredWood && !state.expedition && !state.report &&
+          state.activeCharacter === 0 && !conflict && !saveBlocked) {
+        window.location.assign('gemini-feel-lab.html?from=discovered-wood');
+        return;
+      }
+      notice = '発見済みの森を選び、旅人で拠点にいるときだけ試せます。';
+    }
     else if (action === 'nearby-view') { nearbyView = ['detail','scout'].includes(value) ? value : 'map'; notice = ''; }
     else if (action === 'nearby-page') { nearbyPage=Math.max(0,Number(value)||0); nearbyView='map'; }
     else if (action === 'poi') { const d=N.get(state.neighborhood), poi=N.pointOfInterest(d);
