@@ -124,11 +124,47 @@ async function main() {
         assert.equal(await page.locator('#shopModal').isVisible(), false);
         await page.locator('#btnToggleAI').click();
         assert.match(await page.locator('#btnToggleAI').innerText(), /2P|相棒|同行/);
+        // Simulate a completed safe return through the same pure rules,
+        // then prove the real browser restores ONLY banked/crafted values.
+        await page.evaluate(() => {
+          const r = window.CrownlessRpgLoop.create();
+          for (let i = 0; i < 3; i++) window.CrownlessRpgLoop.claimMaterial(r);
+          window.CrownlessRpgLoop.clearWave(r);
+          window.CrownlessRpgLoop.returnAlive(r, 80);
+          localStorage.setItem('crownless-action-forest-v1-demo', window.CrownlessActionSave.encode(r));
+        });
+        await page.reload({ waitUntil: 'domcontentloaded' });
+        await page.waitForFunction(() => document.querySelector('#rpgStatusBadge')?.textContent.includes('倉庫 3'));
+        assert.match(await page.locator('#rpgStatusBadge').innerText(), /未帰還 0.*倉庫 3.*初期装備/);
+        assert.equal(await page.locator('#rpgPanel').isVisible(), false,
+          'resuming must start a fresh expedition with no popup blocking combat');
+        await page.evaluate(() => {
+          const r = window.CrownlessRpgLoop.create();
+          r.phase = 'camp';
+          r.banked = 3;
+          window.CrownlessRpgLoop.forge(r);
+          localStorage.setItem('crownless-action-forest-v1-demo', window.CrownlessActionSave.encode(r));
+        });
+        await page.reload({ waitUntil: 'domcontentloaded' });
+        await page.waitForFunction(() => document.querySelector('#rpgStatusBadge')?.textContent.includes('風裂きの剣'));
+        assert.match(await page.locator('#rpgStatusBadge').innerText(), /未帰還 0.*倉庫 0.*風裂きの剣/);
+        assert.equal(await page.evaluate(
+          () => localStorage.getItem('crownless-expedition-v1-demo')), saveBefore,
+          'lab visits and saved smith equipment must never mutate the actual RPG save');
+        // Bad records are diagnosed rather than rewritten or called saved.
+        await page.evaluate(() => localStorage.setItem('crownless-action-forest-v1-demo', '{"version":999}'));
+        await page.reload({ waitUntil: 'domcontentloaded' });
+        assert.equal(await page.locator('#rpgSaveWarning').isVisible(), true);
+        assert.match(await page.locator('#rpgSaveWarning').innerText(), /上書きを防ぐため/);
+        assert.equal(await page.evaluate(
+          () => localStorage.getItem('crownless-action-forest-v1-demo')), '{"version":999}');
+        assert.equal(errors.length, 0, 'no runtime errors after isolated save restore tests');
+
       } finally {
         await context.close();
       }
     }
-    console.log('Gemini-feel fantasy baseline: 360px/390px, real hit + shop + companion toggle PASS');
+    console.log('Gemini-feel fantasy baseline: 360px/390px, real hit + shop + companion toggle + isolated return/forge reload PASS');
   } finally {
     if (browser) await browser.close();
     server.kill();
