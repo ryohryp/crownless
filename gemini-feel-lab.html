@@ -138,6 +138,7 @@
 
       <!-- ゲーム画面内の軽量フローティング通知（Z軸ライン一致＆天候インジケーター） -->
       <div class="absolute top-2 left-2 flex flex-col gap-1 pointer-events-none">
+        <div id="rpgSaveWarning" class="hidden rounded border border-rose-400 bg-rose-950/95 px-2 py-1 max-w-60 text-[10px] text-rose-100 font-bold" role="alert"></div>
         <div id="weatherBadge" class="px-2 py-0.5 rounded bg-slate-900/85 border border-amber-400/40 text-amber-200 text-[10px] font-bold">
           🌅 刻限：茜色の古街道（第1陣）
         </div>
@@ -236,7 +237,7 @@
           <button id="rpgBackToMap" class="hidden min-h-12 bg-slate-700 border border-slate-500 rounded-lg font-bold text-sm p-2" type="button">← 発見した森の地図へ戻る</button>
         </div>
         <p id="rpgSaveNote" class="text-[10px] text-slate-400">独立した試遊版。帰還する前に中断すると、未帰還の素材は失われます。</p>
-        <p id="rpgSaveWarning" class="hidden text-[11px] text-rose-300 font-bold" role="alert"></p>
+        
       </div>
     </div>
 
