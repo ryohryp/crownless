@@ -95,6 +95,12 @@ test('tower fog clears only its overlay and drawing goes idle after a step',()=>
   }});
   assert(floor.arcs.some(([,,radius])=>radius>beforePulse+8),
     'earned stair discovery produces a visibly stronger bell ripple');
+  const firstFrames=floor.arcs.length;
+  for(let time=220;time<=1020&&pending.length;time+=80)pending.shift()(time);
+  assert(pending.length>0,'earned echo keeps ringing after the walking transition');
+  assert(floor.arcs.length>firstFrames,'earned echo redraws, not just its first frame');
+  for(let time=1100;time<=1900&&pending.length;time+=80)pending.shift()(time);
+  assert.equal(pending.length,0,'earned echo stops drawing after its short celebration');
   assert(painted(241,241),'discovered stair floor becomes visible after investigation');
   assert(!painted(241,121),'reliquary remains hidden until actually approached');
 });
