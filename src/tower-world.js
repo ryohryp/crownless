@@ -175,12 +175,19 @@
     const end=center(f.pos),zoom=1.62;
     const started=root.performance?.now?.()||0;
     const reduced=root.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    // After the player deliberately opens the stair, let the earned bell
+    // resonance ring for a moment beyond the 400ms walking transition.
+    // Stay idle elsewhere and honor reduced-motion preference.
+    const echoRing=!reduced&&f.open&&f.pos===T.ECHO;
+    const animationMs=echoRing?1600:400;
     const instance={raf:0};active=instance;
     let lastFrame=0;
     function frame(time){
       if(!canvas.isConnected||active!==instance)return;
       const t=reduced?1:Math.min(1,Math.max(0,(time-started)/400));
-      if(time-lastFrame<45&&t<1){instance.raf=root.requestAnimationFrame(frame);return;}
+      if(time-lastFrame<45&&!reduced&&time-started<animationMs){
+        instance.raf=root.requestAnimationFrame(frame);return;
+      }
       lastFrame=time;
       const ease=1-(1-t)**3;
       const x=start[0]+(end[0]-start[0])*ease,y=start[1]+(end[1]-start[1])*ease;
@@ -194,8 +201,8 @@
       const grad=ctx.createRadialGradient(300,300,100,300,300,420);
       grad.addColorStop(0,'#0c171a00');grad.addColorStop(1,'#09131d9f');
       ctx.fillStyle=grad;ctx.fillRect(0,0,W,W);
-      // The tower is still after the step. Continuous redraws flash on phones.
-      instance.raf=t<1?root.requestAnimationFrame(frame):0;
+      // Stop after the short earned echo; never keep an idle phone redrawing.
+      instance.raf=!reduced&&time-started<animationMs?root.requestAnimationFrame(frame):0;
     }
     frame(started+50);
   }
