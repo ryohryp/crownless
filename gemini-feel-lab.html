@@ -263,6 +263,7 @@
 
 <script src="src/gemini-rpg-loop.js"></script>
 <script src="src/gemini-action-save.js"></script>
+<script src="src/gemini-control-barricade.js"></script>
 <script>
 (() => {
   // ============================================================================
@@ -764,6 +765,9 @@
 
     sasuke.x = Math.min(WORLD.maxX, mainTarget.x + 36);
     sasuke.z = mainTarget.z;
+    // Combo teleport cannot phase either fighter through the control fence.
+    clampToWorld(ginji);
+    clampToWorld(sasuke);
     sasuke.facing = -1;
     sasuke.state = 'ATTACK';
     sasuke.stateTimer = 0.32;
@@ -1398,6 +1402,7 @@
       }
       f.grabTarget.x = f.x + f.facing * 26;
       f.grabTarget.z = f.z;
+      clampToWorld(f.grabTarget);
       if (input.punch || input.kick || input.grab || f.stateTimer <= 0) {
         const throwDir = input.moveX * f.facing < -0.2 ? -f.facing : f.facing;
         f.facing = throwDir;
@@ -1701,6 +1706,8 @@
   function clampToWorld(ent) {
     ent.x = Math.max(WORLD.minX, Math.min(WORLD.maxX, ent.x));
     ent.z = Math.max(WORLD.minZ, Math.min(WORLD.maxZ, ent.z));
+    // Applies to normal walking, knockback, dashes and skill animation states.
+    window.CrownlessControlBarricade.project(ent, controlBarricade, state.cameraX);
   }
 
   // ============================================================================
@@ -1710,6 +1717,8 @@
   const ctx = canvas.getContext('2d');
   const VIRTUAL_H = 420;
   let virtualW = 740;
+  let controlBarricade = null;
+  const barricadeButtons = ['btnPunch','btnKick','btnJump','btnGrab'];
 
   function resizeCanvas() {
     const rect = canvas.parentElement.getBoundingClientRect();
@@ -1717,7 +1726,61 @@
     virtualW = Math.round(VIRTUAL_H * aspect);
     canvas.width = virtualW;
     canvas.height = VIRTUAL_H;
+    // Only the on-screen floating buttons reserve ground. Split-deck layout
+    // gets full stage access because its buttons are outside the canvas.
+    controlBarricade = window.CrownlessControlBarricade.measure(
+      canvas.getBoundingClientRect(),
+      barricadeButtons.map(id => document.getElementById(id).getBoundingClientRect()),
+      virtualW, VIRTUAL_H
+    );
   }
+
+  function drawControlBarricade() {
+    if (!controlBarricade) return;
+    const { left, top } = controlBarricade;
+    const width = canvas.width-left;
+    const height = canvas.height-top;
+    ctx.save();
+    // The player can clearly see where the path ends instead of trying to
+    // fight characters hidden behind the thumb arc.
+    ctx.fillStyle = 'rgba(19,30,28,0.80)';
+    ctx.fillRect(left,top,width,height);
+    ctx.fillStyle = '#48554c';
+    for(let py=top+15;py<canvas.height;py+=20) {
+      for(let px=left+10;px<canvas.width;px+=25) {
+        ctx.fillRect(px+(Math.floor(py/20)%2)*7,py,17,5);
+      }
+    }
+    ctx.strokeStyle = '#d1b987';
+    ctx.lineWidth = 7;
+    ctx.beginPath();
+    ctx.moveTo(left,canvas.height);
+    ctx.lineTo(left,top);
+    ctx.lineTo(canvas.width,top);
+    ctx.stroke();
+    ctx.fillStyle = '#71563b';
+    for(let y=top;y<canvas.height;y+=29) {
+      ctx.fillRect(left-5,y-4,11,12);
+      ctx.fillRect(left-5,y-4,11,3);
+    }
+    for(let x=left;x<canvas.width;x+=29) {
+      ctx.fillRect(x-5,top-7,11,13);
+      ctx.fillRect(x-5,top-7,11,3);
+    }
+    ctx.fillStyle='#f3dfb2';
+    ctx.font='bold 12px "Noto Sans JP", sans-serif';
+    ctx.textAlign='left';
+    ctx.fillText('木柵の向こうは通れない',Math.min(left+10,canvas.width-150),top+22);
+    ctx.restore();
+  }
+  // Read-only test probe for active fight positions; no user location or saves.
+  window.CrownlessActionBarrierReadout = () => ({
+    zone: controlBarricade ? { ...controlBarricade } : null,
+    cameraX: state.cameraX,
+    fighters: state.fighters.filter(f=>f.state!=='DEAD').map(f=>({
+      x:f.x,z:f.z,team:f.team,state:f.state
+    }))
+  });
   window.addEventListener('resize', resizeCanvas);
 
   function renderScene() {
@@ -1910,6 +1973,7 @@
     }
 
     ctx.restore();
+    drawControlBarricade();
   }
 
   function drawItem(it) {
@@ -2431,6 +2495,9 @@
       const targetCamX = Math.max(0, Math.min(WORLD.maxX - virtualW + 40, ginji.x - virtualW * 0.38));
       state.cameraX += (targetCamX - state.cameraX) * Math.min(1, dt * 6);
     }
+    // Camera tracking moves the on-screen obstruction in world coordinates.
+    // Keep ALL combatants out even if the camera moves or they get launched.
+    for (const f of state.fighters) clampToWorld(f);
 
     updateContextualButtons();
     renderScene();
