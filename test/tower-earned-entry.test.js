@@ -10,6 +10,8 @@ test('tower secret has a local earned-entry action and never becomes ordinary na
   const app = fs.readFileSync(path.join(__dirname, '../src/slice-app.js'), 'utf8');
   assert.match(app, /const echoChoice=x\.tower\?\.pos===window\.CrownlessTowerField\?\.ECHO/);
   assert.match(app, /x\.tower\.open\?'見つけた隠し階段へ進む':'鐘の反響を確かめる'/);
+  assert.match(app, /foundStairAtFork\?'反響する石床へ戻る'/);
+  assert.match(app, /そこから隠し階段へ進める/);
   assert.match(app, /value:String\(window\.CrownlessTowerField\.SECRET\),class:'tower-echo-investigate'/);
   assert.match(app, /kind!=='secret'&&!guardianThreat\?'walk-nav':''/);
 
