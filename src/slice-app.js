@@ -242,7 +242,7 @@
   function fieldDecision(x){
     const wolfStatus=window.CrownlessField?.wolfAwareness(x.field);
     const skillPending=x.field.tracks&&!state.characters[0]?.skills?.trailReading;
-    const event=x.field.wolf?'狼を倒した！ 同じ森を探索できる。残る宝箱を探してもいい。':wolfStatus==='alert'?'狼の視線がこちらを追っている。巣穴へ踏み込んで戦うか、横道へ逃げるか。':x.field.pos===20?'森の入り口。どこへ踏み込む？':x.field.cache&&x.field.tracks?'素材と足跡を見つけた。奥に進むか、生還するか。':x.field.cache?'傷つきながら鉄片を拾った。持ち帰るか先へ進むか。':x.field.tracks?'獣の足跡を読んだ。危険な巣穴を避ける道を探せ。':'足元の霧が晴れた。知らない道が現れた。';
+    const event=x.field.wolf?'狼を倒した！ 同じ森を探索できる。残る宝箱を探してもいい。':wolfStatus==='alert'?'狼の視線がこちらを追っている。巣穴へ踏み込んで戦うか、横道へ逃げるか。':x.field.pos===20?'森の入り口。どこへ踏み込む？':x.field.tracksRisk?'棘の奥で狼牙を拾った。まだ背嚢の中だ。生還して確保するか、狼の気配がする奥へ進むか。':x.field.cache&&x.field.tracks?'素材と足跡を見つけた。奥に進むか、生還するか。':x.field.cache?'傷つきながら鉄片を拾った。持ち帰るか先へ進むか。':x.field.tracks?'獣の足跡を読んだ。危険な巣穴を避ける道を探せ。':'足元の霧が晴れた。知らない道が現れた。';
     return `<div class="field-decision"><div class="field-status">${vitals(x)}<div class="path-risk" data-forest-bag="true"><span>背嚢の戦利品</span><strong>${x.materials?.wolfFang>0?'狼牙 '+x.materials.wolfFang+' · ':''}鉄片 ${x.scrap}</strong><small>生還で確定 · 倒れれば失う</small></div></div>
       ${skillPending?'<p class="skill-learning-hint" role="status">⌁ 新しい探索技術《獣道読み》の手掛かりを得た。<strong>無事に生還すると習得！</strong></p>':''}
       <p class="field-moment${trailSkillResult(x)?' skill-result':''}" role="status">${trailSkillResult(x)?trailResultLabel:''}${esc(x.log[0]||event)}</p>
