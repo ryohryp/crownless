@@ -54,7 +54,7 @@
     Number.isSafeInteger(f.seen)&&f.seen>0&&f.seen<=MAX_SEEN&&
     visible(f,f.pos)&&typeof f.cache==='boolean'&&typeof f.tracks==='boolean';
   const canMove=(f,to)=>valid(f)&&inBounds(to)&&!WALLS.includes(to)&&
-    adjacent(f.pos,to)&&(to!==SECRET||f.secret===true);
+    visible(f,to)&&adjacent(f.pos,to)&&(to!==SECRET||f.secret===true);
   function move(f,to){
     if(!canMove(f,to))return null;
     return {...f,pos:to,seen:nextSeen(f.seen,to)};
