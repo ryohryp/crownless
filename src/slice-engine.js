@@ -848,6 +848,10 @@
           // Approach cue without announcing the fox or showing a quest marker.
           // It appears before the player chooses to investigate the bushes.
           x.log=['北の茂みがかすかに揺れた。金色の目が一瞬こちらを見た。小さな足音が聞こえる。'];
+        } else if(!field.tracks && F.adjacent(to,F.TRACKS) && F.visible(field,F.TRACKS)){
+          // A nearby walkable path gives only a hint, not a discovered track,
+          // navigation marker, opened secret or provisional loot.
+          x.log=['湿った土に細い爪跡が続いている。霧の奥で枝が折れた。足跡の先を自分で確かめよう。'];
         } else x.log=['霧が少し晴れた。まだ踏み込んでいない道が見えてくる。'];
         if(to === 22 && n.characters[0].skills?.trailReading && !n.designs.fang_moon && !x.foundDesign) {
           x.log=['落ち葉に不自然な足跡が続いている。《獣道読み》を使えば、何が隠れているか調べられそうだ。'];
