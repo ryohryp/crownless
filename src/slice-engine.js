@@ -577,9 +577,23 @@
       // bypass forest skills, or reveal any hidden tile from the tool alone.
       if(action==='lantern-examine' && x.place==='wood' && x.depth===1 &&
         x.room===0 && x.field?.pos===F.TRACKS && !x.field.lanternClue &&
-        n.ownedTools?.includes(SCOUT_LANTERN.id)){
+        !x.field.tracksRisk && n.ownedTools?.includes(SCOUT_LANTERN.id)){
         x.field.lanternClue=true;
-        x.log=['斥候の灯の光が霧の流れを照らした。古い倒木の方から青白い反射が一瞬だけ返る。先を歩いて、周囲を自分の目で調べよう。'];
+        const scrap=Math.max(0,Math.min(2,1000-x.scrap));
+        x.scrap+=scrap;
+        x.log=[`斥候の灯で霧を照らすと、古い倒木の方から青白い反射が返った。根元に鉄片 +${scrap}。奥の道は自分の目で調べよう。生還まで背嚢の中だ。`];
+        return n;
+      }
+      // ADR 0015: the thorn search and lantern investigation are exclusive.
+      // Both rewards remain provisional until a genuine safe return.
+      if(action==='forest-tracks-risk' && x.place==='wood' && x.depth===1 &&
+        x.room===0 && x.field?.pos===F.TRACKS && x.field.tracks &&
+        !x.field.tracksRisk && !x.field.lanternClue &&
+        x.hp>4 && x.materials.wolfFang<1000000){
+        x.hp-=4;
+        x.materials.wolfFang++;
+        x.field.tracksRisk=true;
+        x.log=['獣の足跡を追って棘の茂みに踏み込んだ。体力 −4。古い獣骨から狼牙 +1 を拾った。生還まで失う危険がある。'];
         return n;
       }
       // A voluntary listening action reveals a risk clue without moving or starting combat.
@@ -834,6 +848,10 @@
           // Approach cue without announcing the fox or showing a quest marker.
           // It appears before the player chooses to investigate the bushes.
           x.log=['北の茂みがかすかに揺れた。金色の目が一瞬こちらを見た。小さな足音が聞こえる。'];
+        } else if(!field.tracks && F.adjacent(to,F.TRACKS) && F.visible(field,F.TRACKS)){
+          // A nearby walkable path gives only a hint, not a discovered track,
+          // navigation marker, opened secret or provisional loot.
+          x.log=['湿った土に細い爪跡が続いている。霧の奥で枝が折れた。足跡の先を自分で確かめよう。'];
         } else x.log=['霧が少し晴れた。まだ踏み込んでいない道が見えてくる。'];
         if(to === 22 && n.characters[0].skills?.trailReading && !n.designs.fang_moon && !x.foundDesign) {
           x.log=['落ち葉に不自然な足跡が続いている。《獣道読み》を使えば、何が隠れているか調べられそうだ。'];
