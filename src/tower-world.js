@@ -55,12 +55,15 @@
     // Bell fragment: the strange low ring leaks through the floor.
     if(T.visible(f,T.ECHO)){
       const [x,y]=center(T.ECHO);
-      ellipse(ctx,x,y+12,38,20,'#142c36d8');
-      ctx.fillStyle='#bda46c';ctx.beginPath();
-      ctx.moveTo(x-32,y+13);ctx.lineTo(x-20,y-17);ctx.lineTo(x+12,y-24);
-      ctx.lineTo(x+32,y+8);ctx.closePath();ctx.fill();
-      ctx.strokeStyle='#e0ce9a';ctx.lineWidth=4;
-      ctx.beginPath();ctx.moveTo(x-34,y+16);ctx.quadraticCurveTo(x,y+35,x+35,y+10);ctx.stroke();
+      // Nearby floors reveal only a pulse; the broken bell is discovered on arrival.
+      if(f.echo){
+        ellipse(ctx,x,y+12,38,20,'#142c36d8');
+        ctx.fillStyle='#bda46c';ctx.beginPath();
+        ctx.moveTo(x-32,y+13);ctx.lineTo(x-20,y-17);ctx.lineTo(x+12,y-24);
+        ctx.lineTo(x+32,y+8);ctx.closePath();ctx.fill();
+        ctx.strokeStyle='#e0ce9a';ctx.lineWidth=4;
+        ctx.beginPath();ctx.moveTo(x-34,y+16);ctx.quadraticCurveTo(x,y+35,x+35,y+10);ctx.stroke();
+      }
       // The bell's earned echo grows clearer once the concealed stair is opened.
       const pulse=(f.open?24:16)+(Math.sin(time/(f.open?190:470))+1)*(f.open?14:10);
       ctx.beginPath();ctx.arc(x,y-4,pulse,0,Math.PI*2);
