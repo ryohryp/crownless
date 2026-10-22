@@ -63,7 +63,8 @@ test('invalid actions and zero-health returns never change the model', () => {
   assert.equal(loop.pushDeeper(s), false);
   assert.equal(loop.clearWave(s), true);
   assert.equal(loop.returnAlive(s, 0), false);
-  assert.equal(loop.claimMaterial(s), false);
+  assert.equal(loop.claimMaterial(s), true, 'finds remain collectible while roaming after victory');
+  assert.equal(s.unbanked,1);
   assert.equal(s.phase, 'return');
 });
 
