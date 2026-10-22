@@ -150,7 +150,7 @@
           🎯 Z軸（奥行き）ロックオン中！攻撃が当たります
         </div>
         <div id="forestExploreHint" class="max-w-56 px-2 py-1 rounded bg-emerald-950/80 border border-emerald-500/40 text-emerald-100 text-[10px] font-bold" role="status">
-          🌲 奥に獣の痕跡、丘の上に古い祠。近づいてタップで調べよう
+          🌲 獣の痕跡や古い祠へ近づき、地点そのものをタップして調べよう
         </div>
       </div>
       <button id="rpgOpenResults" type="button" class="hidden absolute top-2 right-2 z-20 min-h-11 px-3 rounded-lg bg-emerald-900/95 border border-emerald-300 text-amber-50 text-xs font-black shadow-lg">
@@ -878,7 +878,8 @@
     touchInput.punchHeld = false;
   }
   function fireGesture(action) {
-    if (rpg.phase !== 'fight') return;
+    // Cleared waves remain playable, so a tap can still inspect or slash.
+    if (rpg.phase !== 'fight' && rpg.phase !== 'return') return;
     const flag = { punch: 'punchJust', kick: 'kickJust', jump: 'jumpJust', grab: 'grabJust' }[action];
     if (!flag) return;
     touchInput[flag] = true;
@@ -914,7 +915,11 @@
     const p = gesturePointer;
     gesturePointer = null;
     releaseGestureHold();
-    if (!p.held) fireGesture(window.CrownlessCombatGesture.resolve(event.clientX-p.x,event.clientY-p.y));
+    if (!p.held) {
+      const action=window.CrownlessCombatGesture.resolve(event.clientX-p.x,event.clientY-p.y);
+      if (action==='punch' && tryTapForestSite(event.clientX,event.clientY,true)) return;
+      fireGesture(action);
+    }
   });
   gestureArea.addEventListener('pointercancel', (event) => {
     if (gesturePointer?.id === event.pointerId) {
@@ -954,6 +959,7 @@
   const dashOuterRing = document.getElementById('dashOuterRing');
 
   let activeStickPointerId = null;
+  let leftTapStart = null;
   let stickOriginX = 0;
   let stickOriginY = 0;
   const STICK_MAX_RADIUS = 50;
@@ -1026,6 +1032,7 @@
     sfx.init();
     sfx.haptic(8);
     activeStickPointerId = e.pointerId;
+    leftTapStart = {id:e.pointerId,x:e.clientX,y:e.clientY};
     leftTouchPadArea.setPointerCapture(e.pointerId);
     stickOriginX = e.clientX;
     stickOriginY = e.clientY;
@@ -1042,10 +1049,22 @@
   });
 
   leftTouchPadArea.addEventListener('pointerup', (e) => {
-    if (e.pointerId === activeStickPointerId) resetFloatingJoystick();
+    if (e.pointerId !== activeStickPointerId) return;
+    const start=leftTapStart;
+    leftTapStart=null;
+    resetFloatingJoystick();
+    // A stationary tap on a visible shrine/clue must not be treated as a
+    // joystick that does nothing. Drags keep their movement behavior.
+    if (start && start.id===e.pointerId &&
+        Math.hypot(e.clientX-start.x,e.clientY-start.y)<13) {
+      tryTapForestSite(e.clientX,e.clientY,false);
+    }
   });
   leftTouchPadArea.addEventListener('pointercancel', (e) => {
-    if (e.pointerId === activeStickPointerId) resetFloatingJoystick();
+    if (e.pointerId === activeStickPointerId) {
+      leftTapStart=null;
+      resetFloatingJoystick();
+    }
   });
 
   function bindArcadeButton(btnId, onDown, onUp) {
@@ -1778,6 +1797,30 @@
     return true;
   }
 
+  function tryTapForestSite(clientX,clientY,allowNearby) {
+    if (!ginji || ginji.state==='DEAD' ||
+        !window.CrownlessForestDiscoveries.available(rpg.phase)) return false;
+    const site=window.CrownlessForestDiscoveries.spotAtTap(
+      {x:clientX,y:clientY},canvas.getBoundingClientRect(),canvas,
+      state.cameraX,getGroundHeightAt);
+    // The right-hand attack tap can still interact from anywhere on its
+    // half when near a clue. Direct taps work on either half of the scene.
+    if (!site && !allowNearby) return false;
+    const near=window.CrownlessForestDiscoveries.near(ginji,state.forestFinds);
+    if (site) {
+      if (state.forestFinds.has(site.id)) {
+        spawnPopup('ここは調査済み',site.x,site.z,site.z-getGroundHeightAt(site.x,site.z)+25,'#cbd5e1');
+        return true;
+      }
+      if (Math.hypot(ginji.x-site.x,ginji.z-site.z)>=window.CrownlessForestDiscoveries.RANGE) {
+        spawnPopup('もう少し近づいて調べよう',site.x,site.z,site.z-getGroundHeightAt(site.x,site.z)+30,'#fef08a');
+        return true;
+      }
+    }
+    if (site || near) return tryExploreForest(ginji);
+    return false;
+  }
+
   function tryExploreForest(f) {
     if (f !== ginji || !window.CrownlessForestDiscoveries.available(rpg.phase)) return false;
     const nearby = window.CrownlessForestDiscoveries.near(f,state.forestFinds);
@@ -2027,7 +2070,7 @@
       if(near&&!found) {
         ctx.fillStyle='#f8fafc';
         ctx.font='bold 12px "Noto Sans JP",sans-serif';
-        ctx.fillText('👆 タップで調べる',0,-88);
+        ctx.fillText('👆 ここをタップ',0,-88);
       }
       ctx.restore();
     }
@@ -2481,10 +2524,10 @@
     hint.classList.remove('hidden');
     const near=window.CrownlessForestDiscoveries.near(ginji,state.forestFinds);
     const label=near
-      ? '✨ '+near.label+'：右側をタップして調べる'
+      ? '✨ '+near.label+'：地点をタップ、または右側をタップ'
       : rpg.phase==='return'
         ? '🌲 戦闘終了！ 森を歩いて発見を探すか「🏕 生還 / さらに奥へ」'
-        : '🌲 奥に獣の痕跡、丘の上に古い祠。近づいてタップで調べよう';
+        : '🌲 獣の痕跡や古い祠へ近づき、地点そのものをタップして調べよう';
     if(hint.textContent!==label) hint.textContent=label;
   }
 
