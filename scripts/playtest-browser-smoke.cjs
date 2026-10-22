@@ -31,10 +31,18 @@ async function walkForestToWolf(page) {
   }
 }
 
-// Action expedition is the map's primary CTA; open the landmark detail for classic forest.
+// Use the actual classic expedition entry on both the older map and the
+// action-forest-first map. Opening detail is only needed on the latter.
 async function departClassicForest(page) {
   const legacy=page.locator('.action-forest-preview [data-action="depart"][data-value="wood"]');
-  if (!await legacy.count()) await page.locator('.nearby-card-actions [data-action="nearby-view"]').click();
+  const mapDepart=page.locator('.nearby-card-actions [data-action="depart"][data-value="wood"]');
+  if (await mapDepart.count()) {
+    await mapDepart.click();
+    return;
+  }
+  if (!await legacy.count()) {
+    await page.locator('.nearby-card-actions [data-action="nearby-view"][data-value="detail"]').click();
+  }
   await legacy.click();
 }
 
