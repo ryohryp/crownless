@@ -87,6 +87,8 @@ test('scene registers direct touch and keeps cleared-wave right-hand gesture act
   assert.match(html,/function tryTapForestSite\(clientX,clientY,allowNearby\)/);
   assert.match(html,/tryTapForestSite\(e\.clientX,e\.clientY,false\)/);
   assert.match(html,/tryTapForestSite\(event\.clientX,event\.clientY,true\)/);
+  assert.match(html,/if\(combatInputMode!=='buttons'\) return;/);
+  assert.match(html,/canvas\.addEventListener\('pointerup'/);
   assert.match(html,/if \(rpg\.phase !== 'fight' && rpg\.phase !== 'return'\) return;/);
   assert.match(html,/地点をタップ/);
 });
