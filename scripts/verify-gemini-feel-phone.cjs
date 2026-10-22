@@ -47,7 +47,9 @@ async function main() {
         window.__combatLabCanvasText = [];
         CanvasRenderingContext2D.prototype.fillText = function (value, ...args) {
           const text = String(value);
-          if (window.__combatLabCanvasText.length < 3000) {
+          // Keep distinct visible messages, not 3000 copies of the first few
+          // frames: slower CI can otherwise exhaust the log before a clue tap.
+          if (window.__combatLabCanvasText.length < 3000 && !window.__combatLabCanvasText.includes(text)) {
             window.__combatLabCanvasText.push(text);
           }
           return original.call(this, value, ...args);
