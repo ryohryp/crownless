@@ -1181,16 +1181,25 @@ async function main() {
         assert.equal(await page.locator('.tower-field .field-cell.relic.veiled').count(),1,'sealed reliquary starts hidden');
         assert(await page.locator('.tower-field .walk-nav').count()>=1,'regular stone pathways keep subtle guidance');
         await page.screenshot({path:path.join(output,'tower-stone-entry-'+width+'.png')});
-        for(const id of [21,22,17])await step(id);
+        for(const id of [21,22])await step(id);
+        const echoTile=page.locator('.tower-field [data-action="tower-step"][data-value="17"]');
+        assert.match(await echoTile.getAttribute('aria-label'),/かすかに鳴る石床/,
+          'approaching the bell must not spoil its identity for screen readers');
+        assert.doesNotMatch(await echoTile.getAttribute('aria-label'),/鐘の欠片|納骨室/);
+        await step(17);
         let s=await saved();
         assert.equal(s.expedition.tower.echo,true);
         assert.match(s.expedition.log[0],/鐘の欠片/);
         assert.match(await page.locator('.forest-field-header small').innerText(),/この石床で壁を調べよう/,
           'the echo can be investigated only at the discovered floor');
         await step(22);
+        assert.match(await echoTile.getAttribute('aria-label'),/反響する鐘の欠片/,
+          'a discovered bell is named on the adjacent tile');
         assert.match(await page.locator('.forest-field-header small').innerText(),/足場をたどって戻ろう/,
           'walking away must not imply that any wall can be investigated');
         await page.reload();
+        assert.match(await echoTile.getAttribute('aria-label'),/反響する鐘の欠片/,
+          'the earned accessible label survives current-save reload');
         assert.match(await page.locator('.forest-field-header small').innerText(),/足場をたどって戻ろう/,
           'the location-aware clue must survive save/reload');
         await step(17);
