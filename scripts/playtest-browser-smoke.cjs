@@ -31,6 +31,13 @@ async function walkForestToWolf(page) {
   }
 }
 
+// Action expedition is the map's primary CTA; open the landmark detail for classic forest.
+async function departClassicForest(page) {
+  const legacy=page.locator('.action-forest-preview [data-action="depart"][data-value="wood"]');
+  if (!await legacy.count()) await page.locator('.nearby-card-actions [data-action="nearby-view"]').click();
+  await legacy.click();
+}
+
 async function main() {
   let chromium;
   try {
@@ -151,7 +158,7 @@ async function main() {
 
         // Real pointer/touch regression: a normal expedition must lead into
         // combat and a resolved first fight, not merely set a path save.
-        await page.locator('.nearby-card-actions [data-action="depart"][data-value="wood"]').click();
+        await departClassicForest(page);
         assert.equal(await page.locator(".expedition-layout.path-stage").count(), 0);
         assert.equal(await page.locator(".expedition-layout:not(.battle-layout)").count(), 1);
         const world = page.locator('.forest-field');
@@ -420,7 +427,7 @@ async function main() {
       try{
         await page.goto(url);
         await page.locator('[data-action="mode"][data-value="demo"]').click();
-        await page.locator('.nearby-card-actions [data-action="depart"][data-value="wood"]').click();
+        await departClassicForest(page);
         for(const pos of [21,22,23,18,17])
           await page.locator('.forest-field [data-action="field-step"][data-value="'+pos+'"]').click();
         assert.equal(await page.locator('.forest-field').getAttribute('data-field-wolf'),'false',
@@ -443,7 +450,7 @@ async function main() {
           'crafted tool survives save/reload');
         await page.locator('[data-action="character"][data-value="0"]').click();
         await page.locator('.bottom-navigation [data-action="tab"][data-value="explore"]').click();
-        await page.locator('.nearby-card-actions [data-action="depart"][data-value="wood"]').click();
+        await departClassicForest(page);
         for(const pos of [21,22,23,18])
           await page.locator('.forest-field [data-action="field-step"][data-value="'+pos+'"]').click();
         assert.equal(await page.locator('.forest-field').getAttribute('data-field-secret'),'false');
@@ -462,7 +469,7 @@ async function main() {
       try {
         await page.goto(url);
         await page.locator('[data-action="mode"][data-value="demo"]').click();
-        await page.locator('.nearby-card-actions [data-action="depart"][data-value="wood"]').click();
+        await departClassicForest(page);
         for (const pos of [21,22,23,18])
           await page.locator('.forest-field [data-action="field-step"][data-value="'+pos+'"]').click();
         const fork=page.locator('.forest-tracks-fork');
@@ -508,7 +515,7 @@ async function main() {
           width+'px: no scroll-sheet may paint over the map');
         assert(map.height>300,width+'px: map must be large enough to explore');
         await page.screenshot({path:path.join(output,'map-production-'+width+'.png')});
-        await page.locator('.nearby-card-actions [data-action="depart"][data-value="wood"]').click();
+        await departClassicForest(page);
         await walkForestToWolf(page);
         assert.equal(await page.locator('.combat-choice-grid .choice').count(),4,'wide phones/desktop share the same tactical options');
         assert.equal(await page.locator('.combat-choice-grid [data-action="guard"]').isVisible(),true);
@@ -906,7 +913,7 @@ async function main() {
       try{
         await page.goto(url);
         await page.locator('[data-action="mode"][data-value="demo"]').click();
-        await page.locator('.nearby-card-actions [data-action="depart"][data-value="wood"]').click();
+        await departClassicForest(page);
         const fog=await page.locator('.field-cell.veiled').count();
         await page.locator('.field-cell[data-value="21"]').click();
         assert((await page.locator('.field-cell.veiled').count())<fog,
@@ -945,7 +952,7 @@ async function main() {
       try{
         await page.goto(url);
         await page.locator('[data-action="mode"][data-value="demo"]').click();
-        await page.locator('.nearby-card-actions [data-action="depart"][data-value="wood"]').click();
+        await departClassicForest(page);
         assert.equal(await page.locator('.forest-field[data-wolf-state="hidden"]').count(),1,
           'wolf must not appear through an unexplored fog-of-war region');
         assert.equal(await page.locator('.forest-wolf-warning').count(),0);
@@ -1028,7 +1035,7 @@ async function main() {
       try{
         await page.goto(url);
         await page.locator('[data-action="mode"][data-value="demo"]').click();
-        await page.locator('.nearby-card-actions [data-action="depart"][data-value="wood"]').click();
+        await departClassicForest(page);
         assert.equal(await page.locator('.forest-field[data-field-secret="false"][data-field-shrine="false"]').count(),1);
         assert.equal(await page.locator('.field-cell[data-value="12"]').count(),0,'hidden path must not be a reachable teleport from the entrance');
         await step(21);await step(16); // Collecting old iron shards costs three HP.
@@ -1116,7 +1123,7 @@ async function main() {
       try{
         await page.goto(url);
         await page.locator('[data-action="mode"][data-value="demo"]').click();
-        await page.locator('.nearby-card-actions [data-action="depart"][data-value="wood"]').click();
+        await departClassicForest(page);
         assert.equal(await page.locator('.forest-field .field-cell').count(),49);
         assert.equal(await page.locator('.forest-field button.field-cell.wall').count(),0,
           'all forest walls must be physically impassable, not invisible tappable passageways');
@@ -1151,7 +1158,7 @@ async function main() {
       try{
         await page.goto(url);
         await page.locator('[data-action="mode"][data-value="demo"]').click();
-        await page.locator('.nearby-card-actions [data-action="depart"][data-value="wood"]').click();
+        await departClassicForest(page);
         assert.equal(await page.locator('.forest-field[data-field-fox="false"][data-field-fox-cache="false"]').count(),1);
         assert.equal(await page.locator('.field-cell.fox.veiled').count(),1,'fox starts off-camera under fog');
         await step(15);
@@ -1576,7 +1583,7 @@ async function main() {
       try{
         await page.goto(url);
         await page.locator('[data-action="mode"][data-value="demo"]').click();
-        await page.locator('.nearby-card-actions [data-action="depart"][data-value="wood"]').click();
+        await departClassicForest(page);
         for(const id of [21,22,23,18]){
           await page.locator('.forest-field [data-action="field-step"][data-value="'+id+'"]').click();
         }
