@@ -270,6 +270,7 @@
 <script src="src/gemini-rpg-loop.js"></script>
 <script src="src/gemini-action-save.js"></script>
 <script src="src/gemini-combat-gesture.js"></script>
+<script src="src/gemini-hit-recovery.js"></script>
 <script>
 (() => {
   // ============================================================================
@@ -476,6 +477,8 @@
 
       this.state = 'IDLE';
       this.stateTimer = 0;
+      this.hitGuardRemaining = 0; // only hero team gains brief damage immunity after a hit
+      this.nextStrikeAt = 0;      // enemy-only cooldown between attempted strikes
       this.skillTimer = 0;
       this.activeSkill = null;
       this.heldWeapon = null;
@@ -1389,8 +1392,17 @@
     if (hasToken) {
       if (Math.abs(dx) < 48 && Math.abs(dz) < 20 && target.state !== 'DOWN') {
         enemy.facing = dx >= 0 ? 1 : -1;
-        if (Math.random() < 0.08) out.punch = true;
-        else if (Math.random() < 0.04) out.kick = true;
+        // The original per-frame 12% attack lottery let two enemies chain
+        // strikes faster than a hero could finish hitstun. Cool down only
+        // successful attempts, retaining their random punch/kick choice.
+        if (window.CrownlessHitRecovery.readyToStrike(enemy, nowSec) &&
+            (enemy.state === 'IDLE' || enemy.state === 'WALK' || enemy.state === 'RUN')) {
+          if (Math.random() < 0.08) out.punch = true;
+          else if (Math.random() < 0.04) out.kick = true;
+          if (out.punch || out.kick) {
+            window.CrownlessHitRecovery.registerEnemyStrike(enemy, nowSec);
+          }
+        }
       } else {
         const slotX = target.x + (dx > 0 ? -40 : 40);
         const ang = Math.atan2(target.z - enemy.z, slotX - enemy.x);
@@ -1419,6 +1431,7 @@
     const groundY = getGroundHeightAt(f.x, f.z);
 
     if (f.state === 'DEAD') return;
+    window.CrownlessHitRecovery.step(f, dt);
 
     if (f.y > groundY || f.vy > 0) {
       f.vy -= WORLD.gravity * dt;
@@ -1667,7 +1680,8 @@
       const dz = Math.abs(target.z - attacker.z);
       const dy = Math.abs(target.y - attacker.y);
       if (dx >= -14 && dx <= reachX && dz <= 25 && dy <= 48) {
-        inflictDamage(target, finalDmg, attacker.facing * finalKnockback, kbY, kbY >= 170 || hitDowned);
+        // An invulnerable recovering hero does not award a hit or hit spark.
+        if (!inflictDamage(target, finalDmg, attacker.facing * finalKnockback, kbY, kbY >= 170 || hitDowned)) continue;
         spawnSpark((attacker.x + target.x) * 0.5, target.z, target.y + 24, state.kabukiBurstTimer > 0);
         if (attacker.team === 0) {
           addIki(7);
@@ -1683,6 +1697,13 @@
   }
 
   function inflictDamage(target, dmg, vx, vy, knockdown) {
+    // Reject subsequent hits from *all* foes during recovery, including
+    // projectiles. Keep enemy vulnerability and player combo behavior intact.
+    if (!window.CrownlessHitRecovery.acceptsHit(target)) return false;
+    window.CrownlessHitRecovery.registerHit(target);
+    if (target.team === 0 && state.kabukiBurstTimer <= 0) {
+      spawnPopup('立て直し猶予！', target.x, target.z, target.y + 63, '#93c5fd');
+    }
     // 紋章バースト中の旅人・従者は被ダメージ半減＆のけぞらないハイパーアーマー！
     if (target.team === 0 && state.kabukiBurstTimer > 0) {
       dmg = Math.max(1, Math.round(dmg * 0.4));
@@ -1723,17 +1744,17 @@
         updateUI();
       }, 650);
       updateUI();
-      return;
+      return true;
     }
 
     if (target.team === 0 && state.kabukiBurstTimer > 0) {
       updateUI();
-      return;
+      return true;
     }
 
     if (knockdown) {
       target.state = 'DOWN';
-      target.stateTimer = 1.35;
+      target.stateTimer = window.CrownlessHitRecovery.knockdownTime(target);
       target.vx = vx;
       target.vy = vy;
     } else {
@@ -1742,6 +1763,7 @@
       target.vx = vx * 0.45;
     }
     updateUI();
+    return true;
   }
 
   function tryPickupItem(f) {
@@ -2071,6 +2093,10 @@
 
     const sy = f.z - f.y;
     ctx.save();
+    if (f.team === 0 && f.hitGuardRemaining > 0) {
+      // Gentle flicker communicates temporary immunity, unlike hidden damage.
+      ctx.globalAlpha = Math.floor(f.hitGuardRemaining * 11) % 2 ? 0.65 : 1;
+    }
     ctx.translate(Math.round(f.x), Math.round(sy));
 
     // 紋章・覚醒バースト中の紅白隈取オーラ描画
