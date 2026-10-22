@@ -1,0 +1,16 @@
+{
+  "schemaVersion": 1,
+  "kind": "background",
+  "candidate": "docs/assets/candidates/forest-objects-v1.png",
+  "subject": "Modular pixel forest environment: trees, rock, wall, arch, wayside shrine; no actors",
+  "usage": "Candidate in action forest Canvas, user-requested HD-2D-like pixel experiment, no Canon promotion",
+  "generationPrompt": "Create one production game environment sprite atlas for Crownless, an original medieval fantasy action RPG evolving into beautiful HD-2D-like PIXEL ART. This is an asset, not a screenshot or concept poster. Actual transparent background. Landscape 1536x1024. Six separate objects arranged in exactly 3 columns by 2 rows, each object entirely inside its own equal 512x512 cell, with transparent margin, no overlapping cells. Row 1: ancient broad-canopy oak with twisted trunk; tall narrow weathered forest tree; crumbling medieval stone arch with a clearly open doorway. Row 2: small moss-covered boulder cluster; low broken stone wall; humble weathered stone wayside shrine with recessed niche. Each object's contact point centered near bottom of its cell. Objects in compatible slightly oblique 3/4 view for a walking 2.5D RPG; no isometric diamonds or ground tiles. Consistent visual pixel scale, crisp clustered pixels, restrained palette, textured expressive silhouettes, sophisticated beautiful pixel craft. Do not add labels/grid lines.\nVisual Director successful package (crownless background): Western medieval fantasy as expressive Japanese sumi-e on warm washi, one legible illustrated travel journal. Charcoal ink, dry brush interpreted as crisp pixel clusters, layered atmospheric depth, warm ivory highlights, gray-brown weathered stone/earth, muted desaturated moss. Supplied image is source reference for world material/palette only, not object layout. User explicitly requests pixel art and modular transparent atlas, overriding the usual wide backdrop composition while retaining the ink-derived mood. No characters. Preserve approved actors by excluding actors.\nScene requirements: distinct readable landmark silhouettes at phone scale; separate tree, moss rock and ruined arch assets that can be placed in a traversable forest. Allowed changes only those required for modular pixel forest. Do not derive from unrelated/generated candidates.\nAVOID photorealism, realistic fantasy concept art, oil painting, realistic AAA 3D, cinematic poster composition, glossy mobile RPG, clean vector clip art, anime-gacha rendering, neon magic, default teal/blue-green wash, decorative aged-gold borders, giant opaque UI cards, satellite-map rendering, unconnected road tiles, high-frequency clutter, characters/creatures, baked labels/logos/process UI. No water, blood, ritual props, supernatural spectacle. Real alpha transparency.",
+  "targetSize": [
+    1536,
+    1024
+  ],
+  "transparent": true,
+  "references": [],
+  "attempt": 0,
+  "specPath": "docs/visual/pixel-forest-experiment.md"
+}

@@ -1,0 +1,242 @@
+{
+  "kind": "real-browser-input",
+  "gameStateMutatedByTest": false,
+  "viewports": [
+    {
+      "width": 360,
+      "layout": {
+        "viewport": 360,
+        "scrollWidth": 360,
+        "sourceWidth": 225,
+        "sourceHeight": 420,
+        "width": 360,
+        "height": 671.5,
+        "scaleX": 1.6,
+        "scaleY": 1.598809523809524
+      },
+      "touchDistance": 46
+    },
+    {
+      "width": 390,
+      "layout": {
+        "viewport": 390,
+        "scrollWidth": 390,
+        "sourceWidth": 244,
+        "sourceHeight": 420,
+        "width": 390,
+        "height": 671.5,
+        "scaleX": 1.598360655737705,
+        "scaleY": 1.598809523809524
+      },
+      "touchDistance": 46
+    },
+    {
+      "width": 430,
+      "layout": {
+        "viewport": 430,
+        "scrollWidth": 430,
+        "sourceWidth": 269,
+        "sourceHeight": 420,
+        "width": 430,
+        "height": 671.5,
+        "scaleX": 1.5985130111524164,
+        "scaleY": 1.598809523809524
+      },
+      "touchDistance": 46
+    }
+  ],
+  "loop": {
+    "first": {
+      "seconds": 9.6,
+      "minimumHp": 111,
+      "after": {
+        "player": {
+          "x": 461.5550158968315,
+          "z": 296.58400000000006,
+          "hp": 111,
+          "maxHp": 140,
+          "state": "ATTACK",
+          "facing": 1
+        },
+        "enemies": [],
+        "crafted": false,
+        "unbanked": 3,
+        "banked": 0,
+        "art": "pixel",
+        "assetsReady": true,
+        "cameraX": 364.87545653596914,
+        "found": [],
+        "phase": "return"
+      }
+    },
+    "locked": {
+      "player": {
+        "x": 904.4520011884317,
+        "z": 249.60116799999972,
+        "hp": 111,
+        "maxHp": 140,
+        "state": "IDLE",
+        "facing": 1
+      },
+      "enemies": [],
+      "crafted": false,
+      "unbanked": 4,
+      "banked": 0,
+      "art": "pixel",
+      "assetsReady": true,
+      "cameraX": 745.7766541788568,
+      "found": [
+        "traces"
+      ],
+      "phase": "return"
+    },
+    "returned": {
+      "player": {
+        "x": 904.4520011884317,
+        "z": 249.60116799999972,
+        "hp": 111,
+        "maxHp": 140,
+        "state": "IDLE",
+        "facing": 1
+      },
+      "enemies": [],
+      "crafted": false,
+      "unbanked": 0,
+      "banked": 4,
+      "art": "pixel",
+      "assetsReady": true,
+      "cameraX": 745.9376976025566,
+      "found": [
+        "traces"
+      ],
+      "phase": "camp"
+    },
+    "forged": {
+      "player": {
+        "x": 904.4520011884317,
+        "z": 249.60116799999972,
+        "hp": 111,
+        "maxHp": 140,
+        "state": "IDLE",
+        "facing": 1
+      },
+      "enemies": [],
+      "crafted": true,
+      "unbanked": 0,
+      "banked": 1,
+      "art": "pixel",
+      "assetsReady": true,
+      "cameraX": 745.9591324867805,
+      "found": [
+        "traces"
+      ],
+      "phase": "camp"
+    },
+    "second": {
+      "seconds": 6.6,
+      "minimumHp": 131,
+      "after": {
+        "player": {
+          "x": 434.82112517743917,
+          "z": 289.84916799999957,
+          "hp": 131,
+          "maxHp": 140,
+          "state": "IDLE",
+          "facing": 1
+        },
+        "enemies": [],
+        "crafted": true,
+        "unbanked": 3,
+        "banked": 1,
+        "art": "pixel",
+        "assetsReady": true,
+        "cameraX": 339.9944358451621,
+        "found": [],
+        "phase": "return"
+      }
+    },
+    "unlocked": {
+      "player": {
+        "x": 904.9487251774385,
+        "z": 251.82822399999975,
+        "hp": 140,
+        "maxHp": 140,
+        "state": "IDLE",
+        "facing": 1
+      },
+      "enemies": [],
+      "crafted": true,
+      "unbanked": 6,
+      "banked": 1,
+      "art": "pixel",
+      "assetsReady": true,
+      "cameraX": 745.8269163278578,
+      "found": [
+        "traces",
+        "hollow"
+      ],
+      "phase": "return"
+    },
+    "banked": {
+      "player": {
+        "x": 904.9487251774385,
+        "z": 251.82822399999975,
+        "hp": 140,
+        "maxHp": 140,
+        "state": "IDLE",
+        "facing": 1
+      },
+      "enemies": [],
+      "crafted": true,
+      "unbanked": 0,
+      "banked": 7,
+      "art": "pixel",
+      "assetsReady": true,
+      "cameraX": 745.9888144514372,
+      "found": [
+        "traces",
+        "hollow"
+      ],
+      "phase": "camp"
+    },
+    "restored": {
+      "player": {
+        "x": 210,
+        "z": 310,
+        "hp": 140,
+        "maxHp": 140,
+        "state": "IDLE",
+        "facing": 1
+      },
+      "enemies": [
+        {
+          "x": 393.35109118329234,
+          "z": 247.25451604238063,
+          "hp": 95,
+          "state": "WALK"
+        },
+        {
+          "x": 482.75631239420744,
+          "z": 300.2359283492777,
+          "hp": 95,
+          "state": "IDLE"
+        },
+        {
+          "x": 575.0862445491539,
+          "z": 354.0101074794808,
+          "hp": 95,
+          "state": "WALK"
+        }
+      ],
+      "crafted": true,
+      "unbanked": 0,
+      "banked": 7,
+      "art": "pixel",
+      "assetsReady": true,
+      "cameraX": 38.909140216875606,
+      "found": [],
+      "phase": "fight"
+    }
+  },
+  "passed": true
+}

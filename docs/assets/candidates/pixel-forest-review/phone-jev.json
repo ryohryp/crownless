@@ -1,0 +1,63 @@
+{
+  "status": "needs_review",
+  "issues": [
+    "crop"
+  ],
+  "correction": null,
+  "available": true,
+  "answers": {
+    "verdict": {
+      "type": "choice",
+      "choice": "revise",
+      "confidence": 0.57,
+      "probabilities": {
+        "accept_candidate": 0.28,
+        "revise": 0.68,
+        "reject_candidate": 0.03,
+        "needs_review": 0.01
+      }
+    },
+    "main_issue": {
+      "type": "choice",
+      "choice": "crop",
+      "confidence": 0.38,
+      "probabilities": {
+        "none": 0.21,
+        "crop": 0.48,
+        "readability": 0.19,
+        "style": 0.05,
+        "missing_or_extra": 0.06,
+        "uncertain": 0.01
+      }
+    },
+    "readability": {
+      "type": "score",
+      "score": 3.11,
+      "confidence": 0.64,
+      "legend": {
+        "0": "Unusable",
+        "1": "Severely limited",
+        "2": "Mixed",
+        "3": "Mostly clear",
+        "4": "Clearly readable"
+      },
+      "probabilities": {
+        "0": 0,
+        "1": 0.01,
+        "2": 0.14,
+        "3": 0.58,
+        "4": 0.27
+      }
+    },
+    "ui_obstruction": {
+      "type": "noul",
+      "noul": 0.2
+    }
+  },
+  "usage": {
+    "input_tokens": 3406,
+    "output_tokens": 150
+  },
+  "model": "jev-1.14.0",
+  "calls": 1
+}

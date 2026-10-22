@@ -4,6 +4,7 @@ import { readFile, mkdtemp, rm, stat } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createRequire } from "node:module";
+import { fileURLToPath } from "node:url";
 const require=createRequire(import.meta.url);
 const { capturePhoneScreens }=require("../scripts/asset-quality-phone.cjs");
 const playwrightReady=(()=>{try{require.resolve("playwright");return true;}catch{return false;}})();
@@ -16,7 +17,7 @@ test("real demo temporarily renders newly generated watchtower proxy at three ph
  const tmp=await mkdtemp(join(tmpdir(),"crownless-art-qa-"));
  try{
   const image=new URL("../"+manifest.candidate,import.meta.url);
-  const result=await capturePhoneScreens({manifest,candidate:image.pathname,output:tmp});
+  const result=await capturePhoneScreens({manifest,candidate:fileURLToPath(image),output:tmp});
   assert.deepEqual(result.checks.widths,[360,390,430]);
   assert.deepEqual(result.checks.issues,[]);
   assert.ok(Object.values(result.checks.visibility).every(v=>v>=.22), "candidate must actually be visible");
@@ -35,7 +36,7 @@ test("candidate backdrop hidden beneath opaque connected tiles is rejected",{
  const tmp=await mkdtemp(join(tmpdir(),"crownless-art-occlusion-"));
  try{
   const image=new URL("../"+manifest.candidate,import.meta.url);
-  const result=await capturePhoneScreens({manifest,candidate:image.pathname,output:tmp});
+  const result=await capturePhoneScreens({manifest,candidate:fileURLToPath(image),output:tmp});
   assert.ok(result.checks.issues.some(issue=>issue.startsWith("candidate_obscured_")),JSON.stringify(result.checks));
  }finally{await rm(tmp,{recursive:true,force:true});}
 });

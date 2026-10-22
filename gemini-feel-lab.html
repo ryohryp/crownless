@@ -7,6 +7,7 @@
 <script src="https://cdn.tailwindcss.com/3.4.17"></script>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700;900&family=Noto+Sans+JP:wght@500;700;900&display=swap" rel="stylesheet">
 <!-- Standalone comparison experiment. Mechanical logic adapted directly from user-provided 2_5d.html. No expedition, GPS or save integration. -->
+<link rel="stylesheet" href="pixel-forest.css">
 <style>
   * {
     box-sizing: border-box;
@@ -114,6 +115,7 @@
       <button id="btnSpawnWave" type="button" class="hidden px-2 py-1 rounded font-bold bg-rose-700 hover:bg-rose-600 border border-rose-400/50 text-white">
         ⚔️ 魔物増援
       </button>
+      <button id="btnToggleArtPreview" type="button" aria-pressed="true">景観: 森 / 比較</button>
       <button id="btnToggleSound" type="button" class="px-2 py-1 rounded font-bold bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200">
         🔊 音ON
       </button>
@@ -279,6 +281,7 @@
 <script src="src/gemini-combat-gesture.js"></script>
 <script src="src/gemini-hit-recovery.js"></script>
 <script src="src/gemini-forest-discoveries.js"></script>
+<script src="src/pixel-forest.js"></script>
 <script>
 (() => {
   // ============================================================================
@@ -1826,8 +1829,12 @@
     const nearby = window.CrownlessForestDiscoveries.near(f,state.forestFinds);
     if (!nearby) return false;
     const discovery = window.CrownlessForestDiscoveries.uncover(
-      f,state.forestFinds,rpg.phase,f.hp,f.maxHp);
+      f,state.forestFinds,rpg.phase,f.hp,f.maxHp,rpg.crafted);
     if (!discovery.ok) {
+      if(discovery.reason==='trail'||discovery.reason==='thorns') {
+        spawnPopup(discovery.reason==='trail'?'手前の獣の痕跡に、道の手がかりがある':'茨が行く手を塞ぐ。鍛冶した剣なら切り開けそう',f.x,f.z,f.y+48,'#e3d4ac');
+        return true;
+      }
       if(discovery.reason==='full') {
         spawnPopup('体力は満タン。傷ついたらまた来よう',f.x,f.z,f.y+48,'#a7f3d0');
         return true;
@@ -1835,12 +1842,12 @@
       return false;
     }
     if(discovery.material) {
-      if (!rpgRules.claimMaterial(rpg)) return false;
-      spawnPopup('獣の痕跡を発見！牙 +1（未帰還）',f.x,f.z,f.y+48,'#fde68a');
+      for(let i=0;i<discovery.material;i++) if (!rpgRules.claimMaterial(rpg)) return false;
+      spawnPopup(discovery.spot.id==='hollow'?'石門の薬草と牙 +2（未帰還）':'獣の痕跡を発見！牙 +1 / 足跡は石門へ',f.x,f.z,f.y+48,'#fde68a');
     }
     if(discovery.heal) {
       f.hp=Math.min(f.maxHp,f.hp+discovery.heal);
-      spawnPopup('古い祠で傷を癒やした HP +'+discovery.heal,f.x,f.z,f.y+48,'#86efac');
+      spawnPopup((discovery.spot.id==='hollow'?'石門の薬草':'古い祠で傷を癒やした')+' HP +'+discovery.heal,f.x,f.z,f.y+48,'#86efac');
     }
     sfx.play('coin');
     spawnSakuraBurst(f.x,f.z,f.y+35,9);
@@ -1852,7 +1859,10 @@
   // Read-only gameplay probe used by real-touch browser regression tests.
   // Only fictional coordinates within this combat scene; no GPS data.
   window.CrownlessForestReadout=()=>({
-    player:ginji ? {x:ginji.x,z:ginji.z,hp:ginji.hp,state:ginji.state} : null,
+    player:ginji ? {x:ginji.x,z:ginji.z,hp:ginji.hp,maxHp:ginji.maxHp,state:ginji.state,facing:ginji.facing} : null,
+    enemies:state.fighters.filter(f=>f.team===1).map(f=>({x:f.x,z:f.z,hp:f.hp,state:f.state})),
+    crafted:rpg.crafted,unbanked:rpg.unbanked,banked:rpg.banked,
+    art:pixelArt?'pixel':'classic',assetsReady:forestArt.ready(),
     cameraX:state.cameraX,
     found:[...state.forestFinds],
     phase:rpg.phase
@@ -1937,11 +1947,20 @@
   });
   canvas.addEventListener('pointercancel',()=>{canvasTapStart=null;});
   const ctx = canvas.getContext('2d');
+  const forestArt = window.CrownlessPixelForest.create();
+  let pixelArt = new URLSearchParams(location.search).get('art') !== 'classic';
+  const artButton = document.getElementById('btnToggleArtPreview');
+  function syncArtButton() {
+    artButton.textContent = pixelArt ? '景観: ピクセルの森' : '景観: 従来';
+    artButton.setAttribute('aria-pressed',String(pixelArt));
+  }
+  syncArtButton();
+  artButton.addEventListener('click',()=>{pixelArt=!pixelArt;syncArtButton();});
   const VIRTUAL_H = 420;
   let virtualW = 740;
   function resizeCanvas() {
     const rect = canvas.parentElement.getBoundingClientRect();
-    const aspect = Math.max(1.15, rect.width / Math.max(1, rect.height));
+    const aspect = rect.width / Math.max(1, rect.height);
     virtualW = Math.round(VIRTUAL_H * aspect);
     canvas.width = virtualW;
     canvas.height = VIRTUAL_H;
@@ -1949,10 +1968,13 @@
   window.addEventListener('resize', resizeCanvas);
 
   function renderScene() {
+    const drawPixelArt=pixelArt && forestArt.ready();
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     // 独自要素③：ウェーブに応じた時間帯・天候変化（夕暮れ → 宵闇 → 月夜月夜）
     const weatherPhase = (state.waveCount - 1) % 3;
+    if (drawPixelArt) forestArt.background(ctx,canvas.width,state.cameraX,state.waveCount);
+    else {
     const skyGrad = ctx.createLinearGradient(0, 0, 0, 195);
     if (weatherPhase === 0) {
       skyGrad.addColorStop(0, '#1e1b4b');
@@ -1996,8 +2018,13 @@
     ctx.closePath();
     ctx.fill();
 
+    }
     ctx.save();
-    ctx.translate(-Math.round(state.cameraX), 0);
+    ctx.translate(-state.cameraX, 0);
+    if (drawPixelArt) {
+      forestArt.ground(ctx,getGroundHeightAt);
+      forestArt.trail(ctx,state.forestFinds);
+    } else {
 
     // Ancient forest and abandoned stone outposts (visual swap only).
     for (let bx = 20; bx < 980; bx += 190) {
@@ -2063,11 +2090,14 @@
     }
     ctx.stroke();
 
+    }
+
     // Explore at physical coordinates; landmarks scroll with the FOREST,
     // never with phone controls. Each site is discoverable once per trip.
     for(const spot of window.CrownlessForestDiscoveries.spots) {
       const found=state.forestFinds.has(spot.id);
       const ground=spot.z-getGroundHeightAt(spot.x,spot.z);
+      if(drawPixelArt) continue; // Pixel props share the actors' foot-depth sort below.
       ctx.save();
       ctx.translate(spot.x,ground);
       ctx.fillStyle=found?'rgba(100,116,139,0.35)':'rgba(254,240,138,0.28)';
@@ -2127,14 +2157,22 @@
 
     // Zソート描画
     const drawList = [];
+    if(drawPixelArt) for(const spot of window.CrownlessForestDiscoveries.spots) drawList.push({z:spot.z,type:'site',obj:spot});
     for (const it of state.items) drawList.push({ z: it.z, type: 'item', obj: it });
     for (const f of state.fighters) drawList.push({ z: f.z, type: 'fighter', obj: f });
     drawList.sort((a, b) => a.z - b.z);
 
     for (const entry of drawList) {
-      if (entry.type === 'item') drawItem(entry.obj);
+      if(entry.type==='site') {
+        const spot=entry.obj;
+        forestArt.site(ctx,{...spot,z:spot.z-getGroundHeightAt(spot.x,spot.z)},state.forestFinds.has(spot.id),
+          rpg.crafted,state.forestFinds.has('traces'),ginji&&Math.hypot(ginji.x-spot.x,ginji.z-spot.z)<110,performance.now());
+      }
+      else if (entry.type === 'item') drawItem(entry.obj);
       else drawFighter(entry.obj);
     }
+
+    if(drawPixelArt) forestArt.foreground(ctx,state.cameraX,canvas.width,performance.now(),ginji);
 
     // 双剣クロス斬撃エフェクト
     for (const sl of state.slashLines) {
@@ -2165,14 +2203,23 @@
       ctx.fill();
     }
 
-    ctx.font = 'bold 13px "Noto Sans JP", sans-serif';
+    ctx.font = 'bold 12px "Noto Sans JP", sans-serif';
     ctx.textAlign = 'center';
     for (const p of state.popups) {
-      const sy = p.z - p.y;
-      ctx.fillStyle = '#000000';
-      ctx.fillText(p.text, p.x + 1, sy + 1);
-      ctx.fillStyle = p.color;
-      ctx.fillText(p.text, p.x, sy);
+      const lines=[];let line='';
+      const limit=Math.min(250,canvas.width-24);
+      for(const char of p.text) {
+        if(ctx.measureText(line+char).width>limit) {lines.push(line);line='';}
+        line+=char;
+      }
+      lines.push(line);
+      const widest=Math.max(...lines.map(l=>ctx.measureText(l).width));
+      const x=Math.max(state.cameraX+12+widest/2,Math.min(state.cameraX+canvas.width-12-widest/2,p.x));
+      lines.forEach((text,i)=>{
+        const y=p.z-p.y-(lines.length-1-i)*16;
+        ctx.fillStyle='#182018';ctx.fillText(text,x+1,y+1);
+        ctx.fillStyle=p.color;ctx.fillText(text,x,y);
+      });
     }
 
     ctx.restore();
@@ -2550,7 +2597,13 @@
     hint.classList.remove('hidden');
     const near=window.CrownlessForestDiscoveries.near(ginji,state.forestFinds);
     const label=near
-      ? '✨ '+near.label+'：地点をタップ、または右側をタップ'
+      ? near.id==='hollow' && !state.forestFinds.has('traces')
+        ? '石門の手前に獣の痕跡。足跡を調べてみよう'
+        : near.id==='hollow' && !rpg.crafted
+          ? '茨の石門：風裂きの剣で切り開けそう。牙を持ち帰って鍛冶へ'
+          : '✨ '+near.label+'：地点をタップ、または右側をタップ'
+      : state.forestFinds.has('traces') && !state.forestFinds.has('hollow')
+        ? '足跡は右奥の石門へ。'+(rpg.crafted?'剣で茨を切り開こう':'茨を切る剣を作って再訪しよう')
       : rpg.phase==='return'
         ? '🌲 戦闘終了！ 森を歩いて発見を探すか「🏕 生還 / さらに奥へ」'
         : '🌲 獣の痕跡や古い祠へ近づき、地点そのものをタップして調べよう';
@@ -2585,7 +2638,7 @@
       : (rpg.lastOutcome === 'defeated'
          ? '今回の未帰還素材は失った。以前に倉庫へ持ち帰った分と制作済みの武器は残る。'
          : rpg.crafted
-           ? '鍛冶師が仕立てた風裂きの剣を装備。次の遠征では打撃の威力だけでなく、敵を吹き飛ばす勢いも増す。'
+           ? '鍛冶師が仕立てた風裂きの剣を装備。次の遠征では攻撃が強まり、痕跡の先の石門を覆う茨も切り開ける。'
            : '倉庫に集めたゴブリンの牙3個から、鍛冶師が風裂きの剣を作れる。');
   }
 

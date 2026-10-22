@@ -9,7 +9,8 @@
   'use strict';
   const spots=Object.freeze([
     Object.freeze({id:'traces',x:800,z:365,label:'獣の痕跡',kind:'material'}),
-    Object.freeze({id:'shrine',x:660,z:230,label:'苔むす祠',kind:'healing'})
+    Object.freeze({id:'shrine',x:660,z:230,label:'苔むす祠',kind:'healing'}),
+    Object.freeze({id:'hollow',x:910,z:235,label:'茨の石門',kind:'cache'})
   ]);
   const RANGE=54;
   function near(player,found){
@@ -39,14 +40,19 @@
   function available(phase){
     return phase==='fight'||phase==='return';
   }
-  function uncover(player,found,phase,hp,maxHp){
+  function uncover(player,found,phase,hp,maxHp,crafted=false){
     if(!available(phase)) return {ok:false};
     const spot=near(player,found);
     if(!spot) return {ok:false};
+    if(spot.kind==='cache'){
+      if(!found.has('traces')) return {ok:false,reason:'trail',spot};
+      if(!crafted) return {ok:false,reason:'thorns',spot};
+    }
     if(spot.kind==='healing'&&!(hp<maxHp)) return {ok:false,reason:'full',spot};
     found.add(spot.id);
-    return {ok:true,spot,material:spot.kind==='material'?1:0,
-      heal:spot.kind==='healing'?Math.min(35,maxHp-hp):0};
+    return {ok:true,spot,material:spot.kind==='cache'?2:spot.kind==='material'?1:0,
+      heal:spot.kind==='cache'?Math.min(45,Math.max(0,maxHp-hp)):
+        spot.kind==='healing'?Math.min(35,maxHp-hp):0};
   }
   return {spots,RANGE,near,spotAtTap,available,uncover};
 });
