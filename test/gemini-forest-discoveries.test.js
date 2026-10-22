@@ -63,6 +63,34 @@ test('defeat still discards discovered material; deeper exploration keeps existi
   assert.equal(run.unbanked,0);
   assert.equal(run.banked,0);
 });
+test('direct touch coordinates hit the same clue sprite after scaling and camera scrolling',()=>{
+  const rect={left:7,top:100,width:390,height:500};
+  const canvas={width:483,height:420};
+  const flat=()=>0;
+  const touch=(x,y,camera,ground=flat)=>{
+    return D.spotAtTap({x:rect.left+(x-camera)*rect.width/canvas.width,
+      y:rect.top+y*rect.height/canvas.height},rect,canvas,camera,ground);
+  };
+  assert.equal(touch(800,310,550)?.id,'traces',
+    'touching material text/icon on right half finds its actual world place');
+  assert.equal(touch(660,145,620,()=>30)?.id,'shrine',
+    'a left-half touch recognizes shrine after camera moves');
+  assert.equal(touch(660,190,620,()=>30)?.id,'shrine');
+  assert.equal(touch(800,310,150),null,
+    'out-of-viewport site cannot be remotely triggered');
+  assert.equal(D.spotAtTap({x:0,y:0},rect,canvas,550,flat),null);
+  assert.equal(D.spotAtTap({x:NaN,y:300},rect,canvas,550,flat),null);
+});
+test('scene registers direct touch and keeps cleared-wave right-hand gesture actions live',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  assert.match(html,/CrownlessForestDiscoveries\.spotAtTap\(/);
+  assert.match(html,/function tryTapForestSite\(clientX,clientY,allowNearby\)/);
+  assert.match(html,/tryTapForestSite\(e\.clientX,e\.clientY,false\)/);
+  assert.match(html,/tryTapForestSite\(event\.clientX,event\.clientY,true\)/);
+  assert.match(html,/if \(rpg\.phase !== 'fight' && rpg\.phase !== 'return'\) return;/);
+  assert.match(html,/地点をタップ/);
+});
+
 test('forest discoveries are in-scene actions, no navigation route/save/GPS coupling',()=>{
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   assert.match(html,/src\/gemini-forest-discoveries\.js/);
