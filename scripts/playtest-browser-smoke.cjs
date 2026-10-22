@@ -464,6 +464,8 @@ async function main() {
         assert.equal(await page.locator('.forest-field').getAttribute('data-field-secret'),'false');
         await page.locator('.field-choices [data-action="lantern-examine"]').click();
         assert.match(await page.locator('.scout-lantern-clue').innerText(),/倒木/);
+        assert.match(await page.locator('.field-choices [data-action="return"]').innerText(),/鉄片を持って生還/,
+          'lantern discovery must make its provisional scrap clear before leaving');
         assert.equal(await page.locator('.forest-field').getAttribute('data-field-secret'),'false',
           'lamp cannot automatically unseal secret route');
         await page.screenshot({path:path.join(output,'scout-lantern-second-trip-390.png')});

@@ -87,6 +87,6 @@ test('low HP blocks risk; controls use existing mobile choice area',()=>{
 
 test('forest safe-return cue follows carried fang regardless of discovery route',()=>{
   const app=fs.readFileSync('src/slice-app.js','utf8');
-  assert.match(app,/button\('return',x\.materials\?\.wolfFang>0\?'狼牙を持って生還':'ここで生還する'/,
+  assert.match(app,/button\('return',x\.materials\?\.wolfFang>0\?'狼牙を持って生還':x\.scrap>0\?'鉄片を持って生還':'ここで生還する'/,
     'the return cue must depend on carried loot, not tracksRisk (wolf combat also awards fangs)');
 });

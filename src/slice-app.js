@@ -253,7 +253,7 @@
       ${x.field.lanternClue ? '<p class="scout-lantern-clue" role="status">✦ 灯りが映した痕跡：倒木の近くで霧が揺らいでいる。周囲を歩いて調べよう。</p>' : ''}
       ${trailSkillButton(x)}
       ${x.foundDesign==='fang_moon' ? '<p class="notice" role="status">✦ 月影の短剣の設計図を背嚢に入れた。生還するまで失う可能性がある。</p>' : ''}
-      ${button('return',x.materials?.wolfFang>0?'狼牙を持って生還':'ここで生還する','拾った素材を確定する',{class:'secondary'})}
+      ${button('return',x.materials?.wolfFang>0?'狼牙を持って生還':x.scrap>0?'鉄片を持って生還':'ここで生還する','拾った素材を確定する',{class:'secondary'})}
       ${button('heal',`薬草 ${x.potions} · 体力 +12`,'',{class:'text-button',disabled:x.potions===0||x.hp===E.maxHp(state)})}</div>
     </div>`;
   }
