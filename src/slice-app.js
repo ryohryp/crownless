@@ -90,7 +90,9 @@
   // hard stone walls, a sound clue and a deliberately unsignposted secret stair.
   function towerField(x,title){
     const T=window.CrownlessTowerField, f=x.tower;
-    const names={wall:'崩れた石壁',start:'塔の入口',floor:'冷たい石床',echo:'反響する鐘の欠片',
+    const names={wall:'崩れた石壁',start:'塔の入口',floor:'冷たい石床',
+      // Only a listened-to echo earns the bell fragment's name.
+      echo:f.echo?'反響する鐘の欠片':'かすかに鳴る石床',
       secret:f.open?'発見した隠し階段':'ひびの入った石壁',relic:f.relic?'空の納骨室':'封じられた納骨室',
       cache:'崩れた階段',guard:f.guard?'退いた番人':'鎧の足音',stairs:'上階への階段'};
     const cells=Array.from({length:T.COUNT},(_,i)=>{
