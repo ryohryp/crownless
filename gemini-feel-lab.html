@@ -1919,6 +1919,23 @@
   // 12. 2.5Dドット絵レンダラー（天候変化・提灯点灯・紋章隈取オーラ・桜吹雪対応）
   // ============================================================================
   const canvas = document.getElementById('gameCanvas');
+  // In the comparison "button" layout, the right side of the bare canvas
+  // has no combat overlay. Allow direct landmark taps there as well.
+  let canvasTapStart=null;
+  canvas.addEventListener('pointerdown',e=>{
+    if(combatInputMode!=='buttons') return;
+    canvasTapStart={id:e.pointerId,x:e.clientX,y:e.clientY};
+    canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener('pointerup',e=>{
+    const start=canvasTapStart;
+    canvasTapStart=null;
+    if(start?.id===e.pointerId &&
+       Math.hypot(e.clientX-start.x,e.clientY-start.y)<13) {
+      tryTapForestSite(e.clientX,e.clientY,false);
+    }
+  });
+  canvas.addEventListener('pointercancel',()=>{canvasTapStart=null;});
   const ctx = canvas.getContext('2d');
   const VIRTUAL_H = 420;
   let virtualW = 740;
