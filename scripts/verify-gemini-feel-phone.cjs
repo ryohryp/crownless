@@ -82,21 +82,25 @@ async function main() {
         }, null, { timeout: 15000 });
 
         const status = await page.evaluate(() => {
-          const a = document.querySelector('#btnPunch').getBoundingClientRect();
-          const top = document.elementFromPoint(a.x + a.width / 2, a.y + a.height / 2);
+          const a = document.querySelector('#gestureActionArea').getBoundingClientRect();
+          const top = document.elementFromPoint(a.x + a.width * 0.7, a.y + a.height * 0.7);
           const canvas = document.querySelector('#gameCanvas');
           return {
             scrollWidth: document.documentElement.scrollWidth,
             viewportWidth: innerWidth,
             canvasHeight: canvas.getBoundingClientRect().height,
-            buttonWidth: a.width, buttonHeight: a.height,
-            punchTouchable: top === document.querySelector('#btnPunch') ||
-              document.querySelector('#btnPunch').contains(top),
+            gestureWidth: a.width, gestureHeight: a.height,
+            gestureTouchable: top === document.querySelector('#gestureActionArea') ||
+              document.querySelector('#gestureActionArea').contains(top),
             names: window.__combatLabCanvasText.filter(v => v.includes('ゴブリン')).slice(0, 4),
           };
         });
-        assert(status.punchTouchable && status.buttonWidth >= 60 && status.canvasHeight >= 180,
-          'real thumb punch must be reachable: ' + JSON.stringify(status));
+        assert(status.gestureTouchable && status.gestureWidth >= 130 && status.canvasHeight >= 180,
+          'right-side touch combat region must be reachable: ' + JSON.stringify(status));
+        assert.equal(await page.locator('#arcadeActionButtons').isVisible(), false,
+          'action buttons should not obscure fighters in gesture mode');
+        assert.equal(await page.evaluate(() => typeof window.CrownlessActionBarrierReadout), 'undefined',
+          'moving fence has been removed instead of hidden');
         assert(status.scrollWidth <= width + 1, 'no full-document horizontal overflow');
         assert.equal(await page.locator('#rpgPanel').isVisible(), false,
           'combat starts immediately without an RPG menu blocking original touch controls');
@@ -126,39 +130,47 @@ async function main() {
         assert.equal(await page.locator('#shopModal').isVisible(), false);
         await page.locator('#btnToggleAI').click();
         assert.match(await page.locator('#btnToggleAI').innerText(), /2P|相棒|同行/);
-        // The scenery must have a genuinely collidable lower-right timber
-        // barrier; protect all fighters after walks, knockback and camera pans.
-        const collisionProof = async () => page.evaluate(() => {
-          const info = window.CrownlessActionBarrierReadout();
-          return {
-            ...info,
-            blocked: info.fighters.filter(f =>
-              window.CrownlessControlBarricade.excluded(f, info.zone, info.cameraX)),
-          };
-        });
-        let barricade = await collisionProof();
-        assert(barricade.zone && barricade.zone.left>10 &&
-          barricade.zone.top>220 && barricade.zone.top<400,
-          'portrait touch arc must reserve lower-right obstacle: '+JSON.stringify(barricade));
-        assert.deepEqual(barricade.blocked,[],'all player, ally and enemy fighters start outside button footprint');
-        await page.keyboard.down('d');
-        await page.keyboard.down('s');
-        await page.waitForTimeout(1500);
-        await page.keyboard.up('d');
-        await page.keyboard.up('s');
-        barricade=await collisionProof();
-        assert.deepEqual(barricade.blocked,[],'fighters cannot walk into or get knocked under right thumb buttons');
+        // Phone touch gameplay without obstructive arcade buttons. Actual
+        // pointer movements exercise the right-side action area.
+        const gesture = page.locator('#gestureActionArea');
+        const zone = await gesture.boundingBox();
+        assert(zone && zone.width >= 130, 'right thumb combat region must exist');
+        const x = zone.x + zone.width * 0.55;
+        const y = zone.y + zone.height * 0.65;
+        const read=() => page.evaluate(() => window.CrownlessGestureReadout());
+        assert.equal((await read()).mode,'gesture');
+        await page.touchscreen.tap(x,y);
+        assert.equal((await read()).lastAction,'punch','tap must attack');
+        for (const [dx,dy,expected] of [[65,0,'kick'],[0,-75,'jump'],[0,75,'grab']]) {
+          const before=(await read()).count;
+          await page.mouse.move(x,y);
+          await page.mouse.down();
+          await page.mouse.move(x+dx,y+dy,{steps:6});
+          await page.mouse.up();
+          assert.equal((await read()).lastAction,expected,'swipe action '+expected);
+          assert.equal((await read()).count,before+1,'one swipe triggers only one action');
+        }
+        const after=(await read()).count;
+        await gesture.dispatchEvent('pointercancel',{pointerId:4096});
+        assert.equal((await read()).count,after,'cancelled gesture never attacks');
         await page.screenshot({
-          path:path.resolve(__dirname,'../.qa/browser/action-control-barricade-'+width+'.png'),
+          path:path.resolve(__dirname,'../.qa/browser/gesture-combat-'+width+'.png'),
         });
-        await page.locator('#btnToggleLayout').click();
-        await page.waitForTimeout(150);
-        assert.equal((await collisionProof()).zone,null,
-          'separate control deck frees the full stage: no ghost fence');
-        await page.locator('#btnToggleLayout').click();
-        await page.waitForTimeout(150);
-        assert((await collisionProof()).zone,'overlay layout restores the button-protection barrier');
-
+        await page.locator('#btnToggleInput').click();
+        assert.equal((await read()).mode,'buttons');
+        assert.equal(await page.locator('#arcadeActionButtons').isVisible(),true);
+        assert.equal(await page.locator('#gestureActionArea').isVisible(),false);
+        const buttonProof=await page.evaluate(() => {
+          const stage=document.getElementById('stageViewport').getBoundingClientRect();
+          const btn=document.getElementById('btnPunch').getBoundingClientRect();
+          return {stageBottom:stage.bottom,buttonTop:btn.top};
+        });
+        assert(buttonProof.buttonTop>=buttonProof.stageBottom-2,
+          'legacy buttons live below canvas, not on top of fighters: '+JSON.stringify(buttonProof));
+        await page.locator('#btnToggleInput').click();
+        assert.equal((await read()).mode,'gesture');
+        assert.equal(await page.locator('#arcadeActionButtons').isVisible(),false);
+        assert.equal(errors.length, 0, 'no errors in gesture and legacy input modes');
         // Simulate a completed safe return through the same pure rules,
         // then prove the real browser restores ONLY banked/crafted values.
         await page.evaluate(() => {
