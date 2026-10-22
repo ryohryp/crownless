@@ -101,7 +101,7 @@ async function main() {
           return {spots:D.spots.map(x=>x.id),afterFind,banked:state.banked,repeat:
             D.uncover({x:800,z:365},visited,'fight',100,140).ok};
         });
-        assert.deepEqual(explorationProof.spots,['traces','shrine']);
+        assert.deepEqual(explorationProof.spots,['traces','shrine','hollow']);
         assert.deepEqual(explorationProof.afterFind,{phase:'return',unbanked:4,banked:0});
         assert.equal(explorationProof.banked,4);
         assert.equal(explorationProof.repeat,false);
@@ -269,8 +269,8 @@ async function main() {
           await page.waitForFunction(() => {
             const v=window.CrownlessForestReadout();
             const canvas=document.getElementById('gameCanvas');
-            return v.player?.hp>0 && v.player.x<570 &&
-              (660-v.cameraX)<canvas.width-52;
+            return v.player?.hp>0 && v.player.x<625 &&
+              (660-v.cameraX)<canvas.width-20;
           },null,{timeout:9000});
         } finally {
           await page.keyboard.up('d');

@@ -2,3 +2,4 @@
 tmp/imagegen/
 tmp/uv-cache/
 .qa/
+node_modules/

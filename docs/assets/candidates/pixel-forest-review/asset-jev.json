@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "key": "fb4853c2051338b1d11bb8da6e5b77e8ecf60cb4e7cfb3f9cf7f7274491d586a",
+  "candidate": "docs/assets/candidates/forest-objects-v1.png",
+  "sha256": "fce0c9d2195dcc15aa78d3081be83e6ffbad57a5c9684aa57ca4736a78b14d68",
+  "kind": "background",
+  "attempt": 0,
+  "declaredGenerationAttempts": 1,
+  "declaredRegenerations": 0,
+  "maxRegenerations": 2,
+  "asset": {
+    "status": "reject_candidate",
+    "issues": [
+      "style",
+      "artifacts",
+      "anatomy"
+    ],
+    "correction": "Restore charcoal sumi-e on warm washi, keeping vermilion rare and meaningful. Remove accidental lettering, logos, doubled limbs and image-generation artifacts. Repair malformed anatomy, weapon joints and architecture without identity drift.",
+    "answers": {
+      "verdict": {
+        "type": "choice",
+        "choice": "reject_candidate",
+        "confidence": 0.89,
+        "probabilities": {
+          "accept_candidate": 0.01,
+          "revise": 0.07,
+          "reject_candidate": 0.92,
+          "needs_review": 0
+        }
+      },
+      "main_issue": {
+        "type": "choice",
+        "choice": "style",
+        "confidence": 0.92,
+        "probabilities": {
+          "none": 0,
+          "wrong_subject": 0.02,
+          "missing_or_extra": 0.01,
+          "identity": 0,
+          "anatomy": 0.02,
+          "artifacts": 0.01,
+          "crop": 0.01,
+          "readability": 0,
+          "style": 0.93,
+          "uncertain": 0
+        }
+      },
+      "style": {
+        "type": "score",
+        "score": 0.78,
+        "confidence": 0.51,
+        "legend": {
+          "0": "Opposite style",
+          "1": "Major drift",
+          "2": "Mixed",
+          "3": "Mostly matched",
+          "4": "Fully matched"
+        },
+        "probabilities": {
+          "0": 0.41,
+          "1": 0.48,
+          "2": 0.06,
+          "3": 0.03,
+          "4": 0.02
+        }
+      },
+      "quality": {
+        "type": "score",
+        "score": 1.56,
+        "confidence": 0.33,
+        "legend": {
+          "0": "Broken",
+          "1": "Major flaws",
+          "2": "Some flaws",
+          "3": "Minor flaws",
+          "4": "Clean"
+        },
+        "probabilities": {
+          "0": 0.12,
+          "1": 0.51,
+          "2": 0.17,
+          "3": 0.09,
+          "4": 0.11
+        }
+      },
+      "identity_mismatch": {
+        "type": "noul",
+        "noul": 0.33
+      },
+      "artifacts": {
+        "type": "noul",
+        "noul": 0.76
+      }
+    },
+    "model": "jev-1.14.0"
+  },
+  "phone": null,
+  "api": {
+    "requests": 1,
+    "inputTokens": 8355,
+    "outputTokens": 212
+  },
+  "geometry": {
+    "width": 1536,
+    "height": 1024,
+    "format": "png",
+    "hasAlpha": true,
+    "problems": []
+  },
+  "preview": {
+    "width": 1536,
+    "height": 1024,
+    "bytes": 2111293
+  }
+}

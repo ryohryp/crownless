@@ -61,6 +61,8 @@ jobs:
         run: npm run playtest:smoke
       - name: Gemini-source combat baseline phone smoke
         run: node scripts/verify-gemini-feel-phone.cjs
+      - name: Pixel forest real-input exploration and forge loop
+        run: npm run playtest:pixel-forest
       - name: Visual candidate temporary placement smoke
         run: node --test test/asset-quality-phone.test.js
       - name: Upload failed or manually requested QA screenshots
