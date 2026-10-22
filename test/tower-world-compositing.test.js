@@ -8,10 +8,11 @@ const vm=require('node:vm');
 const T=require('../src/tower-field.js');
 
 function fakeContext(){
-  const composites=[],images=[],rects=[],arcs=[];
+  const composites=[],images=[],rects=[],arcs=[],fills=[];
   const gradient=()=>({addColorStop(){}});
   const ctx=new Proxy({createRadialGradient:gradient,drawImage(image){images.push(image);},
-    fillRect(x,y,w,h){rects.push([x,y,w,h]);},arc(x,y,r){arcs.push([x,y,r]);}}, {
+    fillRect(x,y,w,h){rects.push([x,y,w,h]);},arc(x,y,r){arcs.push([x,y,r]);},
+    fill(){fills.push(this.fillStyle);}}, {
     get(target,key){return key in target?target[key]:()=>{};},
     set(target,key,value){
       if(key==='globalCompositeOperation')composites.push(value);
@@ -19,7 +20,7 @@ function fakeContext(){
       return true;
     }
   });
-  return {ctx,composites,images,rects,arcs};
+  return {ctx,composites,images,rects,arcs,fills};
 }
 
 test('tower fog clears only its overlay and drawing goes idle after a step',()=>{
@@ -73,14 +74,32 @@ test('tower fog clears only its overlay and drawing goes idle after a step',()=>
   assert.equal(pending.length,0,'animation stops requesting frames after the step');
   assert.match(worldspace.style.transform,/translate3d/);
 
-  let opened=T.initial();
-  for(const id of [21,22,T.ECHO])opened=T.move(opened,id);
-  section.dataset.fieldPos=String(opened.pos);
-  section.dataset.fieldSeen=String(opened.seen);
+  let approaching=T.initial();
+  for(const id of [21,22])approaching=T.move(approaching,id);
+  assert(T.visible(approaching,T.ECHO),'the bell floor is visible from the next stone tile');
+  section.dataset.fieldPos=String(approaching.pos);
+  section.dataset.fieldSeen=String(approaching.seen);
   floor.arcs.length=0;
+  floor.fills.length=0;
   root.CrownlessTowerWorld.mount({querySelector(selector){
     return selector==='.tower-field'?section:null;
   }});
+  assert(floor.arcs.length>0,'the undiscovered bell gives a faint visual pulse');
+  assert(!floor.fills.includes('#bda46c'),
+    'approaching the echo must not reveal the bell fragment before discovery');
+
+  // Arriving and listening earns the bell silhouette, including on a fresh mount.
+  let opened={...T.move(approaching,T.ECHO),echo:true};
+  section.dataset.fieldPos=String(opened.pos);
+  section.dataset.fieldSeen=String(opened.seen);
+  section.dataset.towerEcho='true';
+  floor.arcs.length=0;
+  floor.fills.length=0;
+  root.CrownlessTowerWorld.mount({querySelector(selector){
+    return selector==='.tower-field'?section:null;
+  }});
+  assert(floor.fills.includes('#bda46c'),
+    'the discovered bell fragment is drawn after reaching the echo floor');
   const beforePulse=Math.max(...floor.arcs.map(([,,radius])=>radius));
   assert(Number.isFinite(beforePulse),'unopened bell has a visible ripple');
   opened=T.uncover(opened,T.SECRET);
