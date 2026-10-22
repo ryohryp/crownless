@@ -81,6 +81,30 @@ async function main() {
           return !!canvas && canvas.width > 0 && window.__combatLabCanvasText.includes('旅人 [1P]');
         }, null, { timeout: 15000 });
 
+        assert.match(await page.locator('#forestExploreHint').innerText(), /獣の痕跡.*古い祠/,
+          'start of combat should suggest real places to walk to');
+        assert.equal(await page.locator('#rpgOpenResults').isVisible(), false,
+          'expedition choice stays hidden until enemies are defeated');
+        assert.equal(await page.locator('#rpgKeepExploring').isVisible(), false,
+          'continue exploring is only shown in the cleared-wave results');
+        const explorationProof = await page.evaluate(() => {
+          const D=window.CrownlessForestDiscoveries;
+          const R=window.CrownlessRpgLoop;
+          const visited=new Set();
+          const state=R.create();
+          for(let i=0;i<3;i++) R.claimMaterial(state);
+          R.clearWave(state);
+          const find=D.uncover({x:800,z:365},visited,state.phase,100,140);
+          if(find.ok) R.claimMaterial(state);
+          const afterFind={phase:state.phase,unbanked:state.unbanked,banked:state.banked};
+          R.returnAlive(state,100);
+          return {spots:D.spots.map(x=>x.id),afterFind,banked:state.banked,repeat:
+            D.uncover({x:800,z:365},visited,'fight',100,140).ok};
+        });
+        assert.deepEqual(explorationProof.spots,['traces','shrine']);
+        assert.deepEqual(explorationProof.afterFind,{phase:'return',unbanked:4,banked:0});
+        assert.equal(explorationProof.banked,4);
+        assert.equal(explorationProof.repeat,false);
         const status = await page.evaluate(() => {
           const a = document.querySelector('#gestureActionArea').getBoundingClientRect();
           const top = document.elementFromPoint(a.x + a.width * 0.7, a.y + a.height * 0.7);

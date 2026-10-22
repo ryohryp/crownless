@@ -9,7 +9,7 @@
       victories: 0, retreats: 0, defeats: 0, lastOutcome: '' };
   }
   function claimMaterial(s) {
-    if (s.phase !== 'fight') return false;
+    if (s.phase !== 'fight' && s.phase !== 'return') return false;
     s.unbanked++;
     return true;
   }

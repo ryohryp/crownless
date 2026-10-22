@@ -1,0 +1,80 @@
+'use strict';
+const test=require('node:test');
+const assert=require('node:assert/strict');
+const fs=require('node:fs');
+const D=require('../src/gemini-forest-discoveries.js');
+const R=require('../src/gemini-rpg-loop.js');
+
+test('two distinct forest landmarks are placed in the actually walkable action world',()=>{
+  assert.equal(D.spots.length,2);
+  assert.deepEqual(D.spots.map(s=>s.id),['traces','shrine']);
+  assert(D.spots.every(s=>s.x>=50 && s.x<=950 && s.z>=210 && s.z<=410));
+  assert.notEqual(D.spots[0].x,D.spots[1].x,'exploration requires physically moving');
+});
+test('approaching the traces and tapping earns exactly one unbanked material, not a banked weapon',()=>{
+  const visited=new Set(),run=R.create();
+  const player={x:800,z:365};
+  assert.equal(D.near({x:700,z:365},visited),null);
+  assert.equal(D.near(player,visited)?.id,'traces');
+  const find=D.uncover(player,visited,'fight',140,140);
+  assert.equal(find.ok,true);
+  assert.equal(find.material,1);
+  assert.equal(find.heal,0);
+  assert.equal(R.claimMaterial(run),true);
+  assert.equal(run.unbanked,1);
+  assert.equal(run.banked,0);
+  assert.equal(D.uncover(player,visited,'fight',140,140).ok,false,'one find per expedition');
+  assert.equal(visited.size,1);
+});
+test('shrine restores HP only when injured and cannot be harvested indefinitely',()=>{
+  const visited=new Set();
+  const player={x:660,z:230};
+  const healthy=D.uncover(player,visited,'fight',140,140);
+  assert.equal(healthy.ok,false);
+  assert.equal(healthy.reason,'full');
+  assert.equal(visited.has('shrine'),false,'save healing until needed');
+  const find=D.uncover(player,visited,'fight',75,140);
+  assert.equal(find.ok,true);
+  assert.equal(find.heal,35);
+  assert.equal(find.material,0);
+  assert.equal(D.uncover(player,visited,'fight',50,140).ok,false);
+});
+test('after defeating the three goblins, player can keep exploring, then return alive with loot',()=>{
+  const run=R.create(),visited=new Set();
+  for(let i=0;i<3;i++) R.claimMaterial(run);
+  assert.equal(R.clearWave(run),true);
+  assert.equal(run.phase,'return');
+  assert.equal(D.available(run.phase),true,'combat clear does not end the playable world');
+  const find=D.uncover({x:800,z:365},visited,run.phase,70,140);
+  assert.equal(find.material,1);
+  assert.equal(R.claimMaterial(run),true);
+  assert.equal(run.unbanked,4);
+  assert.equal(R.returnAlive(run,70),true);
+  assert.equal(run.banked,4,'discovered fang is only banked on living return');
+  assert.equal(D.available(run.phase),false);
+  assert.equal(R.claimMaterial(run),false);
+});
+test('defeat still discards discovered material; deeper exploration keeps existing risk',()=>{
+  const run=R.create(),visited=new Set();
+  const find=D.uncover({x:800,z:365},visited,'fight',80,140);
+  assert.equal(find.material,1);
+  R.claimMaterial(run);
+  R.loseExpedition(run);
+  assert.equal(run.unbanked,0);
+  assert.equal(run.banked,0);
+});
+test('forest discoveries are in-scene actions, no navigation route/save/GPS coupling',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  assert.match(html,/src\/gemini-forest-discoveries\.js/);
+  assert.match(html,/id="forestExploreHint"/);
+  assert.match(html,/id="rpgOpenResults"/);
+  assert.match(html,/id="rpgKeepExploring"/);
+  assert.match(html,/function tryExploreForest\(f\)/);
+  assert.match(html,/if \(tryExploreForest\(f\)\) return true/);
+  assert.match(html,/rpg\.phase === 'fight' \|\| rpg\.phase === 'return'/);
+  assert.match(html,/function updateForestExploreHint\(\)/);
+  const clearWave=html.match(/if \(remainingEnemies.length === 0 && rpgRules.clearWave\(rpg\)\) \{([^}]+)\}/);
+  assert.ok(clearWave);
+  assert.doesNotMatch(clearWave[1],/showRpgPanel\(\)/,'clearing enemies must not force modal');
+  assert.doesNotMatch(html,/CrownlessControlBarricade/);
+});
