@@ -1809,11 +1809,11 @@
     const near=window.CrownlessForestDiscoveries.near(ginji,state.forestFinds);
     if (site) {
       if (state.forestFinds.has(site.id)) {
-        spawnPopup('ここは調査済み',site.x,site.z,site.z-getGroundHeightAt(site.x,site.z)+25,'#cbd5e1');
+        spawnPopup('ここは調査済み',site.x,site.z,getGroundHeightAt(site.x,site.z)+65,'#cbd5e1');
         return true;
       }
       if (Math.hypot(ginji.x-site.x,ginji.z-site.z)>=window.CrownlessForestDiscoveries.RANGE) {
-        spawnPopup('もう少し近づいて調べよう',site.x,site.z,site.z-getGroundHeightAt(site.x,site.z)+30,'#fef08a');
+        spawnPopup('もう少し近づいて調べよう',site.x,site.z,getGroundHeightAt(site.x,site.z)+65,'#fef08a');
         return true;
       }
     }
