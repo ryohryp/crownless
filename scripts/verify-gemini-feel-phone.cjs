@@ -108,6 +108,32 @@ async function main() {
           'run starts with no material and no forged weapon');
         assert.equal(await page.evaluate(() => typeof window.CrownlessRpgLoop.forge), 'function',
           'isolated smithing rules load in the real browser');
+        // Exercise the production-loaded recovery functions on a phone browser.
+        // A three-enemy burst must only register one hit, then leave time to move.
+        const recovery = await page.evaluate(() => {
+          const R = window.CrownlessHitRecovery;
+          const hero = {team:0,hitGuardRemaining:0};
+          const mob = [{team:1,isBoss:false,nextStrikeAt:0},
+                       {team:1,isBoss:false,nextStrikeAt:0},
+                       {team:1,isBoss:true,nextStrikeAt:0}];
+          let hits=0;
+          for (const e of mob) {
+            if (R.acceptsHit(hero)) { R.registerHit(hero); hits++; }
+            R.registerEnemyStrike(e,20);
+          }
+          R.step(hero,R.HERO_DOWN_SECONDS);
+          return { hits, protected:R.acceptsHit(hero)===false,
+            remaining:hero.hitGuardRemaining,
+            enemyReady:mob.map(e=>R.readyToStrike(e,20.6)),
+            grace:R.HERO_GRACE_SECONDS,
+            down:R.HERO_DOWN_SECONDS };
+        });
+        assert.equal(recovery.hits,1,'a crowd may not repeatedly stun-lock a hero');
+        assert(recovery.protected && recovery.remaining>0.5,
+          'hero must regain control with immunity remaining: '+JSON.stringify(recovery));
+        assert.deepEqual(recovery.enemyReady,[false,false,false],
+          'each enemy must cool down between attack attempts');
+
 
         // Walk close to the original enemy wave and hold attack as the original invites.
         await page.keyboard.down('d');
