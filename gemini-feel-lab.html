@@ -1849,6 +1849,15 @@
     return true;
   }
 
+  // Read-only gameplay probe used by real-touch browser regression tests.
+  // Only fictional coordinates within this combat scene; no GPS data.
+  window.CrownlessForestReadout=()=>({
+    player:ginji ? {x:ginji.x,z:ginji.z,hp:ginji.hp,state:ginji.state} : null,
+    cameraX:state.cameraX,
+    found:[...state.forestFinds],
+    phase:rpg.phase
+  });
+
   function tryPickupItem(f) {
     // Tapping near an actual place in the scene explores rather than attacks.
     if (tryExploreForest(f)) return true;
