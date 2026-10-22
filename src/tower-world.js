@@ -173,15 +173,14 @@
     section.classList.add('world-painted');
     const worldspace=section.querySelector('.field-worldspace');
     const size=worldspace?.clientWidth||0;
-    const last=previous;previous=f.pos;
-    const start=last!==null&&T.adjacent(last,f.pos)?center(last):center(f.pos);
+    const last=previous;previous={pos:f.pos,open:f.open};
+    const start=last!==null&&T.adjacent(last.pos,f.pos)?center(last.pos):center(f.pos);
     const end=center(f.pos),zoom=1.62;
     const started=root.performance?.now?.()||0;
     const reduced=root.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
-    // After the player deliberately opens the stair, let the earned bell
-    // resonance ring for a moment beyond the 400ms walking transition.
+    // Celebrate the instant the stair is discovered, not every revisit or reload.
     // Stay idle elsewhere and honor reduced-motion preference.
-    const echoRing=!reduced&&f.open&&f.pos===T.ECHO;
+    const echoRing=!reduced&&f.open&&f.pos===T.ECHO&&last?.pos===T.ECHO&&!last.open;
     const animationMs=echoRing?1600:400;
     const instance={raf:0};active=instance;
     let lastFrame=0;
