@@ -8,9 +8,11 @@ const vm=require('node:vm');
 const T=require('../src/tower-field.js');
 
 function fakeContext(){
-  const composites=[],images=[];
+  const composites=[],images=[],rects=[],arcs=[],fills=[];
   const gradient=()=>({addColorStop(){}});
-  const ctx=new Proxy({createRadialGradient:gradient,drawImage(image){images.push(image);}}, {
+  const ctx=new Proxy({createRadialGradient:gradient,drawImage(image){images.push(image);},
+    fillRect(x,y,w,h){rects.push([x,y,w,h]);},arc(x,y,r){arcs.push([x,y,r]);},
+    fill(){fills.push(this.fillStyle);}}, {
     get(target,key){return key in target?target[key]:()=>{};},
     set(target,key,value){
       if(key==='globalCompositeOperation')composites.push(value);
@@ -18,7 +20,7 @@ function fakeContext(){
       return true;
     }
   });
-  return {ctx,composites,images};
+  return {ctx,composites,images,rects,arcs,fills};
 }
 
 test('tower fog clears only its overlay and drawing goes idle after a step',()=>{
@@ -62,8 +64,91 @@ test('tower fog clears only its overlay and drawing goes idle after a step',()=>
   assert(fog.composites.includes('destination-out'),'visible cells clear the fog layer');
   assert(!floor.composites.includes('destination-out'),'fog never erases the stone floor');
   assert(floor.images.includes(overlay),'fog is drawn over the stone floor');
+  const painted=(x,y)=>floor.rects.some(r=>r[0]===x&&r[1]===y&&r[2]===118&&r[3]===118);
+  assert(painted(121,481),'discovered adjacent floor is drawn');
+  assert(!painted(241,241),'undiscovered secret has no floor silhouette under soft fog');
+  assert(!painted(241,121),'undiscovered reliquary has no floor silhouette under soft fog');
+  assert(!painted(1,1),'unseen wall is not disguised as a floor under fog');
 
   for(let time=220;time<=640&&pending.length;time+=70)pending.shift()(time);
   assert.equal(pending.length,0,'animation stops requesting frames after the step');
   assert.match(worldspace.style.transform,/translate3d/);
+
+  let approaching=T.initial();
+  for(const id of [21,22])approaching=T.move(approaching,id);
+  assert(T.visible(approaching,T.ECHO),'the bell floor is visible from the next stone tile');
+  section.dataset.fieldPos=String(approaching.pos);
+  section.dataset.fieldSeen=String(approaching.seen);
+  floor.arcs.length=0;
+  floor.fills.length=0;
+  root.CrownlessTowerWorld.mount({querySelector(selector){
+    return selector==='.tower-field'?section:null;
+  }});
+  assert(floor.arcs.length>0,'the undiscovered bell gives a faint visual pulse');
+  assert(!floor.fills.includes('#bda46c'),
+    'approaching the echo must not reveal the bell fragment before discovery');
+
+  // Arriving and listening earns the bell silhouette, including on a fresh mount.
+  let opened={...T.move(approaching,T.ECHO),echo:true};
+  section.dataset.fieldPos=String(opened.pos);
+  section.dataset.fieldSeen=String(opened.seen);
+  section.dataset.towerEcho='true';
+  floor.arcs.length=0;
+  floor.fills.length=0;
+  root.CrownlessTowerWorld.mount({querySelector(selector){
+    return selector==='.tower-field'?section:null;
+  }});
+  assert(floor.fills.includes('#bda46c'),
+    'the discovered bell fragment is drawn after reaching the echo floor');
+  const beforePulse=Math.max(...floor.arcs.map(([,,radius])=>radius));
+  assert(Number.isFinite(beforePulse),'unopened bell has a visible ripple');
+  opened=T.uncover(opened,T.SECRET);
+  assert(opened?.open,'deliberate investigation reveals the hidden stair');
+  section.dataset.fieldPos=String(opened.pos);
+  section.dataset.fieldSeen=String(opened.seen);
+  section.dataset.towerOpen='true';
+  floor.rects.length=0;
+  floor.arcs.length=0;
+  root.CrownlessTowerWorld.mount({querySelector(selector){
+    return selector==='.tower-field'?section:null;
+  }});
+  assert(floor.arcs.some(([,,radius])=>radius>beforePulse+8),
+    'earned stair discovery produces a visibly stronger bell ripple');
+  const firstFrames=floor.arcs.length;
+  for(let time=220;time<=1020&&pending.length;time+=80)pending.shift()(time);
+  assert(pending.length>0,'earned echo keeps ringing after the walking transition');
+  assert(floor.arcs.length>firstFrames,'earned echo redraws, not just its first frame');
+  for(let time=1100;time<=1900&&pending.length;time+=80)pending.shift()(time);
+  assert.equal(pending.length,0,'earned echo stops drawing after its short celebration');
+  assert(painted(241,241),'discovered stair floor becomes visible after investigation');
+  assert(!painted(241,121),'reliquary remains hidden until actually approached');
+
+  // The long echo belongs to the one-time discovery, not to repeat visits.
+  const ordinaryFrames=()=>{
+    for(let time=220;time<=640&&pending.length;time+=70)pending.shift()(time);
+    assert.equal(pending.length,0,
+      'revisiting an opened stair must not replay the discovery celebration');
+  };
+  const render=f=>{
+    section.dataset.fieldPos=String(f.pos);
+    section.dataset.fieldSeen=String(f.seen);
+    section.dataset.towerEcho=String(f.echo);
+    section.dataset.towerOpen=String(f.open);
+    root.CrownlessTowerWorld.mount({querySelector(selector){
+      return selector==='.tower-field'?section:null;
+    }});
+  };
+  render(opened);
+  ordinaryFrames(); // Re-rendering at the same tile does not celebrate again.
+  const away=T.move(opened,22);
+  assert(away,'the nearby stone floor remains walkable');
+  render(away);
+  ordinaryFrames();
+  const back=T.move(away,T.ECHO);
+  assert(back,'the discovered bell floor remains reachable');
+  render(back);
+  ordinaryFrames(); // Walking back is not a second discovery.
+  vm.runInNewContext(source,{window:root},{filename:'tower-world.js'});
+  render(back);
+  ordinaryFrames(); // Reloading an already-open save is not a discovery.
 });

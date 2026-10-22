@@ -667,7 +667,9 @@ async function main() {
         await relicPage.setViewportSize({width,height:width===360?800:844});
         const openedFork=relicPage.locator('.tower-rumor-fork');
         assert.match(await openedFork.innerText(),/隠し階段を見つけた/);
-        assert.match(await openedFork.innerText(),/見つけた階段を確かめる/);
+        assert.match(await relicPage.locator('.forest-field-header small').innerText(),/隠し階段を見つけた石床は別の場所だ。足場をたどって戻ろう/,
+          'the discovered stair changes the scene cue after reload without revealing loot');
+        assert.match(await openedFork.innerText(),/反響する石床へ戻る/);
         assert.doesNotMatch(await openedFork.innerText(),/床下の鐘の音を追う|鐘鉄を守って生還|盾の製法/);
         assert.equal(await openedFork.locator('button').count(),2);
         const fit=await openedFork.locator('button').evaluateAll(btns=>btns.map(b=>{
@@ -690,6 +692,8 @@ async function main() {
         await relicPage.setViewportSize({width,height:width===360?800:844});
         const fork=relicPage.locator('.tower-rumor-fork');
         assert.match(await fork.innerText(),/鐘鉄を守って生還/);
+        assert.match(await relicPage.locator('.forest-field-header small').innerText(),/鐘鉄を見つけた。まだ背嚢の中/,
+          'the recovered relic changes the scene cue and keeps unbanked loot at stake');
         assert.match(await fork.innerText(),/鎧の足音を追う/);
         assert.match(await fork.innerText(),/鐘鉄の共鳴で初手 \+1/,'earned resonance is visible before committing to risk');
         assert.match(await fork.innerText(),/勝てば盾の製法、敗れれば背嚢を失う/,'the discovered fork states reward and loss');
@@ -1191,10 +1195,29 @@ async function main() {
         assert.equal(await page.locator('.tower-field .field-cell.relic.veiled').count(),1,'sealed reliquary starts hidden');
         assert(await page.locator('.tower-field .walk-nav').count()>=1,'regular stone pathways keep subtle guidance');
         await page.screenshot({path:path.join(output,'tower-stone-entry-'+width+'.png')});
-        for(const id of [21,22,17])await step(id);
+        for(const id of [21,22])await step(id);
+        const echoTile=page.locator('.tower-field [data-action="tower-step"][data-value="17"]');
+        assert.match(await echoTile.getAttribute('aria-label'),/かすかに鳴る石床/,
+          'approaching the bell must not spoil its identity for screen readers');
+        assert.doesNotMatch(await echoTile.getAttribute('aria-label'),/鐘の欠片|納骨室/);
+        await step(17);
         let s=await saved();
         assert.equal(s.expedition.tower.echo,true);
         assert.match(s.expedition.log[0],/鐘の欠片/);
+        assert.match(await page.locator('.forest-field-header small').innerText(),/この石床で壁を調べよう/,
+          'the echo can be investigated only at the discovered floor');
+        await step(22);
+        assert.match(await echoTile.getAttribute('aria-label'),/反響する鐘の欠片/,
+          'a discovered bell is named on the adjacent tile');
+        assert.match(await page.locator('.forest-field-header small').innerText(),/足場をたどって戻ろう/,
+          'walking away must not imply that any wall can be investigated');
+        await page.reload();
+        assert.match(await echoTile.getAttribute('aria-label'),/反響する鐘の欠片/,
+          'the earned accessible label survives current-save reload');
+        assert.match(await page.locator('.forest-field-header small').innerText(),/足場をたどって戻ろう/,
+          'the location-aware clue must survive save/reload');
+        await step(17);
+        assert.match(await page.locator('.forest-field-header small').innerText(),/この石床で壁を調べよう/);
         assert.equal(await page.locator('.tower-field .field-cell.secret.walk-nav').count(),0);
         await page.screenshot({path:path.join(output,'tower-bell-clue-'+width+'.png')});
         assert.equal(await page.locator('.tower-field [data-action="tower-step"][data-value="12"]').count(),0,
@@ -1203,10 +1226,20 @@ async function main() {
         s=await saved();
         assert.equal(s.expedition.tower.pos,17,'investigating opens a real barrier but does not move');
         assert.equal(s.expedition.tower.open,true);
+        assert.match(await page.locator('.forest-field-header small').innerText(),/この石床から進める/,
+          'opened stair is anchored to the discovered floor');
         assert.equal(await page.locator('.tower-field .field-cell.secret.walk-nav').count(),0,
           'opened hidden staircase stays unsignposted');
         await page.screenshot({path:path.join(output,'tower-hidden-stair-'+width+'.png')});
-        await step(12);await step(7);
+        await step(12);
+        assert.match(await page.locator('.forest-field-header small').innerText(),/隠し階段の中にいる/);
+        await step(17);await step(22);
+        assert.match(await page.locator('.forest-field-header small').innerText(),/足場をたどって戻ろう/,
+          'opened stair must not sound accessible from elsewhere');
+        await page.reload();
+        assert.match(await page.locator('.forest-field-header small').innerText(),/足場をたどって戻ろう/,
+          'opened stair location cue survives save/reload');
+        await step(17);await step(12);await step(7);
         s=await saved();
         assert.equal(s.expedition.tower.relic,true);
         assert.equal(s.expedition.materials.watchIron,1);
