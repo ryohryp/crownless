@@ -149,7 +149,13 @@
         <div id="zAxisBadge" class="hidden px-2 py-0.5 rounded bg-emerald-950/85 border border-emerald-400/60 text-emerald-300 text-[10px] font-bold">
           🎯 Z軸（奥行き）ロックオン中！攻撃が当たります
         </div>
+        <div id="forestExploreHint" class="max-w-56 px-2 py-1 rounded bg-emerald-950/80 border border-emerald-500/40 text-emerald-100 text-[10px] font-bold" role="status">
+          🌲 奥に獣の痕跡、丘の上に古い祠。近づいてタップで調べよう
+        </div>
       </div>
+      <button id="rpgOpenResults" type="button" class="hidden absolute top-2 right-2 z-20 min-h-11 px-3 rounded-lg bg-emerald-900/95 border border-emerald-300 text-amber-50 text-xs font-black shadow-lg">
+        🏕 生還 / さらに奥へ
+      </button>
     </div>
 
     <!-- 枠なしフルスクリーン・オーバーレイ（左側コントローラーエリア枠は完全非表示、タッチ中のみスティック出現） -->
@@ -236,6 +242,7 @@
         <p id="rpgInfo" class="text-sm leading-relaxed text-slate-200"></p>
         <p id="rpgBank" class="text-xs font-bold text-amber-200">持ち帰り前 0 / 倉庫 0</p>
         <div class="grid gap-2">
+          <button id="rpgKeepExploring" class="hidden min-h-12 bg-sky-900 border border-sky-500 rounded-lg font-bold text-sm p-2" type="button">🌲 森の探索を続ける</button>
           <button id="rpgReturn" class="hidden min-h-12 bg-emerald-700 border border-emerald-400 rounded-lg font-black text-sm p-2" type="button">🏕 生還して素材を確保</button>
           <button id="rpgPush" class="hidden min-h-12 bg-rose-900 border border-rose-500 rounded-lg font-bold text-sm p-2" type="button">⚔ さらに奥へ（敗北時は素材を失う）</button>
           <button id="rpgForge" class="hidden min-h-12 bg-amber-600 border border-amber-300 rounded-lg font-black text-slate-950 text-sm p-2" type="button">⚒ 鍛冶で風裂きの剣を製作</button>
@@ -271,6 +278,7 @@
 <script src="src/gemini-action-save.js"></script>
 <script src="src/gemini-combat-gesture.js"></script>
 <script src="src/gemini-hit-recovery.js"></script>
+<script src="src/gemini-forest-discoveries.js"></script>
 <script>
 (() => {
   // ============================================================================
@@ -503,6 +511,7 @@
     autoRunEnabled: false,
     tokenManager: new BattleTokenManager(2),
     fighters: [],
+    forestFinds: new Set(),
     items: [],
     popups: [],
     hitSparks: [],
@@ -623,6 +632,7 @@
 
   function initStage() {
     state.fighters = [];
+    state.forestFinds = new Set();
     state.items = [];
     state.popups = [];
     state.sakuraPetals = [];
@@ -1739,7 +1749,9 @@
         const remainingEnemies = state.fighters.filter(f => f.team === 1 && f.state !== 'DEAD');
         if (remainingEnemies.length === 0 && rpgRules.clearWave(rpg)) {
           updateRpgStatus();
-          showRpgPanel();
+          spawnPopup('森を自由に探索できる！帰還も選べる',ginji.x,ginji.z,ginji.y+55,'#fef08a');
+          // Do NOT block the whole screen the moment the fight ends.
+          // The hero can find things, or open the existing results when ready.
         }
         updateUI();
       }, 650);
@@ -1766,7 +1778,37 @@
     return true;
   }
 
+  function tryExploreForest(f) {
+    if (f !== ginji || !window.CrownlessForestDiscoveries.available(rpg.phase)) return false;
+    const nearby = window.CrownlessForestDiscoveries.near(f,state.forestFinds);
+    if (!nearby) return false;
+    const discovery = window.CrownlessForestDiscoveries.uncover(
+      f,state.forestFinds,rpg.phase,f.hp,f.maxHp);
+    if (!discovery.ok) {
+      if(discovery.reason==='full') {
+        spawnPopup('体力は満タン。傷ついたらまた来よう',f.x,f.z,f.y+48,'#a7f3d0');
+        return true;
+      }
+      return false;
+    }
+    if(discovery.material) {
+      if (!rpgRules.claimMaterial(rpg)) return false;
+      spawnPopup('獣の痕跡を発見！牙 +1（未帰還）',f.x,f.z,f.y+48,'#fde68a');
+    }
+    if(discovery.heal) {
+      f.hp=Math.min(f.maxHp,f.hp+discovery.heal);
+      spawnPopup('古い祠で傷を癒やした HP +'+discovery.heal,f.x,f.z,f.y+48,'#86efac');
+    }
+    sfx.play('coin');
+    spawnSakuraBurst(f.x,f.z,f.y+35,9);
+    updateUI();
+    updateRpgStatus();
+    return true;
+  }
+
   function tryPickupItem(f) {
+    // Tapping near an actual place in the scene explores rather than attacks.
+    if (tryExploreForest(f)) return true;
     for (let i = 0; i < state.items.length; i++) {
       const it = state.items[i];
       if (it.thrownTeam !== -1) continue;
@@ -1951,6 +1993,44 @@
       else ctx.lineTo(x, sy);
     }
     ctx.stroke();
+
+    // Explore at physical coordinates; landmarks scroll with the FOREST,
+    // never with phone controls. Each site is discoverable once per trip.
+    for(const spot of window.CrownlessForestDiscoveries.spots) {
+      const found=state.forestFinds.has(spot.id);
+      const ground=spot.z-getGroundHeightAt(spot.x,spot.z);
+      ctx.save();
+      ctx.translate(spot.x,ground);
+      ctx.fillStyle=found?'rgba(100,116,139,0.35)':'rgba(254,240,138,0.28)';
+      ctx.beginPath();
+      ctx.ellipse(0,0,29,10,0,0,Math.PI*2);
+      ctx.fill();
+      if(spot.id==='traces') {
+        ctx.fillStyle=found?'#64748b':'#e8cfa2';
+        ctx.fillRect(-18,-8,36,9);
+        ctx.fillRect(-10,-16,18,8);
+        ctx.fillStyle='#453c36';
+        ctx.fillRect(-8,-12,8,3);
+      } else {
+        ctx.fillStyle=found?'#64748b':'#9fb7a2';
+        ctx.fillRect(-18,-56,36,54);
+        ctx.fillStyle='#475569';
+        ctx.fillRect(-23,-60,46,7);
+        ctx.fillStyle=found?'#64748b':'#fcd34d';
+        ctx.fillRect(-5,-45,10,15);
+      }
+      ctx.font='bold 13px "Noto Sans JP",sans-serif';
+      ctx.fillStyle=found?'#94a3b8':'#fef08a';
+      ctx.textAlign='center';
+      ctx.fillText(found?'調査済':spot.label,0,-69);
+      const near=ginji&&Math.hypot(ginji.x-spot.x,ginji.z-spot.z)<window.CrownlessForestDiscoveries.RANGE;
+      if(near&&!found) {
+        ctx.fillStyle='#f8fafc';
+        ctx.font='bold 12px "Noto Sans JP",sans-serif';
+        ctx.fillText('👆 タップで調べる',0,-88);
+      }
+      ctx.restore();
+    }
 
     // 旅人の足元Z軸（奥行き）ガイドライン
     if (ginji && ginji.state !== 'DEAD') {
@@ -2393,6 +2473,19 @@
     const badge = document.getElementById('rpgStatusBadge');
     badge.textContent = '🎒 未帰還 ' + rpg.unbanked + '　倉庫 ' + rpg.banked +
       '　武器：' + (rpg.crafted ? '⚔ 風裂きの剣' : '初期装備');
+    document.getElementById('rpgOpenResults').classList.toggle('hidden',rpg.phase!=='return');
+  }
+  function updateForestExploreHint() {
+    const hint=document.getElementById('forestExploreHint');
+    if(rpg.phase==='camp') {hint.classList.add('hidden');return;}
+    hint.classList.remove('hidden');
+    const near=window.CrownlessForestDiscoveries.near(ginji,state.forestFinds);
+    const label=near
+      ? '✨ '+near.label+'：右側をタップして調べる'
+      : rpg.phase==='return'
+        ? '🌲 戦闘終了！ 森を歩いて発見を探すか「🏕 生還 / さらに奥へ」'
+        : '🌲 奥に獣の痕跡、丘の上に古い祠。近づいてタップで調べよう';
+    if(hint.textContent!==label) hint.textContent=label;
   }
 
   function showRpgPanel() {
@@ -2401,6 +2494,7 @@
     const camp = rpg.phase === 'camp';
     panel.classList.toggle('hidden', !(result || camp));
 
+    document.getElementById('rpgKeepExploring').classList.toggle('hidden', !result);
     document.getElementById('rpgReturn').classList.toggle('hidden', !result);
     document.getElementById('rpgPush').classList.toggle('hidden', !result);
     document.getElementById('rpgForge').classList.toggle('hidden', !camp || rpg.crafted);
@@ -2426,6 +2520,10 @@
            : '倉庫に集めたゴブリンの牙3個から、鍛冶師が風裂きの剣を作れる。');
   }
 
+  document.getElementById('rpgOpenResults').addEventListener('click',showRpgPanel);
+  document.getElementById('rpgKeepExploring').addEventListener('click',()=>{
+    if(rpg.phase==='return') document.getElementById('rpgPanel').classList.add('hidden');
+  });
   document.getElementById('rpgReturn').addEventListener('click', () => {
     if (!rpgRules.returnAlive(rpg, ginji && ginji.hp)) return;
     saveActionProgress();
@@ -2484,7 +2582,8 @@
       spawnSakuraBurst(ginji.x + (Math.random() - 0.5) * 420, 220, 120, 1);
     }
 
-    if (rpg.phase === 'fight') for (const f of state.fighters) {
+    // Continue traversing the same world after the enemies fall.
+    if (rpg.phase === 'fight' || rpg.phase === 'return') for (const f of state.fighters) {
       let input;
       if (f === ginji) {
         input = samplePlayer1Input(dt);
@@ -2553,6 +2652,7 @@
       state.cameraX += (targetCamX - state.cameraX) * Math.min(1, dt * 6);
     }
     updateContextualButtons();
+    updateForestExploreHint();
     renderScene();
     requestAnimationFrame(gameLoop);
   }
