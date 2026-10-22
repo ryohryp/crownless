@@ -831,6 +831,8 @@
             x.scrap+=6; x.materials.wolfFang+=1;
             x.log=['古い宝箱を発見！ 鉄片 +6、狼牙 +1。持ち帰れば鍛冶師の素材になる。'];
           } else x.log=['古い宝箱を開けた。背嚢がいっぱいでこれ以上は持てない。'];
+          // Hint at an investigation; keep the secret hidden until inspected.
+          x.log[0]+=' 宝箱の背後でツタが擦れる音がした。周囲を調べれば何か見つかるかもしれない。';
         } else if (to === F.CACHE && !field.cache) {
           field.cache=true;
           // The tree's torn roots are visible on approach. A small wound is

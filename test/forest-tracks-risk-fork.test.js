@@ -90,3 +90,19 @@ test('forest safe-return cue follows carried fang regardless of discovery route'
   assert.match(app,/button\('return',x\.materials\?\.wolfFang>0\?'狼牙を持って生還':x\.scrap>0\?'鉄片を持って生還':'ここで生還する'/,
     'the return cue must depend on carried loot, not tracksRisk (wolf combat also awards fangs)');
 });
+
+test('treasure hints at vines without revealing or navigating the secret passage',()=>{
+  const found=walk(E.start({...E.initial(),mode:'demo'},'wood'),[21,22,23,F.TRACKS,F.TREASURE]);
+  assert.match(found.expedition.log[0],/宝箱の背後でツタが擦れる音/);
+  assert.equal(found.expedition.field.secret,false);
+  assert.equal(F.visible(found.expedition.field,F.SECRET),false);
+  assert.equal(F.canMove(found.expedition.field,F.SECRET),false);
+  const opened=E.act(found,'field-step:'+F.SECRET);
+  assert.equal(opened.expedition.field.pos,F.TREASURE,'inspection does not teleport');
+  assert.equal(opened.expedition.field.secret,true,'only deliberate inspection opens secret');
+  const entered=E.act(opened,'field-step:'+F.SECRET);
+  assert.equal(entered.expedition.field.pos,F.SECRET);
+  const returned=E.act(found,'return');
+  assert.equal(returned.expedition,null);
+  assert.equal(returned.materials.wolfFang,found.materials.wolfFang+1,'loot banks on safe return');
+});
