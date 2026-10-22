@@ -101,6 +101,7 @@
 
     <!-- 右：システム・UIモード切替ボタン群 -->
     <div class="flex items-center gap-1 text-[11px] sm:text-xs">
+      <button id="btnToggleInput" type="button" class="px-2 py-1 rounded font-bold bg-emerald-800 border border-emerald-400/60 text-white" aria-pressed="true">🖐 操作: ジェスチャー</button>
       <button id="btnToggleLayout" type="button" class="px-2 py-1 rounded font-bold bg-teal-700 hover:bg-teal-600 border border-teal-300/50 text-white shadow" title="画面を隠さないスプリット筐体モードと画面内オーバーレイを切り替えます">
         📱 UI: 全画面(枠なし)
       </button>
@@ -183,7 +184,12 @@
       </div>
 
       <!-- 右半分：親指アーク（Thumb Arc）扇形ボタン配置 ＋ 特大コンテキストメインボタン -->
-      <div class="relative w-[50%] sm:w-[44%] h-full max-h-48 pointer-events-auto flex items-center justify-end">
+      <div id="gestureActionArea" class="absolute right-0 top-0 w-[48%] h-full z-10 pointer-events-auto touch-none" aria-label="右側の戦闘操作。タップで斬撃、横スワイプで蹴り、上で跳躍、下で組み技">
+        <div id="gestureHint" class="absolute right-2 bottom-2 max-w-[95%] text-right rounded bg-slate-950/50 px-2 py-1 text-[10px] text-sky-100 pointer-events-none">
+          タップ:斬撃　横:蹴り　↑跳ぶ　↓組む
+        </div>
+      </div>
+      <div id="arcadeActionButtons" class="hidden relative w-[50%] sm:w-[44%] h-full max-h-48 pointer-events-auto flex items-center justify-end">
         <div class="relative w-56 h-40 sm:w-64 sm:h-44">
 
           <!-- ① 特大メインボタン（右下中央・親指のホームポジション）：殴る / 拾う / 追撃追撃（長押しオート連打対応） -->
@@ -263,7 +269,7 @@
 
 <script src="src/gemini-rpg-loop.js"></script>
 <script src="src/gemini-action-save.js"></script>
-<script src="src/gemini-control-barricade.js"></script>
+<script src="src/gemini-combat-gesture.js"></script>
 <script>
 (() => {
   // ============================================================================
@@ -765,7 +771,7 @@
 
     sasuke.x = Math.min(WORLD.maxX, mainTarget.x + 36);
     sasuke.z = mainTarget.z;
-    // Combo teleport cannot phase either fighter through the control fence.
+    // Keep combo teleports inside the actual world bounds.
     clampToWorld(ginji);
     clampToWorld(sasuke);
     sasuke.facing = -1;
@@ -842,6 +848,91 @@
     if (e.code === 'KeyK') touchInput.kickHeld = false;
     if (e.code === 'KeyL') touchInput.grabHeld = false;
     if (!keys['KeyA'] && !keys['KeyD']) keyRunLatched = false;
+  });
+
+  // The new phone default has no floating action buttons or fake moving walls.
+  // Gestures feed the EXACT same one-frame flags the original action buttons use.
+  let combatInputMode = 'gesture';
+  let lastCombatGesture = null;
+  let combatGestureCount = 0;
+  const gestureArea = document.getElementById('gestureActionArea');
+  const gestureHint = document.getElementById('gestureHint');
+  let gesturePointer = null;
+  let gestureHoldTimer = null;
+  function releaseGestureHold() {
+    if (gestureHoldTimer !== null) clearTimeout(gestureHoldTimer);
+    gestureHoldTimer = null;
+    touchInput.punchHeld = false;
+  }
+  function fireGesture(action) {
+    if (rpg.phase !== 'fight') return;
+    const flag = { punch: 'punchJust', kick: 'kickJust', jump: 'jumpJust', grab: 'grabJust' }[action];
+    if (!flag) return;
+    touchInput[flag] = true;
+    lastCombatGesture = action;
+    combatGestureCount++;
+    gestureHint.textContent = {punch:'👊 斬撃',kick:'🦶 蹴り / 投擲',jump:'🍃 跳躍',grab:'🐉 組み技 / 連携'}[action];
+    sfx.haptic(9);
+  }
+  gestureArea.addEventListener('pointerdown', (event) => {
+    if (combatInputMode !== 'gesture' || gesturePointer) return;
+    event.preventDefault();
+    sfx.init();
+    gesturePointer = { id: event.pointerId, x: event.clientX, y: event.clientY, moved: false, held: false };
+    gestureArea.setPointerCapture(event.pointerId);
+    gestureHoldTimer = setTimeout(() => {
+      if (!gesturePointer || gesturePointer.moved || combatInputMode !== 'gesture') return;
+      gesturePointer.held = true;
+      fireGesture('punch');
+      touchInput.punchHeld = true;
+      touchInput.holdRepeatTimer = 0.15;
+    }, 230);
+  });
+  gestureArea.addEventListener('pointermove', (event) => {
+    if (!gesturePointer || event.pointerId !== gesturePointer.id) return;
+    if (Math.hypot(event.clientX-gesturePointer.x,event.clientY-gesturePointer.y)>12) {
+      gesturePointer.moved = true;
+      if (gestureHoldTimer !== null) clearTimeout(gestureHoldTimer);
+      gestureHoldTimer = null;
+    }
+  });
+  gestureArea.addEventListener('pointerup', (event) => {
+    if (!gesturePointer || event.pointerId !== gesturePointer.id) return;
+    const p = gesturePointer;
+    gesturePointer = null;
+    releaseGestureHold();
+    if (!p.held) fireGesture(window.CrownlessCombatGesture.resolve(event.clientX-p.x,event.clientY-p.y));
+  });
+  gestureArea.addEventListener('pointercancel', (event) => {
+    if (gesturePointer?.id === event.pointerId) {
+      gesturePointer = null;
+      releaseGestureHold();
+    }
+  });
+  window.CrownlessGestureReadout = () => ({
+    mode: combatInputMode, lastAction: lastCombatGesture, count: combatGestureCount,
+    buttonsVisible: !document.getElementById('arcadeActionButtons').classList.contains('hidden')
+  });
+  function applyCombatInputMode() {
+    const gestures = combatInputMode === 'gesture';
+    gesturePointer = null;
+    releaseGestureHold();
+    touchInput.kickHeld = false;
+    touchInput.grabHeld = false;
+    gestureArea.classList.toggle('hidden', !gestures);
+    document.getElementById('arcadeActionButtons').classList.toggle('hidden', gestures);
+    document.getElementById('btnToggleLayout').classList.toggle('hidden', gestures);
+    const toggle = document.getElementById('btnToggleInput');
+    toggle.textContent = gestures ? '🖐 操作: ジェスチャー' : '🎮 操作: ボタン';
+    toggle.setAttribute('aria-pressed', String(gestures));
+    // The old large buttons may be compared, but they live BELOW the battle
+    // rather than covering characters or bringing back the unnatural fence.
+    state.isSplitDeckLayout = !gestures;
+    applyLayoutMode();
+  }
+  document.getElementById('btnToggleInput').addEventListener('click', () => {
+    combatInputMode = combatInputMode === 'gesture' ? 'buttons' : 'gesture';
+    applyCombatInputMode();
   });
 
   const leftTouchPadArea = document.getElementById('leftTouchPadArea');
@@ -1706,9 +1797,7 @@
   function clampToWorld(ent) {
     ent.x = Math.max(WORLD.minX, Math.min(WORLD.maxX, ent.x));
     ent.z = Math.max(WORLD.minZ, Math.min(WORLD.maxZ, ent.z));
-    // Applies to normal walking, knockback, dashes and skill animation states.
-    window.CrownlessControlBarricade.project(ent, controlBarricade, state.cameraX);
-  }
+   }
 
   // ============================================================================
   // 12. 2.5Dドット絵レンダラー（天候変化・提灯点灯・紋章隈取オーラ・桜吹雪対応）
@@ -1717,70 +1806,13 @@
   const ctx = canvas.getContext('2d');
   const VIRTUAL_H = 420;
   let virtualW = 740;
-  let controlBarricade = null;
-  const barricadeButtons = ['btnPunch','btnKick','btnJump','btnGrab'];
-
   function resizeCanvas() {
     const rect = canvas.parentElement.getBoundingClientRect();
     const aspect = Math.max(1.15, rect.width / Math.max(1, rect.height));
     virtualW = Math.round(VIRTUAL_H * aspect);
     canvas.width = virtualW;
     canvas.height = VIRTUAL_H;
-    // Only the on-screen floating buttons reserve ground. Split-deck layout
-    // gets full stage access because its buttons are outside the canvas.
-    controlBarricade = window.CrownlessControlBarricade.measure(
-      canvas.getBoundingClientRect(),
-      barricadeButtons.map(id => document.getElementById(id).getBoundingClientRect()),
-      virtualW, VIRTUAL_H
-    );
   }
-
-  function drawControlBarricade() {
-    if (!controlBarricade) return;
-    const { left, top } = controlBarricade;
-    const width = canvas.width-left;
-    const height = canvas.height-top;
-    ctx.save();
-    // The player can clearly see where the path ends instead of trying to
-    // fight characters hidden behind the thumb arc.
-    ctx.fillStyle = 'rgba(19,30,28,0.80)';
-    ctx.fillRect(left,top,width,height);
-    ctx.fillStyle = '#48554c';
-    for(let py=top+15;py<canvas.height;py+=20) {
-      for(let px=left+10;px<canvas.width;px+=25) {
-        ctx.fillRect(px+(Math.floor(py/20)%2)*7,py,17,5);
-      }
-    }
-    ctx.strokeStyle = '#d1b987';
-    ctx.lineWidth = 7;
-    ctx.beginPath();
-    ctx.moveTo(left,canvas.height);
-    ctx.lineTo(left,top);
-    ctx.lineTo(canvas.width,top);
-    ctx.stroke();
-    ctx.fillStyle = '#71563b';
-    for(let y=top;y<canvas.height;y+=29) {
-      ctx.fillRect(left-5,y-4,11,12);
-      ctx.fillRect(left-5,y-4,11,3);
-    }
-    for(let x=left;x<canvas.width;x+=29) {
-      ctx.fillRect(x-5,top-7,11,13);
-      ctx.fillRect(x-5,top-7,11,3);
-    }
-    ctx.fillStyle='#f3dfb2';
-    ctx.font='bold 12px "Noto Sans JP", sans-serif';
-    ctx.textAlign='left';
-    ctx.fillText('木柵の向こうは通れない',Math.min(left+10,canvas.width-150),top+22);
-    ctx.restore();
-  }
-  // Read-only test probe for active fight positions; no user location or saves.
-  window.CrownlessActionBarrierReadout = () => ({
-    zone: controlBarricade ? { ...controlBarricade } : null,
-    cameraX: state.cameraX,
-    fighters: state.fighters.filter(f=>f.state!=='DEAD').map(f=>({
-      x:f.x,z:f.z,team:f.team,state:f.state
-    }))
-  });
   window.addEventListener('resize', resizeCanvas);
 
   function renderScene() {
@@ -1973,7 +2005,6 @@
     }
 
     ctx.restore();
-    drawControlBarricade();
   }
 
   function drawItem(it) {
@@ -2495,17 +2526,13 @@
       const targetCamX = Math.max(0, Math.min(WORLD.maxX - virtualW + 40, ginji.x - virtualW * 0.38));
       state.cameraX += (targetCamX - state.cameraX) * Math.min(1, dt * 6);
     }
-    // Camera tracking moves the on-screen obstruction in world coordinates.
-    // Keep ALL combatants out even if the camera moves or they get launched.
-    for (const f of state.fighters) clampToWorld(f);
-
     updateContextualButtons();
     renderScene();
     requestAnimationFrame(gameLoop);
   }
 
   window.onload = () => {
-    applyLayoutMode();
+    applyCombatInputMode();
     initStage();
     updateRpgStatus();
     requestAnimationFrame(gameLoop);
