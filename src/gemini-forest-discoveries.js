@@ -19,6 +19,23 @@
       Math.hypot(player.x-spot.x,player.z-spot.z)<RANGE
     )||null;
   }
+  // The forest render uses world coordinates translated by cameraX.
+  // A site occupies more than its tiny base: its name, icon and "tap" label
+  // must all be easy to hit by a thumb on the real phone viewport.
+  function spotAtTap(point, rect, canvas, cameraX, groundHeightAt) {
+    if (!point || !rect || !canvas || !(rect.width>0) || !(rect.height>0) ||
+        !(canvas.width>0) || !(canvas.height>0) ||
+        !Number.isFinite(point.x) || !Number.isFinite(point.y)) return null;
+    const rx=point.x-rect.left, ry=point.y-rect.top;
+    if(rx<0 || ry<0 || rx>rect.width || ry>rect.height) return null;
+    const worldX=rx*canvas.width/rect.width+cameraX;
+    const screenY=ry*canvas.height/rect.height;
+    return spots.find(spot=>{
+      const ground=spot.z-groundHeightAt(spot.x,spot.z);
+      return Math.abs(worldX-spot.x)<=55 &&
+        screenY>=ground-108 && screenY<=ground+22;
+    })||null;
+  }
   function available(phase){
     return phase==='fight'||phase==='return';
   }
@@ -31,5 +48,5 @@
     return {ok:true,spot,material:spot.kind==='material'?1:0,
       heal:spot.kind==='healing'?Math.min(35,maxHp-hp):0};
   }
-  return {spots,RANGE,near,available,uncover};
+  return {spots,RANGE,near,spotAtTap,available,uncover};
 });

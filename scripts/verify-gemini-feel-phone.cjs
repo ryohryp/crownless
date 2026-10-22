@@ -256,6 +256,87 @@ async function main() {
         assert.equal(await page.evaluate(
           () => localStorage.getItem('crownless-action-forest-v1-demo')), '{"version":999}');
         assert.equal(errors.length, 0, 'no runtime errors after isolated save restore tests');
+        // Real phone taps: the first playable shrine is initially offscreen.
+        // Walk until its world-fixed sprite enters view, then tap its icon.
+        // The player is still too far away, so the GAME must visibly say so
+        // rather than silently eat the touch as movement/attack input.
+        await page.goto('http://127.0.0.1:' + port + '/gemini-feel-lab.html', {
+          waitUntil:'domcontentloaded',timeout:30000,
+        });
+        await page.waitForFunction(() => window.CrownlessForestReadout?.().player);
+        await page.keyboard.down('d');
+        try {
+          await page.waitForFunction(() => {
+            const v=window.CrownlessForestReadout();
+            const canvas=document.getElementById('gameCanvas');
+            return v.player?.hp>0 && v.player.x<570 &&
+              (660-v.cameraX)<canvas.width-52;
+          },null,{timeout:9000});
+        } finally {
+          await page.keyboard.up('d');
+        }
+        const forestTap=await page.evaluate(() => {
+          const scene=window.CrownlessForestReadout();
+          const canvas=document.getElementById('gameCanvas');
+          const rect=canvas.getBoundingClientRect();
+          const shrine=window.CrownlessForestDiscoveries.spots.find(s=>s.id==='shrine');
+          const bridgeHeight=Math.max(0,Math.cos((shrine.x-580)/150*Math.PI/2)*46);
+          const cx=rect.left+(shrine.x-scene.cameraX)*rect.width/canvas.width;
+          const cy=rect.top+(shrine.z-bridgeHeight-42)*rect.height/canvas.height;
+          return {x:cx,y:cy,hero:scene.player,cameraX:scene.cameraX,
+            tappedSite:window.CrownlessForestDiscoveries.spotAtTap(
+              {x:cx,y:cy},rect,canvas,scene.cameraX,
+              (x,z) => x>=430&&x<=730&&z>=235&&z<=345
+                ? Math.max(0,Math.cos((x-580)/150*Math.PI/2)*46):0
+            )?.id};
+        });
+        assert.equal(forestTap.tappedSite,'shrine',
+          'scaled direct touch should hit the visible shrine: '+JSON.stringify(forestTap));
+        assert(Math.hypot(forestTap.hero.x-660,forestTap.hero.z-230)>54,
+          'test must be outside pickup range so guidance is checked');
+        await page.touchscreen.tap(forestTap.x,forestTap.y);
+        await page.waitForFunction(
+          () => window.__combatLabCanvasText.some(s => s.includes('もう少し近づいて調べよう')),
+          null,{timeout:2500}
+        );
+        assert.equal(errors.length,0,'direct real touch on shrine must not throw');
+        // Now actually WALK into range. The scrolling shrine moves to the
+        // left half, where touches were previously swallowed by the joystick.
+        await page.keyboard.down('d');
+        try {
+          await page.waitForFunction(
+            () => window.CrownlessForestReadout()?.player?.x>=638,
+            null,{timeout:7000}
+          );
+        } finally { await page.keyboard.up('d'); }
+        await page.keyboard.down('w');
+        try {
+          await page.waitForFunction(
+            () => window.CrownlessForestReadout()?.player?.z<=245,
+            null,{timeout:7000}
+          );
+        } finally { await page.keyboard.up('w'); }
+        const nearTap=await page.evaluate(() => {
+          const s=window.CrownlessForestReadout();
+          const c=document.getElementById('gameCanvas');
+          const rect=c.getBoundingClientRect();
+          const site=window.CrownlessForestDiscoveries.spots.find(o=>o.id==='shrine');
+          return {x:rect.left+(site.x-s.cameraX)*rect.width/c.width,
+            y:rect.top+(site.z-45)*rect.height/c.height,
+            player:s.player,rectWidth:rect.width};
+        });
+        assert(Math.hypot(nearTap.player.x-660,nearTap.player.z-230)<54,
+          'hero genuinely walked into discovery distance: '+JSON.stringify(nearTap));
+        assert(nearTap.x<nearTap.rectWidth*.52,
+          'site should now be on movement-pad half, demonstrating former click bug');
+        await page.touchscreen.tap(nearTap.x,nearTap.y);
+        await page.waitForFunction(() =>
+          window.CrownlessForestReadout().found.includes('shrine') ||
+          window.__combatLabCanvasText.some(s=>s.includes('体力は満タン')),
+          null,{timeout:2500});
+        assert.equal(errors.length,0,'direct near-site touch must heal or explain full HP');
+
+
 
       } finally {
         await context.close();
