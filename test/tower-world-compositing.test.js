@@ -122,4 +122,33 @@ test('tower fog clears only its overlay and drawing goes idle after a step',()=>
   assert.equal(pending.length,0,'earned echo stops drawing after its short celebration');
   assert(painted(241,241),'discovered stair floor becomes visible after investigation');
   assert(!painted(241,121),'reliquary remains hidden until actually approached');
+
+  // The long echo belongs to the one-time discovery, not to repeat visits.
+  const ordinaryFrames=()=>{
+    for(let time=220;time<=640&&pending.length;time+=70)pending.shift()(time);
+    assert.equal(pending.length,0,
+      'revisiting an opened stair must not replay the discovery celebration');
+  };
+  const render=f=>{
+    section.dataset.fieldPos=String(f.pos);
+    section.dataset.fieldSeen=String(f.seen);
+    section.dataset.towerEcho=String(f.echo);
+    section.dataset.towerOpen=String(f.open);
+    root.CrownlessTowerWorld.mount({querySelector(selector){
+      return selector==='.tower-field'?section:null;
+    }});
+  };
+  render(opened);
+  ordinaryFrames(); // Re-rendering at the same tile does not celebrate again.
+  const away=T.move(opened,22);
+  assert(away,'the nearby stone floor remains walkable');
+  render(away);
+  ordinaryFrames();
+  const back=T.move(away,T.ECHO);
+  assert(back,'the discovered bell floor remains reachable');
+  render(back);
+  ordinaryFrames(); // Walking back is not a second discovery.
+  vm.runInNewContext(source,{window:root},{filename:'tower-world.js'});
+  render(back);
+  ordinaryFrames(); // Reloading an already-open save is not a discovery.
 });
