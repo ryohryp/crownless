@@ -300,6 +300,42 @@ async function main() {
           null,{timeout:2500}
         );
         assert.equal(errors.length,0,'direct real touch on shrine must not throw');
+        // Now actually WALK into range. The scrolling shrine moves to the
+        // left half, where touches were previously swallowed by the joystick.
+        await page.keyboard.down('d');
+        try {
+          await page.waitForFunction(
+            () => window.CrownlessForestReadout()?.player?.x>=638,
+            null,{timeout:7000}
+          );
+        } finally { await page.keyboard.up('d'); }
+        await page.keyboard.down('w');
+        try {
+          await page.waitForFunction(
+            () => window.CrownlessForestReadout()?.player?.z<=245,
+            null,{timeout:7000}
+          );
+        } finally { await page.keyboard.up('w'); }
+        const nearTap=await page.evaluate(() => {
+          const s=window.CrownlessForestReadout();
+          const c=document.getElementById('gameCanvas');
+          const rect=c.getBoundingClientRect();
+          const site=window.CrownlessForestDiscoveries.spots.find(o=>o.id==='shrine');
+          return {x:rect.left+(site.x-s.cameraX)*rect.width/c.width,
+            y:rect.top+(site.z-45)*rect.height/c.height,
+            player:s.player,rectWidth:rect.width};
+        });
+        assert(Math.hypot(nearTap.player.x-660,nearTap.player.z-230)<54,
+          'hero genuinely walked into discovery distance: '+JSON.stringify(nearTap));
+        assert(nearTap.x<nearTap.rectWidth*.52,
+          'site should now be on movement-pad half, demonstrating former click bug');
+        await page.touchscreen.tap(nearTap.x,nearTap.y);
+        await page.waitForFunction(() =>
+          window.CrownlessForestReadout().found.includes('shrine') ||
+          window.__combatLabCanvasText.some(s=>s.includes('体力は満タン')),
+          null,{timeout:2500});
+        assert.equal(errors.length,0,'direct near-site touch must heal or explain full HP');
+
 
 
       } finally {
