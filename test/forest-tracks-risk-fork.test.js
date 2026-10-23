@@ -163,3 +163,19 @@ test('cache risk is a reachable deliberate choice on the forest mobile panel',()
   assert.match(app,/button\('forest-cache-search','倒木の根元から鉄片を拾う'/);
   assert.match(app,/x\.hp<=3\|\|x\.scrap>996/);
 });
+
+test('new tracks discovery survives losing the wolf's attention',()=>{
+  // Reach the wolf's sightline by a different path, without visiting tracks.
+  const near=walk(E.start({...E.initial(),mode:'demo'},'wood'),[21,22,23,24,19,14,13]);
+  assert.equal(F.wolfAwareness(near.expedition.field),'alert');
+  assert.equal(near.expedition.field.tracks,false);
+  const found=E.act(near,'field-step:'+F.TRACKS);
+  assert.equal(found.expedition.field.tracks,true);
+  assert.equal(F.wolfAwareness(found.expedition.field),'watching');
+  assert.match(found.expedition.log[0],/無事に生還すると.*獣道読み/,
+    'first discovery and the new skill motivation must not be replaced by a generic escape cue');
+  assert.equal(found.expedition.field.secret,false,'the clue cannot reveal the hidden passage');
+  const resumed=E.parse(E.serialize(found));
+  assert.ok(resumed,'discovered tracks survive current save/reload');
+  assert.equal(resumed.expedition.field.tracks,true);
+});
