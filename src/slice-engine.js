@@ -579,13 +579,14 @@
         x.place==='wood' && x.depth===1 && x.room===0 &&
         x.field?.pos===F.CACHE && !x.field.cache){
         const risky=action==='forest-cache-search';
-        const scrap=risky?4:1;
-        if((risky&&x.hp<=3)||x.scrap>1000-scrap)return s;
+        const scrap=Math.min(risky?4:1,1000-x.scrap);
+        // One free slot makes the risky choice strictly worse than safe salvage.
+        if(scrap<=0||(risky&&(x.hp<=3||scrap<=1)))return s;
         if(risky)x.hp-=3;
         x.scrap+=scrap;
         x.field.cache=true;
         x.log=[risky
-          ? '倒木の棘をかき分け、鉄片 +4 を拾った。体力 −3。生還するまで背嚢の中だ。'
+          ? `倒木の棘をかき分け、鉄片 +${scrap} を拾った。体力 −3。生還するまで背嚢の中だ。`
           : '棘に触れない手前の鉄片 +1 だけを拾った。無傷だが奥の鉄片は諦めた。生還までは背嚢の中だ。'];
         return n;
       }
