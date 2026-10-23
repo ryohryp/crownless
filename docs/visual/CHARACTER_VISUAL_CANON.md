@@ -56,6 +56,22 @@ The formerly accepted v3 atlas (now removed from current runtime) was the source
 
 The approved base state is the unarmed expedition survivor. Equipment changes silhouette only in separately requested and reviewed states.
 
+## 素手の主人公（ピクセル版）
+
+### Approved Visual Anchor
+- `docs/assets/player-unarmed-approved-pixel-anchor-v1.png`
+
+The action-forest pixel variant is the same protagonist, explicitly approved by the user on 2026-10-23 (“これでいいよ”). It has its own subject ID so the historical illustration anchor remains unchanged. The current concrete reference is `docs/assets/player-unarmed-approved-pixel-anchor-v1.png`.
+
+### Accepted visual conditions
+
+- Preserve the approved dark tied hair, muted red headband/scarf, patched cream and charcoal clothing, belt pouch, wrapped unarmed hands and worn boots.
+- Preserve the approved face, body proportions, camera and coherent whole-body silhouette.
+- Pixel rendering follows the user's current direction; do not reproduce the rejected code-drawn character anatomy.
+- Walking uses temporal poses of this same character facing right in the same camera. Direction variants are not walking frames.
+- No new weapons, armor class or ornaments in the base unarmed animation. Equipment layers come later.
+- The human approval covers this still. New animation remains subject to actual phone-scale review.
+
 ## 敵：Rusher
 
 ### Historical actor reference — **not a current Approved Visual Anchor**

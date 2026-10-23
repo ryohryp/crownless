@@ -11,8 +11,8 @@
   };
   function create() {
     const backdrop = new Image(), atlas = new Image();
-    backdrop.src = 'docs/assets/candidates/forest-hd2d-v0.2.png';
-    atlas.src = 'docs/assets/candidates/forest-objects-v1.png';
+    backdrop.src = 'assets/action-forest/terrain.png';
+    atlas.src = 'assets/action-forest/objects.png';
     const ready = img => img.complete && img.naturalWidth > 0;
     const floor = document.createElement('canvas');
     floor.width = 1050; floor.height = 240;

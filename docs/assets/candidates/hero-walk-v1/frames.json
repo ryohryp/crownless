@@ -1,0 +1,68 @@
+{
+  "cell": [
+    512,
+    768
+  ],
+  "pivot": [
+    256,
+    736
+  ],
+  "frames": [
+    {
+      "index": 0,
+      "durationMs": 125,
+      "sourceBounds": [
+        15,
+        248,
+        417,
+        609
+      ],
+      "pivot": [
+        256,
+        736
+      ]
+    },
+    {
+      "index": 1,
+      "durationMs": 125,
+      "sourceBounds": [
+        400,
+        248,
+        354,
+        609
+      ],
+      "pivot": [
+        256,
+        736
+      ]
+    },
+    {
+      "index": 2,
+      "durationMs": 125,
+      "sourceBounds": [
+        775,
+        252,
+        420,
+        608
+      ],
+      "pivot": [
+        256,
+        736
+      ]
+    },
+    {
+      "index": 3,
+      "durationMs": 125,
+      "sourceBounds": [
+        1167,
+        252,
+        349,
+        611
+      ],
+      "pivot": [
+        256,
+        736
+      ]
+    }
+  ]
+}

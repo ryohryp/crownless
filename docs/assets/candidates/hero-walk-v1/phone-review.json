@@ -1,0 +1,65 @@
+{
+  "available": true,
+  "answers": {
+    "verdict": {
+      "type": "choice",
+      "choice": "revise",
+      "confidence": 0.68,
+      "probabilities": {
+        "accept_candidate": 0.18,
+        "revise": 0.76,
+        "reject_candidate": 0.05,
+        "needs_review": 0.01
+      }
+    },
+    "main_issue": {
+      "type": "choice",
+      "choice": "crop",
+      "confidence": 0.58,
+      "probabilities": {
+        "none": 0.11,
+        "crop": 0.65,
+        "readability": 0.12,
+        "style": 0.03,
+        "missing_or_extra": 0.08,
+        "uncertain": 0.01
+      }
+    },
+    "readability": {
+      "type": "score",
+      "score": 2.87,
+      "confidence": 0.62,
+      "legend": {
+        "0": "Unusable",
+        "1": "Severely limited",
+        "2": "Mixed",
+        "3": "Mostly clear",
+        "4": "Clearly readable"
+      },
+      "probabilities": {
+        "0": 0,
+        "1": 0.01,
+        "2": 0.27,
+        "3": 0.56,
+        "4": 0.16
+      }
+    },
+    "ui_obstruction": {
+      "type": "noul",
+      "noul": 0.29
+    }
+  },
+  "usage": {
+    "input_tokens": 3398,
+    "output_tokens": 150
+  },
+  "model": "jev-1.14.0",
+  "calls": 1,
+  "assessment": {
+    "status": "revise",
+    "issues": [
+      "crop"
+    ],
+    "correction": "Restore full required silhouette, equipment and usable negative space."
+  }
+}
