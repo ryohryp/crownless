@@ -7,7 +7,7 @@
 
   const section = document.createElement('div');
   section.className = 'rule-line';
-  section.innerHTML = '<strong>旅の記録</strong><p class="small">端末変更やテスト前に、セーブを文字列でバックアップできます。位置情報の基準点は含みません。</p><div class="choice-grid"><button id="save-export" class="secondary">バックアップをコピー</button><button id="save-import" class="secondary">バックアップを復元</button></div><button id="save-reset" class="text-button">旅を最初からやり直す</button><p id="save-data-status" class="small" role="status" aria-live="polite"></p>';
+  section.innerHTML = '<strong>旅の記録</strong><p class="small">端末変更やテスト前にセーブと名所の訪問記録をバックアップできます。GPS座標や経路は含みませんが、名所IDと訪問日は含まれるため非公開で保管してください。</p><div class="choice-grid"><button id="save-export" class="secondary">バックアップをコピー</button><button id="save-import" class="secondary">バックアップを復元</button></div><button id="save-reset" class="text-button">旅を最初からやり直す</button><p id="save-data-status" class="small" role="status" aria-live="polite"></p>';
   help.appendChild(section);
   const status = message => { document.querySelector('#save-data-status').textContent = message; };
 
@@ -15,9 +15,9 @@
     try {
       const backup = Save.exportBackup(localStorage);
       await navigator.clipboard.writeText(backup);
-      status('バックアップをコピーしました。安全な場所に保管してください。');
+      status('セーブと訪問記録をコピーしました。訪問日が含まれるため非公開で保管してください。');
     } catch {
-      status('コピーできませんでした。このブラウザのクリップボード許可を確認してください。');
+      status('バックアップを作成またはコピーできませんでした。保存済みの訪問記録とクリップボードの許可を確認してください。');
     }
   });
 
@@ -34,7 +34,7 @@
   });
 
   document.querySelector('#save-reset').addEventListener('click', () => {
-    if (!window.confirm('旅の記録を最初からやり直しますか？ 装備・鉄片・発見した土地が消えます。')) return;
+    if (!window.confirm('旅の記録を最初からやり直しますか？ 装備・鉄片・発見した土地・訪問日も消えます。')) return;
     if (!window.confirm('この操作は取り消せません。バックアップ済みであることを確認して、すべて消去しますか？')) return;
     Save.resetJourney(localStorage);
     location.reload();
