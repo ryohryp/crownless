@@ -253,7 +253,12 @@ async function main() {
         const knownAfterStep=await page.locator('.forest-field .field-cell.revealed').count();
         assert(knownAfterStep>3,'moving reveals genuinely new local ground');
         await page.screenshot({path:path.join(output,'forest-fog-revealed-'+width+'.png')});
-        for(const pos of [22,23,18,13]){
+        await page.locator('.forest-field [data-action="field-step"][data-value="22"]').click();
+        assert.match(await page.locator('.field-moment').innerText(),/金属の軋み/,
+          '360/390px first approach must hint at a discovery before opening the chest');
+        assert.equal(await page.locator('.forest-field[data-field-treasure="false"][data-field-secret="false"]').count(),1,
+          'a sound cue must not loot the chest or reveal the secret passage');
+        for(const pos of [23,18,13]){
           await page.locator('.forest-field [data-action="field-step"][data-value="'+pos+'"]').click();
         }
         const wolfGate=page.locator('.forest-field [data-action="field-step"][data-value="8"]');
