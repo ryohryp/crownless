@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "key": "902801b4ccb10afc2bb83e67d80fd782b3ddc80a8698783ac15db02571556c17",
+  "candidate": "docs/assets/candidates/hero-walk-v1/walk.png",
+  "sha256": "6bf4dd8869563c5ceb6b01a3d08071594bfc5ef6c6ec2edf18c13b30f3b9ccd0",
+  "kind": "character",
+  "attempt": 0,
+  "declaredGenerationAttempts": 1,
+  "declaredRegenerations": 0,
+  "maxRegenerations": 2,
+  "asset": {
+    "status": "needs_review",
+    "issues": [
+      "anatomy",
+      "artifacts"
+    ],
+    "correction": null,
+    "answers": {
+      "verdict": {
+        "type": "choice",
+        "choice": "revise",
+        "confidence": 0.29,
+        "probabilities": {
+          "accept_candidate": 0.15,
+          "revise": 0.47,
+          "reject_candidate": 0.37,
+          "needs_review": 0.01
+        }
+      },
+      "main_issue": {
+        "type": "choice",
+        "choice": "anatomy",
+        "confidence": 0.28,
+        "probabilities": {
+          "none": 0.08,
+          "wrong_subject": 0.04,
+          "missing_or_extra": 0.03,
+          "identity": 0.13,
+          "anatomy": 0.35,
+          "artifacts": 0.1,
+          "crop": 0.13,
+          "readability": 0.01,
+          "style": 0.13,
+          "uncertain": 0
+        }
+      },
+      "style": {
+        "type": "score",
+        "score": 2.41,
+        "confidence": 0.17,
+        "legend": {
+          "0": "Opposite style",
+          "1": "Major drift",
+          "2": "Mixed",
+          "3": "Mostly matched",
+          "4": "Fully matched"
+        },
+        "probabilities": {
+          "0": 0.03,
+          "1": 0.26,
+          "2": 0.17,
+          "3": 0.33,
+          "4": 0.21
+        }
+      },
+      "quality": {
+        "type": "score",
+        "score": 1.87,
+        "confidence": 0.16,
+        "legend": {
+          "0": "Broken",
+          "1": "Major flaws",
+          "2": "Some flaws",
+          "3": "Minor flaws",
+          "4": "Clean"
+        },
+        "probabilities": {
+          "0": 0.07,
+          "1": 0.38,
+          "2": 0.27,
+          "3": 0.17,
+          "4": 0.11
+        }
+      },
+      "identity_mismatch": {
+        "type": "noul",
+        "noul": 0.17
+      },
+      "artifacts": {
+        "type": "noul",
+        "noul": 0.83
+      }
+    },
+    "model": "jev-1.14.0"
+  },
+  "phone": null,
+  "api": {
+    "requests": 1,
+    "inputTokens": 12209,
+    "outputTokens": 214
+  },
+  "geometry": {
+    "width": 2048,
+    "height": 768,
+    "format": "png",
+    "hasAlpha": true,
+    "problems": []
+  },
+  "preview": {
+    "width": 1568,
+    "height": 588,
+    "bytes": 851430
+  },
+  "cacheHit": true
+}

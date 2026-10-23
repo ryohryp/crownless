@@ -25,10 +25,17 @@ test('compiled Canon exposes the subjectless background policy', () => {
   });
   assert.equal(compiledCanon.grand_design.asset_types.background.source_reference_required, false);
   assert.match(compiledCanon.source_revision, /^[a-f0-9]{64}$/);
-  assert.equal(manifest.documents.globalReference, null, 'do not pass the historical board as a current visual reference');
-  assert.deepEqual(Object.keys(manifest.subjects), ['player-unarmed'], 'removed combat enemies have no present approved anchors');
-  assert.equal(compiledCanon.global_reference_path, undefined);
+  assert.equal(manifest.documents.globalReference, 'docs/assets/player-unarmed-approved-pixel-anchor-v1.png', 'use the explicitly approved pixel image, never the historical board');
+  assert.deepEqual(Object.keys(manifest.subjects).sort(), ['player-unarmed','player-unarmed-pixel'], 'only original protagonist and approved pixel variant are registered');
+  assert.equal(compiledCanon.global_reference_path, manifest.documents.globalReference);
   assert.match(compiledCanon.global_style_lock, /Japanese sumi-e.*washi/i);
   assert.deepEqual(compiledCanon.grand_design, grandDesign);
   assert.equal(grandDesign.shared_rules.never_use_historical_board_as_current_global_reference, true);
+});
+
+test('approved pixel anchor is byte-identical to the still presented to the user',async()=>{
+  const approved=await readFile(new URL('../docs/assets/player-unarmed-approved-pixel-anchor-v1.png',import.meta.url));
+  const presented=await readFile(new URL('../docs/assets/candidates/hero-still-v1/hero-review.png',import.meta.url));
+  assert(approved.equals(presented),'approval must not silently substitute a different generation');
+  assert((await readFile(new URL('../docs/assets/player-unarmed-approved-anchor-v0.4.png',import.meta.url))).length>0,'historical identity source remains preserved');
 });

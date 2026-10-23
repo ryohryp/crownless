@@ -1865,6 +1865,7 @@
     enemies:state.fighters.filter(f=>f.team===1).map(f=>({x:f.x,z:f.z,hp:f.hp,state:f.state})),
     crafted:rpg.crafted,unbanked:rpg.unbanked,banked:rpg.banked,
     art:pixelArt?'pixel':'classic',assetsReady:forestArt.ready(),
+    heroAnimation:heroStillReview.status(),
     cameraX:state.cameraX,
     found:[...state.forestFinds],
     phase:rpg.phase
@@ -2336,7 +2337,8 @@
 
     const bob = (f.state === 'WALK' || f.state === 'RUN') ? Math.abs(Math.sin(f.animTime * 1.4)) * 3 : 0;
 
-    if (f === ginji && heroStillReview.draw(ctx)) {
+    if (f === ginji && pixelArt && heroStillReview.draw(ctx,f)) {
+      if(rpg.crafted||f.heldWeapon) window.CrownlessPixelActors.drawEquipment(ctx,rpg.crafted?'sword':f.heldWeapon.type);
       ctx.restore();
       return;
     }

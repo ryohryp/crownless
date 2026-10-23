@@ -89,5 +89,11 @@
     if(burst) {ctx.fillStyle='#bb5247';ctx.fillRect(0,-21-bob,4,1);}
     ctx.restore();
   }
-  root.CrownlessPixelActors={draw,parts:Object.keys(parts)};
+  function drawEquipment(ctx,type){
+    ctx.save();ctx.imageSmoothingEnabled=false;
+    const image=tile(type==='stone'?'stone':'sword','traveler');
+    ctx.drawImage(image,12,-32,image.width*1.5,image.height*1.5);
+    ctx.restore();
+  }
+  root.CrownlessPixelActors={draw,drawEquipment,parts:Object.keys(parts)};
 })(typeof window==='object'?window:globalThis);

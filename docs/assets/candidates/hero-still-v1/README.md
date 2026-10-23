@@ -1,4 +1,6 @@
-# Protagonist still review, not an adopted sprite
+# Protagonist still review history
+
+Update: the user approved this exact presented still on 2026-10-23 (“これでいいよ”). It is now preserved as `docs/assets/player-unarmed-approved-pixel-anchor-v1.png`, with byte-equality verification, and registered as the pixel-variant Approved Anchor. The original review history below remains evidence of the earlier checkpoint, not the current approval state. Derived walking is documented in `docs/visual/hero-pixel-walk.md`.
 
 The user rejected both code-drawn character versions, then approved the workflow: coherent still first, walking second, coarse equipment/accessory layers afterward. This deliverable is that first visual checkpoint. It is not a completed animated character.
 

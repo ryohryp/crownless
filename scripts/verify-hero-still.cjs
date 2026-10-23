@@ -22,9 +22,11 @@ const root=path.resolve(__dirname,'..');
       page.on('pageerror',error=>errors.push(error.message));
       await page.addInitScript(()=>{
         window.__heroReviewDraws=0;
+        window.__walkCells=[];
         const original=CanvasRenderingContext2D.prototype.drawImage;
         CanvasRenderingContext2D.prototype.drawImage=function(image,...args){
-          if(image.src?.includes('hero-still-v1/hero-review.png'))window.__heroReviewDraws++;
+          if(image.src?.includes('approved-pixel-anchor-v1.png'))window.__heroReviewDraws++;
+          if(image.src?.includes('hero-walk-v1/walk.png'))window.__walkCells.push(args[0]);
           return original.call(this,image,...args);
         };
       });
@@ -34,9 +36,16 @@ const root=path.resolve(__dirname,'..');
       assert(await page.evaluate(()=>[...document.images].every(image=>image.complete&&image.naturalWidth>0)));
       assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'review page fits phone');
       await page.screenshot({path:path.join(folder,'hero-review-page-'+width+'.png'),fullPage:true});
+      await page.locator('#toggleWalk').click();
+      assert.equal(await page.locator('#toggleWalk').innerText(),'歩行を再生する');
       await page.goto(base,{waitUntil:'networkidle'});
-      assert.equal(await page.locator('#heroStillReviewNote').count(),0,'candidate stays opt-in');
-      assert.equal(await page.evaluate(()=>__heroReviewDraws),0,'default renderer never uses candidate');
+      await page.waitForFunction(()=>__heroReviewDraws>0&&window.CrownlessForestReadout().heroAnimation.walkReady);
+      await page.keyboard.down('a');await page.waitForTimeout(450);await page.keyboard.up('a');
+      assert(await page.evaluate(()=>new Set(__walkCells).size>=3),'real movement cycles temporal frames');
+      await page.waitForFunction(()=>window.CrownlessForestReadout().heroAnimation.lastFrame===null);
+      await page.screenshot({path:path.join(folder,'hero-walk-'+width+'.png')});
+      await page.goto(base+'?actor=classic',{waitUntil:'networkidle'});
+      assert.equal(await page.evaluate(()=>__heroReviewDraws),0,'classic comparison does not draw new hero');
       await page.goto(base+'?actor=still',{waitUntil:'networkidle'});
       await page.waitForFunction(()=>__heroReviewDraws>0);
       assert(await page.locator('#heroStillReviewNote').isVisible());
@@ -45,6 +54,6 @@ const root=path.resolve(__dirname,'..');
       await page.screenshot({path:path.join(folder,'hero-still-'+width+'.png')});
       await context.close();
     }
-    console.log('PASS: opt-in actual-canvas still draw, normal-mode exclusion, 360/390/430px, no page errors/overflow');
+    console.log('PASS: approved idle, real movement temporal frames, stop-to-idle, classic/still comparison, 360/390/430px, no page errors/overflow');
   } finally {if(browser)await browser.close();server.kill();}
 })().catch(error=>{console.error(error);process.exitCode=1;});
