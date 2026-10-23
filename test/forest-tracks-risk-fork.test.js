@@ -200,3 +200,21 @@ test("new tracks discovery survives losing the wolf's attention",()=>{
   assert.ok(resumed,'discovered tracks survive current save/reload');
   assert.equal(resumed.expedition.field.tracks,true);
 });
+
+test('fox pouch explains why a choice is unavailable and what each reward enables',()=>{
+  const app=fs.readFileSync('src/slice-app.js','utf8');
+  assert.match(app,/薬草は3個で満杯 · 鉄片か生還を選ぶ/);
+  assert.match(app,/背嚢が満杯 · 薬草か生還を選ぶ/);
+  assert.match(app,/薬草 \+1（次の戦闘用）/);
+  assert.match(app,/鉄片 \+3（鍛冶用）/);
+  const atPouch=walk(E.start({...E.initial(),mode:'demo'},'wood'),[15,10,F.FOX,F.FOX_NEST]);
+  assert.equal(atPouch.expedition.field.foxCache,false);
+  const fullHerbs={...atPouch,expedition:{...atPouch.expedition,potions:3}};
+  assert.equal(E.act(fullHerbs,'forest-fox-herb'),fullHerbs,'full herbs cannot be duplicated');
+  const fullScrap={...atPouch,expedition:{...atPouch.expedition,scrap:998}};
+  assert.equal(E.act(fullScrap,'forest-fox-scrap'),fullScrap,'full bag cannot overflow');
+  const herb=E.act(atPouch,'forest-fox-herb');
+  assert.equal(herb.expedition.potions,3);
+  assert.equal(herb.expedition.scrap,0);
+  assert.equal(E.act(herb,'forest-fox-scrap'),herb,'exclusive pouch choice stays consumed');
+});

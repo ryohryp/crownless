@@ -253,8 +253,8 @@
         ? button('forest-cache-skim','手前の鉄片だけ拾う','体力消費なし · 鉄片 +1（奥は諦める）',{class:'primary',disabled:x.scrap>=1000})+
           button('forest-cache-search','棘を越えて奥を探る',x.hp<=3?'体力不足 · 手前の鉄片なら拾える':'体力 −3 · 鉄片 +4（危険）',{class:'secondary',disabled:x.hp<=3||x.scrap>996}) : ''}
       ${x.field.pos===window.CrownlessField.FOX_NEST && x.field.fox && !x.field.foxCache
-        ? button('forest-fox-herb','革袋の薬草を取る','無傷 · 薬草 +1（鉄片は諦める）',{class:'primary',disabled:x.potions>=3})+
-          button('forest-fox-scrap','棘の奥の鉄片を取る',x.hp<=2?'体力不足 · 薬草を取るか生還':'体力 −2 · 鉄片 +3（薬草は諦める）',{class:'secondary',disabled:x.hp<=2||x.scrap>997}) : ''}
+        ? button('forest-fox-herb','革袋の薬草を取る',x.potions>=3?'薬草は3個で満杯 · 鉄片か生還を選ぶ':'無傷 · 薬草 +1（次の戦闘用） · 鉄片は諦める',{class:'primary',disabled:x.potions>=3})+
+          button('forest-fox-scrap','棘の奥の鉄片を取る',x.hp<=2?'体力不足 · 薬草を取るか生還':x.scrap>997?'背嚢が満杯 · 薬草か生還を選ぶ':'体力 −2 · 鉄片 +3（鍛冶用） · 薬草は諦める',{class:'secondary',disabled:x.hp<=2||x.scrap>997}) : ''}
       ${x.field.pos===window.CrownlessField.TRACKS && x.field.tracks && !x.field.lanternClue && !x.field.tracksRisk
         ? '<div class="forest-tracks-fork" role="group" aria-label="獣の足跡の分かれ道"><p>茂みの奥に獣骨の気配。棘を越えれば何か見つかるかもしれない。斥候の灯があれば安全に別の痕跡を調べられる。どちらも生還まで未確定。</p>'+
           (state.ownedTools?.includes(E.SCOUT_LANTERN.id) ? button('lantern-examine','斥候の灯で霧を照らす','体力消費なし · 手掛かりを探す',{class:'primary'}) : '')+
