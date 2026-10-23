@@ -899,7 +899,9 @@
           x.log=['湿った土に細い爪跡が続いている。霧の奥で枝が折れた。足跡の先を自分で確かめよう。'];
         } else x.log=['霧が少し晴れた。まだ踏み込んでいない道が見えてくる。'];
         if(to === 22 && n.characters[0].skills?.trailReading && !n.designs.fang_moon && !x.foundDesign) {
-          x.log=['落ち葉に不自然な足跡が続いている。《獣道読み》を使えば、何が隠れているか調べられそうだ。'];
+          const trailHint='落ち葉に不自然な足跡が続いている。《獣道読み》を使えば、何が隠れているか調べられそうだ。';
+          // A learned skill must not erase the chest's first environmental cue.
+          x.log=[!field.treasure&&!treasureSeenBefore ? `${x.log[0]} ${trailHint}` : trailHint];
         }
         if (to !== F.DEN && to !== F.EXIT) {
           const wolfNow=F.wolfAwareness(field);
