@@ -66,8 +66,8 @@
       const kind=F.landmark(i), seen=F.visible(field,i), near=F.adjacent(field.pos,i);
       const [col,row]=F.coords(i);
       const here=i===field.pos, passable=F.canMove(field,i);
-      // A closed secret is an investigation target, never a walking destination.
-      const inspectVines=kind==='secret'&&near&&!field.secret;
+      // Do not reveal a hidden entrance on the map before a deliberate
+      // investigation. The chest-side rustle is investigated in fieldDecision.
       // Navigation marks only ordinary, currently traversable adjacent land.
       // Secret vines are intentionally never marked, even after discovery.
       // A live wolf den is a combat choice, never a safe-path waypoint.
@@ -77,9 +77,9 @@
       const used=(kind==='cache'&&field.cache)||(kind==='tracks'&&field.tracks)||(kind==='treasure'&&field.treasure)||(kind==='den'&&field.wolf)||(kind==='shrine'&&field.shrine)||(kind==='secret'&&field.secret)||(kind==='glade'&&field.glade)||(kind==='fox'&&field.fox)||(kind==='fox-nest'&&field.foxCache);
       const icon=here?'<span class="field-hero" aria-hidden="true"><i></i></span>'
         : seen?(used?'✓':icons[kind]):'';
-      const classes=['field-cell',seen?'revealed':'veiled',kind,here?'here':'',passable?'can-step':'',inspectVines?'inspect-vines':'',guided?'walk-nav':'',wolfThreat?'wolf-threat':'',used?'spent':''].filter(Boolean).join(' ');
-      const label=here?'旅人の現在地':inspectVines?'揺れるツタ':seen?names[kind]:'まだ見えない土地';
-      if(passable||inspectVines)return `<button type="button" class="${classes}" style="grid-column:${col+1};grid-row:${row+1}" data-action="field-step" data-value="${i}" aria-label="${label}${kind==='secret'&&!field.secret?'を調べる':wolfThreat?'（戦闘になる）へ進む':'へ一歩進む'}">${icon}</button>`;
+      const classes=['field-cell',seen?'revealed':'veiled',kind,here?'here':'',passable?'can-step':'',guided?'walk-nav':'',wolfThreat?'wolf-threat':'',used?'spent':''].filter(Boolean).join(' ');
+      const label=here?'旅人の現在地':seen?names[kind]:'まだ見えない土地';
+      if(passable)return `<button type="button" class="${classes}" style="grid-column:${col+1};grid-row:${row+1}" data-action="field-step" data-value="${i}" aria-label="${label}${wolfThreat?'（戦闘になる）へ進む':'へ一歩進む'}">${icon}</button>`;
       return `<span class="${classes}" style="grid-column:${col+1};grid-row:${row+1}" aria-label="${label}">${icon}</span>`;
     }).join('');
     return `<section class="forest-field" data-field-pos="${field.pos}" data-field-seen="${field.seen}" data-field-cache="${field.cache}" data-field-tracks="${field.tracks}" data-field-treasure="${Boolean(field.treasure)}" data-field-wolf="${Boolean(field.wolf)}" data-field-secret="${Boolean(field.secret)}" data-field-shrine="${Boolean(field.shrine)}" data-field-glade="${Boolean(field.glade)}" data-field-fox="${Boolean(field.fox)}" data-field-fox-cache="${Boolean(field.foxCache)}" data-wolf-state="${wolfStatus}" aria-label="探索できる森のフィールド">
@@ -254,6 +254,8 @@
           (state.ownedTools?.includes(E.SCOUT_LANTERN.id) ? button('lantern-examine','斥候の灯で霧を照らす','体力消費なし · 手掛かりを探す',{class:'primary'}) : '')+
           button('forest-tracks-risk','棘の茂みへ踏み込む',x.hp<=4?'体力不足 · 薬草で回復するか生還':'体力 −4 · 獣骨を調べる（危険）',{class:'secondary',disabled:x.hp<=4||x.materials.wolfFang>=1000000})+'</div>' : ''}
       ${x.field.lanternClue ? '<p class="scout-lantern-clue" role="status">✦ 灯りが映した痕跡：倒木の近くで霧が揺らいでいる。周囲を歩いて調べよう。</p>' : ''}
+      ${x.field.pos===window.CrownlessField.TREASURE&&!x.field.secret
+        ? button('field-step','宝箱の背後を調べる','ツタの音を頼りに岩陰を探す',{class:'primary',value:String(window.CrownlessField.SECRET)}) : ''}
       ${trailSkillButton(x)}
       ${x.foundDesign==='fang_moon' ? '<p class="notice" role="status">✦ 月影の短剣の設計図を背嚢に入れた。生還するまで失う可能性がある。</p>' : ''}
       ${button('return',x.materials?.wolfFang>0?'狼牙を持って生還':x.scrap>0?'鉄片を持って生還':'ここで生還する','拾った素材を確定する',{class:'secondary'})}

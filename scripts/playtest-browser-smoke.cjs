@@ -346,6 +346,27 @@ async function main() {
         await page.reload();
         assert.equal(await page.locator('.forest-field[data-field-treasure="true"][data-field-wolf="true"]').count(),1,
           'both chest and defeated wolf persist on re-entry');
+        assert.equal(await page.locator('.forest-field button[data-action="field-step"][data-value="12"]').count(),0,
+          'unknown secret entrance must not reveal an exact map tile at '+width+'px');
+        const inspectVines=page.locator('.field-choices [data-action="field-step"][data-value="12"]');
+        assert.equal(await inspectVines.count(),1,'chest rustle offers a deliberate investigation');
+        const inspectBounds=await inspectVines.boundingBox();
+        assert(inspectBounds&&inspectBounds.y>=0&&inspectBounds.y+inspectBounds.height<=height+2,
+          'investigation remains touch-reachable on '+width+'px');
+        await inspectVines.click();
+        const openedVines=await page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+        assert.equal(openedVines.expedition.field.secret,true,'investigation opens the secret');
+        assert.equal(openedVines.expedition.field.pos,17,'investigation does not teleport');
+        assert.equal(await page.locator('.forest-field button[data-action="field-step"][data-value="12"]').count(),1,
+          'the discovered entrance is now a walkable cell');
+        assert.equal(await page.locator('.forest-field .field-cell.secret.walk-nav').count(),0,
+          'even discovered secrets are not ordinary walking guidance');
+        await page.locator('.forest-field button[data-action="field-step"][data-value="12"]').click();
+        await page.reload();
+        const enteredVines=await page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+        assert.equal(enteredVines.expedition.field.pos,12,'discovered passage survives reload');
+        assert.equal(enteredVines.expedition.field.secret,true,'opened route survives reload');
+        await page.locator('.forest-field [data-action="field-step"][data-value="17"]').click();
         // The exit portal finishes the single scene with safe loot banking.
         for(const id of [18,13,8,9,4]){
           await page.locator('.forest-field [data-action="field-step"][data-value="'+id+'"]').click();

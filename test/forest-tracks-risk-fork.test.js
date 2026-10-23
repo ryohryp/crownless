@@ -124,3 +124,11 @@ test('cache-side rustle invites a later discovery without opening secret or bank
   const returned=E.act(found,'return');
   assert.equal(returned.materials.wolfFang,1,'loot banks only after safe return');
 });
+
+test('the unknown vine location is not an exact map button before chest-side investigation',()=>{
+  const app=fs.readFileSync('src/slice-app.js','utf8');
+  assert.doesNotMatch(app,/const inspectVines=/,'hidden vines must not reveal their cell before discovery');
+  assert.match(app,/if\(passable\)return/,'only walkable visible cells are map buttons');
+  assert.match(app,/x\.field\.pos===window\.CrownlessField\.TREASURE&&!x\.field\.secret/);
+  assert.match(app,/button\('field-step','宝箱の背後を調べる'/);
+});
