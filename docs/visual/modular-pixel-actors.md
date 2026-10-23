@@ -19,3 +19,11 @@ Verification is recorded in the PR. Browser screenshots and deterministic checks
 - Jev advisory completion: `jev_status=ok`, `done` (confidence 1), model `jev-1.14.0`, request `req_01a168355f5970d5aed8439cf8a38df9`. This evaluates reviewable engineering completion, not human art approval or permission to merge/deploy.
 
 ![390px action forest with modular actors](../assets/candidates/pixel-actors-review/phone-390.png)
+
+## Human feedback revision
+
+The user rejected the first actor design as unpleasant. That verdict supersedes the earlier engineering completion judgment as visual feedback. The revision lowers the proportions, uses short boots and compact sleeves, replaces the large outlined face with two small eyes, and simplifies the clothing silhouette. Explicit neck and thrust-sleeve parts keep the head and attacking arm connected. Skin has its own palette symbols; arms remain clothed/gloved. Weapon metal uses a shared neutral palette across roles.
+
+`node scripts/preview-pixel-actors.cjs` renders the actual runtime parts at integer zoom for checking idle, walk and forged-sword poses together. The screenshot is a review artifact, not an Approved Anchor or proof of user acceptance.
+
+![Revised actor parts and poses](../assets/candidates/pixel-actors-review/parts-sheet.png)

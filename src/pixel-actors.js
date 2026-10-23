@@ -4,45 +4,52 @@
   'use strict';
   const parts = {
     torso: [
-      '....oooo....','..ooaaaaoo..','.oabbccbbao.','oabbccccbbao',
-      'oabccccccbao','oabcbccbcbao','.oabbccbbao.','.oabbbbbao..',
-      '.oaabbbbao..','.oaaabbbao..','.odddddddo..','.odcdddcdo..',
-      '.oaabbbao...','..oooooo....'
+      '...aabbaa...','..abbccbaa..','.abccccbbaa.',
+      '.abccbcbbba.','.abbcbbbbaa.','.abbbbbbaaa.',
+      '..abbbbbaa..','..dddddddd..','..dddggddd..',
+      '..abbbbbaa..','.aabbbbaa...','.aaaabbaa...'
     ],
     head: [
-      '...oooooo...','..oaaaaaao..','.oabbbbbbao.','.oabccccbao.',
-      '.oabccccbbo.','.oabctocbo..','..obctocbo..','..obccccbo..',
-      '...obbttbo..','....ooooo...'
+      '...tttttt...','..tsssssst..','.tssuuussst.',
+      '.tssuuuusst.','.tssuuuusst.','.tssuuuusst.',
+      '..tssssssst.','..tssesest..','..tssussst..',
+      '...tsssst...','....tttt....'
     ],
     hair: [
-      '....oooo....','..oohhhhoo..','.ohhiiihhho.','ohhiijjiiho.',
-      'ohiijiiihhho','ohhiihiihho.','.ohhoohhho..','.oho..oho...',
-      '..oo...o....'
+      '.....hh.....','...hhiiih...', '..hiiijjih..',
+      '.hiiijjjiih.','.hiijjjiiih.','hiijjiiiihh.',
+      'hiiiiiihihh.','.hhiiih.hhh.','..hhh...hh..'
     ],
     hood: [
-      '....oooo....','...oaaaao...','..oabbbaao..','.oabbccbaao.',
-      'oabcbcccbao.','oabcooocbao.','oabo...obao.', 'oao.....oao.',
-      '.oo.....oo..'
+      '....aaa.....','..aabbbaa...','.abbcccbbaa.',
+      '.abcccccbba.','abcccccbbbaa','abccbbbbbbaa',
+      'abbbaaabbbba','.aba....aba.','..aa.....aa.'
     ],
-    ears: ['oo..........oo','oboo......oobo','.obbo....obbo.','..ooo....ooo..'],
-    arm: ['.ooo..','oaaao.','oabba.','.obbo.','.obbo.','.otto.','otccto','.otto.'],
-    boot: ['.oooo.','oaaabo','oaabbo','.obbo.','.obbo.','.obbo.','oabbbo','occcbo','oooooo'],
+    cape: ['...aaaaaa.....','..aabbbbaa....','.aabbbbbbaa...',
+      '.aabbbbbaaa...','aaabbbbaaaa...','aaabbbaaaaa...',
+      'aaaabaaaaaa...','aaaabaaaaaaa..','aaaaabaaaaaa..',
+      'aaaabaaaaaaa..','.aaaaa..aaa...','..aaa....a....'],
+    ears: ['tt............tt','.sst........tss.','..sst......tss..','...tt......tt...'],
+    neck: ['tttt','ssss','tsss'],
+    sleeve: ['aaaaaa','abbbba','abccba','abbbba'],
+    arm: ['.aaa.','abbba','abcca','.abba','.ddd.','.dgd.','..dd.'],
+    boot: ['.ddd.','.dgd.','.ddd.','ddggd','ooooo'],
     sword: ['..................oo','...............oocco','............oocccbo.','..o......oocccboo...',
       '.odo..oocccboo......','odddoocccboo........','.oddccboo...........','..oddoo.............',
       '.oddo...............','..oo................'],
     stone: ['..oooo..','.oabbbo.','oabccbbo','oabbcbbo','.oaabao.','..oooo..']
   };
   const schemes = {
-    traveler: {o:'#252c32',a:'#374751',b:'#587887',c:'#88a8af',d:'#bd9c67',t:'#bb8565',h:'#70818b',i:'#bbc8c5',j:'#e1e0ce'},
-    companion: {o:'#242e29',a:'#344638',b:'#60725b',c:'#96a17b',d:'#ac9064',t:'#bb8565',h:'#333e3d',i:'#63726b',j:'#99a38b'},
-    enemy: {o:'#2b3027',a:'#424b34',b:'#6f8150',c:'#a4b478',d:'#9a784e',t:'#627344',h:'#3d4531',i:'#65734b',j:'#9a9f66'}
+    traveler: {o:'#29313a',a:'#374853',b:'#537c91',c:'#8eabb8',d:'#654e3d',g:'#a48b64',s:'#dfb48b',t:'#b78466',u:'#f1cf9f',e:'#343c42',h:'#6f7c88',i:'#adbcc0',j:'#e0ded0'},
+    companion: {o:'#29332a',a:'#394c39',b:'#698260',c:'#9db587',d:'#624c38',g:'#ac9265',s:'#ddb18a',t:'#ae7c60',u:'#efd0a1',e:'#343c36',h:'#41493b',i:'#6d7b54',j:'#a7ac76'},
+    enemy: {o:'#2e3428',a:'#494b38',b:'#7b7851',c:'#aaa072',d:'#5c4935',g:'#a48b64',s:'#8caa69',t:'#57764c',u:'#b1c582',e:'#343c30',h:'#454d32',i:'#6e7e4b',j:'#a5ab6a'}
   };
   const cache = new Map();
-  function tile(name, scheme, skin) {
-    const key=name+':'+scheme+':'+skin;
+  function tile(name, scheme) {
+    const key=name+':'+scheme;
     if(cache.has(key)) return cache.get(key);
     const rows=parts[name], colors={...schemes[scheme]};
-    if(skin) { colors.a='#99674f'; colors.b='#d5a17b'; colors.c='#f1c59a'; }
+    if(name==='sword') Object.assign(colors,{o:'#35414a',b:'#819da5',c:'#d0d9cb',d:'#ad8c51'});
     const image=document.createElement('canvas');
     image.width=Math.max(...rows.map(row=>row.length));image.height=rows.length;
     const g=image.getContext('2d');
@@ -54,29 +61,32 @@
   function draw(ctx,f,{role='enemy',crafted=false,burst=false}={}) {
     const scheme=schemes[role]?role:'enemy';
     const moving=f.state==='WALK'||f.state==='RUN';
-    const stride=moving?Math.round(Math.sin(f.animTime*1.4)*2):0;
+    const stride=moving?Math.round(Math.sin(f.animTime*1.4)):0;
     const bob=moving?Math.abs(stride):0;
     const attacking=f.state==='ATTACK'||f.state==='SPECIAL';
-    const reach=attacking?(Math.sin(f.animTime*6)>0?9:4):0;
-    const part=(name,x,y,skin=false)=>ctx.drawImage(tile(name,scheme,skin),Math.round(x),Math.round(y));
+    const reach=attacking?(Math.sin(f.animTime*6)>0?5:2):0;
+    const part=(name,x,y)=>ctx.drawImage(tile(name,scheme),Math.round(x),Math.round(y));
     ctx.save();ctx.imageSmoothingEnabled=false;ctx.scale(2,2);
     // Back arm and legs sit behind the coat. Their local motion also works
     // during the caller's jump, knockdown, flip and facing transformations.
-    part('arm',-9,-20-bob);
-    part('boot',-6-stride,-9);
-    part('boot',2+stride,-9-Math.abs(stride));
-    part('torso',-6,-23-bob);
-    if(scheme==='enemy') part('ears',-7,-27-bob);
-    part('head',-6,-30-bob,scheme!=='enemy');
-    part(scheme==='traveler'?'hair':'hood',-6,-33-bob);
-    part('arm',3+reach,-21-bob,scheme!=='enemy');
+    part('cape',-8,-17-bob);
+    part('arm',-8,-16-bob);
+    part('boot',-5-stride,-5);
+    part('boot',1+stride,-5-Math.abs(stride));
+    part('neck',-2,-20-bob);
+    part('torso',-6,-17-bob);
+    if(scheme==='enemy') part('ears',-8,-25-bob);
+    part('head',-6,-29-bob);
+    part(scheme==='traveler'?'hair':'hood',-6,-31-bob);
+    if(reach) part('sleeve',4,-15-bob);
+    part('arm',4+reach,-16-bob);
     // Equipment is composed after the hand, so forging changes every pose.
-    if(crafted||f.heldWeapon?.type==='katana') part('sword',6+reach,-25-bob);
-    else if(f.heldWeapon) part('stone',7+reach,-19-bob);
+    if(crafted||f.heldWeapon?.type==='katana') part('sword',6+reach,-21-bob);
+    else if(f.heldWeapon) part('stone',7+reach,-15-bob);
     if(f.state==='HURT'||f.state==='DOWN'||f.state==='DEAD') {
-      ctx.fillStyle='#f2d1a0';ctx.fillRect(0,-25-bob,3,1);
+      ctx.fillStyle=schemes[scheme].e;ctx.fillRect(0,-22-bob,3,1);
     }
-    if(burst) {ctx.fillStyle='#bb5247';ctx.fillRect(0,-24-bob,4,1);}
+    if(burst) {ctx.fillStyle='#bb5247';ctx.fillRect(0,-21-bob,4,1);}
     ctx.restore();
   }
   root.CrownlessPixelActors={draw,parts:Object.keys(parts)};
