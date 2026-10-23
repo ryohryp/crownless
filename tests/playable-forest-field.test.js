@@ -94,6 +94,27 @@ test('careful bypass reaches the stone gate without a forced second wolf fight',
 });
 
 
+test('a first approach hints at hidden chest without granting loot or exposing the secret',()=>{
+  const approach=walk(wood(),21);
+  assert(!F.visible(approach.expedition.field,F.TREASURE));
+  const hinted=walk(approach,22);
+  assert.match(hinted.expedition.log[0],/金属の軋み/);
+  assert.equal(hinted.expedition.field.treasure,false,'the cue is not a discovery or reward');
+  assert.equal(hinted.expedition.scrap,0,'a clue alone must not grant iron');
+  assert.equal(hinted.expedition.materials.wolfFang,0,'a clue alone must not grant fang');
+  assert.equal(hinted.expedition.field.secret,false,'the hidden route remains closed');
+  assert(!F.visible(hinted.expedition.field,F.SECRET),'the secret must remain under fog');
+  const saved=E.parse(E.serialize(hinted));
+  assert.ok(saved,'the approach remains saveable');
+  const found=walk(saved,F.TREASURE);
+  assert.match(found.expedition.log[0],/宝箱を発見/);
+  assert.equal(found.expedition.scrap,6,'iron is awarded only after discovering the chest');
+  assert.equal(found.expedition.materials.wolfFang,1);
+  const home=E.act(found,'return');
+  assert.equal(home.scrap,6,'loot is banked only after a safe return');
+  assert.equal(home.materials.wolfFang,1);
+});
+
 test('a hidden chest can be discovered once, carried through a reload, and banked for smithing',()=>{
   const start=wood();
   assert.equal(start.expedition.field.treasure,false);
