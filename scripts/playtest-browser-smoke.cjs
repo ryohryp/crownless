@@ -954,6 +954,11 @@ async function main() {
         assert.equal(offered.expedition.field.cache,false,'entering the cache does not collect');
         assert.equal(offered.expedition.hp,30,'no forced damage on movement');
         assert.equal(offered.expedition.scrap,0,'loot requires deliberate search');
+        const skim=page.locator('.field-choices [data-action="forest-cache-skim"]');
+        assert.equal(await skim.count(),1,'safe cache alternative is visible on phone');
+        const skimBounds=await skim.boundingBox();
+        assert(skimBounds && skimBounds.width>=44 && skimBounds.height>=44,
+          'safe salvage is thumb reachable on '+width+'px');
         const search=page.locator('.field-choices [data-action="forest-cache-search"]');
         assert.equal(await search.count(),1,'optional cache risk is visible on phone');
         const bounds=await search.boundingBox();
