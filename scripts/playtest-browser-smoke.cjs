@@ -1049,7 +1049,12 @@ async function main() {
         assert.equal(await page.locator('.forest-field[data-field-secret="false"][data-field-shrine="false"]').count(),1);
         assert.equal(await page.locator('.field-cell[data-value="12"]').count(),0,'hidden path must not be a reachable teleport from the entrance');
         await step(21);await step(16); // Collecting old iron shards costs three HP.
+        assert.match(await page.locator('.field-moment').innerText(),/乾いた葉を擦るような音/,
+          'the cache approach offers a curiosity cue on '+width+'px without a waypoint');
+        assert.equal(await page.locator('.forest-field[data-field-secret="false"]').count(),1);
         await step(17); // The existing real treasure chest.
+        assert.match(await page.locator('.field-moment').innerText(),/宝箱の背後でツタが擦れる音/,
+          'the discovered treasure leads to deliberate vine investigation');
         const found=await saved();
         assert.equal(found.expedition.scrap,10);
         assert.equal(found.expedition.materials.wolfFang,1);

@@ -106,3 +106,21 @@ test('treasure hints at vines without revealing or navigating the secret passage
   assert.equal(returned.expedition,null);
   assert.equal(returned.materials.wolfFang,found.materials.wolfFang+1,'loot banks on safe return');
 });
+
+test('cache-side rustle invites a later discovery without opening secret or banking loot',()=>{
+  const start=E.start({...E.initial(),mode:'demo'},'wood');
+  const approach=walk(start,[21,F.CACHE]);
+  assert.match(approach.expedition.log[0],/乾いた葉を擦るような音/);
+  assert.equal(approach.expedition.field.treasure,false);
+  assert.equal(approach.expedition.field.secret,false);
+  assert.equal(F.visible(approach.expedition.field,F.SECRET),false);
+  assert.equal(approach.materials.wolfFang,0,'the clue does not bank materials');
+  const restored=E.parse(E.serialize(approach));
+  assert.ok(restored,'approach remains saveable');
+  const found=E.act(restored,'field-step:'+F.TREASURE);
+  assert.match(found.expedition.log[0],/宝箱の背後でツタが擦れる音/);
+  assert.equal(found.expedition.field.secret,false,'treasure still requires manual vine inspection');
+  assert.equal(found.materials.wolfFang,0,'chest loot remains provisional');
+  const returned=E.act(found,'return');
+  assert.equal(returned.materials.wolfFang,1,'loot banks only after safe return');
+});

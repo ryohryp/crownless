@@ -841,6 +841,8 @@
             x.hp-=3; x.scrap+=4;
             x.log=['倒木の根に埋もれた鉄片を発見。体力 −3、背嚢に鉄片 +4。生還で確定。'];
           } else x.log=['倒木の根元には何かあるが、今は拾えない。'];
+          // A nearby sound invites discovery without revealing a destination.
+          if(!field.treasure) x.log[0]+=' さらに奥で、乾いた葉を擦るような音がした。';
         } else if (to === F.TRACKS && !field.tracks) {
           field.tracks=true; x.focus=Math.max(3,x.focus);
           x.log=[n.characters[0].skills?.trailReading
