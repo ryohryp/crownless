@@ -839,6 +839,7 @@
         const field=F.move(x.field,to);
         if (!field) return s;
         const wolfBefore=F.wolfAwareness(x.field);
+        const treasureSeenBefore=F.visible(x.field,F.TREASURE);
         x.field=field;
         let discovered=false;
         if(to === F.FOX && !field.fox){
@@ -882,7 +883,7 @@
           x.log=[n.characters[0].skills?.trailReading
             ? '獣の足取りが読めた。次の一撃に集中 +3。危険な巣穴を迂回する道も見える。'
             : '獣の足跡から道の読み方をつかんだ。次の一撃に集中 +3。無事に生還すると、新しい探索技術《獣道読み》を習得できる！'];
-        } else if(to === 22 && !field.treasure && !F.visible(x.field,F.TREASURE)){
+        } else if(to === 22 && !field.treasure && !treasureSeenBefore){
           // First approach to the unopened chest: an ambiguous sound invites
           // a deliberate step, without revealing the hidden vine passage.
           x.log=['霧の向こうから、かすかな金属の軋みが聞こえた。近くの茂みに何か埋もれているのかもしれない。進む道を選んで確かめよう。'];
