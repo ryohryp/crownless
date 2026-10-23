@@ -572,15 +572,21 @@
     } else if (x.stage === 'cleared' && action === 'deeper' && x.depth < 3) {
       x.depth++; x.room = 0; x.stage = 'path'; x.log = [`さらに深く。${lootCue(x.place, x.depth)}`]; return n;
     } else if (x.stage === 'path') {
-      // A cache is a voluntary risk: arriving must never wound the explorer
-      // or award provisional loot before they choose to search its roots.
-      if(action==='forest-cache-search' && x.place==='wood' && x.depth===1 &&
-        x.room===0 && x.field?.pos===F.CACHE && !x.field.cache &&
-        x.hp>3 && x.scrap<=996){
-        x.hp-=3;
-        x.scrap+=4;
+      // The same cache offers mutually exclusive safe/unsafe salvage.
+      // Nothing is awarded on arrival, and both rewards stay in the bag
+      // until a genuine safe return. The existing cache flag prevents farming.
+      if((action==='forest-cache-search'||action==='forest-cache-skim') &&
+        x.place==='wood' && x.depth===1 && x.room===0 &&
+        x.field?.pos===F.CACHE && !x.field.cache){
+        const risky=action==='forest-cache-search';
+        const scrap=risky?4:1;
+        if((risky&&x.hp<=3)||x.scrap>1000-scrap)return s;
+        if(risky)x.hp-=3;
+        x.scrap+=scrap;
         x.field.cache=true;
-        x.log=['倒木の棘をかき分け、鉄片 +4 を拾った。体力 −3。生還するまで背嚢の中だ。'];
+        x.log=[risky
+          ? '倒木の棘をかき分け、鉄片 +4 を拾った。体力 −3。生還するまで背嚢の中だ。'
+          : '棘に触れない手前の鉄片 +1 だけを拾った。無傷だが奥の鉄片は諦めた。生還までは背嚢の中だ。'];
         return n;
       }
       // ADR 0013: the crafted lamp enables a deliberate, saved-in-expedition
@@ -845,7 +851,7 @@
           // Hint at an investigation; keep the secret hidden until inspected.
           x.log[0]+=' 宝箱の背後でツタが擦れる音がした。周囲を調べれば何か見つかるかもしれない。';
         } else if (to === F.CACHE && !field.cache) {
-          x.log=['倒木の根元に鉄片が光る。棘をかき分ければ傷を負いそうだ。拾うか、無傷で引き返すか。'];
+          x.log=['倒木の根元に鉄片が光る。手前の欠片なら無傷で拾えるが、奥の塊には棘が絡む。どちらを持ち帰る？'];
           // A nearby sound invites discovery without revealing a destination.
           if(!field.treasure) x.log[0]+=' さらに奥で、乾いた葉を擦るような音がした。';
         } else if (to === F.TRACKS && !field.tracks) {
