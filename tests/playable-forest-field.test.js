@@ -114,6 +114,38 @@ test('a hidden chest can be discovered once, carried through a reload, and banke
   assert.equal(banked.materials.wolfFang,1,'smith receives a REAL banked raw material');
 });
 
+test('forest chest keeps partial rewards and does not consume an entirely full bag',()=>{
+  const before=walk(wood(),21,22);
+  const almostFull={...before,expedition:{...before.expedition,scrap:999}};
+  const found=E.act(almostFull,'field-step:'+F.TREASURE);
+  assert.equal(found.expedition.scrap,1000,'take only the one iron that fits');
+  assert.equal(found.expedition.materials.wolfFang,1,'iron limit must not erase the fang');
+  assert.equal(found.expedition.field.treasure,true);
+  assert.match(found.expedition.log[0],/鉄片 \+1、狼牙 \+1/);
+  assert.equal(found.scrap,0,'nothing is banked before safe return');
+  const restored=E.parse(E.serialize(found));
+  assert.ok(restored,'partial chest loot survives save/reload');
+  const revisit=walk(restored,22,17);
+  assert.equal(revisit.expedition.scrap,1000,'the same chest cannot be looted twice');
+  assert.equal(revisit.expedition.materials.wolfFang,1);
+  const home=E.act(revisit,'return');
+  assert.equal(home.scrap,1000,'safe return banks the partial iron');
+  assert.equal(home.materials.wolfFang,1,'safe return banks the fang');
+
+  const noIron={...before,expedition:{...before.expedition,scrap:1000}};
+  const fangOnly=E.act(noIron,'field-step:'+F.TREASURE);
+  assert.equal(fangOnly.expedition.scrap,1000);
+  assert.equal(fangOnly.expedition.materials.wolfFang,1,'a full iron bag can still hold the fang');
+
+  const full={...before,expedition:{...before.expedition,scrap:1000,
+    materials:{...before.expedition.materials,wolfFang:1000000}}};
+  const blocked=E.act(full,'field-step:'+F.TREASURE);
+  assert.equal(blocked.expedition.field.treasure,false,'no loot must not spend the chest');
+  assert.match(blocked.expedition.log[0],/背嚢がいっぱい/);
+  assert.equal(E.parse(E.serialize(blocked)).expedition.field.treasure,false,
+    'unopened chest remains unopened after reload');
+});
+
 test('one wolf battle returns to the exact same explored forest with loot and no respawn',()=>{
   let s=walk(wood(),21,22,17,18,13,8);
   assert.equal(s.expedition.stage,'fight');
