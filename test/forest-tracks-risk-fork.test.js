@@ -164,7 +164,7 @@ test('cache risk is a reachable deliberate choice on the forest mobile panel',()
   assert.match(app,/x\.hp<=3\|\|x\.scrap>996/);
 });
 
-test('new tracks discovery survives losing the wolf's attention',()=>{
+test("new tracks discovery survives losing the wolf's attention",()=>{
   // Reach the wolf's sightline by a different path, without visiting tracks.
   const near=walk(E.start({...E.initial(),mode:'demo'},'wood'),[21,22,23,24,19,14,13]);
   assert.equal(F.wolfAwareness(near.expedition.field),'alert');
