@@ -198,12 +198,33 @@ test('wider woodland has real blocked terrain, side trails and exact 49-cell fog
   assert(F.visible(edge.expedition.field,48),'bit 48 must remain visible at the far edge, not wrap at 32');
   const found=walk(edge,41,40);
   assert.equal(found.expedition.field.pos,F.GLADE);
-  assert.equal(found.expedition.field.glade,true);
-  assert.equal(found.expedition.scrap,4);
+  assert.equal(found.expedition.field.glade,false,'finding the ring is not looting it');
+  assert.equal(found.expedition.scrap,0,'discovery alone grants no iron');
   assert.match(found.expedition.log[0],/石環を発見/);
   assert(F.visible(found.expedition.field,48),'the distant edge stays revealed while entering the glade');
-  const again=walk(E.parse(E.serialize(found)),41,40);
-  assert.equal(again.expedition.scrap,4,'side glade rewards only once');
+  const saved=E.parse(E.serialize(found));
+  assert.ok(saved,'unexamined ring survives save/reload');
+  const examined=E.act(saved,'forest-glade-examine');
+  assert.equal(examined.expedition.field.glade,true);
+  assert.equal(examined.expedition.scrap,4);
+  assert.equal(examined.scrap,0,'ring iron remains provisional until return');
+  assert.equal(E.act(examined,'forest-glade-examine'),examined,'cannot loot the ring twice');
+  const again=walk(E.parse(E.serialize(examined)),41,40);
+  assert.equal(again.expedition.scrap,4,'revisiting cannot repeat salvage');
+  assert.equal(E.act(again,'return').scrap,4,'safe return banks ring iron');
+
+  const full={...found,expedition:{...found.expedition,scrap:1000}};
+  assert.equal(E.act(full,'forest-glade-examine'),full,'full bag preserves unspent ring');
+  const almost={...found,expedition:{...found.expedition,scrap:999}};
+  const partial=E.act(almost,'forest-glade-examine');
+  assert.equal(partial.expedition.scrap,1000,'ring salvage takes only the space left');
+  assert.ok(partial.expedition.log[0].includes('鉄片 +1'));
+  assert.equal(E.parse(E.serialize(partial)).expedition.field.glade,true);
+  const app=require('node:fs').readFileSync('src/slice-app.js','utf8');
+  assert.ok(app.includes("button('forest-glade-examine','石環の苔をめくる'"),
+    'stone ring has an explicit phone choice');
+  assert.ok(app.includes('disabled:x.scrap>=1000'),
+    'full inventory visibly disables ring salvage');
 });
 
 test('shrine is unreachable around the secret rock wall from the wolf or northern trail',()=>{
