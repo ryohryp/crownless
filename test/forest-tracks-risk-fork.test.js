@@ -83,7 +83,7 @@ test('a full scrap bag cannot waste the one-time lantern clue for zero loot',()=
   assert.equal(E.act(restored,'return').scrap,1000,'reward remains provisional until return');
   const app=fs.readFileSync('src/slice-app.js','utf8');
   assert.match(app,/背嚢が満杯 · 生還して空きを作ろう/);
-  assert.match(app,/disabled:x\\.scrap>=1000/);
+  assert.match(app,/disabled:x\.scrap>=1000/);
 });
 
 test('choice hints disclose cost but not exact rewards',()=>{
