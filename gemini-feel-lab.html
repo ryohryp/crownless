@@ -283,6 +283,7 @@
 <script src="src/gemini-forest-discoveries.js"></script>
 <script src="src/pixel-forest.js"></script>
 <script src="src/pixel-actors.js"></script>
+<script src="src/hero-still-review.js"></script>
 <script>
 (() => {
   // ============================================================================
@@ -1949,6 +1950,7 @@
   canvas.addEventListener('pointercancel',()=>{canvasTapStart=null;});
   const ctx = canvas.getContext('2d');
   const forestArt = window.CrownlessPixelForest.create();
+  const heroStillReview = window.CrownlessHeroStill.create();
   let pixelArt = new URLSearchParams(location.search).get('art') !== 'classic';
   const artButton = document.getElementById('btnToggleArtPreview');
   function syncArtButton() {
@@ -2333,6 +2335,11 @@
     }
 
     const bob = (f.state === 'WALK' || f.state === 'RUN') ? Math.abs(Math.sin(f.animTime * 1.4)) * 3 : 0;
+
+    if (f === ginji && heroStillReview.draw(ctx)) {
+      ctx.restore();
+      return;
+    }
 
     if (pixelArt && forestArt.ready()) {
       window.CrownlessPixelActors.draw(ctx,f,{

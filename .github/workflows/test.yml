@@ -63,6 +63,8 @@ jobs:
         run: node scripts/verify-gemini-feel-phone.cjs
       - name: Pixel forest real-input exploration and forge loop
         run: npm run playtest:pixel-forest
+      - name: Opt-in protagonist still and art review phone smoke
+        run: node scripts/verify-hero-still.cjs
       - name: Visual candidate temporary placement smoke
         run: node --test test/asset-quality-phone.test.js
       - name: Upload failed or manually requested QA screenshots
