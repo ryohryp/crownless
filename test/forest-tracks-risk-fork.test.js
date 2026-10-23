@@ -7,6 +7,26 @@ const F=require('../src/expedition-field.js');
 const walk=(s,steps)=>steps.reduce((state,pos)=>E.act(state,'field-step:'+pos),s);
 const tracks=s=>walk(E.start(s,'wood'),[21,22,23,F.TRACKS]);
 
+test('earned trail reading preserves the unopened chest sound and keeps discovery voluntary',()=>{
+  const veteran={...E.initial(),mode:'demo'};
+  veteran.characters[0].skills={...veteran.characters[0].skills,trailReading:true};
+  const before=walk(E.start(veteran,'wood'),[21]);
+  assert.equal(F.visible(before.expedition.field,F.TREASURE),false);
+  const hinted=E.act(before,'field-step:22');
+  assert.match(hinted.expedition.log[0],/金属の軋み/,'chest clue is not overwritten by learned trail reading');
+  assert.match(hinted.expedition.log[0],/《獣道読み》/,'earned skill clue still appears');
+  assert.equal(hinted.expedition.field.treasure,false,'clues grant no treasure');
+  assert.equal(hinted.expedition.field.secret,false,'clues do not open hidden vines');
+  assert.equal(hinted.expedition.scrap,0,'clues do not grant provisional iron');
+  const resumed=E.parse(E.serialize(hinted));
+  assert.ok(resumed,'current expedition can be resumed after both clues');
+  assert.match(resumed.expedition.log[0],/金属の軋み/);
+  const discovered=E.act(resumed,'field-step:'+F.TREASURE);
+  assert.equal(discovered.expedition.field.treasure,true,'player still chooses to inspect the chest');
+  assert.equal(discovered.materials.wolfFang,0,'discovery does not bank materials');
+  assert.equal(E.act(discovered,'return').materials.wolfFang,1,'safe return banks discovered loot');
+});
+
 test('a nearby rustle invites discovery before the forest fork, without awarding loot',()=>{
   const start=E.start({...E.initial(),mode:'demo'},'wood');
   const far=walk(start,[21,22]);
