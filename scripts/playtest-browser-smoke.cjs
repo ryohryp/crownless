@@ -1095,29 +1095,30 @@ async function main() {
         assert.equal(found.expedition.hp,27);
         assert.equal(found.expedition.field.secret,false);
         assert.equal(found.expedition.field.shrine,false);
-        const vines=page.locator('.forest-field button.field-cell.secret[data-value="12"]');
-        assert.equal(await vines.count(),1,'tangled vines are a real adjacent tap target');
-        assert.equal(await vines.evaluate(el=>el.classList.contains('inspect-vines')),true,
-          'unopened vines are explicitly an investigation target');
-        assert.equal(await vines.evaluate(el=>el.classList.contains('can-step')),false,
-          'unopened vines must not look like a walkable navigation destination');
-        assert.equal(await vines.evaluate(el=>getComputedStyle(el).backgroundImage),'none',
-          'the secret-vine destination must not be given away by a glowing navigation circle');
-        assert.equal(await vines.evaluate(el=>el.classList.contains('walk-nav')),false,
-          'closed secret vines have no walking waypoint even though they can be inspected');
-        assert.equal(await page.locator('.forest-field button.field-cell.veiled:not(.inspect-vines)').count(),0,
+        // The undiscovered entrance must NOT be a map target. The audible
+        // clue offers a separate, explicit investigation action instead.
+        assert.equal(await page.locator('.forest-field button.field-cell.secret').count(),0,
+          'unopened secret must not leak as a map tap target');
+        assert.equal(await page.locator('.forest-field .field-cell.secret.veiled').count(),1,
+          'the hidden passage remains covered by fog until investigated');
+        assert.equal(await page.locator('.forest-field .field-cell.secret.walk-nav').count(),0,
+          'closed secret vines have no walking waypoint');
+        assert.equal(await page.locator('.forest-field button.field-cell.veiled').count(),0,
           'unexplored fog is not a walking tap target');
         assert((await page.locator('.forest-field .walk-nav').count())>=2,
           'regular walkable neighbors still have navigation near the hidden passage');
-        assert.match(await vines.getAttribute('aria-label'),/揺れるツタを調べる/);
-        const tap=await vines.evaluate(el=>{
+        const inspect=page.locator('.field-choices button[data-action="field-step"][data-value="12"]');
+        assert.equal(await inspect.count(),1,
+          'the sound clue exposes exactly one deliberate investigation action');
+        assert.match(await inspect.innerText(),/宝箱の背後を調べる/);
+        const tap=await inspect.evaluate(el=>{
           const b=el.getBoundingClientRect();
           const hit=document.elementFromPoint(b.left+b.width/2,b.top+b.height/2);
           return {height:b.height,hit:hit===el||el.contains(hit)};
         });
-        assert(tap.hit&&tap.height>=44,'vines must be physically tappable on small phones');
+        assert(tap.hit&&tap.height>=44,'investigation must be physically tappable on small phones');
         await page.screenshot({path:path.join(output,'forest-secret-vines-'+width+'.png')});
-        await vines.click(); // First touch uncovers the real barrier but does NOT teleport through it.
+        await inspect.click(); // First touch opens the barrier without moving.
         assert.equal(await page.locator('.forest-field[data-field-secret="true"][data-field-pos="17"]').count(),1);
         assert.equal(await page.locator('.forest-field .field-cell.secret.walk-nav').count(),0,
           'the shortcut stays unsignposted even after its collision barrier opens');
