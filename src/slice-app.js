@@ -250,8 +250,8 @@
       ${skillPending?'<p class="skill-learning-hint" role="status">⌁ 新しい探索技術《獣道読み》の手掛かりを得た。<strong>無事に生還すると習得！</strong></p>':''}
       <p class="field-moment${trailSkillResult(x)?' skill-result':''}" role="status">${trailSkillResult(x)?trailResultLabel:''}${esc(x.log[0]||event)}</p>
       <div class="field-choices">${x.field.pos===window.CrownlessField.CACHE && !x.field.cache
-        ? button('forest-cache-skim','手前の鉄片だけ拾う','体力消費なし · 鉄片 +1（奥は諦める）',{class:'primary',disabled:x.scrap>=1000})+
-          button('forest-cache-search','棘を越えて奥を探る',x.hp<=3?'体力不足 · 手前の鉄片なら拾える':'体力 −3 · 鉄片 +4（危険）',{class:'secondary',disabled:x.hp<=3||x.scrap>996}) : ''}
+        ? button('forest-cache-skim','手前の鉄片だけ拾う',x.scrap>=1000?'背嚢が満杯 · 生還して空きを作ろう':'体力消費なし · 鉄片 +1（奥は諦める）',{class:'primary',disabled:x.scrap>=1000})+
+          button('forest-cache-search','棘を越えて奥を探る',x.hp<=3?'体力不足 · 手前の鉄片なら拾える':x.scrap>=1000?'背嚢が満杯 · 生還して空きを作ろう':x.scrap>=999?'空きは1個 · 手前なら無傷で拾える':'体力 −3 · 鉄片 +'+Math.min(4,1000-x.scrap)+'（危険）',{class:'secondary',disabled:x.hp<=3||x.scrap>=999}) : ''}
       ${x.field.pos===window.CrownlessField.GLADE && !x.field.glade
         ? button('forest-glade-examine','石環の苔をめくる',x.scrap>=1000?'背嚢が満杯 · 生還して空きを作ろう':'古い鉄片を調べる · 生還で確定',{class:'primary',disabled:x.scrap>=1000}) : ''}
       ${x.field.pos===window.CrownlessField.FOX_NEST && x.field.fox && !x.field.foxCache
