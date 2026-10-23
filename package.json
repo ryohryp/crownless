@@ -11,10 +11,12 @@
     "playtest:browser:full": "node scripts/playtest-browser-jev.cjs --full",
     "playtest:smoke": "node scripts/playtest-browser-smoke.cjs && node scripts/verify-tower-bag-phone.cjs",
     "playtest:pixel-forest": "node scripts/verify-pixel-forest.cjs",
+    "build:action-lab-css": "tailwindcss -i ./src/action-lab-tailwind.css -o ./action-lab-utilities.css --content ./gemini-feel-lab.html --minify",
     "asset:quality": "node scripts/asset-quality-gate.cjs"
   },
   "devDependencies": {
     "@typesafe-ai/sdk": "0.7.0",
-    "sharp": "0.35.4"
+    "sharp": "0.35.4",
+    "tailwindcss": "3.4.17"
   }
 }

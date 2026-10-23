@@ -40,8 +40,12 @@ jobs:
           node --check src/territory-world-trace.js
           node --check src/territory-mobile-declutter.js
           node --check src/expedition-presentation.js
-      - name: Install official image-evaluation SDK for transport smoke
-        run: npm install --package-lock=false --no-audit --no-fund
+      - name: Install pinned development dependencies
+        run: npm ci --no-audit --no-fund
+      - name: Verify precompiled action-scene CSS
+        run: |
+          npm run build:action-lab-css
+          git diff --exit-code -- action-lab-utilities.css
       - name: Unit tests
         run: npm test
 
@@ -53,6 +57,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
+      - name: Install pinned development dependencies
+        run: npm ci --no-audit --no-fund
       - name: Install pinned test-only Chromium tool
         run: |
           npm install --no-save --package-lock=false playwright@1.56.1
