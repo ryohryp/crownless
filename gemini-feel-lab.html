@@ -282,6 +282,7 @@
 <script src="src/gemini-hit-recovery.js"></script>
 <script src="src/gemini-forest-discoveries.js"></script>
 <script src="src/pixel-forest.js"></script>
+<script src="src/pixel-actors.js"></script>
 <script>
 (() => {
   // ============================================================================
@@ -2308,14 +2309,16 @@
     ctx.textAlign = 'center';
     const tag = f === ginji ? ' [1P]' : (f === sasuke ? (state.isPartnerAI ? ' [相棒AI]' : ' [2P]') : '');
     ctx.fillStyle = f.team === 0 ? '#7dd3fc' : '#fca5a5';
-    ctx.fillText(f.name + tag, 0, -60);
+    const detailedActor = pixelArt && forestArt.ready();
+    ctx.fillText(f.name + tag, 0, detailedActor ? -78 : -60);
 
     const barW = 32;
     const hpRatio = Math.max(0, f.hp / f.maxHp);
     ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
-    ctx.fillRect(-barW / 2, -55, barW, 4);
+    const hpY = detailedActor ? -73 : -55;
+    ctx.fillRect(-barW / 2, hpY, barW, 4);
     ctx.fillStyle = f.team === 0 ? '#34d399' : '#f43f5e';
-    ctx.fillRect(-barW / 2, -55, Math.round(barW * hpRatio), 4);
+    ctx.fillRect(-barW / 2, hpY, Math.round(barW * hpRatio), 4);
 
     ctx.scale(f.facing, 1);
 
@@ -2330,6 +2333,16 @@
     }
 
     const bob = (f.state === 'WALK' || f.state === 'RUN') ? Math.abs(Math.sin(f.animTime * 1.4)) * 3 : 0;
+
+    if (pixelArt && forestArt.ready()) {
+      window.CrownlessPixelActors.draw(ctx,f,{
+        role:f===ginji?'traveler':f===sasuke?'companion':'enemy',
+        crafted:f===ginji&&rpg.crafted,
+        burst:f.team===0&&state.kabukiBurstTimer>0
+      });
+      ctx.restore();
+      return;
+    }
 
     ctx.fillStyle = '#f8fafc';
     ctx.fillRect(-10, -6 + bob, 8, 6);
