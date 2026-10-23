@@ -589,6 +589,16 @@
           : '棘に触れない手前の鉄片 +1 だけを拾った。無傷だが奥の鉄片は諦めた。生還までは背嚢の中だ。'];
         return n;
       }
+      // The far stone ring is a discovery, not an automatic material pickup.
+      // A full bag must not consume its one-time salvage opportunity.
+      if(action==='forest-glade-examine' && x.place==='wood' && x.depth===1 &&
+        x.room===0 && x.field?.pos===F.GLADE && !x.field.glade && x.scrap<1000){
+        const scrap=Math.min(4,1000-x.scrap);
+        x.scrap+=scrap;
+        x.field.glade=true;
+        x.log=[`石環の苔をめくると、古い鉄片 +${scrap} を発見。生還するまで背嚢の中だ。`];
+        return n;
+      }
       // Following the fox reveals one pouch, not free loot. Choose a herb
       // for the next encounter or thorn-covered iron to bank on safe return.
       if((action==='forest-fox-herb'||action==='forest-fox-scrap') &&
@@ -840,9 +850,7 @@
           x.log=['狐が消えた倒木の根元に、古い旅人の革袋を発見。無傷で薬草を取るか、棘をかき分け鉄片を持ち帰るか。中身はどちらか一方だ。'];
         } else if(to === F.GLADE && !field.glade){
           discovered=true;
-          field.glade=true;
-          x.scrap=Math.min(1000,x.scrap+4);
-          x.log=['深い森の奥で、忘れられた石環を発見！ 苔の下から鉄片 +4。ここにも誰かが暮らしていた。'];
+          x.log=['深い森の奥で、忘れられた石環を発見！ 苔の下に金属の光が見える。調べて持ち帰るか、このまま進むか。'];
         } else if(to === F.SHRINE && !field.shrine){
           discovered=true;
           field.shrine=true;
