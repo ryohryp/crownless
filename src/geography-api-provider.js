@@ -165,6 +165,17 @@
             throw error;
           }
 
+          // Production can return HTTP 200 while every geographic upstream is
+          // unavailable. This is an explicit simulated fallback, not successful
+          // OSM discovery: keep the standard simulated choices and diagnostics.
+          if (payload.degraded === true) {
+            const error = new Error(payload.error || "Geographic data is unavailable; using simulated discovery");
+            error.code = "GEOGRAPHY_SIMULATED_FALLBACK";
+            error.attempts = attempts;
+            error.total = payload.total;
+            throw error;
+          }
+
           const elements = Array.isArray(payload.elements) ? payload.elements : [];
           const geographic = Discovery.normalizeGeographicContext(elements);
           const ruleDiscoveries = Discovery.discoveriesFromFeatures(geographic.types, { limit, namesByType: geographic.namesByType });

@@ -204,3 +204,40 @@ test("browser geography provider calls Crownless API instead of Overpass directl
   assert.equal(statuses[0].state, "requesting");
   assert.equal(statuses.at(-1).state, "success");
 });
+
+test("browser geography provider treats HTTP 200 simulated fallback as unavailable live geography", async () => {
+  const statuses = [];
+  const upstreamAttempts = [
+    { endpoint: "https://first.test", state: "failed", httpStatus: 503, failureKind: "http", error: "HTTP 503" },
+    { endpoint: "https://second.test", state: "failed", httpStatus: null, failureKind: "timeout", timedOut: true, error: "timeout" }
+  ];
+  const provider = GeographyApi.createProxyLocationDiscoveryProvider({
+    endpoint: "https://crownless.test/api/geography",
+    onStatus: (status) => statuses.push(status),
+    fetch: async () => ({
+      ok: true,
+      status: 200,
+      async json() {
+        return {
+          degraded: true,
+          fallback: "simulated",
+          error: "Geographic upstreams could not be loaded",
+          attempts: upstreamAttempts,
+          total: 2,
+          endpoint: null,
+          elements: []
+        };
+      }
+    })
+  });
+
+  await assert.rejects(
+    provider.discover({ location: { latitude: 35.69, longitude: 139.78 } }),
+    (error) => error.code === "GEOGRAPHY_SIMULATED_FALLBACK" && error.attempts.length === 2
+  );
+  assert.equal(statuses[0].state, "requesting");
+  assert.equal(statuses.at(-1).state, "failed");
+  assert.equal(provider.status.state, "failed");
+  assert.match(provider.error, /HTTP 503/);
+  assert.equal(statuses.some((status) => status.state === "success"), false);
+});
