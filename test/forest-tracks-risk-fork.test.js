@@ -80,7 +80,11 @@ test('a full scrap bag cannot waste the one-time lantern clue for zero loot',()=
   assert.equal(E.act(taken,'lantern-examine'),taken,'repeat tap cannot farm');
   const restored=E.parse(E.serialize(taken));
   assert.ok(restored);
-  assert.equal(E.act(restored,'return').scrap,1000,'reward remains provisional until return');
+  assert.equal(taken.scrap,before.scrap,'expedition scrap is not banked before return');
+  assert.equal(restored.scrap,before.scrap,'save/reload does not bank provisional scrap');
+  const returned=E.act(restored,'return');
+  assert.equal(returned.scrap,before.scrap+1000,'safe return banks carried scrap in addition to previously owned scrap');
+  assert.equal(returned.expedition,null,'safe return closes the expedition');
   const app=fs.readFileSync('src/slice-app.js','utf8');
   assert.match(app,/背嚢が満杯 · 生還して空きを作ろう/);
   assert.match(app,/disabled:x\.scrap>=1000/);
