@@ -1255,13 +1255,29 @@ async function main() {
         assert.equal(await page.locator('.forest-field[data-field-fox="true"][data-field-fox-cache="false"]').count(),1,
           'fox already chased away stays gone across reload');
         await step(0);
+        const offered=await saved();
+        assert.equal(offered.expedition.stage,'path');
+        assert.equal(offered.expedition.field.foxCache,false,'pouch arrival does not auto-award loot');
+        assert.equal(offered.expedition.scrap,0);
+        assert.equal(offered.expedition.potions,2);
+        assert.match(await page.locator('.field-moment').innerText(),/革袋を発見/);
+        const herb=page.locator('.field-choices [data-action="forest-fox-herb"]');
+        const iron=page.locator('.field-choices [data-action="forest-fox-scrap"]');
+        assert.equal(await herb.count(),1);
+        assert.equal(await iron.count(),1);
+        for(const choice of [herb,iron]){
+          const box=await choice.boundingBox();
+          assert(box && box.width>=44 && box.height>=44,'fox pouch choice must be tappable on '+width+'px');
+        }
+        await page.screenshot({path:path.join(output,'forest-fox-pouch-'+width+'.png')});
+        await iron.click();
         const reward=await saved();
-        assert.equal(reward.expedition.stage,'path');
         assert.equal(reward.expedition.field.foxCache,true);
         assert.equal(reward.expedition.scrap,3);
-        assert.equal(reward.expedition.potions,3);
-        assert.match(await page.locator('.field-moment').innerText(),/革袋を発見/);
-        await page.screenshot({path:path.join(output,'forest-fox-pouch-'+width+'.png')});
+        assert.equal(reward.expedition.hp,28);
+        assert.equal(reward.expedition.potions,2);
+        assert.equal(await page.locator('.field-choices [data-action="forest-fox-herb"]').count(),0,
+          'one choice consumes the pouch');
         await step(5);await step(0);
         const again=await saved();
         assert.equal(again.expedition.scrap,3,'fox payout must be once per expedition');

@@ -243,48 +243,56 @@ test('fully supplied travelers receive no extra duplicate shrine reward',()=>{
   assert.match(healed.expedition.log[0],/体力 \+0、薬草 \+0/);
 });
 
-test('a rustle becomes a fox sighting, then a harmless follow-up reward at the dead end',()=>{
+test('following the fox offers an exclusive herb or iron decision, saved until return',()=>{
   const start=wood();
-  assert.equal(start.expedition.field.fox,false);
-  assert(!F.visible(start.expedition.field,F.FOX),'west-end animal starts in fog');
-  let approach=walk(start,15,10);
-  assert.equal(approach.expedition.stage,'path');
+  assert(!F.visible(start.expedition.field,F.FOX),'fox starts in fog');
+  const approach=walk(start,15,10);
   assert.match(approach.expedition.log[0],/茂み.*揺れた/);
-  assert.equal(approach.expedition.field.fox,false,'clue is not discovery yet');
-  assert(F.visible(approach.expedition.field,F.FOX));
+  assert.equal(approach.expedition.field.fox,false);
   const revealed=walk(approach,F.FOX);
-  assert.equal(revealed.expedition.stage,'path','harmless fox must not trigger combat');
-  assert.equal(revealed.expedition.field.fox,true,'fox flees once');
-  assert.match(revealed.expedition.log[0],/白い狐が飛び出した/);
-  assert.equal(revealed.expedition.field.foxCache,false);
+  assert.equal(revealed.expedition.stage,'path','fox never forces combat');
+  assert.equal(revealed.expedition.field.fox,true);
   const snap=E.parse(E.serialize(revealed));
-  assert.equal(snap.expedition.field.pos,F.FOX);
-  assert.equal(snap.expedition.field.fox,true);
-  const prize=walk(snap,F.FOX_NEST);
-  assert.equal(prize.expedition.stage,'path');
-  assert.equal(prize.expedition.field.foxCache,true);
-  assert.match(prize.expedition.log[0],/革袋を発見/);
+  const offered=walk(snap,F.FOX_NEST);
+  assert.match(offered.expedition.log[0],/革袋を発見/);
+  assert.equal(offered.expedition.field.foxCache,false,'arrival grants nothing');
+  assert.equal(offered.expedition.scrap,0);
+  assert.equal(offered.expedition.potions,2);
+  const herb=E.act(offered,'forest-fox-herb');
+  assert.equal(herb.expedition.potions,3);
+  assert.equal(herb.expedition.scrap,0);
+  assert.equal(herb.expedition.field.foxCache,true);
+  assert.equal(E.act(herb,'forest-fox-scrap'),herb,'choices are exclusive');
+  const prize=E.act(offered,'forest-fox-scrap');
+  assert.equal(prize.expedition.hp,offered.expedition.hp-2);
   assert.equal(prize.expedition.scrap,3);
-  assert.equal(prize.expedition.potions,3);
+  assert.equal(prize.expedition.potions,2);
+  assert.equal(prize.scrap,0,'unreturned iron is not banked');
+  assert.equal(E.act(prize,'forest-fox-herb'),prize);
   const revisited=walk(E.parse(E.serialize(prize)),5,0);
-  assert.equal(revisited.expedition.scrap,3,'fox pouch is not farmable');
-  assert.equal(revisited.expedition.potions,3,'the herb is not farmable');
+  assert.equal(revisited.expedition.scrap,3,'pouch is not farmable after reload');
+  assert.equal(revisited.expedition.potions,2);
   const returned=E.act(revisited,'return');
-  assert.equal(returned.scrap,3,'found salvage can be banked on alive return');
+  assert.equal(returned.scrap,3,'safe return banks only chosen iron');
   assert.equal(returned.expedition,null);
 });
 
-test('fox reward respects bag and herb caps and does not leak into other expeditions',()=>{
+test('fox pouch choices respect inventory and survival limits',()=>{
   let s=walk(wood(),15,10,5);
   s.expedition.scrap=999;
   s.expedition.potions=3;
-  const found=walk(s,0);
-  assert.equal(found.expedition.scrap,1000);
-  assert.equal(found.expedition.potions,3);
-  assert.match(found.expedition.log[0],/鉄片 \+1、薬草 \+0/);
-  assert.equal(found.expedition.field.foxCache,true);
+  const offered=walk(s,0);
+  assert.equal(E.act(offered,'forest-fox-herb'),offered,'full herbs cannot be collected');
+  assert.equal(E.act(offered,'forest-fox-scrap'),offered,'iron cannot overflow the bag');
+  const nearCap={...offered,expedition:{...offered.expedition,scrap:997}};
+  const iron=E.act(nearCap,'forest-fox-scrap');
+  assert.equal(iron.expedition.scrap,1000);
+  assert.equal(iron.expedition.field.foxCache,true);
+  const weak={...offered,expedition:{...offered.expedition,scrap:0,hp:2,potions:2}};
+  assert.equal(E.act(weak,'forest-fox-scrap'),weak,'no lethal forced salvage');
+  assert.equal(E.act(weak,'forest-fox-herb').expedition.potions,3,'safe alternative remains');
   const tower=E.start(Object.assign(E.initial(),{mode:'demo',unlocked:['wood','tower']}),'tower');
-  assert.equal(tower.expedition.field,undefined,'forest discovery stays local');
+  assert.equal(tower.expedition.field,undefined,'fox discovery stays local');
 });
 
 test('legacy forest saves without new fields remain accepted',()=>{

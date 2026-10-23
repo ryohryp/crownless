@@ -589,6 +589,21 @@
           : '棘に触れない手前の鉄片 +1 だけを拾った。無傷だが奥の鉄片は諦めた。生還までは背嚢の中だ。'];
         return n;
       }
+      // Following the fox reveals one pouch, not free loot. Choose a herb
+      // for the next encounter or thorn-covered iron to bank on safe return.
+      if((action==='forest-fox-herb'||action==='forest-fox-scrap') &&
+        x.place==='wood' && x.depth===1 && x.room===0 &&
+        x.field?.pos===F.FOX_NEST && x.field.fox && !x.field.foxCache){
+        const iron=action==='forest-fox-scrap';
+        if(iron ? (x.hp<=2||x.scrap>997) : x.potions>=3)return s;
+        if(iron){x.hp-=2;x.scrap+=3;}
+        else x.potions++;
+        x.field.foxCache=true;
+        x.log=[iron
+          ? '狐が残した革袋の奥から鉄片 +3 を拾った。棘で体力 −2。生還するまで背嚢の中だ。薬草は諦めた。'
+          : '狐が残した革袋から薬草 +1 を拾った。無傷だが鉄片は諦めた。'];
+        return n;
+      }
       // ADR 0013: the crafted lamp enables a deliberate, saved-in-expedition
       // investigation on an ordinary forest tile. Never uncover the secret,
       // bypass forest skills, or reveal any hidden tile from the tool alone.
@@ -821,12 +836,7 @@
           x.log=['茂みから白い狐が飛び出した！ 狼かと思ったが、狐は戦わずに奥の倒木へ駆けていく。'];
         } else if(to === F.FOX_NEST && field.fox && !field.foxCache){
           discovered=true;
-          field.foxCache=true;
-          const scrap=Math.min(3,1000-x.scrap);
-          const herb=x.potions<3?1:0;
-          x.scrap+=scrap;
-          x.potions+=herb;
-          x.log=[`狐が消えた倒木の根元に、古い旅人の革袋を発見。鉄片 +${scrap}、薬草 +${herb}。戦わずに得られた戦利品だ。`];
+          x.log=['狐が消えた倒木の根元に、古い旅人の革袋を発見。無傷で薬草を取るか、棘をかき分け鉄片を持ち帰るか。中身はどちらか一方だ。'];
         } else if(to === F.GLADE && !field.glade){
           discovered=true;
           field.glade=true;
