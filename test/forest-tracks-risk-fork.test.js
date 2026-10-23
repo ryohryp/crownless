@@ -205,12 +205,39 @@ test('safe cache salvage yields less iron without HP loss and cannot be combined
   assert.equal(E.act(full,'forest-cache-skim'),full,'no inventory overflow');
 });
 
+test('near-full forest cache avoids dominated HP risk and banks partial loot only on return',()=>{
+  const start=E.start({...E.initial(),mode:'demo'},'wood');
+  const atCache=walk(start,[21,F.CACHE]);
+  const almost={...atCache,expedition:{...atCache.expedition,scrap:998}};
+  const risky=E.act(almost,'forest-cache-search');
+  assert.equal(risky.expedition.scrap,1000,'risky salvage takes only two free slots');
+  assert.equal(risky.expedition.hp,almost.expedition.hp-3);
+  assert.equal(risky.expedition.field.cache,true);
+  assert.ok(risky.expedition.log[0].includes('鉄片 +2'),'the outcome states the actual reward');
+  assert.equal(E.act(risky,'forest-cache-skim'),risky,'cannot claim the alternative too');
+  assert.equal(risky.scrap,0,'partial salvage remains provisional');
+  const restored=E.parse(E.serialize(risky));
+  assert.ok(restored,'near-full risky salvage survives current save/reload');
+  assert.equal(restored.scrap,0,'reload does not bank expedition materials');
+  assert.equal(E.act(restored,'return').scrap,1000,'safe return banks partial reward');
+  const oneSlot={...atCache,expedition:{...atCache.expedition,scrap:999}};
+  assert.equal(E.act(oneSlot,'forest-cache-search'),oneSlot,'risk is dominated by safe +1');
+  const safe=E.act(oneSlot,'forest-cache-skim');
+  assert.equal(safe.expedition.scrap,1000);
+  assert.equal(safe.expedition.hp,oneSlot.expedition.hp,'one remaining iron is collected safely');
+  const full={...atCache,expedition:{...atCache.expedition,scrap:1000}};
+  assert.equal(E.act(full,'forest-cache-search'),full,'full bag cannot consume cache or HP');
+  assert.equal(E.act(full,'forest-cache-skim'),full,'full bag cannot consume safe cache');
+});
+
 test('cache risk is a reachable deliberate choice on the forest mobile panel',()=>{
   const app=fs.readFileSync('src/slice-app.js','utf8');
   assert.match(app,/x\.field\.pos===window\.CrownlessField\.CACHE && !x\.field\.cache/);
   assert.match(app,/button\('forest-cache-skim','手前の鉄片だけ拾う'/);
   assert.match(app,/button\('forest-cache-search','棘を越えて奥を探る'/);
-  assert.match(app,/x\.hp<=3\|\|x\.scrap>996/);
+  assert.match(app,/x\.hp<=3\|\|x\.scrap>=999/);
+  assert.ok(app.includes("Math.min(4,1000-x.scrap)"),'risky choice discloses its capped reward');
+  assert.ok(app.includes('空きは1個 · 手前なら無傷で拾える'));
 });
 
 test("new tracks discovery survives losing the wolf's attention",()=>{
