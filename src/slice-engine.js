@@ -908,7 +908,12 @@
           // Finding a shrine or passage is its own discovery moment. Keep
           // that feedback visible even if a wolf simultaneously notices us.
           if(!discovered && wolfNow==='alert' && wolfBefore!=='alert') {
-            x.log=['茂みから狼が現れた！ こちらに気づいて唸っている。巣穴へ進めば戦闘、脇道へ戻れば避けられる。'];
+            // Surface the actual unbanked stake when the optional wolf fight
+            // becomes reachable. A generic warning hides why retreat matters.
+            const carried=x.scrap>0||x.materials.wolfFang>0
+              ? ` 背嚢の狼牙 ${x.materials.wolfFang}・鉄片 ${x.scrap} は生還まで未確定。ここで倒れれば失う。`
+              : '';
+            x.log=['茂みから狼が現れた！ こちらに気づいて唸っている。巣穴へ進めば戦闘、脇道へ戻れば避けられる。'+carried];
           } else if(!discovered && wolfBefore==='alert' && wolfNow!=='alert') {
             x.log=['狼の視線を振り切った。遠ざかる足音を背に、別の道を探せる。'];
           }
