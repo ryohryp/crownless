@@ -852,13 +852,16 @@
           x.log=[`苔むした祠を発見。青白い加護に包まれた。体力 +${healed}、薬草 +${potion}。`];
         } else if (to === F.TREASURE && !field.treasure) {
           discovered=true;
-          field.treasure=true;
-          // A real find: enough scrap and one crafting material, never an
-          // instant equippable drop. At risk until the expedition ends alive.
-          if(x.scrap<=994 && x.materials.wolfFang<=998){
-            x.scrap+=6; x.materials.wolfFang+=1;
-            x.log=['古い宝箱を発見！ 鉄片 +6、狼牙 +1。持ち帰れば鍛冶師の素材になる。'];
-          } else x.log=['古い宝箱を開けた。背嚢がいっぱいでこれ以上は持てない。'];
+          // A chest must not discard both rewards just because one material
+          // is near its limit. Take what fits; leave it unopened if nothing fits.
+          // All rewards remain provisional until a genuine safe return.
+          const scrap=Math.min(6,1000-x.scrap);
+          const fang=Math.min(1,1000000-x.materials.wolfFang);
+          if(scrap>0||fang>0){
+            x.scrap+=scrap; x.materials.wolfFang+=fang;
+            field.treasure=true;
+            x.log=[`古い宝箱を発見！ 鉄片 +${scrap}、狼牙 +${fang}。持ち帰れば鍛冶師の素材になる。`];
+          } else x.log=['古い宝箱を発見したが、背嚢がいっぱいだ。中身を残して生還しよう。'];
           // Hint at an investigation; keep the secret hidden until inspected.
           x.log[0]+=' 宝箱の背後でツタが擦れる音がした。周囲を調べれば何か見つかるかもしれない。';
         } else if (to === F.CACHE && !field.cache) {
