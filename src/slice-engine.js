@@ -605,12 +605,13 @@
         x.place==='wood' && x.depth===1 && x.room===0 &&
         x.field?.pos===F.FOX_NEST && x.field.fox && !x.field.foxCache){
         const iron=action==='forest-fox-scrap';
-        if(iron ? (x.hp<=2||x.scrap>997) : x.potions>=3)return s;
-        if(iron){x.hp-=2;x.scrap+=3;}
+        if(iron ? (x.hp<=2||x.scrap>=1000) : x.potions>=3)return s;
+        const scrap=iron?Math.min(3,1000-x.scrap):0;
+        if(iron){x.hp-=2;x.scrap+=scrap;}
         else x.potions++;
         x.field.foxCache=true;
         x.log=[iron
-          ? '狐が残した革袋の奥から鉄片 +3 を拾った。棘で体力 −2。生還するまで背嚢の中だ。薬草は諦めた。'
+          ? `狐が残した革袋の奥から鉄片 +${scrap} を拾った。棘で体力 −2。生還するまで背嚢の中だ。薬草は諦めた。`
           : '狐が残した革袋から薬草 +1 を拾った。無傷だが鉄片は諦めた。'];
         return n;
       }
