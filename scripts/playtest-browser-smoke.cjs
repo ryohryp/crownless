@@ -1091,10 +1091,12 @@ async function main() {
         await departClassicForest(page);
         assert.equal(await page.locator('.forest-field[data-field-secret="false"][data-field-shrine="false"]').count(),1);
         assert.equal(await page.locator('.field-cell[data-value="12"]').count(),0,'hidden path must not be a reachable teleport from the entrance');
-        await step(21);await step(16); // Collecting old iron shards costs three HP.
+        await step(21);await step(16); // Arriving at the cache is safe.
         assert.match(await page.locator('.field-moment').innerText(),/乾いた葉を擦るような音/,
           'the cache approach offers a curiosity cue on '+width+'px without a waypoint');
         assert.equal(await page.locator('.forest-field[data-field-secret="false"]').count(),1);
+        await page.locator('.field-choices [data-action="forest-cache-search"]').click();
+        // Only the deliberate search wounds the player and awards unbanked iron.
         await step(17); // The existing real treasure chest.
         assert.match(await page.locator('.field-moment').innerText(),/宝箱の背後でツタが擦れる音/,
           'the discovered treasure leads to deliberate vine investigation');
