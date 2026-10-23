@@ -24,10 +24,13 @@ test('first forest expedition starts in genuinely hidden, bounded terrain',()=>{
   assert.equal(E.act(s,'field-step:15').expedition.field.pos,15,'north is a valid adjacent move');
 });
 
-test('turning toward an unknown cache yields carried material, at a real wound and only once',()=>{
+test('deliberately searching the unknown cache yields carried material, at a real wound and only once',()=>{
   const initial=wood();
   let s=walk(initial,21,16);
   assert.equal(s.expedition.field.pos,16);
+  assert.equal(s.expedition.field.cache,false,'arrival must not wound or loot');
+  assert.equal(s.expedition.hp,initial.expedition.hp);
+  s=E.act(s,'forest-cache-search');
   assert.equal(s.expedition.field.cache,true);
   assert.equal(s.expedition.scrap,4);
   assert.equal(s.expedition.hp,initial.expedition.hp-3);
@@ -209,7 +212,8 @@ test('tangled vines conceal a shortcut, which physically opens on adjacent disco
 });
 
 test('mossy shrine gives capped health and one herb only on the first visit',()=>{
-  const before=walk(wood(),21,16,17,12,12);
+  const cache=walk(wood(),21,16);
+  const before=walk(E.act(cache,'forest-cache-search'),17,12,12);
   assert.equal(before.expedition.hp,27,'gathering the cache created a healing opportunity');
   assert.equal(before.expedition.potions,2);
   const found=walk(before,7);
