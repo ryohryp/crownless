@@ -216,6 +216,59 @@ async function main() {
         assert.equal(await page.locator('.forest-field[data-field-pos="20"]').count(),1,
           'original expedition is restored for the rest of the phone smoke');
 
+        // The thorn cache's near-full risk must be a real phone decision.
+        // A risk that grants no more than the safe option must be unavailable.
+        for(const id of [21,16]){
+          await page.locator('.forest-field [data-action="field-step"][data-value="'+id+'"]').click();
+        }
+        await page.evaluate(()=>{
+          const key='crownless-expedition-v1-demo';
+          const saved=JSON.parse(localStorage.getItem(key));
+          saved.expedition.scrap=998;
+          localStorage.setItem(key,JSON.stringify(saved));
+        });
+        await page.reload();
+        const cacheRisk=page.locator('.field-choices [data-action="forest-cache-search"]');
+        assert.equal(await cacheRisk.isEnabled(),true,'two slots keep a worthwhile thorn risk');
+        assert.match(await cacheRisk.innerText(),/鉄片 \\+2/,'phone choice shows actual capped reward');
+        const cacheBounds=await cacheRisk.boundingBox();
+        assert(cacheBounds&&cacheBounds.y>=0&&cacheBounds.y+cacheBounds.height<=height+2,
+          'partial cache choice stays reachable at '+width+'px');
+        await page.screenshot({path:path.join(output,'forest-cache-partial-'+width+'.png')});
+        await cacheRisk.click();
+        const cacheSaved=await page.evaluate(()=>
+          JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+        assert.equal(cacheSaved.expedition.scrap,1000);
+        assert.equal(cacheSaved.expedition.field.cache,true);
+        assert.equal(cacheSaved.scrap,0,'partial cache iron is still provisional');
+        await page.reload();
+        await page.locator('.field-choices [data-action="return"]').click();
+        const cacheBanked=await page.evaluate(()=>
+          JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+        assert.equal(cacheBanked.scrap,1000,'partial cache iron banks only on return');
+        await page.evaluate(raw=>
+          localStorage.setItem('crownless-expedition-v1-demo',raw),forestBaseline);
+        await page.reload();
+        for(const id of [21,16]){
+          await page.locator('.forest-field [data-action="field-step"][data-value="'+id+'"]').click();
+        }
+        await page.evaluate(()=>{
+          const key='crownless-expedition-v1-demo';
+          const saved=JSON.parse(localStorage.getItem(key));
+          saved.expedition.scrap=999;
+          localStorage.setItem(key,JSON.stringify(saved));
+        });
+        await page.reload();
+        assert.equal(await page.locator('.field-choices [data-action="forest-cache-search"]').isDisabled(),
+          true,'one slot disables pointless HP risk');
+        assert.equal(await page.locator('.field-choices [data-action="forest-cache-skim"]').isEnabled(),
+          true,'one slot still permits safe iron');
+        await page.evaluate(raw=>
+          localStorage.setItem('crownless-expedition-v1-demo',raw),forestBaseline);
+        await page.reload();
+        assert.equal(await page.locator('.forest-field[data-field-pos="20"]').count(),1,
+          'phone cache check restores the original expedition');
+
         const canvasProof=await page.evaluate(()=>{
           const canvas=document.querySelector('.forest-field.world-painted canvas.forest-world-canvas');
           const ctx=canvas?.getContext('2d');
