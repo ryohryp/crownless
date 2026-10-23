@@ -157,10 +157,31 @@ test('forest cache offers a real opt-in HP-for-scrap choice, not forced damage',
   assert.equal(E.act(low,'forest-cache-search'),low,'low HP cannot be spent');
 });
 
+test('safe cache salvage yields less iron without HP loss and cannot be combined with risky salvage',()=>{
+  const start=E.start({...E.initial(),mode:'demo'},'wood');
+  const atCache=walk(start,[21,F.CACHE]);
+  const skimmed=E.act(atCache,'forest-cache-skim');
+  assert.equal(skimmed.expedition.hp,start.expedition.hp,'safe salvage costs no HP');
+  assert.equal(skimmed.expedition.scrap,1,'safe salvage trades quantity for safety');
+  assert.equal(skimmed.expedition.field.cache,true);
+  assert.equal(E.act(skimmed,'forest-cache-search'),skimmed,'cannot take risky loot after safe choice');
+  assert.equal(E.act(skimmed,'forest-cache-skim'),skimmed,'cannot repeat safe loot');
+  assert.equal(skimmed.scrap,0,'no materials banked before returning alive');
+  const restored=E.parse(E.serialize(skimmed));
+  assert.ok(restored,'safe choice survives save/reload');
+  assert.equal(E.act(restored,'return').scrap,1,'safe return banks only chosen iron');
+  const low={...atCache,expedition:{...atCache.expedition,hp:3}};
+  assert.equal(E.act(low,'forest-cache-search'),low,'dangerous search blocked at low HP');
+  assert.equal(E.act(low,'forest-cache-skim').expedition.scrap,1,'safe option remains available at low HP');
+  const full={...atCache,expedition:{...atCache.expedition,scrap:1000}};
+  assert.equal(E.act(full,'forest-cache-skim'),full,'no inventory overflow');
+});
+
 test('cache risk is a reachable deliberate choice on the forest mobile panel',()=>{
   const app=fs.readFileSync('src/slice-app.js','utf8');
   assert.match(app,/x\.field\.pos===window\.CrownlessField\.CACHE && !x\.field\.cache/);
-  assert.match(app,/button\('forest-cache-search','倒木の根元から鉄片を拾う'/);
+  assert.match(app,/button\('forest-cache-skim','手前の鉄片だけ拾う'/);
+  assert.match(app,/button\('forest-cache-search','棘を越えて奥を探る'/);
   assert.match(app,/x\.hp<=3\|\|x\.scrap>996/);
 });
 
