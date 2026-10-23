@@ -849,6 +849,7 @@
           // A nearby sound invites discovery without revealing a destination.
           if(!field.treasure) x.log[0]+=' さらに奥で、乾いた葉を擦るような音がした。';
         } else if (to === F.TRACKS && !field.tracks) {
+          discovered=true; // Preserve earned trail-reading feedback when leaving wolf alert.
           field.tracks=true; x.focus=Math.max(3,x.focus);
           x.log=[n.characters[0].skills?.trailReading
             ? '獣の足取りが読めた。次の一撃に集中 +3。危険な巣穴を迂回する道も見える。'
@@ -871,7 +872,7 @@
           // that feedback visible even if a wolf simultaneously notices us.
           if(!discovered && wolfNow==='alert' && wolfBefore!=='alert') {
             x.log=['茂みから狼が現れた！ こちらに気づいて唸っている。巣穴へ進めば戦闘、脇道へ戻れば避けられる。'];
-          } else if(wolfBefore==='alert' && wolfNow!=='alert') {
+          } else if(!discovered && wolfBefore==='alert' && wolfNow!=='alert') {
             x.log=['狼の視線を振り切った。遠ざかる足音を背に、別の道を探せる。'];
           }
         }
