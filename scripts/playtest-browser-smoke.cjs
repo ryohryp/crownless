@@ -1208,9 +1208,18 @@ async function main() {
         await step(41);await step(40); // the hidden stone-ring glade is inset from the camera edge
         const found=await page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
         assert.equal(found.expedition.field.pos,40);
-        assert.equal(found.expedition.field.glade,true);
-        assert.equal(found.expedition.scrap,4);
+        assert.equal(found.expedition.field.glade,false,'arrival must reveal the ring, not collect iron');
+        assert.equal(found.expedition.scrap,0,'finding a ring cannot silently grant loot');
+        const ring=page.locator('.field-choices [data-action="forest-glade-examine"]');
+        assert.equal(await ring.count(),1,'discovery offers a deliberate investigation on phone');
+        const ringBounds=await ring.boundingBox();
+        assert(ringBounds&&ringBounds.width>=44&&ringBounds.height>=44,
+          'stone-ring investigation remains a usable touch target at '+width+'px');
         await page.screenshot({path:path.join(output,'forest-distant-glade-found-'+width+'.png')});
+        await ring.click();
+        const looted=await page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+        assert.equal(looted.expedition.field.glade,true);
+        assert.equal(looted.expedition.scrap,4,'investigation, not arrival, awards provisional iron');
         await page.reload();
         assert.equal(await page.locator('.forest-field[data-field-glade="true"][data-field-pos="40"]').count(),1);
         await step(41);await step(40);
