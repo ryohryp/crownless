@@ -252,6 +252,8 @@
       <div class="field-choices">${x.field.pos===window.CrownlessField.CACHE && !x.field.cache
         ? button('forest-cache-skim','手前の鉄片だけ拾う','体力消費なし · 鉄片 +1（奥は諦める）',{class:'primary',disabled:x.scrap>=1000})+
           button('forest-cache-search','棘を越えて奥を探る',x.hp<=3?'体力不足 · 手前の鉄片なら拾える':'体力 −3 · 鉄片 +4（危険）',{class:'secondary',disabled:x.hp<=3||x.scrap>996}) : ''}
+      ${x.field.pos===window.CrownlessField.GLADE && !x.field.glade
+        ? button('forest-glade-examine','石環の苔をめくる',x.scrap>=1000?'背嚢が満杯 · 生還して空きを作ろう':'古い鉄片を調べる · 生還で確定',{class:'primary',disabled:x.scrap>=1000}) : ''}
       ${x.field.pos===window.CrownlessField.FOX_NEST && x.field.fox && !x.field.foxCache
         ? button('forest-fox-herb','革袋の薬草を取る',x.potions>=3?'薬草は3個で満杯 · 鉄片か生還を選ぶ':'無傷 · 薬草 +1（次の戦闘用） · 鉄片は諦める',{class:'primary',disabled:x.potions>=3})+
           button('forest-fox-scrap','棘の奥の鉄片を取る',x.hp<=2?'体力不足 · 薬草を取るか生還':x.scrap>997?'背嚢が満杯 · 薬草か生還を選ぶ':'体力 −2 · 鉄片 +3（鍛冶用） · 薬草は諦める',{class:'secondary',disabled:x.hp<=2||x.scrap>997}) : ''}
@@ -923,6 +925,7 @@
     else if (action === 'field-step') { state=E.act(state,'field-step:'+value); }
     else if (action === 'forest-cache-search') { state=E.act(state,'forest-cache-search'); }
     else if (action === 'forest-cache-skim') { state=E.act(state,'forest-cache-skim'); }
+    else if (action === 'forest-glade-examine') { state=E.act(state,'forest-glade-examine'); }
     else if (action === 'forest-fox-herb') { state=E.act(state,'forest-fox-herb'); }
     else if (action === 'forest-fox-scrap') { state=E.act(state,'forest-fox-scrap'); }
     else if (action === 'lantern-examine') { state=E.act(state,'lantern-examine'); }
