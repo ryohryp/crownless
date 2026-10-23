@@ -249,7 +249,9 @@
     return `<div class="field-decision"><div class="field-status">${vitals(x)}<div class="path-risk" data-forest-bag="true"><span>背嚢の戦利品</span><strong>${x.materials?.wolfFang>0?'狼牙 '+x.materials.wolfFang+' · ':''}鉄片 ${x.scrap}</strong><small>生還で確定 · 倒れれば失う</small></div></div>
       ${skillPending?'<p class="skill-learning-hint" role="status">⌁ 新しい探索技術《獣道読み》の手掛かりを得た。<strong>無事に生還すると習得！</strong></p>':''}
       <p class="field-moment${trailSkillResult(x)?' skill-result':''}" role="status">${trailSkillResult(x)?trailResultLabel:''}${esc(x.log[0]||event)}</p>
-      <div class="field-choices">${x.field.pos===window.CrownlessField.TRACKS && x.field.tracks && !x.field.lanternClue && !x.field.tracksRisk
+      <div class="field-choices">${x.field.pos===window.CrownlessField.CACHE && !x.field.cache
+        ? button('forest-cache-search','倒木の根元から鉄片を拾う',x.hp<=3?'体力不足 · 無傷で生還できる':'体力 −3 · 鉄片を持ち帰る（危険）',{class:'secondary',disabled:x.hp<=3||x.scrap>996}) : ''}
+      ${x.field.pos===window.CrownlessField.TRACKS && x.field.tracks && !x.field.lanternClue && !x.field.tracksRisk
         ? '<div class="forest-tracks-fork" role="group" aria-label="獣の足跡の分かれ道"><p>茂みの奥に獣骨の気配。棘を越えれば何か見つかるかもしれない。斥候の灯があれば安全に別の痕跡を調べられる。どちらも生還まで未確定。</p>'+
           (state.ownedTools?.includes(E.SCOUT_LANTERN.id) ? button('lantern-examine','斥候の灯で霧を照らす','体力消費なし · 手掛かりを探す',{class:'primary'}) : '')+
           button('forest-tracks-risk','棘の茂みへ踏み込む',x.hp<=4?'体力不足 · 薬草で回復するか生還':'体力 −4 · 獣骨を調べる（危険）',{class:'secondary',disabled:x.hp<=4||x.materials.wolfFang>=1000000})+'</div>' : ''}
@@ -915,6 +917,7 @@
       }
     }
     else if (action === 'field-step') { state=E.act(state,'field-step:'+value); }
+    else if (action === 'forest-cache-search') { state=E.act(state,'forest-cache-search'); }
     else if (action === 'lantern-examine') { state=E.act(state,'lantern-examine'); }
     else if (action === 'forest-tracks-risk') { state=E.act(state,'forest-tracks-risk'); }
     else if (action === 'tower-step') { state=E.act(state,'tower-step:'+value); }

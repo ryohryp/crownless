@@ -950,6 +950,15 @@ async function main() {
         assert((await page.locator('.field-cell.veiled').count())<fog,
           'the fog clears as the traveler chooses a new step');
         await page.locator('.field-cell[data-value="16"]').click();
+        const offered=await page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+        assert.equal(offered.expedition.field.cache,false,'entering the cache does not collect');
+        assert.equal(offered.expedition.hp,30,'no forced damage on movement');
+        assert.equal(offered.expedition.scrap,0,'loot requires deliberate search');
+        const search=page.locator('.field-choices [data-action="forest-cache-search"]');
+        assert.equal(await search.count(),1,'optional cache risk is visible on phone');
+        const bounds=await search.boundingBox();
+        assert(bounds && bounds.width>=44 && bounds.height>=44,'risk choice is thumb reachable');
+        await search.click();
         const found=await page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
         assert.equal(found.expedition.field.cache,true);
         assert.equal(found.expedition.hp,27);

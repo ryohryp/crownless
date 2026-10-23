@@ -132,3 +132,34 @@ test('the unknown vine location is not an exact map button before chest-side inv
   assert.match(app,/x\.field\.pos===window\.CrownlessField\.TREASURE&&!x\.field\.secret/);
   assert.match(app,/button\('field-step','宝箱の背後を調べる'/);
 });
+
+
+test('forest cache offers a real opt-in HP-for-scrap choice, not forced damage',()=>{
+  const start=E.start({...E.initial(),mode:'demo'},'wood');
+  const atCache=walk(start,[21,F.CACHE]);
+  assert.equal(atCache.expedition.field.pos,F.CACHE);
+  assert.equal(atCache.expedition.field.cache,false,'stepping on cache is not collecting');
+  assert.equal(atCache.expedition.hp,start.expedition.hp,'no automatic wound');
+  assert.equal(atCache.expedition.scrap,0,'no automatic loot');
+  const declined=E.act(atCache,'return');
+  assert.equal(declined.scrap,0,'declining leaves no loot');
+  const taken=E.act(atCache,'forest-cache-search');
+  assert.equal(taken.expedition.hp,start.expedition.hp-3);
+  assert.equal(taken.expedition.scrap,4);
+  assert.equal(taken.expedition.field.cache,true);
+  assert.equal(taken.scrap,0,'unreturned iron is not banked');
+  assert.equal(E.act(taken,'forest-cache-search'),taken,'cannot collect twice');
+  const restored=E.parse(E.serialize(taken));
+  assert.ok(restored,'the current expedition survives reload');
+  assert.equal(restored.expedition.field.cache,true);
+  assert.equal(E.act(restored,'return').scrap,4,'safe return banks the iron');
+  const low={...atCache,expedition:{...atCache.expedition,hp:3}};
+  assert.equal(E.act(low,'forest-cache-search'),low,'low HP cannot be spent');
+});
+
+test('cache risk is a reachable deliberate choice on the forest mobile panel',()=>{
+  const app=fs.readFileSync('src/slice-app.js','utf8');
+  assert.match(app,/x\.field\.pos===window\.CrownlessField\.CACHE && !x\.field\.cache/);
+  assert.match(app,/button\('forest-cache-search','倒木の根元から鉄片を拾う'/);
+  assert.match(app,/x\.hp<=3\|\|x\.scrap>996/);
+});

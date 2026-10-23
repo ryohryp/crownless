@@ -572,6 +572,17 @@
     } else if (x.stage === 'cleared' && action === 'deeper' && x.depth < 3) {
       x.depth++; x.room = 0; x.stage = 'path'; x.log = [`さらに深く。${lootCue(x.place, x.depth)}`]; return n;
     } else if (x.stage === 'path') {
+      // A cache is a voluntary risk: arriving must never wound the explorer
+      // or award provisional loot before they choose to search its roots.
+      if(action==='forest-cache-search' && x.place==='wood' && x.depth===1 &&
+        x.room===0 && x.field?.pos===F.CACHE && !x.field.cache &&
+        x.hp>3 && x.scrap<=996){
+        x.hp-=3;
+        x.scrap+=4;
+        x.field.cache=true;
+        x.log=['倒木の棘をかき分け、鉄片 +4 を拾った。体力 −3。生還するまで背嚢の中だ。'];
+        return n;
+      }
       // ADR 0013: the crafted lamp enables a deliberate, saved-in-expedition
       // investigation on an ordinary forest tile. Never uncover the secret,
       // bypass forest skills, or reveal any hidden tile from the tool alone.
@@ -834,13 +845,7 @@
           // Hint at an investigation; keep the secret hidden until inspected.
           x.log[0]+=' 宝箱の背後でツタが擦れる音がした。周囲を調べれば何か見つかるかもしれない。';
         } else if (to === F.CACHE && !field.cache) {
-          field.cache=true;
-          // The tree's torn roots are visible on approach. A small wound is
-          // the deliberate price for real loot, banked only if returned alive.
-          if(x.hp>3 && x.scrap<=996){
-            x.hp-=3; x.scrap+=4;
-            x.log=['倒木の根に埋もれた鉄片を発見。体力 −3、背嚢に鉄片 +4。生還で確定。'];
-          } else x.log=['倒木の根元には何かあるが、今は拾えない。'];
+          x.log=['倒木の根元に鉄片が光る。棘をかき分ければ傷を負いそうだ。拾うか、無傷で引き返すか。'];
           // A nearby sound invites discovery without revealing a destination.
           if(!field.treasure) x.log[0]+=' さらに奥で、乾いた葉を擦るような音がした。';
         } else if (to === F.TRACKS && !field.tracks) {
