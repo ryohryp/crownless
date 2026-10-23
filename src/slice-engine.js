@@ -609,7 +609,8 @@
       // bypass forest skills, or reveal any hidden tile from the tool alone.
       if(action==='lantern-examine' && x.place==='wood' && x.depth===1 &&
         x.room===0 && x.field?.pos===F.TRACKS && !x.field.lanternClue &&
-        !x.field.tracksRisk && n.ownedTools?.includes(SCOUT_LANTERN.id)){
+        !x.field.tracksRisk && x.scrap<1000 &&
+        n.ownedTools?.includes(SCOUT_LANTERN.id)){
         x.field.lanternClue=true;
         const scrap=Math.max(0,Math.min(2,1000-x.scrap));
         x.scrap+=scrap;

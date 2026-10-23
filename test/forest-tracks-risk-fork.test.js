@@ -68,6 +68,24 @@ test('lantern gives safe scrap alternative, not a secret shortcut',()=>{
   assert.equal(returned.scrap,before.scrap+2,'scrap banks only after safe return');
 });
 
+test('a full scrap bag cannot waste the one-time lantern clue for zero loot',()=>{
+  const before=tracks(lanternOwner());
+  const full={...before,expedition:{...before.expedition,scrap:1000}};
+  assert.equal(E.act(full,'lantern-examine'),full,'full bag must preserve the unused choice');
+  assert.equal(full.expedition.field.lanternClue,false);
+  const almost={...before,expedition:{...before.expedition,scrap:999}};
+  const taken=E.act(almost,'lantern-examine');
+  assert.equal(taken.expedition.scrap,1000,'partial capacity grants only what fits');
+  assert.equal(taken.expedition.field.lanternClue,true);
+  assert.equal(E.act(taken,'lantern-examine'),taken,'repeat tap cannot farm');
+  const restored=E.parse(E.serialize(taken));
+  assert.ok(restored);
+  assert.equal(E.act(restored,'return').scrap,1000,'reward remains provisional until return');
+  const app=fs.readFileSync('src/slice-app.js','utf8');
+  assert.match(app,/背嚢が満杯 · 生還して空きを作ろう/);
+  assert.match(app,/disabled:x\\.scrap>=1000/);
+});
+
 test('choice hints disclose cost but not exact rewards',()=>{
   const app=fs.readFileSync('src/slice-app.js','utf8');
   assert.match(app,/体力 −4 · 獣骨を調べる/);

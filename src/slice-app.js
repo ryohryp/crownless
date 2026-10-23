@@ -257,7 +257,7 @@
           button('forest-fox-scrap','棘の奥の鉄片を取る',x.hp<=2?'体力不足 · 薬草を取るか生還':x.scrap>997?'背嚢が満杯 · 薬草か生還を選ぶ':'体力 −2 · 鉄片 +3（鍛冶用） · 薬草は諦める',{class:'secondary',disabled:x.hp<=2||x.scrap>997}) : ''}
       ${x.field.pos===window.CrownlessField.TRACKS && x.field.tracks && !x.field.lanternClue && !x.field.tracksRisk
         ? '<div class="forest-tracks-fork" role="group" aria-label="獣の足跡の分かれ道"><p>茂みの奥に獣骨の気配。棘を越えれば何か見つかるかもしれない。斥候の灯があれば安全に別の痕跡を調べられる。どちらも生還まで未確定。</p>'+
-          (state.ownedTools?.includes(E.SCOUT_LANTERN.id) ? button('lantern-examine','斥候の灯で霧を照らす','体力消費なし · 手掛かりを探す',{class:'primary'}) : '')+
+          (state.ownedTools?.includes(E.SCOUT_LANTERN.id) ? button('lantern-examine','斥候の灯で霧を照らす',x.scrap>=1000?'背嚢が満杯 · 生還して空きを作ろう':'体力消費なし · 手掛かりを探す',{class:'primary',disabled:x.scrap>=1000}) : '')+
           button('forest-tracks-risk','棘の茂みへ踏み込む',x.hp<=4?'体力不足 · 薬草で回復するか生還':'体力 −4 · 獣骨を調べる（危険）',{class:'secondary',disabled:x.hp<=4||x.materials.wolfFang>=1000000})+'</div>' : ''}
       ${x.field.lanternClue ? '<p class="scout-lantern-clue" role="status">✦ 灯りが映した痕跡：倒木の近くで霧が揺らいでいる。周囲を歩いて調べよう。</p>' : ''}
       ${x.field.pos===window.CrownlessField.TREASURE&&!x.field.secret
