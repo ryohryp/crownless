@@ -24,10 +24,13 @@ test('first forest expedition starts in genuinely hidden, bounded terrain',()=>{
   assert.equal(E.act(s,'field-step:15').expedition.field.pos,15,'north is a valid adjacent move');
 });
 
-test('turning toward an unknown cache yields carried material, at a real wound and only once',()=>{
+test('deliberately searching the unknown cache yields carried material, at a real wound and only once',()=>{
   const initial=wood();
   let s=walk(initial,21,16);
   assert.equal(s.expedition.field.pos,16);
+  assert.equal(s.expedition.field.cache,false,'arrival must not wound or loot');
+  assert.equal(s.expedition.hp,initial.expedition.hp);
+  s=E.act(s,'forest-cache-search');
   assert.equal(s.expedition.field.cache,true);
   assert.equal(s.expedition.scrap,4);
   assert.equal(s.expedition.hp,initial.expedition.hp-3);
@@ -91,6 +94,27 @@ test('careful bypass reaches the stone gate without a forced second wolf fight',
 });
 
 
+test('a first approach hints at hidden chest without granting loot or exposing the secret',()=>{
+  const approach=walk(wood(),21);
+  assert(!F.visible(approach.expedition.field,F.TREASURE));
+  const hinted=walk(approach,22);
+  assert.match(hinted.expedition.log[0],/金属の軋み/);
+  assert.equal(hinted.expedition.field.treasure,false,'the cue is not a discovery or reward');
+  assert.equal(hinted.expedition.scrap,0,'a clue alone must not grant iron');
+  assert.equal(hinted.expedition.materials.wolfFang,0,'a clue alone must not grant fang');
+  assert.equal(hinted.expedition.field.secret,false,'the hidden route remains closed');
+  assert(!F.visible(hinted.expedition.field,F.SECRET),'the secret must remain under fog');
+  const saved=E.parse(E.serialize(hinted));
+  assert.ok(saved,'the approach remains saveable');
+  const found=walk(saved,F.TREASURE);
+  assert.match(found.expedition.log[0],/宝箱を発見/);
+  assert.equal(found.expedition.scrap,6,'iron is awarded only after discovering the chest');
+  assert.equal(found.expedition.materials.wolfFang,1);
+  const home=E.act(found,'return');
+  assert.equal(home.scrap,6,'loot is banked only after a safe return');
+  assert.equal(home.materials.wolfFang,1);
+});
+
 test('a hidden chest can be discovered once, carried through a reload, and banked for smithing',()=>{
   const start=wood();
   assert.equal(start.expedition.field.treasure,false);
@@ -109,6 +133,38 @@ test('a hidden chest can be discovered once, carried through a reload, and banke
   assert.equal(banked.expedition,null);
   assert.equal(banked.scrap,6);
   assert.equal(banked.materials.wolfFang,1,'smith receives a REAL banked raw material');
+});
+
+test('forest chest keeps partial rewards and does not consume an entirely full bag',()=>{
+  const before=walk(wood(),21,22);
+  const almostFull={...before,expedition:{...before.expedition,scrap:999}};
+  const found=E.act(almostFull,'field-step:'+F.TREASURE);
+  assert.equal(found.expedition.scrap,1000,'take only the one iron that fits');
+  assert.equal(found.expedition.materials.wolfFang,1,'iron limit must not erase the fang');
+  assert.equal(found.expedition.field.treasure,true);
+  assert.match(found.expedition.log[0],/鉄片 \+1、狼牙 \+1/);
+  assert.equal(found.scrap,0,'nothing is banked before safe return');
+  const restored=E.parse(E.serialize(found));
+  assert.ok(restored,'partial chest loot survives save/reload');
+  const revisit=walk(restored,22,17);
+  assert.equal(revisit.expedition.scrap,1000,'the same chest cannot be looted twice');
+  assert.equal(revisit.expedition.materials.wolfFang,1);
+  const home=E.act(revisit,'return');
+  assert.equal(home.scrap,1000,'safe return banks the partial iron');
+  assert.equal(home.materials.wolfFang,1,'safe return banks the fang');
+
+  const noIron={...before,expedition:{...before.expedition,scrap:1000}};
+  const fangOnly=E.act(noIron,'field-step:'+F.TREASURE);
+  assert.equal(fangOnly.expedition.scrap,1000);
+  assert.equal(fangOnly.expedition.materials.wolfFang,1,'a full iron bag can still hold the fang');
+
+  const full={...before,expedition:{...before.expedition,scrap:1000,
+    materials:{...before.expedition.materials,wolfFang:1000000}}};
+  const blocked=E.act(full,'field-step:'+F.TREASURE);
+  assert.equal(blocked.expedition.field.treasure,false,'no loot must not spend the chest');
+  assert.match(blocked.expedition.log[0],/背嚢がいっぱい/);
+  assert.equal(E.parse(E.serialize(blocked)).expedition.field.treasure,false,
+    'unopened chest remains unopened after reload');
 });
 
 test('one wolf battle returns to the exact same explored forest with loot and no respawn',()=>{
@@ -163,12 +219,33 @@ test('wider woodland has real blocked terrain, side trails and exact 49-cell fog
   assert(F.visible(edge.expedition.field,48),'bit 48 must remain visible at the far edge, not wrap at 32');
   const found=walk(edge,41,40);
   assert.equal(found.expedition.field.pos,F.GLADE);
-  assert.equal(found.expedition.field.glade,true);
-  assert.equal(found.expedition.scrap,4);
+  assert.equal(found.expedition.field.glade,false,'finding the ring is not looting it');
+  assert.equal(found.expedition.scrap,0,'discovery alone grants no iron');
   assert.match(found.expedition.log[0],/石環を発見/);
   assert(F.visible(found.expedition.field,48),'the distant edge stays revealed while entering the glade');
-  const again=walk(E.parse(E.serialize(found)),41,40);
-  assert.equal(again.expedition.scrap,4,'side glade rewards only once');
+  const saved=E.parse(E.serialize(found));
+  assert.ok(saved,'unexamined ring survives save/reload');
+  const examined=E.act(saved,'forest-glade-examine');
+  assert.equal(examined.expedition.field.glade,true);
+  assert.equal(examined.expedition.scrap,4);
+  assert.equal(examined.scrap,0,'ring iron remains provisional until return');
+  assert.equal(E.act(examined,'forest-glade-examine'),examined,'cannot loot the ring twice');
+  const again=walk(E.parse(E.serialize(examined)),41,40);
+  assert.equal(again.expedition.scrap,4,'revisiting cannot repeat salvage');
+  assert.equal(E.act(again,'return').scrap,4,'safe return banks ring iron');
+
+  const full={...found,expedition:{...found.expedition,scrap:1000}};
+  assert.equal(E.act(full,'forest-glade-examine'),full,'full bag preserves unspent ring');
+  const almost={...found,expedition:{...found.expedition,scrap:999}};
+  const partial=E.act(almost,'forest-glade-examine');
+  assert.equal(partial.expedition.scrap,1000,'ring salvage takes only the space left');
+  assert.ok(partial.expedition.log[0].includes('鉄片 +1'));
+  assert.equal(E.parse(E.serialize(partial)).expedition.field.glade,true);
+  const app=require('node:fs').readFileSync('src/slice-app.js','utf8');
+  assert.ok(app.includes("button('forest-glade-examine','石環の苔をめくる'"),
+    'stone ring has an explicit phone choice');
+  assert.ok(app.includes('disabled:x.scrap>=1000'),
+    'full inventory visibly disables ring salvage');
 });
 
 test('shrine is unreachable around the secret rock wall from the wolf or northern trail',()=>{
@@ -209,7 +286,8 @@ test('tangled vines conceal a shortcut, which physically opens on adjacent disco
 });
 
 test('mossy shrine gives capped health and one herb only on the first visit',()=>{
-  const before=walk(wood(),21,16,17,12,12);
+  const cache=walk(wood(),21,16);
+  const before=walk(E.act(cache,'forest-cache-search'),17,12,12);
   assert.equal(before.expedition.hp,27,'gathering the cache created a healing opportunity');
   assert.equal(before.expedition.potions,2);
   const found=walk(before,7);
@@ -239,48 +317,61 @@ test('fully supplied travelers receive no extra duplicate shrine reward',()=>{
   assert.match(healed.expedition.log[0],/体力 \+0、薬草 \+0/);
 });
 
-test('a rustle becomes a fox sighting, then a harmless follow-up reward at the dead end',()=>{
+test('following the fox offers an exclusive herb or iron decision, saved until return',()=>{
   const start=wood();
-  assert.equal(start.expedition.field.fox,false);
-  assert(!F.visible(start.expedition.field,F.FOX),'west-end animal starts in fog');
-  let approach=walk(start,15,10);
-  assert.equal(approach.expedition.stage,'path');
+  assert(!F.visible(start.expedition.field,F.FOX),'fox starts in fog');
+  const approach=walk(start,15,10);
   assert.match(approach.expedition.log[0],/茂み.*揺れた/);
-  assert.equal(approach.expedition.field.fox,false,'clue is not discovery yet');
-  assert(F.visible(approach.expedition.field,F.FOX));
+  assert.equal(approach.expedition.field.fox,false);
   const revealed=walk(approach,F.FOX);
-  assert.equal(revealed.expedition.stage,'path','harmless fox must not trigger combat');
-  assert.equal(revealed.expedition.field.fox,true,'fox flees once');
-  assert.match(revealed.expedition.log[0],/白い狐が飛び出した/);
-  assert.equal(revealed.expedition.field.foxCache,false);
+  assert.equal(revealed.expedition.stage,'path','fox never forces combat');
+  assert.equal(revealed.expedition.field.fox,true);
   const snap=E.parse(E.serialize(revealed));
-  assert.equal(snap.expedition.field.pos,F.FOX);
-  assert.equal(snap.expedition.field.fox,true);
-  const prize=walk(snap,F.FOX_NEST);
-  assert.equal(prize.expedition.stage,'path');
-  assert.equal(prize.expedition.field.foxCache,true);
-  assert.match(prize.expedition.log[0],/革袋を発見/);
+  const offered=walk(snap,F.FOX_NEST);
+  assert.match(offered.expedition.log[0],/革袋を発見/);
+  assert.equal(offered.expedition.field.foxCache,false,'arrival grants nothing');
+  assert.equal(offered.expedition.scrap,0);
+  assert.equal(offered.expedition.potions,2);
+  const herb=E.act(offered,'forest-fox-herb');
+  assert.equal(herb.expedition.potions,3);
+  assert.equal(herb.expedition.scrap,0);
+  assert.equal(herb.expedition.field.foxCache,true);
+  assert.equal(E.act(herb,'forest-fox-scrap'),herb,'choices are exclusive');
+  const prize=E.act(offered,'forest-fox-scrap');
+  assert.equal(prize.expedition.hp,offered.expedition.hp-2);
   assert.equal(prize.expedition.scrap,3);
-  assert.equal(prize.expedition.potions,3);
+  assert.equal(prize.expedition.potions,2);
+  assert.equal(prize.scrap,0,'unreturned iron is not banked');
+  assert.equal(E.act(prize,'forest-fox-herb'),prize);
   const revisited=walk(E.parse(E.serialize(prize)),5,0);
-  assert.equal(revisited.expedition.scrap,3,'fox pouch is not farmable');
-  assert.equal(revisited.expedition.potions,3,'the herb is not farmable');
+  assert.equal(revisited.expedition.scrap,3,'pouch is not farmable after reload');
+  assert.equal(revisited.expedition.potions,2);
   const returned=E.act(revisited,'return');
-  assert.equal(returned.scrap,3,'found salvage can be banked on alive return');
+  assert.equal(returned.scrap,3,'safe return banks only chosen iron');
   assert.equal(returned.expedition,null);
 });
 
-test('fox reward respects bag and herb caps and does not leak into other expeditions',()=>{
+test('fox pouch choices respect inventory and survival limits',()=>{
   let s=walk(wood(),15,10,5);
   s.expedition.scrap=999;
   s.expedition.potions=3;
-  const found=walk(s,0);
-  assert.equal(found.expedition.scrap,1000);
-  assert.equal(found.expedition.potions,3);
-  assert.match(found.expedition.log[0],/鉄片 \+1、薬草 \+0/);
-  assert.equal(found.expedition.field.foxCache,true);
+  const offered=walk(s,0);
+  assert.equal(E.act(offered,'forest-fox-herb'),offered,'full herbs cannot be collected');
+  const lastSlot=E.act(offered,'forest-fox-scrap');
+  assert.equal(lastSlot.expedition.scrap,1000,'one remaining slot takes only one iron');
+  assert.equal(lastSlot.expedition.hp,offered.expedition.hp-2,'the choice still costs HP');
+  assert.equal(lastSlot.expedition.field.foxCache,true,'one-time pouch is consumed');
+  const full={...offered,expedition:{...offered.expedition,scrap:1000}};
+  assert.equal(E.act(full,'forest-fox-scrap'),full,'full iron bag cannot overflow or consume the pouch');
+  const nearCap={...offered,expedition:{...offered.expedition,scrap:997}};
+  const iron=E.act(nearCap,'forest-fox-scrap');
+  assert.equal(iron.expedition.scrap,1000);
+  assert.equal(iron.expedition.field.foxCache,true);
+  const weak={...offered,expedition:{...offered.expedition,scrap:0,hp:2,potions:2}};
+  assert.equal(E.act(weak,'forest-fox-scrap'),weak,'no lethal forced salvage');
+  assert.equal(E.act(weak,'forest-fox-herb').expedition.potions,3,'safe alternative remains');
   const tower=E.start(Object.assign(E.initial(),{mode:'demo',unlocked:['wood','tower']}),'tower');
-  assert.equal(tower.expedition.field,undefined,'forest discovery stays local');
+  assert.equal(tower.expedition.field,undefined,'fox discovery stays local');
 });
 
 test('legacy forest saves without new fields remain accepted',()=>{

@@ -65,18 +65,21 @@
     const cells=Array.from({length:F.COUNT},(_,i)=>{
       const kind=F.landmark(i), seen=F.visible(field,i), near=F.adjacent(field.pos,i);
       const [col,row]=F.coords(i);
-      const here=i===field.pos, known=seen&&!here, passable=near&&kind!=='wall';
+      const here=i===field.pos, passable=F.canMove(field,i);
+      // Do not reveal a hidden entrance on the map before a deliberate
+      // investigation. The chest-side rustle is investigated in fieldDecision.
       // Navigation marks only ordinary, currently traversable adjacent land.
       // Secret vines are intentionally never marked, even after discovery.
       // A live wolf den is a combat choice, never a safe-path waypoint.
-      const guided=seen&&kind!=='secret'&&!(kind==='den'&&!field.wolf)&&F.canMove(field,i);
+      const guided=seen&&kind!=='secret'&&!(kind==='den'&&!field.wolf)&&passable;
+      // An undefeated wolf den is a deliberate combat decision, not a walking waypoint.
+      const wolfThreat=kind==='den'&&!field.wolf&&seen&&passable;
       const used=(kind==='cache'&&field.cache)||(kind==='tracks'&&field.tracks)||(kind==='treasure'&&field.treasure)||(kind==='den'&&field.wolf)||(kind==='shrine'&&field.shrine)||(kind==='secret'&&field.secret)||(kind==='glade'&&field.glade)||(kind==='fox'&&field.fox)||(kind==='fox-nest'&&field.foxCache);
       const icon=here?'<span class="field-hero" aria-hidden="true"><i></i></span>'
         : seen?(used?'✓':icons[kind]):'';
-      const classes=['field-cell',seen?'revealed':'veiled',kind,here?'here':'',passable?'can-step':'',guided?'walk-nav':'',used?'spent':''].filter(Boolean).join(' ');
-      const inspectVines=kind==='secret'&&near&&!field.secret;
-      const label=here?'旅人の現在地':inspectVines?'揺れるツタ':seen?names[kind]:'まだ見えない土地';
-      if(passable)return `<button type="button" class="${classes}" style="grid-column:${col+1};grid-row:${row+1}" data-action="field-step" data-value="${i}" aria-label="${label}${kind==='secret'&&!field.secret?'を調べる':'へ一歩進む'}">${icon}</button>`;
+      const classes=['field-cell',seen?'revealed':'veiled',kind,here?'here':'',passable?'can-step':'',guided?'walk-nav':'',wolfThreat?'wolf-threat':'',used?'spent':''].filter(Boolean).join(' ');
+      const label=here?'旅人の現在地':seen?names[kind]:'まだ見えない土地';
+      if(passable)return `<button type="button" class="${classes}" style="grid-column:${col+1};grid-row:${row+1}" data-action="field-step" data-value="${i}" aria-label="${label}${wolfThreat?'（戦闘になる）へ進む':'へ一歩進む'}">${icon}</button>`;
       return `<span class="${classes}" style="grid-column:${col+1};grid-row:${row+1}" aria-label="${label}">${icon}</span>`;
     }).join('');
     return `<section class="forest-field" data-field-pos="${field.pos}" data-field-seen="${field.seen}" data-field-cache="${field.cache}" data-field-tracks="${field.tracks}" data-field-treasure="${Boolean(field.treasure)}" data-field-wolf="${Boolean(field.wolf)}" data-field-secret="${Boolean(field.secret)}" data-field-shrine="${Boolean(field.shrine)}" data-field-glade="${Boolean(field.glade)}" data-field-fox="${Boolean(field.fox)}" data-field-fox-cache="${Boolean(field.foxCache)}" data-wolf-state="${wolfStatus}" aria-label="探索できる森のフィールド">
@@ -242,18 +245,28 @@
   function fieldDecision(x){
     const wolfStatus=window.CrownlessField?.wolfAwareness(x.field);
     const skillPending=x.field.tracks&&!state.characters[0]?.skills?.trailReading;
-    const event=x.field.wolf?'狼を倒した！ 同じ森を探索できる。残る宝箱を探してもいい。':wolfStatus==='alert'?'狼の視線がこちらを追っている。巣穴へ踏み込んで戦うか、横道へ逃げるか。':x.field.pos===20?'森の入り口。どこへ踏み込む？':x.field.tracksRisk?'棘の奥で狼牙を拾った。まだ背嚢の中だ。生還して確保するか、狼の気配がする奥へ進むか。':x.field.cache&&x.field.tracks?'素材と足跡を見つけた。奥に進むか、生還するか。':x.field.cache?'傷つきながら鉄片を拾った。持ち帰るか先へ進むか。':x.field.tracks?'獣の足跡を読んだ。危険な巣穴を避ける道を探せ。':'足元の霧が晴れた。知らない道が現れた。';
+    const event=x.field.wolf?'狼を倒した！ 同じ森を探索できる。残る宝箱を探してもいい。':wolfStatus==='alert'?'狼の視線がこちらを追っている。巣穴へ踏み込んで戦うか、横道へ逃げるか。':x.field.pos===20?'森の入り口。どこへ踏み込む？':x.field.tracksRisk?'棘の奥で狼牙を拾った。まだ背嚢の中だ。生還して確保するか、狼の気配がする奥へ進むか。':x.field.cache&&x.field.tracks?'素材と足跡を見つけた。奥に進むか、生還するか。':x.field.cache?'倒木から鉄片を拾った。持ち帰るか先へ進むか。':x.field.tracks?'獣の足跡を読んだ。危険な巣穴を避ける道を探せ。':'足元の霧が晴れた。知らない道が現れた。';
     return `<div class="field-decision"><div class="field-status">${vitals(x)}<div class="path-risk" data-forest-bag="true"><span>背嚢の戦利品</span><strong>${x.materials?.wolfFang>0?'狼牙 '+x.materials.wolfFang+' · ':''}鉄片 ${x.scrap}</strong><small>生還で確定 · 倒れれば失う</small></div></div>
       ${skillPending?'<p class="skill-learning-hint" role="status">⌁ 新しい探索技術《獣道読み》の手掛かりを得た。<strong>無事に生還すると習得！</strong></p>':''}
       <p class="field-moment${trailSkillResult(x)?' skill-result':''}" role="status">${trailSkillResult(x)?trailResultLabel:''}${esc(x.log[0]||event)}</p>
-      <div class="field-choices">${x.field.pos===window.CrownlessField.TRACKS && x.field.tracks && !x.field.lanternClue && !x.field.tracksRisk
+      <div class="field-choices">${x.field.pos===window.CrownlessField.CACHE && !x.field.cache
+        ? button('forest-cache-skim','手前の鉄片だけ拾う',x.scrap>=1000?'背嚢が満杯 · 生還して空きを作ろう':'体力消費なし · 鉄片 +1（奥は諦める）',{class:'primary',disabled:x.scrap>=1000})+
+          button('forest-cache-search','棘を越えて奥を探る',x.hp<=3?'体力不足 · 手前の鉄片なら拾える':x.scrap>=1000?'背嚢が満杯 · 生還して空きを作ろう':x.scrap>=999?'空きは1個 · 手前なら無傷で拾える':'体力 −3 · 鉄片 +'+Math.min(4,1000-x.scrap)+'（危険）',{class:'secondary',disabled:x.hp<=3||x.scrap>=999}) : ''}
+      ${x.field.pos===window.CrownlessField.GLADE && !x.field.glade
+        ? button('forest-glade-examine','石環の苔をめくる',x.scrap>=1000?'背嚢が満杯 · 生還して空きを作ろう':'古い鉄片を調べる · 生還で確定',{class:'primary',disabled:x.scrap>=1000}) : ''}
+      ${x.field.pos===window.CrownlessField.FOX_NEST && x.field.fox && !x.field.foxCache
+        ? button('forest-fox-herb','革袋の薬草を取る',x.potions>=3?'薬草は3個で満杯 · 鉄片か生還を選ぶ':'無傷 · 薬草 +1（次の戦闘用） · 鉄片は諦める',{class:'primary',disabled:x.potions>=3})+
+          button('forest-fox-scrap','棘の奥の鉄片を取る',x.hp<=2?'体力不足 · 薬草を取るか生還':x.scrap>=1000?'背嚢が満杯 · 薬草か生還を選ぶ':'体力 −2 · 鉄片 +'+Math.min(3,1000-x.scrap)+'（鍛冶用） · 薬草は諦める',{class:'secondary',disabled:x.hp<=2||x.scrap>=1000}) : ''}
+      ${x.field.pos===window.CrownlessField.TRACKS && x.field.tracks && !x.field.lanternClue && !x.field.tracksRisk
         ? '<div class="forest-tracks-fork" role="group" aria-label="獣の足跡の分かれ道"><p>茂みの奥に獣骨の気配。棘を越えれば何か見つかるかもしれない。斥候の灯があれば安全に別の痕跡を調べられる。どちらも生還まで未確定。</p>'+
-          (state.ownedTools?.includes(E.SCOUT_LANTERN.id) ? button('lantern-examine','斥候の灯で霧を照らす','体力消費なし · 手掛かりを探す',{class:'primary'}) : '')+
-          button('forest-tracks-risk','棘の茂みへ踏み込む','体力 −4 · 獣骨を調べる（危険）',{class:'secondary',disabled:x.hp<=4||x.materials.wolfFang>=1000000})+'</div>' : ''}
+          (state.ownedTools?.includes(E.SCOUT_LANTERN.id) ? button('lantern-examine','斥候の灯で霧を照らす',x.scrap>=1000?'背嚢が満杯 · 生還して空きを作ろう':'体力消費なし · 手掛かりを探す',{class:'primary',disabled:x.scrap>=1000}) : '')+
+          button('forest-tracks-risk','棘の茂みへ踏み込む',x.hp<=4?'体力不足 · 薬草で回復するか生還':'体力 −4 · 獣骨を調べる（危険）',{class:'secondary',disabled:x.hp<=4||x.materials.wolfFang>=1000000})+'</div>' : ''}
       ${x.field.lanternClue ? '<p class="scout-lantern-clue" role="status">✦ 灯りが映した痕跡：倒木の近くで霧が揺らいでいる。周囲を歩いて調べよう。</p>' : ''}
+      ${x.field.pos===window.CrownlessField.TREASURE&&!x.field.secret
+        ? button('field-step','宝箱の背後を調べる','ツタの音を頼りに岩陰を探す',{class:'primary',value:String(window.CrownlessField.SECRET)}) : ''}
       ${trailSkillButton(x)}
       ${x.foundDesign==='fang_moon' ? '<p class="notice" role="status">✦ 月影の短剣の設計図を背嚢に入れた。生還するまで失う可能性がある。</p>' : ''}
-      ${button('return',x.materials?.wolfFang>0?'狼牙を持って生還':x.scrap>0?'鉄片を持って生還':'ここで生還する','拾った素材を確定する',{class:'secondary'})}
+      ${button('return',x.materials?.wolfFang>0&&x.scrap>0?'狼牙と鉄片を持って生還':x.materials?.wolfFang>0?'狼牙を持って生還':x.scrap>0?'鉄片を持って生還':'ここで生還する','拾った素材を確定する',{class:'secondary'})}
       ${button('heal',`薬草 ${x.potions} · 体力 +12`,'',{class:'text-button',disabled:x.potions===0||x.hp===E.maxHp(state)})}</div>
     </div>`;
   }
@@ -910,6 +923,11 @@
       }
     }
     else if (action === 'field-step') { state=E.act(state,'field-step:'+value); }
+    else if (action === 'forest-cache-search') { state=E.act(state,'forest-cache-search'); }
+    else if (action === 'forest-cache-skim') { state=E.act(state,'forest-cache-skim'); }
+    else if (action === 'forest-glade-examine') { state=E.act(state,'forest-glade-examine'); }
+    else if (action === 'forest-fox-herb') { state=E.act(state,'forest-fox-herb'); }
+    else if (action === 'forest-fox-scrap') { state=E.act(state,'forest-fox-scrap'); }
     else if (action === 'lantern-examine') { state=E.act(state,'lantern-examine'); }
     else if (action === 'forest-tracks-risk') { state=E.act(state,'forest-tracks-risk'); }
     else if (action === 'tower-step') { state=E.act(state,'tower-step:'+value); }

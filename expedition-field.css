@@ -71,6 +71,13 @@
   animation:field-step-breathe 2.3s ease-in-out infinite;
   touch-action:manipulation;
 }
+/* Hidden vines are tappable to investigate but are not a walkable waypoint. */
+#game > .field-layout button.field-cell.inspect-vines {
+  cursor:pointer;touch-action:manipulation;
+}
+#game > .field-layout button.field-cell.inspect-vines:focus-visible {
+  outline:3px solid #fff2b4;outline-offset:1px;z-index:5;
+}
 #game > .field-layout button.field-cell.can-step:focus-visible {
   outline:3px solid #fff2b4;outline-offset:1px;z-index:5;
 }
@@ -236,6 +243,19 @@
   box-shadow:0 0 12px #efda9757,inset 0 0 9px #f2dfaf2b;
   pointer-events:none;
   z-index:1;
+}
+/* A visible wolf den is an optional fight, never an ordinary walking waypoint.
+   Mark only its currently reachable cell; fog and remote dens stay unmarked. */
+#game > .field-layout .forest-field.world-painted button.field-cell.wolf-threat::after {
+  content:'!';
+  position:absolute;left:50%;top:73%;
+  transform:translate(-50%,-50%);
+  width:26px;height:26px;display:grid;place-items:center;
+  border:2px solid #f0bd83;border-radius:50%;
+  background:#542d2be8;color:#ffe2b0;
+  font:700 16px/1 system-ui,sans-serif;
+  box-shadow:0 0 12px #c86b5488;
+  pointer-events:none;z-index:1;
 }
 /* An undefeated guardian is a deliberate combat risk, not a safe waypoint.
    The danger mark stays inside the full-size tap area on small phones. */

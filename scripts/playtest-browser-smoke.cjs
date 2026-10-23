@@ -173,6 +173,102 @@ async function main() {
         assert.equal(await world.count(),1,'forest has an actual playable local field');
         assert.equal(await page.locator('.forest-field.world-painted canvas.forest-world-canvas').count(),1,
           'the active world is actually painted using a continuous canvas, not colored tile controls');
+
+        // Near-capacity fox salvage must remain a real, reachable phone choice.
+        // Restore the untouched starting expedition after this isolated check.
+        const forestBaseline=await page.evaluate(()=>
+          localStorage.getItem('crownless-expedition-v1-demo'));
+        assert(forestBaseline,'starting forest expedition must have a current save');
+        for(const id of [15,10,5,0]){
+          await page.locator('.forest-field [data-action="field-step"][data-value="'+id+'"]').click();
+        }
+        await page.evaluate(()=>{
+          const key='crownless-expedition-v1-demo';
+          const saved=JSON.parse(localStorage.getItem(key));
+          saved.expedition.scrap=999;
+          saved.expedition.potions=3;
+          localStorage.setItem(key,JSON.stringify(saved));
+        });
+        await page.reload();
+        const foxIron=page.locator('.field-choices [data-action="forest-fox-scrap"]');
+        assert.equal(await foxIron.isEnabled(),true,'one free slot still allows fox salvage');
+        assert.match(await foxIron.innerText(),/鉄片 \+1/,'fox risk must show actual iron gained');
+        const foxBounds=await foxIron.boundingBox();
+        assert(foxBounds&&foxBounds.y>=0&&foxBounds.y+foxBounds.height<=height+2,
+          'fox partial-salvage action stays reachable at '+width+'px');
+        await page.screenshot({path:path.join(output,'forest-fox-partial-'+width+'.png')});
+        await foxIron.click();
+        const foxSaved=await page.evaluate(()=>
+          JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+        assert.equal(foxSaved.expedition.scrap,1000,'one remaining iron slot is filled');
+        assert.equal(foxSaved.expedition.field.foxCache,true,'pouch is consumed once');
+        assert.equal(foxSaved.scrap,0,'fox iron remains provisional before return');
+        await page.reload();
+        assert.equal(await page.locator('.forest-field[data-field-fox-cache="true"]').count(),1,
+          'fox choice survives current save/reload');
+        await page.locator('.field-choices [data-action="return"]').click();
+        const foxBanked=await page.evaluate(()=>
+          JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+        assert.equal(foxBanked.scrap,1000,'fox salvage banks on safe return');
+        await page.evaluate(raw=>
+          localStorage.setItem('crownless-expedition-v1-demo',raw),forestBaseline);
+        await page.reload();
+        assert.equal(await page.locator('.forest-field[data-field-pos="20"]').count(),1,
+          'original expedition is restored for the rest of the phone smoke');
+
+        // The thorn cache's near-full risk must be a real phone decision.
+        // A risk that grants no more than the safe option must be unavailable.
+        for(const id of [21,16]){
+          await page.locator('.forest-field [data-action="field-step"][data-value="'+id+'"]').click();
+        }
+        await page.evaluate(()=>{
+          const key='crownless-expedition-v1-demo';
+          const saved=JSON.parse(localStorage.getItem(key));
+          saved.expedition.scrap=998;
+          localStorage.setItem(key,JSON.stringify(saved));
+        });
+        await page.reload();
+        const cacheRisk=page.locator('.field-choices [data-action="forest-cache-search"]');
+        assert.equal(await cacheRisk.isEnabled(),true,'two slots keep a worthwhile thorn risk');
+        assert.match(await cacheRisk.innerText(),/鉄片 \+2/,'phone choice shows actual capped reward');
+        const cacheBounds=await cacheRisk.boundingBox();
+        assert(cacheBounds&&cacheBounds.y>=0&&cacheBounds.y+cacheBounds.height<=height+2,
+          'partial cache choice stays reachable at '+width+'px');
+        await page.screenshot({path:path.join(output,'forest-cache-partial-'+width+'.png')});
+        await cacheRisk.click();
+        const cacheSaved=await page.evaluate(()=>
+          JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+        assert.equal(cacheSaved.expedition.scrap,1000);
+        assert.equal(cacheSaved.expedition.field.cache,true);
+        assert.equal(cacheSaved.scrap,0,'partial cache iron is still provisional');
+        await page.reload();
+        await page.locator('.field-choices [data-action="return"]').click();
+        const cacheBanked=await page.evaluate(()=>
+          JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+        assert.equal(cacheBanked.scrap,1000,'partial cache iron banks only on return');
+        await page.evaluate(raw=>
+          localStorage.setItem('crownless-expedition-v1-demo',raw),forestBaseline);
+        await page.reload();
+        for(const id of [21,16]){
+          await page.locator('.forest-field [data-action="field-step"][data-value="'+id+'"]').click();
+        }
+        await page.evaluate(()=>{
+          const key='crownless-expedition-v1-demo';
+          const saved=JSON.parse(localStorage.getItem(key));
+          saved.expedition.scrap=999;
+          localStorage.setItem(key,JSON.stringify(saved));
+        });
+        await page.reload();
+        assert.equal(await page.locator('.field-choices [data-action="forest-cache-search"]').isDisabled(),
+          true,'one slot disables pointless HP risk');
+        assert.equal(await page.locator('.field-choices [data-action="forest-cache-skim"]').isEnabled(),
+          true,'one slot still permits safe iron');
+        await page.evaluate(raw=>
+          localStorage.setItem('crownless-expedition-v1-demo',raw),forestBaseline);
+        await page.reload();
+        assert.equal(await page.locator('.forest-field[data-field-pos="20"]').count(),1,
+          'phone cache check restores the original expedition');
+
         const canvasProof=await page.evaluate(()=>{
           const canvas=document.querySelector('.forest-field.world-painted canvas.forest-world-canvas');
           const ctx=canvas?.getContext('2d');
@@ -253,7 +349,12 @@ async function main() {
         const knownAfterStep=await page.locator('.forest-field .field-cell.revealed').count();
         assert(knownAfterStep>3,'moving reveals genuinely new local ground');
         await page.screenshot({path:path.join(output,'forest-fog-revealed-'+width+'.png')});
-        for(const pos of [22,23,18,13]){
+        await page.locator('.forest-field [data-action="field-step"][data-value="22"]').click();
+        assert.match(await page.locator('.field-moment').innerText(),/金属の軋み/,
+          '360/390px first approach must hint at a discovery before opening the chest');
+        assert.equal(await page.locator('.forest-field[data-field-treasure="false"][data-field-secret="false"]').count(),1,
+          'a sound cue must not loot the chest or reveal the secret passage');
+        for(const pos of [23,18,13]){
           await page.locator('.forest-field [data-action="field-step"][data-value="'+pos+'"]').click();
         }
         const wolfGate=page.locator('.forest-field [data-action="field-step"][data-value="8"]');
@@ -342,10 +443,34 @@ async function main() {
         assert.equal(chest.expedition.field.treasure,true,'hidden real treasure can be discovered after the wolf fight');
         assert(chest.expedition.scrap>=8,'chest contents and wolf rewards stay in the pack');
         assert(chest.expedition.materials.wolfFang>=2,'chest and wolf yield smith-craftable materials');
+        assert.match(await page.locator('.field-choices [data-action="return"]').innerText(),
+          /狼牙と鉄片を持って生還/,
+          'after wolf and chest, 360/390px return action must name both carried materials');
         await page.screenshot({path:path.join(output,'forest-treasure-found-'+width+'.png')});
         await page.reload();
         assert.equal(await page.locator('.forest-field[data-field-treasure="true"][data-field-wolf="true"]').count(),1,
           'both chest and defeated wolf persist on re-entry');
+        assert.equal(await page.locator('.forest-field button[data-action="field-step"][data-value="12"]').count(),0,
+          'unknown secret entrance must not reveal an exact map tile at '+width+'px');
+        const inspectVines=page.locator('.field-choices [data-action="field-step"][data-value="12"]');
+        assert.equal(await inspectVines.count(),1,'chest rustle offers a deliberate investigation');
+        const inspectBounds=await inspectVines.boundingBox();
+        assert(inspectBounds&&inspectBounds.y>=0&&inspectBounds.y+inspectBounds.height<=height+2,
+          'investigation remains touch-reachable on '+width+'px');
+        await inspectVines.click();
+        const openedVines=await page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+        assert.equal(openedVines.expedition.field.secret,true,'investigation opens the secret');
+        assert.equal(openedVines.expedition.field.pos,17,'investigation does not teleport');
+        assert.equal(await page.locator('.forest-field button[data-action="field-step"][data-value="12"]').count(),1,
+          'the discovered entrance is now a walkable cell');
+        assert.equal(await page.locator('.forest-field .field-cell.secret.walk-nav').count(),0,
+          'even discovered secrets are not ordinary walking guidance');
+        await page.locator('.forest-field button[data-action="field-step"][data-value="12"]').click();
+        await page.reload();
+        const enteredVines=await page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+        assert.equal(enteredVines.expedition.field.pos,12,'discovered passage survives reload');
+        assert.equal(enteredVines.expedition.field.secret,true,'opened route survives reload');
+        await page.locator('.forest-field [data-action="field-step"][data-value="17"]').click();
         // The exit portal finishes the single scene with safe loot banking.
         for(const id of [18,13,8,9,4]){
           await page.locator('.forest-field [data-action="field-step"][data-value="'+id+'"]').click();
@@ -929,6 +1054,20 @@ async function main() {
         assert((await page.locator('.field-cell.veiled').count())<fog,
           'the fog clears as the traveler chooses a new step');
         await page.locator('.field-cell[data-value="16"]').click();
+        const offered=await page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+        assert.equal(offered.expedition.field.cache,false,'entering the cache does not collect');
+        assert.equal(offered.expedition.hp,30,'no forced damage on movement');
+        assert.equal(offered.expedition.scrap,0,'loot requires deliberate search');
+        const skim=page.locator('.field-choices [data-action="forest-cache-skim"]');
+        assert.equal(await skim.count(),1,'safe cache alternative is visible on phone');
+        const skimBounds=await skim.boundingBox();
+        assert(skimBounds && skimBounds.width>=44 && skimBounds.height>=44,
+          'safe salvage is thumb reachable on '+width+'px');
+        const search=page.locator('.field-choices [data-action="forest-cache-search"]');
+        assert.equal(await search.count(),1,'optional cache risk is visible on phone');
+        const bounds=await search.boundingBox();
+        assert(bounds && bounds.width>=44 && bounds.height>=44,'risk choice is thumb reachable');
+        await search.click();
         const found=await page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
         assert.equal(found.expedition.field.cache,true);
         assert.equal(found.expedition.hp,27);
@@ -966,6 +1105,8 @@ async function main() {
         assert.equal(await page.locator('.forest-field[data-wolf-state="hidden"]').count(),1,
           'wolf must not appear through an unexplored fog-of-war region');
         assert.equal(await page.locator('.forest-wolf-warning').count(),0);
+        assert.equal(await page.locator('.forest-field .wolf-threat').count(),0,
+          'the wolf danger marker must not leak through undiscovered fog');
         for(const id of [21,22,23,18,13]){
           await page.locator('.forest-field [data-action="field-step"][data-value="'+id+'"]').click();
         }
@@ -974,6 +1115,17 @@ async function main() {
         const warning=page.locator('.forest-wolf-warning');
         assert.match(await warning.innerText(),/狼に気づかれた/);
         assert.equal(await warning.isVisible(),true,'not just a hidden accessibility state');
+        const wolfTarget=page.locator('.forest-field button.field-cell.den.wolf-threat');
+        assert.equal(await wolfTarget.count(),1,'only the adjacent undefeated den gets a danger choice');
+        assert.equal(await wolfTarget.evaluate(el=>el.classList.contains('walk-nav')),false,
+          'combat risk must never be painted as an ordinary walking waypoint');
+        assert.match(await wolfTarget.getAttribute('aria-label'),/戦闘になる/);
+        const threatStyle=await wolfTarget.evaluate(el=>{
+          const mark=getComputedStyle(el,'::after'),box=el.getBoundingClientRect();
+          return {content:mark.content,width:parseFloat(mark.width),height:box.height};
+        });
+        assert(threatStyle.content.includes('!')&&threatStyle.width>=20&&threatStyle.height>=44,
+          'the red risk marker must be visible and its target tappable on '+width+'px');
         assert.equal(await page.locator('.forest-field-header small').count(),0,
           'when the wolf appears, redundant header copy must not sit beneath alert banner');
         const warningState=await warning.evaluate(el=>{
@@ -1048,31 +1200,45 @@ async function main() {
         await departClassicForest(page);
         assert.equal(await page.locator('.forest-field[data-field-secret="false"][data-field-shrine="false"]').count(),1);
         assert.equal(await page.locator('.field-cell[data-value="12"]').count(),0,'hidden path must not be a reachable teleport from the entrance');
-        await step(21);await step(16); // Collecting old iron shards costs three HP.
+        await step(21);await step(16); // Arriving at the cache is safe.
+        assert.match(await page.locator('.field-moment').innerText(),/乾いた葉を擦るような音/,
+          'the cache approach offers a curiosity cue on '+width+'px without a waypoint');
+        assert.equal(await page.locator('.forest-field[data-field-secret="false"]').count(),1);
+        await page.locator('.field-choices [data-action="forest-cache-search"]').click();
+        // Only the deliberate search wounds the player and awards unbanked iron.
         await step(17); // The existing real treasure chest.
+        assert.match(await page.locator('.field-moment').innerText(),/宝箱の背後でツタが擦れる音/,
+          'the discovered treasure leads to deliberate vine investigation');
         const found=await saved();
         assert.equal(found.expedition.scrap,10);
         assert.equal(found.expedition.materials.wolfFang,1);
         assert.equal(found.expedition.hp,27);
         assert.equal(found.expedition.field.secret,false);
         assert.equal(found.expedition.field.shrine,false);
-        const vines=page.locator('.forest-field button.field-cell.secret[data-value="12"]');
-        assert.equal(await vines.count(),1,'tangled vines are a real adjacent tap target');
-        assert.equal(await vines.evaluate(el=>getComputedStyle(el).backgroundImage),'none',
-          'the secret-vine destination must not be given away by a glowing navigation circle');
-        assert.equal(await vines.evaluate(el=>el.classList.contains('walk-nav')),false,
-          'closed secret vines have no walking waypoint even though they can be inspected');
+        // The undiscovered entrance must NOT be a map target. The audible
+        // clue offers a separate, explicit investigation action instead.
+        assert.equal(await page.locator('.forest-field button.field-cell.secret').count(),0,
+          'unopened secret must not leak as a map tap target');
+        assert.equal(await page.locator('.forest-field .field-cell.secret.veiled').count(),1,
+          'the hidden passage remains covered by fog until investigated');
+        assert.equal(await page.locator('.forest-field .field-cell.secret.walk-nav').count(),0,
+          'closed secret vines have no walking waypoint');
+        assert.equal(await page.locator('.forest-field button.field-cell.veiled').count(),0,
+          'unexplored fog is not a walking tap target');
         assert((await page.locator('.forest-field .walk-nav').count())>=2,
           'regular walkable neighbors still have navigation near the hidden passage');
-        assert.match(await vines.getAttribute('aria-label'),/揺れるツタを調べる/);
-        const tap=await vines.evaluate(el=>{
+        const inspect=page.locator('.field-choices button[data-action="field-step"][data-value="12"]');
+        assert.equal(await inspect.count(),1,
+          'the sound clue exposes exactly one deliberate investigation action');
+        assert.match(await inspect.innerText(),/宝箱の背後を調べる/);
+        const tap=await inspect.evaluate(el=>{
           const b=el.getBoundingClientRect();
           const hit=document.elementFromPoint(b.left+b.width/2,b.top+b.height/2);
           return {height:b.height,hit:hit===el||el.contains(hit)};
         });
-        assert(tap.hit&&tap.height>=44,'vines must be physically tappable on small phones');
+        assert(tap.hit&&tap.height>=44,'investigation must be physically tappable on small phones');
         await page.screenshot({path:path.join(output,'forest-secret-vines-'+width+'.png')});
-        await vines.click(); // First touch uncovers the real barrier but does NOT teleport through it.
+        await inspect.click(); // First touch opens the barrier without moving.
         assert.equal(await page.locator('.forest-field[data-field-secret="true"][data-field-pos="17"]').count(),1);
         assert.equal(await page.locator('.forest-field .field-cell.secret.walk-nav').count(),0,
           'the shortcut stays unsignposted even after its collision barrier opens');
@@ -1146,9 +1312,18 @@ async function main() {
         await step(41);await step(40); // the hidden stone-ring glade is inset from the camera edge
         const found=await page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
         assert.equal(found.expedition.field.pos,40);
-        assert.equal(found.expedition.field.glade,true);
-        assert.equal(found.expedition.scrap,4);
+        assert.equal(found.expedition.field.glade,false,'arrival must reveal the ring, not collect iron');
+        assert.equal(found.expedition.scrap,0,'finding a ring cannot silently grant loot');
+        const ring=page.locator('.field-choices [data-action="forest-glade-examine"]');
+        assert.equal(await ring.count(),1,'discovery offers a deliberate investigation on phone');
+        const ringBounds=await ring.boundingBox();
+        assert(ringBounds&&ringBounds.width>=44&&ringBounds.height>=44,
+          'stone-ring investigation remains a usable touch target at '+width+'px');
         await page.screenshot({path:path.join(output,'forest-distant-glade-found-'+width+'.png')});
+        await ring.click();
+        const looted=await page.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+        assert.equal(looted.expedition.field.glade,true);
+        assert.equal(looted.expedition.scrap,4,'investigation, not arrival, awards provisional iron');
         await page.reload();
         assert.equal(await page.locator('.forest-field[data-field-glade="true"][data-field-pos="40"]').count(),1);
         await step(41);await step(40);
@@ -1193,13 +1368,29 @@ async function main() {
         assert.equal(await page.locator('.forest-field[data-field-fox="true"][data-field-fox-cache="false"]').count(),1,
           'fox already chased away stays gone across reload');
         await step(0);
+        const offered=await saved();
+        assert.equal(offered.expedition.stage,'path');
+        assert.equal(offered.expedition.field.foxCache,false,'pouch arrival does not auto-award loot');
+        assert.equal(offered.expedition.scrap,0);
+        assert.equal(offered.expedition.potions,2);
+        assert.match(await page.locator('.field-moment').innerText(),/革袋を発見/);
+        const herb=page.locator('.field-choices [data-action="forest-fox-herb"]');
+        const iron=page.locator('.field-choices [data-action="forest-fox-scrap"]');
+        assert.equal(await herb.count(),1);
+        assert.equal(await iron.count(),1);
+        for(const choice of [herb,iron]){
+          const box=await choice.boundingBox();
+          assert(box && box.width>=44 && box.height>=44,'fox pouch choice must be tappable on '+width+'px');
+        }
+        await page.screenshot({path:path.join(output,'forest-fox-pouch-'+width+'.png')});
+        await iron.click();
         const reward=await saved();
-        assert.equal(reward.expedition.stage,'path');
         assert.equal(reward.expedition.field.foxCache,true);
         assert.equal(reward.expedition.scrap,3);
-        assert.equal(reward.expedition.potions,3);
-        assert.match(await page.locator('.field-moment').innerText(),/革袋を発見/);
-        await page.screenshot({path:path.join(output,'forest-fox-pouch-'+width+'.png')});
+        assert.equal(reward.expedition.hp,28);
+        assert.equal(reward.expedition.potions,2);
+        assert.equal(await page.locator('.field-choices [data-action="forest-fox-herb"]').count(),0,
+          'one choice consumes the pouch');
         await step(5);await step(0);
         const again=await saved();
         assert.equal(again.expedition.scrap,3,'fox payout must be once per expedition');
@@ -1354,7 +1545,9 @@ async function main() {
         });
         assert(dangerMark.content.includes('!')&&dangerMark.width>=24&&dangerMark.height>=24,
           'the danger mark must actually render at phone size: '+JSON.stringify(dangerMark));
-        assert(dangerMark.left>=-1&&dangerMark.right<=width+1&&dangerMark.top>=-1&&
+        // Chromium can place the tall tile ~2 CSS px above the viewport after
+        // auto-scrolling; keep a small tolerance without hiding a clipped target.
+        assert(dangerMark.left>=-2&&dangerMark.right<=width+2&&dangerMark.top>=-3&&
           dangerMark.bottom<=(width===360?800:844)+2,
           'the guardian tap area must remain in the viewport: '+JSON.stringify(dangerMark));
         await page.screenshot({path:path.join(output,'tower-guardian-choice-'+width+'.png')});

@@ -572,12 +572,57 @@
     } else if (x.stage === 'cleared' && action === 'deeper' && x.depth < 3) {
       x.depth++; x.room = 0; x.stage = 'path'; x.log = [`さらに深く。${lootCue(x.place, x.depth)}`]; return n;
     } else if (x.stage === 'path') {
+      // The same cache offers mutually exclusive safe/unsafe salvage.
+      // Nothing is awarded on arrival, and both rewards stay in the bag
+      // until a genuine safe return. The existing cache flag prevents farming.
+      if((action==='forest-cache-search'||action==='forest-cache-skim') &&
+        x.place==='wood' && x.depth===1 && x.room===0 &&
+        x.field?.pos===F.CACHE && !x.field.cache){
+        const risky=action==='forest-cache-search';
+        const scrap=Math.min(risky?4:1,1000-x.scrap);
+        // One free slot makes the risky choice strictly worse than safe salvage.
+        if(scrap<=0||(risky&&(x.hp<=3||scrap<=1)))return s;
+        if(risky)x.hp-=3;
+        x.scrap+=scrap;
+        x.field.cache=true;
+        x.log=[risky
+          ? `倒木の棘をかき分け、鉄片 +${scrap} を拾った。体力 −3。生還するまで背嚢の中だ。`
+          : '棘に触れない手前の鉄片 +1 だけを拾った。無傷だが奥の鉄片は諦めた。生還までは背嚢の中だ。'];
+        return n;
+      }
+      // The far stone ring is a discovery, not an automatic material pickup.
+      // A full bag must not consume its one-time salvage opportunity.
+      if(action==='forest-glade-examine' && x.place==='wood' && x.depth===1 &&
+        x.room===0 && x.field?.pos===F.GLADE && !x.field.glade && x.scrap<1000){
+        const scrap=Math.min(4,1000-x.scrap);
+        x.scrap+=scrap;
+        x.field.glade=true;
+        x.log=[`石環の苔をめくると、古い鉄片 +${scrap} を発見。生還するまで背嚢の中だ。`];
+        return n;
+      }
+      // Following the fox reveals one pouch, not free loot. Choose a herb
+      // for the next encounter or thorn-covered iron to bank on safe return.
+      if((action==='forest-fox-herb'||action==='forest-fox-scrap') &&
+        x.place==='wood' && x.depth===1 && x.room===0 &&
+        x.field?.pos===F.FOX_NEST && x.field.fox && !x.field.foxCache){
+        const iron=action==='forest-fox-scrap';
+        if(iron ? (x.hp<=2||x.scrap>=1000) : x.potions>=3)return s;
+        const scrap=iron?Math.min(3,1000-x.scrap):0;
+        if(iron){x.hp-=2;x.scrap+=scrap;}
+        else x.potions++;
+        x.field.foxCache=true;
+        x.log=[iron
+          ? `狐が残した革袋の奥から鉄片 +${scrap} を拾った。棘で体力 −2。生還するまで背嚢の中だ。薬草は諦めた。`
+          : '狐が残した革袋から薬草 +1 を拾った。無傷だが鉄片は諦めた。'];
+        return n;
+      }
       // ADR 0013: the crafted lamp enables a deliberate, saved-in-expedition
       // investigation on an ordinary forest tile. Never uncover the secret,
       // bypass forest skills, or reveal any hidden tile from the tool alone.
       if(action==='lantern-examine' && x.place==='wood' && x.depth===1 &&
         x.room===0 && x.field?.pos===F.TRACKS && !x.field.lanternClue &&
-        !x.field.tracksRisk && n.ownedTools?.includes(SCOUT_LANTERN.id)){
+        !x.field.tracksRisk && x.scrap<1000 &&
+        n.ownedTools?.includes(SCOUT_LANTERN.id)){
         x.field.lanternClue=true;
         const scrap=Math.max(0,Math.min(2,1000-x.scrap));
         x.scrap+=scrap;
@@ -796,6 +841,7 @@
         const field=F.move(x.field,to);
         if (!field) return s;
         const wolfBefore=F.wolfAwareness(x.field);
+        const treasureSeenBefore=F.visible(x.field,F.TREASURE);
         x.field=field;
         let discovered=false;
         if(to === F.FOX && !field.fox){
@@ -804,17 +850,10 @@
           x.log=['茂みから白い狐が飛び出した！ 狼かと思ったが、狐は戦わずに奥の倒木へ駆けていく。'];
         } else if(to === F.FOX_NEST && field.fox && !field.foxCache){
           discovered=true;
-          field.foxCache=true;
-          const scrap=Math.min(3,1000-x.scrap);
-          const herb=x.potions<3?1:0;
-          x.scrap+=scrap;
-          x.potions+=herb;
-          x.log=[`狐が消えた倒木の根元に、古い旅人の革袋を発見。鉄片 +${scrap}、薬草 +${herb}。戦わずに得られた戦利品だ。`];
+          x.log=['狐が消えた倒木の根元に、古い旅人の革袋を発見。無傷で薬草を取るか、棘をかき分け鉄片を持ち帰るか。中身はどちらか一方だ。'];
         } else if(to === F.GLADE && !field.glade){
           discovered=true;
-          field.glade=true;
-          x.scrap=Math.min(1000,x.scrap+4);
-          x.log=['深い森の奥で、忘れられた石環を発見！ 苔の下から鉄片 +4。ここにも誰かが暮らしていた。'];
+          x.log=['深い森の奥で、忘れられた石環を発見！ 苔の下に金属の光が見える。調べて持ち帰るか、このまま進むか。'];
         } else if(to === F.SHRINE && !field.shrine){
           discovered=true;
           field.shrine=true;
@@ -824,26 +863,32 @@
           x.log=[`苔むした祠を発見。青白い加護に包まれた。体力 +${healed}、薬草 +${potion}。`];
         } else if (to === F.TREASURE && !field.treasure) {
           discovered=true;
-          field.treasure=true;
-          // A real find: enough scrap and one crafting material, never an
-          // instant equippable drop. At risk until the expedition ends alive.
-          if(x.scrap<=994 && x.materials.wolfFang<=998){
-            x.scrap+=6; x.materials.wolfFang+=1;
-            x.log=['古い宝箱を発見！ 鉄片 +6、狼牙 +1。持ち帰れば鍛冶師の素材になる。'];
-          } else x.log=['古い宝箱を開けた。背嚢がいっぱいでこれ以上は持てない。'];
+          // A chest must not discard both rewards just because one material
+          // is near its limit. Take what fits; leave it unopened if nothing fits.
+          // All rewards remain provisional until a genuine safe return.
+          const scrap=Math.min(6,1000-x.scrap);
+          const fang=Math.min(1,1000000-x.materials.wolfFang);
+          if(scrap>0||fang>0){
+            x.scrap+=scrap; x.materials.wolfFang+=fang;
+            field.treasure=true;
+            x.log=[`古い宝箱を発見！ 鉄片 +${scrap}、狼牙 +${fang}。持ち帰れば鍛冶師の素材になる。`];
+          } else x.log=['古い宝箱を発見したが、背嚢がいっぱいだ。中身を残して生還しよう。'];
+          // Hint at an investigation; keep the secret hidden until inspected.
+          x.log[0]+=' 宝箱の背後でツタが擦れる音がした。周囲を調べれば何か見つかるかもしれない。';
         } else if (to === F.CACHE && !field.cache) {
-          field.cache=true;
-          // The tree's torn roots are visible on approach. A small wound is
-          // the deliberate price for real loot, banked only if returned alive.
-          if(x.hp>3 && x.scrap<=996){
-            x.hp-=3; x.scrap+=4;
-            x.log=['倒木の根に埋もれた鉄片を発見。体力 −3、背嚢に鉄片 +4。生還で確定。'];
-          } else x.log=['倒木の根元には何かあるが、今は拾えない。'];
+          x.log=['倒木の根元に鉄片が光る。手前の欠片なら無傷で拾えるが、奥の塊には棘が絡む。どちらを持ち帰る？'];
+          // A nearby sound invites discovery without revealing a destination.
+          if(!field.treasure) x.log[0]+=' さらに奥で、乾いた葉を擦るような音がした。';
         } else if (to === F.TRACKS && !field.tracks) {
+          discovered=true; // Preserve earned trail-reading feedback when leaving wolf alert.
           field.tracks=true; x.focus=Math.max(3,x.focus);
           x.log=[n.characters[0].skills?.trailReading
             ? '獣の足取りが読めた。次の一撃に集中 +3。危険な巣穴を迂回する道も見える。'
             : '獣の足跡から道の読み方をつかんだ。次の一撃に集中 +3。無事に生還すると、新しい探索技術《獣道読み》を習得できる！'];
+        } else if(to === 22 && !field.treasure && !treasureSeenBefore){
+          // First approach to the unopened chest: an ambiguous sound invites
+          // a deliberate step, without revealing the hidden vine passage.
+          x.log=['霧の向こうから、かすかな金属の軋みが聞こえた。近くの茂みに何か埋もれているのかもしれない。進む道を選んで確かめよう。'];
         } else if(to === 10 && !field.fox){
           // Approach cue without announcing the fox or showing a quest marker.
           // It appears before the player chooses to investigate the bushes.
@@ -854,15 +899,22 @@
           x.log=['湿った土に細い爪跡が続いている。霧の奥で枝が折れた。足跡の先を自分で確かめよう。'];
         } else x.log=['霧が少し晴れた。まだ踏み込んでいない道が見えてくる。'];
         if(to === 22 && n.characters[0].skills?.trailReading && !n.designs.fang_moon && !x.foundDesign) {
-          x.log=['落ち葉に不自然な足跡が続いている。《獣道読み》を使えば、何が隠れているか調べられそうだ。'];
+          const trailHint='落ち葉に不自然な足跡が続いている。《獣道読み》を使えば、何が隠れているか調べられそうだ。';
+          // A learned skill must not erase the chest's first environmental cue.
+          x.log=[!field.treasure&&!treasureSeenBefore ? `${x.log[0]} ${trailHint}` : trailHint];
         }
         if (to !== F.DEN && to !== F.EXIT) {
           const wolfNow=F.wolfAwareness(field);
           // Finding a shrine or passage is its own discovery moment. Keep
           // that feedback visible even if a wolf simultaneously notices us.
           if(!discovered && wolfNow==='alert' && wolfBefore!=='alert') {
-            x.log=['茂みから狼が現れた！ こちらに気づいて唸っている。巣穴へ進めば戦闘、脇道へ戻れば避けられる。'];
-          } else if(wolfBefore==='alert' && wolfNow!=='alert') {
+            // Surface the actual unbanked stake when the optional wolf fight
+            // becomes reachable. A generic warning hides why retreat matters.
+            const carried=x.scrap>0||x.materials.wolfFang>0
+              ? ` 背嚢の狼牙 ${x.materials.wolfFang}・鉄片 ${x.scrap} は生還まで未確定。ここで倒れれば失う。`
+              : '';
+            x.log=['茂みから狼が現れた！ こちらに気づいて唸っている。巣穴へ進めば戦闘、脇道へ戻れば避けられる。'+carried];
+          } else if(!discovered && wolfBefore==='alert' && wolfNow!=='alert') {
             x.log=['狼の視線を振り切った。遠ざかる足音を背に、別の道を探せる。'];
           }
         }

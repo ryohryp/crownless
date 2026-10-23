@@ -7,6 +7,26 @@ const F=require('../src/expedition-field.js');
 const walk=(s,steps)=>steps.reduce((state,pos)=>E.act(state,'field-step:'+pos),s);
 const tracks=s=>walk(E.start(s,'wood'),[21,22,23,F.TRACKS]);
 
+test('earned trail reading preserves the unopened chest sound and keeps discovery voluntary',()=>{
+  const veteran={...E.initial(),mode:'demo'};
+  veteran.characters[0].skills={...veteran.characters[0].skills,trailReading:true};
+  const before=walk(E.start(veteran,'wood'),[21]);
+  assert.equal(F.visible(before.expedition.field,F.TREASURE),false);
+  const hinted=E.act(before,'field-step:22');
+  assert.match(hinted.expedition.log[0],/金属の軋み/,'chest clue is not overwritten by learned trail reading');
+  assert.match(hinted.expedition.log[0],/《獣道読み》/,'earned skill clue still appears');
+  assert.equal(hinted.expedition.field.treasure,false,'clues grant no treasure');
+  assert.equal(hinted.expedition.field.secret,false,'clues do not open hidden vines');
+  assert.equal(hinted.expedition.scrap,0,'clues do not grant provisional iron');
+  const resumed=E.parse(E.serialize(hinted));
+  assert.ok(resumed,'current expedition can be resumed after both clues');
+  assert.match(resumed.expedition.log[0],/金属の軋み/);
+  const discovered=E.act(resumed,'field-step:'+F.TREASURE);
+  assert.equal(discovered.expedition.field.treasure,true,'player still chooses to inspect the chest');
+  assert.equal(discovered.materials.wolfFang,0,'discovery does not bank materials');
+  assert.equal(E.act(discovered,'return').materials.wolfFang,1,'safe return banks discovered loot');
+});
+
 test('a nearby rustle invites discovery before the forest fork, without awarding loot',()=>{
   const start=E.start({...E.initial(),mode:'demo'},'wood');
   const far=walk(start,[21,22]);
@@ -68,6 +88,28 @@ test('lantern gives safe scrap alternative, not a secret shortcut',()=>{
   assert.equal(returned.scrap,before.scrap+2,'scrap banks only after safe return');
 });
 
+test('a full scrap bag cannot waste the one-time lantern clue for zero loot',()=>{
+  const before=tracks(lanternOwner());
+  const full={...before,expedition:{...before.expedition,scrap:1000}};
+  assert.equal(E.act(full,'lantern-examine'),full,'full bag must preserve the unused choice');
+  assert.equal(full.expedition.field.lanternClue,false);
+  const almost={...before,expedition:{...before.expedition,scrap:999}};
+  const taken=E.act(almost,'lantern-examine');
+  assert.equal(taken.expedition.scrap,1000,'partial capacity grants only what fits');
+  assert.equal(taken.expedition.field.lanternClue,true);
+  assert.equal(E.act(taken,'lantern-examine'),taken,'repeat tap cannot farm');
+  const restored=E.parse(E.serialize(taken));
+  assert.ok(restored);
+  assert.equal(taken.scrap,before.scrap,'expedition scrap is not banked before return');
+  assert.equal(restored.scrap,before.scrap,'save/reload does not bank provisional scrap');
+  const returned=E.act(restored,'return');
+  assert.equal(returned.scrap,before.scrap+1000,'safe return banks carried scrap in addition to previously owned scrap');
+  assert.equal(returned.expedition,null,'safe return closes the expedition');
+  const app=fs.readFileSync('src/slice-app.js','utf8');
+  assert.match(app,/背嚢が満杯 · 生還して空きを作ろう/);
+  assert.match(app,/disabled:x\.scrap>=1000/);
+});
+
 test('choice hints disclose cost but not exact rewards',()=>{
   const app=fs.readFileSync('src/slice-app.js','utf8');
   assert.match(app,/体力 −4 · 獣骨を調べる/);
@@ -85,8 +127,182 @@ test('low HP blocks risk; controls use existing mobile choice area',()=>{
   assert.match(app,/data-action="field-step"/);
 });
 
-test('forest safe-return cue follows carried fang regardless of discovery route',()=>{
+test('forest safe-return cue reflects both provisional material types',()=>{
   const app=fs.readFileSync('src/slice-app.js','utf8');
-  assert.match(app,/button\('return',x\.materials\?\.wolfFang>0\?'狼牙を持って生還':x\.scrap>0\?'鉄片を持って生還':'ここで生還する'/,
-    'the return cue must depend on carried loot, not tracksRisk (wolf combat also awards fangs)');
+  assert.match(app,/x\.materials\?\.wolfFang>0&&x\.scrap>0\?'狼牙と鉄片を持って生還'/,
+    'return action names both fang and iron when both are carried');
+  assert.match(app,/x\.materials\?\.wolfFang>0\?'狼牙を持って生還'/,
+    'wolf-only loot remains clearly named');
+  assert.match(app,/x\.scrap>0\?'鉄片を持って生還'/,
+    'iron-only loot remains clearly named');
+  assert.match(app,/:'ここで生還する','拾った素材を確定する'/,
+    'return without loot remains available');
+});
+
+test('treasure hints at vines without revealing or navigating the secret passage',()=>{
+  const found=walk(E.start({...E.initial(),mode:'demo'},'wood'),[21,22,23,F.TRACKS,F.TREASURE]);
+  assert.match(found.expedition.log[0],/宝箱の背後でツタが擦れる音/);
+  assert.equal(found.expedition.field.secret,false);
+  assert.equal(F.visible(found.expedition.field,F.SECRET),false);
+  assert.equal(F.canMove(found.expedition.field,F.SECRET),false);
+  const opened=E.act(found,'field-step:'+F.SECRET);
+  assert.equal(opened.expedition.field.pos,F.TREASURE,'inspection does not teleport');
+  assert.equal(opened.expedition.field.secret,true,'only deliberate inspection opens secret');
+  const entered=E.act(opened,'field-step:'+F.SECRET);
+  assert.equal(entered.expedition.field.pos,F.SECRET);
+  const returned=E.act(found,'return');
+  assert.equal(returned.expedition,null);
+  assert.equal(returned.materials.wolfFang,found.materials.wolfFang+1,'loot banks on safe return');
+});
+
+test('cache-side rustle invites a later discovery without opening secret or banking loot',()=>{
+  const start=E.start({...E.initial(),mode:'demo'},'wood');
+  const approach=walk(start,[21,F.CACHE]);
+  assert.match(approach.expedition.log[0],/乾いた葉を擦るような音/);
+  assert.equal(approach.expedition.field.treasure,false);
+  assert.equal(approach.expedition.field.secret,false);
+  assert.equal(F.visible(approach.expedition.field,F.SECRET),false);
+  assert.equal(approach.materials.wolfFang,0,'the clue does not bank materials');
+  const restored=E.parse(E.serialize(approach));
+  assert.ok(restored,'approach remains saveable');
+  const found=E.act(restored,'field-step:'+F.TREASURE);
+  assert.match(found.expedition.log[0],/宝箱の背後でツタが擦れる音/);
+  assert.equal(found.expedition.field.secret,false,'treasure still requires manual vine inspection');
+  assert.equal(found.materials.wolfFang,0,'chest loot remains provisional');
+  const returned=E.act(found,'return');
+  assert.equal(returned.materials.wolfFang,1,'loot banks only after safe return');
+});
+
+test('the unknown vine location is not an exact map button before chest-side investigation',()=>{
+  const app=fs.readFileSync('src/slice-app.js','utf8');
+  assert.doesNotMatch(app,/const inspectVines=/,'hidden vines must not reveal their cell before discovery');
+  assert.match(app,/if\(passable\)return/,'only walkable visible cells are map buttons');
+  assert.match(app,/x\.field\.pos===window\.CrownlessField\.TREASURE&&!x\.field\.secret/);
+  assert.match(app,/button\('field-step','宝箱の背後を調べる'/);
+});
+
+
+test('forest cache offers a real opt-in HP-for-scrap choice, not forced damage',()=>{
+  const start=E.start({...E.initial(),mode:'demo'},'wood');
+  const atCache=walk(start,[21,F.CACHE]);
+  assert.equal(atCache.expedition.field.pos,F.CACHE);
+  assert.equal(atCache.expedition.field.cache,false,'stepping on cache is not collecting');
+  assert.equal(atCache.expedition.hp,start.expedition.hp,'no automatic wound');
+  assert.equal(atCache.expedition.scrap,0,'no automatic loot');
+  const declined=E.act(atCache,'return');
+  assert.equal(declined.scrap,0,'declining leaves no loot');
+  const taken=E.act(atCache,'forest-cache-search');
+  assert.equal(taken.expedition.hp,start.expedition.hp-3);
+  assert.equal(taken.expedition.scrap,4);
+  assert.equal(taken.expedition.field.cache,true);
+  assert.equal(taken.scrap,0,'unreturned iron is not banked');
+  assert.equal(E.act(taken,'forest-cache-search'),taken,'cannot collect twice');
+  const restored=E.parse(E.serialize(taken));
+  assert.ok(restored,'the current expedition survives reload');
+  assert.equal(restored.expedition.field.cache,true);
+  assert.equal(E.act(restored,'return').scrap,4,'safe return banks the iron');
+  const low={...atCache,expedition:{...atCache.expedition,hp:3}};
+  assert.equal(E.act(low,'forest-cache-search'),low,'low HP cannot be spent');
+});
+
+test('safe cache salvage yields less iron without HP loss and cannot be combined with risky salvage',()=>{
+  const start=E.start({...E.initial(),mode:'demo'},'wood');
+  const atCache=walk(start,[21,F.CACHE]);
+  const skimmed=E.act(atCache,'forest-cache-skim');
+  assert.equal(skimmed.expedition.hp,start.expedition.hp,'safe salvage costs no HP');
+  assert.equal(skimmed.expedition.scrap,1,'safe salvage trades quantity for safety');
+  assert.equal(skimmed.expedition.field.cache,true);
+  assert.equal(E.act(skimmed,'forest-cache-search'),skimmed,'cannot take risky loot after safe choice');
+  assert.equal(E.act(skimmed,'forest-cache-skim'),skimmed,'cannot repeat safe loot');
+  assert.equal(skimmed.scrap,0,'no materials banked before returning alive');
+  const restored=E.parse(E.serialize(skimmed));
+  assert.ok(restored,'safe choice survives save/reload');
+  assert.equal(E.act(restored,'return').scrap,1,'safe return banks only chosen iron');
+  const low={...atCache,expedition:{...atCache.expedition,hp:3}};
+  assert.equal(E.act(low,'forest-cache-search'),low,'dangerous search blocked at low HP');
+  assert.equal(E.act(low,'forest-cache-skim').expedition.scrap,1,'safe option remains available at low HP');
+  const full={...atCache,expedition:{...atCache.expedition,scrap:1000}};
+  assert.equal(E.act(full,'forest-cache-skim'),full,'no inventory overflow');
+});
+
+test('near-full forest cache avoids dominated HP risk and banks partial loot only on return',()=>{
+  const start=E.start({...E.initial(),mode:'demo'},'wood');
+  const atCache=walk(start,[21,F.CACHE]);
+  const almost={...atCache,expedition:{...atCache.expedition,scrap:998}};
+  const risky=E.act(almost,'forest-cache-search');
+  assert.equal(risky.expedition.scrap,1000,'risky salvage takes only two free slots');
+  assert.equal(risky.expedition.hp,almost.expedition.hp-3);
+  assert.equal(risky.expedition.field.cache,true);
+  assert.ok(risky.expedition.log[0].includes('鉄片 +2'),'the outcome states the actual reward');
+  assert.equal(E.act(risky,'forest-cache-skim'),risky,'cannot claim the alternative too');
+  assert.equal(risky.scrap,0,'partial salvage remains provisional');
+  const restored=E.parse(E.serialize(risky));
+  assert.ok(restored,'near-full risky salvage survives current save/reload');
+  assert.equal(restored.scrap,0,'reload does not bank expedition materials');
+  assert.equal(E.act(restored,'return').scrap,1000,'safe return banks partial reward');
+  const oneSlot={...atCache,expedition:{...atCache.expedition,scrap:999}};
+  assert.equal(E.act(oneSlot,'forest-cache-search'),oneSlot,'risk is dominated by safe +1');
+  const safe=E.act(oneSlot,'forest-cache-skim');
+  assert.equal(safe.expedition.scrap,1000);
+  assert.equal(safe.expedition.hp,oneSlot.expedition.hp,'one remaining iron is collected safely');
+  const full={...atCache,expedition:{...atCache.expedition,scrap:1000}};
+  assert.equal(E.act(full,'forest-cache-search'),full,'full bag cannot consume cache or HP');
+  assert.equal(E.act(full,'forest-cache-skim'),full,'full bag cannot consume safe cache');
+});
+
+test('cache risk is a reachable deliberate choice on the forest mobile panel',()=>{
+  const app=fs.readFileSync('src/slice-app.js','utf8');
+  assert.match(app,/x\.field\.pos===window\.CrownlessField\.CACHE && !x\.field\.cache/);
+  assert.match(app,/button\('forest-cache-skim','手前の鉄片だけ拾う'/);
+  assert.match(app,/button\('forest-cache-search','棘を越えて奥を探る'/);
+  assert.match(app,/x\.hp<=3\|\|x\.scrap>=999/);
+  assert.ok(app.includes("Math.min(4,1000-x.scrap)"),'risky choice discloses its capped reward');
+  assert.ok(app.includes('空きは1個 · 手前なら無傷で拾える'));
+});
+
+test("new tracks discovery survives losing the wolf's attention",()=>{
+  // Reach the wolf's sightline by a different path, without visiting tracks.
+  const near=walk(E.start({...E.initial(),mode:'demo'},'wood'),[21,22,23,24,19,14,13]);
+  assert.equal(F.wolfAwareness(near.expedition.field),'alert');
+  assert.equal(near.expedition.field.tracks,false);
+  const found=E.act(near,'field-step:'+F.TRACKS);
+  assert.equal(found.expedition.field.tracks,true);
+  assert.equal(F.wolfAwareness(found.expedition.field),'watching');
+  assert.match(found.expedition.log[0],/無事に生還すると.*獣道読み/,
+    'first discovery and the new skill motivation must not be replaced by a generic escape cue');
+  assert.equal(found.expedition.field.secret,false,'the clue cannot reveal the hidden passage');
+  const resumed=E.parse(E.serialize(found));
+  assert.ok(resumed,'discovered tracks survive current save/reload');
+  assert.equal(resumed.expedition.field.tracks,true);
+});
+
+test('fox pouch explains why a choice is unavailable and what each reward enables',()=>{
+  const app=fs.readFileSync('src/slice-app.js','utf8');
+  assert.match(app,/薬草は3個で満杯 · 鉄片か生還を選ぶ/);
+  assert.match(app,/背嚢が満杯 · 薬草か生還を選ぶ/);
+  assert.match(app,/薬草 \+1（次の戦闘用）/);
+  assert.match(app,/Math\.min\(3,1000-x\.scrap\)/,'fox option shows actual carryable iron');
+  const atPouch=walk(E.start({...E.initial(),mode:'demo'},'wood'),[15,10,F.FOX,F.FOX_NEST]);
+  assert.equal(atPouch.expedition.field.foxCache,false);
+  const fullHerbs={...atPouch,expedition:{...atPouch.expedition,potions:3}};
+  assert.equal(E.act(fullHerbs,'forest-fox-herb'),fullHerbs,'full herbs cannot be duplicated');
+  const nearFull={...atPouch,expedition:{...atPouch.expedition,scrap:998,potions:3}};
+  const partial=E.act(nearFull,'forest-fox-scrap');
+  assert.equal(partial.expedition.scrap,1000,'take only two iron when two slots remain');
+  assert.equal(partial.expedition.hp,nearFull.expedition.hp-2,'partial salvage still costs HP');
+  assert.equal(partial.expedition.field.foxCache,true,'pouch is consumed exactly once');
+  assert.equal(partial.scrap,nearFull.scrap,'iron is not banked before safe return');
+  assert.match(partial.expedition.log[0],/鉄片 \+2/);
+  assert.equal(E.act(partial,'forest-fox-scrap'),partial,'pouch cannot be harvested twice');
+  const restored=E.parse(E.serialize(partial));
+  assert.equal(restored.expedition.scrap,1000,'partial salvage survives current save/reload');
+  assert.equal(E.act(restored,'return').scrap,nearFull.scrap+1000,'safe return banks actual iron');
+  const oneSlot={...atPouch,expedition:{...atPouch.expedition,scrap:999}};
+  assert.match(E.act(oneSlot,'forest-fox-scrap').expedition.log[0],/鉄片 \+1/);
+  const fullScrap={...atPouch,expedition:{...atPouch.expedition,scrap:1000}};
+  assert.equal(E.act(fullScrap,'forest-fox-scrap'),fullScrap,'completely full bag preserves the pouch');
+  const herb=E.act(atPouch,'forest-fox-herb');
+  assert.equal(herb.expedition.potions,3);
+  assert.equal(herb.expedition.scrap,0);
+  assert.equal(E.act(herb,'forest-fox-scrap'),herb,'exclusive pouch choice stays consumed');
 });
