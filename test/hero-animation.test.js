@@ -20,13 +20,13 @@ test('walking advances from simulation time; standing, pausing and fallback pres
   assert.equal(frames.size,4,'all temporal cells are reachable');
   f.actor.draw(f.ctx,{state:'WALK',animTime:2.5});const held=f.calls.at(-1)[1];
   f.actor.draw(f.ctx,{state:'WALK',animTime:2.5});assert.equal(f.calls.at(-1)[1],held,'frozen simulation freezes pose');
-  f.actor.draw(f.ctx,{state:'IDLE',animTime:99});assert.match(f.calls.at(-1)[0].src,/approved-pixel-anchor/);
+  f.actor.draw(f.ctx,{state:'IDLE',animTime:99});assert.match(f.calls.at(-1)[0].src,/action-forest\/hero-idle/);
   const walk=f.images.find(i=>i.src.includes('hero-walk'));walk.complete=false;
-  f.actor.draw(f.ctx,{state:'RUN',animTime:10});assert.match(f.calls.at(-1)[0].src,/approved-pixel-anchor/,'atlas load failure keeps approved idle');
+  f.actor.draw(f.ctx,{state:'RUN',animTime:10});assert.match(f.calls.at(-1)[0].src,/action-forest\/hero-idle/,'atlas load failure keeps approved idle');
   assert.equal(f.depth(),0);
 });
 test('classic comparison loads no new art; still comparison never loads or cycles walking',()=>{
   const classic=fixture('?actor=classic');assert.equal(classic.images.length,0);assert.equal(classic.actor.draw(classic.ctx),false);
   const still=fixture('?actor=still');assert.equal(still.images.length,1);
-  still.actor.draw(still.ctx,{state:'WALK',animTime:99});assert.match(still.calls.at(-1)[0].src,/approved-pixel-anchor/);
+  still.actor.draw(still.ctx,{state:'WALK',animTime:99});assert.match(still.calls.at(-1)[0].src,/action-forest\/hero-idle/);
 });

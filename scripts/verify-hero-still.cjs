@@ -25,8 +25,8 @@ const root=path.resolve(__dirname,'..');
         window.__walkCells=[];
         const original=CanvasRenderingContext2D.prototype.drawImage;
         CanvasRenderingContext2D.prototype.drawImage=function(image,...args){
-          if(image.src?.includes('approved-pixel-anchor-v1.png'))window.__heroReviewDraws++;
-          if(image.src?.includes('hero-walk-v1/walk.png'))window.__walkCells.push(args[0]);
+          if(image.src?.includes('action-forest/hero-idle.png'))window.__heroReviewDraws++;
+          if(image.src?.includes('action-forest/hero-walk.png'))window.__walkCells.push(args[0]);
           return original.call(this,image,...args);
         };
       });

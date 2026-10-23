@@ -8,9 +8,9 @@
     const image=active?new Image():null;
     const walk=active&&mode!=='still'?new Image():null;
     let lastFrame=null;
-    if(walk)walk.src='docs/assets/candidates/hero-walk-v1/walk.png';
+    if(walk)walk.src='assets/action-forest/hero-walk.png';
     if(image){
-      image.src='docs/assets/player-unarmed-approved-pixel-anchor-v1.png';
+      image.src='assets/action-forest/hero-idle.png';
     }
     if(image&&(mode==='still'||mode==='walk')){
       const note=document.createElement('div');
