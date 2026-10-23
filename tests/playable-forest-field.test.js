@@ -357,7 +357,12 @@ test('fox pouch choices respect inventory and survival limits',()=>{
   s.expedition.potions=3;
   const offered=walk(s,0);
   assert.equal(E.act(offered,'forest-fox-herb'),offered,'full herbs cannot be collected');
-  assert.equal(E.act(offered,'forest-fox-scrap'),offered,'iron cannot overflow the bag');
+  const lastSlot=E.act(offered,'forest-fox-scrap');
+  assert.equal(lastSlot.expedition.scrap,1000,'one remaining slot takes only one iron');
+  assert.equal(lastSlot.expedition.hp,offered.expedition.hp-2,'the choice still costs HP');
+  assert.equal(lastSlot.expedition.field.foxCache,true,'one-time pouch is consumed');
+  const full={...offered,expedition:{...offered.expedition,scrap:1000}};
+  assert.equal(E.act(full,'forest-fox-scrap'),full,'full iron bag cannot overflow or consume the pouch');
   const nearCap={...offered,expedition:{...offered.expedition,scrap:997}};
   const iron=E.act(nearCap,'forest-fox-scrap');
   assert.equal(iron.expedition.scrap,1000);
