@@ -342,6 +342,9 @@ async function main() {
         assert.equal(chest.expedition.field.treasure,true,'hidden real treasure can be discovered after the wolf fight');
         assert(chest.expedition.scrap>=8,'chest contents and wolf rewards stay in the pack');
         assert(chest.expedition.materials.wolfFang>=2,'chest and wolf yield smith-craftable materials');
+        assert.match(await page.locator('.field-choices [data-action="return"]').innerText(),
+          /狼牙と鉄片を持って生還/,
+          'after wolf and chest, 360/390px return action must name both carried materials');
         await page.screenshot({path:path.join(output,'forest-treasure-found-'+width+'.png')});
         await page.reload();
         assert.equal(await page.locator('.forest-field[data-field-treasure="true"][data-field-wolf="true"]').count(),1,
