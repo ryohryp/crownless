@@ -109,11 +109,11 @@ test('low HP blocks risk; controls use existing mobile choice area',()=>{
 
 test('forest safe-return cue reflects both provisional material types',()=>{
   const app=fs.readFileSync('src/slice-app.js','utf8');
-  assert.match(app,/x\\.materials\\?\\.wolfFang>0&&x\\.scrap>0\\?'狼牙と鉄片を持って生還'/,
+  assert.match(app,/x\.materials\?\.wolfFang>0&&x\.scrap>0\?'狼牙と鉄片を持って生還'/,
     'return action names both fang and iron when both are carried');
-  assert.match(app,/x\\.materials\\?\\.wolfFang>0\\?'狼牙を持って生還'/,
+  assert.match(app,/x\.materials\?\.wolfFang>0\?'狼牙を持って生還'/,
     'wolf-only loot remains clearly named');
-  assert.match(app,/x\\.scrap>0\\?'鉄片を持って生還'/,
+  assert.match(app,/x\.scrap>0\?'鉄片を持って生還'/,
     'iron-only loot remains clearly named');
   assert.match(app,/:'ここで生還する','拾った素材を確定する'/,
     'return without loot remains available');
