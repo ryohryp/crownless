@@ -124,7 +124,12 @@ async function main() {
             scaleX:r.width/c.width,scaleY:r.height/c.height};
         });
         assert(layout.scrollWidth<=width+1,'no horizontal overflow: '+JSON.stringify(layout));
-        assert(Math.abs(layout.scaleX-layout.scaleY)<0.003,'canvas pixels retain uniform aspect: '+JSON.stringify(layout));
+        // Canvas dimensions are integers. The rounded virtual width can be up
+        // to half a source pixel away from the CSS aspect ratio; this is not
+        // evidence of the portrait stretching that this regression guards.
+        const roundingTolerance=0.5/(layout.sourceWidth-0.5)+0.0002;
+        assert(Math.abs(layout.scaleX/layout.scaleY-1)<=roundingTolerance,
+          'canvas pixels retain uniform aspect: '+JSON.stringify(layout));
         assert(layout.height>=180,'playable canvas remains tall enough on phone');
         await page.screenshot({path:path.join(output,'pixel-forest-'+width+'.png')});
         await page.locator('#btnToggleArtPreview').click();

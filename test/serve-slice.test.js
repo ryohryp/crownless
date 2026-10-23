@@ -41,6 +41,7 @@ test('serve-slice loopback server correctly allows playable slice assets', async
     assert.equal(await get('/docs/assets/candidates/forest-hd2d-v0.2.png'), 200);
     assert.equal(await get('/docs/assets/candidates/other.png'), 404);
     assert.equal(await get('/pixel-forest.css'), 200);
+    assert.equal(await get('/action-lab-utilities.css'), 200);
     assert.equal(await get('/package.json'), 404);
     assert.equal(await get('/../package.json'), 404);
   } finally {

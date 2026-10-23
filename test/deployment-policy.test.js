@@ -56,6 +56,7 @@ test('GitHub Pages fingerprints local CSS and JS assets with the deployed commit
   assert.match(workflow, /sha\.slice\(0, 12\)/);
   assert.match(workflow, /\(\?:css\|js\)/);
   assert.match(workflow, /\?v=\$\{version\}/);
+  assert.match(workflow, /'_site\/gemini-feel-lab\.html'/);
   assert.match(workflow, /touch _site\/\.nojekyll/);
   assert.match(workflow, /path:\s*_site/);
   assert.doesNotMatch(workflow, /path:\s*\.\s*$/m);
