@@ -173,6 +173,49 @@ async function main() {
         assert.equal(await world.count(),1,'forest has an actual playable local field');
         assert.equal(await page.locator('.forest-field.world-painted canvas.forest-world-canvas').count(),1,
           'the active world is actually painted using a continuous canvas, not colored tile controls');
+
+        // Near-capacity fox salvage must remain a real, reachable phone choice.
+        // Restore the untouched starting expedition after this isolated check.
+        const forestBaseline=await page.evaluate(()=>
+          localStorage.getItem('crownless-expedition-v1-demo'));
+        assert(forestBaseline,'starting forest expedition must have a current save');
+        for(const id of [15,10,5,0]){
+          await page.locator('.forest-field [data-action="field-step"][data-value="'+id+'"]').click();
+        }
+        await page.evaluate(()=>{
+          const key='crownless-expedition-v1-demo';
+          const saved=JSON.parse(localStorage.getItem(key));
+          saved.expedition.scrap=999;
+          saved.expedition.potions=3;
+          localStorage.setItem(key,JSON.stringify(saved));
+        });
+        await page.reload();
+        const foxIron=page.locator('.field-choices [data-action="forest-fox-scrap"]');
+        assert.equal(await foxIron.isEnabled(),true,'one free slot still allows fox salvage');
+        assert.match(await foxIron.innerText(),/鉄片 \+1/,'fox risk must show actual iron gained');
+        const foxBounds=await foxIron.boundingBox();
+        assert(foxBounds&&foxBounds.y>=0&&foxBounds.y+foxBounds.height<=height+2,
+          'fox partial-salvage action stays reachable at '+width+'px');
+        await page.screenshot({path:path.join(output,'forest-fox-partial-'+width+'.png')});
+        await foxIron.click();
+        const foxSaved=await page.evaluate(()=>
+          JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+        assert.equal(foxSaved.expedition.scrap,1000,'one remaining iron slot is filled');
+        assert.equal(foxSaved.expedition.field.foxCache,true,'pouch is consumed once');
+        assert.equal(foxSaved.scrap,0,'fox iron remains provisional before return');
+        await page.reload();
+        assert.equal(await page.locator('.forest-field[data-field-fox-cache="true"]').count(),1,
+          'fox choice survives current save/reload');
+        await page.locator('.field-choices [data-action="return"]').click();
+        const foxBanked=await page.evaluate(()=>
+          JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
+        assert.equal(foxBanked.scrap,1000,'fox salvage banks on safe return');
+        await page.evaluate(raw=>
+          localStorage.setItem('crownless-expedition-v1-demo',raw),forestBaseline);
+        await page.reload();
+        assert.equal(await page.locator('.forest-field[data-field-pos="20"]').count(),1,
+          'original expedition is restored for the rest of the phone smoke');
+
         const canvasProof=await page.evaluate(()=>{
           const canvas=document.querySelector('.forest-field.world-painted canvas.forest-world-canvas');
           const ctx=canvas?.getContext('2d');
