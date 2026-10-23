@@ -1063,10 +1063,16 @@ async function main() {
         assert.equal(found.expedition.field.shrine,false);
         const vines=page.locator('.forest-field button.field-cell.secret[data-value="12"]');
         assert.equal(await vines.count(),1,'tangled vines are a real adjacent tap target');
+        assert.equal(await vines.evaluate(el=>el.classList.contains('inspect-vines')),true,
+          'unopened vines are explicitly an investigation target');
+        assert.equal(await vines.evaluate(el=>el.classList.contains('can-step')),false,
+          'unopened vines must not look like a walkable navigation destination');
         assert.equal(await vines.evaluate(el=>getComputedStyle(el).backgroundImage),'none',
           'the secret-vine destination must not be given away by a glowing navigation circle');
         assert.equal(await vines.evaluate(el=>el.classList.contains('walk-nav')),false,
           'closed secret vines have no walking waypoint even though they can be inspected');
+        assert.equal(await page.locator('.forest-field button.field-cell.veiled:not(.inspect-vines)').count(),0,
+          'unexplored fog is not a walking tap target');
         assert((await page.locator('.forest-field .walk-nav').count())>=2,
           'regular walkable neighbors still have navigation near the hidden passage');
         assert.match(await vines.getAttribute('aria-label'),/揺れるツタを調べる/);

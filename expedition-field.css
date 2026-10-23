@@ -71,6 +71,13 @@
   animation:field-step-breathe 2.3s ease-in-out infinite;
   touch-action:manipulation;
 }
+/* Hidden vines are tappable to investigate but are not a walkable waypoint. */
+#game > .field-layout button.field-cell.inspect-vines {
+  cursor:pointer;touch-action:manipulation;
+}
+#game > .field-layout button.field-cell.inspect-vines:focus-visible {
+  outline:3px solid #fff2b4;outline-offset:1px;z-index:5;
+}
 #game > .field-layout button.field-cell.can-step:focus-visible {
   outline:3px solid #fff2b4;outline-offset:1px;z-index:5;
 }
