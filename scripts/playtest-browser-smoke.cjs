@@ -966,6 +966,8 @@ async function main() {
         assert.equal(await page.locator('.forest-field[data-wolf-state="hidden"]').count(),1,
           'wolf must not appear through an unexplored fog-of-war region');
         assert.equal(await page.locator('.forest-wolf-warning').count(),0);
+        assert.equal(await page.locator('.forest-field .wolf-threat').count(),0,
+          'the wolf danger marker must not leak through undiscovered fog');
         for(const id of [21,22,23,18,13]){
           await page.locator('.forest-field [data-action="field-step"][data-value="'+id+'"]').click();
         }
@@ -974,6 +976,17 @@ async function main() {
         const warning=page.locator('.forest-wolf-warning');
         assert.match(await warning.innerText(),/狼に気づかれた/);
         assert.equal(await warning.isVisible(),true,'not just a hidden accessibility state');
+        const wolfTarget=page.locator('.forest-field button.field-cell.den.wolf-threat');
+        assert.equal(await wolfTarget.count(),1,'only the adjacent undefeated den gets a danger choice');
+        assert.equal(await wolfTarget.evaluate(el=>el.classList.contains('walk-nav')),false,
+          'combat risk must never be painted as an ordinary walking waypoint');
+        assert.match(await wolfTarget.getAttribute('aria-label'),/戦闘になる/);
+        const threatStyle=await wolfTarget.evaluate(el=>{
+          const mark=getComputedStyle(el,'::after'),box=el.getBoundingClientRect();
+          return {content:mark.content,width:parseFloat(mark.width),height:box.height};
+        });
+        assert(threatStyle.content.includes('!')&&threatStyle.width>=20&&threatStyle.height>=44,
+          'the red risk marker must be visible and its target tappable on '+width+'px');
         assert.equal(await page.locator('.forest-field-header small').count(),0,
           'when the wolf appears, redundant header copy must not sit beneath alert banner');
         const warningState=await warning.evaluate(el=>{
