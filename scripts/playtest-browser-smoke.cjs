@@ -230,7 +230,7 @@ async function main() {
         await page.reload();
         const cacheRisk=page.locator('.field-choices [data-action="forest-cache-search"]');
         assert.equal(await cacheRisk.isEnabled(),true,'two slots keep a worthwhile thorn risk');
-        assert.match(await cacheRisk.innerText(),/鉄片 \\+2/,'phone choice shows actual capped reward');
+        assert.match(await cacheRisk.innerText(),/鉄片 \+2/,'phone choice shows actual capped reward');
         const cacheBounds=await cacheRisk.boundingBox();
         assert(cacheBounds&&cacheBounds.y>=0&&cacheBounds.y+cacheBounds.height<=height+2,
           'partial cache choice stays reachable at '+width+'px');
