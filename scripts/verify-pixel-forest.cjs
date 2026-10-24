@@ -85,8 +85,8 @@ async function tapSite(page, id) {
     const r=c.getBoundingClientRect();
     const bridge=site.x>=430&&site.x<=730&&site.z>=235&&site.z<=345
       ? Math.max(0,Math.cos((site.x-580)/150*Math.PI/2)*46):0;
-    return {x:r.left+(site.x-s.cameraX)*r.width/c.width,
-      y:r.top+(site.z-bridge-42)*r.height/c.height};
+    return {x:r.left+(site.x-s.cameraX)*r.width/s.viewport.width,
+      y:r.top+(site.z-bridge-42)*r.height/s.viewport.height};
   }, id);
   await page.touchscreen.tap(point.x,point.y);
   await page.waitForTimeout(200);
@@ -105,7 +105,7 @@ async function main() {
     browser=await chromium.launch({headless:true});
     await fs.mkdir(output,{recursive:true});
     for(const width of [360,390,430]) {
-      const context=await browser.newContext({viewport:{width,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:1});
+      const context=await browser.newContext({viewport:{width,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:width===390?2:1});
       const page=await context.newPage();
       const errors=[];
       page.on('pageerror',error=>errors.push(error.message));
@@ -126,6 +126,8 @@ async function main() {
         assert(layout.scrollWidth<=width+1,'no horizontal overflow: '+JSON.stringify(layout));
         assert(Math.abs(layout.scaleX-layout.scaleY)<0.003,'canvas pixels retain uniform aspect: '+JSON.stringify(layout));
         assert(layout.height>=180,'playable canvas remains tall enough on phone');
+        assert(layout.sourceHeight>=layout.height-1,'canvas must not enlarge a low-resolution whole scene');
+        if(width===390) assert(layout.sourceHeight>=layout.height*1.9,'high-density phones retain source-art and text detail');
         await page.screenshot({path:path.join(output,'pixel-forest-'+width+'.png')});
         await page.locator('#btnToggleArtPreview').click();
         assert.equal((await read(page)).art,'classic');
@@ -152,6 +154,8 @@ async function main() {
           const first=await clearWave(page);
           assert(first.after.unbanked>=3,'three actual enemies provide crafting materials');
           assert.equal(await page.locator('#rpgPanel').isVisible(),false,'victory leaves forest playable');
+          await walkTo(page,580,280);
+          await page.screenshot({path:path.join(output,'pixel-forest-bridge-390.png')});
           await walkTo(page,800,365);
           await page.waitForFunction(()=>document.getElementById('forestExploreHint')?.textContent?.includes('湿った土に細い筋がある'));
           // Attacking near tracks must not silently collect one-time materials.

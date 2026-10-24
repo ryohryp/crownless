@@ -272,7 +272,7 @@ async function main() {
             const v=window.CrownlessForestReadout();
             const canvas=document.getElementById('gameCanvas');
             return v.player?.hp>0 && v.player.x<625 &&
-              (660-v.cameraX)<canvas.width-20;
+              (660-v.cameraX)<v.viewport.width-20;
           },null,{timeout:9000});
         } finally {
           await page.keyboard.up('d');
@@ -283,11 +283,11 @@ async function main() {
           const rect=canvas.getBoundingClientRect();
           const shrine=window.CrownlessForestDiscoveries.spots.find(s=>s.id==='shrine');
           const bridgeHeight=Math.max(0,Math.cos((shrine.x-580)/150*Math.PI/2)*46);
-          const cx=rect.left+(shrine.x-scene.cameraX)*rect.width/canvas.width;
-          const cy=rect.top+(shrine.z-bridgeHeight-42)*rect.height/canvas.height;
+          const cx=rect.left+(shrine.x-scene.cameraX)*rect.width/scene.viewport.width;
+          const cy=rect.top+(shrine.z-bridgeHeight-42)*rect.height/scene.viewport.height;
           return {x:cx,y:cy,hero:scene.player,cameraX:scene.cameraX,
             tappedSite:window.CrownlessForestDiscoveries.spotAtTap(
-              {x:cx,y:cy},rect,canvas,scene.cameraX,
+              {x:cx,y:cy},rect,scene.viewport,scene.cameraX,
               (x,z) => x>=430&&x<=730&&z>=235&&z<=345
                 ? Math.max(0,Math.cos((x-580)/150*Math.PI/2)*46):0
             )?.id};
@@ -323,8 +323,8 @@ async function main() {
           const c=document.getElementById('gameCanvas');
           const rect=c.getBoundingClientRect();
           const site=window.CrownlessForestDiscoveries.spots.find(o=>o.id==='shrine');
-          return {x:rect.left+(site.x-s.cameraX)*rect.width/c.width,
-            y:rect.top+(site.z-45)*rect.height/c.height,
+          return {x:rect.left+(site.x-s.cameraX)*rect.width/s.viewport.width,
+            y:rect.top+(site.z-45)*rect.height/s.viewport.height,
             player:s.player,rectWidth:rect.width};
         });
         assert(Math.hypot(nearTap.player.x-660,nearTap.player.z-230)<54,
