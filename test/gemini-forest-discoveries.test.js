@@ -137,6 +137,8 @@ test('reading tracks first makes the shrine deep search safer without making the
   assert.ok(html.includes('CrownlessForestDiscoveries.shrineRiskDamage(state.forestFinds,rpg.crafted)'),
     'the visible HP cost must come from the same rule as the reward');
   assert.match(html,/足跡を読んで負傷 -3/,'the benefit must be visible before committing');
+  assert.ok(html.includes('獣の痕跡！牙 +1／苔の奥で負傷 -3'),
+    'finding tracks must reveal the safer-footing payoff without naming a hidden place');
 });
 
 test('the stone gate stays discoverable while locked and needs both a trail and a crafted sword',()=>{
