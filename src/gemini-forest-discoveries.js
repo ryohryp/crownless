@@ -54,7 +54,7 @@
       return {ok:false,reason:'full',spot};
     if(spot.kind==='healing' && !['auto','material','heal','risk'].includes(shrineChoice))
       return {ok:false,reason:'choice',spot};
-    if(spot.kind==='healing' && shrineChoice==='risk' && hp<=12)
+    if(spot.kind==='healing' && shrineChoice==='risk' && hp<13)
       return {ok:false,reason:'weak',spot};
     const risky=spot.kind==='healing' && shrineChoice==='risk';
     const scavenge=spot.kind==='healing' && (risky || shrineChoice==='material' ||
