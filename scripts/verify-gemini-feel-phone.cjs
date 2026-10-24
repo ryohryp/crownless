@@ -413,9 +413,13 @@ async function main() {
           'the actual shrine risk must halve after smithing, not merely change its label');
         assert.equal(await page.locator('#forestShrineRisk').isEnabled(),stakesAtChoice.player.hp>=riskCost+1,
           'deep search requires enough HP for the current equipment-dependent cost');
-        if(stakesAtChoice.player.hp>=riskCost+1)
-          assert.match(await page.locator('#forestShrineRisk').textContent(),new RegExp('HP -'+riskCost),
+        if(stakesAtChoice.player.hp>=riskCost+1) {
+          const riskLabel=await page.locator('#forestShrineRisk').textContent();
+          assert.match(riskLabel,new RegExp('HP -'+riskCost),
             'the choice must advertise the actual wound before confirmation');
+          assert.match(riskLabel,new RegExp('→残り'+Math.ceil(stakesAtChoice.player.hp-riskCost)),
+            'the choice must preview the resulting HP rather than forcing mental arithmetic');
+        }
         await page.locator(takeRisk?'#forestShrineRisk':'#forestShrineMaterial').click();
         await page.waitForFunction(() => window.CrownlessForestReadout().found.includes('shrine'),
           null,{timeout:2500});

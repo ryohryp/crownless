@@ -111,6 +111,8 @@ async function verifyTracksShrineRisk(page, crafted) {
   assert.equal(await risk.isEnabled(),true);
   assert.match(await risk.innerText(),new RegExp('HP -'+cost),
     'reading tracks must reduce the visible cost with and without crafted gear');
+  assert.match(await risk.innerText(),new RegExp('→残り'+Math.ceil(before.player.hp-cost)),
+    'the shrine previews the actual remaining HP before committing');
   assert.match(await risk.innerText(),/足跡を読んで負傷 -3/,
     'the UI must explain why the risk is reduced');
   await risk.click();
