@@ -52,12 +52,16 @@
     // 'auto' preserves existing direct rule callers; the scene passes an explicit choice.
     if(spot.kind==='healing' && shrineChoice==='heal' && hp>=maxHp)
       return {ok:false,reason:'full',spot};
-    if(spot.kind==='healing' && !['auto','material','heal'].includes(shrineChoice))
+    if(spot.kind==='healing' && !['auto','material','heal','risk'].includes(shrineChoice))
       return {ok:false,reason:'choice',spot};
-    const scavenge=spot.kind==='healing' && (shrineChoice==='material' ||
+    if(spot.kind==='healing' && shrineChoice==='risk' && hp<=12)
+      return {ok:false,reason:'weak',spot};
+    const risky=spot.kind==='healing' && shrineChoice==='risk';
+    const scavenge=spot.kind==='healing' && (risky || shrineChoice==='material' ||
       (shrineChoice==='auto' && hp>=maxHp));
     found.add(spot.id);
-    return {ok:true,spot,material:scavenge?1:spot.kind==='cache'?2:spot.kind==='material'?1:0,
+    return {ok:true,spot,material:risky?2:scavenge?1:spot.kind==='cache'?2:spot.kind==='material'?1:0,
+      damage:risky?12:0,
       heal:spot.kind==='cache'?Math.min(45,Math.max(0,maxHp-hp)):
         spot.kind==='healing' && !scavenge?Math.min(35,Math.max(0,maxHp-hp)):0};
   }
