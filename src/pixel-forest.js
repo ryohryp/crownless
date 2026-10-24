@@ -102,7 +102,7 @@
       // Context labels appear near the player; silhouettes invite discovery
       // without giant permanent labels covering the scenery or combatants.
       if(near) {
-        const label=found?'調査済':spot.id==='hollow'&&!traced?'茨に閉ざされた石門':spot.label;
+        const label=found?spot.label:spot.clue;
         ctx.font='bold 11px sans-serif';ctx.textAlign='center';
         const w=ctx.measureText(label).width+16;
         ctx.fillStyle='rgba(29,35,27,.88)';ctx.fillRect(x-w/2,z-104,w,22);
