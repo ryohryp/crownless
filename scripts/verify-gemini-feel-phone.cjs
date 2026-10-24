@@ -278,7 +278,8 @@ async function main() {
         // Walk until its world-fixed sprite enters view, then tap its icon.
         // The player is still too far away, so the GAME must visibly say so
         // rather than silently eat the touch as movement/attack input.
-        await page.goto('http://127.0.0.1:' + port + '/gemini-feel-lab.html', {
+        await page.goto('http://127.0.0.1:' + port + '/gemini-feel-lab.html' +
+          (width === 390 ? '?from=discovered-wood' : ''), {
           waitUntil:'domcontentloaded',timeout:30000,
         });
         await page.waitForFunction(() => window.CrownlessForestReadout?.().player);
