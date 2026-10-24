@@ -134,7 +134,7 @@ test('reading tracks first makes the shrine deep search safer without making the
       'skipping tracks is still a viable route');
   }
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
-  assert.match(html,/CrownlessForestDiscoveries\\.shrineRiskDamage\\(state\\.forestFinds,rpg\\.crafted\\)/,
+  assert.ok(html.includes('CrownlessForestDiscoveries.shrineRiskDamage(state.forestFinds,rpg.crafted)'),
     'the visible HP cost must come from the same rule as the reward');
   assert.match(html,/足跡を読んで負傷 -3/,'the benefit must be visible before committing');
 });
