@@ -183,7 +183,7 @@ test('undiscovered forest hints convey sensory cues without naming every hidden 
   assert.match(hint,/茨の向こうで何かが軋む/,'gate is sensed before it is named');
   assert.match(hint,/足跡は右奥へ続いている/,'discovered tracks still guide deeper exploration');
   assert.match(hint,/気になる地点を直接タップ/,'the player must deliberately inspect');
-  assert.doesNotMatch(hint,/near\\.label/,'the hint must not automatically reveal an undiscovered name');
+  assert.doesNotMatch(hint,/near\.label/,'the hint must not automatically reveal an undiscovered name');
   assert.doesNotMatch(hint,/獣の痕跡や古い祠へ近づき/,'generic hint must not spoil specific locations');
 });
 
