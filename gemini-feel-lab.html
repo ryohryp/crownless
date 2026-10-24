@@ -1838,7 +1838,7 @@
       const missing=Math.max(0,ginji.maxHp-ginji.hp);
       heal.disabled=missing===0;
       const risk=document.getElementById('forestShrineRisk');
-      risk.disabled=ginji.hp<=12;
+      risk.disabled=ginji.hp<13;
       risk.textContent=risk.disabled?'体力が足りず奥まで探れない（HP 13以上必要）':'奥まで探る（HP -12・未帰還素材 +2）';
       heal.textContent=missing ? '傷を癒やす（HP +'+Math.min(35,missing)+'・素材なし）' : '傷がないため回復不可';
       document.getElementById('forestShrineStakes').textContent=
