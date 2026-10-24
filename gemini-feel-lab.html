@@ -2619,12 +2619,12 @@
     const near=window.CrownlessForestDiscoveries.near(ginji,state.forestFinds);
     const label=near
       ? near.id==='hollow' && !state.forestFinds.has('traces')
-        ? '石門の手前に獣の痕跡。足跡を調べてみよう'
+        ? '🌿 茨の奥で硬い音がする。足元のかすかな筋を辿ろう'
         : near.id==='hollow' && !rpg.crafted
-          ? '茨の石門：風裂きの剣で切り開けそう。牙を持ち帰って鍛冶へ'
+          ? '🌿 茨の奥で何かが軋む。気になる地点を直接タップ'
           : '🍃 '+(near.id==='traces'?'湿った土に細い筋がある':near.id==='shrine'?'苔の間から冷たい風が流れる':'茨の向こうで何かが軋む')+'。気になる地点を直接タップ'
       : state.forestFinds.has('traces') && !state.forestFinds.has('hollow')
-        ? '足跡は右奥へ続いている。'+(rpg.crafted?'新しい剣で奥を調べよう':'鍛冶した剣があれば先へ進めるかもしれない')
+        ? '足跡は右奥へ続いている。'+(rpg.crafted?'新しい剣で奥を調べよう':'奥の茨を調べてみよう')
       : rpg.phase==='return'
         ? '🌲 戦闘終了！ 森を歩いて発見を探すか「🏕 生還 / さらに奥へ」'
         : '🌲 森の音や足元の違和感を探そう。気になる地点は直接タップ';
