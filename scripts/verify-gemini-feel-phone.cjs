@@ -386,7 +386,7 @@ async function main() {
           'declining must preserve the discovery for later');
         await page.touchscreen.tap(nearTap.x,nearTap.y);
         const takeRisk=width===390;
-        assert.equal(await page.locator('#forestShrineRisk').isEnabled(),stakesAtChoice.player.hp>12,
+        assert.equal(await page.locator('#forestShrineRisk').isEnabled(),stakesAtChoice.player.hp>=13,
           'deep search is unavailable when its HP cost cannot be paid');
         await page.locator(takeRisk?'#forestShrineRisk':'#forestShrineMaterial').click();
         await page.waitForFunction(() => window.CrownlessForestReadout().found.includes('shrine'),
