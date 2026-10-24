@@ -331,12 +331,25 @@ async function main() {
           'hero genuinely walked into discovery distance: '+JSON.stringify(nearTap));
         assert(nearTap.x<nearTap.rectWidth*.52,
           'site should now be on movement-pad half, demonstrating former click bug');
+        const beforeShrine=await page.evaluate(() => ({
+          ...window.CrownlessForestReadout(),
+          hint:document.getElementById('forestExploreHint').textContent,
+        }));
+        assert.match(beforeShrine.hint,
+          beforeShrine.player.hp>=beforeShrine.player.maxHp
+            ? /今なら素材、あとで癒やし/ : /今なら傷を癒やせるが、素材は手に入らない/,
+          'real phone hint must explain the current shrine trade-off before touching');
         await page.touchscreen.tap(nearTap.x,nearTap.y);
-        await page.waitForFunction(() =>
-          window.CrownlessForestReadout().found.includes('shrine') ||
-          window.__combatLabCanvasText.some(s=>s.includes('体力は満タン')),
+        await page.waitForFunction(() => window.CrownlessForestReadout().found.includes('shrine'),
           null,{timeout:2500});
-        assert.equal(errors.length,0,'direct near-site touch must heal or explain full HP');
+        const afterShrine=await page.evaluate(() => window.CrownlessForestReadout());
+        assert.equal(afterShrine.unbanked-beforeShrine.unbanked,
+          beforeShrine.player.hp>=beforeShrine.player.maxHp ? 1 : 0,
+          'healthy shrine grants one provisional material; injured shrine heals instead');
+        await page.touchscreen.tap(nearTap.x,nearTap.y);
+        assert.equal((await page.evaluate(() => window.CrownlessForestReadout())).unbanked,
+          afterShrine.unbanked,'repeat shrine taps cannot duplicate materials');
+        assert.equal(errors.length,0,'direct near-site touch must resolve once without errors');
 
 
 
