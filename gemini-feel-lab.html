@@ -160,6 +160,7 @@
         <p id="forestShrineStakes" class="mb-2 text-xs text-amber-100" role="status"></p>
         <div class="flex flex-col gap-2">
           <button id="forestShrineMaterial" type="button" class="min-h-11 rounded-lg bg-amber-700 px-3 text-sm font-bold">牙を探す（未帰還素材 +1・回復なし）</button>
+          <button id="forestShrineRisk" type="button" class="min-h-11 rounded-lg bg-orange-800 px-3 text-sm font-bold disabled:opacity-50">奥まで探る（HP -12・未帰還素材 +2）</button>
           <button id="forestShrineHeal" type="button" class="min-h-11 rounded-lg bg-emerald-700 px-3 text-sm font-bold disabled:opacity-50">傷を癒やす（最大 HP +35・素材なし）</button>
           <button id="forestShrineCancel" type="button" class="min-h-11 rounded-lg border border-emerald-300 px-3 text-sm">今は調べない</button>
         </div>
@@ -1836,6 +1837,9 @@
       const heal=document.getElementById('forestShrineHeal');
       const missing=Math.max(0,ginji.maxHp-ginji.hp);
       heal.disabled=missing===0;
+      const risk=document.getElementById('forestShrineRisk');
+      risk.disabled=ginji.hp<=12;
+      risk.textContent=risk.disabled?'体力が足りず奥まで探れない（HP 13以上必要）':'奥まで探る（HP -12・未帰還素材 +2）';
       heal.textContent=missing ? '傷を癒やす（HP +'+Math.min(35,missing)+'・素材なし）' : '傷がないため回復不可';
       document.getElementById('forestShrineStakes').textContent=
         '現在 HP '+Math.ceil(ginji.hp)+'/'+ginji.maxHp+'、未帰還の牙 '+rpg.unbanked+
@@ -1847,7 +1851,7 @@
     return false;
   }
 
-  for (const [id,choice] of [['forestShrineMaterial','material'],['forestShrineHeal','heal']]) {
+  for (const [id,choice] of [['forestShrineMaterial','material'],['forestShrineRisk','risk'],['forestShrineHeal','heal']]) {
     document.getElementById(id).addEventListener('click',()=>{
       document.getElementById('forestShrineChoice').classList.add('hidden');
       if (ginji && ginji.state!=='DEAD' &&
@@ -1870,6 +1874,10 @@
         spawnPopup(discovery.reason==='trail'?'手前の獣の痕跡に、道の手がかりがある':'茨が行く手を塞ぐ。鍛冶した剣なら切り開けそう',f.x,f.z,f.y+48,'#e3d4ac');
         return true;
       }
+      if(discovery.reason==='weak') {
+        spawnPopup('体力が足りず奥まで探れない',f.x,f.z,f.y+48,'#fca5a5');
+        return true;
+      }
       if(discovery.reason==='full') {
         spawnPopup('体力は満タン。傷ついたらまた来よう',f.x,f.z,f.y+48,'#a7f3d0');
         return true;
@@ -1878,10 +1886,12 @@
     }
     if(discovery.material) {
       for(let i=0;i<discovery.material;i++) if (!rpgRules.claimMaterial(rpg)) return false;
-      spawnPopup(discovery.spot.id==='hollow'?'石門の薬草と牙 +2（未帰還）':
+      spawnPopup(discovery.spot.id==='shrine' && discovery.damage?'祠の奥で牙 +2（未帰還）／HP -12':
+        discovery.spot.id==='hollow'?'石門の薬草と牙 +2（未帰還）':
         discovery.spot.id==='shrine'?'祠の隙間で牙 +1（未帰還）／この遠征の癒やしは使い切った':
         '獣の痕跡を発見！牙 +1 / 足跡は石門へ',f.x,f.z,f.y+48,'#fde68a');
     }
+    if(discovery.damage) f.hp=Math.max(1,f.hp-discovery.damage);
     if(discovery.heal) {
       f.hp=Math.min(f.maxHp,f.hp+discovery.heal);
       spawnPopup((discovery.spot.id==='hollow'?'石門の薬草':'古い祠で傷を癒やした')+' HP +'+discovery.heal,f.x,f.z,f.y+48,'#86efac');
