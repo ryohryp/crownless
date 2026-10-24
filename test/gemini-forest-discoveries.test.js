@@ -26,18 +26,33 @@ test('approaching the traces and tapping earns exactly one unbanked material, no
   assert.equal(D.uncover(player,visited,'fight',140,140).ok,false,'one find per expedition');
   assert.equal(visited.size,1);
 });
-test('shrine restores HP only when injured and cannot be harvested indefinitely',()=>{
-  const visited=new Set();
+test('shrine offers a one-time full-HP material or later healing, never both',()=>{
   const player={x:660,z:230};
-  const healthy=D.uncover(player,visited,'fight',140,140);
-  assert.equal(healthy.ok,false);
-  assert.equal(healthy.reason,'full');
-  assert.equal(visited.has('shrine'),false,'save healing until needed');
-  const find=D.uncover(player,visited,'fight',75,140);
-  assert.equal(find.ok,true);
-  assert.equal(find.heal,35);
-  assert.equal(find.material,0);
-  assert.equal(D.uncover(player,visited,'fight',50,140).ok,false);
+  const healthyVisited=new Set();
+  const healthy=D.uncover(player,healthyVisited,'fight',140,140);
+  assert.equal(healthy.ok,true);
+  assert.equal(healthy.material,1,'healthy inspection yields a provisional material');
+  assert.equal(healthy.heal,0);
+  assert.equal(healthyVisited.has('shrine'),true);
+  assert.equal(D.uncover(player,healthyVisited,'return',75,140).ok,false,
+    'taking the material sacrifices this expedition healing');
+  const injuredVisited=new Set();
+  const healed=D.uncover(player,injuredVisited,'fight',75,140);
+  assert.equal(healed.ok,true);
+  assert.equal(healed.heal,35);
+  assert.equal(healed.material,0,'waiting until hurt trades away the material');
+  assert.equal(D.uncover(player,injuredVisited,'fight',50,140).ok,false);
+  const lost=R.create();
+  assert.equal(R.claimMaterial(lost),true);
+  assert.equal(lost.unbanked,1);
+  assert.equal(R.loseExpedition(lost),true);
+  assert.equal(lost.banked,0);
+  assert.equal(lost.unbanked,0,'shrine material is lost on defeat');
+  const returned=R.create();
+  assert.equal(R.claimMaterial(returned),true);
+  assert.equal(R.clearWave(returned),true);
+  assert.equal(R.returnAlive(returned,140),true);
+  assert.equal(returned.banked,1,'shrine material banks only on living return');
 });
 test('the stone gate stays discoverable while locked and needs both a trail and a crafted sword',()=>{
   const visited=new Set(),player={x:910,z:235};
@@ -180,6 +195,8 @@ test('undiscovered forest hints convey sensory cues without naming every hidden 
   const hint=html.slice(start,end);
   assert.match(hint,/湿った土に細い筋がある/,'tracks are sensed before they are named');
   assert.match(hint,/苔の間から冷たい風が流れる/,'shrine is sensed before it is named');
+  assert.match(hint,/今なら素材、あとで癒やし。調べると使い切る/,
+    'healthy players see the irreversible shrine trade-off before tapping');
   assert.match(hint,/茨の向こうで何かが軋む/,'gate is sensed before it is named');
   assert.match(hint,/足跡は右奥へ続いている/,'discovered tracks still guide deeper exploration');
   assert.match(hint,/足元のかすかな筋を辿ろう/,'unread tracks are suggested without naming the gate');

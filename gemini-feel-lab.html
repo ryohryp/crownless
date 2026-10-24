@@ -1844,7 +1844,9 @@
     }
     if(discovery.material) {
       for(let i=0;i<discovery.material;i++) if (!rpgRules.claimMaterial(rpg)) return false;
-      spawnPopup(discovery.spot.id==='hollow'?'石門の薬草と牙 +2（未帰還）':'獣の痕跡を発見！牙 +1 / 足跡は石門へ',f.x,f.z,f.y+48,'#fde68a');
+      spawnPopup(discovery.spot.id==='hollow'?'石門の薬草と牙 +2（未帰還）':
+        discovery.spot.id==='shrine'?'祠の隙間で牙 +1（未帰還）／この遠征の癒やしは使い切った':
+        '獣の痕跡を発見！牙 +1 / 足跡は石門へ',f.x,f.z,f.y+48,'#fde68a');
     }
     if(discovery.heal) {
       f.hp=Math.min(f.maxHp,f.hp+discovery.heal);
@@ -2622,6 +2624,8 @@
         ? '🌿 茨の奥で硬い音がする。足元のかすかな筋を辿ろう'
         : near.id==='hollow' && !rpg.crafted
           ? '🌿 茨の奥で何かが軋む。気になる地点を直接タップ'
+          : near.id==='shrine' && ginji.hp>=ginji.maxHp
+          ? '🍃 苔の間から冷たい風が流れる。今なら素材、あとで癒やし。調べると使い切る。気になる地点を直接タップ'
           : '🍃 '+(near.id==='traces'?'湿った土に細い筋がある':near.id==='shrine'?'苔の間から冷たい風が流れる':'茨の向こうで何かが軋む')+'。気になる地点を直接タップ'
       : state.forestFinds.has('traces') && !state.forestFinds.has('hollow')
         ? '足跡は右奥へ続いている。'+(rpg.crafted?'新しい剣で奥を調べよう':'奥の茨を調べてみよう')
