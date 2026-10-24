@@ -335,12 +335,18 @@ async function main() {
           ...window.CrownlessForestReadout(),
           hint:document.getElementById('forestExploreHint').textContent,
         }));
+        assert.equal(await page.evaluate(() => window.__combatLabCanvasText.includes('苔むす祠')),false,
+          'the undiscovered shrine name must not appear on the actual canvas');
+        assert.equal(await page.evaluate(() => window.__combatLabCanvasText.includes('苔の冷気')),true,
+          'nearby shrine must show a sensory cue on the canvas');
         assert.match(beforeShrine.hint,
           beforeShrine.player.hp>=beforeShrine.player.maxHp
             ? /今なら素材、あとで癒やし/ : /今なら傷を癒やせるが、素材は手に入らない/,
           'real phone hint must explain the current shrine trade-off before touching');
         await page.touchscreen.tap(nearTap.x,nearTap.y);
         await page.waitForFunction(() => window.CrownlessForestReadout().found.includes('shrine'),
+          null,{timeout:2500});
+        await page.waitForFunction(() => window.__combatLabCanvasText.includes('苔むす祠'),
           null,{timeout:2500});
         const afterShrine=await page.evaluate(() => window.CrownlessForestReadout());
         assert.equal(afterShrine.unbanked-beforeShrine.unbanked,
