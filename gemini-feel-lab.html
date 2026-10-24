@@ -922,7 +922,7 @@
     releaseGestureHold();
     if (!p.held) {
       const action=window.CrownlessCombatGesture.resolve(event.clientX-p.x,event.clientY-p.y);
-      if (action==='punch' && tryTapForestSite(event.clientX,event.clientY,true)) return;
+      if (action==='punch' && tryTapForestSite(event.clientX,event.clientY,false)) return;
       fireGesture(action);
     }
   });
@@ -1808,10 +1808,9 @@
     const site=window.CrownlessForestDiscoveries.spotAtTap(
       {x:clientX,y:clientY},canvas.getBoundingClientRect(),canvas,
       state.cameraX,getGroundHeightAt);
-    // The right-hand attack tap can still interact from anywhere on its
-    // half when near a clue. Direct taps work on either half of the scene.
+    // Only taps on a visible clue investigate it; ordinary attacks do not
+    // consume a one-time find simply because the player is nearby.
     if (!site && !allowNearby) return false;
-    const near=window.CrownlessForestDiscoveries.near(ginji,state.forestFinds);
     if (site) {
       if (state.forestFinds.has(site.id)) {
         spawnPopup('ここは調査済み',site.x,site.z,getGroundHeightAt(site.x,site.z)+65,'#cbd5e1');
@@ -1822,7 +1821,7 @@
         return true;
       }
     }
-    if (site || near) return tryExploreForest(ginji);
+    if (site) return tryExploreForest(ginji);
     return false;
   }
 
@@ -1872,8 +1871,8 @@
   });
 
   function tryPickupItem(f) {
-    // Tapping near an actual place in the scene explores rather than attacks.
-    if (tryExploreForest(f)) return true;
+    // Attacking or picking up ordinary items must not consume a discovery.
+    // Clues require a deliberate tap on the visible location.
     for (let i = 0; i < state.items.length; i++) {
       const it = state.items[i];
       if (it.thrownTeam !== -1) continue;
@@ -2623,7 +2622,7 @@
         ? '石門の手前に獣の痕跡。足跡を調べてみよう'
         : near.id==='hollow' && !rpg.crafted
           ? '茨の石門：風裂きの剣で切り開けそう。牙を持ち帰って鍛冶へ'
-          : '✨ '+near.label+'：地点をタップ、または右側をタップ'
+          : '✨ '+near.label+'：地点そのものをタップして調べよう'
       : state.forestFinds.has('traces') && !state.forestFinds.has('hollow')
         ? '足跡は右奥の石門へ。'+(rpg.crafted?'剣で茨を切り開こう':'茨を切る剣を作って再訪しよう')
       : rpg.phase==='return'

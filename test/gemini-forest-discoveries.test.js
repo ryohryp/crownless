@@ -186,3 +186,14 @@ test('forest discoveries are in-scene actions, no navigation route/save/GPS coup
   assert.doesNotMatch(clearWave[1],/showRpgPanel\(\)/,'clearing enemies must not force modal');
   assert.doesNotMatch(html,/CrownlessControlBarricade/);
 });
+
+test('action forest requires direct clue taps, not incidental combat pickup',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  assert.match(html,/if \(action==='punch' && tryTapForestSite\(event\.clientX,event\.clientY,false\)\) return;/);
+  assert.match(html,/if \(!site && !allowNearby\) return false;/);
+  assert.match(html,/if \(site\) return tryExploreForest\(ginji\);/);
+  assert.doesNotMatch(html,/if \(site \|\| near\) return tryExploreForest\(ginji\);/);
+  const pickup=html.slice(html.indexOf('function tryPickupItem(f) {'),html.indexOf('function tryPickupItem(f) {')+300);
+  assert.doesNotMatch(pickup,/tryExploreForest\(f\)/);
+  assert.match(html,/地点そのものをタップして調べよう/);
+});

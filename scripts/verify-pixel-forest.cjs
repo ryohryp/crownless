@@ -153,6 +153,15 @@ async function main() {
           assert(first.after.unbanked>=3,'three actual enemies provide crafting materials');
           assert.equal(await page.locator('#rpgPanel').isVisible(),false,'victory leaves forest playable');
           await walkTo(page,800,365);
+          // Attacking near tracks must not silently collect one-time materials.
+          const beforeClue=await read(page);
+          await page.keyboard.down('k');
+          await page.waitForTimeout(220);
+          await page.keyboard.up('k');
+          await page.waitForTimeout(150);
+          const afterPunch=await read(page);
+          assert(!afterPunch.found.includes('traces'),'punch must not auto-discover');
+          assert.equal(afterPunch.unbanked,beforeClue.unbanked,'punch cannot grant clue loot');
           await tapSite(page,'traces');
           assert((await read(page)).found.includes('traces'),'walking and touching discovers tracks');
           await walkTo(page,910,235);
