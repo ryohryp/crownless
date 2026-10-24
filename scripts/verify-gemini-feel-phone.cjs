@@ -341,8 +341,9 @@ async function main() {
           'nearby shrine must show a sensory cue on the canvas');
         assert.match(beforeShrine.hint,
           beforeShrine.player.hp>=beforeShrine.player.maxHp
-            ? /今なら素材、あとで癒やし/ : /今なら傷を癒やせるが、素材は手に入らない/,
-          'real phone hint must explain the current shrine trade-off before touching');
+            ? /素材を探すか、傷ついてから癒やすか/ : /素材か癒やしか、一度だけ選べる/,
+          'real phone hint must invite an intentional trade-off');
+        const readForestShrine=()=>page.evaluate(()=>window.CrownlessForestReadout());
         // The actor can collect a healing dango between the HUD snapshot
         // and the actual tap. Assert against HP at the decision point, not
         // an earlier frame (especially on a high-DPI rendering workload).
@@ -362,6 +363,14 @@ async function main() {
           };
         });
         await page.touchscreen.tap(nearTap.x,nearTap.y);
+        assert.equal(await page.locator('#forestShrineChoice').isVisible(),true,
+          'touching the shrine presents explicit choices without consuming it');
+        assert.equal((await readForestShrine()).found.includes('shrine'),false);
+        await page.locator('#forestShrineCancel').click();
+        assert.equal((await readForestShrine()).found.includes('shrine'),false,
+          'declining must preserve the discovery for later');
+        await page.touchscreen.tap(nearTap.x,nearTap.y);
+        await page.locator('#forestShrineMaterial').click();
         await page.waitForFunction(() => window.CrownlessForestReadout().found.includes('shrine'),
           null,{timeout:2500});
         await page.waitForFunction(() => window.__combatLabCanvasText.includes('苔むす祠'),
@@ -369,13 +378,10 @@ async function main() {
         const afterShrine=await page.evaluate(() => window.CrownlessForestReadout());
         const shrineOutcome=await page.evaluate(() => window.__shrineTapOutcome);
         assert(shrineOutcome,'direct shrine tap must invoke the discovery rule');
-        assert.equal(shrineOutcome.material,
-          shrineOutcome.hpAtTap>=shrineOutcome.maxHp ? 1 : 0,
-          'shrine material-or-healing branch uses HP at the actual tap');
-        assert.equal(shrineOutcome.heal,
-          shrineOutcome.hpAtTap>=shrineOutcome.maxHp
-            ? 0 : Math.min(35,shrineOutcome.maxHp-shrineOutcome.hpAtTap),
-          'injured shrine restores at most 35 HP instead of granting loot');
+        assert.equal(shrineOutcome.material,1,
+          'the material button grants one provisional fang even when injured');
+        assert.equal(shrineOutcome.heal,0,
+          'the material button deliberately gives up healing');
         // Enemies can award a fang while the player is approaching the site.
         // Snapshot inside uncover() isolates the shrine's reward from earlier
         // combat loot; only materials gained after the tap belong to this choice.
