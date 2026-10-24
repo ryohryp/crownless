@@ -154,6 +154,14 @@
           🌲 森の音や足元の違和感を探そう。気になる地点は直接タップ
         </div>
       </div>
+      <div id="forestShrineChoice" class="hidden absolute inset-x-3 bottom-3 z-30 rounded-xl border border-emerald-300 bg-emerald-950/95 p-3 text-emerald-50 shadow-xl pointer-events-auto" role="group" aria-label="苔むす祠の選択">
+        <p class="mb-2 text-sm font-bold">🍃 苔むす祠：この遠征では一度だけ</p>
+        <div class="flex flex-col gap-2">
+          <button id="forestShrineMaterial" type="button" class="min-h-11 rounded-lg bg-amber-700 px-3 text-sm font-bold">牙を探す（未帰還素材 +1・回復なし）</button>
+          <button id="forestShrineHeal" type="button" class="min-h-11 rounded-lg bg-emerald-700 px-3 text-sm font-bold disabled:opacity-50">傷を癒やす（最大 HP +35・素材なし）</button>
+          <button id="forestShrineCancel" type="button" class="min-h-11 rounded-lg border border-emerald-300 px-3 text-sm">今は調べない</button>
+        </div>
+      </div>
       <button id="rpgOpenResults" type="button" class="hidden absolute top-2 right-2 z-20 min-h-11 px-3 rounded-lg bg-emerald-900/95 border border-emerald-300 text-amber-50 text-xs font-black shadow-lg">
         🏕 生還 / さらに奥へ
       </button>
@@ -1820,16 +1828,37 @@
         return true;
       }
     }
+    if (site?.id==='shrine') {
+      const panel=document.getElementById('forestShrineChoice');
+      const heal=document.getElementById('forestShrineHeal');
+      const missing=Math.max(0,ginji.maxHp-ginji.hp);
+      heal.disabled=missing===0;
+      heal.textContent=missing ? '傷を癒やす（HP +'+Math.min(35,missing)+'・素材なし）' : '傷がないため回復不可';
+      panel.classList.remove('hidden');
+      return true;
+    }
     if (site) return tryExploreForest(ginji);
     return false;
   }
 
-  function tryExploreForest(f) {
+  for (const [id,choice] of [['forestShrineMaterial','material'],['forestShrineHeal','heal']]) {
+    document.getElementById(id).addEventListener('click',()=>{
+      document.getElementById('forestShrineChoice').classList.add('hidden');
+      if (ginji && ginji.state!=='DEAD' &&
+          window.CrownlessForestDiscoveries.near(ginji,state.forestFinds)?.id==='shrine')
+        tryExploreForest(ginji,choice);
+    });
+  }
+  document.getElementById('forestShrineCancel').addEventListener('click',()=>{
+    document.getElementById('forestShrineChoice').classList.add('hidden');
+  });
+
+  function tryExploreForest(f,shrineChoice='auto') {
     if (f !== ginji || !window.CrownlessForestDiscoveries.available(rpg.phase)) return false;
     const nearby = window.CrownlessForestDiscoveries.near(f,state.forestFinds);
     if (!nearby) return false;
     const discovery = window.CrownlessForestDiscoveries.uncover(
-      f,state.forestFinds,rpg.phase,f.hp,f.maxHp,rpg.crafted);
+      f,state.forestFinds,rpg.phase,f.hp,f.maxHp,rpg.crafted,shrineChoice);
     if (!discovery.ok) {
       if(discovery.reason==='trail'||discovery.reason==='thorns') {
         spawnPopup(discovery.reason==='trail'?'手前の獣の痕跡に、道の手がかりがある':'茨が行く手を塞ぐ。鍛冶した剣なら切り開けそう',f.x,f.z,f.y+48,'#e3d4ac');
@@ -2621,18 +2650,23 @@
   }
   function updateForestExploreHint() {
     const hint=document.getElementById('forestExploreHint');
-    if(rpg.phase==='camp') {hint.classList.add('hidden');return;}
+    if(rpg.phase==='camp') {
+      hint.classList.add('hidden');
+      document.getElementById('forestShrineChoice').classList.add('hidden');
+      return;
+    }
     hint.classList.remove('hidden');
     const near=window.CrownlessForestDiscoveries.near(ginji,state.forestFinds);
+    if (near?.id!=='shrine') document.getElementById('forestShrineChoice').classList.add('hidden');
     const label=near
       ? near.id==='hollow' && !state.forestFinds.has('traces')
         ? '🌿 茨の奥で硬い音がする。足元のかすかな筋を辿ろう'
         : near.id==='hollow' && !rpg.crafted
           ? '🌿 茨の奥で何かが軋む。気になる地点を直接タップ'
           : near.id==='shrine' && ginji.hp>=ginji.maxHp
-          ? '🍃 苔の間から冷たい風が流れる。今なら素材、あとで癒やし。調べると使い切る。気になる地点を直接タップ'
+          ? '🍃 苔の間から冷たい風が流れる。素材を探すか、傷ついてから癒やすか。気になる地点を直接タップ'
           : near.id==='shrine'
-          ? '🍃 苔の間から冷たい風が流れる。今なら傷を癒やせるが、素材は手に入らない。調べると使い切る。気になる地点を直接タップ'
+          ? '🍃 苔の間から冷たい風が流れる。素材か癒やしか、一度だけ選べる。気になる地点を直接タップ'
           : '🍃 '+(near.id==='traces'?'湿った土に細い筋がある':'茨の向こうで何かが軋む')+'。気になる地点を直接タップ'
       : state.forestFinds.has('traces') && !state.forestFinds.has('hollow')
         ? '足跡は右奥へ続いている。'+(rpg.crafted?'新しい剣で奥を調べよう':'奥の茨を調べてみよう')
