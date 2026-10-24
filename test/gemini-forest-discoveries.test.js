@@ -169,7 +169,22 @@ test('scene registers direct touch and keeps cleared-wave right-hand gesture act
   assert.match(html,/if\(combatInputMode!=='buttons'\) return;/);
   assert.match(html,/canvas\.addEventListener\('pointerup'/);
   assert.match(html,/if \(rpg\.phase !== 'fight' && rpg\.phase !== 'return'\) return;/);
-  assert.match(html,/地点そのものをタップして調べよう/,'the on-screen hint must require deliberate inspection');
+  assert.match(html,/気になる地点を直接タップ/,'the on-screen hint must require deliberate inspection');
+});
+
+test('undiscovered forest hints convey sensory cues without naming every hidden location',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const start=html.indexOf('function updateForestExploreHint() {');
+  const end=html.indexOf('function showRpgPanel() {',start);
+  assert(start>=0 && end>start,'the live forest hint must be present');
+  const hint=html.slice(start,end);
+  assert.match(hint,/湿った土に細い筋がある/,'tracks are sensed before they are named');
+  assert.match(hint,/苔の間から冷たい風が流れる/,'shrine is sensed before it is named');
+  assert.match(hint,/茨の向こうで何かが軋む/,'gate is sensed before it is named');
+  assert.match(hint,/足跡は右奥へ続いている/,'discovered tracks still guide deeper exploration');
+  assert.match(hint,/気になる地点を直接タップ/,'the player must deliberately inspect');
+  assert.doesNotMatch(hint,/near\\.label/,'the hint must not automatically reveal an undiscovered name');
+  assert.doesNotMatch(hint,/獣の痕跡や古い祠へ近づき/,'generic hint must not spoil specific locations');
 });
 
 test('forest discoveries are in-scene actions, no navigation route/save/GPS coupling',()=>{
@@ -196,5 +211,5 @@ test('action forest requires direct clue taps, not incidental combat pickup',()=
   assert.doesNotMatch(html,/if \(site \|\| near\) return tryExploreForest\(ginji\);/);
   const pickup=html.slice(html.indexOf('function tryPickupItem(f) {'),html.indexOf('function tryPickupItem(f) {')+300);
   assert.doesNotMatch(pickup,/tryExploreForest\(f\)/);
-  assert.match(html,/地点そのものをタップして調べよう/);
+  assert.match(html,/気になる地点を直接タップ/);
 });
