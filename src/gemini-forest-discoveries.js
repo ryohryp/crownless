@@ -8,9 +8,9 @@
 })(typeof globalThis==='object'?globalThis:this,function(){
   'use strict';
   const spots=Object.freeze([
-    Object.freeze({id:'traces',x:800,z:365,label:'獣の痕跡',kind:'material'}),
-    Object.freeze({id:'shrine',x:660,z:230,label:'苔むす祠',kind:'healing'}),
-    Object.freeze({id:'hollow',x:910,z:235,label:'茨の石門',kind:'cache'})
+    Object.freeze({id:'traces',x:800,z:365,label:'獣の痕跡',kind:'material',clue:'湿った土の筋'}),
+    Object.freeze({id:'shrine',x:660,z:230,label:'苔むす祠',kind:'healing',clue:'苔の冷気'}),
+    Object.freeze({id:'hollow',x:910,z:235,label:'茨の石門',kind:'cache',clue:'茨の軋み'})
   ]);
   const RANGE=54;
   function near(player,found){
