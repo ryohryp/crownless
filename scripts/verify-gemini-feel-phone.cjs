@@ -354,6 +354,7 @@ async function main() {
             if(result.ok && result.spot?.id==='shrine') {
               window.__shrineTapOutcome={
                 hpAtTap:args[3],maxHp:args[4],
+                unbankedAtTap:window.CrownlessForestReadout().unbanked,
                 material:result.material,heal:result.heal
               };
             }
@@ -375,7 +376,10 @@ async function main() {
           shrineOutcome.hpAtTap>=shrineOutcome.maxHp
             ? 0 : Math.min(35,shrineOutcome.maxHp-shrineOutcome.hpAtTap),
           'injured shrine restores at most 35 HP instead of granting loot');
-        assert.equal(afterShrine.unbanked-beforeShrine.unbanked,shrineOutcome.material,
+        // Enemies can award a fang while the player is approaching the site.
+        // Snapshot inside uncover() isolates the shrine's reward from earlier
+        // combat loot; only materials gained after the tap belong to this choice.
+        assert.equal(afterShrine.unbanked-shrineOutcome.unbankedAtTap,shrineOutcome.material,
           'only the chosen shrine branch adds provisional material: '+
           JSON.stringify({before:beforeShrine.player.hp,outcome:shrineOutcome,after:afterShrine.player.hp}));
         await page.touchscreen.tap(nearTap.x,nearTap.y);
