@@ -74,6 +74,28 @@ test('injured explorers can deliberately take provisional material instead of he
   assert.equal(fullFound.size,0);
 });
 
+test('shrine deep search exchanges 12 HP for two provisional fangs without bypassing survival',()=>{
+  const player={x:660,z:230},found=new Set();
+  const risk=D.uncover(player,found,'fight',75,140,false,'risk');
+  assert.equal(risk.ok,true);
+  assert.equal(risk.material,2);
+  assert.equal(risk.damage,12);
+  assert.equal(risk.heal,0);
+  assert.equal(D.uncover(player,found,'fight',63,140,false,'risk').ok,false,
+    'one expedition cannot farm the risky branch');
+  const exhausted=new Set();
+  assert.equal(D.uncover(player,exhausted,'fight',12,140,false,'risk').reason,'weak');
+  assert.equal(exhausted.size,0,'too little HP must not consume the shrine');
+  assert.equal(D.uncover(player,exhausted,'fight',12,140,false,'material').material,1,
+    'the safe material option remains available at low HP');
+  const run=R.create();
+  for(let i=0;i<risk.material;i++) assert.equal(R.claimMaterial(run),true);
+  assert.equal(run.unbanked,2);
+  R.loseExpedition(run);
+  assert.equal(run.banked,0);
+  assert.equal(run.unbanked,0,'risky fangs are lost on defeat');
+});
+
 test('the stone gate stays discoverable while locked and needs both a trail and a crafted sword',()=>{
   const visited=new Set(),player={x:910,z:235};
   assert.equal(D.near(player,visited)?.id,'hollow','locked sites remain reachable for their hint');
