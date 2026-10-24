@@ -40,6 +40,11 @@
   function available(phase){
     return phase==='fight'||phase==='return';
   }
+  // Reading the animal tracks reveals firmer footing around the shrine.
+  // This optional detour changes the risk, without locking out first-time explorers.
+  function shrineRiskDamage(found,crafted){
+    return (crafted?6:12)-(found.has('traces')?3:0);
+  }
   function uncover(player,found,phase,hp,maxHp,crafted=false,shrineChoice='auto'){
     if(!available(phase)) return {ok:false};
     const spot=near(player,found);
@@ -55,7 +60,7 @@
     if(spot.kind==='healing' && !['auto','material','heal','risk'].includes(shrineChoice))
       return {ok:false,reason:'choice',spot};
     // A forged sword clears the thorns, halving the deep-search wound.
-    const riskDamage=crafted?6:12;
+    const riskDamage=shrineRiskDamage(found,crafted);
     if(spot.kind==='healing' && shrineChoice==='risk' && hp<riskDamage+1)
       return {ok:false,reason:'weak',spot};
     const risky=spot.kind==='healing' && shrineChoice==='risk';
@@ -67,5 +72,5 @@
       heal:spot.kind==='cache'?Math.min(45,Math.max(0,maxHp-hp)):
         spot.kind==='healing' && !scavenge?Math.min(35,Math.max(0,maxHp-hp)):0};
   }
-  return {spots,RANGE,near,spotAtTap,available,uncover};
+  return {spots,RANGE,near,spotAtTap,available,shrineRiskDamage,uncover};
 });
