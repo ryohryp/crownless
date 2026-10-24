@@ -270,6 +270,16 @@ test('a deliberate shrine tap opens touch-sized material and healing actions',()
   assert.match(html,/rpg\.crafted,shrineChoice\)/);
 });
 
+test('shrine decision is a full-stage modal and suspends live combat until resolved',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  assert.match(html,/id="forestShrineChoice"[^>]*class="hidden absolute inset-0/,
+    'the decision backdrop must intercept stray gameplay touches');
+  assert.match(html,/id="forestShrineChoice"[^>]*role="dialog" aria-modal="true"/);
+  const loop=html.slice(html.indexOf('function gameLoop(now) {'));
+  assert.match(loop,/lastTimestamp = now;[\\s\\S]*?if \\(!document\\.getElementById\\('forestShrineChoice'\\)\\.classList\\.contains\\('hidden'\\)\\) \\{\\s*renderScene\\(\\);\\s*requestAnimationFrame\\(gameLoop\\);\\s*return;/,
+    'freeze combat and timers, but keep rendering and scheduling frames');
+});
+
 test('first-paint forest hint keeps undiscovered locations secret before scripts run',()=>{
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   const hint=html.match(/<div id="forestExploreHint"[^>]*>\s*([^<]*)<\/div>/);
