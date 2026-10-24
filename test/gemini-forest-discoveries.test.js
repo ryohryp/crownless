@@ -248,3 +248,17 @@ test('first-paint forest hint keeps undiscovered locations secret before scripts
   assert.doesNotMatch(hint[1],/獣の痕跡|古い祠|茨の石門/,
     'undiscovered location names must not flash on first paint');
 });
+
+
+test('both forest art modes show sensory cues until a landmark is actually found',()=>{
+  assert.deepEqual(D.spots.map(spot=>spot.clue),['湿った土の筋','苔の冷気','茨の軋み']);
+  assert(D.spots.every(spot=>spot.clue!==spot.label));
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const pixel=fs.readFileSync('src/pixel-forest.js','utf8');
+  assert.match(html,/ctx\.fillText\(found\?spot\.label:spot\.clue,0,-69\)/,
+    'classic view must not print a place name before investigation');
+  assert.match(pixel,/const label=found\?spot\.label:spot\.clue;/,
+    'pixel view must not print a place name before investigation');
+  assert.doesNotMatch(pixel,/spot\.id==='hollow'&&!traced\?'茨に閉ざされた石門'/,
+    'the hidden gate name must not be revealed by proximity');
+});
