@@ -238,7 +238,7 @@ test('forest discoveries are in-scene actions, no navigation route/save/GPS coup
   assert.match(html,/id="forestExploreHint"/);
   assert.match(html,/id="rpgOpenResults"/);
   assert.match(html,/id="rpgKeepExploring"/);
-  assert.match(html,/function tryExploreForest\(f\)/);
+  assert.match(html,/function tryExploreForest\(f,shrineChoice='auto'\)/);
   assert.doesNotMatch(html,/if \(tryExploreForest\(f\)\) return true/,'punch must not auto-explore');
   assert.match(html,/rpg\.phase === 'fight' \|\| rpg\.phase === 'return'/);
   assert.match(html,/function updateForestExploreHint\(\)/);
