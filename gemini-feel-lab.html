@@ -157,6 +157,7 @@
       <div id="forestShrineChoice" class="hidden absolute inset-0 z-30 bg-slate-950/60 pointer-events-auto" role="dialog" aria-modal="true" aria-label="苔むす祠の選択">
         <div class="absolute inset-x-3 bottom-3 rounded-xl border border-emerald-300 bg-emerald-950/95 p-3 text-emerald-50 shadow-xl">
         <p class="mb-2 text-sm font-bold">🍃 苔むす祠：この遠征では一度だけ</p>
+        <p id="forestShrineStakes" class="mb-2 text-xs text-amber-100" role="status"></p>
         <div class="flex flex-col gap-2">
           <button id="forestShrineMaterial" type="button" class="min-h-11 rounded-lg bg-amber-700 px-3 text-sm font-bold">牙を探す（未帰還素材 +1・回復なし）</button>
           <button id="forestShrineHeal" type="button" class="min-h-11 rounded-lg bg-emerald-700 px-3 text-sm font-bold disabled:opacity-50">傷を癒やす（最大 HP +35・素材なし）</button>
@@ -1836,6 +1837,9 @@
       const missing=Math.max(0,ginji.maxHp-ginji.hp);
       heal.disabled=missing===0;
       heal.textContent=missing ? '傷を癒やす（HP +'+Math.min(35,missing)+'・素材なし）' : '傷がないため回復不可';
+      document.getElementById('forestShrineStakes').textContent=
+        '現在 HP '+Math.ceil(ginji.hp)+'/'+ginji.maxHp+'、未帰還の牙 '+rpg.unbanked+
+        '個。素材は生還時だけ倉庫に残る（敗北すると失う）。';
       panel.classList.remove('hidden');
       return true;
     }
