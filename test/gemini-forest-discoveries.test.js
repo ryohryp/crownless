@@ -217,3 +217,13 @@ test('action forest requires direct clue taps, not incidental combat pickup',()=
   assert.doesNotMatch(pickup,/tryExploreForest\(f\)/);
   assert.match(html,/気になる地点を直接タップ/);
 });
+
+test('first-paint forest hint keeps undiscovered locations secret before scripts run',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const hint=html.match(/<div id="forestExploreHint"[^>]*>\s*([^<]*)<\/div>/);
+  assert.ok(hint,'a first-paint hint is visible before JavaScript updates it');
+  assert.match(hint[1],/森の音や足元の違和感を探そう/);
+  assert.match(hint[1],/気になる地点は直接タップ/);
+  assert.doesNotMatch(hint[1],/獣の痕跡|古い祠|茨の石門/,
+    'undiscovered location names must not flash on first paint');
+});
