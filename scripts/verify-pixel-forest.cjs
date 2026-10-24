@@ -92,6 +92,41 @@ async function tapSite(page, id) {
   await page.waitForTimeout(200);
 }
 
+// The clue must change the *actual* next choice, not only a rule test or hint.
+async function verifyTracksShrineRisk(page, crafted) {
+  const foundTracks=await read(page);
+  assert(foundTracks.found.includes('traces'),'the detour must be discovered by real touch first');
+  assert(!foundTracks.found.includes('shrine'),'the shrine is still unspent');
+  assert.equal(foundTracks.crafted,crafted,'compare starter gear and the forged sword');
+  await walkTo(page,660,230);
+  const before=await read(page);
+  assert(Math.hypot(before.player.x-660,before.player.z-230)<54,
+    'the player must physically reach the shrine before touching it');
+  await tapSite(page,'shrine');
+  assert.equal(await page.locator('#forestShrineChoice').isVisible(),true,
+    'the real shrine touch opens the decision');
+  const cost=crafted?3:9;
+  const risk=page.locator('#forestShrineRisk');
+  assert(before.player.hp>=cost+1,'the real run must have enough HP to test this risk');
+  assert.equal(await risk.isEnabled(),true);
+  assert.match(await risk.innerText(),new RegExp('HP -'+cost),
+    'reading tracks must reduce the visible cost with and without crafted gear');
+  assert.match(await risk.innerText(),/足跡を読んで負傷 -3/,
+    'the UI must explain why the risk is reduced');
+  await risk.click();
+  const after=await read(page);
+  assert(after.found.includes('shrine'),'the selected branch consumes the shrine');
+  assert.equal(after.unbanked,before.unbanked+2,
+    'the dangerous search grants exactly two unsecured fangs');
+  assert.equal(after.player.hp,before.player.hp-cost,
+    'the displayed HP cost must match the real health loss');
+  await tapSite(page,'shrine');
+  assert.equal((await read(page)).unbanked,after.unbanked,
+    'repeat touches cannot duplicate the shrine reward');
+  return {crafted,cost,hpBefore:before.player.hp,hpAfter:after.player.hp,
+    provisionalBefore:before.unbanked,provisionalAfter:after.unbanked};
+}
+
 async function main() {
   const {chromium}=require('playwright');
   const server=spawn(process.execPath,['scripts/serve-slice.cjs'],{
@@ -170,6 +205,7 @@ async function main() {
           await tapSite(page,'traces');
           assert((await read(page)).found.includes('traces'),'walking and touching discovers tracks');
           await page.waitForFunction(()=>document.getElementById('forestExploreHint')?.textContent?.includes('足跡は右奥へ続いている'));
+          const shrineBeforeForge=await verifyTracksShrineRisk(page,false);
           await walkTo(page,910,235);
           const lockedBefore=await read(page);
           const gateHint=await page.locator('#forestExploreHint').innerText();
@@ -196,6 +232,7 @@ async function main() {
           assert.equal(await page.locator('#rpgPanel').isVisible(),false,'victory leaves forest playable');
           await walkTo(page,800,365);
           await tapSite(page,'traces');
+          const shrineAfterForge=await verifyTracksShrineRisk(page,true);
           await walkTo(page,910,235);
           const hollowBefore=await read(page);
           await tapSite(page,'hollow');
@@ -216,7 +253,7 @@ async function main() {
           assert.equal(restored.unbanked,0);
           assert.equal(await page.evaluate(()=>localStorage.getItem('crownless-expedition-v1-demo')),saveBefore,
             'action loop must preserve the main location-game save');
-          report.loop={first,locked,returned,forged,second,unlocked,banked,restored};
+          report.loop={first,shrineBeforeForge,locked,returned,forged,second,shrineAfterForge,unlocked,banked,restored};
         }
         assert.deepEqual(errors,[],'no browser runtime errors');
       } catch(error) {
