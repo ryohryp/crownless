@@ -164,7 +164,8 @@ test('scene registers direct touch and keeps cleared-wave right-hand gesture act
   assert.match(html,/CrownlessForestDiscoveries\.spotAtTap\(/);
   assert.match(html,/function tryTapForestSite\(clientX,clientY,allowNearby\)/);
   assert.match(html,/tryTapForestSite\(e\.clientX,e\.clientY,false\)/);
-  assert.match(html,/tryTapForestSite\(event\.clientX,event\.clientY,true\)/);
+  assert.match(html,/tryTapForestSite\(event\.clientX,event\.clientY,false\)/,'gesture must only investigate a tapped landmark');
+  assert.doesNotMatch(html,/tryTapForestSite\(event\.clientX,event\.clientY,true\)/,'nearby gesture attacks cannot auto-collect clues');
   assert.match(html,/if\(combatInputMode!=='buttons'\) return;/);
   assert.match(html,/canvas\.addEventListener\('pointerup'/);
   assert.match(html,/if \(rpg\.phase !== 'fight' && rpg\.phase !== 'return'\) return;/);
