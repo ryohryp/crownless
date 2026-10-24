@@ -2665,7 +2665,10 @@
     const badge = document.getElementById('rpgStatusBadge');
     badge.textContent = '🎒 未帰還 ' + rpg.unbanked + '　倉庫 ' + rpg.banked +
       '　武器：' + (rpg.crafted ? '⚔ 風裂きの剣' : '初期装備');
-    document.getElementById('rpgOpenResults').classList.toggle('hidden',rpg.phase!=='return');
+    const returnChoice=document.getElementById('rpgOpenResults');
+    // Keep the unsecured loot visible even when a nearby clue replaces the hint.
+    returnChoice.textContent='🏕 帰還/続行（牙'+rpg.unbanked+'）';
+    returnChoice.classList.toggle('hidden',rpg.phase!=='return');
   }
   function updateForestExploreHint() {
     const hint=document.getElementById('forestExploreHint');
