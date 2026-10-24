@@ -397,8 +397,11 @@ async function main() {
         const pausedAfter=await readForestShrine();
         assert.deepEqual(pausedAfter.player,pausedBefore.player,
           'the hero must not move or lose HP while choosing at the shrine');
-        assert.deepEqual(pausedAfter.enemies,pausedBefore.enemies,
-          'enemy AI and combat must pause until the choice is closed');
+        // Dead foes may be removed by an already-scheduled cleanup timeout;
+        // only living enemies can move, attack or change HP during the modal.
+        assert.deepEqual(pausedAfter.enemies.filter(enemy=>enemy.hp>0),
+          pausedBefore.enemies.filter(enemy=>enemy.hp>0),
+          'living enemy AI and combat must pause until the choice is closed');
         assert.equal(pausedAfter.found.includes('shrine'),false);
         await page.locator('#forestShrineCancel').click();
         assert.equal((await readForestShrine()).found.includes('shrine'),false,
