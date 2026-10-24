@@ -258,6 +258,22 @@ async function main() {
         assert.equal(await page.evaluate(
           () => localStorage.getItem('crownless-action-forest-v1-demo')), '{"version":999}');
         assert.equal(errors.length, 0, 'no runtime errors after isolated save restore tests');
+        // Compare the same real shrine decision with starter gear (360px)
+        // and a smith-crafted sword restored from a valid current save (390px).
+        if (width === 390) {
+          await page.evaluate(() => {
+            const run = window.CrownlessRpgLoop.create();
+            run.phase = 'camp';
+            run.banked = window.CrownlessRpgLoop.COST;
+            assertForgedSword(run);
+            function assertForgedSword(state) {
+              if (!window.CrownlessRpgLoop.forge(state) || !state.crafted)
+                throw new Error('smith must craft the sword before the phone test');
+            }
+            localStorage.setItem('crownless-action-forest-v1-demo',
+              window.CrownlessActionSave.encode(run));
+          });
+        }
         // Real phone taps: the first playable shrine is initially offscreen.
         // Walk until its world-fixed sprite enters view, then tap its icon.
         // The player is still too far away, so the GAME must visibly say so
@@ -266,6 +282,8 @@ async function main() {
           waitUntil:'domcontentloaded',timeout:30000,
         });
         await page.waitForFunction(() => window.CrownlessForestReadout?.().player);
+        assert.equal((await page.evaluate(() => window.CrownlessForestReadout())).crafted,
+          width === 390,'390px must load the forged sword; 360px uses starter gear');
         await page.keyboard.down('d');
         try {
           await page.waitForFunction(() => {
@@ -387,6 +405,8 @@ async function main() {
         await page.touchscreen.tap(nearTap.x,nearTap.y);
         const takeRisk=width===390;
         const riskCost=stakesAtChoice.crafted?6:12;
+        assert.equal(riskCost,width===390?6:12,
+          'the actual shrine risk must halve after smithing, not merely change its label');
         assert.equal(await page.locator('#forestShrineRisk').isEnabled(),stakesAtChoice.player.hp>=riskCost+1,
           'deep search requires enough HP for the current equipment-dependent cost');
         if(stakesAtChoice.player.hp>=riskCost+1)
