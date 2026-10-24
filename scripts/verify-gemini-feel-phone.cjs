@@ -83,8 +83,8 @@ async function main() {
           return !!canvas && canvas.width > 0 && window.__combatLabCanvasText.includes('旅人 [1P]');
         }, null, { timeout: 15000 });
 
-        assert.match(await page.locator('#forestExploreHint').innerText(), /獣の痕跡.*古い祠/,
-          'start of combat should suggest real places to walk to');
+        assert.match(await page.locator('#forestExploreHint').innerText(), /森の音.*気になる地点は直接タップ/,
+          'start of combat should invite sensory exploration without spoiling place names');
         assert.equal(await page.locator('#rpgOpenResults').isVisible(), false,
           'expedition choice stays hidden until enemies are defeated');
         assert.equal(await page.locator('#rpgKeepExploring').isVisible(), false,
@@ -258,14 +258,33 @@ async function main() {
         assert.equal(await page.evaluate(
           () => localStorage.getItem('crownless-action-forest-v1-demo')), '{"version":999}');
         assert.equal(errors.length, 0, 'no runtime errors after isolated save restore tests');
+        // Compare the same real shrine decision with starter gear (360px)
+        // and a smith-crafted sword restored from a valid current save (390px).
+        if (width === 390) {
+          await page.evaluate(() => {
+            const run = window.CrownlessRpgLoop.create();
+            run.phase = 'camp';
+            run.banked = window.CrownlessRpgLoop.COST;
+            assertForgedSword(run);
+            function assertForgedSword(state) {
+              if (!window.CrownlessRpgLoop.forge(state) || !state.crafted)
+                throw new Error('smith must craft the sword before the phone test');
+            }
+            localStorage.setItem('crownless-action-forest-v1-demo',
+              window.CrownlessActionSave.encode(run));
+          });
+        }
         // Real phone taps: the first playable shrine is initially offscreen.
         // Walk until its world-fixed sprite enters view, then tap its icon.
         // The player is still too far away, so the GAME must visibly say so
         // rather than silently eat the touch as movement/attack input.
-        await page.goto('http://127.0.0.1:' + port + '/gemini-feel-lab.html', {
+        await page.goto('http://127.0.0.1:' + port + '/gemini-feel-lab.html' +
+          (width === 390 ? '?from=discovered-wood' : ''), {
           waitUntil:'domcontentloaded',timeout:30000,
         });
         await page.waitForFunction(() => window.CrownlessForestReadout?.().player);
+        assert.equal((await page.evaluate(() => window.CrownlessForestReadout())).crafted,
+          width === 390,'390px must load the forged sword; 360px uses starter gear');
         await page.keyboard.down('d');
         try {
           await page.waitForFunction(() => {
@@ -331,12 +350,96 @@ async function main() {
           'hero genuinely walked into discovery distance: '+JSON.stringify(nearTap));
         assert(nearTap.x<nearTap.rectWidth*.52,
           'site should now be on movement-pad half, demonstrating former click bug');
+        const beforeShrine=await page.evaluate(() => ({
+          ...window.CrownlessForestReadout(),
+          hint:document.getElementById('forestExploreHint').textContent,
+        }));
+        assert.equal(await page.evaluate(() => window.__combatLabCanvasText.includes('苔むす祠')),false,
+          'the undiscovered shrine name must not appear on the actual canvas');
+        assert.equal(await page.evaluate(() => window.__combatLabCanvasText.includes('苔の冷気')),true,
+          'nearby shrine must show a sensory cue on the canvas');
+        assert.match(beforeShrine.hint,
+          beforeShrine.player.hp>=beforeShrine.player.maxHp
+            ? /素材を探すか、傷ついてから癒やすか/ : /素材か癒やしか、一度だけ選べる/,
+          'real phone hint must invite an intentional trade-off');
+        const readForestShrine=()=>page.evaluate(()=>window.CrownlessForestReadout());
+        // The actor can collect a healing dango between the HUD snapshot
+        // and the actual tap. Assert against HP at the decision point, not
+        // an earlier frame (especially on a high-DPI rendering workload).
+        await page.evaluate(() => {
+          const api=window.CrownlessForestDiscoveries;
+          const uncover=api.uncover;
+          api.uncover=(...args) => {
+            const result=uncover(...args);
+            if(result.ok && result.spot?.id==='shrine') {
+              window.__shrineTapOutcome={
+                hpAtTap:args[3],maxHp:args[4],
+                unbankedAtTap:window.CrownlessForestReadout().unbanked,
+                material:result.material,heal:result.heal,damage:result.damage||0
+              };
+            }
+            return result;
+          };
+        });
         await page.touchscreen.tap(nearTap.x,nearTap.y);
-        await page.waitForFunction(() =>
-          window.CrownlessForestReadout().found.includes('shrine') ||
-          window.__combatLabCanvasText.some(s=>s.includes('体力は満タン')),
+        assert.equal(await page.locator('#forestShrineChoice').isVisible(),true,
+          'touching the shrine presents explicit choices without consuming it');
+        assert.equal(await page.locator('#forestShrineChoice').getAttribute('aria-modal'),'true',
+          'the shrine choice must block accidental background taps');
+        const stakesAtChoice=await readForestShrine();
+        assert.equal(await page.locator('#forestShrineStakes').textContent(),
+          '現在 HP '+Math.ceil(stakesAtChoice.player.hp)+'/'+stakesAtChoice.player.maxHp+
+          '、未帰還の牙 '+stakesAtChoice.unbanked+
+          '個。素材は生還時だけ倉庫に残る（敗北すると失う）。',
+          'real phone choice must explain current HP, unsecured loot and defeat risk');
+        const pausedBefore=await readForestShrine();
+        await page.waitForTimeout(300);
+        const pausedAfter=await readForestShrine();
+        assert.deepEqual(pausedAfter.player,pausedBefore.player,
+          'the hero must not move or lose HP while choosing at the shrine');
+        // Dead foes may be removed by an already-scheduled cleanup timeout;
+        // only living enemies can move, attack or change HP during the modal.
+        assert.deepEqual(pausedAfter.enemies.filter(enemy=>enemy.hp>0),
+          pausedBefore.enemies.filter(enemy=>enemy.hp>0),
+          'living enemy AI and combat must pause until the choice is closed');
+        assert.equal(pausedAfter.found.includes('shrine'),false);
+        await page.locator('#forestShrineCancel').click();
+        assert.equal((await readForestShrine()).found.includes('shrine'),false,
+          'declining must preserve the discovery for later');
+        await page.touchscreen.tap(nearTap.x,nearTap.y);
+        const takeRisk=width===390;
+        const riskCost=stakesAtChoice.crafted?6:12;
+        assert.equal(riskCost,width===390?6:12,
+          'the actual shrine risk must halve after smithing, not merely change its label');
+        assert.equal(await page.locator('#forestShrineRisk').isEnabled(),stakesAtChoice.player.hp>=riskCost+1,
+          'deep search requires enough HP for the current equipment-dependent cost');
+        if(stakesAtChoice.player.hp>=riskCost+1)
+          assert.match(await page.locator('#forestShrineRisk').textContent(),new RegExp('HP -'+riskCost),
+            'the choice must advertise the actual wound before confirmation');
+        await page.locator(takeRisk?'#forestShrineRisk':'#forestShrineMaterial').click();
+        await page.waitForFunction(() => window.CrownlessForestReadout().found.includes('shrine'),
           null,{timeout:2500});
-        assert.equal(errors.length,0,'direct near-site touch must heal or explain full HP');
+        await page.waitForFunction(() => window.__combatLabCanvasText.includes('苔むす祠'),
+          null,{timeout:2500});
+        const afterShrine=await page.evaluate(() => window.CrownlessForestReadout());
+        const shrineOutcome=await page.evaluate(() => window.__shrineTapOutcome);
+        assert(shrineOutcome,'direct shrine tap must invoke the discovery rule');
+        assert.equal(shrineOutcome.material,takeRisk?2:1,
+          'the chosen branch grants the advertised number of provisional fangs');
+        assert.equal(shrineOutcome.damage,takeRisk?riskCost:0,
+          'deep search has a real HP cost; ordinary gathering remains safe');
+        assert.equal(shrineOutcome.heal,0,
+          'the material button deliberately gives up healing');
+        // Enemies can award a fang while the player is approaching the site.
+        // Snapshot inside uncover() isolates the shrine's reward from earlier
+        // combat loot; only materials gained after the tap belong to this choice.
+        assert.equal(afterShrine.unbanked-shrineOutcome.unbankedAtTap,shrineOutcome.material,
+          'only the chosen shrine branch adds provisional material: '+
+          JSON.stringify({before:beforeShrine.player.hp,outcome:shrineOutcome,after:afterShrine.player.hp}));
+        await page.touchscreen.tap(nearTap.x,nearTap.y);
+        assert.equal((await page.evaluate(() => window.CrownlessForestReadout())).unbanked,
+          afterShrine.unbanked,'repeat shrine taps cannot duplicate materials');
+        assert.equal(errors.length,0,'direct near-site touch must resolve once without errors');
 
 
 

@@ -151,7 +151,19 @@
           🎯 Z軸（奥行き）ロックオン中！攻撃が当たります
         </div>
         <div id="forestExploreHint" class="max-w-56 px-2 py-1 rounded bg-emerald-950/80 border border-emerald-500/40 text-emerald-100 text-[10px] font-bold" role="status">
-          🌲 獣の痕跡や古い祠へ近づき、地点そのものをタップして調べよう
+          🌲 森の音や足元の違和感を探そう。気になる地点は直接タップ
+        </div>
+      </div>
+      <div id="forestShrineChoice" class="hidden absolute inset-0 z-30 bg-slate-950/60 pointer-events-auto" role="dialog" aria-modal="true" aria-label="苔むす祠の選択">
+        <div class="absolute inset-x-3 bottom-3 rounded-xl border border-emerald-300 bg-emerald-950/95 p-3 text-emerald-50 shadow-xl">
+        <p class="mb-2 text-sm font-bold">🍃 苔むす祠：この遠征では一度だけ</p>
+        <p id="forestShrineStakes" class="mb-2 text-xs text-amber-100" role="status"></p>
+        <div class="flex flex-col gap-2">
+          <button id="forestShrineMaterial" type="button" class="min-h-11 rounded-lg bg-amber-700 px-3 text-sm font-bold">牙を探す（未帰還素材 +1・回復なし）</button>
+          <button id="forestShrineRisk" type="button" class="min-h-11 rounded-lg bg-orange-800 px-3 text-sm font-bold disabled:opacity-50">奥まで探る（HP -12・未帰還素材 +2）</button>
+          <button id="forestShrineHeal" type="button" class="min-h-11 rounded-lg bg-emerald-700 px-3 text-sm font-bold disabled:opacity-50">傷を癒やす（最大 HP +35・素材なし）</button>
+          <button id="forestShrineCancel" type="button" class="min-h-11 rounded-lg border border-emerald-300 px-3 text-sm">今は調べない</button>
+        </div>
         </div>
       </div>
       <button id="rpgOpenResults" type="button" class="hidden absolute top-2 right-2 z-20 min-h-11 px-3 rounded-lg bg-emerald-900/95 border border-emerald-300 text-amber-50 text-xs font-black shadow-lg">
@@ -921,7 +933,7 @@
     releaseGestureHold();
     if (!p.held) {
       const action=window.CrownlessCombatGesture.resolve(event.clientX-p.x,event.clientY-p.y);
-      if (action==='punch' && tryTapForestSite(event.clientX,event.clientY,true)) return;
+      if (action==='punch' && tryTapForestSite(event.clientX,event.clientY,false)) return;
       fireGesture(action);
     }
   });
@@ -1807,10 +1819,9 @@
     const site=window.CrownlessForestDiscoveries.spotAtTap(
       {x:clientX,y:clientY},canvas.getBoundingClientRect(),{width:virtualW,height:VIRTUAL_H},
       state.cameraX,getGroundHeightAt);
-    // The right-hand attack tap can still interact from anywhere on its
-    // half when near a clue. Direct taps work on either half of the scene.
+    // Only taps on a visible clue investigate it; ordinary attacks do not
+    // consume a one-time find simply because the player is nearby.
     if (!site && !allowNearby) return false;
-    const near=window.CrownlessForestDiscoveries.near(ginji,state.forestFinds);
     if (site) {
       if (state.forestFinds.has(site.id)) {
         spawnPopup('ここは調査済み',site.x,site.z,getGroundHeightAt(site.x,site.z)+65,'#cbd5e1');
@@ -1821,19 +1832,53 @@
         return true;
       }
     }
-    if (site || near) return tryExploreForest(ginji);
+    if (site?.id==='shrine') {
+      const panel=document.getElementById('forestShrineChoice');
+      const heal=document.getElementById('forestShrineHeal');
+      const missing=Math.max(0,ginji.maxHp-ginji.hp);
+      heal.disabled=missing===0;
+      const risk=document.getElementById('forestShrineRisk');
+      const riskCost=window.CrownlessForestDiscoveries.shrineRiskDamage(state.forestFinds,rpg.crafted);
+      risk.disabled=ginji.hp<riskCost+1;
+      risk.textContent=risk.disabled?'体力が足りず奥まで探れない（HP '+(riskCost+1)+'以上必要）':
+        '奥まで探る（HP -'+riskCost+'・未帰還素材 +2'+(rpg.crafted?'／鍛冶剣で軽減':'')+
+        (state.forestFinds.has('traces')?'／足跡を読んで負傷 -3':'')+'）';
+      heal.textContent=missing ? '傷を癒やす（HP +'+Math.min(35,missing)+'・素材なし）' : '傷がないため回復不可';
+      document.getElementById('forestShrineStakes').textContent=
+        '現在 HP '+Math.ceil(ginji.hp)+'/'+ginji.maxHp+'、未帰還の牙 '+rpg.unbanked+
+        '個。素材は生還時だけ倉庫に残る（敗北すると失う）。';
+      panel.classList.remove('hidden');
+      return true;
+    }
+    if (site) return tryExploreForest(ginji);
     return false;
   }
 
-  function tryExploreForest(f) {
+  for (const [id,choice] of [['forestShrineMaterial','material'],['forestShrineRisk','risk'],['forestShrineHeal','heal']]) {
+    document.getElementById(id).addEventListener('click',()=>{
+      document.getElementById('forestShrineChoice').classList.add('hidden');
+      if (ginji && ginji.state!=='DEAD' &&
+          window.CrownlessForestDiscoveries.near(ginji,state.forestFinds)?.id==='shrine')
+        tryExploreForest(ginji,choice);
+    });
+  }
+  document.getElementById('forestShrineCancel').addEventListener('click',()=>{
+    document.getElementById('forestShrineChoice').classList.add('hidden');
+  });
+
+  function tryExploreForest(f,shrineChoice='auto') {
     if (f !== ginji || !window.CrownlessForestDiscoveries.available(rpg.phase)) return false;
     const nearby = window.CrownlessForestDiscoveries.near(f,state.forestFinds);
     if (!nearby) return false;
     const discovery = window.CrownlessForestDiscoveries.uncover(
-      f,state.forestFinds,rpg.phase,f.hp,f.maxHp,rpg.crafted);
+      f,state.forestFinds,rpg.phase,f.hp,f.maxHp,rpg.crafted,shrineChoice);
     if (!discovery.ok) {
       if(discovery.reason==='trail'||discovery.reason==='thorns') {
         spawnPopup(discovery.reason==='trail'?'手前の獣の痕跡に、道の手がかりがある':'茨が行く手を塞ぐ。鍛冶した剣なら切り開けそう',f.x,f.z,f.y+48,'#e3d4ac');
+        return true;
+      }
+      if(discovery.reason==='weak') {
+        spawnPopup('体力が足りず奥まで探れない',f.x,f.z,f.y+48,'#fca5a5');
         return true;
       }
       if(discovery.reason==='full') {
@@ -1844,8 +1889,12 @@
     }
     if(discovery.material) {
       for(let i=0;i<discovery.material;i++) if (!rpgRules.claimMaterial(rpg)) return false;
-      spawnPopup(discovery.spot.id==='hollow'?'石門の薬草と牙 +2（未帰還）':'獣の痕跡を発見！牙 +1 / 足跡は石門へ',f.x,f.z,f.y+48,'#fde68a');
+      spawnPopup(discovery.spot.id==='shrine' && discovery.damage?'祠の奥で牙 +2（未帰還）／HP -'+discovery.damage:
+        discovery.spot.id==='hollow'?'石門の薬草と牙 +2（未帰還）':
+        discovery.spot.id==='shrine'?'祠の隙間で牙 +1（未帰還）／この遠征の癒やしは使い切った':
+        '獣の痕跡を発見！牙 +1 / 足跡は石門へ',f.x,f.z,f.y+48,'#fde68a');
     }
+    if(discovery.damage) f.hp=Math.max(1,f.hp-discovery.damage);
     if(discovery.heal) {
       f.hp=Math.min(f.maxHp,f.hp+discovery.heal);
       spawnPopup((discovery.spot.id==='hollow'?'石門の薬草':'古い祠で傷を癒やした')+' HP +'+discovery.heal,f.x,f.z,f.y+48,'#86efac');
@@ -1872,8 +1921,8 @@
   });
 
   function tryPickupItem(f) {
-    // Tapping near an actual place in the scene explores rather than attacks.
-    if (tryExploreForest(f)) return true;
+    // Attacking or picking up ordinary items must not consume a discovery.
+    // Clues require a deliberate tap on the visible location.
     for (let i = 0; i < state.items.length; i++) {
       const it = state.items[i];
       if (it.thrownTeam !== -1) continue;
@@ -2130,7 +2179,7 @@
       ctx.font='bold 13px "Noto Sans JP",sans-serif';
       ctx.fillStyle=found?'#94a3b8':'#fef08a';
       ctx.textAlign='center';
-      ctx.fillText(found?'調査済':spot.label,0,-69);
+      ctx.fillText(found?spot.label:spot.clue,0,-69);
       const near=ginji&&Math.hypot(ginji.x-spot.x,ginji.z-spot.z)<window.CrownlessForestDiscoveries.RANGE;
       if(near&&!found) {
         ctx.fillStyle='#f8fafc';
@@ -2620,20 +2669,29 @@
   }
   function updateForestExploreHint() {
     const hint=document.getElementById('forestExploreHint');
-    if(rpg.phase==='camp') {hint.classList.add('hidden');return;}
+    if(rpg.phase==='camp') {
+      hint.classList.add('hidden');
+      document.getElementById('forestShrineChoice').classList.add('hidden');
+      return;
+    }
     hint.classList.remove('hidden');
     const near=window.CrownlessForestDiscoveries.near(ginji,state.forestFinds);
+    if (near?.id!=='shrine') document.getElementById('forestShrineChoice').classList.add('hidden');
     const label=near
       ? near.id==='hollow' && !state.forestFinds.has('traces')
-        ? '石門の手前に獣の痕跡。足跡を調べてみよう'
+        ? '🌿 茨の奥で硬い音がする。足元のかすかな筋を辿ろう'
         : near.id==='hollow' && !rpg.crafted
-          ? '茨の石門：風裂きの剣で切り開けそう。牙を持ち帰って鍛冶へ'
-          : '✨ '+near.label+'：地点をタップ、または右側をタップ'
+          ? '🌿 茨の奥で何かが軋む。気になる地点を直接タップ'
+          : near.id==='shrine' && ginji.hp>=ginji.maxHp
+          ? '🍃 苔の間から冷たい風が流れる。素材を探すか、傷ついてから癒やすか。気になる地点を直接タップ'
+          : near.id==='shrine'
+          ? '🍃 苔の間から冷たい風が流れる。素材か癒やしか、一度だけ選べる。気になる地点を直接タップ'
+          : '🍃 '+(near.id==='traces'?'湿った土に細い筋がある':'茨の向こうで何かが軋む')+'。気になる地点を直接タップ'
       : state.forestFinds.has('traces') && !state.forestFinds.has('hollow')
-        ? '足跡は右奥の石門へ。'+(rpg.crafted?'剣で茨を切り開こう':'茨を切る剣を作って再訪しよう')
+        ? '足跡は右奥へ続いている。'+(rpg.crafted?'新しい剣で奥を調べよう':'奥の茨を調べてみよう')
       : rpg.phase==='return'
         ? '🌲 戦闘終了！ 森を歩いて発見を探すか「🏕 生還 / さらに奥へ」'
-        : '🌲 獣の痕跡や古い祠へ近づき、地点そのものをタップして調べよう';
+        : '🌲 森の音や足元の違和感を探そう。気になる地点は直接タップ';
     if(hint.textContent!==label) hint.textContent=label;
   }
 
@@ -2717,6 +2775,15 @@
     const dt = Math.min(0.05, (now - lastTimestamp) / 1000);
     lastTimestamp = now;
     const nowSec = now / 1000;
+
+    // Choosing at a shrine must not expose an immobile player to enemy hits.
+    // Keep drawing the scene, but freeze combat, projectiles and timers until
+    // the player chooses or cancels. lastTimestamp still advances above.
+    if (!document.getElementById('forestShrineChoice').classList.contains('hidden')) {
+      renderScene();
+      requestAnimationFrame(gameLoop);
+      return;
+    }
 
     if (state.kabukiBurstTimer > 0) {
       state.kabukiBurstTimer = Math.max(0, state.kabukiBurstTimer - dt);

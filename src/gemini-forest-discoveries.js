@@ -8,9 +8,9 @@
 })(typeof globalThis==='object'?globalThis:this,function(){
   'use strict';
   const spots=Object.freeze([
-    Object.freeze({id:'traces',x:800,z:365,label:'獣の痕跡',kind:'material'}),
-    Object.freeze({id:'shrine',x:660,z:230,label:'苔むす祠',kind:'healing'}),
-    Object.freeze({id:'hollow',x:910,z:235,label:'茨の石門',kind:'cache'})
+    Object.freeze({id:'traces',x:800,z:365,label:'獣の痕跡',kind:'material',clue:'湿った土の筋'}),
+    Object.freeze({id:'shrine',x:660,z:230,label:'苔むす祠',kind:'healing',clue:'苔の冷気'}),
+    Object.freeze({id:'hollow',x:910,z:235,label:'茨の石門',kind:'cache',clue:'茨の軋み'})
   ]);
   const RANGE=54;
   function near(player,found){
@@ -40,7 +40,12 @@
   function available(phase){
     return phase==='fight'||phase==='return';
   }
-  function uncover(player,found,phase,hp,maxHp,crafted=false){
+  // Reading the animal tracks reveals firmer footing around the shrine.
+  // This optional detour changes the risk, without locking out first-time explorers.
+  function shrineRiskDamage(found,crafted){
+    return (crafted?6:12)-(found.has('traces')?3:0);
+  }
+  function uncover(player,found,phase,hp,maxHp,crafted=false,shrineChoice='auto'){
     if(!available(phase)) return {ok:false};
     const spot=near(player,found);
     if(!spot) return {ok:false};
@@ -48,11 +53,24 @@
       if(!found.has('traces')) return {ok:false,reason:'trail',spot};
       if(!crafted) return {ok:false,reason:'thorns',spot};
     }
-    if(spot.kind==='healing'&&!(hp<maxHp)) return {ok:false,reason:'full',spot};
+    // The shrine offers a deliberate trade-off; a full-HP heal must not waste it.
+    // 'auto' preserves existing direct rule callers; the scene passes an explicit choice.
+    if(spot.kind==='healing' && shrineChoice==='heal' && hp>=maxHp)
+      return {ok:false,reason:'full',spot};
+    if(spot.kind==='healing' && !['auto','material','heal','risk'].includes(shrineChoice))
+      return {ok:false,reason:'choice',spot};
+    // A forged sword clears the thorns, halving the deep-search wound.
+    const riskDamage=shrineRiskDamage(found,crafted);
+    if(spot.kind==='healing' && shrineChoice==='risk' && hp<riskDamage+1)
+      return {ok:false,reason:'weak',spot};
+    const risky=spot.kind==='healing' && shrineChoice==='risk';
+    const scavenge=spot.kind==='healing' && (risky || shrineChoice==='material' ||
+      (shrineChoice==='auto' && hp>=maxHp));
     found.add(spot.id);
-    return {ok:true,spot,material:spot.kind==='cache'?2:spot.kind==='material'?1:0,
+    return {ok:true,spot,material:risky?2:scavenge?1:spot.kind==='cache'?2:spot.kind==='material'?1:0,
+      damage:risky?riskDamage:0,
       heal:spot.kind==='cache'?Math.min(45,Math.max(0,maxHp-hp)):
-        spot.kind==='healing'?Math.min(35,maxHp-hp):0};
+        spot.kind==='healing' && !scavenge?Math.min(35,Math.max(0,maxHp-hp)):0};
   }
-  return {spots,RANGE,near,spotAtTap,available,uncover};
+  return {spots,RANGE,near,spotAtTap,available,shrineRiskDamage,uncover};
 });

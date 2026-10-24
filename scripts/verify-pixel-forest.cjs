@@ -157,10 +157,24 @@ async function main() {
           await walkTo(page,580,280);
           await page.screenshot({path:path.join(output,'pixel-forest-bridge-390.png')});
           await walkTo(page,800,365);
+          await page.waitForFunction(()=>document.getElementById('forestExploreHint')?.textContent?.includes('湿った土に細い筋がある'));
+          // Attacking near tracks must not silently collect one-time materials.
+          const beforeClue=await read(page);
+          await page.keyboard.down('k');
+          await page.waitForTimeout(220);
+          await page.keyboard.up('k');
+          await page.waitForTimeout(150);
+          const afterPunch=await read(page);
+          assert(!afterPunch.found.includes('traces'),'punch must not auto-discover');
+          assert.equal(afterPunch.unbanked,beforeClue.unbanked,'punch cannot grant clue loot');
           await tapSite(page,'traces');
           assert((await read(page)).found.includes('traces'),'walking and touching discovers tracks');
+          await page.waitForFunction(()=>document.getElementById('forestExploreHint')?.textContent?.includes('足跡は右奥へ続いている'));
           await walkTo(page,910,235);
           const lockedBefore=await read(page);
+          const gateHint=await page.locator('#forestExploreHint').innerText();
+          assert.match(gateHint,/茨の奥で何かが軋む/,'the gate first offers a sensory clue');
+          assert.doesNotMatch(gateHint,/風裂きの剣|鍛冶/,'the gate must be inspected before spoiling its solution');
           await tapSite(page,'hollow');
           const locked=await read(page);
           assert(!locked.found.includes('hollow'),'unforged hero cannot claim the sealed hollow');
