@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,maximum-scale=1,user-scalable=no">
+  <meta name="theme-color" content="#18231d">
+  <title>Crownless — Renderer Lab</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main class="lab">
+    <header class="topbar">
+      <div class="title-group"><span class="eyebrow">CROWNLESS · ENGINE SPIKE</span><h1>霧深き森 <small id="engine-name"></small></h1></div>
+      <nav aria-label="描画エンジン切り替え" class="switcher">
+        <a href="?engine=phaser" id="phaser-link">Phaser 4</a>
+        <a href="?engine=pixi" id="pixi-link">PixiJS 8</a>
+      </nav>
+    </header>
+    <section class="game-shell" aria-label="森の探索実験">
+      <div class="stage" id="stage" aria-label="森の風景。タップで移動先を指定"></div>
+      <div class="scene-prompt" id="scene-prompt" aria-live="polite">旅が始まる…</div>
+      <div class="stats">
+        <span id="hp">体力 3/3</span><span id="cargo">手持ち なし</span><span id="gear">素手</span><span id="run">遠征 1</span>
+      </div>
+    </section>
+    <div class="button-row movement" aria-label="移動操作">
+      <button id="move-left" class="movement-button" type="button" aria-label="左に移動">◀</button>
+      <button id="move-right" class="movement-button" type="button" aria-label="右に移動">▶</button>
+      <button id="interact" type="button" class="primary">調べる</button>
+      <button id="return" type="button">入口へ戻って帰還</button>
+    </div>
+    <div class="button-row decisions" id="decisions" hidden>
+      <button id="guard" type="button" class="primary">防御して反撃</button>
+      <button id="strike" type="button">強撃</button>
+    </div>
+    <div class="button-row camp" id="camp" hidden>
+      <button id="craft" type="button">樹皮草1 + 鉄片1で剣を鍛える</button>
+      <button id="depart" class="primary" type="button">再び遠征する</button>
+    </div>
+    <footer><span id="metrics">描画計測中…</span><span>2周目の祠を目指そう · 仮の位置 / セーブなし</span></footer>
+  </main>
+  <script type="module">
+    const engine = new URLSearchParams(location.search).get('engine') === 'pixi' ? 'pixi' : 'phaser';
+    document.querySelector('#engine-name').textContent = engine === 'pixi' ? 'PixiJS 8.22.0' : 'Phaser 4.2.1';
+    document.querySelector(`#${engine}-link`).setAttribute('aria-current', 'page');
+    import(`./dist/${engine}.js`).catch(error => {
+      document.querySelector('#scene-prompt').textContent = `起動に失敗: ${error.message}`;
+      console.error(error);
+    });
+  </script>
+</body>
+</html>

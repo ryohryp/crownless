@@ -7,6 +7,7 @@ const isAllowed = name => !name.includes('..') && (
   (name.endsWith('.css') && !name.includes('/')) ||
   (name.startsWith('src/') && name.endsWith('.js') && name.indexOf('/', 4) === -1) ||
   ['docs/assets/candidates/forest-hd2d-v0.2.png','docs/assets/candidates/forest-objects-v1.png'].includes(name) ||
+  (name.startsWith('experiments/renderer-lab/') && /\.(html|css|js)$/.test(name)) ||
   (name.startsWith('assets/') && name.endsWith('.svg') && name.indexOf('/', 7) === -1)
 );
 const types = {'.png':'image/png','.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml'};
