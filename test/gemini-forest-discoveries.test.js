@@ -112,6 +112,33 @@ test('forged sword mitigates shrine deep-search wounds without free loot',()=>{
   assert.equal(D.uncover(player,weak,'fight',6.5,140,true,'material').material,1);
 });
 
+test('reading tracks first makes the shrine deep search safer without making the detour mandatory',()=>{
+  const shrine={x:660,z:230};
+  for(const [crafted,base,read] of [[false,12,9],[true,6,3]]){
+    const direct=new Set();
+    assert.equal(D.shrineRiskDamage(direct,crafted),base);
+    assert.equal(D.uncover(shrine,direct,'return',read+1,140,crafted,'risk').reason,'weak',
+      'the unprepared player cannot spend more HP than they have');
+    assert.equal(direct.size,0,'a failed attempt must not consume the shrine');
+    const tracks=new Set();
+    assert.equal(D.uncover({x:800,z:365},tracks,'return',140,140,crafted).material,1);
+    assert.equal(D.shrineRiskDamage(tracks,crafted),read);
+    const find=D.uncover(shrine,tracks,'return',read+1,140,crafted,'risk');
+    assert.equal(find.ok,true);
+    assert.equal(find.damage,read);
+    assert.equal(find.material,2,'safer footing must not mint extra materials');
+    assert.equal(find.heal,0);
+    assert.equal(D.uncover(shrine,tracks,'return',140,140,crafted,'risk').ok,false,
+      'the shrine remains once per expedition');
+    assert.equal(D.uncover(shrine,new Set(),'return',base+1,140,crafted,'risk').damage,base,
+      'skipping tracks is still a viable route');
+  }
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  assert.match(html,/CrownlessForestDiscoveries\\.shrineRiskDamage\\(state\\.forestFinds,rpg\\.crafted\\)/,
+    'the visible HP cost must come from the same rule as the reward');
+  assert.match(html,/足跡を読んで負傷 -3/,'the benefit must be visible before committing');
+});
+
 test('the stone gate stays discoverable while locked and needs both a trail and a crafted sword',()=>{
   const visited=new Set(),player={x:910,z:235};
   assert.equal(D.near(player,visited)?.id,'hollow','locked sites remain reachable for their hint');
