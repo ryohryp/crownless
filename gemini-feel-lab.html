@@ -154,12 +154,14 @@
           🌲 森の音や足元の違和感を探そう。気になる地点は直接タップ
         </div>
       </div>
-      <div id="forestShrineChoice" class="hidden absolute inset-x-3 bottom-3 z-30 rounded-xl border border-emerald-300 bg-emerald-950/95 p-3 text-emerald-50 shadow-xl pointer-events-auto" role="group" aria-label="苔むす祠の選択">
+      <div id="forestShrineChoice" class="hidden absolute inset-0 z-30 bg-slate-950/60 pointer-events-auto" role="dialog" aria-modal="true" aria-label="苔むす祠の選択">
+        <div class="absolute inset-x-3 bottom-3 rounded-xl border border-emerald-300 bg-emerald-950/95 p-3 text-emerald-50 shadow-xl">
         <p class="mb-2 text-sm font-bold">🍃 苔むす祠：この遠征では一度だけ</p>
         <div class="flex flex-col gap-2">
           <button id="forestShrineMaterial" type="button" class="min-h-11 rounded-lg bg-amber-700 px-3 text-sm font-bold">牙を探す（未帰還素材 +1・回復なし）</button>
           <button id="forestShrineHeal" type="button" class="min-h-11 rounded-lg bg-emerald-700 px-3 text-sm font-bold disabled:opacity-50">傷を癒やす（最大 HP +35・素材なし）</button>
           <button id="forestShrineCancel" type="button" class="min-h-11 rounded-lg border border-emerald-300 px-3 text-sm">今は調べない</button>
+        </div>
         </div>
       </div>
       <button id="rpgOpenResults" type="button" class="hidden absolute top-2 right-2 z-20 min-h-11 px-3 rounded-lg bg-emerald-900/95 border border-emerald-300 text-amber-50 text-xs font-black shadow-lg">
@@ -2756,6 +2758,15 @@
     const dt = Math.min(0.05, (now - lastTimestamp) / 1000);
     lastTimestamp = now;
     const nowSec = now / 1000;
+
+    // Choosing at a shrine must not expose an immobile player to enemy hits.
+    // Keep drawing the scene, but freeze combat, projectiles and timers until
+    // the player chooses or cancels. lastTimestamp still advances above.
+    if (!document.getElementById('forestShrineChoice').classList.contains('hidden')) {
+      renderScene();
+      requestAnimationFrame(gameLoop);
+      return;
+    }
 
     if (state.kabukiBurstTimer > 0) {
       state.kabukiBurstTimer = Math.max(0, state.kabukiBurstTimer - dt);
