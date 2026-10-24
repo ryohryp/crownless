@@ -40,7 +40,7 @@
   function available(phase){
     return phase==='fight'||phase==='return';
   }
-  function uncover(player,found,phase,hp,maxHp,crafted=false){
+  function uncover(player,found,phase,hp,maxHp,crafted=false,shrineChoice='auto'){
     if(!available(phase)) return {ok:false};
     const spot=near(player,found);
     if(!spot) return {ok:false};
@@ -48,13 +48,18 @@
       if(!found.has('traces')) return {ok:false,reason:'trail',spot};
       if(!crafted) return {ok:false,reason:'thorns',spot};
     }
-    // A healthy explorer can scavenge once instead of saving the shrine's healing.
-    // Both outcomes consume the same run-local discovery; loot is still unbanked.
-    const scavenge=spot.kind==='healing' && !(hp<maxHp);
+    // The shrine offers a deliberate trade-off; a full-HP heal must not waste it.
+    // 'auto' preserves existing direct rule callers; the scene passes an explicit choice.
+    if(spot.kind==='healing' && shrineChoice==='heal' && hp>=maxHp)
+      return {ok:false,reason:'full',spot};
+    if(spot.kind==='healing' && !['auto','material','heal'].includes(shrineChoice))
+      return {ok:false,reason:'choice',spot};
+    const scavenge=spot.kind==='healing' && (shrineChoice==='material' ||
+      (shrineChoice==='auto' && hp>=maxHp));
     found.add(spot.id);
     return {ok:true,spot,material:scavenge?1:spot.kind==='cache'?2:spot.kind==='material'?1:0,
       heal:spot.kind==='cache'?Math.min(45,Math.max(0,maxHp-hp)):
-        spot.kind==='healing'?Math.min(35,maxHp-hp):0};
+        spot.kind==='healing' && !scavenge?Math.min(35,Math.max(0,maxHp-hp)):0};
   }
   return {spots,RANGE,near,spotAtTap,available,uncover};
 });
