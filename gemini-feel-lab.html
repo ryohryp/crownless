@@ -1838,10 +1838,11 @@
       const missing=Math.max(0,ginji.maxHp-ginji.hp);
       heal.disabled=missing===0;
       const risk=document.getElementById('forestShrineRisk');
-      const riskCost=rpg.crafted?6:12;
+      const riskCost=window.CrownlessForestDiscoveries.shrineRiskDamage(state.forestFinds,rpg.crafted);
       risk.disabled=ginji.hp<riskCost+1;
       risk.textContent=risk.disabled?'体力が足りず奥まで探れない（HP '+(riskCost+1)+'以上必要）':
-        '奥まで探る（HP -'+riskCost+'・未帰還素材 +2'+(rpg.crafted?'／鍛冶剣で軽減':'')+'）';
+        '奥まで探る（HP -'+riskCost+'・未帰還素材 +2'+(rpg.crafted?'／鍛冶剣で軽減':'')+
+        (state.forestFinds.has('traces')?'／足跡を読んで負傷 -3':'')+'）';
       heal.textContent=missing ? '傷を癒やす（HP +'+Math.min(35,missing)+'・素材なし）' : '傷がないため回復不可';
       document.getElementById('forestShrineStakes').textContent=
         '現在 HP '+Math.ceil(ginji.hp)+'/'+ginji.maxHp+'、未帰還の牙 '+rpg.unbanked+
