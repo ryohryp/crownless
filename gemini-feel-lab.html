@@ -2733,7 +2733,9 @@
          ? '今回の未帰還素材は失った。以前に倉庫へ持ち帰った分と制作済みの武器は残る。'
          : rpg.crafted
            ? '鍛冶師が仕立てた風裂きの剣を装備。次の遠征では攻撃が強まり、痕跡の先の石門を覆う茨も切り開ける。'
-           : '倉庫に集めたゴブリンの牙3個から、鍛冶師が風裂きの剣を作れる。');
+           : rpg.banked>=rpgRules.COST
+             ? '倉庫の牙'+rpg.banked+'個で風裂きの剣を製作できる。'
+             : '鍛冶剣まで牙あと'+(rpgRules.COST-rpg.banked)+'個。次の遠征で素材を持ち帰ろう。');
   }
 
   document.getElementById('rpgOpenResults').addEventListener('click',showRpgPanel);
