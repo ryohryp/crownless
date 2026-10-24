@@ -169,7 +169,7 @@ test('scene registers direct touch and keeps cleared-wave right-hand gesture act
   assert.match(html,/if\(combatInputMode!=='buttons'\) return;/);
   assert.match(html,/canvas\.addEventListener\('pointerup'/);
   assert.match(html,/if \(rpg\.phase !== 'fight' && rpg\.phase !== 'return'\) return;/);
-  assert.match(html,/地点をタップ/);
+  assert.match(html,/地点そのものをタップして調べよう/,'the on-screen hint must require deliberate inspection');
 });
 
 test('forest discoveries are in-scene actions, no navigation route/save/GPS coupling',()=>{
