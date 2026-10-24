@@ -189,6 +189,10 @@ async function main() {
           const first=await clearWave(page);
           assert(first.after.unbanked>=3,'three actual enemies provide crafting materials');
           assert.equal(await page.locator('#rpgPanel').isVisible(),false,'victory leaves forest playable');
+          const returnButton=page.locator('#rpgOpenResults');
+          assert.equal(await returnButton.isVisible(),true,'the return choice stays available after combat');
+          assert.match(await returnButton.innerText(),new RegExp('牙'+first.after.unbanked+'）'),
+            'the return button shows the current unsecured loot');
           await walkTo(page,580,280);
           // After combat, the player sees exactly what is at stake before
           // choosing to search farther or return alive with materials.
@@ -210,9 +214,14 @@ async function main() {
           assert(!afterPunch.found.includes('traces'),'punch must not auto-discover');
           assert.equal(afterPunch.unbanked,beforeClue.unbanked,'punch cannot grant clue loot');
           await tapSite(page,'traces');
-          assert((await read(page)).found.includes('traces'),'walking and touching discovers tracks');
+          const afterTracks=await read(page);
+          assert(afterTracks.found.includes('traces'),'walking and touching discovers tracks');
+          assert.match(await returnButton.innerText(),new RegExp('牙'+afterTracks.unbanked+'）'),
+            'the return choice updates even when the clue hint takes priority');
           await page.waitForFunction(()=>document.getElementById('forestExploreHint')?.textContent?.includes('足跡は右奥へ続いている'));
           const shrineBeforeForge=await verifyTracksShrineRisk(page,false);
+          assert.match(await returnButton.innerText(),new RegExp('牙'+shrineBeforeForge.provisionalAfter+'）'),
+            'the shrine reward is reflected in the still-available return choice');
           await walkTo(page,910,235);
           const lockedBefore=await read(page);
           const gateHint=await page.locator('#forestExploreHint').innerText();
@@ -228,6 +237,7 @@ async function main() {
           const returned=await read(page);
           assert.equal(returned.phase,'camp');
           assert.equal(returned.unbanked,0);
+          assert.equal(await returnButton.isVisible(),false,'the return choice disappears after banking loot');
           assert(returned.banked>=4,'real safe return banks combat and discovery materials');
           await page.locator('#rpgForge').click();
           const forged=await read(page);
