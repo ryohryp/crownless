@@ -343,15 +343,41 @@ async function main() {
           beforeShrine.player.hp>=beforeShrine.player.maxHp
             ? /今なら素材、あとで癒やし/ : /今なら傷を癒やせるが、素材は手に入らない/,
           'real phone hint must explain the current shrine trade-off before touching');
+        // The actor can collect a healing dango between the HUD snapshot
+        // and the actual tap. Assert against HP at the decision point, not
+        // an earlier frame (especially on a high-DPI rendering workload).
+        await page.evaluate(() => {
+          const api=window.CrownlessForestDiscoveries;
+          const uncover=api.uncover;
+          api.uncover=(...args) => {
+            const result=uncover(...args);
+            if(result.ok && result.spot?.id==='shrine') {
+              window.__shrineTapOutcome={
+                hpAtTap:args[3],maxHp:args[4],
+                material:result.material,heal:result.heal
+              };
+            }
+            return result;
+          };
+        });
         await page.touchscreen.tap(nearTap.x,nearTap.y);
         await page.waitForFunction(() => window.CrownlessForestReadout().found.includes('shrine'),
           null,{timeout:2500});
         await page.waitForFunction(() => window.__combatLabCanvasText.includes('苔むす祠'),
           null,{timeout:2500});
         const afterShrine=await page.evaluate(() => window.CrownlessForestReadout());
-        assert.equal(afterShrine.unbanked-beforeShrine.unbanked,
-          beforeShrine.player.hp>=beforeShrine.player.maxHp ? 1 : 0,
-          'healthy shrine grants one provisional material; injured shrine heals instead');
+        const shrineOutcome=await page.evaluate(() => window.__shrineTapOutcome);
+        assert(shrineOutcome,'direct shrine tap must invoke the discovery rule');
+        assert.equal(shrineOutcome.material,
+          shrineOutcome.hpAtTap>=shrineOutcome.maxHp ? 1 : 0,
+          'shrine material-or-healing branch uses HP at the actual tap');
+        assert.equal(shrineOutcome.heal,
+          shrineOutcome.hpAtTap>=shrineOutcome.maxHp
+            ? 0 : Math.min(35,shrineOutcome.maxHp-shrineOutcome.hpAtTap),
+          'injured shrine restores at most 35 HP instead of granting loot');
+        assert.equal(afterShrine.unbanked-beforeShrine.unbanked,shrineOutcome.material,
+          'only the chosen shrine branch adds provisional material: '+
+          JSON.stringify({before:beforeShrine.player.hp,outcome:shrineOutcome,after:afterShrine.player.hp}));
         await page.touchscreen.tap(nearTap.x,nearTap.y);
         assert.equal((await page.evaluate(() => window.CrownlessForestReadout())).unbanked,
           afterShrine.unbanked,'repeat shrine taps cannot duplicate materials');
