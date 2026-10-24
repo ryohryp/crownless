@@ -197,6 +197,10 @@ test('undiscovered forest hints convey sensory cues without naming every hidden 
   assert.match(hint,/苔の間から冷たい風が流れる/,'shrine is sensed before it is named');
   assert.match(hint,/今なら素材、あとで癒やし。調べると使い切る/,
     'healthy players see the irreversible shrine trade-off before tapping');
+  assert.match(hint,/near\.id==='shrine' && ginji\.hp>=ginji\.maxHp/,
+    'full-health shrine hint is chosen only when healthy');
+  assert.match(hint,/near\.id==='shrine'\s*\? '🍃 苔の間から冷たい風が流れる。今なら傷を癒やせるが、素材は手に入らない。調べると使い切る/,
+    'injured players see healing versus lost material before a one-time tap');
   assert.match(hint,/茨の向こうで何かが軋む/,'gate is sensed before it is named');
   assert.match(hint,/足跡は右奥へ続いている/,'discovered tracks still guide deeper exploration');
   assert.match(hint,/足元のかすかな筋を辿ろう/,'unread tracks are suggested without naming the gate');
