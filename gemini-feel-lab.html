@@ -2126,7 +2126,7 @@
       ctx.font='bold 13px "Noto Sans JP",sans-serif';
       ctx.fillStyle=found?'#94a3b8':'#fef08a';
       ctx.textAlign='center';
-      ctx.fillText(found?'調査済':spot.label,0,-69);
+      ctx.fillText(found?spot.label:spot.clue,0,-69);
       const near=ginji&&Math.hypot(ginji.x-spot.x,ginji.z-spot.z)<window.CrownlessForestDiscoveries.RANGE;
       if(near&&!found) {
         ctx.fillStyle='#f8fafc';
