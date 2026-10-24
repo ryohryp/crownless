@@ -356,7 +356,7 @@ async function main() {
               window.__shrineTapOutcome={
                 hpAtTap:args[3],maxHp:args[4],
                 unbankedAtTap:window.CrownlessForestReadout().unbanked,
-                material:result.material,heal:result.heal
+                material:result.material,heal:result.heal,damage:result.damage||0
               };
             }
             return result;
@@ -385,7 +385,10 @@ async function main() {
         assert.equal((await readForestShrine()).found.includes('shrine'),false,
           'declining must preserve the discovery for later');
         await page.touchscreen.tap(nearTap.x,nearTap.y);
-        await page.locator('#forestShrineMaterial').click();
+        const takeRisk=width===390;
+        assert.equal(await page.locator('#forestShrineRisk').isEnabled(),stakesAtChoice.player.hp>12,
+          'deep search is unavailable when its HP cost cannot be paid');
+        await page.locator(takeRisk?'#forestShrineRisk':'#forestShrineMaterial').click();
         await page.waitForFunction(() => window.CrownlessForestReadout().found.includes('shrine'),
           null,{timeout:2500});
         await page.waitForFunction(() => window.__combatLabCanvasText.includes('苔むす祠'),
@@ -393,8 +396,10 @@ async function main() {
         const afterShrine=await page.evaluate(() => window.CrownlessForestReadout());
         const shrineOutcome=await page.evaluate(() => window.__shrineTapOutcome);
         assert(shrineOutcome,'direct shrine tap must invoke the discovery rule');
-        assert.equal(shrineOutcome.material,1,
-          'the material button grants one provisional fang even when injured');
+        assert.equal(shrineOutcome.material,takeRisk?2:1,
+          'the chosen branch grants the advertised number of provisional fangs');
+        assert.equal(shrineOutcome.damage,takeRisk?12:0,
+          'deep search has a real HP cost; ordinary gathering remains safe');
         assert.equal(shrineOutcome.heal,0,
           'the material button deliberately gives up healing');
         // Enemies can award a fang while the player is approaching the site.
