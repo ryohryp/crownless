@@ -190,6 +190,13 @@ async function main() {
           assert(first.after.unbanked>=3,'three actual enemies provide crafting materials');
           assert.equal(await page.locator('#rpgPanel').isVisible(),false,'victory leaves forest playable');
           await walkTo(page,580,280);
+          // After combat, the player sees exactly what is at stake before
+          // choosing to search farther or return alive with materials.
+          const returnHint=await page.locator('#forestExploreHint').innerText();
+          assert.match(returnHint,new RegExp('未帰還の牙 '+first.after.unbanked+'個'),
+            'the return decision shows actual unbanked materials, not a fixed count');
+          assert.match(returnHint,/探索を続けるか、生還して確定/,
+            'the player can see the choice to keep exploring or bank the loot');
           await page.screenshot({path:path.join(output,'pixel-forest-bridge-390.png')});
           await walkTo(page,800,365);
           await page.waitForFunction(()=>document.getElementById('forestExploreHint')?.textContent?.includes('湿った土に細い筋がある'));
