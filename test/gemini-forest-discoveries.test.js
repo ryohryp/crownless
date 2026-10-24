@@ -84,7 +84,7 @@ test('shrine deep search exchanges 12 HP for two provisional fangs without bypas
   assert.equal(D.uncover(player,found,'fight',63,140,false,'risk').ok,false,
     'one expedition cannot farm the risky branch');
   const exhausted=new Set();
-  assert.equal(D.uncover(player,exhausted,'fight',12,140,false,'risk').reason,'weak');
+  assert.equal(D.uncover(player,exhausted,'fight',12.5,140,false,'risk').reason,'weak');
   assert.equal(exhausted.size,0,'too little HP must not consume the shrine');
   assert.equal(D.uncover(player,exhausted,'fight',12,140,false,'material').material,1,
     'the safe material option remains available at low HP');
