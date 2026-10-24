@@ -54,6 +54,26 @@ test('shrine offers a one-time full-HP material or later healing, never both',()
   assert.equal(R.returnAlive(returned,140),true);
   assert.equal(returned.banked,1,'shrine material banks only on living return');
 });
+test('injured explorers can deliberately take provisional material instead of healing',()=>{
+  const player={x:660,z:230};
+  const found=new Set();
+  const material=D.uncover(player,found,'fight',75,140,false,'material');
+  assert.equal(material.ok,true);
+  assert.equal(material.material,1);
+  assert.equal(material.heal,0);
+  assert.equal(D.uncover(player,found,'fight',60,140,false,'heal').ok,false);
+  const healFound=new Set();
+  const healed=D.uncover(player,healFound,'return',75,140,false,'heal');
+  assert.equal(healed.ok,true);
+  assert.equal(healed.material,0);
+  assert.equal(healed.heal,35);
+  const fullFound=new Set();
+  assert.equal(D.uncover(player,fullFound,'fight',140,140,false,'heal').reason,'full');
+  assert.equal(fullFound.size,0,'a useless full-HP heal must not consume the shrine');
+  assert.equal(D.uncover(player,fullFound,'fight',140,140,false,'invalid').reason,'choice');
+  assert.equal(fullFound.size,0);
+});
+
 test('the stone gate stays discoverable while locked and needs both a trail and a crafted sword',()=>{
   const visited=new Set(),player={x:910,z:235};
   assert.equal(D.near(player,visited)?.id,'hollow','locked sites remain reachable for their hint');
@@ -195,11 +215,11 @@ test('undiscovered forest hints convey sensory cues without naming every hidden 
   const hint=html.slice(start,end);
   assert.match(hint,/湿った土に細い筋がある/,'tracks are sensed before they are named');
   assert.match(hint,/苔の間から冷たい風が流れる/,'shrine is sensed before it is named');
-  assert.match(hint,/今なら素材、あとで癒やし。調べると使い切る/,
+  assert.match(hint,/素材を探すか、傷ついてから癒やすか/,
     'healthy players see the irreversible shrine trade-off before tapping');
   assert.match(hint,/near\.id==='shrine' && ginji\.hp>=ginji\.maxHp/,
     'full-health shrine hint is chosen only when healthy');
-  assert.match(hint,/near\.id==='shrine'\s*\? '🍃 苔の間から冷たい風が流れる。今なら傷を癒やせるが、素材は手に入らない。調べると使い切る/,
+  assert.match(hint,/near\.id==='shrine'\s*\? '🍃 苔の間から冷たい風が流れる。素材か癒やしか、一度だけ選べる/,
     'injured players see healing versus lost material before a one-time tap');
   assert.match(hint,/茨の向こうで何かが軋む/,'gate is sensed before it is named');
   assert.match(hint,/足跡は右奥へ続いている/,'discovered tracks still guide deeper exploration');
@@ -237,6 +257,17 @@ test('action forest requires direct clue taps, not incidental combat pickup',()=
   const pickup=html.slice(html.indexOf('function tryPickupItem(f) {'),html.indexOf('function tryPickupItem(f) {')+300);
   assert.doesNotMatch(pickup,/tryExploreForest\(f\)/);
   assert.match(html,/気になる地点を直接タップ/);
+});
+
+test('a deliberate shrine tap opens touch-sized material and healing actions',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  assert.match(html,/id="forestShrineChoice"[^>]*class="hidden/);
+  assert.match(html,/id="forestShrineMaterial"[^>]*min-h-11/);
+  assert.match(html,/id="forestShrineHeal"[^>]*min-h-11/);
+  assert.match(html,/id="forestShrineCancel"[^>]*min-h-11/);
+  assert.match(html,/if \(site\?\.id==='shrine'\)/);
+  assert.match(html,/tryExploreForest\(ginji,choice\)/);
+  assert.match(html,/rpg\.crafted,shrineChoice\)/);
 });
 
 test('first-paint forest hint keeps undiscovered locations secret before scripts run',()=>{
