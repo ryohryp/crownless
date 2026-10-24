@@ -182,6 +182,10 @@ test('undiscovered forest hints convey sensory cues without naming every hidden 
   assert.match(hint,/苔の間から冷たい風が流れる/,'shrine is sensed before it is named');
   assert.match(hint,/茨の向こうで何かが軋む/,'gate is sensed before it is named');
   assert.match(hint,/足跡は右奥へ続いている/,'discovered tracks still guide deeper exploration');
+  assert.match(hint,/足元のかすかな筋を辿ろう/,'unread tracks are suggested without naming the gate');
+  assert.match(hint,/茨の奥で何かが軋む/,'locked gate invites an actual inspection before revealing equipment requirements');
+  assert.match(hint,/奥の茨を調べてみよう/,'trail alone does not spoil the crafting solution');
+  assert.doesNotMatch(hint,/石門の手前に獣の痕跡|茨の石門：風裂きの剣|鍛冶した剣があれば先へ/,'uninspected gate cannot reveal its name or answer');
   assert.match(hint,/気になる地点を直接タップ/,'the player must deliberately inspect');
   assert.doesNotMatch(hint,/near\.label/,'the hint must not automatically reveal an undiscovered name');
   assert.doesNotMatch(hint,/獣の痕跡や古い祠へ近づき/,'generic hint must not spoil specific locations');
