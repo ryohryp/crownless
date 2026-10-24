@@ -96,6 +96,22 @@ test('shrine deep search exchanges 12 HP for two provisional fangs without bypas
   assert.equal(run.unbanked,0,'risky fangs are lost on defeat');
 });
 
+test('forged sword mitigates shrine deep-search wounds without free loot',()=>{
+  const player={x:660,z:230};
+  const forged=new Set();
+  const risk=D.uncover(player,forged,'return',7,140,true,'risk');
+  assert.equal(risk.ok,true);
+  assert.equal(risk.material,2);
+  assert.equal(risk.damage,6);
+  assert.equal(risk.heal,0);
+  assert.equal(D.uncover(player,forged,'return',90,140,true,'risk').ok,false);
+  const weak=new Set();
+  assert.equal(D.uncover(player,weak,'fight',6.5,140,true,'risk').reason,'weak');
+  assert.equal(weak.size,0);
+  assert.equal(D.uncover(player,new Set(),'fight',7,140,false,'risk').reason,'weak');
+  assert.equal(D.uncover(player,weak,'fight',6.5,140,true,'material').material,1);
+});
+
 test('the stone gate stays discoverable while locked and needs both a trail and a crafted sword',()=>{
   const visited=new Set(),player={x:910,z:235};
   assert.equal(D.near(player,visited)?.id,'hollow','locked sites remain reachable for their hint');

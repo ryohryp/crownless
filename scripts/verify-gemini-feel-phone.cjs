@@ -386,8 +386,12 @@ async function main() {
           'declining must preserve the discovery for later');
         await page.touchscreen.tap(nearTap.x,nearTap.y);
         const takeRisk=width===390;
-        assert.equal(await page.locator('#forestShrineRisk').isEnabled(),stakesAtChoice.player.hp>=13,
-          'deep search is unavailable when its HP cost cannot be paid');
+        const riskCost=stakesAtChoice.crafted?6:12;
+        assert.equal(await page.locator('#forestShrineRisk').isEnabled(),stakesAtChoice.player.hp>=riskCost+1,
+          'deep search requires enough HP for the current equipment-dependent cost');
+        if(stakesAtChoice.player.hp>=riskCost+1)
+          assert.match(await page.locator('#forestShrineRisk').textContent(),new RegExp('HP -'+riskCost),
+            'the choice must advertise the actual wound before confirmation');
         await page.locator(takeRisk?'#forestShrineRisk':'#forestShrineMaterial').click();
         await page.waitForFunction(() => window.CrownlessForestReadout().found.includes('shrine'),
           null,{timeout:2500});
@@ -398,7 +402,7 @@ async function main() {
         assert(shrineOutcome,'direct shrine tap must invoke the discovery rule');
         assert.equal(shrineOutcome.material,takeRisk?2:1,
           'the chosen branch grants the advertised number of provisional fangs');
-        assert.equal(shrineOutcome.damage,takeRisk?12:0,
+        assert.equal(shrineOutcome.damage,takeRisk?riskCost:0,
           'deep search has a real HP cost; ordinary gathering remains safe');
         assert.equal(shrineOutcome.heal,0,
           'the material button deliberately gives up healing');

@@ -54,14 +54,16 @@
       return {ok:false,reason:'full',spot};
     if(spot.kind==='healing' && !['auto','material','heal','risk'].includes(shrineChoice))
       return {ok:false,reason:'choice',spot};
-    if(spot.kind==='healing' && shrineChoice==='risk' && hp<13)
+    // A forged sword clears the thorns, halving the deep-search wound.
+    const riskDamage=crafted?6:12;
+    if(spot.kind==='healing' && shrineChoice==='risk' && hp<riskDamage+1)
       return {ok:false,reason:'weak',spot};
     const risky=spot.kind==='healing' && shrineChoice==='risk';
     const scavenge=spot.kind==='healing' && (risky || shrineChoice==='material' ||
       (shrineChoice==='auto' && hp>=maxHp));
     found.add(spot.id);
     return {ok:true,spot,material:risky?2:scavenge?1:spot.kind==='cache'?2:spot.kind==='material'?1:0,
-      damage:risky?12:0,
+      damage:risky?riskDamage:0,
       heal:spot.kind==='cache'?Math.min(45,Math.max(0,maxHp-hp)):
         spot.kind==='healing' && !scavenge?Math.min(35,Math.max(0,maxHp-hp)):0};
   }
