@@ -83,8 +83,8 @@ async function main() {
           return !!canvas && canvas.width > 0 && window.__combatLabCanvasText.includes('旅人 [1P]');
         }, null, { timeout: 15000 });
 
-        assert.match(await page.locator('#forestExploreHint').innerText(), /獣の痕跡.*古い祠/,
-          'start of combat should suggest real places to walk to');
+        assert.match(await page.locator('#forestExploreHint').innerText(), /森の音.*気になる地点は直接タップ/,
+          'start of combat should invite sensory exploration without spoiling place names');
         assert.equal(await page.locator('#rpgOpenResults').isVisible(), false,
           'expedition choice stays hidden until enemies are defeated');
         assert.equal(await page.locator('#rpgKeepExploring').isVisible(), false,
