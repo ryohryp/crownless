@@ -276,7 +276,7 @@ test('shrine decision is a full-stage modal and suspends live combat until resol
     'the decision backdrop must intercept stray gameplay touches');
   assert.match(html,/id="forestShrineChoice"[^>]*role="dialog" aria-modal="true"/);
   const loop=html.slice(html.indexOf('function gameLoop(now) {'));
-  assert.match(loop,/lastTimestamp = now;[\\s\\S]*?if \\(!document\\.getElementById\\('forestShrineChoice'\\)\\.classList\\.contains\\('hidden'\\)\\) \\{\\s*renderScene\\(\\);\\s*requestAnimationFrame\\(gameLoop\\);\\s*return;/,
+  assert.match(loop,/lastTimestamp = now;[\s\S]*?if \(!document\.getElementById\('forestShrineChoice'\)\.classList\.contains\('hidden'\)\) \{\s*renderScene\(\);\s*requestAnimationFrame\(gameLoop\);\s*return;/,
     'freeze combat and timers, but keep rendering and scheduling frames');
 });
 
