@@ -193,6 +193,19 @@ async function main() {
           assert.equal(await returnButton.isVisible(),true,'the return choice stays available after combat');
           assert.match(await returnButton.innerText(),new RegExp('牙'+first.after.unbanked+'）'),
             'the return button shows the current unsecured loot');
+          await returnButton.click();
+          const returnDecision=await page.locator('#rpgInfo').innerText();
+          assert.match(returnDecision,new RegExp('今帰れば牙'+first.after.unbanked+'個を確保'),
+            'the decision states the actual reward from returning alive');
+          assert.match(returnDecision,/今帰れば鍛冶剣を作れる/,
+            'the first victory gives a concrete reason to bank materials');
+          assert.match(returnDecision,new RegExp('敗北すると今回の牙'+first.after.unbanked+'個を失う'),
+            'the alternative must name the actual unsecured loss');
+          await page.locator('#rpgKeepExploring').click();
+          assert.equal(await page.locator('#rpgPanel').isVisible(),false,
+            'declining the return decision resumes exploration');
+          assert.equal((await read(page)).unbanked,first.after.unbanked,
+            'opening and closing the choice must not bank or duplicate loot');
           await walkTo(page,580,280);
           // After combat, the player sees exactly what is at stake before
           // choosing to search farther or return alive with materials.
