@@ -388,7 +388,7 @@ async function main() {
           'the shrine choice must block accidental background taps');
         const stakesAtChoice=await readForestShrine();
         assert.equal(await page.locator('#forestShrineStakes').textContent(),
-          '現在 HP '+Math.ceil(stakesAtChoice.player.hp)+'/'+stakesAtChoice.player.maxHp+
+          '現在 HP '+Math.floor(stakesAtChoice.player.hp)+'/'+stakesAtChoice.player.maxHp+
           '、未帰還の牙 '+stakesAtChoice.unbanked+
           '個。素材は生還時だけ倉庫に残る（敗北すると失う）。',
           'real phone choice must explain current HP, unsecured loot and defeat risk');
