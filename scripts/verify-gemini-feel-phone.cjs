@@ -417,7 +417,7 @@ async function main() {
           const riskLabel=await page.locator('#forestShrineRisk').textContent();
           assert.match(riskLabel,new RegExp('HP -'+riskCost),
             'the choice must advertise the actual wound before confirmation');
-          assert.match(riskLabel,new RegExp('→残り'+Math.ceil(stakesAtChoice.player.hp-riskCost)),
+          assert.match(riskLabel,new RegExp('→残り'+Math.floor(stakesAtChoice.player.hp-riskCost)),
             'the choice must preview the resulting HP rather than forcing mental arithmetic');
         }
         await page.locator(takeRisk?'#forestShrineRisk':'#forestShrineMaterial').click();
