@@ -2721,8 +2721,14 @@
     document.getElementById('rpgTitle').textContent = result ? '敵を退けた！ 帰還する？' :
       (rpg.lastOutcome === 'defeated' ? '敗北。素材を失った……' :
        rpg.lastOutcome === 'crafted' ? '鍛冶師の剣が完成！' : '無事に生還！');
+    // Tie the decision to the actual next craft, not just a generic risk warning.
+    const safeTotal=rpg.banked+rpg.unbanked;
+    const craftProspect=rpg.crafted ? '鍛冶剣は装備済み。'
+      : safeTotal>=rpgRules.COST ? '今帰れば鍛冶剣を作れる。'
+      : '今帰っても鍛冶剣まで牙あと'+(rpgRules.COST-safeTotal)+'個。';
     document.getElementById('rpgInfo').textContent = result
-      ? '倒した魔物の牙は、まだ背嚢の中。生きて帰れば鍛冶の素材になる。奥へ進めば戦利品は増えるが、敗北すると今回の背嚢を失う。'
+      ? '今帰れば牙'+rpg.unbanked+'個を確保。'+craftProspect+
+        'さらに奥へ進めば素材は増えるが、敗北すると今回の牙'+rpg.unbanked+'個を失う。'
       : (rpg.lastOutcome === 'defeated'
          ? '今回の未帰還素材は失った。以前に倉庫へ持ち帰った分と制作済みの武器は残る。'
          : rpg.crafted
