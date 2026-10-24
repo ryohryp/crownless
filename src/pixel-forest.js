@@ -61,22 +61,70 @@
       ctx.fillStyle=mist;ctx.fillRect(0,70,width,150);
       if(wave%3===2) {ctx.fillStyle='rgba(25,31,43,.18)';ctx.fillRect(0,0,width,210);}
     }
+    let bridge;
+    function stoneBridge(heightAt) {
+      // One reusable surface, baked once. Smaller flush stones follow the
+      // actual walkable curve; they are not stacked, bevelled cubes.
+      const tile=document.createElement('canvas');
+      tile.width=600;tile.height=336;
+      const b=tile.getContext('2d');
+      b.scale(2,2);b.translate(-430,-185);
+      let stoneSeed=2801;
+      const rand=()=>{stoneSeed=(stoneSeed*1664525+1013904223)>>>0;return stoneSeed/4294967296;};
+      const edge=(z,reverse=false)=>{
+        for(let i=0;i<=150;i++) {
+          const x=reverse?730-i*2:430+i*2;
+          b.lineTo(x,z-heightAt(x,280));
+        }
+      };
+      b.fillStyle='rgba(30,37,26,.22)';b.fillRect(430,345,300,6);
+      b.beginPath();b.moveTo(430,345);edge(345);b.lineTo(730,345);b.closePath();
+      b.fillStyle='#525848';b.fill();
+      b.save();b.clip();
+      for(let y=301;y<345;y+=7) for(let x=430-(y%2)*9;x<730;x+=23) {
+        b.fillStyle=rand()>.5?'#5f6351':'#626653';b.fillRect(x,y,22,6);
+      }
+      b.restore();
+      b.beginPath();b.moveTo(430,235);edge(235);edge(345,true);b.closePath();
+      b.fillStyle='#737864';b.fill();
+      b.save();b.clip();
+      for(let z=235,row=0;z<345;z+=7,row++) {
+        for(let x=414+(row%2)*9;x<730;) {
+          const end=Math.min(730,x+12+Math.floor(rand()*13));
+          const from=Math.max(430,x);
+          const h1=heightAt(from,280),h2=heightAt(end,280);
+          b.beginPath();b.moveTo(from,z-h1);b.lineTo(end-.6,z-h2);
+          b.lineTo(end-.6,z+6.3-h2);b.lineTo(from,z+6.3-h1);b.closePath();
+          b.fillStyle=['#8b8b75','#93907b','#84866f','#8e8c76'][Math.floor(rand()*4)];b.fill();
+          // Reuse the ruin atlas's weathered stone grain, clipped into each
+          // slab. The bridge shares the shrine's material without another PNG.
+          b.save();b.clip();b.globalAlpha=.32;
+          b.drawImage(atlas,985,818,34,25,from,z-Math.max(h1,h2),end-from,7+Math.abs(h1-h2));
+          b.restore();
+          // Occasional worn edges, rather than a bright bevel on every slab.
+          if(rand()>.65) {
+            b.strokeStyle='rgba(187,180,151,.3)';b.lineWidth=.5;
+            b.beginPath();b.moveTo(from+1,z+.7-h1);b.lineTo(end-2,z+.7-h2);b.stroke();
+          }
+          x=end;
+        }
+      }
+      for(let i=0;i<1700;i++) {
+        const x=430+rand()*300,z=235+rand()*110;
+        const rim=z<244||z>333;
+        b.fillStyle=rim&&rand()>.3?'rgba(65,82,45,.5)':rand()>.5?'rgba(48,55,41,.14)':'rgba(207,195,158,.14)';
+        b.fillRect(x,z-heightAt(x,280),rim?1+rand()*4:.6+rand(),.5+rand());
+      }
+      b.restore();
+      b.strokeStyle='rgba(172,167,139,.6)';b.lineWidth=.8;
+      b.beginPath();b.moveTo(430,345);edge(345);b.stroke();
+      return tile;
+    }
     function ground(ctx, heightAt) {
       ctx.imageSmoothingEnabled=false;
       ctx.drawImage(floor,0,190);
-      // The raised stone causeway is drawn from the actual height function.
-      // Its front face and every paving row agree with foot contact.
-      for(let x=430;x<730;x+=6) {
-        const h=heightAt(x+3,280);
-        ctx.fillStyle='#535447';ctx.fillRect(x,345-h,6,h);
-        ctx.fillStyle='#85816b';ctx.fillRect(x,345-h,6,3);
-      }
-      for(let z=235;z<345;z+=11) for(let x=430;x<730;x+=15) {
-        const h=heightAt(x+7,z);
-        ctx.fillStyle=((x/15+z/11)|0)%3?'#99957b':'#aaa184';
-        ctx.fillRect(x,z-h,14,9);
-        ctx.fillStyle='#c0b698';ctx.fillRect(x,z-h,14,1);
-      }
+      if(!bridge) bridge=stoneBridge(heightAt);
+      ctx.drawImage(bridge,430,185,300,168);
       for(const [name,x,z,h] of [
         ['oak',55,224,235],['pine',350,207,205],['oak',510,203,185],
         ['pine',760,208,225],['wall',140,208,53],['wall',805,208,46]
