@@ -2690,7 +2690,7 @@
       : state.forestFinds.has('traces') && !state.forestFinds.has('hollow')
         ? '足跡は右奥へ続いている。'+(rpg.crafted?'新しい剣で奥を調べよう':'奥の茨を調べてみよう')
       : rpg.phase==='return'
-        ? '🌲 戦闘終了！ 森を歩いて発見を探すか「🏕 生還 / さらに奥へ」'
+        ? '🌲 未帰還の牙 '+rpg.unbanked+'個。探索を続けるか、生還して確定'
         : '🌲 森の音や足元の違和感を探そう。気になる地点は直接タップ';
     if(hint.textContent!==label) hint.textContent=label;
   }
