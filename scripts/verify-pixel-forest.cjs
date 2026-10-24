@@ -168,6 +168,9 @@ async function main() {
           await page.waitForFunction(()=>document.getElementById('forestExploreHint')?.textContent?.includes('足跡は右奥へ続いている'));
           await walkTo(page,910,235);
           const lockedBefore=await read(page);
+          const gateHint=await page.locator('#forestExploreHint').innerText();
+          assert.match(gateHint,/茨の奥で何かが軋む/,'the gate first offers a sensory clue');
+          assert.doesNotMatch(gateHint,/風裂きの剣|鍛冶/,'the gate must be inspected before spoiling its solution');
           await tapSite(page,'hollow');
           const locked=await read(page);
           assert(!locked.found.includes('hollow'),'unforged hero cannot claim the sealed hollow');
