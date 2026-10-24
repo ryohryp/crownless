@@ -346,8 +346,10 @@ test('a deliberate shrine tap opens touch-sized material and healing actions',()
   assert.match(html,/id="forestShrineCancel"[^>]*min-h-11/);
   assert.match(html,/id="forestShrineStakes"[^>]*role="status"/,
     'the one-time choice shows its live expedition stakes');
-  assert.match(html,/Math\.ceil\(ginji\.hp\).*rpg\.unbanked/s,
-    'HP and unsecured materials must be read when the shrine is opened');
+  assert.match(html,/Math\.floor\(ginji\.hp\).*rpg\.unbanked/s,
+    'current HP and unsecured materials must use the same conservative display as risk eligibility');
+  assert.match(html,/Math\.floor\(ginji\.hp-riskCost\)/,
+    'the risky shrine option must preview remaining HP without rounding up');
   assert.match(html,/素材は生還時だけ倉庫に残る（敗北すると失う）/,
     'the player must know that gathering is not yet banked');
   assert.match(html,/if \(site\?\.id==='shrine'\)/);
