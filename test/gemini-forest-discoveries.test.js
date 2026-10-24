@@ -96,6 +96,18 @@ test('shrine deep search exchanges 12 HP for two provisional fangs without bypas
   assert.equal(run.unbanked,0,'risky fangs are lost on defeat');
 });
 
+test('shrine risk preview rounds fractional HP down instead of overstating survivability',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  assert.match(html,/現在 HP '\+Math\.floor\(ginji\.hp\)/,
+    'decision panel must not claim 13 HP when the player has only 12.5');
+  assert.match(html,/残り'\+Math\.floor\(ginji\.hp-riskCost\)/,
+    'post-risk preview must not overstate the HP that survives');
+  assert.match(html,/risk\.disabled=ginji\.hp<riskCost\+1/,
+    'fractional HP cannot bypass the minimum one-HP survival requirement');
+  assert.equal(D.uncover({x:660,z:230},new Set(),'fight',12.5,140,false,'risk').reason,'weak');
+  assert.equal(D.uncover({x:660,z:230},new Set(),'fight',13,140,false,'risk').damage,12);
+});
+
 test('forged sword mitigates shrine deep-search wounds without free loot',()=>{
   const player={x:660,z:230};
   const forged=new Set();
