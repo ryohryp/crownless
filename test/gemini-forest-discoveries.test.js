@@ -503,6 +503,16 @@ test('reading tracks grants a short first-strike warning without changing normal
   assert.match(html,/spawnEnemyWave\(state\.waveCount,1,true\)/,'warning never bypasses the fight');
 });
 
+test('companion supports rather than solo-bursts the optional guardian before the player arrives',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const ai=html.slice(html.indexOf('function sampleCompanionAI('),html.indexOf('function sampleEnemyAI('));
+  assert.match(ai,/const assistPace=bestTarget\.name==='苔祠の番人'\?0\.18:1/,
+    'only the optional guardian gets slower ally attacks; normal enemies stay unchanged');
+  assert.match(ai,/Math\.random\(\) < 0\.15\*assistPace/);
+  assert.match(ai,/Math\.random\(\) < 0\.08\*assistPace/);
+  assert.match(ai,/Math\.random\(\) < 0\.04\*assistPace/);
+});
+
 test('scouted guardian warning starts on close approach exactly once, not at spawn',()=>{
   const Recovery=require('../src/gemini-hit-recovery.js');
   const now=100;

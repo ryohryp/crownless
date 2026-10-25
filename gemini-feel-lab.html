@@ -1412,12 +1412,16 @@
     const slotZ = bestTarget.z;
     if (Math.abs(dx) < 52 && Math.abs(dz) < 20) {
       selfFighter.facing = dx >= 0 ? 1 : -1;
-      if (state.unlockedSkills.has('kazaguruma') && Math.random() < 0.04) {
+      // An optional guardian must survive long enough for the player to
+      // react to earned scouting. The ally supports rather than stun-locks
+      // and defeats this encounter alone; ordinary enemies are unchanged.
+      const assistPace=bestTarget.name==='苔祠の番人'?0.18:1;
+      if (state.unlockedSkills.has('kazaguruma') && Math.random() < 0.04*assistPace) {
         out.jump = true;
         out.kick = true;
-      } else if (Math.random() < 0.15) {
+      } else if (Math.random() < 0.15*assistPace) {
         out.punch = true;
-      } else if (Math.random() < 0.08) {
+      } else if (Math.random() < 0.08*assistPace) {
         out.kick = true;
       }
     } else {
