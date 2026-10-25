@@ -692,32 +692,34 @@
     updateUI();
   }
 
-  function spawnEnemyWave(waveNum, count=3) {
+  function spawnEnemyWave(waveNum, count=3, shrineGuardian=false) {
     const baseNames = ['苔牙ゴブリン', '灰羽ゴブリン', '石肌ゴブリン', '影走りゴブリン', '黒鉄のオーク'];
     const colors = ['#5e7847', '#67734b', '#6b7157', '#3e6d60', '#695246'];
     state.wantedLevel = Math.min(3, 1 + Math.floor((waveNum - 1) / 2));
 
     for (let i = 0; i < count; i++) {
       const idx = (waveNum + i) % baseNames.length;
-      const isBoss = idx === 4;
-      const ex = Math.min(WORLD.maxX - 40, Math.max(360, (ginji ? ginji.x : 220) + 190 + i * 90));
-      const ez = 245 + (i * 55) % 140;
+      const isBoss = shrineGuardian || idx === 4;
+      const ex = shrineGuardian
+        ? Math.min(WORLD.maxX - 40, Math.max(WORLD.minX + 40, ginji.x + 105))
+        : Math.min(WORLD.maxX - 40, Math.max(360, (ginji ? ginji.x : 220) + 190 + i * 90));
+      const ez = shrineGuardian ? ginji.z : 245 + (i * 55) % 140;
       const enemy = new Fighter({
-        name: baseNames[idx],
+        name: shrineGuardian ? '苔祠の番人' : baseNames[idx],
         team: 1,
         x: ex,
         z: ez,
         facing: -1,
-        maxHp: isBoss ? 155 : 95,
-        punchPower: isBoss ? 15 : 9,
-        kickPower: isBoss ? 17 : 11,
-        speed: isBoss ? 134 : 116,
-        kimonoColor: colors[idx],
+        maxHp: shrineGuardian ? 180 : isBoss ? 155 : 95,
+        punchPower: shrineGuardian ? 16 : isBoss ? 15 : 9,
+        kickPower: shrineGuardian ? 18 : isBoss ? 17 : 11,
+        speed: shrineGuardian ? 145 : isBoss ? 134 : 116,
+        kimonoColor: shrineGuardian ? '#526c54' : colors[idx],
         obiColor: '#fbbf24',
         isBoss
       });
       // 脅威度が上がると屋根上から奇襲降下してくる演出！
-      if (waveNum >= 2 && i === count - 1) {
+      if (!shrineGuardian && waveNum >= 2 && i === count - 1) {
         enemy.y = 180;
         spawnPopup('屋根上から刺客奇襲！', ex, ez, 120, '#c084fc');
       }
@@ -1873,7 +1875,7 @@
         if (applied && choice==='risk' && wasClear &&
             state.forestFinds.has('shrine') && rpgRules.pushDeeper(rpg)) {
           state.waveCount++;
-          spawnEnemyWave(state.waveCount,1);
+          spawnEnemyWave(state.waveCount,1,true);
           spawnPopup('奥を探る物音で番人が来た！牙を守って生き延びよう',
             ginji.x,ginji.z,ginji.y+60,'#fca5a5');
           updateRpgStatus();
@@ -1929,7 +1931,7 @@
   // Only fictional coordinates within this combat scene; no GPS data.
   window.CrownlessForestReadout=()=>({
     player:ginji ? {x:ginji.x,z:ginji.z,hp:ginji.hp,maxHp:ginji.maxHp,state:ginji.state,facing:ginji.facing} : null,
-    enemies:state.fighters.filter(f=>f.team===1).map(f=>({x:f.x,z:f.z,hp:f.hp,state:f.state})),
+    enemies:state.fighters.filter(f=>f.team===1).map(f=>({name:f.name,x:f.x,z:f.z,hp:f.hp,maxHp:f.maxHp,state:f.state})),
     crafted:rpg.crafted,unbanked:rpg.unbanked,banked:rpg.banked,
     art:pixelArt?'pixel':'classic',assetsReady:forestArt.ready(),
     heroAnimation:heroStillReview.status(),
