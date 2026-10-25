@@ -42,6 +42,11 @@
   }
   // Reading the animal tracks reveals firmer footing around the shrine.
   // This optional detour changes the risk, without locking out first-time explorers.
+  // Reading the tracks also gives a brief reaction window before the optional guardian closes in.
+  // This is not a path reveal or a bypass: the guardian must still be defeated to return.
+  function guardianApproachDistance(found){
+    return found.has('traces') ? 170 : 105;
+  }
   function shrineRiskDamage(found,crafted){
     return (crafted?6:12)-(found.has('traces')?3:0);
   }
@@ -72,5 +77,5 @@
       heal:spot.kind==='cache'?Math.min(45,Math.max(0,maxHp-hp)):
         spot.kind==='healing' && !scavenge?Math.min(35,Math.max(0,maxHp-hp)):0};
   }
-  return {spots,RANGE,near,spotAtTap,available,shrineRiskDamage,uncover};
+  return {spots,RANGE,near,spotAtTap,available,guardianApproachDistance,shrineRiskDamage,uncover};
 });
