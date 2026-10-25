@@ -2740,10 +2740,12 @@
 
   // Victory offers a real choice: bank the bag or investigate an unclaimed cue.
   // Never name a location before the player has inspected it.
-  function forestReturnTeaser(found) {
+  function forestReturnTeaser(found,crafted=false) {
     if (!found.has('traces')) return '湿った土にまだ読めない筋がある。';
     if (!found.has('shrine')) return '苔の間から冷たい風が流れている。';
-    if (!found.has('hollow')) return '茨の奥から硬い音が響く。';
+    if (!found.has('hollow')) return crafted
+      ? '茨の奥から硬い音が響く。鍛えた剣なら進めそうだ。'
+      : '茨の奥から硬い音が響く。牙を持ち帰り、剣を鍛えれば進めそうだ。';
     return '';
   }
 
@@ -2753,7 +2755,7 @@
     const camp = rpg.phase === 'camp';
     panel.classList.toggle('hidden', !(result || camp));
 
-    const unexploredCue=result?forestReturnTeaser(state.forestFinds):'';
+    const unexploredCue=result?forestReturnTeaser(state.forestFinds,rpg.crafted):'';
     const keepExploring=document.getElementById('rpgKeepExploring');
     keepExploring.classList.toggle('hidden', !result);
     keepExploring.textContent=unexploredCue?'🌲 気配を追って調べる':'🌲 森の探索を続ける';
