@@ -313,6 +313,22 @@ test('undiscovered forest hints convey sensory cues without naming every hidden 
   assert.doesNotMatch(hint,/獣の痕跡や古い祠へ近づき/,'generic hint must not spoil specific locations');
 });
 
+test('guardian fight overrides stale clue hints with live HP and unsecured loot',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const start=html.indexOf('function updateForestExploreHint() {');
+  const end=html.indexOf('function showRpgPanel() {',start);
+  assert(start>=0 && end>start);
+  const hint=html.slice(start,end);
+  assert.match(hint,/rpg\.phase==='fight'[\s\S]*?f\.name==='苔祠の番人' && f\.state!=='DEAD'/,
+    'only the active guardian fight can override ordinary exploration hints');
+  assert.match(hint,/const label=guardian[\s\S]*?: near/,
+    'after the guardian falls, ordinary discovery hints must return');
+  assert.match(hint,/Math\.ceil\(guardian\.hp\).*guardian\.maxHp/,
+    'the current guardian HP must be visible during the fight');
+  assert.match(hint,/倒すまで帰還不可｜未帰還の牙/,
+    'the active threat must show the actual unsecured materials at stake');
+});
+
 test('forest discoveries are in-scene actions, no navigation route/save/GPS coupling',()=>{
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   assert.match(html,/src\/gemini-forest-discoveries\.js/);
