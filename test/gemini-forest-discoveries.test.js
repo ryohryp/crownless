@@ -494,9 +494,33 @@ test('reading tracks grants a short first-strike warning without changing normal
   const ordinary={team:1,isBoss:false,nextStrikeAt:0};
   assert.equal(Recovery.readyToStrike(ordinary,now),true,'ordinary enemies retain their opening');
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
-  assert.match(html,/if \(shrineGuardian\) enemy\.nextStrikeAt=performance\.now\(\)\/1000 \+\s*window\.CrownlessForestDiscoveries\.guardianOpeningSeconds\(state\.forestFinds\)/,
-    'the live guardian must use the same discovered-track warning');
+  assert.match(html,/if \(shrineGuardian\) enemy\.scoutOpeningSeconds=\s*window\.CrownlessForestDiscoveries\.guardianOpeningSeconds\(state\.forestFinds\)/,
+    'scouting eligibility must be captured before the guardian fight');
+  assert.match(html,/CrownlessForestDiscoveries\.armGuardianOpening\(enemy,minD,nowSec\)/,
+    'the live enemy AI must arm the warning on approach');
   assert.match(html,/spawnEnemyWave\(state\.waveCount,1,true\)/,'warning never bypasses the fight');
+});
+
+test('scouted guardian warning starts on close approach exactly once, not at spawn',()=>{
+  const Recovery=require('../src/gemini-hit-recovery.js');
+  const now=100;
+  const enemy={name:'苔祠の番人',team:1,isBoss:true,
+    scoutOpeningSeconds:D.guardianOpeningSeconds(new Set(['traces'])),nextStrikeAt:0};
+  assert.equal(D.armGuardianOpening(enemy,170,now),false,'distant spawn must not waste warning time');
+  assert.equal(enemy.scoutOpeningEndsAt,undefined);
+  assert.equal(D.armGuardianOpening(enemy,95,now+2),true,'approach starts the earned warning');
+  assert.equal(enemy.scoutOpeningEndsAt,103.8);
+  assert.equal(Recovery.readyToStrike(enemy,103.79),false);
+  assert.equal(Recovery.readyToStrike(enemy,103.8),true);
+  Recovery.registerEnemyStrike(enemy,104);
+  assert.equal(D.armGuardianOpening(enemy,30,105),false,'subsequent attacks cannot reset the warning');
+  assert.equal(enemy.scoutOpeningEndsAt,103.8);
+  const blind={name:'苔祠の番人',scoutOpeningSeconds:0,nextStrikeAt:0};
+  assert.equal(D.armGuardianOpening(blind,20,now),false,'no tracks means no earned opening');
+  assert.equal(Recovery.readyToStrike(blind,now),true);
+  const ordinary={name:'苔牙ゴブリン',nextStrikeAt:0};
+  assert.equal(D.armGuardianOpening(ordinary,20,now),false,'ordinary enemies are unchanged');
+  assert.equal(D.armGuardianOpening({scoutOpeningSeconds:1.8},NaN,now),false);
 });
 
 test('earned guardian opening warning is visible, expires, and never leaks to unscouted runs',()=>{
@@ -504,7 +528,7 @@ test('earned guardian opening warning is visible, expires, and never leaks to un
   const source=html.match(/function forestGuardianHint\([^)]*\) \{[\s\S]*?\n  \}/)?.[0];
   assert.ok(source,'guardian warning must be wired into the actual forest scene');
   const hint=Function('return ('+source+')')();
-  const guardian={hp:180,maxHp:180,nextStrikeAt:101.8};
+  const guardian={hp:180,maxHp:180,scoutOpeningEndsAt:101.8,nextStrikeAt:101.8};
   const scouted=new Set(['traces']);
   assert.match(hint(guardian,scouted,3,100),/足跡の先読み 残り1\.8秒/,
     'reading the tracks gives a legible first-strike reaction window');
@@ -512,6 +536,9 @@ test('earned guardian opening warning is visible, expires, and never leaks to un
     'the warning follows real remaining time, not a permanent buff');
   assert.doesNotMatch(hint(guardian,scouted,3,101.8),/先読み/,
     'the warning disappears once the first-strike grace has elapsed');
+  guardian.nextStrikeAt=104;
+  assert.doesNotMatch(hint(guardian,scouted,3,103),/先読み/,
+    'later guardian attack cooldowns must not pretend to be fresh scouting warnings');
   assert.doesNotMatch(hint(guardian,new Set(),3,100),/先読み/,
     'players who skipped the tracks never receive unearned warning');
   assert.match(hint(guardian,scouted,3,102),/番人HP 180\/180.*帰還不可.*未帰還の牙 3個/,
