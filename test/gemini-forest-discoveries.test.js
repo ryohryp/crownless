@@ -490,9 +490,9 @@ test('reading tracks grants a short first-strike warning without changing normal
   const ordinary={team:1,isBoss:false,nextStrikeAt:0};
   assert.equal(Recovery.readyToStrike(ordinary,now),true,'ordinary enemies retain their opening');
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
-  assert.match(html,/if \\(shrineGuardian\\) enemy\\.nextStrikeAt=performance\\.now\\(\\)\\/1000 \\+\\s*window\\.CrownlessForestDiscoveries\\.guardianOpeningSeconds\\(state\\.forestFinds\\)/,
+  assert.match(html,/if \(shrineGuardian\) enemy\.nextStrikeAt=performance\.now\(\)\/1000 \+\s*window\.CrownlessForestDiscoveries\.guardianOpeningSeconds\(state\.forestFinds\)/,
     'the live guardian must use the same discovered-track warning');
-  assert.match(html,/spawnEnemyWave\\(state\\.waveCount,1,true\\)/,'warning never bypasses the fight');
+  assert.match(html,/spawnEnemyWave\(state\.waveCount,1,true\)/,'warning never bypasses the fight');
 });
 
 test('shrine guardian cannot be repeatedly grabbed while recovering from a throw',()=>{
