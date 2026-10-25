@@ -48,6 +48,29 @@ async function walkTo(page, x, z) {
   } finally { await keys(page, held, []); }
 }
 
+// The guardian may be occupied with the ally. A player must deliberately
+// close the gap to earn the player-specific warning; waiting in place is not play.
+async function approachGuardianWarning(page) {
+  const held=new Set();
+  const start=Date.now();
+  try {
+    while (Date.now()-start<7000) {
+      const s=await read(page);
+      const guardian=s.enemies.find(e=>e.name==='苔祠の番人' && e.hp>0 && e.state!=='DEAD');
+      assert(guardian && s.phase==='fight' && s.player.hp>0,
+        'guardian must still be alive when the player approaches: '+JSON.stringify(s));
+      if (guardian.scoutOpeningActive) return s;
+      const dx=guardian.x-s.player.x, dz=guardian.z-s.player.z;
+      const wanted=[];
+      if (Math.abs(dx)>55) wanted.push(dx>0?'d':'a');
+      if (Math.abs(dz)>12) wanted.push(dz>0?'s':'w');
+      await keys(page,held,wanted);
+      await page.waitForTimeout(55);
+    }
+    throw new Error('player could not approach the earned guardian warning: '+JSON.stringify(await read(page)));
+  } finally { await keys(page,held,[]); }
+}
+
 async function clearWave(page) {
   const held = new Set();
   const start = Date.now();
@@ -164,9 +187,10 @@ async function verifyTracksShrineRisk(page, crafted) {
       'the guardian hint must show the actual unsecured materials');
     // Real guardian movement must trigger the earned warning; a rule-only
     // simulation cannot establish that the player sees it on a phone.
+    await approachGuardianWarning(page);
     await page.waitForFunction(() =>
       document.getElementById('forestExploreHint')?.textContent?.includes('足跡の先読み'),
-      null,{timeout:7000});
+      null,{timeout:2000});
     const openingHint=await page.locator('#forestExploreHint').innerText();
     assert.match(openingHint,/足跡の先読み 残り[0-9]+\.[0-9]秒/,
       'real approaching guardian must grant a visible, timed scouting opening');
