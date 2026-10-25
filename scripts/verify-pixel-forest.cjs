@@ -247,6 +247,15 @@ async function main() {
             'the first victory gives a concrete reason to bank materials');
           assert.match(returnDecision,new RegExp('敗北すると今回の牙'+first.after.unbanked+'個を失う'),
             'the alternative must name the actual unsecured loss');
+          assert.match(returnDecision,/湿った土にまだ読めない筋がある。/,
+            'victory must offer a sensory cue for an unexamined discovery');
+          assert.match(await page.locator('#rpgKeepExploring').innerText(),/気配を追って調べる/,
+            'the existing continue button should invite investigation without naming the location');
+          const returnBounds=await page.locator('#rpgPanel > div').boundingBox();
+          assert(returnBounds && returnBounds.y>=0 &&
+            returnBounds.y+returnBounds.height<=page.viewportSize().height,
+            'the return decision with its cue must fit the 390px phone viewport');
+          await page.screenshot({path:path.join(output,'pixel-forest-return-cue-390.png')});
           await page.locator('#rpgKeepExploring').click();
           assert.equal(await page.locator('#rpgPanel').isVisible(),false,
             'declining the return decision resumes exploration');
