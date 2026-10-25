@@ -54,12 +54,13 @@ async function clearWave(page) {
   const before = await read(page);
   let minimumHp = before.player.hp;
   let scoutedFirstHit = false;
+  const scoutTrace = [];
   try {
     while (Date.now() - start < 75000) {
       const s = await read(page);
       minimumHp = Math.min(minimumHp, s.player.hp);
       scoutedFirstHit ||= s.enemies.some(e => e.name === '苔祠の番人' && e.scoutStrikeClaimed);
-      if (s.phase === 'return') return { seconds: Math.round((Date.now()-start)/100)/10, minimumHp, scoutedFirstHit, after:s };
+      if (s.phase === 'return') return { seconds: Math.round((Date.now()-start)/100)/10, minimumHp, scoutedFirstHit, scoutTrace, after:s };
       assert(s.phase === 'fight' && s.player.hp > 0,
         'real-input combat ended in defeat: ' + JSON.stringify(s));
       assert(Array.isArray(s.enemies), 'read-only probe must expose enemy positions');
@@ -71,6 +72,11 @@ async function clearWave(page) {
       const grappleGuardian=target?.name==='苔祠の番人' && !target.scoutOpeningActive &&
         Math.abs(target.x-s.player.x)<42 && Math.abs(target.z-s.player.z)<20;
       const wanted = [grappleGuardian?'l':'k'];
+      if (target?.name === '苔祠の番人' && scoutTrace.length < 35) {
+        scoutTrace.push({ms:Date.now()-start, gap:Math.round(Math.hypot(target.x-s.player.x,target.z-s.player.z)),
+          hero:s.player.state, guardian:target.state, guardianHp:Math.ceil(target.hp),
+          opening:target.scoutOpeningActive, claimed:target.scoutStrikeClaimed, input:wanted[0]});
+      }
       if (target) {
         const dx=target.x-s.player.x, dz=target.z-s.player.z;
         // Walk into the same depth lane, stop within reach, and face the target.
@@ -179,7 +185,8 @@ async function verifyTracksShrineRisk(page, crafted) {
     assert.equal(guardian.after.phase,'return',
       'defeating the guardian resumes ordinary exploration and safe return');
     assert.equal(guardian.scoutedFirstHit,true,
-      'real keyboard combat must land the earned +12 scouting strike before its warning expires');
+      'real keyboard combat must land the earned +12 scouting strike before its warning expires: '+
+      JSON.stringify(guardian.scoutTrace));
     assert(guardian.after.unbanked>=after.unbanked,
       'guardian combat may add ordinary enemy-drop materials to the unsecured bag');
     await page.waitForFunction(()=>
