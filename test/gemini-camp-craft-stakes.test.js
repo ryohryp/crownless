@@ -8,7 +8,7 @@ const vm = require('node:vm');
 // fabricating combat results. The source remains the browser's source of truth.
 function showPanel(state) {
   const html = fs.readFileSync('gemini-feel-lab.html', 'utf8');
-  const start = html.indexOf('function forestReturnTeaser(found) {');
+  const start = html.indexOf('function forestReturnTeaser(found,crafted=false) {');
   const panelStart = html.indexOf('function showRpgPanel() {', start);
   const end = html.indexOf("document.getElementById('rpgOpenResults').addEventListener", panelStart);
   assert(start >= 0 && panelStart > start && end > panelStart,
@@ -66,6 +66,12 @@ test('crafted, defeated and return decisions retain their distinct messages', ()
   assert.match(risk.info, /敗北すると今回の牙2個を失う/);
   assert.match(risk.info, /湿った土にまだ読めない筋がある/);
   assert.match(risk.keepExploring, /気配を追って調べる/);
+  const blocked = showPanel({ phase: 'return',
+    forestFinds: ['traces', 'shrine'], unbanked: 2 });
+  assert.match(blocked.info, /牙を持ち帰り、剣を鍛えれば進めそう/);
+  const equipped = showPanel({ phase: 'return', crafted: true,
+    forestFinds: ['traces', 'shrine'] });
+  assert.match(equipped.info, /鍛えた剣なら進めそう/);
   const explored = showPanel({ phase: 'return',
     forestFinds: ['traces', 'shrine', 'hollow'] });
   assert.doesNotMatch(explored.info, /湿った土にまだ読めない筋がある/);
