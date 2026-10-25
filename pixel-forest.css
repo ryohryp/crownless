@@ -15,3 +15,16 @@ body[data-combat-experiment] header button { min-height:32px; border-radius:4px;
   #rpgOpenResults { right:10px; }
 }
 @media(prefers-reduced-motion:reduce) { .context-glow,.kabuki-glow { animation:none!important; } }
+
+/* Presentation experiment only. Independent of the gesture/touch control areas. */
+.forest-atmosphere-toggle {
+  position:absolute; top:8px; right:8px; z-index:25;
+  min-height:44px; min-width:104px; padding:8px 12px;
+  border:1px solid #dbc28e; border-radius:8px;
+  background:rgba(30,43,34,.9); color:#ffedc8;
+  font:700 12px 'Noto Sans JP',sans-serif;
+  touch-action:manipulation; cursor:pointer;
+}
+.forest-atmosphere-toggle[aria-pressed=false] { color:#dadac9; border-color:#687361; background:rgba(29,38,31,.9); }
+.forest-atmosphere-toggle[hidden] { display:none!important; }
+.forest-atmosphere-toggle:focus-visible { outline:3px solid #f5d898; outline-offset:2px; }
