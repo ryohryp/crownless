@@ -53,11 +53,13 @@ async function clearWave(page) {
   const start = Date.now();
   const before = await read(page);
   let minimumHp = before.player.hp;
+  let scoutedFirstHit = false;
   try {
     while (Date.now() - start < 75000) {
       const s = await read(page);
       minimumHp = Math.min(minimumHp, s.player.hp);
-      if (s.phase === 'return') return { seconds: Math.round((Date.now()-start)/100)/10, minimumHp, after:s };
+      scoutedFirstHit ||= s.enemies.some(e => e.name === '苔祠の番人' && e.scoutStrikeClaimed);
+      if (s.phase === 'return') return { seconds: Math.round((Date.now()-start)/100)/10, minimumHp, scoutedFirstHit, after:s };
       assert(s.phase === 'fight' && s.player.hp > 0,
         'real-input combat ended in defeat: ' + JSON.stringify(s));
       assert(Array.isArray(s.enemies), 'read-only probe must expose enemy positions');
@@ -177,6 +179,8 @@ async function verifyTracksShrineRisk(page, crafted) {
   if (guardian) {
     assert.equal(guardian.after.phase,'return',
       'defeating the guardian resumes ordinary exploration and safe return');
+    assert.equal(guardian.scoutedFirstHit,true,
+      'real keyboard combat must land the earned +12 scouting strike before its warning expires');
     assert(guardian.after.unbanked>=after.unbanked,
       'guardian combat may add ordinary enemy-drop materials to the unsecured bag');
     await page.waitForFunction(()=>
