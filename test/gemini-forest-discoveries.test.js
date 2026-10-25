@@ -347,9 +347,13 @@ test('guardian fight overrides stale clue hints with live HP and unsecured loot'
     'only the active guardian fight can override ordinary exploration hints');
   assert.match(hint,/const label=guardian[\s\S]*?: near/,
     'after the guardian falls, ordinary discovery hints must return');
-  assert.match(hint,/Math\.ceil\(guardian\.hp\).*guardian\.maxHp/,
+  assert.match(hint,/forestGuardianHint\(guardian,state\.forestFinds,rpg\.unbanked,performance\.now\(\)\/1000\)/,
+    'the guardian hint must use live scouting state, time and unsecured loot');
+  const guardianHint=html.match(/function forestGuardianHint\([^)]*\) \{[\s\S]*?\n  \}/)?.[0];
+  assert.ok(guardianHint,'the live guardian hint helper must exist');
+  assert.match(guardianHint,/Math\.ceil\(guardian\.hp\).*guardian\.maxHp/,
     'the current guardian HP must be visible during the fight');
-  assert.match(hint,/倒すまで帰還不可｜未帰還の牙/,
+  assert.match(guardianHint,/倒すまで帰還不可｜未帰還の牙/,
     'the active threat must show the actual unsecured materials at stake');
 });
 
@@ -493,6 +497,27 @@ test('reading tracks grants a short first-strike warning without changing normal
   assert.match(html,/if \(shrineGuardian\) enemy\.nextStrikeAt=performance\.now\(\)\/1000 \+\s*window\.CrownlessForestDiscoveries\.guardianOpeningSeconds\(state\.forestFinds\)/,
     'the live guardian must use the same discovered-track warning');
   assert.match(html,/spawnEnemyWave\(state\.waveCount,1,true\)/,'warning never bypasses the fight');
+});
+
+test('earned guardian opening warning is visible, expires, and never leaks to unscouted runs',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const source=html.match(/function forestGuardianHint\([^)]*\) \{[\s\S]*?\n  \}/)?.[0];
+  assert.ok(source,'guardian warning must be wired into the actual forest scene');
+  const hint=Function('return ('+source+')')();
+  const guardian={hp:180,maxHp:180,nextStrikeAt:101.8};
+  const scouted=new Set(['traces']);
+  assert.match(hint(guardian,scouted,3,100),/足跡の先読み 残り1\.8秒/,
+    'reading the tracks gives a legible first-strike reaction window');
+  assert.match(hint(guardian,scouted,3,101.71),/残り0\.1秒/,
+    'the warning follows real remaining time, not a permanent buff');
+  assert.doesNotMatch(hint(guardian,scouted,3,101.8),/先読み/,
+    'the warning disappears once the first-strike grace has elapsed');
+  assert.doesNotMatch(hint(guardian,new Set(),3,100),/先読み/,
+    'players who skipped the tracks never receive unearned warning');
+  assert.match(hint(guardian,scouted,3,102),/番人HP 180\/180.*帰還不可.*未帰還の牙 3個/,
+    'the guardian and provisional loot stakes stay visible after the warning');
+  assert.equal(hint(null,scouted,3,100),'',
+    'normal exploration must not display a guardian warning');
 });
 
 test('shrine guardian cannot be repeatedly grabbed while recovering from a throw',()=>{
