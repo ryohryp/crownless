@@ -55,8 +55,10 @@ test('camp shows actual remaining fangs rather than falsely promising a sword', 
 });
 
 test('crafted, defeated and return decisions retain their distinct messages', () => {
-  assert.match(showPanel({ crafted: true, lastOutcome: 'crafted' }).info,
-    /風裂きの剣を装備/);
+  const craftedCamp = showPanel({ crafted: true, lastOutcome: 'crafted' });
+  assert.match(craftedCamp.info, /風裂きの剣を装備/);
+  assert.doesNotMatch(craftedCamp.info, /石門|切り開ける/,
+    'crafting alone must not reveal the uninspected gate or its solution');
   assert.match(showPanel({ lastOutcome: 'defeated' }).info,
     /今回の未帰還素材は失った/);
   const risk = showPanel({ phase: 'return', banked: 1, unbanked: 2,
@@ -68,10 +70,10 @@ test('crafted, defeated and return decisions retain their distinct messages', ()
   assert.match(risk.keepExploring, /気配を追って調べる/);
   const blocked = showPanel({ phase: 'return',
     forestFinds: ['traces', 'shrine'], unbanked: 2 });
-  assert.match(blocked.info, /牙を持ち帰り、剣を鍛えれば進めそう/);
+  assert.match(blocked.info, /今調べるか、牙を持ち帰って装備を整えるか/);
   const equipped = showPanel({ phase: 'return', crafted: true,
     forestFinds: ['traces', 'shrine'] });
-  assert.match(equipped.info, /鍛えた剣なら進めそう/);
+  assert.match(equipped.info, /鍛えた剣を手に、何があるか確かめよう/);
   const explored = showPanel({ phase: 'return',
     forestFinds: ['traces', 'shrine', 'hollow'] });
   assert.doesNotMatch(explored.info, /湿った土にまだ読めない筋がある/);
