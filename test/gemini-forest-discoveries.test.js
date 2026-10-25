@@ -495,3 +495,33 @@ test('shrine guardian cannot be repeatedly grabbed while recovering from a throw
   assert.match(input,/if \(input\.grab\) \{[\s\S]*?for \(const other of state\.fighters\) \{\s*if \(!canGrabEnemy\(f, other\)\) continue;/,
     'the actual grab input must enforce the same rule');
 });
+
+test('victory return panel hints at remaining discoveries without spoiling them or altering the safe return',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const helper=html.match(/function forestReturnTeaser\(found\) \{[\s\S]*?\n  \}/);
+  assert.ok(helper,'the result screen needs a discovery-aware but non-spoiling hint');
+  const teaser=require('node:vm').runInNewContext('('+helper[0]+')');
+  const unread=teaser(new Set());
+  const tracksRead=teaser(new Set(['traces']));
+  const shrineRead=teaser(new Set(['traces','shrine']));
+  assert.match(unread,/湿った土/);
+  assert.match(tracksRead,/苔の間/);
+  assert.match(shrineRead,/茨の奥/);
+  assert.equal(teaser(new Set(['traces','shrine','hollow'])),'',
+    'once all sites are examined the panel should not invent more discoveries');
+  for(const hint of [unread,tracksRead,shrineRead]) {
+    assert.doesNotMatch(hint,/獣の痕跡|苔むす祠|茨の石門/,
+      'undiscovered places must remain unnamed');
+  }
+  const resultPanel=html.slice(html.indexOf('function showRpgPanel() {'),
+    html.indexOf("document.getElementById('rpgOpenResults').addEventListener"));
+  assert.match(resultPanel,/const unexploredCue=result\?forestReturnTeaser\(state\.forestFinds\):'';/);
+  assert.match(resultPanel,/keepExploring\.textContent=unexploredCue\?/,
+    'the existing explore action should invite deliberate investigation');
+  assert.match(resultPanel,/unexploredCue\?' '\+unexploredCue\+' 気になるなら森を調べよう。'/,
+    'the player should see the unexplored cue alongside the safe-return stakes');
+  assert.match(resultPanel,/rpgRules\.COST-rpg\.banked-rpg\.unbanked/,
+    'the smithing and provisional-loot decision remains intact');
+  assert.match(html,/if \(!rpgRules\.returnAlive\(rpg, ginji && ginji\.hp\)\) return;/,
+    'the living-return banking rule must remain the only safe-return path');
+});
