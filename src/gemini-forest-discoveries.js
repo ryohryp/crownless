@@ -52,6 +52,19 @@
   function guardianOpeningSeconds(found){
     return found.has('traces') ? 1.8 : 0;
   }
+  // Start the earned warning when the guardian is close enough to threaten the
+  // player, not while it is still walking in from its distant spawn point.
+  // Mark it once: later attack cooldowns must never become fresh scouting cues.
+  const GUARDIAN_WARNING_RANGE=95;
+  function armGuardianOpening(enemy,distance,nowSec){
+    if (!enemy || !(enemy.scoutOpeningSeconds>0) || enemy.scoutOpeningArmed ||
+        !Number.isFinite(distance) || distance>GUARDIAN_WARNING_RANGE ||
+        !Number.isFinite(nowSec)) return false;
+    enemy.scoutOpeningArmed=true;
+    enemy.scoutOpeningEndsAt=nowSec+enemy.scoutOpeningSeconds;
+    enemy.nextStrikeAt=Math.max(enemy.nextStrikeAt||0,enemy.scoutOpeningEndsAt);
+    return true;
+  }
   function shrineRiskDamage(found,crafted){
     return (crafted?6:12)-(found.has('traces')?3:0);
   }
@@ -86,5 +99,5 @@
       heal:spot.kind==='cache'?Math.min(45,Math.max(0,maxHp-hp)):
         spot.kind==='healing' && !scavenge?Math.min(35,Math.max(0,maxHp-hp)):0};
   }
-  return {spots,RANGE,near,spotAtTap,available,guardianApproachDistance,guardianOpeningSeconds,shrineRiskDamage,uncover};
+  return {spots,RANGE,near,spotAtTap,available,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,shrineRiskDamage,uncover};
 });
