@@ -387,11 +387,20 @@ async function main() {
         assert.equal(await page.locator('#forestShrineChoice').getAttribute('aria-modal'),'true',
           'the shrine choice must block accidental background taps');
         const stakesAtChoice=await readForestShrine();
+        const forgeNeed=Math.max(0,3-stakesAtChoice.banked-stakesAtChoice.unbanked);
+        const forgeChoice=stakesAtChoice.crafted?'鍛冶剣は装備済み。':
+          forgeNeed===0?'鍛冶剣の素材は揃っている。':
+          '鍛冶剣まで牙あと'+forgeNeed+'個（+1なら残り'+Math.max(0,forgeNeed-1)+
+          '、+2なら残り'+Math.max(0,forgeNeed-2)+'）。';
         assert.equal(await page.locator('#forestShrineStakes').textContent(),
           '現在 HP '+Math.floor(stakesAtChoice.player.hp)+'/'+stakesAtChoice.player.maxHp+
           '、未帰還の牙 '+stakesAtChoice.unbanked+
-          '個。素材は生還時だけ倉庫に残る（敗北すると失う）。',
-          'real phone choice must explain current HP, unsecured loot and defeat risk');
+          '個。'+forgeChoice+'素材は生還時だけ倉庫に残る（敗北すると失う）。',
+          'real phone choice must show the safe/risky forge payoff without promising banked loot');
+        const shrineBounds=await page.locator('#forestShrineChoice > div').boundingBox();
+        assert(shrineBounds && shrineBounds.y>=0 &&
+          shrineBounds.y+shrineBounds.height<=page.viewportSize().height,
+          'the expanded shrine decision must remain inside the phone viewport');
         const pausedBefore=await readForestShrine();
         await page.waitForTimeout(300);
         const pausedAfter=await readForestShrine();
