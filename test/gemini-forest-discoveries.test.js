@@ -399,7 +399,7 @@ test('post-victory deep search wakes one optional guardian before risky loot can
     'the risky option must warn before the player commits');
   assert.match(html,/choice==='risk' && wasClear &&[\s\S]*?rpgRules\.pushDeeper\(rpg\)/,
     'only a chosen deep search after victory starts another fight');
-  assert.match(html,/spawnEnemyWave\(state\.waveCount,1\)/,
+  assert.match(html,/spawnEnemyWave\(state\.waveCount,1,true\)/,
     'the ambush is a single guardian, not an involuntary full wave');
   const run=R.create();
   assert.equal(R.clearWave(run),true);
