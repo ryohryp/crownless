@@ -2738,13 +2738,25 @@
     if(hint.textContent!==label) hint.textContent=label;
   }
 
+  // Victory offers a real choice: bank the bag or investigate an unclaimed cue.
+  // Never name a location before the player has inspected it.
+  function forestReturnTeaser(found) {
+    if (!found.has('traces')) return '湿った土にまだ読めない筋がある。';
+    if (!found.has('shrine')) return '苔の間から冷たい風が流れている。';
+    if (!found.has('hollow')) return '茨の奥から硬い音が響く。';
+    return '';
+  }
+
   function showRpgPanel() {
     const panel = document.getElementById('rpgPanel');
     const result = rpg.phase === 'return';
     const camp = rpg.phase === 'camp';
     panel.classList.toggle('hidden', !(result || camp));
 
-    document.getElementById('rpgKeepExploring').classList.toggle('hidden', !result);
+    const unexploredCue=result?forestReturnTeaser(state.forestFinds):'';
+    const keepExploring=document.getElementById('rpgKeepExploring');
+    keepExploring.classList.toggle('hidden', !result);
+    keepExploring.textContent=unexploredCue?'🌲 気配を追って調べる':'🌲 森の探索を続ける';
     document.getElementById('rpgReturn').classList.toggle('hidden', !result);
     document.getElementById('rpgPush').classList.toggle('hidden', !result);
     document.getElementById('rpgForge').classList.toggle('hidden', !camp || rpg.crafted);
@@ -2768,7 +2780,8 @@
       : '今帰っても鍛冶剣まで牙あと'+(rpgRules.COST-safeTotal)+'個。';
     document.getElementById('rpgInfo').textContent = result
       ? '今帰れば牙'+rpg.unbanked+'個を確保。'+craftProspect+
-        'さらに奥へ進めば素材は増えるが、敗北すると今回の牙'+rpg.unbanked+'個を失う。'
+        'さらに奥へ進めば素材は増えるが、敗北すると今回の牙'+rpg.unbanked+'個を失う。'+
+        (unexploredCue?' '+unexploredCue+' 気になるなら森を調べよう。':'')
       : (rpg.lastOutcome === 'defeated'
          ? '今回の未帰還素材は失った。以前に倉庫へ持ち帰った分と制作済みの武器は残る。'
          : rpg.crafted
