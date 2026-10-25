@@ -18,6 +18,7 @@
     </header>
     <section class="game-shell" aria-label="森の探索実験">
       <div class="stage" id="stage" aria-label="森の風景。タップで移動先を指定"></div>
+      <button class="fx-toggle" id="fx-toggle" type="button" aria-pressed="true" hidden>演出 ON</button>
       <div class="scene-prompt" id="scene-prompt" aria-live="polite">旅が始まる…</div>
       <div class="stats">
         <span id="hp">体力 3/3</span><span id="cargo">手持ち なし</span><span id="gear">素手</span><span id="run">遠征 1</span>
@@ -39,6 +40,7 @@
     </div>
     <footer><span id="metrics">描画計測中…</span><span>2周目の祠を目指そう · 仮の位置 / セーブなし</span></footer>
   </main>
+  <script src="effects.js"></script>
   <script type="module">
     const engine = new URLSearchParams(location.search).get('engine') === 'pixi' ? 'pixi' : 'phaser';
     document.querySelector('#engine-name').textContent = engine === 'pixi' ? 'PixiJS 8.22.0' : 'Phaser 4.2.1';
