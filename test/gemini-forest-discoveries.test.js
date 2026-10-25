@@ -531,3 +531,19 @@ test('victory return panel hints at remaining discoveries without spoiling them 
   assert.match(html,/if \(!rpgRules\.returnAlive\(rpg, ginji && ginji\.hp\)\) return;/,
     'the living-return banking rule must remain the only safe-return path');
 });
+
+test('crafted camp remembers an earned track clue without exposing the hidden destination',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const helper=html.match(/function forestRevisitAction\(found,crafted\) \{[\s\S]*?\n  \}/);
+  assert.ok(helper,'the camp action must derive only from the current expedition findings');
+  const revisit=require('node:vm').runInNewContext('('+helper[0]+')');
+  const ordinary='🗺 もう一度、森へ遠征';
+  assert.equal(revisit(new Set(),true),ordinary,'unknown tracks cannot create an earned clue');
+  assert.equal(revisit(new Set(['traces']),false),ordinary,'unforged gear must not imply new reach');
+  const earned=revisit(new Set(['traces','shrine']),true);
+  assert.match(earned,/足跡の先を確かめに再遠征/);
+  assert.doesNotMatch(earned,/石門|隠し道|開通|切り開ける/,'no secret solution before discovery');
+  assert.equal(revisit(new Set(['traces','hollow']),true),ordinary,
+    'after examining the destination, the prompt must not pretend it is still unknown');
+  assert.match(html,/depart\.textContent=forestRevisitAction\(state\.forestFinds,rpg\.crafted\)/);
+});

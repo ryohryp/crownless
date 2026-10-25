@@ -2749,6 +2749,14 @@
     return '';
   }
 
+  // A clue actually read in the last expedition can motivate the next trip.
+  // Do not advertise an unknown place or promise its solution before inspection.
+  function forestRevisitAction(found,crafted) {
+    return crafted && found.has('traces') && !found.has('hollow')
+      ? '🌲 足跡の先を確かめに再遠征'
+      : '🗺 もう一度、森へ遠征';
+  }
+
   function showRpgPanel() {
     const panel = document.getElementById('rpgPanel');
     const result = rpg.phase === 'return';
@@ -2767,7 +2775,9 @@
     if (result && ginji) pushDeeper.textContent='⚔ 次の敵に挑む（HP '+Math.max(0,Math.ceil(ginji.hp))+'/'+ginji.maxHp+
       '・未帰還の牙 '+rpg.unbanked+'個）';
     document.getElementById('rpgForge').classList.toggle('hidden', !camp || rpg.crafted);
-    document.getElementById('rpgDepart').classList.toggle('hidden', !camp);
+    const depart=document.getElementById('rpgDepart');
+    depart.classList.toggle('hidden', !camp);
+    depart.textContent=forestRevisitAction(state.forestFinds,rpg.crafted);
     document.getElementById('rpgBackToMap').classList.toggle('hidden', !camp || new URLSearchParams(location.search).get('from') !== 'discovered-wood');
 
     document.getElementById('rpgBank').textContent =

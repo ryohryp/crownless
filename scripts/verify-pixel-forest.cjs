@@ -317,6 +317,16 @@ async function main() {
           const forged=await read(page);
           assert.equal(forged.crafted,true);
           assert.equal(forged.banked,returned.banked-3);
+          const revisitLabel=await page.locator('#rpgDepart').innerText();
+          assert.match(revisitLabel,/足跡の先を確かめに再遠征/,
+            'the real 390px camp remembers the tracks actually inspected before forging');
+          assert.doesNotMatch(revisitLabel,/石門|隠し道|開通/,
+            'the next-trip action must not spoil the still-unexplored destination');
+          const departBounds=await page.locator('#rpgDepart').boundingBox();
+          assert(departBounds && departBounds.x>=0 &&
+            departBounds.x+departBounds.width<=page.viewportSize().width &&
+            departBounds.y+departBounds.height<=page.viewportSize().height,
+            'the earned next-trip action remains reachable on a 390px phone');
           await page.screenshot({path:path.join(output,'pixel-forest-forged.png')});
           await page.locator('#rpgDepart').click();
           const second=await clearWave(page);
