@@ -1448,7 +1448,11 @@
     const dz = target.z - enemy.z;
     // Put the earned scouting cue beside the actual threat, not only in the HUD.
     // The one-shot arm prevents repeated popups on later attack cooldowns.
-    if (window.CrownlessForestDiscoveries.armGuardianOpening(enemy,minD,nowSec)) {
+    // The ally may reach the guardian first. Start the earned *player* strike
+    // window only when Ginji himself can close the remaining distance.
+    const scoutDistance=ginji && ginji.state!=='DEAD'
+      ? Math.hypot(ginji.x-enemy.x,ginji.z-enemy.z) : Infinity;
+    if (window.CrownlessForestDiscoveries.armGuardianOpening(enemy,scoutDistance,nowSec)) {
       spawnPopup('👁 予兆を察知！先手の好機',enemy.x,enemy.z,enemy.y+65,'#fef08a');
     }
     const hasToken = state.tokenManager.requestToken(enemy.id, nowSec, 1.3);
