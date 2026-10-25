@@ -74,17 +74,41 @@ test('injured explorers can deliberately take provisional material instead of he
   assert.equal(fullFound.size,0);
 });
 
+test('deep shrine search cannot grant unguarded loot before the initial wave is cleared',()=>{
+  const spot={x:660,z:230},found=new Set(),run=R.create();
+  assert.equal(run.phase,'fight');
+  const denied=D.uncover(spot,found,run.phase,140,140,false,'risk');
+  assert.equal(denied.ok,false);
+  assert.equal(denied.reason,'clear-first');
+  assert.equal(found.size,0,'denied deep search must not spend the shrine');
+  assert.equal(run.unbanked,0,'the initial fight cannot mint risk-free materials');
+  assert.equal(D.uncover(spot,new Set(),run.phase,140,140,false,'material').material,1,
+    'safe scavenging remains available before the wave ends');
+  assert.equal(R.clearWave(run),true);
+  const reward=D.uncover(spot,found,run.phase,140,140,false,'risk');
+  assert.equal(reward.ok,true);
+  assert.equal(reward.material,2);
+  assert.equal(R.pushDeeper(run),true,'the extra materials require another fight');
+  assert.equal(R.returnAlive(run,140-reward.damage),false,
+    'return is blocked until the guardian is defeated');
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  assert.match(html,/risk\\.disabled=ginji\\.hp<riskCost\\+1 \\|\\| rpg\\.phase!=='return'/,
+    'the phone action must be disabled during the initial wave');
+  assert.match(html,/魔物を倒してから／番人が待っている/,
+    'the unavailable option explains when and why it becomes available');
+});
+
 test('shrine deep search exchanges 12 HP for two provisional fangs without bypassing survival',()=>{
   const player={x:660,z:230},found=new Set();
-  const risk=D.uncover(player,found,'fight',75,140,false,'risk');
+  const risk=D.uncover(player,found,'return',75,140,false,'risk');
   assert.equal(risk.ok,true);
   assert.equal(risk.material,2);
   assert.equal(risk.damage,12);
   assert.equal(risk.heal,0);
-  assert.equal(D.uncover(player,found,'fight',63,140,false,'risk').ok,false,
+  assert.equal(D.uncover(player,found,'return',63,140,false,'risk').ok,false,
     'one expedition cannot farm the risky branch');
   const exhausted=new Set();
-  assert.equal(D.uncover(player,exhausted,'fight',12.5,140,false,'risk').reason,'weak');
+  assert.equal(D.uncover(player,exhausted,'return',12.5,140,false,'risk').reason,'weak');
   assert.equal(exhausted.size,0,'too little HP must not consume the shrine');
   assert.equal(D.uncover(player,exhausted,'fight',12,140,false,'material').material,1,
     'the safe material option remains available at low HP');
@@ -104,8 +128,8 @@ test('shrine risk preview rounds fractional HP down instead of overstating survi
     'post-risk preview must not overstate the HP that survives');
   assert.match(html,/risk\.disabled=ginji\.hp<riskCost\+1/,
     'fractional HP cannot bypass the minimum one-HP survival requirement');
-  assert.equal(D.uncover({x:660,z:230},new Set(),'fight',12.5,140,false,'risk').reason,'weak');
-  assert.equal(D.uncover({x:660,z:230},new Set(),'fight',13,140,false,'risk').damage,12);
+  assert.equal(D.uncover({x:660,z:230},new Set(),'return',12.5,140,false,'risk').reason,'weak');
+  assert.equal(D.uncover({x:660,z:230},new Set(),'return',13,140,false,'risk').damage,12);
 });
 
 test('forged sword mitigates shrine deep-search wounds without free loot',()=>{
@@ -118,9 +142,9 @@ test('forged sword mitigates shrine deep-search wounds without free loot',()=>{
   assert.equal(risk.heal,0);
   assert.equal(D.uncover(player,forged,'return',90,140,true,'risk').ok,false);
   const weak=new Set();
-  assert.equal(D.uncover(player,weak,'fight',6.5,140,true,'risk').reason,'weak');
+  assert.equal(D.uncover(player,weak,'return',6.5,140,true,'risk').reason,'weak');
   assert.equal(weak.size,0);
-  assert.equal(D.uncover(player,new Set(),'fight',7,140,false,'risk').reason,'weak');
+  assert.equal(D.uncover(player,new Set(),'return',7,140,false,'risk').reason,'weak');
   assert.equal(D.uncover(player,weak,'fight',6.5,140,true,'material').material,1);
 });
 
