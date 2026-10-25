@@ -474,6 +474,27 @@ test('reading tracks gives reaction distance against the optional shrine guardia
   assert.match(html,/spawnEnemyWave\(state\.waveCount,1,true\)/,'scouting must not bypass the guardian');
 });
 
+test('reading tracks grants a short first-strike warning without changing normal enemies or loot',()=>{
+  const Recovery=require('../src/gemini-hit-recovery.js');
+  const unread=new Set();
+  const read=new Set(['traces']);
+  assert.equal(D.guardianOpeningSeconds(unread),0);
+  assert.equal(D.guardianOpeningSeconds(read),1.8);
+  assert.equal(read.has('shrine'),false,'warning must not auto-discover the shrine');
+  const now=100;
+  const alerted={team:1,isBoss:true,nextStrikeAt:now+D.guardianOpeningSeconds(read)};
+  const surprised={team:1,isBoss:true,nextStrikeAt:now+D.guardianOpeningSeconds(unread)};
+  assert.equal(Recovery.readyToStrike(alerted,now+1.79),false,'scouting gives time to react');
+  assert.equal(Recovery.readyToStrike(alerted,now+1.8),true,'guardian remains dangerous after warning');
+  assert.equal(Recovery.readyToStrike(surprised,now),true,'skipping tracks gives no warning');
+  const ordinary={team:1,isBoss:false,nextStrikeAt:0};
+  assert.equal(Recovery.readyToStrike(ordinary,now),true,'ordinary enemies retain their opening');
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  assert.match(html,/if \\(shrineGuardian\\) enemy\\.nextStrikeAt=performance\\.now\\(\\)\\/1000 \\+\\s*window\\.CrownlessForestDiscoveries\\.guardianOpeningSeconds\\(state\\.forestFinds\\)/,
+    'the live guardian must use the same discovered-track warning');
+  assert.match(html,/spawnEnemyWave\\(state\\.waveCount,1,true\\)/,'warning never bypasses the fight');
+});
+
 test('shrine guardian cannot be repeatedly grabbed while recovering from a throw',()=>{
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   const helper=html.match(/function canGrabEnemy\(f, other\) \{[\s\S]*?\n  \}/);
