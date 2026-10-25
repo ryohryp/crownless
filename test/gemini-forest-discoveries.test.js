@@ -92,7 +92,7 @@ test('deep shrine search cannot grant unguarded loot before the initial wave is 
   assert.equal(R.returnAlive(run,140-reward.damage),false,
     'return is blocked until the guardian is defeated');
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
-  assert.match(html,/risk\\.disabled=ginji\\.hp<riskCost\\+1 \\|\\| rpg\\.phase!=='return'/,
+  assert.match(html,/risk\.disabled=ginji\.hp<riskCost\+1 \|\| rpg\.phase!=='return'/,
     'the phone action must be disabled during the initial wave');
   assert.match(html,/魔物を倒してから／番人が待っている/,
     'the unavailable option explains when and why it becomes available');
