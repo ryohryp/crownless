@@ -128,8 +128,15 @@ async function verifyTracksShrineRisk(page, crafted) {
   if (wasClear) {
     assert.equal(after.phase,'fight',
       'deep search after victory starts a new encounter before loot can be banked');
-    assert.equal(after.enemies.filter(e=>e.hp>0 && e.state!=='DEAD').length,1,
+    const awake=after.enemies.filter(e=>e.hp>0 && e.state!=='DEAD');
+    assert.equal(awake.length,1,
       'only one optional guardian is awakened, not a mandatory full wave');
+    assert.equal(awake[0].name,'苔祠の番人',
+      'the optional shrine threat must be a distinct guardian, not a generic wave enemy');
+    assert.equal(awake[0].maxHp,180,
+      'the optional guardian must survive longer than a normal 95 HP enemy');
+    assert(Math.hypot(awake[0].x-after.player.x,awake[0].z-after.player.z)<=130,
+      'the guardian must confront the player nearby in the same depth lane');
     assert.equal(await page.locator('#rpgOpenResults').isVisible(),false,
       'the player cannot immediately bank the risky extra materials');
   }
