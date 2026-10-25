@@ -26,6 +26,20 @@ Open `http://127.0.0.1:4173/experiments/renderer-lab/index.html?engine=phaser` o
 
 On a phone, use held ◀/▶ or tap inside the world to approach a site and press 「調べる」. Pick a fight tactic, walk back to the left entrance, return with iron and herbs, craft a sword, revisit the forest and unlock the distant shrine. Keyboard arrows/A/D work on desktop.
 
+## Human feedback and optional visual FX (2026-10-25)
+
+On Pixel 9 the first Phaser and Pixi versions both displayed correctly after the mobile height fix, but the user **felt no difference**. That is evidence against migrating on engine choice alone; it is not an engine benchmark.
+
+The new Pixi-only `effects.js` layer deliberately keeps the **same** gameplay and art while adding:
+- slow parallax silhouettes, moon shafts, ground fog, fireflies and foreground framing;
+- a guardian emerging near the bridge, glimmering unopened shrine and site hints;
+- short bursts on gathering, defeating the guardian and opening the shrine, plus light camera shake;
+- a 44px-or-better **演出 ON/OFF** button on the same Pixi route for a direct perceptual comparison.
+
+FX are generated through PixiJS Graphics and Containers (no new image assets, network services, shader postprocessing or filters), throttled to about 30Hz while game input runs normally. The optional layer does not write game state. The Phaser version is an unchanged same-rules visual baseline. Toggle the effect off and compare in the same spot.
+
+Browser CI smoke `node scripts/verify-renderer-lab-phone.cjs` checks that both renderers load at 360 / 390 / 430 CSS px, actions remain visible and clickable, FX can be disabled/re-enabled, and gathering still works. Real-device feeling, load cost and GPU memory remain a **human** acceptance gate; an emulator cannot certify fun.
+
 ## Comparison conditions
 
 | Condition | Both engines |
