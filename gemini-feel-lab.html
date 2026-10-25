@@ -718,6 +718,10 @@
         obiColor: '#fbbf24',
         isBoss
       });
+      // Scouting the tracks buys a brief, real reaction window against the
+      // optional guardian's opening strike; ordinary enemies are unchanged.
+      if (shrineGuardian) enemy.nextStrikeAt=performance.now()/1000 +
+        window.CrownlessForestDiscoveries.guardianOpeningSeconds(state.forestFinds);
       // 脅威度が上がると屋根上から奇襲降下してくる演出！
       if (!shrineGuardian && waveNum >= 2 && i === count - 1) {
         enemy.y = 180;
