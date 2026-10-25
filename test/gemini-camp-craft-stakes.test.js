@@ -31,12 +31,14 @@ function showPanel(state) {
   // Evaluate the real teaser together with the panel, as the browser does.
   const run = vm.runInNewContext('(() => { ' + html.slice(start, end).trim() +
     '; return showRpgPanel; })()',
-    { document, rpg, state: { forestFinds: new Set(state.forestFinds || []) },
+    { document, rpg, ginji: { hp: state.hp ?? 140, maxHp: 140 },
+      state: { forestFinds: new Set(state.forestFinds || []) },
       rpgRules: { COST: 3 }, location: { search: '' }, URLSearchParams },
     { timeout: 1000 });
   run();
   return { info: elements.get('rpgInfo').textContent,
     keepExploring: elements.get('rpgKeepExploring').textContent,
+    pushDeeper: elements.get('rpgPush').textContent,
     forgeDisabled: elements.get('rpgForge').disabled,
     bank: elements.get('rpgBank').textContent };
 }
@@ -68,6 +70,12 @@ test('crafted, defeated and return decisions retain their distinct messages', ()
   assert.match(risk.info, /敗北すると今回の牙2個を失う/);
   assert.match(risk.info, /湿った土にまだ読めない筋がある/);
   assert.match(risk.keepExploring, /気配を追って調べる/);
+  assert.match(risk.pushDeeper, /次の敵に挑む（HP 140\/140・未帰還の牙 2個）/);
+  const wounded = showPanel({ phase: 'return', hp: 21, unbanked: 3 });
+  assert.match(wounded.pushDeeper, /次の敵に挑む（HP 21\/140・未帰還の牙 3個）/,
+    'the next-wave button must preview the current health and loot at risk');
+  assert.match(wounded.keepExploring, /気配を追って調べる/,
+    'inspecting this forest must remain a separate action from starting another wave');
   const blocked = showPanel({ phase: 'return',
     forestFinds: ['traces', 'shrine'], unbanked: 2 });
   assert.match(blocked.info, /今調べるか、牙を持ち帰って装備を整えるか/);
