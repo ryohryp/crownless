@@ -78,6 +78,8 @@ async function boot() {
   app.stage.eventMode = 'static'; app.stage.hitArea = app.screen;
   app.stage.on('pointerdown', event => controller.pointAt(event.global.x + cameraX(controller.state, app.screen.width)));
   app.ticker.add(ticker => controller.tick(ticker.deltaMS));
+  // Small, reversible FX layer; Phaser uses the same game without this hook.
+  window.__rendererLabAttachEffects?.({ app, world, Graphics, Container, controller });
   controller.ready = true;
 }
 
