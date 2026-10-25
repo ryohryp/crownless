@@ -508,14 +508,14 @@ test('victory return panel hints at remaining discoveries without spoiling them 
   assert.match(unread,/湿った土/);
   assert.match(tracksRead,/苔の間/);
   assert.match(shrineRead,/茨の奥/);
-  assert.match(shrineRead,/牙を持ち帰り、剣を鍛えれば進めそう/,
-    'an unequipped player needs a return-and-craft goal before the thorns');
-  assert.match(equippedRead,/鍛えた剣なら進めそう/,
-    'the same clue should invite equipped players to explore now');
+  assert.match(shrineRead,/今調べるか、牙を持ち帰って装備を整えるか/,
+    'an unequipped player should choose whether to inspect now or return and prepare');
+  assert.match(equippedRead,/鍛えた剣を手に、何があるか確かめよう/,
+    'equipped players should still inspect the unknown location themselves');
   assert.equal(teaser(new Set(['traces','shrine','hollow'])),'',
     'once all sites are examined the panel should not invent more discoveries');
   for(const hint of [unread,tracksRead,shrineRead,equippedRead]) {
-    assert.doesNotMatch(hint,/獣の痕跡|苔むす祠|茨の石門/,
+    assert.doesNotMatch(hint,/獣の痕跡|苔むす祠|茨の石門|切り開ける|進めそう/,
       'undiscovered places must remain unnamed');
   }
   const resultPanel=html.slice(html.indexOf('function showRpgPanel() {'),
