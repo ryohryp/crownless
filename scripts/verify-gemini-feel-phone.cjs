@@ -477,10 +477,12 @@ async function main() {
           'repeat shrine taps must not trigger the discovery rule again');
         const afterRepeat=await page.evaluate(() => window.CrownlessForestReadout());
         // A live guardian can defeat the hero between two real touch inputs.
+        // The camp phase is the reliable outcome signal: a restarted hero may
+        // already have positive HP, while the lost unsecured bag stays zero.
         // Defeat correctly discards the entire unsecured bag; it is not a
         // duplicate-pickup regression. The unchanged shrine outcome above
         // proves the second tap did not award another shrine reward.
-        if (afterRepeat.phase==='camp' && afterRepeat.player.hp<=0) {
+        if (afterRepeat.phase==='camp') {
           assert.equal(afterRepeat.unbanked,0,
             'defeat after the shrine must lose all unsecured fangs');
         } else {
