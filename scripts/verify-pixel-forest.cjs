@@ -111,7 +111,7 @@ async function verifyTracksShrineRisk(page, crafted) {
   assert.equal(await risk.isEnabled(),true);
   assert.match(await risk.innerText(),new RegExp('HP -'+cost),
     'reading tracks must reduce the visible cost with and without crafted gear');
-  assert.match(await risk.innerText(),new RegExp('→残り'+Math.ceil(before.player.hp-cost)),
+  assert.match(await risk.innerText(),new RegExp('→残り'+Math.floor(before.player.hp-cost)),
     'the shrine previews the actual remaining HP before committing');
   assert.match(await risk.innerText(),/足跡を読んで負傷 -3/,
     'the UI must explain why the risk is reduced');
@@ -234,6 +234,8 @@ async function main() {
           assert.match(await returnButton.innerText(),new RegExp('牙'+afterTracks.unbanked+'）'),
             'the return choice updates even when the clue hint takes priority');
           await page.waitForFunction(()=>document.getElementById('forestExploreHint')?.textContent?.includes('足跡は右奥へ続いている'));
+          assert.match(await page.locator('#forestExploreHint').innerText(),/安全な足場を発見（危険な調査の負傷 -3）/,
+            'discovering tracks should immediately reveal the safer next choice');
           const shrineBeforeForge=await verifyTracksShrineRisk(page,false);
           assert.match(await returnButton.innerText(),new RegExp('牙'+shrineBeforeForge.provisionalAfter+'）'),
             'the shrine reward is reflected in the still-available return choice');
