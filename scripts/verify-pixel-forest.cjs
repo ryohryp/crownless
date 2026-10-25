@@ -135,8 +135,11 @@ async function verifyTracksShrineRisk(page, crafted) {
       'the optional shrine threat must be a distinct guardian, not a generic wave enemy');
     assert.equal(awake[0].maxHp,180,
       'the optional guardian must survive longer than a normal 95 HP enemy');
-    assert(Math.hypot(awake[0].x-after.player.x,awake[0].z-after.player.z)<=130,
-      'the guardian must confront the player nearby in the same depth lane');
+    const distance=Math.hypot(awake[0].x-after.player.x,awake[0].z-after.player.z);
+    assert(distance>=120 && distance<=190,
+      'reading tracks must provide extra reaction distance before the guardian reaches the player: '+distance);
+    assert.match(await risk.innerText(),/番人の接近を早く察知/,
+      'the decision should explain the scouting benefit before commitment');
     assert.equal(await page.locator('#rpgOpenResults').isVisible(),false,
       'the player cannot immediately bank the risky extra materials');
   }
