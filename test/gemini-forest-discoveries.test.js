@@ -520,7 +520,8 @@ test('victory return panel hints at remaining discoveries without spoiling them 
     'the existing explore action should invite deliberate investigation');
   assert.match(resultPanel,/unexploredCue\?' '\+unexploredCue\+' 気になるなら森を調べよう。'/,
     'the player should see the unexplored cue alongside the safe-return stakes');
-  assert.match(resultPanel,/rpgRules\.COST-rpg\.banked-rpg\.unbanked/,
+  assert.match(resultPanel,/const safeTotal=rpg\.banked\+rpg\.unbanked;/);
+  assert.match(resultPanel,/rpgRules\.COST-safeTotal/,
     'the smithing and provisional-loot decision remains intact');
   assert.match(html,/if \(!rpgRules\.returnAlive\(rpg, ginji && ginji\.hp\)\) return;/,
     'the living-return banking rule must remain the only safe-return path');
