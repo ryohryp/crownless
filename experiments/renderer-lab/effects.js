@@ -7,6 +7,8 @@
     const stage = app.stage;
     const far = new Container();
     const haze = new Container();
+    const fog = new Graphics();
+    haze.addChild(fog);
     const fireflies = new Graphics();
     const foreground = new Graphics();
     const particles = new Graphics();
@@ -95,8 +97,7 @@
       far.x = -scroll * .12;
 
       // Slow, translucent ground mist. No blur filters or new textures / assets.
-      haze.removeChildren();
-      const fog = new Graphics();
+      fog.clear();
       const drift = Math.sin(time / 2600) * 22;
       for (let row = 0; row < 3; row++) {
         for (let i = 0; i < 4; i++) {
