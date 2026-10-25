@@ -377,6 +377,11 @@ async function main() {
                 unbankedAtTap:window.CrownlessForestReadout().unbanked,
                 material:result.material,heal:result.heal,damage:result.damage||0
               };
+              // The shrine awards materials synchronously after uncover().
+              // Capture them before the guardian can be defeated on a later frame.
+              queueMicrotask(() => {
+                window.__shrineTapOutcome.unbankedAfterChoice=window.CrownlessForestReadout().unbanked;
+              });
             }
             return result;
           };
@@ -443,15 +448,20 @@ async function main() {
           'deep search has a real HP cost; ordinary gathering remains safe');
         assert.equal(shrineOutcome.heal,0,
           'the material button deliberately gives up healing');
-        // Enemies can award a fang while the player is approaching the site.
-        // Snapshot inside uncover() isolates the shrine's reward from earlier
-        // combat loot; only materials gained after the tap belong to this choice.
-        assert.equal(afterShrine.unbanked-shrineOutcome.unbankedAtTap,shrineOutcome.material,
-          'only the chosen shrine branch adds provisional material: '+
-          JSON.stringify({before:beforeShrine.player.hp,outcome:shrineOutcome,after:afterShrine.player.hp}));
+        // The guardian can die while Chromium waits for the canvas label;
+        // its own +1 fang is separate from the shrine's +2 reward.
+        assert.equal(shrineOutcome.unbankedAfterChoice-shrineOutcome.unbankedAtTap,
+          shrineOutcome.material,'the chosen shrine branch awards exactly its advertised fangs');
+        assert(afterShrine.unbanked>=shrineOutcome.unbankedAfterChoice &&
+          afterShrine.unbanked<=shrineOutcome.unbankedAfterChoice+(takeRisk?1:0),
+          'only an optional guardian defeat may add another fang after the choice');
         await page.touchscreen.tap(nearTap.x,nearTap.y);
-        assert.equal((await page.evaluate(() => window.CrownlessForestReadout())).unbanked,
-          afterShrine.unbanked,'repeat shrine taps cannot duplicate materials');
+        assert.deepEqual(await page.evaluate(() => window.__shrineTapOutcome),shrineOutcome,
+          'repeat shrine taps must not trigger the discovery rule again');
+        const afterRepeat=await page.evaluate(() => window.CrownlessForestReadout());
+        assert(afterRepeat.unbanked>=afterShrine.unbanked &&
+          afterRepeat.unbanked<=shrineOutcome.unbankedAfterChoice+(takeRisk?1:0),
+          'repeat shrine taps cannot duplicate materials, even if the guardian falls');
         assert.equal(errors.length,0,'direct near-site touch must resolve once without errors');
 
 
