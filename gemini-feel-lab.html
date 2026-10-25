@@ -1446,7 +1446,11 @@
 
     const dx = target.x - enemy.x;
     const dz = target.z - enemy.z;
-    window.CrownlessForestDiscoveries.armGuardianOpening(enemy,minD,nowSec);
+    // Put the earned scouting cue beside the actual threat, not only in the HUD.
+    // The one-shot arm prevents repeated popups on later attack cooldowns.
+    if (window.CrownlessForestDiscoveries.armGuardianOpening(enemy,minD,nowSec)) {
+      spawnPopup('👁 予兆を察知！先手の好機',enemy.x,enemy.z,enemy.y+65,'#fef08a');
+    }
     const hasToken = state.tokenManager.requestToken(enemy.id, nowSec, 1.3);
 
     if (hasToken) {
