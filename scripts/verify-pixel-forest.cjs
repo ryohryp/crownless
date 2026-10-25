@@ -154,6 +154,21 @@ async function verifyTracksShrineRisk(page, crafted) {
       'the active guardian must replace stale discovery cues with live HP');
     assert(guardianHint.includes('未帰還の牙 '+after.unbanked+'個'),
       'the guardian hint must show the actual unsecured materials');
+    // Real guardian movement must trigger the earned warning; a rule-only
+    // simulation cannot establish that the player sees it on a phone.
+    await page.waitForFunction(() =>
+      document.getElementById('forestExploreHint')?.textContent?.includes('足跡の先読み'),
+      null,{timeout:7000});
+    const openingHint=await page.locator('#forestExploreHint').innerText();
+    assert.match(openingHint,/足跡の先読み 残り[0-9]+\.[0-9]秒/,
+      'real approaching guardian must grant a visible, timed scouting opening');
+    const bounds=await page.locator('#forestExploreHint').boundingBox();
+    const viewport=page.viewportSize();
+    assert(bounds && bounds.x>=0 && bounds.y>=0 &&
+      bounds.x+bounds.width<=viewport.width && bounds.y+bounds.height<=viewport.height,
+      'the live guardian warning must fit inside the phone viewport');
+    await page.screenshot({path:path.join(output,
+      'pixel-forest-guardian-warning-'+(crafted?'forged':'starter')+'-390.png')});
   }
   await tapSite(page,'shrine');
   assert.equal((await read(page)).unbanked,after.unbanked,
