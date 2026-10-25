@@ -2760,7 +2760,12 @@
     keepExploring.classList.toggle('hidden', !result);
     keepExploring.textContent=unexploredCue?'🌲 気配を追って調べる':'🌲 森の探索を続ける';
     document.getElementById('rpgReturn').classList.toggle('hidden', !result);
-    document.getElementById('rpgPush').classList.toggle('hidden', !result);
+    const pushDeeper=document.getElementById('rpgPush');
+    pushDeeper.classList.toggle('hidden', !result);
+    // The next wave is a different commitment from inspecting this cleared forest.
+    // Show the actual HP and unsecured bag before the player accepts that risk.
+    if (result && ginji) pushDeeper.textContent='⚔ 次の敵に挑む（HP '+Math.max(0,Math.ceil(ginji.hp))+'/'+ginji.maxHp+
+      '・未帰還の牙 '+rpg.unbanked+'個）';
     document.getElementById('rpgForge').classList.toggle('hidden', !camp || rpg.crafted);
     document.getElementById('rpgDepart').classList.toggle('hidden', !camp);
     document.getElementById('rpgBackToMap').classList.toggle('hidden', !camp || new URLSearchParams(location.search).get('from') !== 'discovered-wood');
