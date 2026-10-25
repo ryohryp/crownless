@@ -8,9 +8,11 @@ const vm = require('node:vm');
 // fabricating combat results. The source remains the browser's source of truth.
 function showPanel(state) {
   const html = fs.readFileSync('gemini-feel-lab.html', 'utf8');
-  const start = html.indexOf('function showRpgPanel() {');
-  const end = html.indexOf("document.getElementById('rpgOpenResults').addEventListener", start);
-  assert(start >= 0 && end > start, 'camp panel function must be present');
+  const start = html.indexOf('function forestReturnTeaser(found) {');
+  const panelStart = html.indexOf('function showRpgPanel() {', start);
+  const end = html.indexOf("document.getElementById('rpgOpenResults').addEventListener", panelStart);
+  assert(start >= 0 && panelStart > start && end > panelStart,
+    'return teaser and camp panel functions must be present');
   const elements = new Map();
   const document = {
     getElementById(id) {
@@ -26,11 +28,15 @@ function showPanel(state) {
   };
   const rpg = { phase: 'camp', unbanked: 0, banked: 0,
     crafted: false, lastOutcome: 'returned', ...state };
-  const run = vm.runInNewContext('(' + html.slice(start, end).trim() + ')',
-    { document, rpg, rpgRules: { COST: 3 }, location: { search: '' }, URLSearchParams },
+  // Evaluate the real teaser together with the panel, as the browser does.
+  const run = vm.runInNewContext('(() => { ' + html.slice(start, end).trim() +
+    '; return showRpgPanel; })()',
+    { document, rpg, state: { forestFinds: new Set(state.forestFinds || []) },
+      rpgRules: { COST: 3 }, location: { search: '' }, URLSearchParams },
     { timeout: 1000 });
   run();
   return { info: elements.get('rpgInfo').textContent,
+    keepExploring: elements.get('rpgKeepExploring').textContent,
     forgeDisabled: elements.get('rpgForge').disabled,
     bank: elements.get('rpgBank').textContent };
 }
@@ -58,4 +64,10 @@ test('crafted, defeated and return decisions retain their distinct messages', ()
   assert.match(risk.info, /今帰れば牙2個を確保/);
   assert.match(risk.info, /今帰れば鍛冶剣を作れる/);
   assert.match(risk.info, /敗北すると今回の牙2個を失う/);
+  assert.match(risk.info, /湿った土にまだ読めない筋がある/);
+  assert.match(risk.keepExploring, /気配を追って調べる/);
+  const explored = showPanel({ phase: 'return',
+    forestFinds: ['traces', 'shrine', 'hollow'] });
+  assert.doesNotMatch(explored.info, /湿った土にまだ読めない筋がある/);
+  assert.match(explored.keepExploring, /森の探索を続ける/);
 });
