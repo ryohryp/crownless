@@ -1768,7 +1768,7 @@
       spawnPopup(q, target.x, target.z, target.y + 58, '#fde047');
       if (target.team === 1) {
         if (rpgRules.claimMaterial(rpg)) {
-          spawnPopup('ゴブリンの牙 +1（未帰還）', target.x, target.z, target.y + 69, '#f4cf8f');
+          spawnPopup(target.name==='苔祠の番人' ? '番人を退けた！牙 +1（未帰還）' : 'ゴブリンの牙 +1（未帰還）', target.x, target.z, target.y + 69, '#f4cf8f');
           updateRpgStatus();
         }
         addIki(16);
