@@ -496,8 +496,8 @@ test('reading tracks grants a short first-strike warning without changing normal
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   assert.match(html,/if \(shrineGuardian\) enemy\.scoutOpeningSeconds=\s*window\.CrownlessForestDiscoveries\.guardianOpeningSeconds\(state\.forestFinds\)/,
     'scouting eligibility must be captured before the guardian fight');
-  assert.match(html,/CrownlessForestDiscoveries\.armGuardianOpening\(enemy,minD,nowSec\)/,
-    'the live enemy AI must arm the warning on approach');
+  assert.match(html,/if \(window\.CrownlessForestDiscoveries\.armGuardianOpening\(enemy,minD,nowSec\)\) \{\s*spawnPopup\('👁 予兆を察知！先手の好機'/,
+    'the earned warning must also appear beside the actual guardian, once per approach');
   assert.match(html,/spawnEnemyWave\(state\.waveCount,1,true\)/,'warning never bypasses the fight');
 });
 
