@@ -17,7 +17,7 @@
       if(!enabled) sparks=[];
       return enabled;
     }
-    function burst(x,z,height,type='hit',now=Date.now()) {
+    function burst(x,z,height,type='hit',now=(typeof performance==='object'?performance.now():Date.now())) {
       if(!enabled||![x,z,height].every(Number.isFinite)) return false;
       // An effect is a visual response, not a second gameplay event.
       const count=type==='discovery'?17:type==='victory'?20:8;
@@ -67,7 +67,6 @@
         g.addColorStop(1,'rgba(248,220,150,0)');
         ctx.fillStyle=g;ctx.fillRect(s.x-radius*3,s.y-radius*3,radius*6,radius*6);
       }
-      const elapsed=lastTime?Math.min(Math.max(time-lastTime,0),50):16;
       lastTime=time;
       for(const p of sparks) {
         const age=time-p.born, t=Math.max(0,1-age/p.life);
