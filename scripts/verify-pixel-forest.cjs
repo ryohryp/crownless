@@ -115,6 +115,8 @@ async function verifyTracksShrineRisk(page, crafted) {
     'the shrine previews the actual remaining HP before committing');
   assert.match(await risk.innerText(),/足跡を読んで負傷 -3/,
     'the UI must explain why the risk is reduced');
+  assert.match(await risk.innerText(),/番人の接近を早く察知/,
+    'the decision should explain the scouting benefit before commitment');
   const wasClear=before.phase==='return';
   if (wasClear) assert.match(await risk.innerText(),/番人が来る・撃退まで帰還不可/,
     'post-victory extra loot must warn about a real guardian before tapping');
@@ -138,8 +140,6 @@ async function verifyTracksShrineRisk(page, crafted) {
     const distance=Math.hypot(awake[0].x-after.player.x,awake[0].z-after.player.z);
     assert(distance>=120 && distance<=190,
       'reading tracks must provide extra reaction distance before the guardian reaches the player: '+distance);
-    assert.match(await risk.innerText(),/番人の接近を早く察知/,
-      'the decision should explain the scouting benefit before commitment');
     assert.equal(await page.locator('#rpgOpenResults').isVisible(),false,
       'the player cannot immediately bank the risky extra materials');
   }
