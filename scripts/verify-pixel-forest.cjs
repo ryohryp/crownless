@@ -251,6 +251,10 @@ async function main() {
             'victory must offer a sensory cue for an unexamined discovery');
           assert.match(await page.locator('#rpgKeepExploring').innerText(),/気配を追って調べる/,
             'the existing continue button should invite investigation without naming the location');
+          assert.match(await page.locator('#rpgPush').innerText(),
+            new RegExp('HP '+Math.ceil(first.after.player.hp)+'/'+first.after.player.maxHp+
+              '・未帰還の牙 '+first.after.unbanked+'個'),
+            'the real phone next-wave button must preview current HP and unsecured materials');
           const returnBounds=await page.locator('#rpgPanel > div').boundingBox();
           assert(returnBounds && returnBounds.y>=0 &&
             returnBounds.y+returnBounds.height<=page.viewportSize().height,
