@@ -1145,10 +1145,19 @@
     return null;
   }
 
+  // The shrine guardian must regain its footing after a throw: repeated
+  // grabs during hitstun made the optional risk nearly free. Ordinary enemies
+  // keep their existing grapple behavior.
+  function canGrabEnemy(f, other) {
+    if (!f || !other || other.team === f.team || other.state === 'DEAD') return false;
+    return !(other.name === '苔祠の番人' &&
+      (other.state === 'HURT' || other.state === 'DOWN'));
+  }
+
   function findNearbyGrabbableEnemy(f) {
     if (!f) return null;
     for (const other of state.fighters) {
-      if (other.team === f.team || other.state === 'DEAD') continue;
+      if (!canGrabEnemy(f, other)) continue;
       if (Math.abs(other.x - f.x) < 48 && Math.abs(other.z - f.z) < 24) return other;
     }
     return null;
@@ -1681,7 +1690,7 @@
         if (triggerDualTagArt()) return;
       }
       for (const other of state.fighters) {
-        if (other.team === f.team || other.state === 'DEAD') continue;
+        if (!canGrabEnemy(f, other)) continue;
         if (Math.abs(other.x - f.x) < 48 && Math.abs(other.z - f.z) < 24) {
           f.grabTarget = other;
           f.state = 'GRAB';
