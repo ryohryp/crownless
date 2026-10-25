@@ -421,3 +421,15 @@ test('post-victory deep search wakes one optional guardian before risky loot can
   assert.equal(defeated.banked,0);
   assert.equal(defeated.unbanked,0,'the guardian can cost the entire unsecured bag');
 });
+
+
+test('reading tracks gives reaction distance against the optional shrine guardian without skipping combat',()=>{
+  assert.equal(D.guardianApproachDistance(new Set()),105);
+  const found=new Set(['traces']);
+  assert.equal(D.guardianApproachDistance(found),170);
+  assert.equal(found.has('shrine'),false,'scouting must not consume or reveal the shrine');
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  assert.match(html,/ginji\.x \+ window\.CrownlessForestDiscoveries\.guardianApproachDistance\(state\.forestFinds\)/);
+  assert.match(html,/足跡を読んで負傷 -3・番人の接近を早く察知/);
+  assert.match(html,/spawnEnemyWave\(state\.waveCount,1,true\)/,'scouting must not bypass the guardian');
+});
