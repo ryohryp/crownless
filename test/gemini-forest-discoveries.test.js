@@ -547,6 +547,31 @@ test('earned guardian opening warning is visible, expires, and never leaks to un
     'normal exploration must not display a guardian warning');
 });
 
+test('reading tracks rewards one landed early guardian hit, never a miss or later strike',()=>{
+  const guardian={name:'苔祠の番人',scoutOpeningSeconds:1.8,nextStrikeAt:0};
+  assert.equal(D.guardianScoutStrikeBonus(guardian,100),0,'no bonus before approach');
+  assert.equal(D.armGuardianOpening(guardian,95,100),true);
+  assert.equal(D.guardianScoutStrikeBonus(guardian,100.1),12,
+    'a deliberate first hit within the earned opening deals extra damage');
+  assert.equal(D.guardianScoutStrikeBonus(guardian,101.8),0,'the bonus expires');
+  assert.equal(D.guardianScoutStrikeBonus({...guardian,scoutStrikeClaimed:true},100.1),0,
+    'only one hit may receive the bonus');
+  assert.equal(D.guardianScoutStrikeBonus({...guardian,name:'苔牙ゴブリン'},100.1),0,
+    'normal enemies do not inherit the guardian bonus');
+  assert.equal(D.guardianScoutStrikeBonus({name:'苔祠の番人',scoutOpeningSeconds:0},100.1),0,
+    'an unscouted guardian grants no bonus');
+  assert.equal(D.guardianScoutStrikeBonus(guardian,NaN),0,'invalid time grants no bonus');
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const hit=html.slice(html.indexOf('function performAttackHitbox('),html.indexOf('function inflictDamage('));
+  assert.match(hit,/attacker===ginji[\s\S]*?guardianScoutStrikeBonus\(target,performance\.now\(\)\/1000\)/,
+    'only the player can claim the scouting bonus');
+  assert.match(hit,/inflictDamage\(target, finalDmg\+scoutBonus/,
+    'the bonus must affect actual damage');
+  assert(hit.indexOf('if (!inflictDamage(')<hit.indexOf('target.scoutStrikeClaimed=true'),
+    'a missed or invulnerable hit cannot consume the earned opening');
+  assert.match(hit,/先手成功！/,'the earned early hit must show immediate feedback');
+});
+
 test('shrine guardian cannot be repeatedly grabbed while recovering from a throw',()=>{
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   const helper=html.match(/function canGrabEnemy\(f, other\) \{[\s\S]*?\n  \}/);

@@ -65,6 +65,15 @@
     enemy.nextStrikeAt=Math.max(enemy.nextStrikeAt||0,enemy.scoutOpeningEndsAt);
     return true;
   }
+  // Reading tracks rewards one deliberate hit during the earned opening.
+  // Only a landed hit consumes the bonus; no bonus on later cooldowns.
+  const GUARDIAN_SCOUT_STRIKE_BONUS=12;
+  function guardianScoutStrikeBonus(enemy,nowSec){
+    return enemy && enemy.name==='苔祠の番人' &&
+      enemy.scoutOpeningArmed && !enemy.scoutStrikeClaimed &&
+      Number.isFinite(nowSec) && enemy.scoutOpeningEndsAt>nowSec
+      ? GUARDIAN_SCOUT_STRIKE_BONUS : 0;
+  }
   function shrineRiskDamage(found,crafted){
     return (crafted?6:12)-(found.has('traces')?3:0);
   }
@@ -99,5 +108,5 @@
       heal:spot.kind==='cache'?Math.min(45,Math.max(0,maxHp-hp)):
         spot.kind==='healing' && !scavenge?Math.min(35,Math.max(0,maxHp-hp)):0};
   }
-  return {spots,RANGE,near,spotAtTap,available,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,shrineRiskDamage,uncover};
+  return {spots,RANGE,near,spotAtTap,available,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,guardianScoutStrikeBonus,shrineRiskDamage,uncover};
 });
