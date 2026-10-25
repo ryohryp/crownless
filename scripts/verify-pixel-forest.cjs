@@ -137,10 +137,15 @@ async function verifyTracksShrineRisk(page, crafted) {
   assert.equal((await read(page)).unbanked,after.unbanked,
     'repeat touches cannot duplicate the shrine reward');
   const guardian=wasClear?await clearWave(page):null;
-  if (guardian) assert.equal(guardian.after.phase,'return',
-    'defeating the guardian resumes ordinary exploration and safe return');
+  if (guardian) {
+    assert.equal(guardian.after.phase,'return',
+      'defeating the guardian resumes ordinary exploration and safe return');
+    assert(guardian.after.unbanked>=after.unbanked,
+      'guardian combat may add ordinary enemy-drop materials to the unsecured bag');
+  }
   return {crafted,cost,hpBefore:before.player.hp,hpAfter:after.player.hp,
-    provisionalBefore:before.unbanked,provisionalAfter:after.unbanked,
+    provisionalBefore:before.unbanked,
+    provisionalAfter:guardian?guardian.after.unbanked:after.unbanked,
     guardian:guardian&&{seconds:guardian.seconds,minimumHp:guardian.minimumHp}};
 }
 
