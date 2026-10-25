@@ -498,7 +498,7 @@ test('shrine guardian cannot be repeatedly grabbed while recovering from a throw
 
 test('victory return panel hints at remaining discoveries without spoiling them or altering the safe return',()=>{
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
-  const helper=html.match(/function forestReturnTeaser\(found\) \{[\s\S]*?\n  \}/);
+  const helper=html.match(/function forestReturnTeaser\(found,crafted=false\) \{[\s\S]*?\n  \}/);
   assert.ok(helper,'the result screen needs a discovery-aware but non-spoiling hint');
   const teaser=require('node:vm').runInNewContext('('+helper[0]+')');
   const unread=teaser(new Set());
