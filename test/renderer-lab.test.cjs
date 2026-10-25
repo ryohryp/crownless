@@ -57,3 +57,60 @@ test('renderer spike respects bounded movement and loses only unbanked loot on d
   assert.equal(state.mode, 'camp'); assert.equal(state.heldHerbs, 0);
   assert.equal(state.herbs, 0); assert.equal(state.equipped, false);
 });
+
+test('Pixi-only FX toggles reversibly and emits gathering feedback without changing gameplay', () => {
+  const { readFileSync } = require('node:fs');
+  const vm = require('node:vm');
+  const root = resolve(__dirname, '../experiments/renderer-lab');
+  const html = readFileSync(resolve(root, 'index.html'), 'utf8');
+  const pixiBundle = readFileSync(resolve(root, 'dist/pixi.js'), 'utf8');
+  assert.match(html, /src="effects\.js"/);
+  assert.match(pixiBundle, /__rendererLabAttachEffects/);
+  class Graphics {
+    constructor() { this.visible = true; this.x = 0; }
+    clear() { return this; }
+    circle() { return this; }
+    ellipse() { return this; }
+    poly() { return this; }
+    roundRect() { return this; }
+    rect() { return this; }
+    fill() { return this; }
+    stroke() { return this; }
+  }
+  class Container {
+    constructor() { this.children = []; this.visible = true; this.x = 0; }
+    addChild(...children) { this.children.push(...children); return children[0]; }
+    addChildAt(child, index) { this.children.splice(index, 0, child); return child; }
+  }
+  const button = { hidden: true, attributes: {}, events: {},
+    setAttribute(key, value) { this.attributes[key] = value; },
+    addEventListener(name, handler) { this.events[name] = handler; },
+    click() { this.events.click(); } };
+  const window = {};
+  const document = { getElementById: id => id === 'fx-toggle' ? button : null };
+  vm.runInNewContext(readFileSync(resolve(root, 'effects.js'), 'utf8'), { window, document });
+  const state = { mode: 'exploring', x: 98, equipped: false,
+    heldHerbs: 0, heldIron: 0, heldRelic: 0, guardianDefeated: false, shrineOpened: false };
+  const stage = new Container(), world = new Container(), ticks = [];
+  stage.addChild(new Graphics(), world);
+  window.__rendererLabAttachEffects({
+    app: { stage, screen: { width: 390, height: 520 }, ticker: { add: fn => ticks.push(fn) } },
+    world, Graphics, Container, controller: { state }
+  });
+  ticks[0]({ deltaMS: 32 });
+  assert.equal(window.__rendererLabEffectsReady, true);
+  assert.equal(button.hidden, false);
+  assert.equal(window.__rendererLabEffectsDebug.enabled, true);
+  button.click();
+  ticks[0]({ deltaMS: 32 });
+  assert.equal(window.__rendererLabEffectsDebug.enabled, false);
+  assert.equal(button.attributes['aria-pressed'], 'false');
+  button.click();
+  state.x = 260;
+  state.heldHerbs = 1;
+  ticks[0]({ deltaMS: 32 });
+  assert.equal(window.__rendererLabEffectsDebug.enabled, true);
+  assert.equal(window.__rendererLabEffectsDebug.particleCount, 17);
+  assert.equal(state.heldHerbs, 1);
+  assert.equal(button.attributes['aria-pressed'], 'true');
+});
