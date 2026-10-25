@@ -115,6 +115,9 @@ async function verifyTracksShrineRisk(page, crafted) {
     'the shrine previews the actual remaining HP before committing');
   assert.match(await risk.innerText(),/足跡を読んで負傷 -3/,
     'the UI must explain why the risk is reduced');
+  const wasClear=before.phase==='return';
+  if (wasClear) assert.match(await risk.innerText(),/番人が来る・撃退まで帰還不可/,
+    'post-victory extra loot must warn about a real guardian before tapping');
   await risk.click();
   const after=await read(page);
   assert(after.found.includes('shrine'),'the selected branch consumes the shrine');
@@ -122,11 +125,23 @@ async function verifyTracksShrineRisk(page, crafted) {
     'the dangerous search grants exactly two unsecured fangs');
   assert.equal(after.player.hp,before.player.hp-cost,
     'the displayed HP cost must match the real health loss');
+  if (wasClear) {
+    assert.equal(after.phase,'fight',
+      'deep search after victory starts a new encounter before loot can be banked');
+    assert.equal(after.enemies.filter(e=>e.hp>0 && e.state!=='DEAD').length,1,
+      'only one optional guardian is awakened, not a mandatory full wave');
+    assert.equal(await page.locator('#rpgOpenResults').isVisible(),false,
+      'the player cannot immediately bank the risky extra materials');
+  }
   await tapSite(page,'shrine');
   assert.equal((await read(page)).unbanked,after.unbanked,
     'repeat touches cannot duplicate the shrine reward');
+  const guardian=wasClear?await clearWave(page):null;
+  if (guardian) assert.equal(guardian.after.phase,'return',
+    'defeating the guardian resumes ordinary exploration and safe return');
   return {crafted,cost,hpBefore:before.player.hp,hpAfter:after.player.hp,
-    provisionalBefore:before.unbanked,provisionalAfter:after.unbanked};
+    provisionalBefore:before.unbanked,provisionalAfter:after.unbanked,
+    guardian:guardian&&{seconds:guardian.seconds,minimumHp:guardian.minimumHp}};
 }
 
 async function main() {
