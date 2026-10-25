@@ -1844,9 +1844,16 @@
         '奥まで探る（HP -'+riskCost+' →残り'+Math.floor(ginji.hp-riskCost)+'・未帰還素材 +2'+(rpg.crafted?'／鍛冶剣で軽減':'')+
         (state.forestFinds.has('traces')?'／足跡を読んで負傷 -3':'')+'）';
       heal.textContent=missing ? '傷を癒やす（HP +'+Math.min(35,missing)+'・素材なし）' : '傷がないため回復不可';
+      // Show what each material route would mean for the next smithing goal.
+      // A promising extra fang matters only if the adventurer returns alive.
+      const forgeNeed=Math.max(0,rpgRules.COST-rpg.banked-rpg.unbanked);
+      const forgeChoice=rpg.crafted?'鍛冶剣は装備済み。':
+        forgeNeed===0?'鍛冶剣の素材は揃っている。':
+        '鍛冶剣まで牙あと'+forgeNeed+'個（+1なら残り'+Math.max(0,forgeNeed-1)+
+        '、+2なら残り'+Math.max(0,forgeNeed-2)+'）。';
       document.getElementById('forestShrineStakes').textContent=
         '現在 HP '+Math.floor(ginji.hp)+'/'+ginji.maxHp+'、未帰還の牙 '+rpg.unbanked+
-        '個。素材は生還時だけ倉庫に残る（敗北すると失う）。';
+        '個。'+forgeChoice+'素材は生還時だけ倉庫に残る（敗北すると失う）。';
       panel.classList.remove('hidden');
       return true;
     }
