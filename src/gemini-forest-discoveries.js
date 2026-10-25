@@ -47,6 +47,11 @@
   function guardianApproachDistance(found){
     return found.has('traces') ? 170 : 105;
   }
+  // Reading the tracks also warns of the guardian's first lunge. This only
+  // buys a short opening to reposition; it does not skip or weaken the fight.
+  function guardianOpeningSeconds(found){
+    return found.has('traces') ? 1.8 : 0;
+  }
   function shrineRiskDamage(found,crafted){
     return (crafted?6:12)-(found.has('traces')?3:0);
   }
@@ -81,5 +86,5 @@
       heal:spot.kind==='cache'?Math.min(45,Math.max(0,maxHp-hp)):
         spot.kind==='healing' && !scavenge?Math.min(35,Math.max(0,maxHp-hp)):0};
   }
-  return {spots,RANGE,near,spotAtTap,available,guardianApproachDistance,shrineRiskDamage,uncover};
+  return {spots,RANGE,near,spotAtTap,available,guardianApproachDistance,guardianOpeningSeconds,shrineRiskDamage,uncover};
 });
