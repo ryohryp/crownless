@@ -63,7 +63,12 @@ async function clearWave(page) {
       assert(Array.isArray(s.enemies), 'read-only probe must expose enemy positions');
       const target = s.enemies.filter(e => e.hp > 0 && e.state !== 'DEAD')
         .sort((a,b) => Math.hypot(a.x-s.player.x,a.z-s.player.z)-Math.hypot(b.x-s.player.x,b.z-s.player.z))[0];
-      const wanted = ['k'];
+      // Use the real grab/throw input when the guardian closes in, rather
+      // than relying on an unbroken kick hold against its stronger attacks.
+      // Normal enemies retain the baseline kick-only screening path.
+      const grappleGuardian=target?.name==='苔祠の番人' &&
+        Math.abs(target.x-s.player.x)<42 && Math.abs(target.z-s.player.z)<20;
+      const wanted = [grappleGuardian?'l':'k'];
       if (target) {
         const dx=target.x-s.player.x, dz=target.z-s.player.z;
         // Walk into the same depth lane, stop within reach, and face the target.
