@@ -2703,7 +2703,14 @@
     hint.classList.remove('hidden');
     const near=window.CrownlessForestDiscoveries.near(ginji,state.forestFinds);
     if (near?.id!=='shrine') document.getElementById('forestShrineChoice').classList.add('hidden');
-    const label=near
+    // During the optional guardian fight, show the immediate objective instead
+    // of a nearby clue. This hint clears automatically when combat is won.
+    const guardian=rpg.phase==='fight'
+      ? state.fighters.find(f=>f.team===1 && f.name==='苔祠の番人' && f.state!=='DEAD')
+      : null;
+    const label=guardian
+      ? '⚠ 番人HP '+Math.ceil(guardian.hp)+'/'+guardian.maxHp+'｜倒すまで帰還不可｜未帰還の牙 '+rpg.unbanked+'個'
+      : near
       ? near.id==='hollow' && !state.forestFinds.has('traces')
         ? '🌿 茨の奥で硬い音がする。足元のかすかな筋を辿ろう'
         : near.id==='hollow' && !rpg.crafted
