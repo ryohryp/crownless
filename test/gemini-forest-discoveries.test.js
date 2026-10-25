@@ -449,3 +449,25 @@ test('reading tracks gives reaction distance against the optional shrine guardia
   assert.match(html,/足跡を読んで負傷 -3・番人の接近を早く察知/);
   assert.match(html,/spawnEnemyWave\(state\.waveCount,1,true\)/,'scouting must not bypass the guardian');
 });
+
+test('shrine guardian cannot be repeatedly grabbed while recovering from a throw',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const helper=html.match(/function canGrabEnemy\(f, other\) \{[\s\S]*?\n  \}/);
+  assert.ok(helper,'the combat and button hint must share one grabbability rule');
+  const canGrab=require('node:vm').runInNewContext('('+helper[0]+')');
+  const hero={team:0};
+  const guardian=state=>({team:1,name:'苔祠の番人',state});
+  assert.equal(canGrab(hero,guardian('IDLE')),true,'a standing guardian is grabbable');
+  assert.equal(canGrab(hero,guardian('WALK')),true);
+  assert.equal(canGrab(hero,guardian('HURT')),false,'hitstun must offer a recovery window');
+  assert.equal(canGrab(hero,guardian('DOWN')),false,'a downed guardian cannot be chain-thrown');
+  assert.equal(canGrab(hero,guardian('DEAD')),false);
+  assert.equal(canGrab(hero,{team:1,name:'森のゴブリン',state:'DOWN'}),true,
+    'normal enemy grapple behavior is unchanged');
+  assert.equal(canGrab(hero,{team:0,name:'仲間',state:'IDLE'}),false);
+  assert.match(html,/function findNearbyGrabbableEnemy\(f\) \{[\s\S]*?if \(!canGrabEnemy\(f, other\)\) continue;/,
+    'the on-screen grab hint must not promise a disabled guardian throw');
+  const input=html.slice(html.indexOf('function updateFighter(f, input, dt)'));
+  assert.match(input,/if \(input\.grab\) \{[\s\S]*?for \(const other of state\.fighters\) \{\s*if \(!canGrabEnemy\(f, other\)\) continue;/,
+    'the actual grab input must enforce the same rule');
+});
