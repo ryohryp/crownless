@@ -117,6 +117,16 @@ async function main() {
         await page.waitForURL('**/gemini-feel-lab.html?from=discovered-wood');
         await page.waitForFunction(()=>window.CrownlessForestReadout?.().assetsReady,{timeout:20000});
         assert.equal((await read(page)).art,'pixel','new forest renderer is the playable default');
+        // Same real game and save; compare the optional atmosphere on the actual canvas.
+        const fxToggle=page.locator('#btnForestAtmosphere');
+        assert.equal(await fxToggle.isVisible(),true,'atmosphere comparison must be reachable');
+        assert.equal((await read(page)).forestEffects.enabled,true,'forest atmosphere starts on');
+        await fxToggle.click();
+        assert.equal((await read(page)).forestEffects.enabled,false,'player can disable effects');
+        assert.equal(await fxToggle.getAttribute('aria-pressed'),'false');
+        await fxToggle.click();
+        assert.equal((await read(page)).forestEffects.enabled,true,'player can restore effects');
+        assert.equal(await fxToggle.getAttribute('aria-pressed'),'true');
         const layout=await page.evaluate(()=>{
           const c=document.querySelector('#gameCanvas'), r=c.getBoundingClientRect();
           return {viewport:innerWidth,scrollWidth:document.documentElement.scrollWidth,

@@ -137,6 +137,7 @@
     <!-- ゲーム画面ビューポート（100%フルスクリーン） -->
     <div id="stageViewport" class="relative w-full h-full flex-1 overflow-hidden bg-slate-950">
       <canvas id="gameCanvas" class="w-full h-full"></canvas>
+      <button id="btnForestAtmosphere" type="button" aria-pressed="true" class="forest-atmosphere-toggle">霧と光 ON</button>
 
       <!-- ゲーム画面内の軽量フローティング通知（Z軸ライン一致＆天候インジケーター） -->
       <div class="absolute top-2 left-2 flex flex-col gap-1 pointer-events-none">
@@ -281,6 +282,7 @@
 <script src="src/gemini-hit-recovery.js"></script>
 <script src="src/gemini-forest-discoveries.js"></script>
 <script src="src/pixel-forest.js"></script>
+<script src="src/pixel-forest-effects.js"></script>
 <script src="src/pixel-actors.js"></script>
 <script src="src/hero-still-review.js"></script>
 <script>
@@ -640,6 +642,7 @@
     state.items = [];
     state.popups = [];
     state.sakuraPetals = [];
+    forestEffects.reset();
 
     ginji = new Fighter({
       name: '旅人',
@@ -1744,6 +1747,8 @@
     }
 
     target.hp = Math.max(0, target.hp - dmg);
+    if (pixelArt && target.team === 1) forestEffects.burst(target.x,target.z,target.y+25,
+      target.hp<=0?'victory':'hit',performance.now());
     spawnPopup(`-${dmg}`, target.x, target.z, target.y + 42, '#fb7185');
 
     if (target.hp <= 0) {
@@ -1850,6 +1855,8 @@
       f.hp=Math.min(f.maxHp,f.hp+discovery.heal);
       spawnPopup((discovery.spot.id==='hollow'?'石門の薬草':'古い祠で傷を癒やした')+' HP +'+discovery.heal,f.x,f.z,f.y+48,'#86efac');
     }
+    if (pixelArt) forestEffects.burst(discovery.spot.x,discovery.spot.z,
+      getGroundHeightAt(discovery.spot.x,discovery.spot.z)+44,'discovery',performance.now());
     sfx.play('coin');
     spawnSakuraBurst(f.x,f.z,f.y+35,9);
     updateUI();
@@ -1864,6 +1871,7 @@
     enemies:state.fighters.filter(f=>f.team===1).map(f=>({x:f.x,z:f.z,hp:f.hp,state:f.state})),
     crafted:rpg.crafted,unbanked:rpg.unbanked,banked:rpg.banked,
     art:pixelArt?'pixel':'classic',assetsReady:forestArt.ready(),
+    forestEffects: forestEffects.readout(),
     heroAnimation:heroStillReview.status(),
     cameraX:state.cameraX,
     viewport:{width:virtualW,height:VIRTUAL_H,pixelRatio:canvas.width/virtualW},
@@ -1951,6 +1959,16 @@
   canvas.addEventListener('pointercancel',()=>{canvasTapStart=null;});
   const ctx = canvas.getContext('2d');
   const forestArt = window.CrownlessPixelForest.create();
+  const fxParams = new URLSearchParams(location.search);
+  const reducedMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const forestEffects = window.CrownlessForestEffects.create({enabled: fxParams.get('fx') !== 'off' && !reducedMotion});
+  const atmosphereButton = document.getElementById('btnForestAtmosphere');
+  function syncAtmosphereButton() {
+    atmosphereButton.textContent = forestEffects.enabled() ? '霧と光 ON' : '霧と光 OFF';
+    atmosphereButton.setAttribute('aria-pressed', String(forestEffects.enabled()));
+    atmosphereButton.hidden = !pixelArt;
+  }
+  atmosphereButton.addEventListener('click', () => { forestEffects.setEnabled(!forestEffects.enabled()); syncAtmosphereButton(); });
   const heroStillReview = window.CrownlessHeroStill.create();
   let pixelArt = new URLSearchParams(location.search).get('art') !== 'classic';
   const artButton = document.getElementById('btnToggleArtPreview');
@@ -1959,7 +1977,8 @@
     artButton.setAttribute('aria-pressed',String(pixelArt));
   }
   syncArtButton();
-  artButton.addEventListener('click',()=>{pixelArt=!pixelArt;syncArtButton();});
+  artButton.addEventListener('click',()=>{pixelArt=!pixelArt;syncArtButton();syncAtmosphereButton();});
+  syncAtmosphereButton();
   const VIRTUAL_H = 420;
   let virtualW = 740;
   function resizeCanvas() {
@@ -1982,7 +2001,10 @@
 
     // 独自要素③：ウェーブに応じた時間帯・天候変化（夕暮れ → 宵闇 → 月夜月夜）
     const weatherPhase = (state.waveCount - 1) % 3;
-    if (drawPixelArt) forestArt.background(ctx,virtualW,state.cameraX,state.waveCount);
+    if (drawPixelArt) {
+      forestArt.background(ctx,virtualW,state.cameraX,state.waveCount);
+      forestEffects.background(ctx,virtualW,state.cameraX,performance.now());
+    }
     else {
     const skyGrad = ctx.createLinearGradient(0, 0, 0, 195);
     if (weatherPhase === 0) {
@@ -2181,7 +2203,10 @@
       else drawFighter(entry.obj);
     }
 
-    if(drawPixelArt) forestArt.foreground(ctx,state.cameraX,virtualW,performance.now(),ginji);
+    if(drawPixelArt) {
+      forestArt.foreground(ctx,state.cameraX,virtualW,performance.now(),ginji);
+      forestEffects.overlay(ctx,state.cameraX,virtualW,performance.now(),ginji,state.forestFinds,rpg.crafted);
+    }
 
     // 双剣クロス斬撃エフェクト
     for (const sl of state.slashLines) {
