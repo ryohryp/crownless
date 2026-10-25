@@ -1961,7 +1961,8 @@
   window.CrownlessForestReadout=()=>({
     player:ginji ? {x:ginji.x,z:ginji.z,hp:ginji.hp,maxHp:ginji.maxHp,state:ginji.state,facing:ginji.facing} : null,
     enemies:state.fighters.filter(f=>f.team===1).map(f=>({name:f.name,x:f.x,z:f.z,hp:f.hp,maxHp:f.maxHp,state:f.state,
-      scoutStrikeClaimed:!!f.scoutStrikeClaimed})),
+      scoutStrikeClaimed:!!f.scoutStrikeClaimed,
+      scoutOpeningActive:!!f.scoutOpeningEndsAt && f.scoutOpeningEndsAt>performance.now()/1000})),
     crafted:rpg.crafted,unbanked:rpg.unbanked,banked:rpg.banked,
     art:pixelArt?'pixel':'classic',assetsReady:forestArt.ready(),
     heroAnimation:heroStillReview.status(),

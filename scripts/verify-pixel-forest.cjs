@@ -68,7 +68,7 @@ async function clearWave(page) {
       // Use the real grab/throw input when the guardian closes in, rather
       // than relying on an unbroken kick hold against its stronger attacks.
       // Normal enemies retain the baseline kick-only screening path.
-      const grappleGuardian=target?.name==='苔祠の番人' &&
+      const grappleGuardian=target?.name==='苔祠の番人' && !target.scoutOpeningActive &&
         Math.abs(target.x-s.player.x)<42 && Math.abs(target.z-s.player.z)<20;
       const wanted = [grappleGuardian?'l':'k'];
       if (target) {
@@ -172,9 +172,8 @@ async function verifyTracksShrineRisk(page, crafted) {
     await page.screenshot({path:path.join(output,
       'pixel-forest-guardian-warning-'+(crafted?'forged':'starter')+'-390.png')});
   }
-  await tapSite(page,'shrine');
-  assert.equal((await read(page)).unbanked,after.unbanked,
-    'repeat touches cannot duplicate the shrine reward');
+  // Respond to the short opening before testing a repeat tap. The latter
+  // used to spend the earned warning while the browser waited on input.
   const guardian=wasClear?await clearWave(page):null;
   if (guardian) {
     assert.equal(guardian.after.phase,'return',
@@ -186,6 +185,10 @@ async function verifyTracksShrineRisk(page, crafted) {
     await page.waitForFunction(()=>
       !document.getElementById('forestExploreHint')?.textContent?.includes('倒すまで帰還不可'));
   }
+  const beforeRepeat=await read(page);
+  await tapSite(page,'shrine');
+  assert.equal((await read(page)).unbanked,beforeRepeat.unbanked,
+    'repeat touches cannot duplicate the shrine reward');
   return {crafted,cost,hpBefore:before.player.hp,hpAfter:after.player.hp,
     provisionalBefore:before.unbanked,
     provisionalAfter:guardian?guardian.after.unbanked:after.unbanked,
