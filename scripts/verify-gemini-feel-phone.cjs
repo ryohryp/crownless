@@ -459,9 +459,18 @@ async function main() {
         assert.deepEqual(await page.evaluate(() => window.__shrineTapOutcome),shrineOutcome,
           'repeat shrine taps must not trigger the discovery rule again');
         const afterRepeat=await page.evaluate(() => window.CrownlessForestReadout());
-        assert(afterRepeat.unbanked>=afterShrine.unbanked &&
-          afterRepeat.unbanked<=shrineOutcome.unbankedAfterChoice+(takeRisk?1:0),
-          'repeat shrine taps cannot duplicate materials, even if the guardian falls');
+        // A live guardian can defeat the hero between two real touch inputs.
+        // Defeat correctly discards the entire unsecured bag; it is not a
+        // duplicate-pickup regression. The unchanged shrine outcome above
+        // proves the second tap did not award another shrine reward.
+        if (afterRepeat.phase==='camp' && afterRepeat.player.hp<=0) {
+          assert.equal(afterRepeat.unbanked,0,
+            'defeat after the shrine must lose all unsecured fangs');
+        } else {
+          assert(afterRepeat.unbanked>=afterShrine.unbanked &&
+            afterRepeat.unbanked<=shrineOutcome.unbankedAfterChoice+(takeRisk?1:0),
+            'repeat shrine taps cannot duplicate materials, even if the guardian falls');
+        }
         assert.equal(errors.length,0,'direct near-site touch must resolve once without errors');
 
 
