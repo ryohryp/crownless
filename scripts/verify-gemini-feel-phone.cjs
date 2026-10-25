@@ -107,6 +107,22 @@ async function main() {
         assert.deepEqual(explorationProof.afterFind,{phase:'return',unbanked:4,banked:0});
         assert.equal(explorationProof.banked,4);
         assert.equal(explorationProof.repeat,false);
+        // Real 360/390px Chromium loads the same scouting and strike-clock rules.
+        // This verifies the opening window without pretending to judge combat feel.
+        const guardianWarning = await page.evaluate(() => {
+          const D=window.CrownlessForestDiscoveries;
+          const H=window.CrownlessHitRecovery;
+          const now=100;
+          const scouted=D.guardianOpeningSeconds(new Set(['traces']));
+          return {
+            blind:D.guardianOpeningSeconds(new Set()),
+            scouted,
+            tooEarly:H.readyToStrike({nextStrikeAt:now+scouted},now+1),
+            ready:H.readyToStrike({nextStrikeAt:now+scouted},now+2)
+          };
+        });
+        assert.deepEqual(guardianWarning,{blind:0,scouted:1.8,tooEarly:false,ready:true},
+          'scouting must grant a real first-strike warning on the phone runtime');
         const status = await page.evaluate(() => {
           const a = document.querySelector('#gestureActionArea').getBoundingClientRect();
           const top = document.elementFromPoint(a.x + a.width * 0.7, a.y + a.height * 0.7);
