@@ -421,19 +421,36 @@ async function main() {
         assert.equal((await readForestShrine()).found.includes('shrine'),false,
           'declining must preserve the discovery for later');
         await page.touchscreen.tap(nearTap.x,nearTap.y);
-        const takeRisk=width===390;
-        const riskCost=stakesAtChoice.crafted?6:12;
+        // Reopening resumes combat briefly; check the live phase/HP instead
+        // of the snapshot taken before cancel. Risk is only legal after the
+        // initial wave is cleared, even when the forged sword makes it cheap.
+        const decision=await readForestShrine();
+        const riskCost=await page.evaluate(() => {
+          const s=window.CrownlessForestReadout();
+          return window.CrownlessForestDiscoveries.shrineRiskDamage(new Set(s.found),s.crafted);
+        });
         assert.equal(riskCost,width===390?6:12,
           'the actual shrine risk must halve after smithing, not merely change its label');
-        assert.equal(await page.locator('#forestShrineRisk').isEnabled(),stakesAtChoice.player.hp>=riskCost+1,
-          'deep search requires enough HP for the current equipment-dependent cost');
-        if(stakesAtChoice.player.hp>=riskCost+1) {
-          const riskLabel=await page.locator('#forestShrineRisk').textContent();
+        const canRisk=decision.phase==='return' && decision.player.hp>=riskCost+1;
+        const riskButton=page.locator('#forestShrineRisk');
+        assert.equal(await riskButton.isEnabled(),canRisk,
+          'deep search requires a cleared wave AND enough HP for the equipment-dependent cost');
+        const riskLabel=await riskButton.textContent();
+        if(decision.phase!=='return') {
+          assert.match(riskLabel,/魔物を倒してから/,
+            'during combat the player must see why deep searching is unavailable');
+          assert.equal(await page.locator('#forestShrineMaterial').isEnabled(),true,
+            'the safe material route remains available during combat');
+        } else if(canRisk) {
           assert.match(riskLabel,new RegExp('HP -'+riskCost),
             'the choice must advertise the actual wound before confirmation');
-          assert.match(riskLabel,new RegExp('→残り'+Math.floor(stakesAtChoice.player.hp-riskCost)),
+          assert.match(riskLabel,new RegExp('→残り'+Math.floor(decision.player.hp-riskCost)),
             'the choice must preview the resulting HP rather than forcing mental arithmetic');
         }
+        // The full post-victory guardian branch is exercised by
+        // verify-pixel-forest.cjs; this smoke also covers the combat-time
+        // safe option instead of trying to click a deliberately disabled risk.
+        const takeRisk=width===390 && canRisk;
         await page.locator(takeRisk?'#forestShrineRisk':'#forestShrineMaterial').click();
         await page.waitForFunction(() => window.CrownlessForestReadout().found.includes('shrine'),
           null,{timeout:2500});
