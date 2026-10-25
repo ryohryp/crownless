@@ -3,7 +3,7 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const isAllowed = name => !name.includes('..') && (
-  ['index.html','expedition.html','architecture-lab.html','architecture-lab.js','gemini-feel-lab.html','hero-art-review.html'].includes(name) ||
+  ['index.html','expedition.html','architecture-lab.html','architecture-lab.js','gemini-feel-lab.html','hero-art-review.html','compact-hero-review.html'].includes(name) ||
   (name.endsWith('.css') && !name.includes('/')) ||
   (name.startsWith('src/') && name.endsWith('.js') && name.indexOf('/', 4) === -1) ||
   ['docs/assets/candidates/forest-hd2d-v0.2.png','docs/assets/candidates/forest-objects-v1.png',
@@ -11,7 +11,9 @@ const isAllowed = name => !name.includes('..') && (
    'docs/assets/player-unarmed-approved-pixel-anchor-v1.png',
    'docs/assets/candidates/hero-walk-v1/walk.png',
    'assets/action-forest/terrain.png','assets/action-forest/objects.png',
-   'assets/action-forest/hero-idle.png','assets/action-forest/hero-walk.png'].includes(name) ||
+   'assets/action-forest/hero-idle.png','assets/action-forest/hero-walk.png',
+   'assets/action-forest/hero-compact-candidate-v1.png',
+   'assets/action-forest/hero-compact-walk-candidate-v1.png'].includes(name) ||
   (name.startsWith('assets/') && name.endsWith('.svg') && name.indexOf('/', 7) === -1)
 );
 const types = {'.png':'image/png','.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml'};

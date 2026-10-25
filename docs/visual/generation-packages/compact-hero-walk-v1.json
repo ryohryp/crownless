@@ -1,0 +1,72 @@
+{
+  "project_id": "crownless",
+  "asset_type": "character_animation",
+  "prompt_package": {
+    "grand_design_lock": "{\r\n  \"schema_version\": 1,\r\n  \"project_id\": \"crownless\",\r\n  \"source_documents\": [\r\n    \"AGENTS.md\",\r\n    \"docs/visual-canon.md\",\r\n    \"docs/visual/GLOBAL_VISUAL_STYLE.md\",\r\n    \"docs/visual/WORLD_DIRECTION.md\",\r\n    \"docs/visual/CHARACTER_VISUAL_CANON.md\",\r\n    \"docs/assets/README.md\"\r\n  ],\r\n  \"visual_dna\": \"Western medieval fantasy as expressive Japanese sumi-e on warm washi, in one legible illustrated travel journal. Rough dry-brush charcoal ink, feathered atmospheric washes and unpainted negative space make each discovered place feel memorable. Restrained muted vermilion communicates meaningful danger, seals or rivals; do not default to old blue-green/aged-gold manuscript styling. Preserve already approved combat actor identity and oblique camera anchors.\",\r\n  \"shared_rules\": {\r\n    \"western_medieval_fantasy_sumi_e_on_washi\": true,\r\n    \"expressive_ink_wash_and_dry_brush\": true,\r\n    \"layered_charcoal_and_warm_ivory\": true,\r\n    \"atmospheric_negative_space\": true,\r\n    \"sparse_vermilion_only_for_meaningful_signals\": true,\r\n    \"readable_distinct_landmarks_at_phone_scale\": true,\r\n    \"approved_combat_actor_identity_preserved\": true,\r\n    \"map_specific_adr0014_connected_field_override\": true,\r\n    \"never_use_historical_board_as_current_global_reference\": true,\r\n    \"must_not_chain_from_candidate\": true\r\n  },\r\n  \"fixed_avoid\": [\r\n    \"photorealism\",\r\n    \"realistic fantasy concept art\",\r\n    \"oil-paint painterly fantasy\",\r\n    \"realistic AAA 3D\",\r\n    \"cinematic poster composition\",\r\n    \"glossy mobile RPG presentation\",\r\n    \"clean vector clip art\",\r\n    \"anime-gacha rendering\",\r\n    \"neon magic\",\r\n    \"default teal or blue-green wash\",\r\n    \"decorative aged-gold borders\",\r\n    \"giant opaque UI cards\",\r\n    \"satellite-map rendering\",\r\n    \"unconnected road tiles where ADR-0014 applies\",\r\n    \"high-frequency texture clutter\",\r\n    \"characters in subjectless discovered-location art\",\r\n    \"baked-in labels, logos or process UI\"\r\n  ],\r\n  \"asset_types\": {\r\n    \"background\": {\r\n      \"purpose\": \"Render one discovered Crownless location as an evocative but readable medieval-fantasy sumi-e illustration on warm washi, with clear landmark identity and a sense that the player may return.\",\r\n      \"source_reference_required\": false,\r\n      \"composition\": {\r\n        \"primary_aspect_ratio\": \"16:9\",\r\n        \"framing\": \"wide 16:9 ink-wash environment with one distinct discoverable landmark, readable approach and generous paper negative space\",\r\n        \"phone_readability\": true,\r\n        \"characters_by_default\": false,\r\n        \"baked_ui_or_text\": false\r\n      },\r\n      \"palette\": [\r\n        \"warm washi ivory\",\r\n        \"layered charcoal-black dry brush\",\r\n        \"soft gray-brown weathered stone and earth\",\r\n        \"small muted vermilion for gameplay-significant threat or seal only\"\r\n      ],\r\n      \"discovery_language\": [\r\n        \"the place reads as newly found, with hints of history and traversal\",\r\n        \"one clear landmark silhouette remains recognizable at 360–430 CSS px\",\r\n        \"atmospheric ink wash is expressive, not a sepia effect on stock vector art\",\r\n        \"world imagery shares the Western medieval fantasy × sumi-e on washi language\"\r\n      ],\r\n      \"forbidden\": [\r\n        \"characters or creatures unless explicitly requested\",\r\n        \"text, labels, logos, game UI or process metadata baked into art\",\r\n        \"photorealistic, painterly or cinematic generic fantasy scenery\",\r\n        \"default teal/blue-green or aged-gold old-board palette\",\r\n        \"blackened grimdark background that destroys warm washi readability\",\r\n        \"glowing magical spectacle as generic decoration\",\r\n        \"copying identity, objects or composition from rejected or unrelated candidates\",\r\n        \"using real-world POI photographs as the location visual\"\r\n      ]\r\n    }\r\n  },\r\n  \"review_contract\": {\r\n    \"cross_asset_visual_audit_required\": true,\r\n    \"compare\": [\r\n      \"expressive sumi-e dry-brush and ink-wash grammar on warm washi\",\r\n      \"current ivory/charcoal/sparse-vermilion palette rather than historical board\",\r\n      \"distinct landmark silhouette and phone-scale readability\",\r\n      \"background belongs to current map/town/forge/event image family\",\r\n      \"discoverable location mood without baked-in text\"\r\n    ],\r\n    \"reject_even_if_beautiful_when\": [\r\n      \"it resembles the outdated blue-green/aged-gold manuscript board instead of approved 2026-10-08 sumi-e\",\r\n      \"it could be generic glossy or cinematic fantasy from another RPG\",\r\n      \"it is vector-clean or relies only on a sepia CSS-like treatment\",\r\n      \"it copies unrelated rejected image composition or adds characters or text\",\r\n      \"the landmark is unrecognizable inside the actual phone UI\"\r\n    ]\r\n  }\r\n}\r\n",
+    "style_lock": "Western medieval fantasy illustrated in expressive Japanese sumi-e on warm handmade washi. Black and charcoal-gray ink washes, feathered edges, irregular dry-brush contours, layered atmospheric distance and generous unpainted paper. Distinct silhouettes for tower, village, bridge, forest, river, shop and relic. Sparse muted vermilion only for danger, rivals, seals or meaningful focus. Map, town, forge, event and UI feel drawn on the same page; compact readable annotation-like controls. Not a simple sepia filter on clean vector graphics.",
+    "subject_lock": [
+      "素手の主人公（低頭身版） (player-unarmed-compact) - Approved Visual Anchor: docs/assets/player-unarmed-approved-compact-anchor-v1.png. On2026-10-25, after rejecting the previous character design and requesting smaller head-count Octopath-like sprites, the user selected this short-haired compact design: 「こっちの方がいいね」. It is byte-identical to `docs/assets/candidates/compact-hero-v1/attempt-1.png` presented immediately before that response. This explicit direction replaces previous protagonist face, hair, body-proportion and detailed-rendering constraints for the action forest. Preserve this compact approximately2.75–3-head body, restrained tiny face, short black hair without ribbon tails, small brick-red scarf collar, simple cream/charcoal travel clothes, brown belt/pouch/boots and unarmed hands. Use the fixed oblique three-quarter camera facing right for temporal walking frames; no direction-sheet spin, no new identity or elaborate torn garments. Short relaxed limbs and small feet must stay legible on a48px-high presentation grid (44 world units). Global washi/sumi-e world art remains separately scoped; this protagonist follows the user's explicit small pixel-sprite direction. Old approved originals remain archived unchanged and are not the new generation parent. The human acceptance covers the new still design. Walking and combat animation require their own actual phone-scale review; do not claim those approved solely from this still. Use `docs/visual-canon.md` and `docs/visual/GLOBAL_VISUAL_STYLE.md` for current global ink-wash/washi language. The former `docs/assets/crownless-visual-design-reference-v0.1.jpg` is historical only where its palette/woodcut treatment conflicts. Historical `assets/combat/minimal-v0.1/actors/` art was removed under ADR-0005, and is **not** a current runtime dependency or approved generation parent. Preserve the archived role silhouettes only as history. Older character / battle reference sheets are supporting style references only where they do not conflict with the accepted actor set. Keep humanoid figures approximately **3–3.5 heads tall**, strongly deformed, compact, weathered, asymmetrical, and readable at phone scale. Keep faces tiny, restrained, crude, and folk-art-like rather than cute, anime-like, painterly, or realistic. Combat figures must be authored for an **oblique top-down / three-quarter battlefield view** rather than as front-facing standing portraits. Generated images are review candidates and must not replace accepted anchors automatically. `docs/assets/player-unarmed-approved-anchor-v0.4.png`"
+    ],
+    "scene_requirements": [
+      "Asset type: character_animation.",
+      "Narrative request: Human selected the short-haired compact protagonist still: こっちの方がいいね. Derive FOUR TEMPORAL WALK FRAMES from this exact approved compact anchor, in a single horizontal row. Preserve the same tiny face, short black hair without ribbons/headband/ponytail, compact approximately2.75–3-head proportions, small red scarf collar and simple cream/charcoal/brown clothes, empty hands. Same oblique camera facing right throughout; no direction turns, no armor or weapons. Right contact, passing, left contact, passing; quiet natural short stride. Each coherent full-body figure fits one equal cell, with same scale and ground pivot, separated transparent gaps. Genuine coarse pixel clusters, not detailed illustration. Walking is a new candidate and requires review, not covered by still approval.",
+      "Scene context: action: walk, temporal_frames: 4, facing: right, layout: one horizontal row of four equal cells, target: 48px-high presentation grid; do not add detail to approved still",
+      "World direction: Expressive ink washes, dry-brush contours, negative space, and paper unify map, town, shops, events, relics and UI.",
+      "World direction: Distinct landmark silhouettes and legible stronghold/POI states matter more than decorative panels at 360–430px.",
+      "World direction: Muted vermilion is a meaningful signal (rival, danger, seal), not an all-over tint.",
+      "World direction: Existing accepted combat actor anchors retain their geometry, fixed camera, pivot, animation and readability until separately reviewed.",
+      "World direction: Gameplay and safe outdoor interaction are governed by `AGENTS.md`, accepted ADRs and `docs/gameplay-spec.md`.",
+      "World direction: Generated images remain candidates until checked in the actual game."
+    ],
+    "allowed_changes": [
+      "Adapt lighting, ruins, vegetation, ink density and landmark composition within the active sumi-e-on-washi Canon.",
+      "For characters, preserve each approved anchor's silhouette, clothing, fixed combat camera and pivot.",
+      "Apply the newer connected-field map direction (ADR-0014) only to maps, without overruling non-map gameplay art."
+    ],
+    "forbidden_changes": [
+      "Do not use legacy, transitional, archived late-state, or exploration-only assets as the generation parent.",
+      "Do not chain a new variation from a candidate or derived variation; return to the Approved Visual Anchor.",
+      "Do not silently fall back to an older generation when an approved asset cannot be read.",
+      "Do not treat the historical board as the unarchived 2026-10-08 approved global image.",
+      "Do not adopt a new candidate as Canon or derive approved anchors from rejected candidates.",
+      "Do not substitute generic glossy fantasy, dominant teal/gold, anime, or clean-vector art for expressive ink wash.",
+      "Use `docs/visual-canon.md` and `docs/visual/GLOBAL_VISUAL_STYLE.md` for current global ink-wash/washi language. The former `docs/assets/crownless-visual-design-reference-v0.1.jpg` is historical only where its palette/woodcut treatment conflicts.",
+      "Historical `assets/combat/minimal-v0.1/actors/` art was removed under ADR-0005, and is **not** a current runtime dependency or approved generation parent. Preserve the archived role silhouettes only as history.",
+      "Older character / battle reference sheets are supporting style references only where they do not conflict with the accepted actor set.",
+      "Keep humanoid figures approximately **3–3.5 heads tall**, strongly deformed, compact, weathered, asymmetrical, and readable at phone scale.",
+      "Keep faces tiny, restrained, crude, and folk-art-like rather than cute, anime-like, painterly, or realistic.",
+      "Combat figures must be authored for an **oblique top-down / three-quarter battlefield view** rather than as front-facing standing portraits.",
+      "Generated images are review candidates and must not replace accepted anchors automatically."
+    ],
+    "avoid_block": [
+      "glossy RPG chrome",
+      "photorealism",
+      "oil-paint fantasy concept art",
+      "anime-gacha framing",
+      "neon effects",
+      "dominant teal or blue-green palette",
+      "decorative aged-gold borders",
+      "flat clean clip-art",
+      "dense textures over labels",
+      "huge opaque cards over the map",
+      "baked-in text on scene art",
+      "historical blue-green board as current approved global reference"
+    ]
+  },
+  "reference_assets": [
+    {
+      "role": "global_reference",
+      "path": "docs/assets/player-unarmed-approved-compact-anchor-v1.png"
+    },
+    {
+      "role": "subject_anchor",
+      "subject_id": "player-unarmed-compact",
+      "path": "docs/assets/player-unarmed-approved-compact-anchor-v1.png"
+    }
+  ],
+  "policy": {
+    "must_use_approved_anchor": true,
+    "must_not_chain_from_candidate": true,
+    "must_review_after_generation": true
+  }
+}

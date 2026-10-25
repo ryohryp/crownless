@@ -72,6 +72,20 @@ The action-forest pixel variant is the same protagonist, explicitly approved by 
 - No new weapons, armor class or ornaments in the base unarmed animation. Equipment layers come later.
 - The human approval covers this still. New animation remains subject to actual phone-scale review.
 
+## 素手の主人公（低頭身版）
+
+### Approved Visual Anchor
+
+- `docs/assets/player-unarmed-approved-compact-anchor-v1.png`
+
+### Accepted visual conditions
+
+- On2026-10-25, after rejecting the previous character design and requesting smaller head-count Octopath-like sprites, the user selected this short-haired compact design: 「こっちの方がいいね」. It is byte-identical to `docs/assets/candidates/compact-hero-v1/attempt-1.png` presented immediately before that response.
+- This explicit direction replaces previous protagonist face, hair, body-proportion and detailed-rendering constraints for the action forest. Preserve this compact approximately2.75–3-head body, restrained tiny face, short black hair without ribbon tails, small brick-red scarf collar, simple cream/charcoal travel clothes, brown belt/pouch/boots and unarmed hands.
+- Use the fixed oblique three-quarter camera facing right for temporal walking frames; no direction-sheet spin, no new identity or elaborate torn garments. Short relaxed limbs and small feet must stay legible on a48px-high presentation grid (44 world units).
+- Global washi/sumi-e world art remains separately scoped; this protagonist follows the user's explicit small pixel-sprite direction. Old approved originals remain archived unchanged and are not the new generation parent.
+- The human acceptance covers the new still design. Walking and combat animation require their own actual phone-scale review; do not claim those approved solely from this still.
+
 ## 敵：Rusher
 
 ### Historical actor reference — **not a current Approved Visual Anchor**

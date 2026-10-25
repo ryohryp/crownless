@@ -25,8 +25,8 @@ test('compiled Canon exposes the subjectless background policy', () => {
   });
   assert.equal(compiledCanon.grand_design.asset_types.background.source_reference_required, false);
   assert.match(compiledCanon.source_revision, /^[a-f0-9]{64}$/);
-  assert.equal(manifest.documents.globalReference, 'docs/assets/player-unarmed-approved-pixel-anchor-v1.png', 'use the explicitly approved pixel image, never the historical board');
-  assert.deepEqual(Object.keys(manifest.subjects).sort(), ['player-unarmed','player-unarmed-pixel'], 'only original protagonist and approved pixel variant are registered');
+  assert.equal(manifest.documents.globalReference, 'docs/assets/player-unarmed-approved-compact-anchor-v1.png', 'use the newly selected compact design, never silently reuse the rejected older design');
+  assert.deepEqual(Object.keys(manifest.subjects).sort(), ['player-unarmed','player-unarmed-compact','player-unarmed-pixel'], 'keep prior approved variants as provenance beside the selected compact design');
   assert.equal(compiledCanon.global_reference_path, manifest.documents.globalReference);
   assert.match(compiledCanon.global_style_lock, /Japanese sumi-e.*washi/i);
   assert.deepEqual(compiledCanon.grand_design, grandDesign);
@@ -38,4 +38,11 @@ test('approved pixel anchor is byte-identical to the still presented to the user
   const presented=await readFile(new URL('../docs/assets/candidates/hero-still-v1/hero-review.png',import.meta.url));
   assert(approved.equals(presented),'approval must not silently substitute a different generation');
   assert((await readFile(new URL('../docs/assets/player-unarmed-approved-anchor-v0.4.png',import.meta.url))).length>0,'historical identity source remains preserved');
+});
+
+test('new compact design acceptance preserves the exact image the human selected',async()=>{
+  const approved=await readFile(new URL('../docs/assets/player-unarmed-approved-compact-anchor-v1.png',import.meta.url));
+  const presented=await readFile(new URL('../docs/assets/candidates/compact-hero-v1/attempt-1.png',import.meta.url));
+  const preview=await readFile(new URL('../assets/action-forest/hero-compact-candidate-v1.png',import.meta.url));
+  assert(approved.equals(presented));assert(preview.equals(approved));
 });
