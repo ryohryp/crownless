@@ -114,15 +114,19 @@ async function main() {
           const H=window.CrownlessHitRecovery;
           const now=100;
           const scouted=D.guardianOpeningSeconds(new Set(['traces']));
-          return {
-            blind:D.guardianOpeningSeconds(new Set()),
-            scouted,
-            tooEarly:H.readyToStrike({nextStrikeAt:now+scouted},now+1),
-            ready:H.readyToStrike({nextStrikeAt:now+scouted},now+2)
-          };
+          const guardian={scoutOpeningSeconds:scouted,nextStrikeAt:0};
+          const tooFar=D.armGuardianOpening(guardian,170,now);
+          const close=D.armGuardianOpening(guardian,95,now+2);
+          const tooEarly=H.readyToStrike(guardian,now+3);
+          const ready=H.readyToStrike(guardian,now+4);
+          H.registerEnemyStrike({...guardian,isBoss:true},now+4);
+          const repeat=D.armGuardianOpening(guardian,20,now+5);
+          return {blind:D.guardianOpeningSeconds(new Set()),scouted,
+            tooFar,close,tooEarly,ready,repeat,openingEnd:guardian.scoutOpeningEndsAt};
         });
-        assert.deepEqual(guardianWarning,{blind:0,scouted:1.8,tooEarly:false,ready:true},
-          'scouting must grant a real first-strike warning on the phone runtime');
+        assert.deepEqual(guardianWarning,{blind:0,scouted:1.8,
+          tooFar:false,close:true,tooEarly:false,ready:true,repeat:false,openingEnd:103.8},
+          '360/390px runtime: warning starts at close range once, never at spawn or on later strikes');
         const status = await page.evaluate(() => {
           const a = document.querySelector('#gestureActionArea').getBoundingClientRect();
           const top = document.elementFromPoint(a.x + a.width * 0.7, a.y + a.height * 0.7);
