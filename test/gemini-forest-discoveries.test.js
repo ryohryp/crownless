@@ -392,3 +392,32 @@ test('both forest art modes show sensory cues until a landmark is actually found
   assert.doesNotMatch(pixel,/spot\.id==='hollow'&&!traced\?'茨に閉ざされた石門'/,
     'the hidden gate name must not be revealed by proximity');
 });
+
+test('post-victory deep search wakes one optional guardian before risky loot can be banked',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  assert.match(html,/rpg\.phase==='return'\?'／物音で番人が来る・撃退まで帰還不可'/,
+    'the risky option must warn before the player commits');
+  assert.match(html,/choice==='risk' && wasClear &&[\s\S]*?rpgRules\.pushDeeper\(rpg\)/,
+    'only a chosen deep search after victory starts another fight');
+  assert.match(html,/spawnEnemyWave\(state\.waveCount,1\)/,
+    'the ambush is a single guardian, not an involuntary full wave');
+  const run=R.create();
+  assert.equal(R.clearWave(run),true);
+  const found=new Set();
+  const reward=D.uncover({x:660,z:230},found,run.phase,70,140,false,'risk');
+  assert.equal(reward.material,2);
+  for(let i=0;i<reward.material;i++) assert.equal(R.claimMaterial(run),true);
+  assert.equal(R.pushDeeper(run),true);
+  assert.equal(R.returnAlive(run,70-reward.damage),false,
+    'risky materials remain provisional until the guardian is defeated');
+  assert.equal(R.clearWave(run),true);
+  assert.equal(R.returnAlive(run,70-reward.damage),true);
+  assert.equal(run.banked,2);
+  const defeated=R.create();
+  R.clearWave(defeated);
+  R.claimMaterial(defeated);
+  R.pushDeeper(defeated);
+  R.loseExpedition(defeated);
+  assert.equal(defeated.banked,0);
+  assert.equal(defeated.unbanked,0,'the guardian can cost the entire unsecured bag');
+});
