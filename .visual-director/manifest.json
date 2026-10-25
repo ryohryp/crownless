@@ -6,7 +6,7 @@
     "characterCanon": "docs/visual/CHARACTER_VISUAL_CANON.md",
     "worldDirection": "docs/visual/WORLD_DIRECTION.md",
     "assetManifest": "docs/assets/README.md",
-    "globalReference": "docs/assets/player-unarmed-approved-pixel-anchor-v1.png",
+    "globalReference": "docs/assets/player-unarmed-approved-compact-anchor-v1.png",
     "grandDesign": ".visual-director/grand-design.json"
   },
   "labels": {
@@ -17,6 +17,11 @@
     "acceptedConditionsHeading": "Accepted visual conditions"
   },
   "subjects": {
+    "player-unarmed-compact": {
+      "display_name": "素手の主人公（低頭身版）",
+      "character_file": "docs/visual/CHARACTER_VISUAL_CANON.md",
+      "canon_heading": "素手の主人公（低頭身版）"
+    },
     "player-unarmed-pixel": {
       "display_name": "素手の主人公（ピクセル版）",
       "character_file": "docs/visual/CHARACTER_VISUAL_CANON.md",

@@ -25,7 +25,11 @@ Keep the real-world discovery trigger and existing game actions intact.
 
 ## Approved direction — Western medieval fantasy × sumi-e
 
-### Action-forest protagonist approval — 2026-10-23
+### Compact action-forest protagonist — 2026-10-25
+
+The user rejected the detailed character again, requested a smaller head-count design aiming toward Octopath-like small pixel figures, and then selected the short-haired compact candidate: 「こっちの方がいいね」. The current action-forest protagonist design anchor is `docs/assets/player-unarmed-approved-compact-anchor-v1.png`, byte-identical to compact-hero-v1/attempt-1. Use the approximately2.75–3-head silhouette, tiny restrained face, short black hair, small red scarf and simple cream/charcoal/brown travel clothes. This supersedes previous protagonist face/proportion/style locks for the requested small-sprite direction only. Previous source images remain preserved. Acceptance of this still is not approval of newly generated walking, other actors or a global background style change.
+
+### Earlier protagonist approval — 2026-10-23 (preserved history)
 
 The user explicitly approved the coherent pixel protagonist still after rejecting the code-drawn characters: “これでいいよ”. The exact approved image is `docs/assets/player-unarmed-approved-pixel-anchor-v1.png`, copied unchanged from the Pixelorama export presented in the preceding review. This is the character's action-forest identity/material reference and the current concrete image reference for that production workflow. The earlier v0.4 illustration remains archived unchanged as provenance. Preserve the approved face, dark tied hair, muted red cloth, patched clothing and wrapped hands; derive temporal walking frames from this exact image. The requested pixel medium takes precedence over older ink-hatching rendering prescriptions for this protagonist. This approval does not approve a generated animation, other actors or background replacements. The still remains a detailed source image, not a native low-resolution sprite sheet.
 

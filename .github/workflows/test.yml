@@ -65,6 +65,8 @@ jobs:
         run: npm run playtest:pixel-forest
       - name: Approved protagonist walking and comparison phone smoke
         run: node scripts/verify-hero-still.cjs
+      - name: Compact protagonist candidate local comparison
+        run: node scripts/verify-compact-hero.cjs
       - name: Published Pages payload normal forest entry
         run: node scripts/verify-pages-forest.cjs
       - name: Visual candidate temporary placement smoke

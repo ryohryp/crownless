@@ -1,0 +1,27 @@
+# Compact protagonist redesign — 2026-10-25
+
+The human rejected the published character design again: 「まだ気持ち悪いな。キャラデザがよくない。頭身も小さくしよう。オクトパストラベラーみたいな感じを目指そうか」. This explicitly changes character design and head-to-body proportions, beyond the previous rendering-density correction.
+
+For this new candidate, that request overrides old face, body-proportion, silhouette and sumi-e-rendering preservation. The previous approved image is a loose color/role reference only, not a requirement to retain the rejected anatomy and styling. Preserve the humble unarmed traveler role and warm black/red/cream/charcoal/brown continuity; the original approved files remain unchanged. Do not copy an existing Octopath character. This is a new design review, not Canon adoption.
+
+Target: approximately2.75–3 heads tall; compact restrained hair, a tiny face, a short simple garment silhouette, relaxed planted feet; roughly48px-high presentation grid, drawn44 world units high (~70 CSS px on a390px-wide phone). Existing source is a generated large PNG, not a hand-cleaned native sprite. The48px view is a cached display reduction of that source; do not call it finished pixel craftsmanship.
+
+Attempt0 retained too much spiky hair, ribbon tails and layered clothing. Attempt1 simplifies these while keeping the red scarf and humble travel clothes. Both original transparent outputs and the exact prompts are preserved under `docs/assets/candidates/compact-hero-v1/`. Neither candidate is an approved parent for further generated animation. Any further regeneration must return to the previous approved source with the explicit current redesign request.
+
+Review page: `compact-hero-review.html`. Local scene opt-in: `gemini-feel-lab.html?actor=compact`. Omit the map-return flag in this local review to avoid reading/writing any saved action expedition. Check the real phone-scale figure on the forest background before judging the large source. The pose is static even while movement/combat runs; walking, attack, hurt, companion redesign and a finished modular animation rig are not delivered by this still.
+
+The reference direction is the small pixel figures and atmospheric depth described by Square Enix's official OCTOPATH TRAVELER HD-2D page: https://www.jp.square-enix.com/octopathtraveler/about/ . No official art is copied into the game or used as a generation parent.
+
+## Human selection and motion follow-up
+
+During this work the user selected attempt1: 「こっちの方がいいね」. That exact still has now been copied without alteration to `docs/assets/player-unarmed-approved-compact-anchor-v1.png`, recorded in its JSON sidecar and registered as `player-unarmed-compact`. The former statement that this new still has no human selection is superseded by this later response; prior originals remain unchanged.
+
+New walking source and its targeted correction are preserved under `docs/assets/candidates/compact-hero-walk-v1/`. Both attempts derive from the newly selected still, not from an unapproved animation. Four whole-body poses are sampled into cached32x56 cells, with48px body height and ground pivot16,52. The second source has similar contact poses; this remains a review candidate rather than a claim of polished alternating-foot animation. Local scene `?actor=compact-walk` enables it; normal public gameplay keeps the prior actor until the motion is ready. The opt-in scene reduces existing companion/enemy presentation to similar44-unit body height; it does not claim a new companion/enemy design or change collisions/reach.
+
+Local deterministic verification covers 360/390/430px comparison/zoom, real keyboard movement through all4 new frame indices, stop-to-still and unchanged normal entry. The source files are larger generated PNGs; cached display reductions and independent equipment overlays are the delivered reusable parts. Attack/hurt animation and a complete rig remain unfinished.
+
+Jev Vision advisories: initial still source `needs_review` (raw reject, confidence0.37; anatomy/identity/artifacts/style flags) and phone `revise/crop` (confidence0.91; readability2.98/4). The human selected the still despite the advisory; that selection is not inferred from test success. First phone submission was technically rejected because DPR2 screenshots exceeded1568px height; resized evaluation copies succeeded, originals preserved. Walk source `needs_review` (raw reject, confidence0.37; wrong_subject/artifacts/anatomy; quality1.82/4). Keep these raw negative/uncertain observations in review; do not relabel them as art approval or rerun until an implementation/evidence change justifies it.
+
+Visual Director `visual.prepare_generation` successfully resolved `crownless` / `player-unarmed-pixel` / `character_design`, with this exact human redesign request in scene requirements. It returned the previous approved pixel still as both global reference and subject anchor and policy `must_use_approved_anchor:true`, `must_not_chain_from_candidate:true`, `must_review_after_generation:true`. Older face/proportion/style locks conflict with the new human request and are superseded only for this candidate; no global style or approved anchor file is modified. Generation used built-in Imagegen, referencing the unchanged previous approved still for both attempts.
+
+Candidate review does not imply source approval, production adoption, motion quality, consistent companion art or physical-phone performance. The public normal route keeps the current approved hero until a concrete design is accepted.

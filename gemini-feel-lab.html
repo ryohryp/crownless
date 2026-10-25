@@ -284,6 +284,7 @@
 <script src="src/pixel-forest.js"></script>
 <script src="src/pixel-forest-effects.js"></script>
 <script src="src/pixel-actors.js"></script>
+<script src="src/compact-hero-preview.js"></script>
 <script src="src/hero-still-review.js"></script>
 <script>
 (() => {
@@ -2307,11 +2308,12 @@
 
   function drawFighter(f) {
     const groundH = getGroundHeightAt(f.x, f.z);
+    const compactActor = pixelArt && heroStillReview.status().compact;
     const zAlignedWithHero = ginji && f.team === 1 && Math.abs(f.z - ginji.z) <= 24;
 
     ctx.fillStyle = zAlignedWithHero ? 'rgba(52, 211, 153, 0.55)' : 'rgba(0,0,0,0.42)';
     ctx.beginPath();
-    ctx.ellipse(f.x, f.z - groundH, 16, 6, 0, 0, Math.PI * 2);
+    ctx.ellipse(f.x, f.z - groundH, compactActor?10:16, compactActor?4:6, 0, 0, Math.PI * 2);
     ctx.fill();
     if (zAlignedWithHero) {
       ctx.strokeStyle = '#34d399';
@@ -2343,12 +2345,12 @@
     const tag = f === ginji ? ' [1P]' : (f === sasuke ? (state.isPartnerAI ? ' [相棒AI]' : ' [2P]') : '');
     ctx.fillStyle = f.team === 0 ? '#7dd3fc' : '#fca5a5';
     const detailedActor = pixelArt && forestArt.ready();
-    ctx.fillText(f.name + tag, 0, detailedActor ? -78 : -60);
+    ctx.fillText(f.name + tag, 0, compactActor ? -58 : detailedActor ? -78 : -60);
 
     const barW = 32;
     const hpRatio = Math.max(0, f.hp / f.maxHp);
     ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
-    const hpY = detailedActor ? -73 : -55;
+    const hpY = compactActor ? -53 : detailedActor ? -73 : -55;
     ctx.fillRect(-barW / 2, hpY, barW, 4);
     ctx.fillStyle = f.team === 0 ? '#34d399' : '#f43f5e';
     ctx.fillRect(-barW / 2, hpY, Math.round(barW * hpRatio), 4);
@@ -2368,12 +2370,16 @@
     const bob = (f.state === 'WALK' || f.state === 'RUN') ? Math.abs(Math.sin(f.animTime * 1.4)) * 3 : 0;
 
     if (f === ginji && pixelArt && heroStillReview.draw(ctx,f)) {
-      if(rpg.crafted||f.heldWeapon) window.CrownlessPixelActors.drawEquipment(ctx,rpg.crafted?'sword':f.heldWeapon.type);
+      if(rpg.crafted||f.heldWeapon) {
+        ctx.save();if(compactActor)ctx.scale(.7,.7);
+        window.CrownlessPixelActors.drawEquipment(ctx,rpg.crafted?'sword':f.heldWeapon.type);ctx.restore();
+      }
       ctx.restore();
       return;
     }
 
     if (pixelArt && forestArt.ready()) {
+      if(compactActor)ctx.scale(.71,.71);
       window.CrownlessPixelActors.draw(ctx,f,{
         role:f===ginji?'traveler':f===sasuke?'companion':'enemy',
         crafted:f===ginji&&rpg.crafted,

@@ -18,7 +18,7 @@ const excluded=new Set(['.git','.github','.visual-director','.vscode','art-sourc
     const dest=path.join(stage,file);await fs.mkdir(path.dirname(dest),{recursive:true});await fs.copyFile(path.join(root,file),dest);
   }
   const version=execFileSync('git',['rev-parse','HEAD'],{cwd:root,encoding:'utf8'}).trim().slice(0,12);
-  for(const name of ['index.html','expedition.html','reboot.html','gemini-feel-lab.html','hero-art-review.html']){
+  for(const name of ['index.html','expedition.html','reboot.html','gemini-feel-lab.html','hero-art-review.html','compact-hero-review.html']){
     try{const file=path.join(stage,name);let html=await fs.readFile(file,'utf8');html=html.replace(/((?:href|src)=["'])(?!https?:|\/\/|#|data:)([^"'?]+\.(?:css|js))(?:\?[^"']*)?(["'])/g,`$1$2?v=${version}$3`);await fs.writeFile(file,html);}catch(e){if(e.code!=='ENOENT')throw e;}
   }
   assert.equal(await fs.stat(path.join(stage,'docs')).then(()=>true,()=>false),false,'docs must be absent from published payload');

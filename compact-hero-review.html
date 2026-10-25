@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Crownless — 小さな旅人のデザイン比較</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#17201c;color:#e8e6d6;font:15px/1.8 system-ui,sans-serif}main{max-width:1050px;margin:auto;padding:24px 18px 60px}h1{font-size:25px;line-height:1.5;margin:8px 0}h2{font-size:18px;margin-top:30px}p{max-width:68ch;color:#c7cbbe}a{color:#e3c892}.eyebrow{font-size:11px;letter-spacing:.18em;color:#b6b89c}.cards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:22px 0}.card{min-width:0;border:1px solid #69725c;background:#253026;border-radius:8px;overflow:hidden}.card h2{font-size:14px;margin:12px 14px}.card p{font-size:12px;margin:12px 14px}.stage{position:relative;height:220px;background:linear-gradient(0deg,#303b2be6,#67725638),url('assets/action-forest/terrain.png') 35% 62%/900px auto;display:flex;align-items:end;justify-content:center;padding-bottom:42px}.stage:after{content:'';position:absolute;bottom:39px;width:45px;height:10px;border-radius:50%;background:#151e1899}.stage canvas{position:relative;z-index:1;image-rendering:pixelated}.row{display:flex;gap:16px;align-items:center;flex-wrap:wrap}.button{display:inline-flex;min-height:48px;align-items:center;justify-content:center;background:#3d4e36;border:1px solid #9aa682;color:#f1ebda;padding:8px 18px;border-radius:5px;text-decoration:none}.zoom{max-width:100%;background:#28352b;image-rendering:pixelated;border:1px solid #69725c}.note{border-left:3px solid #a78e69;padding-left:14px;font-size:13px}.selected{border-color:#c5b487}.sizes button{min-height:44px;background:#253026;border:1px solid #829174;color:#ede6cd;padding:6px 14px;border-radius:4px;cursor:pointer}.sizes button[aria-pressed=true]{background:#5c6846}
+@media(max-width:420px){.cards{gap:8px}.card h2{font-size:12px;margin:10px}.card p{margin:10px}.stage{height:190px}.button{width:100%}}
+</style>
+<main><div class="eyebrow">CROWNLESS / CHARACTER DESIGN STUDY</div>
+<h1>小さな姿で、旅人らしく。</h1>
+<p>頭身を下げ、髪・顔・服の情報を整理しました。右が選んだ新しいデザインです。背景の奥行きと、小さなドットの人物を組み合わせます。</p>
+<div class="cards">
+<article class="card"><h2>これまでの主人公</h2><div class="stage"><canvas id="current" width="100" height="130" aria-label="これまでの主人公、ゲーム内相当の大きさ"></canvas></div><p>人物の高さ：約102px<br>大きな髪と細かな服</p></article>
+<article class="card selected"><h2>採用する低頭身デザイン</h2><div class="stage"><canvas id="candidate" width="100" height="100" aria-label="新しい低頭身の主人公、ゲーム内相当の大きさ"></canvas></div><p>人物の高さ：約70px<br>短い髪・小さな顔・短い服</p></article>
+</div>
+<div class="row"><a class="button" href="gemini-feel-lab.html?actor=compact">この候補を森の中で見る</a><a href="gemini-feel-lab.html">現在のゲームと比較する</a></div>
+<h2>同じ姿の歩行を確認する</h2><p>原画の採用後に作った歩行4コマの試作です。顔と体の大きさを揃え、停止すると採用した立ち姿へ戻ります。接地ポーズ同士は似ており、滑らかさはまだ確認中です。</p>
+<canvas id="compactWalk" class="zoom" width="360" height="180" aria-label="低頭身主人公の歩行試作"></canvas><p><button id="pauseWalk" class="button" type="button">歩行を止める</button></p><a class="button" href="gemini-feel-lab.html?actor=compact-walk">森で歩行を確認する</a>
+<h2>ドットのまとまりを確認する</h2><p>生成原画は大きなPNGです。表示用に一度だけ高さ48pxの格子へ取り込み、拡大して確認します。手作業で完成させたネイティブ素材やアニメーションではありません。</p>
+<div class="row sizes"><button type="button" data-zoom="2" aria-pressed="false">2倍</button><button type="button" data-zoom="4" aria-pressed="true">4倍</button><button type="button" data-zoom="6" aria-pressed="false">6倍</button></div><p><canvas id="zoom" class="zoom" width="240" height="240" aria-label="48px格子の低頭身候補を拡大した図"></canvas></p>
+<p class="note">新しい立ち姿のデザインは選択済みです。歩行は確認用の試作で、攻撃・被弾の専用コマと従者の新デザインは未制作です。従者・敵は試遊時の表示サイズだけ調整しています。以前の原画は保存し、公開版の見た目はまだ変更していません。</p>
+</main>
+<script src="src/compact-hero-preview.js"></script><script src="src/hero-still-review.js"></script><script>
+const current=CrownlessHeroStill.create(),candidate=CrownlessCompactHero.create();let zoom=4;
+const draw=(id,actor,scale,base)=>{const canvas=document.getElementById(id),ctx=canvas.getContext('2d');ctx.clearRect(0,0,canvas.width,canvas.height);ctx.save();ctx.translate(canvas.width/2,base);ctx.scale(scale,scale);actor.draw(ctx,{state:'IDLE',animTime:0});ctx.restore();};
+function paint(){draw('current',current,1.6,124);draw('candidate',candidate,1.6,94);draw('zoom',candidate,zoom,document.getElementById('zoom').height-16);}
+document.querySelectorAll('[data-zoom]').forEach(button=>button.onclick=()=>{zoom=Number(button.dataset.zoom);const canvas=document.getElementById('zoom');canvas.height=48*zoom+32;canvas.width=Math.max(160,32*zoom+32);document.querySelectorAll('[data-zoom]').forEach(b=>b.setAttribute('aria-pressed',String(b===button)));paint();});
+function wait(){paint();if(!current.ready()||!candidate.ready())requestAnimationFrame(wait);}wait();
+const walking=CrownlessCompactHero.create({animated:true});let moving=true,previous=0,animTime=0;
+document.getElementById('pauseWalk').onclick=()=>{moving=!moving;document.getElementById('pauseWalk').textContent=moving?'歩行を止める':'歩行を再生する';};
+function walk(t){if(moving)animTime+=Math.min(.05,(t-previous)/1000)*10;previous=t;draw('compactWalk',{draw:ctx=>walking.draw(ctx,{state:moving?'WALK':'IDLE',animTime})},2.7,155);requestAnimationFrame(walk);}requestAnimationFrame(walk);
+</script></html>

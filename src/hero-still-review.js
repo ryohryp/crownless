@@ -4,6 +4,14 @@
   'use strict';
   function create(){
     const mode=new URLSearchParams(location.search).get('actor');
+    if(mode==='compact'||mode==='compact-walk'){
+      const note=document.createElement('div');note.id='heroStillReviewNote';
+      note.setAttribute('role','status');note.textContent=mode==='compact-walk'?'採用した低頭身デザイン · 歩行4コマを確認中（攻撃未制作）':'採用した低頭身デザイン · 立ち姿で比較';
+      Object.assign(note.style,{position:'fixed',bottom:'58px',left:'8px',right:'8px',padding:'6px 8px',
+        background:'#283027ee',color:'#f5ebce',fontSize:'11px',textAlign:'center',zIndex:'40',pointerEvents:'none'});
+      document.body.append(note);
+      return root.CrownlessCompactHero.create({animated:mode==='compact-walk'});
+    }
     const active=mode!=='classic';
     const image=active?new Image():null;
     const walk=active&&mode!=='still'?new Image():null;

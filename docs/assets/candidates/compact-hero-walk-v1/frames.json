@@ -1,0 +1,43 @@
+{
+  "sourceSize": [
+    1774,
+    887
+  ],
+  "bounds": [
+    [
+      81,
+      152,
+      362,
+      657
+    ],
+    [
+      543,
+      152,
+      283,
+      657
+    ],
+    [
+      939,
+      152,
+      348,
+      657
+    ],
+    [
+      1402,
+      152,
+      288,
+      647
+    ]
+  ],
+  "nativeCell": [
+    32,
+    56
+  ],
+  "bodyHeight": 48,
+  "pivot": [
+    16,
+    52
+  ],
+  "status": "animation-review-candidate",
+  "note": "Generated contact poses are similar; do not claim fully approved animation."
+}
