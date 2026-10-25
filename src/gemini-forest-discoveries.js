@@ -64,6 +64,10 @@
       return {ok:false,reason:'full',spot};
     if(spot.kind==='healing' && !['auto','material','heal','risk'].includes(shrineChoice))
       return {ok:false,reason:'choice',spot};
+    // Deep search always carries a guardian fight. During the initial wave,
+    // wait until the enemies are cleared rather than awarding unguarded +2 loot.
+    if(spot.kind==='healing' && shrineChoice==='risk' && phase!=='return')
+      return {ok:false,reason:'clear-first',spot};
     // A forged sword clears the thorns, halving the deep-search wound.
     const riskDamage=shrineRiskDamage(found,crafted);
     if(spot.kind==='healing' && shrineChoice==='risk' && hp<riskDamage+1)
