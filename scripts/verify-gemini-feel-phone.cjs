@@ -489,9 +489,14 @@ async function main() {
         // its own +1 fang is separate from the shrine's +2 reward.
         assert.equal(shrineOutcome.unbankedAfterChoice-shrineOutcome.unbankedAtTap,
           shrineOutcome.material,'the chosen shrine branch awards exactly its advertised fangs');
-        assert(afterShrine.unbanked>=shrineOutcome.unbankedAfterChoice &&
-          afterShrine.unbanked<=shrineOutcome.unbankedAfterChoice+(takeRisk?1:0),
-          'only an optional guardian defeat may add another fang after the choice');
+        if (afterShrine.phase==='camp') {
+          assert.equal(afterShrine.unbanked,0,
+            'a guardian defeat during the canvas wait must discard the provisional bag');
+        } else {
+          assert(afterShrine.unbanked>=shrineOutcome.unbankedAfterChoice &&
+            afterShrine.unbanked<=shrineOutcome.unbankedAfterChoice+(takeRisk?1:0),
+            'only an optional guardian defeat may add another fang after the choice');
+        }
         await page.touchscreen.tap(nearTap.x,nearTap.y);
         assert.deepEqual(await page.evaluate(() => window.__shrineTapOutcome),shrineOutcome,
           'repeat shrine taps must not trigger the discovery rule again');
