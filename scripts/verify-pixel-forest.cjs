@@ -142,6 +142,13 @@ async function verifyTracksShrineRisk(page, crafted) {
       'reading tracks must provide extra reaction distance before the guardian reaches the player: '+distance);
     assert.equal(await page.locator('#rpgOpenResults').isVisible(),false,
       'the player cannot immediately bank the risky extra materials');
+    await page.waitForFunction(()=>
+      document.getElementById('forestExploreHint')?.textContent?.includes('倒すまで帰還不可'));
+    const guardianHint=await page.locator('#forestExploreHint').innerText();
+    assert.match(guardianHint,/番人HP \d+\/180/,
+      'the active guardian must replace stale discovery cues with live HP');
+    assert(guardianHint.includes('未帰還の牙 '+after.unbanked+'個'),
+      'the guardian hint must show the actual unsecured materials');
   }
   await tapSite(page,'shrine');
   assert.equal((await read(page)).unbanked,after.unbanked,
@@ -152,6 +159,8 @@ async function verifyTracksShrineRisk(page, crafted) {
       'defeating the guardian resumes ordinary exploration and safe return');
     assert(guardian.after.unbanked>=after.unbanked,
       'guardian combat may add ordinary enemy-drop materials to the unsecured bag');
+    await page.waitForFunction(()=>
+      !document.getElementById('forestExploreHint')?.textContent?.includes('倒すまで帰還不可'));
   }
   return {crafted,cost,hpBefore:before.player.hp,hpAfter:after.player.hp,
     provisionalBefore:before.unbanked,
