@@ -207,5 +207,10 @@
     enable(true);
     window.__rendererLabEffectsReady = true;
     window.__rendererLabSetEffects = enable;
+    window.__rendererLabEffectsDebug = Object.freeze({
+      get enabled() { return enabled; },
+      get particleCount() { return motes.length; },
+      get visibleGuardian() { return guardian.visible && !state.guardianDefeated && Math.abs(state.x - 535) < 220; }
+    });
   };
 })();
