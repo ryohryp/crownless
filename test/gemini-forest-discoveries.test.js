@@ -282,6 +282,8 @@ test('stone gate offers either two provisional fangs or up to 45 HP, never both'
   assert.match(html,/id="forestGateCancel"/);
   assert.match(html,/tryExploreForest\(ginji,choice\)/,
     'phone choices must invoke the same authoritative reward rules');
+  assert.match(html,/!document\.getElementById\('forestGateChoice'\)\.classList\.contains\('hidden'\)/,
+    'combat and projectiles must pause while the gate decision is open');
 });
 test('a forged sword opens the gate on a later expedition and loot banks only after returning alive',()=>{
   const run=R.create();
