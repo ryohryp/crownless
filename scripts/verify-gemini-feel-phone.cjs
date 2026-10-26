@@ -116,17 +116,20 @@ async function main() {
           const scouted=D.guardianOpeningSeconds(new Set(['traces']));
           const guardian={scoutOpeningSeconds:scouted,nextStrikeAt:0};
           const tooFar=D.armGuardianOpening(guardian,170,now);
-          const close=D.armGuardianOpening(guardian,95,now+2);
+          const walking=D.armGuardianOpening(guardian,95,now+2);
+          const justOutside=D.armGuardianOpening(guardian,56,now+2);
+          const close=D.armGuardianOpening(guardian,55,now+2);
           const tooEarly=H.readyToStrike(guardian,now+3);
           const ready=H.readyToStrike(guardian,now+4);
           H.registerEnemyStrike({...guardian,isBoss:true},now+4);
           const repeat=D.armGuardianOpening(guardian,20,now+5);
           return {blind:D.guardianOpeningSeconds(new Set()),scouted,
-            tooFar,close,tooEarly,ready,repeat,openingEnd:guardian.scoutOpeningEndsAt};
+            tooFar,walking,justOutside,close,tooEarly,ready,repeat,openingEnd:guardian.scoutOpeningEndsAt};
         });
         assert.deepEqual(guardianWarning,{blind:0,scouted:1.8,
-          tooFar:false,close:true,tooEarly:false,ready:true,repeat:false,openingEnd:103.8},
-          '360/390px runtime: warning starts at close range once, never at spawn or on later strikes');
+          tooFar:false,walking:false,justOutside:false,close:true,
+          tooEarly:false,ready:true,repeat:false,openingEnd:103.8},
+          '360/390px runtime: warning starts at 55-unit strike range once, not while walking or on later strikes');
         const status = await page.evaluate(() => {
           const a = document.querySelector('#gestureActionArea').getBoundingClientRect();
           const top = document.elementFromPoint(a.x + a.width * 0.7, a.y + a.height * 0.7);
