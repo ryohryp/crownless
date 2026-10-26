@@ -62,7 +62,7 @@ async function approachGuardianWarning(page) {
       if (guardian.scoutOpeningActive) return s;
       const dx=guardian.x-s.player.x, dz=guardian.z-s.player.z;
       const wanted=[];
-      if (Math.abs(dx)>55) wanted.push(dx>0?'d':'a');
+      if (Math.abs(dx)>40) wanted.push(dx>0?'d':'a');
       if (Math.abs(dz)>12) wanted.push(dz>0?'s':'w');
       await keys(page,held,wanted);
       await page.waitForTimeout(55);
