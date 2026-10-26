@@ -37,6 +37,17 @@
         screenY>=ground-108 && screenY<=ground+22;
     })||null;
   }
+  // Reading tracks sharpens the player's sense of a distant, still-hidden
+  // stone gate. This is only a tactile cue: interaction remains at RANGE,
+  // and no route, label, or walkability is revealed early.
+  function cueNear(player,found){
+    if(!player) return null;
+    return spots.find(spot=>
+      !found.has(spot.id) &&
+      Math.hypot(player.x-spot.x,player.z-spot.z) <
+        (spot.id==='hollow' && found.has('traces') ? 90 : RANGE)
+    )||null;
+  }
   function available(phase){
     return phase==='fight'||phase==='return';
   }
@@ -112,5 +123,5 @@
       heal:spot.kind==='cache'?Math.min(45,Math.max(0,maxHp-hp)):
         spot.kind==='healing' && !scavenge?Math.min(35,Math.max(0,maxHp-hp)):0};
   }
-  return {spots,RANGE,near,spotAtTap,available,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,guardianScoutStrikeBonus,shrineRiskDamage,uncover};
+  return {spots,RANGE,near,cueNear,spotAtTap,available,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,guardianScoutStrikeBonus,shrineRiskDamage,uncover};
 });

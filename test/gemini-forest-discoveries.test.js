@@ -11,6 +11,26 @@ test('three distinct forest landmarks are placed in the actually walkable action
   assert(D.spots.every(s=>s.x>=50 && s.x<=950 && s.z>=210 && s.z<=410));
   assert.notEqual(D.spots[0].x,D.spots[1].x,'exploration requires physically moving');
 });
+test('reading tracks extends only the hidden gate vibration, never touch range or navigation',()=>{
+  const approach={x:850,z:260};
+  const unread=new Set(),tracked=new Set(['traces']);
+  assert.equal(D.near(approach,tracked),null,'the gate cannot be investigated from the cue radius');
+  assert.equal(D.cueNear(approach,unread),null,'without tracks there is no early gate cue');
+  assert.equal(D.cueNear(approach,tracked)?.id,'hollow',
+    'reading tracks gives an earlier non-directional cue for the unexamined gate');
+  assert.equal(D.uncover(approach,tracked,'return',100,140,true).ok,false,
+    'the player must still walk up to the gate and deliberately inspect it');
+  assert.equal(D.cueNear({x:790,z:230},tracked),null,
+    'the earned cue cannot disclose a remote destination');
+  tracked.add('hollow');
+  assert.equal(D.cueNear(approach,tracked),null,'examined sites do not pulse again');
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  assert.match(html,/const cue=window\.CrownlessForestDiscoveries\.cueNear\(ginji,state\.forestFinds\)/);
+  assert.match(html,/state\.forestCuePulsed\.has\(cue\.id\)/);
+  assert.match(html,/const near=window\.CrownlessForestDiscoveries\.near\(ginji,state\.forestFinds\)/,
+    'normal contextual hints still use the original interaction radius');
+});
+
 test('approaching the traces and tapping earns exactly one unbanked material, not a banked weapon',()=>{
   const visited=new Set(),run=R.create();
   const player={x:800,z:365};

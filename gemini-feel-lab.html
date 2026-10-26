@@ -2765,13 +2765,14 @@
     }
     hint.classList.remove('hidden');
     const near=window.CrownlessForestDiscoveries.near(ginji,state.forestFinds);
-    // A quiet, one-time tactile cue rewards looking for an undiscovered site
-    // after combat. It gives no direction, site name, or hidden-path navigation.
-    // Do not buzz during combat or while a choice sheet is being read.
-    if (rpg.phase==='return' && near && !state.forestCuePulsed.has(near.id) &&
+    // Reading tracks extends the stone-gate vibration beyond tap range.
+    // It reveals neither the hidden route nor the site name, and never
+    // changes the normal interaction distance or ordinary walkable nav.
+    const cue=window.CrownlessForestDiscoveries.cueNear(ginji,state.forestFinds);
+    if (rpg.phase==='return' && cue && !state.forestCuePulsed.has(cue.id) &&
         document.getElementById('rpgPanel').classList.contains('hidden') &&
         document.getElementById('forestShrineChoice').classList.contains('hidden')) {
-      state.forestCuePulsed.add(near.id);
+      state.forestCuePulsed.add(cue.id);
       sfx.haptic(34);
     }
     if (near?.id!=='shrine') document.getElementById('forestShrineChoice').classList.add('hidden');
