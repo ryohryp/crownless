@@ -166,6 +166,17 @@
         </div>
         </div>
       </div>
+      <div id="forestGateChoice" class="hidden absolute inset-0 z-30 bg-slate-950/60 pointer-events-auto" role="dialog" aria-modal="true" aria-label="石門の選択">
+        <div class="absolute inset-x-3 bottom-3 rounded-xl border border-emerald-300 bg-emerald-950/95 p-3 text-emerald-50 shadow-xl">
+          <p class="mb-2 text-sm font-bold">🌿 茨の石門：薬草か素材か、一度だけ</p>
+          <p id="forestGateStakes" class="mb-2 text-xs text-amber-100" role="status"></p>
+          <div class="flex flex-col gap-2">
+            <button id="forestGateMaterial" type="button" class="min-h-11 rounded-lg bg-amber-700 px-3 text-sm font-bold">牙を持ち帰る（未帰還素材 +2・回復なし）</button>
+            <button id="forestGateHeal" type="button" class="min-h-11 rounded-lg bg-emerald-700 px-3 text-sm font-bold disabled:opacity-50">薬草で癒やす（最大 HP +45・素材なし）</button>
+            <button id="forestGateCancel" type="button" class="min-h-11 rounded-lg border border-emerald-300 px-3 text-sm">今は調べない</button>
+          </div>
+        </div>
+      </div>
       <button id="rpgOpenResults" type="button" class="hidden absolute top-2 right-2 z-20 min-h-11 px-3 rounded-lg bg-emerald-900/95 border border-emerald-300 text-amber-50 text-xs font-black shadow-lg">
         🏕 生還 / さらに奥へ
       </button>
@@ -1878,6 +1889,20 @@
         return true;
       }
     }
+    if (site?.id==='hollow' && state.forestFinds.has('traces') && rpg.crafted) {
+      const panel=document.getElementById('forestGateChoice');
+      const heal=document.getElementById('forestGateHeal');
+      const missing=Math.max(0,ginji.maxHp-ginji.hp);
+      heal.disabled=missing===0;
+      heal.textContent=missing
+        ? '薬草で癒やす（HP +'+Math.min(45,missing)+'・素材なし）'
+        : '傷がないため回復不可';
+      document.getElementById('forestGateStakes').textContent=
+        '現在 HP '+Math.floor(ginji.hp)+'/'+ginji.maxHp+'、未帰還の牙 '+rpg.unbanked+
+        '個。素材 +2 か HP 回復のどちらか一度だけ。素材は生還時だけ倉庫に残り、敗北すると失う。';
+      panel.classList.remove('hidden');
+      return true;
+    }
     if (site?.id==='shrine') {
       const panel=document.getElementById('forestShrineChoice');
       const heal=document.getElementById('forestShrineHeal');
@@ -1909,6 +1934,18 @@
     return false;
   }
 
+  for (const [id,choice] of [['forestGateMaterial','material'],['forestGateHeal','heal']]) {
+    document.getElementById(id).addEventListener('click',()=>{
+      document.getElementById('forestGateChoice').classList.add('hidden');
+      if(ginji && ginji.state!=='DEAD' &&
+          window.CrownlessForestDiscoveries.near(ginji,state.forestFinds)?.id==='hollow') {
+        tryExploreForest(ginji,choice);
+      }
+    });
+  }
+  document.getElementById('forestGateCancel').addEventListener('click',()=>{
+    document.getElementById('forestGateChoice').classList.add('hidden');
+  });
   for (const [id,choice] of [['forestShrineMaterial','material'],['forestShrineRisk','risk'],['forestShrineHeal','heal']]) {
     document.getElementById(id).addEventListener('click',()=>{
       document.getElementById('forestShrineChoice').classList.add('hidden');
@@ -1959,7 +1996,7 @@
     if(discovery.material) {
       for(let i=0;i<discovery.material;i++) if (!rpgRules.claimMaterial(rpg)) return false;
       spawnPopup(discovery.spot.id==='shrine' && discovery.damage?'祠の奥で牙 +2（未帰還）／HP -'+discovery.damage:
-        discovery.spot.id==='hollow'?'石門の薬草と牙 +2（未帰還）':
+        discovery.spot.id==='hollow'?'石門の奥で牙 +2（未帰還）／薬草は使い切った':
         discovery.spot.id==='shrine'?'祠の隙間で牙 +1（未帰還）／この遠征の癒やしは使い切った':
         '獣の痕跡！牙 +1／危険な調査で受ける傷を3軽減',f.x,f.z,f.y+48,'#fde68a');
     }
@@ -2761,6 +2798,7 @@
     if(rpg.phase==='camp') {
       hint.classList.add('hidden');
       document.getElementById('forestShrineChoice').classList.add('hidden');
+      document.getElementById('forestGateChoice').classList.add('hidden');
       return;
     }
     hint.classList.remove('hidden');
@@ -2774,7 +2812,8 @@
     const cuePulseKey=cue?.id==='hollow' && !near ? 'hollow:far' : cue?.id;
     if (rpg.phase==='return' && cue && !state.forestCuePulsed.has(cuePulseKey) &&
         document.getElementById('rpgPanel').classList.contains('hidden') &&
-        document.getElementById('forestShrineChoice').classList.contains('hidden')) {
+        document.getElementById('forestShrineChoice').classList.contains('hidden') &&
+        document.getElementById('forestGateChoice').classList.contains('hidden')) {
       state.forestCuePulsed.add(cuePulseKey);
       // A distant clue earned by reading tracks has a distinct two-beat
       // pulse. Ordinary nearby clues keep the single short pulse; neither
@@ -2782,6 +2821,7 @@
       sfx.haptic(cue.id==='hollow' && !near ? [28,45,28] : 34);
     }
     if (near?.id!=='shrine') document.getElementById('forestShrineChoice').classList.add('hidden');
+    if (near?.id!=='hollow') document.getElementById('forestGateChoice').classList.add('hidden');
     // During the optional guardian fight, show the immediate objective instead
     // of a nearby clue. This hint clears automatically when combat is won.
     const guardian=rpg.phase==='fight'
