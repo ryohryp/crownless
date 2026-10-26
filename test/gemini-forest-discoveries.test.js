@@ -541,7 +541,7 @@ test('scouted guardian warning starts on close approach exactly once, not at spa
 
 test('grappling the guardian cannot waste the earned first-strike window',()=>{
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
-  const condition=html.match(/const scoutInStrikeLane=([\\s\\S]*?);/)?.[1];
+  const condition=html.match(/const scoutInStrikeLane=([\s\S]*?);/)?.[1];
   assert.ok(condition,'the live enemy AI must gate the warning on player control');
   const inLane=state=>require('node:vm').runInNewContext('Boolean('+condition+')',{
     ginji:{x:0,z:0,state},enemy:{x:30,z:0}
