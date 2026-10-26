@@ -407,18 +407,18 @@ test('a deliberate shrine tap opens touch-sized material and healing actions',()
 
 test('unavailable deep shrine search still previews its cost, reward and guardian',()=>{
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
-  const expression=html.match(/risk\\.textContent=([\\s\\S]*?);\\s*heal\\.textContent=/)?.[1];
+  const expression=html.match(/risk\.textContent=([\s\S]*?);\s*heal\.textContent=/)?.[1];
   assert.ok(expression,'the actual risk button label expression must exist');
   const label=Function('risk','rpg','riskCost','ginji','state','return ('+expression+');');
   const state={forestFinds:new Set()};
   const weak=label({disabled:true},{phase:'return',crafted:false},12,{hp:12},state);
-  assert.match(weak,/HP -12.*未帰還素材 \\+2.*番人戦.*HP 13以上必要/,
+  assert.match(weak,/HP -12.*未帰還素材 \+2.*番人戦.*HP 13以上必要/,
     'even at low HP, show the real risk and possible reward before a safe return');
   const fighting=label({disabled:true},{phase:'fight',crafted:false},12,{hp:140},state);
-  assert.match(fighting,/魔物を倒してから.*HP -12.*未帰還素材 \\+2/,
+  assert.match(fighting,/魔物を倒してから.*HP -12.*未帰還素材 \+2/,
     'the existing combat lockout and reward preview remain intact');
   const ready=label({disabled:false},{phase:'return',crafted:false},12,{hp:14},state);
-  assert.match(ready,/HP -12.*→残り2.*未帰還素材 \\+2/,
+  assert.match(ready,/HP -12.*→残り2.*未帰還素材 \+2/,
     'an eligible player still sees the exact remaining HP and reward');
 });
 
