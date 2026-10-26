@@ -245,6 +245,7 @@ test('the stone gate stays discoverable while locked and needs both a trail and 
   assert.equal(opened.ok,true);
   assert.equal(opened.material,2);
   assert.equal(opened.heal,0,'taking the gate loot uses up its healing herbs');
+  assert.equal(opened.damage,D.GATE_SALVAGE_DAMAGE,'taking fangs costs health even with a forged sword');
   assert.equal(visited.has('hollow'),true);
   assert.equal(D.near(player,visited),null);
   assert.equal(D.uncover(player,visited,'fight',50,140,true).ok,false,'no duplicate reward');
@@ -257,6 +258,7 @@ test('stone gate offers either two provisional fangs or up to 45 HP, never both'
     assert.equal(healed.ok,true);
     assert.equal(healed.material,0,'healing must not mint material');
     assert.equal(healed.heal,heal);
+    assert.equal(healed.damage,0,'herbs must not inflict the salvage wound');
     assert.equal(D.uncover(spot,visited,'return',hp,140,true,'material').ok,false,
       'one visit cannot claim both routes');
   }
@@ -265,8 +267,18 @@ test('stone gate offers either two provisional fangs or up to 45 HP, never both'
     const loot=D.uncover(spot,visited,'return',hp,140,true,'material');
     assert.equal(loot.material,2);
     assert.equal(loot.heal,0,'material choice sacrifices healing even when injured');
+    assert.equal(loot.damage,8,'the thorn wound must make the material choice consequential');
     assert.equal(D.uncover(spot,visited,'return',hp,140,true,'heal').ok,false);
   }
+  for(const hp of [1,8,8.5]){
+    const weak=new Set(['traces']);
+    assert.equal(D.uncover(spot,weak,'return',hp,140,true,'material').reason,'weak');
+    assert.equal(weak.has('hollow'),false,'insufficient HP must not spend the one-time gate choice');
+    assert.equal(D.uncover(spot,weak,'return',hp,140,true,'heal').ok,true,
+      'low-HP explorers must retain the safe healing route');
+  }
+  assert.equal(D.uncover(spot,new Set(['traces']),'return',9,140,true,'material').damage,8,
+    'nine HP leaves one HP after the explicitly chosen salvage');
   const full=new Set(['traces']);
   assert.equal(D.uncover(spot,full,'return',140,140,true,'heal').reason,'full');
   assert.equal(D.uncover(spot,full,'return',80,140,true,'risk').reason,'choice');
@@ -280,12 +292,16 @@ test('stone gate offers either two provisional fangs or up to 45 HP, never both'
   assert.match(html,/id="forestGateMaterial"/);
   assert.match(html,/id="forestGateHeal"/);
   assert.match(html,/id="forestGateCancel"/);
-  assert.match(html,/石門の奥で牙 \+2（未帰還）／薬草は見送った/,
+  assert.match(html,/石門の茨を払って牙 \+2（未帰還）／HP -.*薬草は見送った/,
     'taking materials must describe foregoing herbs, not consuming them');
   assert.match(html,/石門の薬草.*?牙 \+2は見送った/s,
     'healing must explicitly acknowledge the two provisional fangs forgone');
   assert.match(html,/tryExploreForest\(ginji,choice\)/,
     'phone choices must invoke the same authoritative reward rules');
+  assert.match(html,/salvage\.disabled=ginji\.hp<salvageCost\+1/,
+    'phone material choice must not be clickable at lethal HP');
+  assert.match(html,/Math\.floor\(ginji\.hp-salvageCost\)/,
+    'the phone decision previews surviving HP before taking the fangs');
   assert.match(html,/!document\.getElementById\('forestGateChoice'\)\.classList\.contains\('hidden'\)/,
     'combat and projectiles must pause while the gate decision is open');
 });
@@ -307,7 +323,7 @@ test('a forged sword opens the gate on a later expedition and loot banks only af
   assert.equal(run.banked,0);
   assert.equal(R.returnAlive(run,0),false);
   assert.equal(run.banked,0,'defeated players cannot bank the cache');
-  assert.equal(R.returnAlive(run,70+opened.heal),true);
+  assert.equal(R.returnAlive(run,70-opened.damage+opened.heal),true);
   assert.equal(run.banked,3);
   assert.equal(run.unbanked,0);
 });
