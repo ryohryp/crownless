@@ -1457,7 +1457,7 @@
     const scoutDistance=ginji && ginji.state!=='DEAD'
       ? Math.hypot(ginji.x-enemy.x,ginji.z-enemy.z) : Infinity;
     if (window.CrownlessForestDiscoveries.armGuardianOpening(enemy,scoutDistance,nowSec)) {
-      spawnPopup('👁 予兆を察知！先手の好機',enemy.x,enemy.z,enemy.y+65,'#fef08a');
+      spawnPopup('👁 予兆を察知！攻撃+12か回避',enemy.x,enemy.z,enemy.y+65,'#fef08a');
     }
     const hasToken = state.tokenManager.requestToken(enemy.id, nowSec, 1.3);
 
@@ -2735,7 +2735,7 @@
   function forestGuardianHint(guardian,found,unbanked,nowSec) {
     if (!guardian) return '';
     const lead=found.has('traces') && guardian.scoutOpeningEndsAt>nowSec
-      ? '👁 足跡の先読み 残り'+(Math.ceil((guardian.scoutOpeningEndsAt-nowSec)*10)/10).toFixed(1)+'秒｜'
+      ? '👁 足跡の先読み 残り'+(Math.ceil((guardian.scoutOpeningEndsAt-nowSec)*10)/10).toFixed(1)+'秒：攻撃+12か回避｜'
       : '';
     return lead+'⚠ 番人HP '+Math.ceil(guardian.hp)+'/'+guardian.maxHp+
       '｜倒すまで帰還不可｜未帰還の牙 '+unbanked+'個';
