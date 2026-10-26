@@ -470,9 +470,11 @@ async function main() {
           assert.equal(await page.evaluate(()=>localStorage.getItem('crownless-expedition-v1-demo')),saveBefore,
             'action loop must preserve the main location-game save');
           // The other gate choice must be genuinely playable, not merely a
-          // rule-unit success. Earn an injury through real input on a third
-          // expedition, then trade the gate's two fangs for its herbs.
-          await page.locator('#rpgDepart').click();
+          // rule-unit success. Reload deliberately begins a fresh fight while
+          // retaining banked materials and the forged sword. Earn an injury
+          // through real input, then trade the gate's two fangs for its herbs.
+          assert.equal(restored.phase,'fight',
+            'reloading a saved camp starts a fresh expedition with no unsecured loot');
           await clearWave(page);
           await walkTo(page,800,365);
           await tapSite(page,'traces');
