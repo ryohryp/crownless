@@ -787,8 +787,10 @@ test('victory return panel hints at remaining discoveries without spoiling them 
   assert.match(unread,/湿った土/);
   assert.match(tracksRead,/苔の間/);
   assert.match(shrineRead,/茨の奥/);
-  assert.match(shrineRead,/今調べるか、牙を持ち帰って装備を整えるか/,
-    'an unequipped player should choose whether to inspect now or return and prepare');
+  assert.match(shrineRead,/今の装備では踏み込めない。牙を持ち帰って鍛冶に備えよう/,
+    'without a forged blade, the result must not promise an immediately accessible route');
+  assert.doesNotMatch(shrineRead,/今調べるか|今確かめよう/,
+    'an inaccessible discovery must not be presented as an available immediate choice');
   assert.match(equippedRead,/鍛えた剣を手に、何があるか確かめよう/,
     'equipped players should still inspect the unknown location themselves');
   assert.equal(teaser(new Set(['traces','shrine','hollow'])),'',
