@@ -528,6 +528,7 @@
     tokenManager: new BattleTokenManager(2),
     fighters: [],
     forestFinds: new Set(),
+    forestCuePulsed: new Set(),
     items: [],
     popups: [],
     hitSparks: [],
@@ -649,6 +650,7 @@
   function initStage() {
     state.fighters = [];
     state.forestFinds = new Set();
+    state.forestCuePulsed.clear();
     state.items = [];
     state.popups = [];
     state.sakuraPetals = [];
@@ -2763,6 +2765,15 @@
     }
     hint.classList.remove('hidden');
     const near=window.CrownlessForestDiscoveries.near(ginji,state.forestFinds);
+    // A quiet, one-time tactile cue rewards looking for an undiscovered site
+    // after combat. It gives no direction, site name, or hidden-path navigation.
+    // Do not buzz during combat or while a choice sheet is being read.
+    if (rpg.phase==='return' && near && !state.forestCuePulsed.has(near.id) &&
+        document.getElementById('rpgPanel').classList.contains('hidden') &&
+        document.getElementById('forestShrineChoice').classList.contains('hidden')) {
+      state.forestCuePulsed.add(near.id);
+      sfx.haptic(34);
+    }
     if (near?.id!=='shrine') document.getElementById('forestShrineChoice').classList.add('hidden');
     // During the optional guardian fight, show the immediate objective instead
     // of a nearby clue. This hint clears automatically when combat is won.
