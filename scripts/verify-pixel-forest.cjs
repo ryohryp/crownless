@@ -529,8 +529,58 @@ async function main() {
           await page.waitForFunction(()=>window.CrownlessForestReadout?.().assetsReady);
           assert.equal((await read(page)).banked,gateHealedReturn.banked,
             'materials from the healing route survive a real save/reload');
+          // Complete the newly added cautious route with genuine phone touches:
+          // no state injection, no free banked material, and no duplicate pickup.
+          const afterHealingReload=await read(page);
+          assert.equal(afterHealingReload.phase,'fight',
+            'the current save restarts combat without restoring unsecured loot');
+          await clearWave(page);
+          await walkTo(page,800,365);
+          await tapSite(page,'traces');
+          await walkTo(page,910,235);
+          const beforeCautious=await read(page);
+          assert(beforeCautious.player.hp>=4,
+            'cautious salvage needs enough HP to survive its visible 3-point cost');
+          await tapSite(page,'hollow');
+          const cautiousButton=page.locator('#forestGateCautious');
+          assert(await cautiousButton.isEnabled(),'the cautious option is actionable on a real 390px phone');
+          const cautiousBounds=await cautiousButton.boundingBox();
+          assert(cautiousBounds && cautiousBounds.width>=44 && cautiousBounds.height>=44,
+            'cautious salvage needs a thumb-sized touch target');
+          assert(cautiousBounds.y>=0 &&
+            cautiousBounds.y+cautiousBounds.height<=page.viewportSize().height,
+            'the cautious choice must fit inside the phone viewport');
+          await page.screenshot({path:path.join(output,'pixel-forest-gate-cautious-choice-390.png')});
+          await page.touchscreen.tap(cautiousBounds.x+cautiousBounds.width/2,
+            cautiousBounds.y+cautiousBounds.height/2);
+          const afterCautious=await read(page);
+          assert(afterCautious.found.includes('hollow'),'a cautious salvage consumes the gate once');
+          assert.equal(afterCautious.unbanked,beforeCautious.unbanked+1,
+            'one cautious touch grants exactly one provisional fang');
+          assert.equal(afterCautious.player.hp,beforeCautious.player.hp-3,
+            'the cautious option must charge the advertised HP cost');
+          await tapSite(page,'hollow');
+          assert.equal((await read(page)).unbanked,afterCautious.unbanked,
+            'repeat taps cannot farm cautious materials');
+          await page.locator('#rpgOpenResults').click();
+          await page.locator('#rpgReturn').click();
+          const cautiousReturn=await read(page);
+          assert.equal(cautiousReturn.phase,'camp');
+          assert.equal(cautiousReturn.unbanked,0,'safe return clears the provisional bag');
+          assert.equal(cautiousReturn.banked,gateHealedReturn.banked+beforeCautious.unbanked+1,
+            'only the actual cautious material and earned combat loot reach the warehouse');
+          await page.reload({waitUntil:'domcontentloaded'});
+          await page.waitForFunction(()=>window.CrownlessForestReadout?.().assetsReady);
+          const cautiousRestored=await read(page);
+          assert.equal(cautiousRestored.banked,cautiousReturn.banked,
+            'cautious materials survive the current save and reload');
+          assert.equal(cautiousRestored.unbanked,0,'reload never duplicates unsecured materials');
+          assert.equal(cautiousRestored.crafted,true,'the forged sword survives the cautious route');
+          assert.equal(await page.evaluate(()=>localStorage.getItem('crownless-expedition-v1-demo')),
+            saveBefore,'the unrelated location-game save stays untouched');
           report.loop={first,shrineBeforeForge,locked,returned,forged,second,shrineAfterForge,unlocked,banked,restored,
-            gateHealing:{before:beforeGateHeal,after:afterGateHeal,returned:gateHealedReturn}};
+            gateHealing:{before:beforeGateHeal,after:afterGateHeal,returned:gateHealedReturn},
+            gateCautious:{before:beforeCautious,after:afterCautious,returned:cautiousReturn,restored:cautiousRestored}};
         }
         assert.deepEqual(errors,[],'no browser runtime errors');
       } catch(error) {
@@ -540,7 +590,7 @@ async function main() {
     }
     report.passed=true;
     await fs.writeFile(path.join(output,'pixel-forest-report.json'),JSON.stringify(report,null,2)+'\n');
-    console.log('Pixel forest: 360/390/430px aspect + touch; real combat → discovery → return → forge → revisit → hollow → saved reload PASS');
+    console.log('Pixel forest: 360/390/430px aspect + touch; real combat → discovery → return → forge → revisit → hollow (material/heal/cautious) → saved reload PASS');
     console.log(JSON.stringify(report,null,2));
   } finally {
     if(browser) await browser.close();
