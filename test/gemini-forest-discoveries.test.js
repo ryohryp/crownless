@@ -700,6 +700,8 @@ test('scouted guardian opening waits until the player can act, not while stunned
     'hitstun must not spend a discovered 1.8s warning');
   assert.equal(canRespond({state:'DOWN',z:230},guardian),false,
     'knockdown must not spend the earned first-hit choice');
+  assert.equal(canRespond({state:'GRAB',z:230},guardian),false,
+    'a grapple cannot consume the earned first-hit choice before a normal attack is possible');
   assert.equal(canRespond({state:'WALK',z:230},guardian),true,
     'recovering into an actionable state arms the warning');
   assert.equal(canRespond({state:'IDLE',z:260},guardian),false,
@@ -725,7 +727,7 @@ test('scouted guardian opening waits for a reachable attack-depth lane',()=>{
     're-entering the lane cannot refresh the one-shot advantage');
   assert.equal(enemy.scoutOpeningEndsAt,102.3);
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
-  assert.match(html,/const scoutInStrikeLane=ginji && ginji\.state!=='HURT' && ginji\.state!=='DOWN' &&\s*Math\.abs\(ginji\.z-enemy\.z\)<=25;/,
+  assert.match(html,/const scoutInStrikeLane=ginji && ginji\.state!=='HURT' && ginji\.state!=='DOWN' &&\s*ginji\.state!=='GRAB' && Math\.abs\(ginji\.z-enemy\.z\)<=25;/,
     'the real combat scene must use the same depth limit as player hit detection');
   assert.match(html,/armGuardianOpening\(enemy,scoutDistance,nowSec,scoutInStrikeLane\)/,
     'the depth-lane check must gate the actual one-shot warning');
