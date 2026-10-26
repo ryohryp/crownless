@@ -78,7 +78,10 @@ test('crafted, defeated and return decisions retain their distinct messages', ()
     'inspecting this forest must remain a separate action from starting another wave');
   const blocked = showPanel({ phase: 'return',
     forestFinds: ['traces', 'shrine'], unbanked: 2 });
-  assert.match(blocked.info, /今調べるか、牙を持ち帰って装備を整えるか/);
+  assert.match(blocked.info, /今の装備では踏み込めない。牙を持ち帰って鍛冶に備えよう/,
+    'the actual return panel must not promise immediate access to the sword-locked gate');
+  assert.doesNotMatch(blocked.info, /今調べるか、牙を持ち帰って装備を整えるか/,
+    'the old impossible choice must not reappear');
   const equipped = showPanel({ phase: 'return', crafted: true,
     forestFinds: ['traces', 'shrine'] });
   assert.match(equipped.info, /鍛えた剣を手に、何があるか確かめよう/);
