@@ -386,6 +386,15 @@ async function main() {
           assert.equal(await page.evaluate(() => window.__forestHapticPatterns.filter(p=>Array.isArray(p) && p.join(',')==='28,45,28').length),
             gateCueBefore+1,'reading tracks gives one distinctive early gate vibration');
           assert(!earlyGate.found.includes('hollow'),'the vibration cannot auto-discover the gate');
+          const gateNearPulseBefore=await page.evaluate(() => window.__forestHapticPatterns.filter(p=>p===34).length);
+          await walkTo(page,910,235);
+          assert.equal(await page.evaluate(() => window.__forestHapticPatterns.filter(p=>p===34).length),
+            gateNearPulseBefore+1,'reaching the still-unexamined gate confirms the earlier two-beat cue once');
+          await page.waitForTimeout(200);
+          assert.equal(await page.evaluate(() => window.__forestHapticPatterns.filter(p=>p===34).length),
+            gateNearPulseBefore+1,'staying by the gate must not repeat the confirmation');
+          assert(!(await read(page)).found.includes('hollow'),
+            'neither the distant nor near haptic may auto-discover the hidden gate');
           const shrineBeforeForge=await verifyTracksShrineRisk(page,false);
           assert.match(await returnButton.innerText(),new RegExp('牙'+shrineBeforeForge.provisionalAfter+'）'),
             'the shrine reward is reflected in the still-available return choice');
