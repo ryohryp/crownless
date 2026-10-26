@@ -56,7 +56,10 @@ jobs:
       - name: Install pinned test-only Chromium tool
         run: |
           npm install --no-save --package-lock=false playwright@1.56.1
-          npx playwright install --with-deps chromium
+          # ubuntu-latest already provides Chromium's runtime libraries. Avoid
+          # apt --with-deps here: slow Ubuntu font mirrors exhausted the 10m job
+          # before any 360/390/430px browser assertions could run (#40406810398).
+          npx playwright install chromium
       - name: Phone map, landmark and save smoke
         run: npm run playtest:smoke
       - name: Gemini-source combat baseline phone smoke

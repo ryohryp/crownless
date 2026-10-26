@@ -569,18 +569,49 @@ async function main() {
           assert.equal(cautiousReturn.unbanked,0,'safe return clears the provisional bag');
           assert.equal(cautiousReturn.banked,gateHealedReturn.banked+beforeCautious.unbanked+1,
             'only the actual cautious material and earned combat loot reach the warehouse');
+          // Complete the existing sword-tempering progression with actual
+          // phone input, not only a synthetic localStorage fixture. The five
+          // fangs must be banked before the smith can consume them.
+          assert(cautiousReturn.banked>=5,'the completed expeditions earned tempering materials');
+          const temperButton=page.locator('#rpgTemper');
+          assert.equal(await temperButton.isEnabled(),true,
+            'the smith can temper only after a living return with enough fangs');
+          await temperButton.scrollIntoViewIfNeeded();
+          const temperBounds=await temperButton.boundingBox();
+          assert(temperBounds && temperBounds.width>=44 && temperBounds.height>=44 &&
+            temperBounds.x>=0 && temperBounds.y>=0 &&
+            temperBounds.x+temperBounds.width<=page.viewportSize().width &&
+            temperBounds.y+temperBounds.height<=page.viewportSize().height,
+            'the smith upgrade remains touch-reachable inside the 390px camp sheet');
+          await page.screenshot({path:path.join(output,'pixel-forest-temper-choice-390.png')});
+          await page.touchscreen.tap(temperBounds.x+temperBounds.width/2,
+            temperBounds.y+temperBounds.height/2);
+          const temperedCamp=await read(page);
+          assert.equal(temperedCamp.tempered,true,'a real smith touch completes the upgrade');
+          assert.equal(temperedCamp.crafted,true,'tempering preserves the forged sword');
+          assert.equal(temperedCamp.banked,cautiousReturn.banked-5,
+            'tempering spends exactly five safely returned fangs');
+          assert.equal(temperedCamp.unbanked,0,'the smith never consumes provisional materials');
+          assert.equal(await temperButton.isVisible(),false,
+            'the one-time upgrade cannot be purchased again');
           await page.reload({waitUntil:'domcontentloaded'});
           await page.waitForFunction(()=>window.CrownlessForestReadout?.().assetsReady);
           const cautiousRestored=await read(page);
-          assert.equal(cautiousRestored.banked,cautiousReturn.banked,
-            'cautious materials survive the current save and reload');
+          assert.equal(cautiousRestored.banked,temperedCamp.banked,
+            'cautious loot less the real smith expense survives reload');
           assert.equal(cautiousRestored.unbanked,0,'reload never duplicates unsecured materials');
           assert.equal(cautiousRestored.crafted,true,'the forged sword survives the cautious route');
+          assert.equal(cautiousRestored.tempered,true,'the smith upgrade survives reload');
+          assert.equal(cautiousRestored.player.punchPower,19,
+            'the next real expedition gets the tempered punch bonus');
+          assert.equal(cautiousRestored.player.kickPower,21,
+            'the next real expedition gets the tempered kick bonus');
           assert.equal(await page.evaluate(()=>localStorage.getItem('crownless-expedition-v1-demo')),
             saveBefore,'the unrelated location-game save stays untouched');
           report.loop={first,shrineBeforeForge,locked,returned,forged,second,shrineAfterForge,unlocked,banked,restored,
             gateHealing:{before:beforeGateHeal,after:afterGateHeal,returned:gateHealedReturn},
-            gateCautious:{before:beforeCautious,after:afterCautious,returned:cautiousReturn,restored:cautiousRestored}};
+            gateCautious:{before:beforeCautious,after:afterCautious,returned:cautiousReturn,restored:cautiousRestored},
+            temperedCamp};
         }
         assert.deepEqual(errors,[],'no browser runtime errors');
       } catch(error) {
