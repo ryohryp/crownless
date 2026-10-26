@@ -671,3 +671,23 @@ test('crafted camp remembers an earned track clue without exposing the hidden de
     'after examining the destination, the prompt must not pretend it is still unknown');
   assert.match(html,/depart\.textContent=forestRevisitAction\(state\.forestFinds,rpg\.crafted\)/);
 });
+
+
+test('scouted guardian opening waits for a reachable attack-depth lane',()=>{
+  const enemy={name:'苔祠の番人',scoutOpeningSeconds:1.8,nextStrikeAt:0};
+  assert.equal(D.armGuardianOpening(enemy,50,100,false),false,
+    'a nearby guardian on another depth lane must not consume the opening');
+  assert.equal(enemy.scoutOpeningArmed,undefined);
+  assert.equal(D.armGuardianOpening(enemy,50,100.5,true),true,
+    'the full warning begins only when a real attack lane is reached');
+  assert.equal(enemy.scoutOpeningEndsAt,102.3);
+  assert.equal(D.guardianScoutStrikeBonus(enemy,101),12);
+  assert.equal(D.armGuardianOpening(enemy,30,101,true),false,
+    're-entering the lane cannot refresh the one-shot advantage');
+  assert.equal(enemy.scoutOpeningEndsAt,102.3);
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  assert.match(html,/const scoutInStrikeLane=ginji && Math\\.abs\\(ginji\\.z-enemy\\.z\\)<=25;/,
+    'the real combat scene must use the same depth limit as player hit detection');
+  assert.match(html,/armGuardianOpening\\(enemy,scoutDistance,nowSec,scoutInStrikeLane\\)/,
+    'the depth-lane check must gate the actual one-shot warning');
+});
