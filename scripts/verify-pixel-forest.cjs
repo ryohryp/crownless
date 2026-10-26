@@ -442,9 +442,19 @@ async function main() {
           await walkTo(page,910,235);
           const hollowBefore=await read(page);
           await tapSite(page,'hollow');
+          const gatePanel=page.locator('#forestGateChoice');
+          assert(await gatePanel.isVisible(),'the crafted gate offers an explicit reward-or-healing choice');
+          assert.match(await page.locator('#forestGateStakes').innerText(),/生還時だけ倉庫に残り/,
+            'the gate choice explains that loot is still unsecured');
+          await page.locator('#forestGateCancel').click();
+          assert(!(await read(page)).found.includes('hollow'),'declining the gate does not spend its one visit');
+          await tapSite(page,'hollow');
+          await page.locator('#forestGateMaterial').click();
           const unlocked=await read(page);
           assert(unlocked.found.includes('hollow'),'crafted sword opens a real revisitable discovery');
-          assert(unlocked.unbanked>hollowBefore.unbanked,'hollow rewards remain at risk until return');
+          assert.equal(unlocked.unbanked,hollowBefore.unbanked+2,'gate materials remain at risk until return');
+          assert.equal(unlocked.player.hp,hollowBefore.player.hp,
+            'taking the materials cannot also heal the player');
           await tapSite(page,'hollow');
           assert.equal((await read(page)).unbanked,unlocked.unbanked,'same-run discovery cannot duplicate materials');
           await page.screenshot({path:path.join(output,'pixel-forest-hollow-open.png')});
