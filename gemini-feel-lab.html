@@ -271,6 +271,7 @@
           <button id="rpgReturn" class="hidden min-h-12 bg-emerald-700 border border-emerald-400 rounded-lg font-black text-sm p-2" type="button">🏕 生還して素材を確保</button>
           <button id="rpgPush" class="hidden min-h-12 bg-rose-900 border border-rose-500 rounded-lg font-bold text-sm p-2" type="button">⚔ さらに奥へ（敗北時は素材を失う）</button>
           <button id="rpgForge" class="hidden min-h-12 bg-amber-600 border border-amber-300 rounded-lg font-black text-slate-950 text-sm p-2" type="button">⚒ 鍛冶で風裂きの剣を製作</button>
+          <button id="rpgTemper" class="hidden min-h-12 bg-amber-700 border border-amber-300 rounded-lg font-black text-amber-50 text-sm p-2" type="button">⚒ 牙で剣を研ぎ直す（攻撃+4）</button>
           <button id="rpgDepart" class="hidden min-h-12 bg-sky-700 border border-sky-400 rounded-lg font-black text-sm p-2" type="button">🗺 もう一度、森へ遠征</button>
           <button id="rpgBackToMap" class="hidden min-h-12 bg-slate-700 border border-slate-500 rounded-lg font-bold text-sm p-2" type="button">← 発見した森の地図へ戻る</button>
         </div>
@@ -674,8 +675,8 @@
       z: 310,
       facing: 1,
       maxHp: 140,
-      punchPower: 15,
-      kickPower: 17,
+      punchPower: 15 + (rpg.tempered ? 4 : 0),
+      kickPower: 17 + (rpg.tempered ? 4 : 0),
       speed: 172,
       kimonoColor: '#586a83',
       obiColor: '#d8b66e',
@@ -2785,7 +2786,7 @@
   function updateRpgStatus() {
     const badge = document.getElementById('rpgStatusBadge');
     badge.textContent = '🎒 未帰還 ' + rpg.unbanked + '　倉庫 ' + rpg.banked +
-      '　武器：' + (rpg.crafted ? '⚔ 風裂きの剣' : '初期装備');
+      '　武器：' + (rpg.crafted ? '⚔ 風裂きの剣' + (rpg.tempered ? '・研ぎ直し' : '') : '初期装備');
     const returnChoice=document.getElementById('rpgOpenResults');
     // Keep the unsecured loot visible even when a nearby clue replaces the hint.
     returnChoice.textContent='🏕 帰還/続行（牙'+rpg.unbanked+'）';
@@ -2911,12 +2912,23 @@
     forge.textContent = '⚒ 風裂きの剣を製作（牙 ' + rpgRules.COST + '個）';
     forge.classList.toggle('opacity-40', forge.disabled);
     forge.classList.toggle('cursor-not-allowed', forge.disabled);
+    const temper=document.getElementById('rpgTemper');
+    temper.classList.toggle('hidden', !camp || !rpg.crafted || rpg.tempered);
+    temper.disabled=rpg.banked<rpgRules.TEMPER_COST;
+    temper.textContent='⚒ 牙 '+rpgRules.TEMPER_COST+'個で剣を研ぎ直す（攻撃+4）';
+    temper.classList.toggle('opacity-40',temper.disabled);
     document.getElementById('rpgTitle').textContent = result ? '敵を退けた！ 帰還する？' :
       (rpg.lastOutcome === 'defeated' ? '敗北。素材を失った……' :
-       rpg.lastOutcome === 'crafted' ? '鍛冶師の剣が完成！' : '無事に生還！');
+       rpg.lastOutcome === 'crafted' ? '鍛冶師の剣が完成！' :
+       rpg.lastOutcome === 'tempered' ? '風裂きの剣を研ぎ直した！' : '無事に生還！');
     // Tie the decision to the actual next craft, not just a generic risk warning.
     const safeTotal=rpg.banked+rpg.unbanked;
-    const craftProspect=rpg.crafted ? '鍛冶剣は装備済み。'
+    const temperProspect=rpg.crafted
+      ? rpg.tempered ? '研ぎ直し済み（攻撃+4）。' :
+        safeTotal>=rpgRules.TEMPER_COST ? '今帰れば牙で剣を研ぎ直せる（攻撃+4）。' :
+        '研ぎ直しまで牙あと'+(rpgRules.TEMPER_COST-safeTotal)+'個（攻撃+4）。'
+      : '';
+    const craftProspect=rpg.crafted ? '鍛冶剣は装備済み。'+temperProspect
       : safeTotal>=rpgRules.COST ? '今帰れば鍛冶剣を作れる。'
       : '今帰っても鍛冶剣まで牙あと'+(rpgRules.COST-safeTotal)+'個。';
     document.getElementById('rpgInfo').textContent = result
@@ -2926,7 +2938,7 @@
       : (rpg.lastOutcome === 'defeated'
          ? '今回の未帰還素材は失った。以前に倉庫へ持ち帰った分と制作済みの武器は残る。'
          : rpg.crafted
-           ? '鍛冶師が仕立てた風裂きの剣を装備。次の遠征では攻撃が強まる。森で気になった場所をもう一度確かめよう。'
+           ? '鍛冶師が仕立てた風裂きの剣を装備。'+temperProspect+'次の遠征では攻撃が強まる。森で気になった場所をもう一度確かめよう。'
            : rpg.banked>=rpgRules.COST
              ? '倉庫の牙'+rpg.banked+'個で風裂きの剣を製作できる。'
              : '鍛冶剣まで牙あと'+(rpgRules.COST-rpg.banked)+'個。次の遠征で素材を持ち帰ろう。');
@@ -2951,6 +2963,13 @@
   });
   document.getElementById('rpgForge').addEventListener('click', () => {
     if (!rpgRules.forge(rpg)) return;
+    saveActionProgress();
+    sfx.play('heavy');
+    updateRpgStatus();
+    showRpgPanel();
+  });
+  document.getElementById('rpgTemper').addEventListener('click', () => {
+    if (!rpgRules.temper(rpg)) return;
     saveActionProgress();
     sfx.play('heavy');
     updateRpgStatus();

@@ -73,3 +73,26 @@ test('the RPG progression model is intentionally session-only and location-free'
   assert.deepEqual(Object.keys(s).some(key=>/latitude|longitude|gps|coordinate|storage|save/i.test(key)),false);
   assert.equal(loop.COST, 3);
 });
+
+
+test('five returned fangs temper the forged sword once and survive later defeat', () => {
+  const s = winFirstRun();
+  loop.returnAlive(s, 90);
+  assert.equal(loop.temper(s), false, 'cannot temper before smith crafts the sword');
+  loop.forge(s);
+  assert.equal(loop.temper(s), false, 'cannot temper without five more returned fangs');
+  loop.depart(s);
+  for (let i = 0; i < 5; i++) loop.claimMaterial(s);
+  assert.equal(loop.temper(s), false, 'unbanked fangs cannot buy upgrades');
+  loop.clearWave(s);
+  loop.returnAlive(s, 100);
+  assert.equal(s.banked, 5);
+  assert.equal(loop.temper(s), true);
+  assert.equal(s.banked, 0);
+  assert.equal(s.tempered, true);
+  assert.equal(loop.temper(s), false, 'one-time upgrade cannot consume fangs twice');
+  loop.depart(s);
+  loop.loseExpedition(s);
+  assert.equal(s.tempered, true);
+  assert.equal(loop.TEMPER_COST, 5);
+});

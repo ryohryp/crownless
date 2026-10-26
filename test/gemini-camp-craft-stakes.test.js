@@ -33,13 +33,15 @@ function showPanel(state) {
     '; return showRpgPanel; })()',
     { document, rpg, ginji: { hp: state.hp ?? 140, maxHp: 140 },
       state: { forestFinds: new Set(state.forestFinds || []) },
-      rpgRules: { COST: 3 }, location: { search: '' }, URLSearchParams },
+      rpgRules: { COST: 3, TEMPER_COST: 5 }, location: { search: '' }, URLSearchParams },
     { timeout: 1000 });
   run();
   return { info: elements.get('rpgInfo').textContent,
     keepExploring: elements.get('rpgKeepExploring').textContent,
     pushDeeper: elements.get('rpgPush').textContent,
     forgeDisabled: elements.get('rpgForge').disabled,
+    temperDisabled: elements.get('rpgTemper').disabled,
+    temperHidden: elements.get('rpgTemper').classList.hidden,
     bank: elements.get('rpgBank').textContent };
 }
 
@@ -89,4 +91,21 @@ test('crafted, defeated and return decisions retain their distinct messages', ()
     forestFinds: ['traces', 'shrine', 'hollow'] });
   assert.doesNotMatch(explored.info, /湿った土にまだ読めない筋がある/);
   assert.match(explored.keepExploring, /森の探索を続ける/);
+});
+
+
+test('after smithing, more returned fangs offer a real next-expedition attack upgrade', () => {
+  const short = showPanel({ crafted: true, banked: 2 });
+  assert.match(short.info, /研ぎ直しまで牙あと3個（攻撃\+4）/);
+  assert.equal(short.temperDisabled, true);
+  const ready = showPanel({ crafted: true, banked: 5 });
+  assert.match(ready.info, /今帰れば牙で剣を研ぎ直せる（攻撃\+4）/);
+  assert.equal(ready.temperDisabled, false);
+  const done = showPanel({ crafted: true, tempered: true, banked: 4 });
+  assert.match(done.info, /研ぎ直し済み（攻撃\+4）/);
+  const html = fs.readFileSync('gemini-feel-lab.html', 'utf8');
+  assert.match(html, /punchPower: 15 \+ \(rpg\.tempered \? 4 : 0\)/);
+  assert.match(html, /kickPower: 17 \+ \(rpg\.tempered \? 4 : 0\)/);
+  assert.match(html, /rpgRules\.temper\(rpg\)/);
+  assert.match(html, /saveActionProgress\(\)/);
 });
