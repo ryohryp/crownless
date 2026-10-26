@@ -1933,11 +1933,16 @@
       heal.textContent=missing ? '傷を癒やす（HP +'+Math.min(35,missing)+'・素材なし）' : '傷がないため回復不可';
       // Show what each material route would mean for the next smithing goal.
       // A promising extra fang matters only if the adventurer returns alive.
-      const forgeNeed=Math.max(0,rpgRules.COST-rpg.banked-rpg.unbanked);
-      const forgeChoice=rpg.crafted?'鍛冶剣は装備済み。':
-        forgeNeed===0?'鍛冶剣の素材は揃っている。':
-        '鍛冶剣まで牙あと'+forgeNeed+'個（+1なら残り'+Math.max(0,forgeNeed-1)+
-        '、+2なら残り'+Math.max(0,forgeNeed-2)+'）。';
+      const nextGoalCost=rpg.crafted?rpgRules.TEMPER_COST:rpgRules.COST;
+      const nextGoalNeed=Math.max(0,nextGoalCost-rpg.banked-rpg.unbanked);
+      const forgeChoice=rpg.tempered?'剣は研ぎ直し済み。牙の追加強化はまだない。':
+        rpg.crafted
+          ? nextGoalNeed===0?'剣の研ぎ直し素材は揃っている（攻撃+4）。':
+            '剣の研ぎ直しまで牙あと'+nextGoalNeed+'個（+1なら残り'+Math.max(0,nextGoalNeed-1)+
+            '、+2なら残り'+Math.max(0,nextGoalNeed-2)+'）。'
+          : nextGoalNeed===0?'鍛冶剣の素材は揃っている。':
+            '鍛冶剣まで牙あと'+nextGoalNeed+'個（+1なら残り'+Math.max(0,nextGoalNeed-1)+
+            '、+2なら残り'+Math.max(0,nextGoalNeed-2)+'）。';
       document.getElementById('forestShrineStakes').textContent=
         '現在 HP '+Math.floor(ginji.hp)+'/'+ginji.maxHp+'、未帰還の牙 '+rpg.unbanked+
         '個。'+forgeChoice+'素材は生還時だけ倉庫に残る（敗北すると失う）。';
