@@ -57,11 +57,13 @@
   // Mark it once: later attack cooldowns must never become fresh scouting cues.
   // Give the player the full reaction window at striking distance; 95 units
   // spent most of the bonus on merely walking into range in real-phone runs.
+  // The lateral attack lane matters too: proximity across a different depth
+  // must not consume the earned window before a strike is possible.
   const GUARDIAN_WARNING_RANGE=55;
-  function armGuardianOpening(enemy,distance,nowSec){
+  function armGuardianOpening(enemy,distance,nowSec,inStrikeLane=true){
     if (!enemy || !(enemy.scoutOpeningSeconds>0) || enemy.scoutOpeningArmed ||
         !Number.isFinite(distance) || distance>GUARDIAN_WARNING_RANGE ||
-        !Number.isFinite(nowSec)) return false;
+        !inStrikeLane || !Number.isFinite(nowSec)) return false;
     enemy.scoutOpeningArmed=true;
     enemy.scoutOpeningEndsAt=nowSec+enemy.scoutOpeningSeconds;
     enemy.nextStrikeAt=Math.max(enemy.nextStrikeAt||0,enemy.scoutOpeningEndsAt);
