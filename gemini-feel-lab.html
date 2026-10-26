@@ -2966,10 +2966,11 @@
     lastTimestamp = now;
     const nowSec = now / 1000;
 
-    // Choosing at a shrine must not expose an immobile player to enemy hits.
-    // Keep drawing the scene, but freeze combat, projectiles and timers until
-    // the player chooses or cancels. lastTimestamp still advances above.
-    if (!document.getElementById('forestShrineChoice').classList.contains('hidden')) {
+    // A shrine or gate decision must not expose an immobile player to hits.
+    // Freeze combat, projectiles and timers while either choice sheet is open.
+    // lastTimestamp still advances above, avoiding a time jump on dismissal.
+    if (!document.getElementById('forestShrineChoice').classList.contains('hidden') ||
+        !document.getElementById('forestGateChoice').classList.contains('hidden')) {
       renderScene();
       requestAnimationFrame(gameLoop);
       return;
