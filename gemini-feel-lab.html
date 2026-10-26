@@ -1961,7 +1961,7 @@
       spawnPopup(discovery.spot.id==='shrine' && discovery.damage?'祠の奥で牙 +2（未帰還）／HP -'+discovery.damage:
         discovery.spot.id==='hollow'?'石門の薬草と牙 +2（未帰還）':
         discovery.spot.id==='shrine'?'祠の隙間で牙 +1（未帰還）／この遠征の癒やしは使い切った':
-        '獣の痕跡！牙 +1／苔の奥で負傷 -3',f.x,f.z,f.y+48,'#fde68a');
+        '獣の痕跡！牙 +1／危険な調査で受ける傷を3軽減',f.x,f.z,f.y+48,'#fde68a');
     }
     if(discovery.damage) f.hp=Math.max(1,f.hp-discovery.damage);
     if(discovery.heal) {
