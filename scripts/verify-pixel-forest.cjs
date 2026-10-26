@@ -154,6 +154,8 @@ async function verifyTracksShrineRisk(page, crafted) {
   assert.match(await risk.innerText(),/番人の接近を早く察知/,
     'the decision should explain the scouting benefit before commitment');
   const wasClear=before.phase==='return';
+  const pulsesBefore=await page.evaluate(() =>
+    window.__forestHapticPatterns.filter(p=>Array.isArray(p)&&p.join(',')==='20,45,20').length);
   if (wasClear) assert.match(await risk.innerText(),/番人が来る・撃退まで帰還不可/,
     'post-victory extra loot must warn about a real guardian before tapping');
   await risk.click();
@@ -196,6 +198,9 @@ async function verifyTracksShrineRisk(page, crafted) {
       'real approaching guardian must grant a visible, timed scouting opening');
     assert.match(openingHint,/攻撃\+12か回避/,
       'the actual 390px warning must offer the earned attack bonus or a retreat choice');
+    assert.equal(await page.evaluate(() =>
+      window.__forestHapticPatterns.filter(p=>Array.isArray(p)&&p.join(',')==='20,45,20').length),
+      pulsesBefore+1,'the real guardian approach triggers exactly one distinct haptic cue');
     const bounds=await page.locator('#forestExploreHint').boundingBox();
     const viewport=page.viewportSize();
     assert(bounds && bounds.x>=0 && bounds.y>=0 &&
@@ -213,6 +218,9 @@ async function verifyTracksShrineRisk(page, crafted) {
     assert.equal(guardian.scoutedFirstHit,true,
       'real keyboard combat must land the earned +12 scouting strike before its warning expires: '+
       JSON.stringify(guardian.scoutTrace));
+    assert.equal(await page.evaluate(() =>
+      window.__forestHapticPatterns.filter(p=>Array.isArray(p)&&p.join(',')==='20,45,20').length),
+      pulsesBefore+1,'later guardian attacks must not repeat the opening vibration');
     assert(guardian.after.unbanked>=after.unbanked,
       'guardian combat may add ordinary enemy-drop materials to the unsecured bag');
     await page.waitForFunction(()=>
@@ -245,6 +253,15 @@ async function main() {
       const page=await context.newPage();
       const errors=[];
       page.on('pageerror',error=>errors.push(error.message));
+      // Capture calls to the Vibration API without claiming that a physical
+      // phone motor has been tested by headless Chromium.
+      await page.addInitScript(() => {
+        window.__forestHapticPatterns=[];
+        Object.defineProperty(navigator,'vibrate',{configurable:true,value:pattern=>{
+          window.__forestHapticPatterns.push(pattern);
+          return true;
+        }});
+      });
       try {
         await page.goto('http://127.0.0.1:'+port+'/expedition.html',{waitUntil:'domcontentloaded'});
         await page.locator('[data-action="mode"][data-value="demo"]').click();
