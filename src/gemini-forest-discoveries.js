@@ -100,6 +100,12 @@
       if(!found.has('traces')) return {ok:false,reason:'trail',spot};
       if(!crafted) return {ok:false,reason:'thorns',spot};
     }
+    // A discovered stone gate offers a one-time choice: take its materials
+    // home or use its herbs to survive. Never award both on the same visit.
+    if(spot.kind==='cache' && !['auto','material','heal'].includes(shrineChoice))
+      return {ok:false,reason:'choice',spot};
+    if(spot.kind==='cache' && shrineChoice==='heal' && hp>=maxHp)
+      return {ok:false,reason:'full',spot};
     // The shrine offers a deliberate trade-off; a full-HP heal must not waste it.
     // 'auto' preserves existing direct rule callers; the scene passes an explicit choice.
     if(spot.kind==='healing' && shrineChoice==='heal' && hp>=maxHp)
@@ -118,9 +124,10 @@
     const scavenge=spot.kind==='healing' && (risky || shrineChoice==='material' ||
       (shrineChoice==='auto' && hp>=maxHp));
     found.add(spot.id);
-    return {ok:true,spot,material:risky?2:scavenge?1:spot.kind==='cache'?2:spot.kind==='material'?1:0,
+    const gateHeal=spot.kind==='cache' && shrineChoice==='heal';
+    return {ok:true,spot,material:risky?2:scavenge?1:spot.kind==='cache'&&!gateHeal?2:spot.kind==='material'?1:0,
       damage:risky?riskDamage:0,
-      heal:spot.kind==='cache'?Math.min(45,Math.max(0,maxHp-hp)):
+      heal:gateHeal?Math.min(45,Math.max(0,maxHp-hp)):
         spot.kind==='healing' && !scavenge?Math.min(35,Math.max(0,maxHp-hp)):0};
   }
   return {spots,RANGE,near,cueNear,spotAtTap,available,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,guardianScoutStrikeBonus,shrineRiskDamage,uncover};
