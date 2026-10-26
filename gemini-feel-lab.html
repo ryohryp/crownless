@@ -1458,7 +1458,8 @@
       ? Math.hypot(ginji.x-enemy.x,ginji.z-enemy.z) : Infinity;
     // The player must also share the guardian's attack-depth lane: being
     // nearby but several steps above/below it must not waste the earned opening.
-    const scoutInStrikeLane=ginji && Math.abs(ginji.z-enemy.z)<=25;
+    const scoutInStrikeLane=ginji && ginji.state!=='HURT' && ginji.state!=='DOWN' &&
+      Math.abs(ginji.z-enemy.z)<=25;
     if (window.CrownlessForestDiscoveries.armGuardianOpening(enemy,scoutDistance,nowSec,scoutInStrikeLane)) {
       spawnPopup('👁 予兆を察知！攻撃+12か回避',enemy.x,enemy.z,enemy.y+65,'#fef08a');
       // A distinct double pulse makes the brief earned opening perceptible
