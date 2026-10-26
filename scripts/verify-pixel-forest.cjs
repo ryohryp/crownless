@@ -376,11 +376,8 @@ async function main() {
           await page.waitForFunction(()=>document.getElementById('forestExploreHint')?.textContent?.includes('足跡は右奥へ続いている'));
           assert.match(await page.locator('#forestExploreHint').innerText(),/安全な足場を発見（危険な調査の負傷 -3）/,
             'discovering tracks should immediately reveal the safer next choice');
-          const shrineBeforeForge=await verifyTracksShrineRisk(page,false);
-          assert.match(await returnButton.innerText(),new RegExp('牙'+shrineBeforeForge.provisionalAfter+'）'),
-            'the shrine reward is reflected in the still-available return choice');
-          // The tracks grant an early *sensory* gate cue, not remote
-          // investigation or a revealed hidden path.
+          // Inspect the earned early cue *before* the shrine guardian can
+          // pull the hero near the gate and legitimately trigger it.
           const gateCueBefore=await page.evaluate(() => window.__forestHapticPatterns.filter(p=>p===34).length);
           await walkTo(page,850,260);
           const earlyGate=await read(page);
@@ -389,9 +386,13 @@ async function main() {
           assert.equal(await page.evaluate(() => window.__forestHapticPatterns.filter(p=>p===34).length),
             gateCueBefore+1,'reading tracks gives one early gate vibration');
           assert(!earlyGate.found.includes('hollow'),'the vibration cannot auto-discover the gate');
+          const shrineBeforeForge=await verifyTracksShrineRisk(page,false);
+          assert.match(await returnButton.innerText(),new RegExp('牙'+shrineBeforeForge.provisionalAfter+'）'),
+            'the shrine reward is reflected in the still-available return choice');
+          const pulsesBeforeGate=await page.evaluate(() => window.__forestHapticPatterns.filter(p=>p===34).length);
           await walkTo(page,910,235);
           assert.equal(await page.evaluate(() => window.__forestHapticPatterns.filter(p=>p===34).length),
-            gateCueBefore+1,'approaching the actual gate cannot repeat its early cue');
+            pulsesBeforeGate,'approaching the actual gate cannot repeat its early cue');
           const lockedBefore=await read(page);
           const gateHint=await page.locator('#forestExploreHint').innerText();
           assert.match(gateHint,/茨の奥で何かが軋む/,'the gate first offers a sensory clue');
