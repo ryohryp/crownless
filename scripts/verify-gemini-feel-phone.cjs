@@ -270,6 +270,27 @@ async function main() {
         await page.reload({ waitUntil: 'domcontentloaded' });
         await page.waitForFunction(() => document.querySelector('#rpgStatusBadge')?.textContent.includes('風裂きの剣'));
         assert.match(await page.locator('#rpgStatusBadge').innerText(), /未帰還 0.*倉庫 0.*風裂きの剣/);
+        // The returned-fang upgrade must change actual fighter attack on reload,
+        // not just a label or an isolated rules test. Use a valid camp save fixture.
+        await page.evaluate(() => {
+          const r=window.CrownlessRpgLoop.create();
+          r.phase='camp';
+          r.banked=window.CrownlessRpgLoop.COST;
+          if (!window.CrownlessRpgLoop.forge(r)) throw new Error('smith forge failed');
+          r.banked=window.CrownlessRpgLoop.TEMPER_COST;
+          if (!window.CrownlessRpgLoop.temper(r)) throw new Error('sword temper failed');
+          localStorage.setItem('crownless-action-forest-v1-demo',window.CrownlessActionSave.encode(r));
+        });
+        await page.reload({ waitUntil:'domcontentloaded' });
+        await page.waitForFunction(() => document.querySelector('#rpgStatusBadge')?.textContent.includes('研ぎ直し'));
+        const tempered=await page.evaluate(() => window.CrownlessForestReadout());
+        assert.equal(tempered.crafted,true);
+        assert.equal(tempered.tempered,true);
+        assert.equal(tempered.banked,0,'tempering spends only banked fangs');
+        assert.equal(tempered.unbanked,0,'reloading never restores unreturned fangs');
+        assert.equal(tempered.player.punchPower,19,'tempered sword raises actual punch damage');
+        assert.equal(tempered.player.kickPower,21,'tempered sword raises actual kick damage');
+        assert.equal(tempered.phase,'fight','saved upgrade resumes a fresh expedition');
         assert.equal(await page.evaluate(
           () => localStorage.getItem('crownless-expedition-v1-demo')), saveBefore,
           'lab visits and saved smith equipment must never mutate the actual RPG save');
