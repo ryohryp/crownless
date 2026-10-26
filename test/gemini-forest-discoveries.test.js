@@ -787,8 +787,8 @@ test('post-combat discovery pulse is once per unexamined clue and never navigati
     'revisiting on a new expedition can earn fresh sensory cues');
   assert.match(html,/rpg\.phase==='return' && cue && !state\.forestCuePulsed\.has\(cue\.id\)/,
     'only undiscovered sites after combat can pulse');
-  assert.match(html,/state\.forestCuePulsed\.add\(cue\.id\);\s*sfx\.haptic\(34\)/,
-    'mark a site before the one-shot pulse to avoid frame-by-frame vibration');
+  assert.match(html,/state\.forestCuePulsed\.add\(cue\.id\);[\s\S]*?sfx\.haptic\(cue\.id==='hollow' && !near \? \[28,45,28\] : 34\)/,
+    'mark the site once, with a distinct two-beat pulse only for the earned distant gate clue');
   assert.match(html,/document\.getElementById\('rpgPanel'\)\.classList\.contains\('hidden'\)/,
     'do not interrupt the return decision sheet');
   assert.match(html,/document\.getElementById\('forestShrineChoice'\)\.classList\.contains\('hidden'\)/,

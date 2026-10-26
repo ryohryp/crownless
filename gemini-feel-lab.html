@@ -2773,7 +2773,10 @@
         document.getElementById('rpgPanel').classList.contains('hidden') &&
         document.getElementById('forestShrineChoice').classList.contains('hidden')) {
       state.forestCuePulsed.add(cue.id);
-      sfx.haptic(34);
+      // A distant clue earned by reading tracks has a distinct two-beat
+      // pulse. Ordinary nearby clues keep the single short pulse; neither
+      // pattern reveals a route or automatically investigates the site.
+      sfx.haptic(cue.id==='hollow' && !near ? [28,45,28] : 34);
     }
     if (near?.id!=='shrine') document.getElementById('forestShrineChoice').classList.add('hidden');
     // During the optional guardian fight, show the immediate objective instead
