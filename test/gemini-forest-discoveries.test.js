@@ -739,3 +739,22 @@ test('scouted guardian opening waits for a reachable attack-depth lane',()=>{
   assert.match(html,/armGuardianOpening\(enemy,scoutDistance,nowSec,scoutInStrikeLane\)/,
     'the depth-lane check must gate the actual one-shot warning');
 });
+
+test('post-combat discovery pulse is once per unexamined clue and never navigation',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  assert.match(html,/forestCuePulsed: new Set\(\)/,
+    'the cue history is per expedition, not part of the persisted save');
+  assert.match(html,/state\.forestCuePulsed\.clear\(\)/,
+    'revisiting on a new expedition can earn fresh sensory cues');
+  assert.match(html,/rpg\.phase==='return' && near && !state\.forestCuePulsed\.has\(near\.id\)/,
+    'only undiscovered sites after combat can pulse');
+  assert.match(html,/state\.forestCuePulsed\.add\(near\.id\);\s*sfx\.haptic\(34\)/,
+    'mark a site before the one-shot pulse to avoid frame-by-frame vibration');
+  assert.match(html,/document\.getElementById\('rpgPanel'\)\.classList\.contains\('hidden'\)/,
+    'do not interrupt the return decision sheet');
+  assert.match(html,/document\.getElementById\('forestShrineChoice'\)\.classList\.contains\('hidden'\)/,
+    'do not interrupt a shrine decision');
+  assert.equal(D.near({x:800,z:365},new Set(['traces'])),null,
+    'a discovered clue must not be eligible for a new proximity cue');
+  assert.equal(D.near({x:800,z:365},new Set())?.id,'traces');
+});
