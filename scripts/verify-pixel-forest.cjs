@@ -469,7 +469,51 @@ async function main() {
           assert.equal(restored.unbanked,0);
           assert.equal(await page.evaluate(()=>localStorage.getItem('crownless-expedition-v1-demo')),saveBefore,
             'action loop must preserve the main location-game save');
-          report.loop={first,shrineBeforeForge,locked,returned,forged,second,shrineAfterForge,unlocked,banked,restored};
+          // The other gate choice must be genuinely playable, not merely a
+          // rule-unit success. Earn an injury through real input on a third
+          // expedition, then trade the gate's two fangs for its herbs.
+          await page.locator('#rpgDepart').click();
+          await clearWave(page);
+          await walkTo(page,800,365);
+          await tapSite(page,'traces');
+          await verifyTracksShrineRisk(page,true);
+          await walkTo(page,910,235);
+          const beforeGateHeal=await read(page);
+          assert(beforeGateHeal.player.hp<beforeGateHeal.player.maxHp,
+            'a real risky shrine investigation leaves a wound to heal');
+          await tapSite(page,'hollow');
+          assert(await page.locator('#forestGateChoice').isVisible(),
+            'the third expedition can deliberately revisit the gate');
+          assert.equal(await page.locator('#forestGateHeal').isDisabled(),false,
+            'injured adventurers can choose the gate herbs');
+          const gateBounds=await page.locator('#forestGateChoice > div').boundingBox();
+          assert(gateBounds && gateBounds.y>=0 &&
+            gateBounds.y+gateBounds.height<=page.viewportSize().height,
+            'the healing-or-material choice remains touch-reachable on a 390px phone');
+          await page.screenshot({path:path.join(output,'pixel-forest-gate-healing-choice-390.png')});
+          await page.locator('#forestGateHeal').click();
+          const afterGateHeal=await read(page);
+          assert(afterGateHeal.found.includes('hollow'),'using the herbs consumes the gate for this expedition');
+          assert.equal(afterGateHeal.unbanked,beforeGateHeal.unbanked,
+            'healing never grants the alternative provisional material');
+          assert(Math.abs(afterGateHeal.player.hp-
+            Math.min(beforeGateHeal.player.maxHp,beforeGateHeal.player.hp+45))<0.01,
+            'real touch heals up to 45 HP, never beyond max HP');
+          await tapSite(page,'hollow');
+          assert.equal((await read(page)).unbanked,beforeGateHeal.unbanked,
+            'the used gate cannot be tapped again to claim its alternative reward');
+          await page.locator('#rpgOpenResults').click();
+          await page.locator('#rpgReturn').click();
+          const gateHealedReturn=await read(page);
+          assert.equal(gateHealedReturn.phase,'camp');
+          assert.equal(gateHealedReturn.banked,banked.banked+beforeGateHeal.unbanked,
+            'safe return banks only the actually gathered materials');
+          await page.reload({waitUntil:'domcontentloaded'});
+          await page.waitForFunction(()=>window.CrownlessForestReadout?.().assetsReady);
+          assert.equal((await read(page)).banked,gateHealedReturn.banked,
+            'materials from the healing route survive a real save/reload');
+          report.loop={first,shrineBeforeForge,locked,returned,forged,second,shrineAfterForge,unlocked,banked,restored,
+            gateHealing:{before:beforeGateHeal,after:afterGateHeal,returned:gateHealedReturn}};
         }
         assert.deepEqual(errors,[],'no browser runtime errors');
       } catch(error) {
