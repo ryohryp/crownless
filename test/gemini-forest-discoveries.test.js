@@ -673,6 +673,28 @@ test('crafted camp remembers an earned track clue without exposing the hidden de
 });
 
 
+test('scouted guardian opening waits until the player can act, not while stunned or down',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const source=html.match(/const scoutInStrikeLane=([^;]+);/)?.[1];
+  assert.ok(source,'guardian approach must use the actual player action/depth condition');
+  const canRespond=Function('ginji','enemy','return ('+source+');');
+  const guardian={z:230};
+  assert.equal(canRespond({state:'HURT',z:230},guardian),false,
+    'hitstun must not spend a discovered 1.8s warning');
+  assert.equal(canRespond({state:'DOWN',z:230},guardian),false,
+    'knockdown must not spend the earned first-hit choice');
+  assert.equal(canRespond({state:'WALK',z:230},guardian),true,
+    'recovering into an actionable state arms the warning');
+  assert.equal(canRespond({state:'IDLE',z:260},guardian),false,
+    'the depth-lane restriction remains intact');
+  const enemy={name:'苔祠の番人',scoutOpeningSeconds:1.8,nextStrikeAt:0,z:230};
+  assert.equal(D.armGuardianOpening(enemy,35,100,canRespond({state:'HURT',z:230},enemy)),false);
+  assert.equal(D.armGuardianOpening(enemy,35,100.5,canRespond({state:'DOWN',z:230},enemy)),false);
+  assert.equal(D.armGuardianOpening(enemy,35,101,canRespond({state:'IDLE',z:230},enemy)),true);
+  assert.equal(enemy.scoutOpeningEndsAt,102.8,
+    'the full reaction window starts after recovery instead of during helpless frames');
+});
+
 test('scouted guardian opening waits for a reachable attack-depth lane',()=>{
   const enemy={name:'苔祠の番人',scoutOpeningSeconds:1.8,nextStrikeAt:0};
   assert.equal(D.armGuardianOpening(enemy,50,100,false),false,
