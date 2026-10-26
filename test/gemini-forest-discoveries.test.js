@@ -244,21 +244,44 @@ test('the stone gate stays discoverable while locked and needs both a trail and 
   const opened=D.uncover(player,visited,'fight',90,140,true);
   assert.equal(opened.ok,true);
   assert.equal(opened.material,2);
-  assert.equal(opened.heal,45);
+  assert.equal(opened.heal,0,'taking the gate loot uses up its healing herbs');
   assert.equal(visited.has('hollow'),true);
   assert.equal(D.near(player,visited),null);
   assert.equal(D.uncover(player,visited,'fight',50,140,true).ok,false,'no duplicate reward');
 });
-test('cache healing is capped at missing HP and its materials can be found at full HP',()=>{
-  for(const [hp,heal] of [[125,15],[140,0]]){
-    const opened=D.uncover({x:910,z:235},new Set(['traces']),'return',hp,140,true);
-    assert.equal(opened.ok,true);
-    assert.equal(opened.material,2);
-    assert.equal(opened.heal,heal);
+test('stone gate offers either two provisional fangs or up to 45 HP, never both',()=>{
+  const spot={x:910,z:235};
+  for(const [hp,heal] of [[125,15],[80,45]]){
+    const visited=new Set(['traces']);
+    const healed=D.uncover(spot,visited,'return',hp,140,true,'heal');
+    assert.equal(healed.ok,true);
+    assert.equal(healed.material,0,'healing must not mint material');
+    assert.equal(healed.heal,heal);
+    assert.equal(D.uncover(spot,visited,'return',hp,140,true,'material').ok,false,
+      'one visit cannot claim both routes');
   }
+  for(const hp of [80,140]){
+    const visited=new Set(['traces']);
+    const loot=D.uncover(spot,visited,'return',hp,140,true,'material');
+    assert.equal(loot.material,2);
+    assert.equal(loot.heal,0,'material choice sacrifices healing even when injured');
+    assert.equal(D.uncover(spot,visited,'return',hp,140,true,'heal').ok,false);
+  }
+  const full=new Set(['traces']);
+  assert.equal(D.uncover(spot,full,'return',140,140,true,'heal').reason,'full');
+  assert.equal(D.uncover(spot,full,'return',80,140,true,'risk').reason,'choice');
+  assert.equal(full.has('hollow'),false,'invalid or useless choices do not consume the gate');
+  assert.equal(D.uncover(spot,full,'return',140,140,true,'material').material,2);
   const visited=new Set(['traces']);
-  assert.equal(D.uncover({x:910,z:235},visited,'camp',80,140,true).ok,false);
+  assert.equal(D.uncover(spot,visited,'camp',80,140,true,'material').ok,false);
   assert.equal(visited.has('hollow'),false,'camp cannot consume an expedition find');
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  assert.match(html,/id="forestGateChoice"/);
+  assert.match(html,/id="forestGateMaterial"/);
+  assert.match(html,/id="forestGateHeal"/);
+  assert.match(html,/id="forestGateCancel"/);
+  assert.match(html,/tryExploreForest\(ginji,choice\)/,
+    'phone choices must invoke the same authoritative reward rules');
 });
 test('a forged sword opens the gate on a later expedition and loot banks only after returning alive',()=>{
   const run=R.create();
