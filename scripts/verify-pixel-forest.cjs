@@ -449,12 +449,17 @@ async function main() {
           await page.locator('#forestGateCancel').click();
           assert(!(await read(page)).found.includes('hollow'),'declining the gate does not spend its one visit');
           await tapSite(page,'hollow');
-          await page.locator('#forestGateMaterial').click();
+          const gateMaterial=page.locator('#forestGateMaterial');
+          assert.equal(await gateMaterial.isEnabled(),hollowBefore.player.hp>=9,
+            'material salvage must require at least one surviving HP');
+          assert.match(await gateMaterial.innerText(),/HP -8.*未帰還素材 \+2/,
+            'the actual phone choice must disclose the thorn wound before tapping');
+          await gateMaterial.click();
           const unlocked=await read(page);
           assert(unlocked.found.includes('hollow'),'crafted sword opens a real revisitable discovery');
           assert.equal(unlocked.unbanked,hollowBefore.unbanked+2,'gate materials remain at risk until return');
-          assert.equal(unlocked.player.hp,hollowBefore.player.hp,
-            'taking the materials cannot also heal the player');
+          assert.equal(unlocked.player.hp,hollowBefore.player.hp-8,
+            'choosing the extra materials must pay the visible thorn wound');
           await tapSite(page,'hollow');
           assert.equal((await read(page)).unbanked,unlocked.unbanked,'same-run discovery cannot duplicate materials');
           await page.screenshot({path:path.join(output,'pixel-forest-hollow-open.png')});
