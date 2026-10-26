@@ -1456,7 +1456,10 @@
     // window only when Ginji himself can close the remaining distance.
     const scoutDistance=ginji && ginji.state!=='DEAD'
       ? Math.hypot(ginji.x-enemy.x,ginji.z-enemy.z) : Infinity;
-    if (window.CrownlessForestDiscoveries.armGuardianOpening(enemy,scoutDistance,nowSec)) {
+    // The player must also share the guardian's attack-depth lane: being
+    // nearby but several steps above/below it must not waste the earned opening.
+    const scoutInStrikeLane=ginji && Math.abs(ginji.z-enemy.z)<=25;
+    if (window.CrownlessForestDiscoveries.armGuardianOpening(enemy,scoutDistance,nowSec,scoutInStrikeLane)) {
       spawnPopup('👁 予兆を察知！攻撃+12か回避',enemy.x,enemy.z,enemy.y+65,'#fef08a');
       // A distinct double pulse makes the brief earned opening perceptible
       // without reading the HUD. Unsupported phones keep the visual cue.
