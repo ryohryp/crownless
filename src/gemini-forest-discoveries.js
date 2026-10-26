@@ -55,7 +55,9 @@
   // Start the earned warning when the guardian is close enough to threaten the
   // player, not while it is still walking in from its distant spawn point.
   // Mark it once: later attack cooldowns must never become fresh scouting cues.
-  const GUARDIAN_WARNING_RANGE=95;
+  // Give the player the full reaction window at striking distance; 95 units
+  // spent most of the bonus on merely walking into range in real-phone runs.
+  const GUARDIAN_WARNING_RANGE=55;
   function armGuardianOpening(enemy,distance,nowSec){
     if (!enemy || !(enemy.scoutOpeningSeconds>0) || enemy.scoutOpeningArmed ||
         !Number.isFinite(distance) || distance>GUARDIAN_WARNING_RANGE ||
