@@ -3003,6 +3003,9 @@
       } else if (f === sasuke) {
         input = state.isPartnerAI ? sampleCompanionAI(f) : samplePlayer2Input();
       } else {
+        // Preserve the player's earned strike window if an ally downs the
+        // guardian before a normal player hit can connect.
+        window.CrownlessForestDiscoveries.pauseGuardianOpening(f,dt,nowSec);
         input = sampleEnemyAI(f, nowSec);
       }
       updateFighter(f, input, dt);
