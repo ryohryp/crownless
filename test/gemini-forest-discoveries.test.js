@@ -280,6 +280,10 @@ test('stone gate offers either two provisional fangs or up to 45 HP, never both'
   assert.match(html,/id="forestGateMaterial"/);
   assert.match(html,/id="forestGateHeal"/);
   assert.match(html,/id="forestGateCancel"/);
+  assert.match(html,/石門の奥で牙 \+2（未帰還）／薬草は見送った/,
+    'taking materials must describe foregoing herbs, not consuming them');
+  assert.match(html,/石門の薬草.*?牙 \+2は見送った/s,
+    'healing must explicitly acknowledge the two provisional fangs forgone');
   assert.match(html,/tryExploreForest\(ginji,choice\)/,
     'phone choices must invoke the same authoritative reward rules');
   assert.match(html,/!document\.getElementById\('forestGateChoice'\)\.classList\.contains\('hidden'\)/,

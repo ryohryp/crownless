@@ -1996,14 +1996,14 @@
     if(discovery.material) {
       for(let i=0;i<discovery.material;i++) if (!rpgRules.claimMaterial(rpg)) return false;
       spawnPopup(discovery.spot.id==='shrine' && discovery.damage?'祠の奥で牙 +2（未帰還）／HP -'+discovery.damage:
-        discovery.spot.id==='hollow'?'石門の奥で牙 +2（未帰還）／薬草は使い切った':
+        discovery.spot.id==='hollow'?'石門の奥で牙 +2（未帰還）／薬草は見送った':
         discovery.spot.id==='shrine'?'祠の隙間で牙 +1（未帰還）／この遠征の癒やしは使い切った':
         '獣の痕跡！牙 +1／危険な調査で受ける傷を3軽減',f.x,f.z,f.y+48,'#fde68a');
     }
     if(discovery.damage) f.hp=Math.max(1,f.hp-discovery.damage);
     if(discovery.heal) {
       f.hp=Math.min(f.maxHp,f.hp+discovery.heal);
-      spawnPopup((discovery.spot.id==='hollow'?'石門の薬草':'古い祠で傷を癒やした')+' HP +'+discovery.heal,f.x,f.z,f.y+48,'#86efac');
+      spawnPopup((discovery.spot.id==='hollow'?'石門の薬草':'古い祠で傷を癒やした')+' HP +'+discovery.heal+(discovery.spot.id==='hollow'?'／牙 +2は見送った':''),f.x,f.z,f.y+48,'#86efac');
     }
     sfx.play('coin');
     spawnSakuraBurst(f.x,f.z,f.y+35,9);
