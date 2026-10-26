@@ -134,7 +134,10 @@ async function verifyTracksShrineRisk(page, crafted) {
   assert(foundTracks.found.includes('traces'),'the detour must be discovered by real touch first');
   assert(!foundTracks.found.includes('shrine'),'the shrine is still unspent');
   assert.equal(foundTracks.crafted,crafted,'compare starter gear and the forged sword');
+  const cueBefore=await page.evaluate(() => window.__forestHapticPatterns.filter(p=>p===34).length);
   await walkTo(page,660,230);
+  assert.equal(await page.evaluate(() => window.__forestHapticPatterns.filter(p=>p===34).length),cueBefore+1,
+    'the untouched shrine gives one quiet discovery pulse after combat');
   const before=await read(page);
   assert(Math.hypot(before.player.x-660,before.player.z-230)<54,
     'the player must physically reach the shrine before touching it');
@@ -346,8 +349,14 @@ async function main() {
           assert.match(returnHint,/探索を続けるか、生還して確定/,
             'the player can see the choice to keep exploring or bank the loot');
           await page.screenshot({path:path.join(output,'pixel-forest-bridge-390.png')});
+          const trackCueBefore=await page.evaluate(() => window.__forestHapticPatterns.filter(p=>p===34).length);
           await walkTo(page,800,365);
           await page.waitForFunction(()=>document.getElementById('forestExploreHint')?.textContent?.includes('湿った土に細い筋がある'));
+          assert.equal(await page.evaluate(() => window.__forestHapticPatterns.filter(p=>p===34).length),trackCueBefore+1,
+            'entering the unexamined tracks once gives one tactile clue without auto-collecting');
+          await page.waitForTimeout(200);
+          assert.equal(await page.evaluate(() => window.__forestHapticPatterns.filter(p=>p===34).length),trackCueBefore+1,
+            'standing near the same clue must not vibrate every frame');
           // Attacking near tracks must not silently collect one-time materials.
           const beforeClue=await read(page);
           await page.keyboard.down('k');
@@ -360,6 +369,8 @@ async function main() {
           await tapSite(page,'traces');
           const afterTracks=await read(page);
           assert(afterTracks.found.includes('traces'),'walking and touching discovers tracks');
+          assert.equal(await page.evaluate(() => window.__forestHapticPatterns.filter(p=>p===34).length),trackCueBefore+1,
+            'inspecting an already-pulsed clue must not trigger another proximity pulse');
           assert.match(await returnButton.innerText(),new RegExp('牙'+afterTracks.unbanked+'）'),
             'the return choice updates even when the clue hint takes priority');
           await page.waitForFunction(()=>document.getElementById('forestExploreHint')?.textContent?.includes('足跡は右奥へ続いている'));
