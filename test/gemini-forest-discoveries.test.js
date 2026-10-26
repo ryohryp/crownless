@@ -846,6 +846,34 @@ test('scouted guardian opening waits for a reachable attack-depth lane',()=>{
     'the depth-lane check must gate the actual one-shot warning');
 });
 
+test('ally knockdown cannot spend the earned guardian strike window',()=>{
+  const guardian={name:'苔祠の番人',state:'IDLE',scoutOpeningSeconds:1.8,nextStrikeAt:0};
+  assert.equal(D.armGuardianOpening(guardian,40,100,true),true);
+  assert.equal(guardian.scoutOpeningEndsAt,101.8);
+  guardian.state='DOWN';
+  for(let i=1;i<=20;i++) {
+    const now=100+i*0.05;
+    assert.equal(D.pauseGuardianOpening(guardian,0.05,now),true,
+      'downed guardian cannot be struck normally, so preserve the remaining opening');
+  }
+  assert(Math.abs(guardian.scoutOpeningEndsAt-102.8)<0.00001);
+  assert.equal(guardian.nextStrikeAt,guardian.scoutOpeningEndsAt,
+    'guardian cannot counterattack before the delayed player opening closes');
+  guardian.state='IDLE';
+  assert.equal(D.pauseGuardianOpening(guardian,0.05,101.1),false,
+    'a standing guardian consumes the warning normally');
+  assert.equal(D.guardianScoutStrikeBonus(guardian,101.9),12,
+    'a later player hit can still earn the one-time bonus');
+  guardian.scoutStrikeClaimed=true;
+  guardian.state='DOWN';
+  assert.equal(D.pauseGuardianOpening(guardian,0.05,102),false,
+    'a claimed bonus must not keep extending the timer');
+  assert.equal(D.guardianScoutStrikeBonus(guardian,102),0);
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  assert.match(html,/pauseGuardianOpening\(f,dt,nowSec\)/,
+    'the live frame loop must apply knockdown suspension before enemy update');
+});
+
 test('post-combat discovery pulse is once per unexamined clue and never navigation',()=>{
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   assert.match(html,/forestCuePulsed: new Set\(\)/,
