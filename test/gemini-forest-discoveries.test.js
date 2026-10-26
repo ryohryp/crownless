@@ -520,7 +520,9 @@ test('scouted guardian warning starts on close approach exactly once, not at spa
     scoutOpeningSeconds:D.guardianOpeningSeconds(new Set(['traces'])),nextStrikeAt:0};
   assert.equal(D.armGuardianOpening(enemy,170,now),false,'distant spawn must not waste warning time');
   assert.equal(enemy.scoutOpeningEndsAt,undefined);
-  assert.equal(D.armGuardianOpening(enemy,95,now+2),true,'approach starts the earned warning');
+  assert.equal(D.armGuardianOpening(enemy,95,now+2),false,'walking distance must not waste the strike window');
+  assert.equal(D.armGuardianOpening(enemy,56,now+2),false,'just outside striking range remains unarmed');
+  assert.equal(D.armGuardianOpening(enemy,55,now+2),true,'near striking range starts the earned warning');
   assert.equal(enemy.scoutOpeningEndsAt,103.8);
   assert.equal(Recovery.readyToStrike(enemy,103.79),false);
   assert.equal(Recovery.readyToStrike(enemy,103.8),true);
@@ -566,7 +568,7 @@ test('earned guardian opening warning is visible, expires, and never leaks to un
 test('reading tracks rewards one landed early guardian hit, never a miss or later strike',()=>{
   const guardian={name:'苔祠の番人',scoutOpeningSeconds:1.8,nextStrikeAt:0};
   assert.equal(D.guardianScoutStrikeBonus(guardian,100),0,'no bonus before approach');
-  assert.equal(D.armGuardianOpening(guardian,95,100),true);
+  assert.equal(D.armGuardianOpening(guardian,55,100),true);
   assert.equal(D.guardianScoutStrikeBonus(guardian,100.1),12,
     'a deliberate first hit within the earned opening deals extra damage');
   assert.equal(D.guardianScoutStrikeBonus(guardian,101.8),0,'the bonus expires');
