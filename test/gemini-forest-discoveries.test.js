@@ -34,6 +34,21 @@ test('reading tracks extends only the hidden gate vibration, never touch range o
   assert.equal(pulseKey({id:'hollow'},{id:'hollow'}),'hollow');
   assert.equal(pulseKey({id:'shrine'},{id:'shrine'}),'shrine');
   assert.equal(pulseKey(null,null),undefined);
+  const pulsed=new Set();
+  const once=(cue,near)=>{
+    const key=pulseKey(cue,near);
+    if(pulsed.has(key)) return false;
+    pulsed.add(key);
+    return true;
+  };
+  assert.equal(once({id:'hollow'},null),true,'scouted distant cue is earned once');
+  assert.equal(once({id:'hollow'},null),false,'walking within the far radius cannot spam');
+  assert.equal(once({id:'hollow'},{id:'hollow'}),true,
+    'finding the real gate still gives one tactile confirmation');
+  assert.equal(once({id:'hollow'},{id:'hollow'}),false,'standing near cannot spam');
+  assert.equal(once({id:'hollow'},null),false,'walking away cannot replay the distant cue');
+  assert.equal(D.cueNear({x:910,z:235},new Set())?.id,'hollow',
+    'without tracks the player receives only the ordinary near-site cue');
   assert.match(html,/const near=window\.CrownlessForestDiscoveries\.near\(ginji,state\.forestFinds\)/,
     'normal contextual hints still use the original interaction radius');
 });
