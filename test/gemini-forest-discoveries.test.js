@@ -498,7 +498,7 @@ test('reading tracks grants a short first-strike warning without changing normal
     'scouting eligibility must be captured before the guardian fight');
   assert.match(html,/const scoutDistance=ginji && ginji\.state!=='DEAD'[\s\S]*?Math\.hypot\(ginji\.x-enemy\.x,ginji\.z-enemy\.z\)/,
     'companion proximity must not spend the player-only first-hit window');
-  assert.match(html,/if \(window\.CrownlessForestDiscoveries\.armGuardianOpening\(enemy,scoutDistance,nowSec\)\) \{\s*spawnPopup\('👁 予兆を察知！先手の好機'/,
+  assert.match(html,/if \(window\.CrownlessForestDiscoveries\.armGuardianOpening\(enemy,scoutDistance,nowSec\)\) \{\s*spawnPopup\('👁 予兆を察知！攻撃\+12か回避'/,
     'the earned warning must also appear beside the actual guardian, once per approach');
   assert.match(html,/spawnEnemyWave\(state\.waveCount,1,true\)/,'warning never bypasses the fight');
 });
@@ -544,8 +544,12 @@ test('earned guardian opening warning is visible, expires, and never leaks to un
   const scouted=new Set(['traces']);
   assert.match(hint(guardian,scouted,3,100),/足跡の先読み 残り1\.8秒/,
     'reading the tracks gives a legible first-strike reaction window');
+  assert.match(hint(guardian,scouted,3,100),/攻撃\+12か回避/,
+    'the warning names the real attack bonus and the option to evade');
   assert.match(hint(guardian,scouted,3,101.71),/残り0\.1秒/,
     'the warning follows real remaining time, not a permanent buff');
+  assert.doesNotMatch(hint(guardian,scouted,3,101.8),/攻撃\+12か回避/,
+    'the attack-or-evade prompt expires with the earned opening');
   assert.doesNotMatch(hint(guardian,scouted,3,101.8),/先読み/,
     'the warning disappears once the first-strike grace has elapsed');
   guardian.nextStrikeAt=104;
