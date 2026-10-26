@@ -474,6 +474,11 @@ async function main() {
         // verify-pixel-forest.cjs; this smoke also covers the combat-time
         // safe option instead of trying to click a deliberately disabled risk.
         const takeRisk=width===390 && canRisk;
+        // A safe shrine choice can happen during the three-enemy opening wave.
+        // Those enemies may die while the browser waits for the canvas label;
+        // their normal fang drops are not duplicated shrine rewards.
+        const maxEnemyDrops=takeRisk?1:decision.enemies.filter(
+          enemy=>enemy.hp>0 && enemy.state!=='DEAD').length;
         await page.locator(takeRisk?'#forestShrineRisk':'#forestShrineMaterial').click();
         await page.waitForFunction(() => window.CrownlessForestReadout().found.includes('shrine'),
           null,{timeout:2500});
@@ -488,8 +493,8 @@ async function main() {
           'deep search has a real HP cost; ordinary gathering remains safe');
         assert.equal(shrineOutcome.heal,0,
           'the material button deliberately gives up healing');
-        // The guardian can die while Chromium waits for the canvas label;
-        // its own +1 fang is separate from the shrine's +2 reward.
+        // Combat may continue while Chromium waits for the canvas label.
+        // The guardian adds at most one fang; normal wave foes each add one.
         assert.equal(shrineOutcome.unbankedAfterChoice-shrineOutcome.unbankedAtTap,
           shrineOutcome.material,'the chosen shrine branch awards exactly its advertised fangs');
         if (afterShrine.phase==='camp') {
@@ -497,8 +502,9 @@ async function main() {
             'a guardian defeat during the canvas wait must discard the provisional bag');
         } else {
           assert(afterShrine.unbanked>=shrineOutcome.unbankedAfterChoice &&
-            afterShrine.unbanked<=shrineOutcome.unbankedAfterChoice+(takeRisk?1:0),
-            'only an optional guardian defeat may add another fang after the choice');
+            afterShrine.unbanked<=shrineOutcome.unbankedAfterChoice+maxEnemyDrops,
+            'only enemies alive at choice time may add ordinary drops: '+
+            JSON.stringify({afterShrine,shrineOutcome,maxEnemyDrops}));
         }
         await page.touchscreen.tap(nearTap.x,nearTap.y);
         assert.deepEqual(await page.evaluate(() => window.__shrineTapOutcome),shrineOutcome,
@@ -515,8 +521,9 @@ async function main() {
             'defeat after the shrine must lose all unsecured fangs');
         } else {
           assert(afterRepeat.unbanked>=afterShrine.unbanked &&
-            afterRepeat.unbanked<=shrineOutcome.unbankedAfterChoice+(takeRisk?1:0),
-            'repeat shrine taps cannot duplicate materials, even if the guardian falls');
+            afterRepeat.unbanked<=shrineOutcome.unbankedAfterChoice+maxEnemyDrops,
+            'repeat shrine taps cannot duplicate materials beyond legitimate enemy drops: '+
+            JSON.stringify({afterRepeat,shrineOutcome,maxEnemyDrops}));
         }
         assert.equal(errors.length,0,'direct near-site touch must resolve once without errors');
 
