@@ -2793,7 +2793,9 @@
     const lead=openingActive
       ? guardian.scoutStrikeClaimed
         ? '👁 先手成功｜'
-        : '👁 足跡の先読み 残り'+(Math.ceil((guardian.scoutOpeningEndsAt-nowSec)*10)/10).toFixed(1)+'秒：攻撃+12か回避｜'
+        : guardian.state==='DOWN'
+          ? '👁 番人転倒中｜先手の機会を温存｜'
+          : '👁 足跡の先読み 残り'+(Math.ceil((guardian.scoutOpeningEndsAt-nowSec)*10)/10).toFixed(1)+'秒：攻撃+12か回避｜'
       : '';
     return lead+'⚠ 番人HP '+Math.ceil(guardian.hp)+'/'+guardian.maxHp+
       '｜倒すまで帰還不可｜未帰還の牙 '+unbanked+'個';
