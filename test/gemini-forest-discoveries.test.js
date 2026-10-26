@@ -872,6 +872,8 @@ test('ally knockdown cannot spend the earned guardian strike window',()=>{
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   assert.match(html,/pauseGuardianOpening\(f,dt,nowSec\)/,
     'the live frame loop must apply knockdown suspension before enemy update');
+  assert.match(html,/guardian\.state==='DOWN'\s*\? '👁 番人転倒中｜先手の機会を温存｜'/,
+    'the phone HUD must not promise a hittable strike while the ally has knocked the guardian down');
 });
 
 test('post-combat discovery pulse is once per unexamined clue and never navigation',()=>{
