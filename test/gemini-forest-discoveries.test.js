@@ -539,6 +539,23 @@ test('scouted guardian warning starts on close approach exactly once, not at spa
   assert.equal(D.armGuardianOpening({scoutOpeningSeconds:1.8},NaN,now),false);
 });
 
+test('grappling the guardian cannot waste the earned first-strike window',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const condition=html.match(/const scoutInStrikeLane=([\\s\\S]*?);/)?.[1];
+  assert.ok(condition,'the live enemy AI must gate the warning on player control');
+  const inLane=state=>require('node:vm').runInNewContext('Boolean('+condition+')',{
+    ginji:{x:0,z:0,state},enemy:{x:30,z:0}
+  });
+  for(const state of ['HURT','DOWN','GRAB'])
+    assert.equal(inLane(state),false,state+' must not spend the earned 1.8 seconds');
+  assert.equal(inLane('IDLE'),true,'a recovered player can earn the full window');
+  const guardian={name:'苔祠の番人',scoutOpeningSeconds:1.8,nextStrikeAt:0};
+  assert.equal(D.armGuardianOpening(guardian,30,100,inLane('GRAB')),false);
+  assert.equal(guardian.scoutOpeningArmed,undefined,'grapple must not consume the one-shot cue');
+  assert.equal(D.armGuardianOpening(guardian,30,101,inLane('IDLE')),true);
+  assert.equal(guardian.scoutOpeningEndsAt,102.8);
+});
+
 test('earned guardian opening warning is visible, expires, and never leaks to unscouted runs',()=>{
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   const source=html.match(/function forestGuardianHint\([^)]*\) \{[\s\S]*?\n  \}/)?.[0];
