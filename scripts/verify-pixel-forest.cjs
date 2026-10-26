@@ -194,6 +194,8 @@ async function verifyTracksShrineRisk(page, crafted) {
     const openingHint=await page.locator('#forestExploreHint').innerText();
     assert.match(openingHint,/足跡の先読み 残り[0-9]+\.[0-9]秒/,
       'real approaching guardian must grant a visible, timed scouting opening');
+    assert.match(openingHint,/攻撃\+12か回避/,
+      'the actual 390px warning must offer the earned attack bonus or a retreat choice');
     const bounds=await page.locator('#forestExploreHint').boundingBox();
     const viewport=page.viewportSize();
     assert(bounds && bounds.x>=0 && bounds.y>=0 &&
