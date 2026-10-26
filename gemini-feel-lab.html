@@ -2769,10 +2769,13 @@
     // It reveals neither the hidden route nor the site name, and never
     // changes the normal interaction distance or ordinary walkable nav.
     const cue=window.CrownlessForestDiscoveries.cueNear(ginji,state.forestFinds);
-    if (rpg.phase==='return' && cue && !state.forestCuePulsed.has(cue.id) &&
+    // A distant gate signal should not consume the separate confirmation
+    // earned by walking into actual inspection range. Both are once per run.
+    const cuePulseKey=cue?.id==='hollow' && !near ? 'hollow:far' : cue?.id;
+    if (rpg.phase==='return' && cue && !state.forestCuePulsed.has(cuePulseKey) &&
         document.getElementById('rpgPanel').classList.contains('hidden') &&
         document.getElementById('forestShrineChoice').classList.contains('hidden')) {
-      state.forestCuePulsed.add(cue.id);
+      state.forestCuePulsed.add(cuePulseKey);
       // A distant clue earned by reading tracks has a distinct two-beat
       // pulse. Ordinary nearby clues keep the single short pulse; neither
       // pattern reveals a route or automatically investigates the site.
