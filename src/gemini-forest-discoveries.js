@@ -13,6 +13,9 @@
     Object.freeze({id:'hollow',x:910,z:235,label:'茨の石門',kind:'cache',clue:'茨の軋み'})
   ]);
   const RANGE=54;
+  // Cutting salvage free of the thorn gate hurts even with a forged blade.
+  // This is the cost of taking fangs instead of choosing the healing herbs.
+  const GATE_SALVAGE_DAMAGE=8;
   function near(player,found){
     if(!player) return null;
     return spots.find(spot=>
@@ -106,6 +109,8 @@
       return {ok:false,reason:'choice',spot};
     if(spot.kind==='cache' && shrineChoice==='heal' && hp>=maxHp)
       return {ok:false,reason:'full',spot};
+    if(spot.kind==='cache' && shrineChoice!=='heal' && hp<GATE_SALVAGE_DAMAGE+1)
+      return {ok:false,reason:'weak',spot};
     // The shrine offers a deliberate trade-off; a full-HP heal must not waste it.
     // 'auto' preserves existing direct rule callers; the scene passes an explicit choice.
     if(spot.kind==='healing' && shrineChoice==='heal' && hp>=maxHp)
@@ -125,10 +130,11 @@
       (shrineChoice==='auto' && hp>=maxHp));
     found.add(spot.id);
     const gateHeal=spot.kind==='cache' && shrineChoice==='heal';
+    const gateSalvage=spot.kind==='cache' && !gateHeal;
     return {ok:true,spot,material:risky?2:scavenge?1:spot.kind==='cache'&&!gateHeal?2:spot.kind==='material'?1:0,
-      damage:risky?riskDamage:0,
+      damage:risky?riskDamage:gateSalvage?GATE_SALVAGE_DAMAGE:0,
       heal:gateHeal?Math.min(45,Math.max(0,maxHp-hp)):
         spot.kind==='healing' && !scavenge?Math.min(35,Math.max(0,maxHp-hp)):0};
   }
-  return {spots,RANGE,near,cueNear,spotAtTap,available,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,guardianScoutStrikeBonus,shrineRiskDamage,uncover};
+  return {spots,RANGE,GATE_SALVAGE_DAMAGE,near,cueNear,spotAtTap,available,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,guardianScoutStrikeBonus,shrineRiskDamage,uncover};
 });
