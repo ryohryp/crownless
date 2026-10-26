@@ -86,6 +86,18 @@
   // Reading tracks rewards one deliberate hit during the earned opening.
   // Only a landed hit consumes the bonus; no bonus on later cooldowns.
   const GUARDIAN_SCOUT_STRIKE_BONUS=12;
+  // An ally can knock the guardian down *after* the warning has started.
+  // Ordinary player strikes cannot land during knockdown, so those frames
+  // must not burn the one-time earned opening or its enemy strike hold.
+  function pauseGuardianOpening(enemy,dt,nowSec){
+    if(!enemy || enemy.name!=='苔祠の番人' || !enemy.scoutOpeningArmed ||
+       enemy.scoutStrikeClaimed || enemy.state!=='DOWN' ||
+       !(dt>0) || !Number.isFinite(nowSec) ||
+       !(enemy.scoutOpeningEndsAt>nowSec)) return false;
+    enemy.scoutOpeningEndsAt+=dt;
+    enemy.nextStrikeAt=Math.max(enemy.nextStrikeAt||0,enemy.scoutOpeningEndsAt);
+    return true;
+  }
   function guardianScoutStrikeBonus(enemy,nowSec){
     return enemy && enemy.name==='苔祠の番人' &&
       enemy.scoutOpeningArmed && !enemy.scoutStrikeClaimed &&
@@ -136,5 +148,5 @@
       heal:gateHeal?Math.min(45,Math.max(0,maxHp-hp)):
         spot.kind==='healing' && !scavenge?Math.min(35,Math.max(0,maxHp-hp)):0};
   }
-  return {spots,RANGE,GATE_SALVAGE_DAMAGE,near,cueNear,spotAtTap,available,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,guardianScoutStrikeBonus,shrineRiskDamage,uncover};
+  return {spots,RANGE,GATE_SALVAGE_DAMAGE,near,cueNear,spotAtTap,available,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,guardianScoutStrikeBonus,shrineRiskDamage,uncover};
 });
