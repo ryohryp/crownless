@@ -500,6 +500,8 @@ test('reading tracks grants a short first-strike warning without changing normal
     'companion proximity must not spend the player-only first-hit window');
   assert.match(html,/if \(window\.CrownlessForestDiscoveries\.armGuardianOpening\(enemy,scoutDistance,nowSec\)\) \{\s*spawnPopup\('👁 予兆を察知！攻撃\+12か回避'/,
     'the earned warning must also appear beside the actual guardian, once per approach');
+  assert.match(html,/if \(window\.CrownlessForestDiscoveries\.armGuardianOpening\(enemy,scoutDistance,nowSec\)\) \{[^}]*sfx\.haptic\(\[20,45,20\]\)/,
+    'a distinct double vibration must accompany only the earned one-shot warning, not every attack');
   assert.match(html,/spawnEnemyWave\(state\.waveCount,1,true\)/,'warning never bypasses the fight');
 });
 
