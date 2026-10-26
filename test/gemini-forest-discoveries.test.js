@@ -551,6 +551,9 @@ test('grappling the guardian cannot waste the earned first-strike window',()=>{
   for(const state of ['HURT','DOWN','GRAB'])
     assert.equal(inLane(state),false,state+' must not spend the earned 1.8 seconds');
   assert.equal(inLane('IDLE'),true,'a recovered player can earn the full window');
+  assert.equal(require('node:vm').runInNewContext('Boolean('+condition+')',{
+    ginji:{x:0,z:0,state:'IDLE'},enemy:{x:30,z:0,state:'DOWN'}
+  }),false,'a knocked-down guardian cannot be struck with the normal scouting attack');
   const guardian={name:'苔祠の番人',scoutOpeningSeconds:1.8,nextStrikeAt:0};
   assert.equal(D.armGuardianOpening(guardian,30,100,inLane('GRAB')),false);
   assert.equal(guardian.scoutOpeningArmed,undefined,'grapple must not consume the one-shot cue');
@@ -708,6 +711,8 @@ test('scouted guardian opening waits until the player can act, not while stunned
     'recovering into an actionable state arms the warning');
   assert.equal(canRespond({state:'IDLE',z:260},guardian),false,
     'the depth-lane restriction remains intact');
+  assert.equal(canRespond({state:'IDLE',z:230},{...guardian,state:'DOWN'}),false,
+    'an ally knockdown must not start the player strike window while ordinary attacks miss');
   const enemy={name:'苔祠の番人',scoutOpeningSeconds:1.8,nextStrikeAt:0,z:230};
   assert.equal(D.armGuardianOpening(enemy,35,100,canRespond({state:'HURT',z:230},enemy)),false);
   assert.equal(D.armGuardianOpening(enemy,35,100.5,canRespond({state:'DOWN',z:230},enemy)),false);
@@ -729,7 +734,7 @@ test('scouted guardian opening waits for a reachable attack-depth lane',()=>{
     're-entering the lane cannot refresh the one-shot advantage');
   assert.equal(enemy.scoutOpeningEndsAt,102.3);
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
-  assert.match(html,/const scoutInStrikeLane=ginji && ginji\.state!=='HURT' && ginji\.state!=='DOWN' &&\s*ginji\.state!=='GRAB' && Math\.abs\(ginji\.z-enemy\.z\)<=25;/,
+  assert.match(html,/const scoutInStrikeLane=ginji && ginji\.state!=='HURT' && ginji\.state!=='DOWN' &&\s*ginji\.state!=='GRAB' && enemy\.state!=='DOWN' && Math\.abs\(ginji\.z-enemy\.z\)<=25;/,
     'the real combat scene must use the same depth limit as player hit detection');
   assert.match(html,/armGuardianOpening\(enemy,scoutDistance,nowSec,scoutInStrikeLane\)/,
     'the depth-lane check must gate the actual one-shot warning');

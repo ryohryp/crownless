@@ -1461,7 +1461,7 @@
     // A grappled guardian can only be thrown; that throw cannot claim the
     // earned +12 strike. Wait until Ginji can choose a normal attack or evade.
     const scoutInStrikeLane=ginji && ginji.state!=='HURT' && ginji.state!=='DOWN' &&
-      ginji.state!=='GRAB' && Math.abs(ginji.z-enemy.z)<=25;
+      ginji.state!=='GRAB' && enemy.state!=='DOWN' && Math.abs(ginji.z-enemy.z)<=25;
     if (window.CrownlessForestDiscoveries.armGuardianOpening(enemy,scoutDistance,nowSec,scoutInStrikeLane)) {
       spawnPopup('👁 予兆を察知！攻撃+12か回避',enemy.x,enemy.z,enemy.y+65,'#fef08a');
       // A distinct double pulse makes the brief earned opening perceptible
