@@ -16,6 +16,7 @@
   // Cutting salvage free of the thorn gate hurts even with a forged blade.
   // This is the cost of taking fangs instead of choosing the healing herbs.
   const GATE_SALVAGE_DAMAGE=8;
+  const GATE_CAUTIOUS_DAMAGE=3;
   function near(player,found){
     if(!player) return null;
     return spots.find(spot=>
@@ -117,11 +118,12 @@
     }
     // A discovered stone gate offers a one-time choice: take its materials
     // home or use its herbs to survive. Never award both on the same visit.
-    if(spot.kind==='cache' && !['auto','material','heal'].includes(shrineChoice))
+    if(spot.kind==='cache' && !['auto','material','heal','cautious'].includes(shrineChoice))
       return {ok:false,reason:'choice',spot};
     if(spot.kind==='cache' && shrineChoice==='heal' && hp>=maxHp)
       return {ok:false,reason:'full',spot};
-    if(spot.kind==='cache' && shrineChoice!=='heal' && hp<GATE_SALVAGE_DAMAGE+1)
+    const gateDamage=shrineChoice==='cautious'?GATE_CAUTIOUS_DAMAGE:GATE_SALVAGE_DAMAGE;
+    if(spot.kind==='cache' && shrineChoice!=='heal' && hp<gateDamage+1)
       return {ok:false,reason:'weak',spot};
     // The shrine offers a deliberate trade-off; a full-HP heal must not waste it.
     // 'auto' preserves existing direct rule callers; the scene passes an explicit choice.
@@ -143,10 +145,11 @@
     found.add(spot.id);
     const gateHeal=spot.kind==='cache' && shrineChoice==='heal';
     const gateSalvage=spot.kind==='cache' && !gateHeal;
-    return {ok:true,spot,material:risky?2:scavenge?1:spot.kind==='cache'&&!gateHeal?2:spot.kind==='material'?1:0,
-      damage:risky?riskDamage:gateSalvage?GATE_SALVAGE_DAMAGE:0,
+    const gateCautious=spot.kind==='cache' && shrineChoice==='cautious';
+    return {ok:true,spot,material:risky?2:scavenge?1:spot.kind==='cache'&&!gateHeal?(gateCautious?1:2):spot.kind==='material'?1:0,
+      damage:risky?riskDamage:gateSalvage?gateDamage:0,
       heal:gateHeal?Math.min(45,Math.max(0,maxHp-hp)):
         spot.kind==='healing' && !scavenge?Math.min(35,Math.max(0,maxHp-hp)):0};
   }
-  return {spots,RANGE,GATE_SALVAGE_DAMAGE,near,cueNear,spotAtTap,available,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,guardianScoutStrikeBonus,shrineRiskDamage,uncover};
+  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,near,cueNear,spotAtTap,available,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,guardianScoutStrikeBonus,shrineRiskDamage,uncover};
 });

@@ -455,6 +455,11 @@ async function main() {
           assert(!(await read(page)).found.includes('hollow'),'declining the gate does not spend its one visit');
           await tapSite(page,'hollow');
           const gateMaterial=page.locator('#forestGateMaterial');
+          const gateCautious=page.locator('#forestGateCautious');
+          assert.equal(await gateCautious.isEnabled(),hollowBefore.player.hp>=4,
+            'cautious salvage must be nonlethal and available before the costly route');
+          assert.match(await gateCautious.innerText(),/HP -3.*未帰還素材 \+1/,
+            'the real phone panel must explain the one-fang safer alternative');
           assert.equal(await gateMaterial.isEnabled(),hollowBefore.player.hp>=9,
             'material salvage must require at least one surviving HP');
           assert.match(await gateMaterial.innerText(),/HP -8.*未帰還素材 \+2/,

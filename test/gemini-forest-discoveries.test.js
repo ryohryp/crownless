@@ -292,7 +292,7 @@ test('stone gate offers either two provisional fangs or up to 45 HP, never both'
   assert.match(html,/id="forestGateMaterial"/);
   assert.match(html,/id="forestGateHeal"/);
   assert.match(html,/id="forestGateCancel"/);
-  assert.match(html,/石門の茨を払って牙 \+2（未帰還）／HP -.*薬草は見送った/,
+  assert.match(html,/石門の茨を払って牙 \+'\+discovery\.material\+'（未帰還）／HP -.*薬草は見送った/,
     'taking materials must describe foregoing herbs, not consuming them');
   assert.match(html,/石門の薬草.*?牙 \+2は見送った/s,
     'healing must explicitly acknowledge the two provisional fangs forgone');
@@ -304,6 +304,33 @@ test('stone gate offers either two provisional fangs or up to 45 HP, never both'
     'the phone decision previews surviving HP before taking the fangs');
   assert.match(html,/!document\.getElementById\('forestGateChoice'\)\.classList\.contains\('hidden'\)/,
     'combat and projectiles must pause while the gate decision is open');
+});
+test('cautious gate salvage trades one fang for a smaller nonlethal wound',()=>{
+  const gate={x:910,z:235};
+  for(const hp of [4,4.5,8,140]){
+    const found=new Set(['traces']);
+    const reward=D.uncover(gate,found,'return',hp,140,true,'cautious');
+    assert.equal(reward.ok,true);
+    assert.equal(reward.material,1,'the safer route must not award the two-fang reward');
+    assert.equal(reward.damage,D.GATE_CAUTIOUS_DAMAGE);
+    assert.equal(reward.heal,0);
+    assert.equal(found.has('hollow'),true);
+    assert.equal(D.uncover(gate,found,'return',hp,140,true,'material').ok,false,
+      'cautious salvage consumes the gate and prevents duplicate loot');
+  }
+  for(const hp of [1,3,3.5]){
+    const found=new Set(['traces']);
+    assert.equal(D.uncover(gate,found,'return',hp,140,true,'cautious').reason,'weak');
+    assert.equal(found.has('hollow'),false);
+    assert.equal(D.uncover(gate,found,'return',hp,140,true,'heal').ok,true,
+      'a critically wounded explorer may still take the healing option');
+  }
+  assert.equal(D.uncover(gate,new Set(['traces']),'return',4,140,false,'cautious').reason,'thorns');
+  assert.equal(D.uncover(gate,new Set(),'return',4,140,true,'cautious').reason,'trail');
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  assert.match(html,/id="forestGateCautious"/);
+  assert.match(html,/cautious\.disabled=ginji\.hp<cautiousCost\+1/);
+  assert.match(html,/\['forestGateCautious','cautious'\]/);
 });
 test('a forged sword opens the gate on a later expedition and loot banks only after returning alive',()=>{
   const run=R.create();

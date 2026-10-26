@@ -172,6 +172,7 @@
           <p id="forestGateStakes" class="mb-2 text-xs text-amber-100" role="status"></p>
           <div class="flex flex-col gap-2">
             <button id="forestGateMaterial" type="button" class="min-h-11 rounded-lg bg-amber-700 px-3 text-sm font-bold">牙を拾う（HP -8・未帰還素材 +2・回復なし）</button>
+            <button id="forestGateCautious" type="button" class="min-h-11 rounded-lg bg-amber-800 px-3 text-sm font-bold disabled:opacity-50">慎重に牙を拾う（HP -3・未帰還素材 +1・回復なし）</button>
             <button id="forestGateHeal" type="button" class="min-h-11 rounded-lg bg-emerald-700 px-3 text-sm font-bold disabled:opacity-50">薬草で癒やす（最大 HP +45・素材なし）</button>
             <button id="forestGateCancel" type="button" class="min-h-11 rounded-lg border border-emerald-300 px-3 text-sm">今は調べない</button>
           </div>
@@ -1894,6 +1895,12 @@
       const heal=document.getElementById('forestGateHeal');
       const salvage=document.getElementById('forestGateMaterial');
       const salvageCost=window.CrownlessForestDiscoveries.GATE_SALVAGE_DAMAGE;
+      const cautiousCost=window.CrownlessForestDiscoveries.GATE_CAUTIOUS_DAMAGE;
+      const cautious=document.getElementById('forestGateCautious');
+      cautious.disabled=ginji.hp<cautiousCost+1;
+      cautious.textContent=cautious.disabled
+        ? '慎重に牙を拾う（HP -'+cautiousCost+'・未帰還素材 +1／HP '+(cautiousCost+1)+'以上必要）'
+        : '慎重に牙を拾う（HP -'+cautiousCost+' →残り'+Math.floor(ginji.hp-cautiousCost)+'・未帰還素材 +1）';
       salvage.disabled=ginji.hp<salvageCost+1;
       salvage.textContent=salvage.disabled
         ? '牙を拾う（HP -'+salvageCost+'・未帰還素材 +2／HP '+(salvageCost+1)+'以上必要）'
@@ -1905,7 +1912,7 @@
         : '傷がないため回復不可';
       document.getElementById('forestGateStakes').textContent=
         '現在 HP '+Math.floor(ginji.hp)+'/'+ginji.maxHp+'、未帰還の牙 '+rpg.unbanked+
-        '個。茨を払ってHPを失い牙 +2 か、薬草でHPを回復するか一度だけ。素材は生還時だけ倉庫に残り、敗北すると失う。';
+        '個。慎重に牙 +1（HP -'+cautiousCost+'）、強引に牙 +2（HP -'+salvageCost+'）、または薬草で回復。一度だけ選べる。素材は生還時だけ倉庫に残り、敗北すると失う。';
       panel.classList.remove('hidden');
       return true;
     }
@@ -1940,7 +1947,7 @@
     return false;
   }
 
-  for (const [id,choice] of [['forestGateMaterial','material'],['forestGateHeal','heal']]) {
+  for (const [id,choice] of [['forestGateMaterial','material'],['forestGateCautious','cautious'],['forestGateHeal','heal']]) {
     document.getElementById(id).addEventListener('click',()=>{
       document.getElementById('forestGateChoice').classList.add('hidden');
       if(ginji && ginji.state!=='DEAD' &&
@@ -2002,7 +2009,7 @@
     if(discovery.material) {
       for(let i=0;i<discovery.material;i++) if (!rpgRules.claimMaterial(rpg)) return false;
       spawnPopup(discovery.spot.id==='shrine' && discovery.damage?'祠の奥で牙 +2（未帰還）／HP -'+discovery.damage:
-        discovery.spot.id==='hollow'?'石門の茨を払って牙 +2（未帰還）／HP -'+discovery.damage+'・薬草は見送った':
+        discovery.spot.id==='hollow'?'石門の茨を払って牙 +'+discovery.material+'（未帰還）／HP -'+discovery.damage+'・薬草は見送った':
         discovery.spot.id==='shrine'?'祠の隙間で牙 +1（未帰還）／この遠征の癒やしは使い切った':
         '獣の痕跡！牙 +1／危険な調査で受ける傷を3軽減',f.x,f.z,f.y+48,'#fde68a');
     }
