@@ -85,6 +85,20 @@ test('low HP blocks risk; controls use existing mobile choice area',()=>{
   assert.match(app,/data-action="field-step"/);
 });
 
+test('forest safe-return text remains truthful across reload and after banking loot',()=>{
+  const app=fs.readFileSync('src/slice-app.js','utf8');
+  const source=app.slice(app.indexOf('function fieldDecision(x){'),app.indexOf('const logs = x =>'));
+  assert.match(source,/x\\.materials\\?\\.wolfFang>0\\?'狼牙を持って生還':x\\.scrap>0\\?'鉄片を持って生還':'ここで生還する'/);
+  const found=E.act(tracks({...E.initial(),mode:'demo'}),'forest-tracks-risk');
+  const restored=E.parse(E.serialize(found));
+  assert.equal(restored.expedition.materials.wolfFang,1,'unbanked fang survives current save format');
+  assert.equal(restored.materials.wolfFang,0,'the camp does not own the fang before return');
+  const safe=E.act(restored,'return');
+  assert.equal(safe.expedition,null);
+  assert.equal(safe.materials.wolfFang,1,'return banks the item exactly once');
+  assert.equal(E.act(safe,'return'),safe,'no second return can duplicate the fang');
+});
+
 test('forest safe-return cue follows carried fang regardless of discovery route',()=>{
   const app=fs.readFileSync('src/slice-app.js','utf8');
   assert.match(app,/button\('return',x\.materials\?\.wolfFang>0\?'狼牙を持って生還':x\.scrap>0\?'鉄片を持って生還':'ここで生還する'/,
