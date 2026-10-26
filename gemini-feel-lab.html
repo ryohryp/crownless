@@ -1884,7 +1884,7 @@
       const risk=document.getElementById('forestShrineRisk');
       const riskCost=window.CrownlessForestDiscoveries.shrineRiskDamage(state.forestFinds,rpg.crafted);
       risk.disabled=ginji.hp<riskCost+1 || rpg.phase!=='return';
-      risk.textContent=rpg.phase!=='return'?'奥まで探る（魔物を倒してから／番人が待っている）':
+      risk.textContent=rpg.phase!=='return'?'奥まで探る（魔物を倒してから／番人が待っている｜HP -'+riskCost+'・未帰還素材 +2）':
         risk.disabled?'体力が足りず奥まで探れない（HP '+(riskCost+1)+'以上必要）':
         '奥まで探る（HP -'+riskCost+' →残り'+Math.floor(ginji.hp-riskCost)+'・未帰還素材 +2'+(rpg.crafted?'／鍛冶剣で軽減':'')+
         (state.forestFinds.has('traces')?'／足跡を読んで負傷 -3・番人の接近を早く察知':'')+

@@ -462,6 +462,10 @@ async function main() {
         if(decision.phase!=='return') {
           assert.match(riskLabel,/魔物を倒してから/,
             'during combat the player must see why deep searching is unavailable');
+          assert.match(riskLabel,new RegExp('HP -'+riskCost),
+            'even before clearing the wave, the actual equipment-dependent wound must be visible');
+          assert.match(riskLabel,/未帰還素材 \+2/,
+            'the locked risk route must show its reward so players can decide to wait or take safe loot');
           assert.equal(await page.locator('#forestShrineMaterial').isEnabled(),true,
             'the safe material route remains available during combat');
         } else if(canRisk) {
