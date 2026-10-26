@@ -1458,6 +1458,9 @@
       ? Math.hypot(ginji.x-enemy.x,ginji.z-enemy.z) : Infinity;
     if (window.CrownlessForestDiscoveries.armGuardianOpening(enemy,scoutDistance,nowSec)) {
       spawnPopup('👁 予兆を察知！攻撃+12か回避',enemy.x,enemy.z,enemy.y+65,'#fef08a');
+      // A distinct double pulse makes the brief earned opening perceptible
+      // without reading the HUD. Unsupported phones keep the visual cue.
+      sfx.haptic([20,45,20]);
     }
     const hasToken = state.tokenManager.requestToken(enemy.id, nowSec, 1.3);
 
