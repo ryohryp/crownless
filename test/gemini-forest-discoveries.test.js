@@ -556,6 +556,12 @@ test('earned guardian opening warning is visible, expires, and never leaks to un
     'the attack-or-evade prompt expires with the earned opening');
   assert.doesNotMatch(hint(guardian,scouted,3,101.8),/先読み/,
     'the warning disappears once the first-strike grace has elapsed');
+  guardian.scoutStrikeClaimed=true;
+  assert.match(hint(guardian,scouted,3,100.5),/先手成功/,
+    'after landing the scouting strike the HUD acknowledges the earned payoff');
+  assert.doesNotMatch(hint(guardian,scouted,3,100.5),/攻撃\+12か回避/,
+    'the consumed +12 bonus must not be offered again while the guardian lives');
+  guardian.scoutStrikeClaimed=false;
   guardian.nextStrikeAt=104;
   assert.doesNotMatch(hint(guardian,scouted,3,103),/先読み/,
     'later guardian attack cooldowns must not pretend to be fresh scouting warnings');
