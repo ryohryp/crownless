@@ -26,7 +26,14 @@ test('reading tracks extends only the hidden gate vibration, never touch range o
   assert.equal(D.cueNear(approach,tracked),null,'examined sites do not pulse again');
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   assert.match(html,/const cue=window\.CrownlessForestDiscoveries\.cueNear\(ginji,state\.forestFinds\)/);
-  assert.match(html,/state\.forestCuePulsed\.has\(cue\.id\)/);
+  assert.match(html,/state\.forestCuePulsed\.has\(cuePulseKey\)/);
+  const pulseKeySource=html.match(/const cuePulseKey=([^;]+);/)?.[1];
+  assert.ok(pulseKeySource,'the earned far cue and the inspectable gate need separate pulse keys');
+  const pulseKey=Function('cue','near','return ('+pulseKeySource+');');
+  assert.equal(pulseKey({id:'hollow'},null),'hollow:far');
+  assert.equal(pulseKey({id:'hollow'},{id:'hollow'}),'hollow');
+  assert.equal(pulseKey({id:'shrine'},{id:'shrine'}),'shrine');
+  assert.equal(pulseKey(null,null),undefined);
   assert.match(html,/const near=window\.CrownlessForestDiscoveries\.near\(ginji,state\.forestFinds\)/,
     'normal contextual hints still use the original interaction radius');
 });
@@ -785,9 +792,9 @@ test('post-combat discovery pulse is once per unexamined clue and never navigati
     'the cue history is per expedition, not part of the persisted save');
   assert.match(html,/state\.forestCuePulsed\.clear\(\)/,
     'revisiting on a new expedition can earn fresh sensory cues');
-  assert.match(html,/rpg\.phase==='return' && cue && !state\.forestCuePulsed\.has\(cue\.id\)/,
+  assert.match(html,/rpg\.phase==='return' && cue && !state\.forestCuePulsed\.has\(cuePulseKey\)/,
     'only undiscovered sites after combat can pulse');
-  assert.match(html,/state\.forestCuePulsed\.add\(cue\.id\);[\s\S]*?sfx\.haptic\(cue\.id==='hollow' && !near \? \[28,45,28\] : 34\)/,
+  assert.match(html,/state\.forestCuePulsed\.add\(cuePulseKey\);[\s\S]*?sfx\.haptic\(cue\.id==='hollow' && !near \? \[28,45,28\] : 34\)/,
     'mark the site once, with a distinct two-beat pulse only for the earned distant gate clue');
   assert.match(html,/document\.getElementById\('rpgPanel'\)\.classList\.contains\('hidden'\)/,
     'do not interrupt the return decision sheet');
