@@ -2839,9 +2839,12 @@
   }
   // Make the earned scouting advantage visible while the guardian's opening
   // strike is held back. This is a warning window, not a promised hit timer.
-  function forestGuardianHint(guardian,found,unbanked,nowSec) {
+  function forestGuardianHint(guardian,found,unbanked,nowSec,hero) {
     if (!guardian) return '';
     const openingActive=found.has('traces') && guardian.scoutOpeningEndsAt>nowSec;
+    // A scouted sound behind the hero invites a deliberate turn before the
+    // timer starts; do not pretend the attack bonus is already active.
+    const behind=hero && window.CrownlessForestDiscoveries.guardianBehindWarning(hero,guardian,found);
     // Once the earned first hit lands, do not promise a second +12 strike.
     const lead=openingActive
       ? guardian.scoutStrikeClaimed
@@ -2849,7 +2852,7 @@
         : guardian.state==='DOWN'
           ? '👁 番人転倒中｜先手の機会を温存｜'
           : '👁 足跡の先読み 残り'+(Math.ceil((guardian.scoutOpeningEndsAt-nowSec)*10)/10).toFixed(1)+'秒：攻撃+12か回避｜'
-      : '';
+      : behind ? '👂 背後に足音。振り向けば先手の機会｜' : '';
     return lead+'⚠ 番人HP '+Math.ceil(guardian.hp)+'/'+guardian.maxHp+
       '｜倒すまで帰還不可｜未帰還の牙 '+unbanked+'個';
   }
@@ -2889,7 +2892,7 @@
       ? state.fighters.find(f=>f.team===1 && f.name==='苔祠の番人' && f.state!=='DEAD')
       : null;
     const label=guardian
-      ? forestGuardianHint(guardian,state.forestFinds,rpg.unbanked,performance.now()/1000)
+      ? forestGuardianHint(guardian,state.forestFinds,rpg.unbanked,performance.now()/1000,ginji)
       : near
       ? near.id==='hollow' && !state.forestFinds.has('traces')
         ? '🌿 茨の奥で硬い音がする。足元のかすかな筋を辿ろう'

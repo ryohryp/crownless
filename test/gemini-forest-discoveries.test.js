@@ -494,7 +494,7 @@ test('guardian fight overrides stale clue hints with live HP and unsecured loot'
     'only the active guardian fight can override ordinary exploration hints');
   assert.match(hint,/const label=guardian[\s\S]*?: near/,
     'after the guardian falls, ordinary discovery hints must return');
-  assert.match(hint,/forestGuardianHint\(guardian,state\.forestFinds,rpg\.unbanked,performance\.now\(\)\/1000\)/,
+  assert.match(hint,/forestGuardianHint\(guardian,state\.forestFinds,rpg\.unbanked,performance\.now\(\)\/1000,ginji\)/,
     'the guardian hint must use live scouting state, time and unsecured loot');
   const guardianHint=html.match(/function forestGuardianHint\([^)]*\) \{[\s\S]*?\n  \}/)?.[0];
   assert.ok(guardianHint,'the live guardian hint helper must exist');

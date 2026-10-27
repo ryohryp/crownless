@@ -130,6 +130,23 @@
       !['DEAD','HURT','DOWN','GRAB'].includes(enemy.state) &&
       Math.abs(player.z-enemy.z)<=25);
   }
+  // Tracks can reveal a threat approaching from behind, but the earned
+  // first-strike timer still waits for a deliberate turn toward the guardian.
+  // This cue only exists inside the already-chosen guardian encounter.
+  function guardianBehindWarning(player,enemy,found){
+    if(!player || !enemy || !found?.has('traces') ||
+       enemy.name!=='苔祠の番人' || !(enemy.scoutOpeningSeconds>0) ||
+       enemy.scoutOpeningArmed || !(enemy.hp>0) ||
+       !Number.isFinite(player.x) || !Number.isFinite(enemy.x) ||
+       !Number.isFinite(player.z) || !Number.isFinite(enemy.z) ||
+       ![-1,1].includes(player.facing) ||
+       ['DEAD','HURT','DOWN','GRAB','ATTACK','SPECIAL','JUMP'].includes(player.state) ||
+       ['DEAD','HURT','DOWN','GRAB'].includes(enemy.state)) return false;
+    const dx=enemy.x-player.x;
+    return Math.abs(dx)>10 && Math.abs(dx)<=95 &&
+      Math.abs(enemy.z-player.z)<=25 &&
+      Math.sign(dx)!==player.facing;
+  }
   function guardianScoutStrikeBonus(enemy,nowSec){
     return enemy && enemy.name==='苔祠の番人' &&
       enemy.scoutOpeningArmed && !enemy.scoutStrikeClaimed &&
@@ -185,5 +202,5 @@
       heal:gateHeal?Math.min(45,Math.max(0,maxHp-hp)):
         spot.kind==='healing' && !scavenge?Math.min(35,Math.max(0,maxHp-hp)):0};
   }
-  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,near,cueNear,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,guardianScoutStrikeBonus,guardianReadyForOpening,companionYieldsGuardianOpening,shrineRiskDamage,uncover};
+  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,near,cueNear,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,guardianScoutStrikeBonus,guardianReadyForOpening,guardianBehindWarning,companionYieldsGuardianOpening,shrineRiskDamage,uncover};
 });
