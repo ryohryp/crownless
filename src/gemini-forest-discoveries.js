@@ -114,7 +114,9 @@
     if(!spot) return {ok:false};
     if(spot.kind==='cache'){
       if(!found.has('traces')) return {ok:false,reason:'trail',spot};
-      if(!crafted) return {ok:false,reason:'thorns',spot};
+      // The sword is needed to cut through the thorns for fangs, but an
+      // injured explorer can still reach the herbs at the edge of the gate.
+      if(!crafted && shrineChoice!=='heal') return {ok:false,reason:'thorns',spot};
     }
     // A discovered stone gate offers a one-time choice: take its materials
     // home or use its herbs to survive. Never award both on the same visit.
