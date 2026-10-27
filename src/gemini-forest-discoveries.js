@@ -151,7 +151,7 @@
   // approach instead of letting the ally repeatedly knock it out of earshot.
   // This is proximity-limited, not a distant/indefinite ally ceasefire:
   // turning, losing control, or skipping tracks restores normal protection.
-  function companionYieldsGuardianFootsteps(player,enemy,found){
+  function companionYieldsGuardianFootsteps(player,enemy,found,ally){
     if(!player || !enemy || !found?.has('traces') ||
        enemy.name!=='苔祠の番人' || !(enemy.scoutOpeningSeconds>0) ||
        enemy.scoutOpeningArmed || enemy.scoutStrikeClaimed || !(enemy.hp>0) ||
@@ -160,6 +160,14 @@
        ![-1,1].includes(player.facing) ||
        ['DEAD','HURT','DOWN','GRAB','ATTACK','SPECIAL','JUMP'].includes(player.state)) return false;
     const dx=enemy.x-player.x;
+    // The guardian can choose the *ally* as its target while the hero faces
+    // away. Never make that ally stand idle inside the guardian's strike lane.
+    // Yield only while the guardian is recovering or has not engaged the ally.
+    const allyInMelee=ally && ally.hp>0 &&
+      Number.isFinite(ally.x) && Number.isFinite(ally.z) &&
+      Math.abs(enemy.x-ally.x)<48 && Math.abs(enemy.z-ally.z)<20 &&
+      !['DOWN','HURT','GRAB'].includes(enemy.state);
+    if(allyInMelee) return false;
     // The ally yields while footsteps are approaching, but resumes protection
     // once the guardian reaches its 48-unit melee range. Ignoring the cue must
     // not leave the companion frozen while the hero is attacked from behind.
