@@ -99,6 +99,16 @@ test('ally yields only for an actionable, nearby scouted threat behind the hero'
     'at guardian melee reach the ally must protect a hero who ignores the cue');
   assert.equal(D.companionYieldsGuardianFootsteps(hero,{...guardian,x:25,state:'IDLE'},found),false,
     'the companion must not remain idle while an enemy is already attacking');
+  const ally={x:100,z:230,hp:90,maxHp:130};
+  assert.equal(D.companionYieldsGuardianFootsteps(hero,guardian,found,ally),true,
+    'a recovering guardian still leaves a chance to hear footsteps');
+  assert.equal(D.companionYieldsGuardianFootsteps(hero,{...guardian,state:'IDLE'},found,ally),false,
+    'a guardian engaging the ally must not make the ally stand helpless');
+  assert.equal(D.companionYieldsGuardianFootsteps(hero,{...guardian,state:'IDLE'},found,{...ally,z:260}),true,
+    'an ally in a different lane need not interrupt the earned footsteps');
+  assert.equal(D.companionYieldsGuardianFootsteps(hero,{...guardian,state:'IDLE'},found,{...ally,x:20}),true,
+    'an ally outside the guardian strike range still yields to the hero');
+
   assert.equal(D.companionYieldsGuardianFootsteps({...hero,facing:1},guardian,found),false,
     'turning toward the threat resumes normal assistance');
   assert.equal(D.companionYieldsGuardianFootsteps({...hero,state:'HURT'},guardian,found),false,
@@ -113,7 +123,7 @@ test('ally yields only for an actionable, nearby scouted threat behind the hero'
   assert.equal(D.companionYieldsGuardianFootsteps(hero,{...guardian,hp:0},found),false);
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   const ai=html.slice(html.indexOf('function sampleCompanionAI('),html.indexOf('function sampleEnemyAI('));
-  assert.match(ai,/companionYieldsGuardianFootsteps\(\s*ginji,scoutedGuardian,state\.forestFinds\)/,
+  assert.match(ai,/companionYieldsGuardianFootsteps\(\s*ginji,scoutedGuardian,state\.forestFinds,selfFighter\)/,
     'the live companion must use the same bounded behind-cue yield rule');
 });
 
