@@ -93,6 +93,12 @@ test('ally yields only for an actionable, nearby scouted threat behind the hero'
     'the ally must let the downed guardian recover so the player can hear it approach');
   assert.equal(D.companionYieldsGuardianFootsteps(hero,{...guardian,x:121},found),false,
     'the ally still protects the explorer before the threat comes near');
+  assert.equal(D.companionYieldsGuardianFootsteps(hero,{...guardian,x:49,state:'IDLE'},found),true,
+    'just outside melee reach, the player can still hear and turn');
+  assert.equal(D.companionYieldsGuardianFootsteps(hero,{...guardian,x:48,state:'IDLE'},found),false,
+    'at guardian melee reach the ally must protect a hero who ignores the cue');
+  assert.equal(D.companionYieldsGuardianFootsteps(hero,{...guardian,x:25,state:'IDLE'},found),false,
+    'the companion must not remain idle while an enemy is already attacking');
   assert.equal(D.companionYieldsGuardianFootsteps({...hero,facing:1},guardian,found),false,
     'turning toward the threat resumes normal assistance');
   assert.equal(D.companionYieldsGuardianFootsteps({...hero,state:'HURT'},guardian,found),false,

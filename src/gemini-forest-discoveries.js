@@ -160,7 +160,10 @@
        ![-1,1].includes(player.facing) ||
        ['DEAD','HURT','DOWN','GRAB','ATTACK','SPECIAL','JUMP'].includes(player.state)) return false;
     const dx=enemy.x-player.x;
-    return Math.abs(dx)>10 && Math.abs(dx)<=120 &&
+    // The ally yields while footsteps are approaching, but resumes protection
+    // once the guardian reaches its 48-unit melee range. Ignoring the cue must
+    // not leave the companion frozen while the hero is attacked from behind.
+    return Math.abs(dx)>48 && Math.abs(dx)<=120 &&
       Math.abs(enemy.z-player.z)<=25 && Math.sign(dx)!==player.facing;
   }
   function guardianScoutStrikeBonus(enemy,nowSec){
