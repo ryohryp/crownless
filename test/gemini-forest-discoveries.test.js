@@ -784,10 +784,14 @@ test('reading tracks rewards one landed early guardian hit, never a miss or late
   assert.match(hit,/先手成功！/,'the earned early hit must show immediate feedback');
 });
 
-test('companion yields the scouted guardian opening until the player acts or it expires',()=>{
+test('companion defends before scouting activates, then yields the earned strike window',()=>{
   const guardian={name:'苔祠の番人',scoutOpeningSeconds:1.8};
-  assert.equal(D.companionYieldsGuardianOpening(guardian,100),true,
-    'the companion should not knock down a scouted guardian before the player approaches');
+  assert.equal(D.companionYieldsGuardianOpening(guardian,100),false,
+    'the ally must not idle indefinitely if the player stays away');
+  assert.equal(D.armGuardianOpening(guardian,80,100),false,
+    'a distant player has not earned the short first-strike window');
+  assert.equal(D.companionYieldsGuardianOpening(guardian,100.2),false,
+    'the companion can still fight while the player has not approached');
   assert.equal(D.armGuardianOpening(guardian,55,100),true);
   assert.equal(D.companionYieldsGuardianOpening(guardian,100.5),true,
     'the ally should not consume the active player strike window');
