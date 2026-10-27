@@ -1497,6 +1497,25 @@
       sfx.haptic([20,45,20]);
     }
     const hasToken = state.tokenManager.requestToken(enemy.id, nowSec, 1.3);
+    const guardianAttack=window.CrownlessForestDiscoveries.guardianStrikeTell(
+      enemy,nowSec,
+      hasToken && Math.abs(dx)<48 && Math.abs(dz)<20 && target.state!=='DOWN',
+      hasToken && ['IDLE','WALK','RUN'].includes(enemy.state),
+      window.CrownlessHitRecovery.readyToStrike(enemy,nowSec),target.id);
+    if(guardianAttack==='start'){
+      spawnPopup('⚠ 番人が踏み込む！跳ぶか離れよう',enemy.x,enemy.z,enemy.y+65,'#fbbf24');
+      sfx.haptic([25,35,25]);
+    }
+    if(guardianAttack==='start' || guardianAttack==='warning'){
+      enemy.facing=dx>=0?1:-1;
+      return out;
+    }
+    if(guardianAttack==='strike'){
+      enemy.facing=dx>=0?1:-1;
+      out.punch=true;
+      window.CrownlessHitRecovery.registerEnemyStrike(enemy,nowSec);
+      return out;
+    }
 
     if (hasToken) {
       if (Math.abs(dx) < 48 && Math.abs(dz) < 20 && target.state !== 'DOWN') {
@@ -1504,7 +1523,8 @@
         // The original per-frame 12% attack lottery let two enemies chain
         // strikes faster than a hero could finish hitstun. Cool down only
         // successful attempts, retaining their random punch/kick choice.
-        if (window.CrownlessHitRecovery.readyToStrike(enemy, nowSec) &&
+        if (enemy.name!=='苔祠の番人' &&
+            window.CrownlessHitRecovery.readyToStrike(enemy, nowSec) &&
             (enemy.state === 'IDLE' || enemy.state === 'WALK' || enemy.state === 'RUN')) {
           if (Math.random() < 0.08) out.punch = true;
           else if (Math.random() < 0.04) out.kick = true;
@@ -2858,7 +2878,9 @@
           ? '👁 番人転倒中｜先手の機会を温存｜'
           : '👁 足跡の先読み 残り'+(Math.ceil((guardian.scoutOpeningEndsAt-nowSec)*10)/10).toFixed(1)+'秒：攻撃+12か回避｜'
       : behind ? '👂 背後に足音。振り向けば先手の機会｜' : '';
-    return lead+'⚠ 番人HP '+Math.ceil(guardian.hp)+'/'+guardian.maxHp+
+    const strikeCue=guardian.guardianTellUntil>nowSec
+      ? '⚠ 番人が踏み込む！跳ぶか離れよう｜' : '';
+    return strikeCue+lead+'⚠ 番人HP '+Math.ceil(guardian.hp)+'/'+guardian.maxHp+
       '｜倒すまで帰還不可｜未帰還の牙 '+unbanked+'個';
   }
 
