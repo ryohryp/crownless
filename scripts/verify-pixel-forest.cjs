@@ -90,6 +90,36 @@ async function hearGuardianBehind(page) {
   } finally { await keys(page,held,[]); }
 }
 
+// A player may ignore the earned footstep warning. In the actual 390px
+// encounter the threat must then advance into melee or combat must resume;
+// a permanently paused ally/guardian is not a meaningful risk choice.
+async function ignoreGuardianFootsteps(page) {
+  const start=Date.now();
+  const before=await read(page);
+  const initial=before.enemies.find(e=>e.name==='苔祠の番人' && e.hp>0);
+  assert(initial,'the ignored cue needs a living guardian');
+  const trace=[];
+  while (Date.now()-start<5000) {
+    await page.waitForTimeout(120);
+    const s=await read(page);
+    const guardian=s.enemies.find(e=>e.name==='苔祠の番人' && e.hp>0);
+    assert(guardian && s.phase==='fight' && s.player.hp>0,
+      'ignoring the warning must remain a playable encounter: '+JSON.stringify({s,trace}));
+    const gap=Math.hypot(guardian.x-s.player.x,guardian.z-s.player.z);
+    assert.equal(guardian.scoutOpeningActive,false,
+      'facing away must not start the earned strike countdown');
+    assert.equal(guardian.scoutStrikeClaimed,false,
+      'no automatic first-strike reward for ignoring the warning');
+    if (trace.length<30) trace.push({ms:Date.now()-start,gap:Math.round(gap),
+      hero:s.player.state,guardian:guardian.state,guardianHp:Math.ceil(guardian.hp)});
+    if (gap<=48 || guardian.hp<initial.hp || s.player.hp<before.player.hp) {
+      return {seconds:Math.round((Date.now()-start)/100)/10,gap:Math.round(gap),trace};
+    }
+  }
+  throw new Error('ignored footsteps left the guardian encounter without visible pressure: '+
+    JSON.stringify({state:await read(page),trace}));
+}
+
 // The guardian may be occupied with the ally. A player must deliberately
 // close the gap to earn the player-specific warning; waiting in place is not play.
 async function approachGuardianWarning(page) {
@@ -251,6 +281,9 @@ async function verifyTracksShrineRisk(page, crafted) {
       'the real footsteps cue must fit inside the phone viewport');
     await page.screenshot({path:path.join(output,
       'pixel-forest-guardian-footsteps-'+(crafted?'forged':'starter')+'-390.png')});
+    // The forged revisit tests the alternative of *not* responding immediately.
+    // The starter run still checks the direct turn-and-strike path.
+    const ignoredCue=crafted ? await ignoreGuardianFootsteps(page) : null;
     await approachGuardianWarning(page);
     await page.waitForFunction(() =>
       document.getElementById('forestExploreHint')?.textContent?.includes('足跡の先読み'),
