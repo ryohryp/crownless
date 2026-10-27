@@ -371,6 +371,26 @@ async function main() {
           const afterPunch=await read(page);
           assert(!afterPunch.found.includes('traces'),'punch must not auto-discover');
           assert.equal(afterPunch.unbanked,beforeClue.unbanked,'punch cannot grant clue loot');
+          // A real jump + site touch must not open an inspection or bank a
+          // reward midair. This covers the live input path, not only the VM
+          // rule test; the same untouched clue remains available on landing.
+          await page.keyboard.press('Space');
+          await page.waitForFunction(() => window.CrownlessForestReadout?.().player.state==='JUMP',
+            null,{timeout:2000});
+          const airborne=await read(page);
+          assert.equal(airborne.player.state,'JUMP','the browser must actually be airborne before the touch');
+          await tapSite(page,'traces');
+          const afterAirborneTap=await read(page);
+          assert(!afterAirborneTap.found.includes('traces'),
+            'a real touch during a jump must not discover the clue');
+          assert.equal(afterAirborneTap.unbanked,airborne.unbanked,
+            'a real midair clue touch must not grant unsecured materials');
+          assert.equal(await page.locator('#forestShrineChoice').isVisible(),false,
+            'blocked touch must not pause combat with a shrine choice');
+          assert.equal(await page.locator('#forestGateChoice').isVisible(),false,
+            'blocked touch must not pause combat with a gate choice');
+          await page.waitForFunction(() => ['IDLE','WALK'].includes(
+            window.CrownlessForestReadout?.().player.state),null,{timeout:3000});
           await tapSite(page,'traces');
           const afterTracks=await read(page);
           assert(afterTracks.found.includes('traces'),'walking and touching discovers tracks');
