@@ -224,14 +224,12 @@ async function verifyTracksShrineRisk(page, crafted) {
   if (guardian) {
     assert.equal(guardian.after.phase,'return',
       'defeating the guardian resumes ordinary exploration and safe return');
-    // The ally can keep the guardian down for the entire opening, leaving
-    // no legal normal strike for the player. Do not call that a successful
-    // first hit: record the missed opportunity and verify why it happened.
-    if (!guardian.scoutedFirstHit) {
-      assert(guardian.scoutTrace.some(frame=>frame.guardian==='DOWN' && frame.opening),
-        'a missed scouting bonus must have an observed ally-knockdown blocker: '+
-        JSON.stringify(guardian.scoutTrace));
-    }
+    // Reading the tracks must now produce an actual first-hit payoff in
+    // real touch/keyboard combat, not just a visible but unusable warning.
+    // Keep the trace on failure so AI timing or input issues can be diagnosed.
+    assert.equal(guardian.scoutedFirstHit,true,
+      'scouted player must land the earned +12 strike; trace='+
+      JSON.stringify(guardian.scoutTrace));
     assert.equal(await page.evaluate(() =>
       window.__forestHapticPatterns.filter(p=>Array.isArray(p)&&p.join(',')==='20,45,20').length),
       pulsesBefore+1,'later guardian attacks must not repeat the opening vibration');
