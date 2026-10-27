@@ -57,14 +57,20 @@ async function hearGuardianBehind(page) {
   let withinListeningDistance=false;
   try {
     while (Date.now()-start<7000) {
-      const s=await read(page);
+      // Sample the world and its HUD in one browser turn. Separate protocol
+      // calls can straddle a frame at the 95-unit sound threshold.
+      const {s,hint}=await page.evaluate(()=>({
+        s:window.CrownlessForestReadout(),
+        hint:document.getElementById('forestExploreHint')?.textContent||''
+      }));
       const guardian=s.enemies.find(e=>e.name==='苔祠の番人' && e.hp>0 && e.state!=='DEAD');
       assert(guardian && s.phase==='fight' && s.player.hp>0,
         'guardian must be alive while listening for footsteps: '+JSON.stringify({s,trace}));
       const dx=guardian.x-s.player.x, dz=guardian.z-s.player.z;
-      const hint=await page.locator('#forestExploreHint').innerText();
       if (hint.includes('背後に足音')) {
-        assert(Math.abs(dx)>10 && Math.abs(dx)<=95 && Math.abs(dz)<=25 &&
+        // The cue was computed in the preceding animation tick; allow at
+        // most one frame of movement, not a distant/hidden threat.
+        assert(Math.abs(dx)>10 && Math.abs(dx)<=99 && Math.abs(dz)<=25 &&
           Math.sign(dx)!==s.player.facing,
           'footsteps require a real nearby threat behind the hero: '+JSON.stringify({s,trace}));
         assert.equal(guardian.scoutOpeningActive,false,
