@@ -276,6 +276,8 @@ test('unforged explorers can heal at the gate edge without claiming blocked salv
   assert.match(html,/salvage\.disabled=!rpg\.crafted \|\| ginji\.hp<salvageCost\+1/);
   assert.match(html,/cautious\.disabled=!rpg\.crafted \|\| ginji\.hp<cautiousCost\+1/);
   assert.match(html,/茨の手前の薬草は使える。牙の回収には鍛冶剣が必要/);
+  assert.match(html,/rpg\.crafted\?'／牙 \+2は見送った':'／牙の回収には鍛冶剣が必要'/,
+    'the herb popup must not claim an unavailable fang reward was sacrificed');
 });
 test('stone gate offers either two provisional fangs or up to 45 HP, never both',()=>{
   const spot={x:910,z:235};
