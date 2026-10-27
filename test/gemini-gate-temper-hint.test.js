@@ -14,11 +14,14 @@ test('stone gate previews whether provisional fangs still advance the forged swo
     /あと4個（\+1なら残り3、\+2なら残り2）/,
     'each risky gate choice must show how far it advances the next upgrade');
   assert.match(hint({tempered:false,banked:3,unbanked:2},rules),
-    /素材は揃っている/,
-    'provisional loot may complete a goal but is not banked until a living return');
+    /生還すれば.*未帰還/,
+    'provisional loot must not be described as already available for smithing');
+  assert.match(hint({tempered:false,banked:0,unbanked:5},rules),
+    /生還すれば.*未帰還/,
+    'a full provisional bag still requires safe return before tempering');
   assert.match(hint({tempered:false,banked:5,unbanked:1},rules),
-    /素材は揃っている/,
-    'a full warehouse does not imply an imaginary further requirement');
+    /倉庫の牙だけで/,
+    'banked materials alone are immediately sufficient for the smith');
   assert.match(hint({tempered:true,banked:0,unbanked:0},rules),
     /追加強化はまだない/,
     'once tempered, the gate must not promise an endless upgrade loop');
