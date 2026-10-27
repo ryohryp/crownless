@@ -325,7 +325,7 @@ test('stone gate offers either two provisional fangs or up to 45 HP, never both'
     'healing must explicitly acknowledge the two provisional fangs forgone');
   assert.match(html,/tryExploreForest\(ginji,choice\)/,
     'phone choices must invoke the same authoritative reward rules');
-  assert.match(html,/salvage\.disabled=ginji\.hp<salvageCost\+1/,
+  assert.match(html,/salvage\.disabled=!rpg\.crafted \|\| ginji\.hp<salvageCost\+1/,
     'phone material choice must not be clickable at lethal HP');
   assert.match(html,/Math\.floor\(ginji\.hp-salvageCost\)/,
     'the phone decision previews surviving HP before taking the fangs');
