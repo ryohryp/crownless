@@ -198,17 +198,29 @@
         return 'none';
       }
       if(nowSec<enemy.guardianTellUntil) return 'warning';
+      const dodgedTargetId=enemy.guardianTellTargetId;
       enemy.guardianTellUntil=0;
       enemy.guardianTellTargetId=null;
-      if(inMelee && ready) return 'strike';
-      // Dodging the committed attack creates a real counterattack window.
-      enemy.nextStrikeAt=Math.max(enemy.nextStrikeAt||0,nowSec+0.8);
+      if(inMelee) return ready ? 'strike' : 'none';
+      // The defender really left the attack lane. Only a landed counter
+      // from that same defender can claim this one-time bonus.
+      enemy.guardianCounterUntil=nowSec+0.8;
+      enemy.guardianCounterTargetId=dodgedTargetId;
+      enemy.guardianCounterClaimed=false;
+      enemy.nextStrikeAt=Math.max(enemy.nextStrikeAt||0,enemy.guardianCounterUntil);
       return 'evaded';
     }
     if(!inMelee || !canAct || !ready) return 'none';
     enemy.guardianTellUntil=nowSec+0.65;
     enemy.guardianTellTargetId=targetId;
     return 'start';
+  }
+  const GUARDIAN_COUNTER_BONUS=8;
+  function guardianCounterStrikeBonus(enemy,nowSec,attackerId){
+    return enemy && enemy.name==='苔祠の番人' &&
+      attackerId!=null && enemy.guardianCounterTargetId===attackerId &&
+      !enemy.guardianCounterClaimed && Number.isFinite(nowSec) &&
+      enemy.guardianCounterUntil>nowSec ? GUARDIAN_COUNTER_BONUS : 0;
   }
   function guardianScoutStrikeBonus(enemy,nowSec){
     return enemy && enemy.name==='苔祠の番人' &&
@@ -265,5 +277,5 @@
       heal:gateHeal?Math.min(45,Math.max(0,maxHp-hp)):
         spot.kind==='healing' && !scavenge?Math.min(35,Math.max(0,maxHp-hp)):0};
   }
-  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,near,cueNear,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,guardianScoutStrikeBonus,guardianReadyForOpening,guardianBehindWarning,companionYieldsGuardianOpening,companionYieldsGuardianFootsteps,guardianTargetsExplorer,guardianStrikeTell,shrineRiskDamage,uncover};
+  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,near,cueNear,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,guardianScoutStrikeBonus,guardianReadyForOpening,guardianBehindWarning,companionYieldsGuardianOpening,companionYieldsGuardianFootsteps,guardianTargetsExplorer,guardianStrikeTell,guardianCounterStrikeBonus,shrineRiskDamage,uncover};
 });
