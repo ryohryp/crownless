@@ -54,6 +54,7 @@ async function hearGuardianBehind(page) {
   const held=new Set();
   const start=Date.now();
   const trace=[];
+  let withinListeningDistance=false;
   try {
     while (Date.now()-start<7000) {
       const s=await read(page);
@@ -76,9 +77,11 @@ async function hearGuardianBehind(page) {
         facing:s.player.facing,hero:s.player.state,guardian:guardian.state,hint:hint.slice(0,50)});
       const wanted=[];
       if (Math.abs(dz)>12) wanted.push(dz>0?'s':'w');
-      // Approach only to the sound radius, then deliberately face away.
-      // Never run an attack here: the bonus must still be available on turning.
-      if (Math.abs(dx)>95) wanted.push(dx>0?'d':'a');
+      // Reach the sound radius once, then stop and face away. Alternating
+      // toward/away at the 95-unit threshold kept the hero facing the enemy
+      // whenever the guardian recovered from the ally's hitstun.
+      if (Math.abs(dx)<=110) withinListeningDistance=true;
+      if (!withinListeningDistance) wanted.push(dx>0?'d':'a');
       else if (Math.sign(dx)===s.player.facing) wanted.push(dx>0?'a':'d');
       await keys(page,held,wanted);
       await page.waitForTimeout(55);
