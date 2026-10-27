@@ -62,7 +62,9 @@ async function approachGuardianWarning(page) {
       if (guardian.scoutOpeningActive) return s;
       const dx=guardian.x-s.player.x, dz=guardian.z-s.player.z;
       const wanted=[];
-      if (Math.abs(dx)>40) wanted.push(dx>0?'d':'a');
+      // Turning toward the guardian is part of earning a usable opening.
+      if (Math.abs(dx)>40 || (Math.abs(dx)>10 && Math.sign(dx)!==s.player.facing))
+        wanted.push(dx>0?'d':'a');
       if (Math.abs(dz)>12) wanted.push(dz>0?'s':'w');
       await keys(page,held,wanted);
       await page.waitForTimeout(55);
