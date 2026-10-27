@@ -112,23 +112,24 @@ test('after smithing, more returned fangs offer a real next-expedition attack up
 
 function shrineGoal(state) {
   const html = fs.readFileSync('gemini-feel-lab.html', 'utf8');
-  const start = html.indexOf('const nextGoalCost=rpg.crafted?');
-  const end = html.indexOf("document.getElementById('forestShrineStakes')", start);
-  assert(start >= 0 && end > start, 'the actual shrine smithing preview must be present');
+  const source=html.match(/function forestShrineCraftHint\\(run,rules\\) \\{[\\s\\S]*?\\n  \\}/);
+  assert.ok(source,'the actual shrine smithing preview must be present');
   const rpg = { banked: 0, unbanked: 0, crafted: false, tempered: false, ...state };
-  return vm.runInNewContext('(() => { ' + html.slice(start, end) +
-    '; return forgeChoice; })()', { rpg, rpgRules: { COST: 3, TEMPER_COST: 5 } },
-    { timeout: 1000 });
+  const hint=vm.runInNewContext('('+source[0]+')',{}, { timeout: 1000 });
+  return hint(rpg,{ COST: 3, TEMPER_COST: 5 });
 }
 
 test('shrine material-or-healing choice previews the real next smithing milestone', () => {
   assert.match(shrineGoal({ banked: 1, unbanked: 1 }),
     /鍛冶剣まで牙あと1個（\+1なら残り0、\+2なら残り0）/);
-  assert.match(shrineGoal({ banked: 2, unbanked: 1 }), /鍛冶剣の素材は揃っている/);
+  assert.match(shrineGoal({ banked: 2, unbanked: 1 }), /生還すれば鍛冶剣の素材が揃う.*未帰還/);
+  assert.match(shrineGoal({ banked: 3 }), /倉庫の牙だけで鍛冶剣を作れる/);
   assert.match(shrineGoal({ crafted: true, banked: 1, unbanked: 2 }),
     /剣の研ぎ直しまで牙あと2個（\+1なら残り1、\+2なら残り0）/);
+  assert.match(shrineGoal({ crafted: true, banked: 1, unbanked: 4 }),
+    /生還すれば剣の研ぎ直し素材が揃う.*未帰還/);
   assert.match(shrineGoal({ crafted: true, banked: 5 }),
-    /剣の研ぎ直し素材は揃っている（攻撃\+4）/);
+    /倉庫の牙だけで剣を研ぎ直せる（攻撃\+4）/);
   const done = shrineGoal({ crafted: true, tempered: true, banked: 7 });
   assert.match(done, /牙の追加強化はまだない/);
   assert.doesNotMatch(done, /研ぎ直しまで牙あと|研ぎ直し素材は揃っている/,
