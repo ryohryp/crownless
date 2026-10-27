@@ -1912,7 +1912,9 @@
     if (!window.CrownlessForestDiscoveries.canInspect(ginji,rpg.phase)) {
       if (site && !state.forestFinds.has(site.id) && ginji.state!=='DEAD' &&
           Math.hypot(ginji.x-site.x,ginji.z-site.z)<window.CrownlessForestDiscoveries.RANGE) {
-        spawnPopup('体勢を立て直してから調べよう',ginji.x,ginji.z,ginji.y+48,'#fef08a');
+        spawnPopup(['ATTACK','SPECIAL','JUMP'].includes(ginji.state)
+          ? '動作を終えてから調べよう' : '体勢を立て直してから調べよう',
+          ginji.x,ginji.z,ginji.y+48,'#fef08a');
         return true;
       }
       return false;
