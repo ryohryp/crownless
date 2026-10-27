@@ -784,6 +784,32 @@ test('reading tracks rewards one landed early guardian hit, never a miss or late
   assert.match(hit,/先手成功！/,'the earned early hit must show immediate feedback');
 });
 
+test('companion yields the scouted guardian opening until the player acts or it expires',()=>{
+  const guardian={name:'苔祠の番人',scoutOpeningSeconds:1.8};
+  assert.equal(D.companionYieldsGuardianOpening(guardian,100),true,
+    'the companion should not knock down a scouted guardian before the player approaches');
+  assert.equal(D.armGuardianOpening(guardian,55,100),true);
+  assert.equal(D.companionYieldsGuardianOpening(guardian,100.5),true,
+    'the ally should not consume the active player strike window');
+  guardian.scoutStrikeClaimed=true;
+  assert.equal(D.companionYieldsGuardianOpening(guardian,100.5),false,
+    'the companion can help after the player lands the earned strike');
+  guardian.scoutStrikeClaimed=false;
+  assert.equal(D.companionYieldsGuardianOpening(guardian,101.8),false,
+    'the companion resumes after the opening expires even if the player evades');
+  assert.equal(D.companionYieldsGuardianOpening({...guardian,scoutOpeningSeconds:0},100.5),false,
+    'unscouted guardian fights retain normal companion support');
+  assert.equal(D.companionYieldsGuardianOpening({...guardian,name:'森のゴブリン'},100.5),false,
+    'ordinary enemies retain normal companion support');
+  assert.equal(D.companionYieldsGuardianOpening(guardian,NaN),false);
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const ai=html.slice(html.indexOf('function sampleCompanionAI('),html.indexOf('function sampleEnemyAI('));
+  assert.match(ai,/companionYieldsGuardianOpening\([\s\S]*?scoutedGuardian,performance\.now\(\)\/1000\)\) return out;/,
+    'the real companion AI must honor the earned opening');
+  assert.match(ai,/!\['HURT','DOWN','GRAB'\]\.includes\(ginji\.state\)/,
+    'the ally must still protect an incapacitated explorer');
+});
+
 test('shrine guardian cannot be repeatedly grabbed while recovering from a throw',()=>{
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   const helper=html.match(/function canGrabEnemy\(f, other\) \{[\s\S]*?\n  \}/);
