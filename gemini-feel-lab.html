@@ -1883,6 +1883,21 @@
       '、+2なら残り'+Math.max(0,need-2)+'）。';
   }
 
+  // A bag that has not reached camp cannot yet pay the smith.
+  function forestShrineCraftHint(run,rules) {
+    if (run.tempered) return '剣は研ぎ直し済み。牙の追加強化はまだない。';
+    const cost=run.crafted?rules.TEMPER_COST:rules.COST;
+    const need=Math.max(0,cost-run.banked-run.unbanked);
+    if (run.banked>=cost) return run.crafted
+      ? '倉庫の牙だけで剣を研ぎ直せる（攻撃+4）。'
+      : '倉庫の牙だけで鍛冶剣を作れる。';
+    if (need===0) return run.crafted
+      ? '生還すれば剣の研ぎ直し素材が揃う（攻撃+4／今は未帰還）。'
+      : '生還すれば鍛冶剣の素材が揃う（今は未帰還）。';
+    return (run.crafted?'剣の研ぎ直し':'鍛冶剣')+'まで牙あと'+need+
+      '個（+1なら残り'+Math.max(0,need-1)+'、+2なら残り'+Math.max(0,need-2)+'）。';
+  }
+
   function tryTapForestSite(clientX,clientY,allowNearby) {
     if (!ginji || ginji.state==='DEAD' ||
         !window.CrownlessForestDiscoveries.available(rpg.phase)) return false;
@@ -1945,16 +1960,7 @@
       heal.textContent=missing ? '傷を癒やす（HP +'+Math.min(35,missing)+'・素材なし）' : '傷がないため回復不可';
       // Show what each material route would mean for the next smithing goal.
       // A promising extra fang matters only if the adventurer returns alive.
-      const nextGoalCost=rpg.crafted?rpgRules.TEMPER_COST:rpgRules.COST;
-      const nextGoalNeed=Math.max(0,nextGoalCost-rpg.banked-rpg.unbanked);
-      const forgeChoice=rpg.tempered?'剣は研ぎ直し済み。牙の追加強化はまだない。':
-        rpg.crafted
-          ? nextGoalNeed===0?'剣の研ぎ直し素材は揃っている（攻撃+4）。':
-            '剣の研ぎ直しまで牙あと'+nextGoalNeed+'個（+1なら残り'+Math.max(0,nextGoalNeed-1)+
-            '、+2なら残り'+Math.max(0,nextGoalNeed-2)+'）。'
-          : nextGoalNeed===0?'鍛冶剣の素材は揃っている。':
-            '鍛冶剣まで牙あと'+nextGoalNeed+'個（+1なら残り'+Math.max(0,nextGoalNeed-1)+
-            '、+2なら残り'+Math.max(0,nextGoalNeed-2)+'）。';
+      const forgeChoice=forestShrineCraftHint(rpg,rpgRules);
       document.getElementById('forestShrineStakes').textContent=
         '現在 HP '+Math.floor(ginji.hp)+'/'+ginji.maxHp+'、未帰還の牙 '+rpg.unbanked+
         '個。'+forgeChoice+'素材は生還時だけ倉庫に残る（敗北すると失う）。';

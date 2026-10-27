@@ -442,13 +442,15 @@ async function main() {
         const forgeCost=stakesAtChoice.crafted?rpgRules.TEMPER_COST:rpgRules.COST;
         const forgeNeed=Math.max(0,forgeCost-stakesAtChoice.banked-stakesAtChoice.unbanked);
         const forgeChoice=stakesAtChoice.tempered?'剣は研ぎ直し済み。牙の追加強化はまだない。':
-          stakesAtChoice.crafted
-            ? forgeNeed===0?'剣の研ぎ直し素材は揃っている（攻撃+4）。':
-              '剣の研ぎ直しまで牙あと'+forgeNeed+'個（+1なら残り'+Math.max(0,forgeNeed-1)+
-              '、+2なら残り'+Math.max(0,forgeNeed-2)+'）。'
-            : forgeNeed===0?'鍛冶剣の素材は揃っている。':
-              '鍛冶剣まで牙あと'+forgeNeed+'個（+1なら残り'+Math.max(0,forgeNeed-1)+
-              '、+2なら残り'+Math.max(0,forgeNeed-2)+'）。';
+          stakesAtChoice.banked>=forgeCost
+            ? stakesAtChoice.crafted?'倉庫の牙だけで剣を研ぎ直せる（攻撃+4）。':
+              '倉庫の牙だけで鍛冶剣を作れる。'
+            : forgeNeed===0
+              ? stakesAtChoice.crafted?'生還すれば剣の研ぎ直し素材が揃う（攻撃+4／今は未帰還）。':
+                '生還すれば鍛冶剣の素材が揃う（今は未帰還）。'
+              : (stakesAtChoice.crafted?'剣の研ぎ直し':'鍛冶剣')+
+                'まで牙あと'+forgeNeed+'個（+1なら残り'+Math.max(0,forgeNeed-1)+
+                '、+2なら残り'+Math.max(0,forgeNeed-2)+'）。';
         assert.equal(await page.locator('#forestShrineStakes').textContent(),
           '現在 HP '+Math.floor(stakesAtChoice.player.hp)+'/'+stakesAtChoice.player.maxHp+
           '、未帰還の牙 '+stakesAtChoice.unbanked+
