@@ -412,8 +412,23 @@ async function main() {
           assert.match(gateHint,/茨の奥で何かが軋む/,'the gate first offers a sensory clue');
           assert.doesNotMatch(gateHint,/風裂きの剣|鍛冶/,'the gate must be inspected before spoiling its solution');
           await tapSite(page,'hollow');
+          const unarmedGate=page.locator('#forestGateChoice');
+          assert(await unarmedGate.isVisible(),
+            'without a sword, inspecting the gate offers the reachable herbs instead of a dead end');
+          assert.equal(await page.locator('#forestGateMaterial').isDisabled(),true,
+            'unforged explorers cannot take the thorn-blocked two-fang reward');
+          assert.equal(await page.locator('#forestGateCautious').isDisabled(),true,
+            'unforged explorers cannot take the thorn-blocked cautious reward');
+          assert.equal(await page.locator('#forestGateHeal').isEnabled(),true,
+            'a wounded explorer can use the herbs without forging a sword');
+          const unarmedGateBounds=await page.locator('#forestGateChoice > div').boundingBox();
+          assert(unarmedGateBounds && unarmedGateBounds.y>=0 &&
+            unarmedGateBounds.y+unarmedGateBounds.height<=page.viewportSize().height,
+            'the swordless herb choice fits the 390px phone viewport');
+          await page.screenshot({path:path.join(output,'pixel-forest-unforged-gate-herbs-390.png')});
+          await page.locator('#forestGateCancel').click();
           const locked=await read(page);
-          assert(!locked.found.includes('hollow'),'unforged hero cannot claim the sealed hollow');
+          assert(!locked.found.includes('hollow'),'declining the swordless herb choice keeps the gate unspent');
           assert.equal(locked.unbanked,lockedBefore.unbanked,'locked hollow grants no material');
           await page.screenshot({path:path.join(output,'pixel-forest-hollow-locked.png')});
           await page.locator('#rpgOpenResults').click();
