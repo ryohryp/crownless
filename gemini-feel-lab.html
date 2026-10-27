@@ -1872,6 +1872,16 @@
     return true;
   }
 
+  // The gate's +1/+2 fangs are only worth an injury if they still advance
+  // a real smithing goal. Do not imply unlimited upgrades after tempering.
+  function forestGateTemperHint(run,rules) {
+    if (run.tempered) return '剣は研ぎ直し済み。牙の追加強化はまだない。';
+    const need=Math.max(0,rules.TEMPER_COST-run.banked-run.unbanked);
+    return need===0 ? '剣の研ぎ直し素材は揃っている。' :
+      '剣の研ぎ直しまで牙あと'+need+'個（+1なら残り'+Math.max(0,need-1)+
+      '、+2なら残り'+Math.max(0,need-2)+'）。';
+  }
+
   function tryTapForestSite(clientX,clientY,allowNearby) {
     if (!ginji || ginji.state==='DEAD' ||
         !window.CrownlessForestDiscoveries.available(rpg.phase)) return false;
@@ -1913,7 +1923,8 @@
         : '傷がないため回復不可';
       document.getElementById('forestGateStakes').textContent=
         '現在 HP '+Math.floor(ginji.hp)+'/'+ginji.maxHp+'、未帰還の牙 '+rpg.unbanked+
-        '個。慎重に牙 +1（HP -'+cautiousCost+'）、強引に牙 +2（HP -'+salvageCost+'）、または薬草で回復。一度だけ選べる。素材は生還時だけ倉庫に残り、敗北すると失う。';
+        '個。'+forestGateTemperHint(rpg,rpgRules)+
+        '慎重に牙 +1（HP -'+cautiousCost+'）、強引に牙 +2（HP -'+salvageCost+'）、または薬草で回復。一度だけ選べる。素材は生還時だけ倉庫に残り、敗北すると失う。';
       panel.classList.remove('hidden');
       return true;
     }
