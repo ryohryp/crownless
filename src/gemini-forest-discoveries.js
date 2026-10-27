@@ -147,6 +147,22 @@
       Math.abs(enemy.z-player.z)<=25 &&
       Math.sign(dx)!==player.facing;
   }
+  // When scouted footsteps are close behind, let the guardian recover and
+  // approach instead of letting the ally repeatedly knock it out of earshot.
+  // This is proximity-limited, not a distant/indefinite ally ceasefire:
+  // turning, losing control, or skipping tracks restores normal protection.
+  function companionYieldsGuardianFootsteps(player,enemy,found){
+    if(!player || !enemy || !found?.has('traces') ||
+       enemy.name!=='苔祠の番人' || !(enemy.scoutOpeningSeconds>0) ||
+       enemy.scoutOpeningArmed || enemy.scoutStrikeClaimed || !(enemy.hp>0) ||
+       !Number.isFinite(player.x) || !Number.isFinite(enemy.x) ||
+       !Number.isFinite(player.z) || !Number.isFinite(enemy.z) ||
+       ![-1,1].includes(player.facing) ||
+       ['DEAD','HURT','DOWN','GRAB','ATTACK','SPECIAL','JUMP'].includes(player.state)) return false;
+    const dx=enemy.x-player.x;
+    return Math.abs(dx)>10 && Math.abs(dx)<=120 &&
+      Math.abs(enemy.z-player.z)<=25 && Math.sign(dx)!==player.facing;
+  }
   function guardianScoutStrikeBonus(enemy,nowSec){
     return enemy && enemy.name==='苔祠の番人' &&
       enemy.scoutOpeningArmed && !enemy.scoutStrikeClaimed &&
@@ -202,5 +218,5 @@
       heal:gateHeal?Math.min(45,Math.max(0,maxHp-hp)):
         spot.kind==='healing' && !scavenge?Math.min(35,Math.max(0,maxHp-hp)):0};
   }
-  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,near,cueNear,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,guardianScoutStrikeBonus,guardianReadyForOpening,guardianBehindWarning,companionYieldsGuardianOpening,shrineRiskDamage,uncover};
+  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,near,cueNear,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,guardianScoutStrikeBonus,guardianReadyForOpening,guardianBehindWarning,companionYieldsGuardianOpening,companionYieldsGuardianFootsteps,shrineRiskDamage,uncover};
 });
