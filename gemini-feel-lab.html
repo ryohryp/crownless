@@ -1877,8 +1877,9 @@
   function forestGateTemperHint(run,rules) {
     if (run.tempered) return '剣は研ぎ直し済み。牙の追加強化はまだない。';
     const need=Math.max(0,rules.TEMPER_COST-run.banked-run.unbanked);
-    return need===0 ? '剣の研ぎ直し素材は揃っている。' :
-      '剣の研ぎ直しまで牙あと'+need+'個（+1なら残り'+Math.max(0,need-1)+
+    if (run.banked>=rules.TEMPER_COST) return '倉庫の牙だけで剣を研ぎ直せる。';
+    if (need===0) return '生還すれば剣の研ぎ直し素材が揃う（今は未帰還）。';
+    return '剣の研ぎ直しまで牙あと'+need+'個（+1なら残り'+Math.max(0,need-1)+
       '、+2なら残り'+Math.max(0,need-2)+'）。';
   }
 
