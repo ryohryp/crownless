@@ -26,7 +26,9 @@ test('compiled Canon exposes the subjectless background policy', () => {
   assert.equal(compiledCanon.grand_design.asset_types.background.source_reference_required, false);
   assert.match(compiledCanon.source_revision, /^[a-f0-9]{64}$/);
   assert.equal(manifest.documents.globalReference, 'docs/assets/player-unarmed-approved-pixel-anchor-v1.png', 'use the explicitly approved pixel image, never the historical board');
-  assert.deepEqual(Object.keys(manifest.subjects).sort(), ['player-unarmed','player-unarmed-pixel'], 'only original protagonist and approved pixel variant are registered');
+  assert.deepEqual(Object.keys(manifest.subjects).sort(), ['adventurer_a', 'player-unarmed', 'player-unarmed-pixel'], 'Adventurer A is registered separately from both original protagonist identities');
+  const adventurerA = compiledCanon.subjects.find((subject) => subject.subject_id === 'adventurer_a');
+  assert.equal(adventurerA?.approved_anchor_path, 'docs/assets/adventurer-a-approved-anchor-v1.png');
   assert.equal(compiledCanon.global_reference_path, manifest.documents.globalReference);
   assert.match(compiledCanon.global_style_lock, /Japanese sumi-e.*washi/i);
   assert.deepEqual(compiledCanon.grand_design, grandDesign);

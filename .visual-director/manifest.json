@@ -26,6 +26,11 @@
       "display_name": "素手の主人公",
       "character_file": "docs/visual/CHARACTER_VISUAL_CANON.md",
       "canon_heading": "素手の主人公"
+    },
+    "adventurer_a": {
+      "display_name": "冒険者A",
+      "character_file": "docs/visual/CHARACTER_VISUAL_CANON.md",
+      "canon_heading": "冒険者A"
     }
   }
 }
