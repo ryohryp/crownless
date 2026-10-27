@@ -136,9 +136,9 @@ test('deep shrine search cannot grant unguarded loot before the initial wave is 
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   assert.match(html,/risk\.disabled=ginji\.hp<riskCost\+1 \|\| rpg\.phase!=='return'/,
     'the phone action must be disabled during the initial wave');
-  assert.match(html,/魔物を倒してから／番人が待っている/,
+  assert.match(html,/魔物を倒してから／奥に気配がある/,
     'the unavailable option explains when and why it becomes available');
-  assert.ok(html.includes("番人が待っている｜HP -'+riskCost+'・未帰還素材 +2"),
+  assert.ok(html.includes("奥に気配がある｜HP -'+riskCost+'・未帰還素材 +2／追加戦闘"),
     'even before clearing enemies, the disabled risky route must preview its equipment-dependent HP cost and two provisional materials');
 });
 
@@ -554,16 +554,18 @@ test('unavailable deep shrine search still previews its cost, reward and guardia
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   const expression=html.match(/risk\.textContent=([\s\S]*?);\s*heal\.textContent=/)?.[1];
   assert.ok(expression,'the actual risk button label expression must exist');
+  assert.doesNotMatch(expression,/番人|苔祠/,
+    'the pre-choice hint must warn of a fight without spoiling the guardian identity');
   const label=Function('risk','rpg','riskCost','ginji','state','return ('+expression+');');
   const state={forestFinds:new Set()};
   const weak=label({disabled:true},{phase:'return',crafted:false},12,{hp:12},state);
-  assert.match(weak,/HP -12.*未帰還素材 \+2.*番人戦.*HP 13以上必要/,
+  assert.match(weak,/HP -12.*未帰還素材 \+2.*追加戦闘・撃退まで帰還不可.*HP 13以上必要/,
     'even at low HP, show the real risk and possible reward before a safe return');
   const fighting=label({disabled:true},{phase:'fight',crafted:false},12,{hp:140},state);
   assert.match(fighting,/魔物を倒してから.*HP -12.*未帰還素材 \+2/,
     'the existing combat lockout and reward preview remain intact');
   const ready=label({disabled:false},{phase:'return',crafted:false},12,{hp:14},state);
-  assert.match(ready,/HP -12.*→残り2.*未帰還素材 \+2/,
+  assert.match(ready,/HP -12.*→残り2.*未帰還素材 \+2.*追加戦闘あり・撃退まで帰還不可/,
     'an eligible player still sees the exact remaining HP and reward');
 });
 
@@ -603,7 +605,7 @@ test('both forest art modes show sensory cues until a landmark is actually found
 
 test('post-victory deep search wakes one optional guardian before risky loot can be banked',()=>{
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
-  assert.match(html,/rpg\.phase==='return'\?'／物音で番人が来る・撃退まで帰還不可'/,
+  assert.match(html,/rpg\.phase==='return'\?'／奥に気配・追加戦闘あり・撃退まで帰還不可'/,
     'the risky option must warn before the player commits');
   assert.match(html,/choice==='risk' && wasClear &&[\s\S]*?rpgRules\.pushDeeper\(rpg\)/,
     'only a chosen deep search after victory starts another fight');
@@ -638,7 +640,7 @@ test('reading tracks gives reaction distance against the optional shrine guardia
   assert.equal(found.has('shrine'),false,'scouting must not consume or reveal the shrine');
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   assert.match(html,/ginji\.x \+ window\.CrownlessForestDiscoveries\.guardianApproachDistance\(state\.forestFinds\)/);
-  assert.match(html,/足跡を読んで負傷 -3・番人の接近を早く察知/);
+  assert.match(html,/足跡を読んで負傷 -3・接近する物音を早く察知/);
   assert.match(html,/spawnEnemyWave\(state\.waveCount,1,true\)/,'scouting must not bypass the guardian');
 });
 

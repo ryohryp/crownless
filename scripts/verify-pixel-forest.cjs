@@ -154,12 +154,12 @@ async function verifyTracksShrineRisk(page, crafted) {
     'the shrine previews the actual remaining HP before committing');
   assert.match(await risk.innerText(),/足跡を読んで負傷 -3/,
     'the UI must explain why the risk is reduced');
-  assert.match(await risk.innerText(),/番人の接近を早く察知/,
+  assert.match(await risk.innerText(),/接近する物音を早く察知/,
     'the decision should explain the scouting benefit before commitment');
   const wasClear=before.phase==='return';
   const pulsesBefore=await page.evaluate(() =>
     window.__forestHapticPatterns.filter(p=>Array.isArray(p)&&p.join(',')==='20,45,20').length);
-  if (wasClear) assert.match(await risk.innerText(),/番人が来る・撃退まで帰還不可/,
+  if (wasClear) assert.match(await risk.innerText(),/奥に気配・追加戦闘あり・撃退まで帰還不可/,
     'post-victory extra loot must warn about a real guardian before tapping');
   await risk.click();
   const after=await read(page);
