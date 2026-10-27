@@ -1361,15 +1361,17 @@
       return out;
     }
 
-    // Yield only after the player actually approaches and arms the earned
-    // opening. Before that, the ally must not stand idle if the guardian
-    // engages it while the player stays back. Once armed, preserve the
-    // player's first strike; protect Ginji if he becomes incapacitated.
+    // Keep the ally active while the player stays far away, but let a
+    // nearby scouted threat recover long enough to be heard from behind.
+    // Once the hero turns, normal support resumes until the armed strike
+    // window, when the ally yields the earned first hit again.
     const scoutedGuardian=state.fighters.find(f=>
       f.team===1 && f.name==='苔祠の番人' && f.state!=='DEAD');
     if (scoutedGuardian && !['HURT','DOWN','GRAB'].includes(ginji.state) &&
-        window.CrownlessForestDiscoveries.companionYieldsGuardianOpening(
-          scoutedGuardian,performance.now()/1000)) return out;
+        (window.CrownlessForestDiscoveries.companionYieldsGuardianOpening(
+          scoutedGuardian,performance.now()/1000) ||
+         window.CrownlessForestDiscoveries.companionYieldsGuardianFootsteps(
+          ginji,scoutedGuardian,state.forestFinds))) return out;
 
     for (const item of state.items) {
       if (item.thrownTeam !== -1) continue;
