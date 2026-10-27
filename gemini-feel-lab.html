@@ -1361,6 +1361,16 @@
       return out;
     }
 
+    // A scouted guardian is the player's earned opening, not the ally's.
+    // Hold companion attacks (including knockdowns) until the player lands
+    // the first strike or the reaction window expires. If Ginji is unable
+    // to act, the companion can still protect him.
+    const scoutedGuardian=state.fighters.find(f=>
+      f.team===1 && f.name==='苔祠の番人' && f.state!=='DEAD');
+    if (scoutedGuardian && !['HURT','DOWN','GRAB'].includes(ginji.state) &&
+        window.CrownlessForestDiscoveries.companionYieldsGuardianOpening(
+          scoutedGuardian,performance.now()/1000)) return out;
+
     for (const item of state.items) {
       if (item.thrownTeam !== -1) continue;
       if (item.type === 'coin' || (!selfFighter.heldWeapon && (item.type === 'katana' || item.type === 'stone'))) {
