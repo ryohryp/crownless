@@ -80,7 +80,7 @@ async function hearGuardianBehind(page) {
       // Reach the sound radius once, then stop and face away. Alternating
       // toward/away at the 95-unit threshold kept the hero facing the enemy
       // whenever the guardian recovered from the ally's hitstun.
-      if (Math.abs(dx)<=110) withinListeningDistance=true;
+      if (Math.abs(dx)<=85) withinListeningDistance=true;
       if (!withinListeningDistance) wanted.push(dx>0?'d':'a');
       else if (Math.sign(dx)===s.player.facing) wanted.push(dx>0?'a':'d');
       await keys(page,held,wanted);
