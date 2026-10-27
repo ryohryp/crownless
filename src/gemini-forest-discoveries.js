@@ -185,6 +185,31 @@
       Number.isFinite(hero.x) && Number.isFinite(hero.z) &&
       Math.hypot(hero.x-enemy.x,hero.z-enemy.z)<=200);
   }
+  // Unlike the old per-frame attack lottery, the shrine guardian announces
+  // one close-range strike. Stepping out of range or jumping can avoid it;
+  // the warning is cancelled if the guardian is stunned or changes target.
+  // Other enemies keep their existing attack behavior.
+  function guardianStrikeTell(enemy,nowSec,inMelee,canAct,ready,targetId){
+    if(!enemy || enemy.name!=='苔祠の番人' || !Number.isFinite(nowSec)) return 'none';
+    if(enemy.guardianTellUntil>0){
+      if(!canAct || enemy.guardianTellTargetId!==targetId){
+        enemy.guardianTellUntil=0;
+        enemy.guardianTellTargetId=null;
+        return 'none';
+      }
+      if(nowSec<enemy.guardianTellUntil) return 'warning';
+      enemy.guardianTellUntil=0;
+      enemy.guardianTellTargetId=null;
+      if(inMelee && ready) return 'strike';
+      // Dodging the committed attack creates a real counterattack window.
+      enemy.nextStrikeAt=Math.max(enemy.nextStrikeAt||0,nowSec+0.8);
+      return 'evaded';
+    }
+    if(!inMelee || !canAct || !ready) return 'none';
+    enemy.guardianTellUntil=nowSec+0.65;
+    enemy.guardianTellTargetId=targetId;
+    return 'start';
+  }
   function guardianScoutStrikeBonus(enemy,nowSec){
     return enemy && enemy.name==='苔祠の番人' &&
       enemy.scoutOpeningArmed && !enemy.scoutStrikeClaimed &&
@@ -240,5 +265,5 @@
       heal:gateHeal?Math.min(45,Math.max(0,maxHp-hp)):
         spot.kind==='healing' && !scavenge?Math.min(35,Math.max(0,maxHp-hp)):0};
   }
-  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,near,cueNear,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,guardianScoutStrikeBonus,guardianReadyForOpening,guardianBehindWarning,companionYieldsGuardianOpening,companionYieldsGuardianFootsteps,guardianTargetsExplorer,shrineRiskDamage,uncover};
+  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,near,cueNear,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,guardianScoutStrikeBonus,guardianReadyForOpening,guardianBehindWarning,companionYieldsGuardianOpening,companionYieldsGuardianFootsteps,guardianTargetsExplorer,guardianStrikeTell,shrineRiskDamage,uncover};
 });
