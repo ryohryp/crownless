@@ -127,6 +127,27 @@ test('ally yields only for an actionable, nearby scouted threat behind the hero'
     'the live companion must use the same bounded behind-cue yield rule');
 });
 
+test('the shrine guardian pursues a nearby active explorer, not a nearer companion',()=>{
+  const hero={x:0,z:230,state:'IDLE'};
+  const guardian={name:'苔祠の番人',x:170,z:230,state:'IDLE'};
+  assert.equal(D.guardianTargetsExplorer(guardian,hero),true,
+    'choosing the risky shrine search should make the guardian a personal threat');
+  assert.equal(D.guardianTargetsExplorer({...guardian,x:201},hero),false,
+    'a distant player must not strand the companion in an unwinnable chase');
+  assert.equal(D.guardianTargetsExplorer({...guardian,x:200},hero),true);
+  assert.equal(D.guardianTargetsExplorer(guardian,{...hero,state:'DOWN'}),false,
+    'a downed player must not cause guardian AI to stall while an ally can defend');
+  assert.equal(D.guardianTargetsExplorer(guardian,{...hero,state:'DEAD'}),false);
+  assert.equal(D.guardianTargetsExplorer(guardian,{...hero,state:'GRAB'}),false);
+  assert.equal(D.guardianTargetsExplorer({...guardian,name:'苔牙ゴブリン'},hero),false,
+    'ordinary enemies still choose the nearest living target');
+  assert.equal(D.guardianTargetsExplorer(guardian,null),false);
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const ai=html.slice(html.indexOf('function sampleEnemyAI('),html.indexOf('function updateFighter('));
+  assert.match(ai,/guardianTargetsExplorer\\(enemy,ginji\\)/,
+    'the live guardian must use the same proximity and recovery rule');
+});
+
 test('scouted footsteps behind the hero invite a turn without spending the strike timer',()=>{
   const tracks=new Set(['traces']);
   const hero={x:0,z:230,state:'IDLE',facing:-1};

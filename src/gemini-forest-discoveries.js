@@ -174,6 +174,17 @@
     return Math.abs(dx)>48 && Math.abs(dx)<=120 &&
       Math.abs(enemy.z-player.z)<=25 && Math.sign(dx)!==player.facing;
   }
+  // The optional shrine guardian should threaten the explorer who chose
+  // to search deeper, not spend the entire short fight hitting a nearer ally.
+  // Fall back to ordinary nearest-target AI when the hero is down or distant,
+  // so companion protection and recovery cannot stall the encounter.
+  function guardianTargetsExplorer(enemy,hero){
+    return Boolean(enemy && enemy.name==='苔祠の番人' && hero &&
+      !['DEAD','DOWN','GRAB'].includes(hero.state) &&
+      Number.isFinite(enemy.x) && Number.isFinite(enemy.z) &&
+      Number.isFinite(hero.x) && Number.isFinite(hero.z) &&
+      Math.hypot(hero.x-enemy.x,hero.z-enemy.z)<=200);
+  }
   function guardianScoutStrikeBonus(enemy,nowSec){
     return enemy && enemy.name==='苔祠の番人' &&
       enemy.scoutOpeningArmed && !enemy.scoutStrikeClaimed &&
@@ -229,5 +240,5 @@
       heal:gateHeal?Math.min(45,Math.max(0,maxHp-hp)):
         spot.kind==='healing' && !scavenge?Math.min(35,Math.max(0,maxHp-hp)):0};
   }
-  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,near,cueNear,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,guardianScoutStrikeBonus,guardianReadyForOpening,guardianBehindWarning,companionYieldsGuardianOpening,companionYieldsGuardianFootsteps,shrineRiskDamage,uncover};
+  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,near,cueNear,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,guardianScoutStrikeBonus,guardianReadyForOpening,guardianBehindWarning,companionYieldsGuardianOpening,companionYieldsGuardianFootsteps,guardianTargetsExplorer,shrineRiskDamage,uncover};
 });
