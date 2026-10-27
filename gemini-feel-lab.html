@@ -1899,13 +1899,24 @@
   }
 
   function tryTapForestSite(clientX,clientY,allowNearby) {
-    if (!window.CrownlessForestDiscoveries.canInspect(ginji,rpg.phase)) return false;
+    if (!ginji || !window.CrownlessForestDiscoveries.available(rpg.phase)) return false;
     const site=window.CrownlessForestDiscoveries.spotAtTap(
       {x:clientX,y:clientY},canvas.getBoundingClientRect(),{width:virtualW,height:VIRTUAL_H},
       state.cameraX,getGroundHeightAt);
     // Only taps on a visible clue investigate it; ordinary attacks do not
     // consume a one-time find simply because the player is nearby.
     if (!site && !allowNearby) return false;
+    // A real tap on a nearby unspent clue must not silently become a punch
+    // while the explorer is down. Give a generic recovery cue without
+    // revealing the clue's identity or consuming the one-time find.
+    if (!window.CrownlessForestDiscoveries.canInspect(ginji,rpg.phase)) {
+      if (site && !state.forestFinds.has(site.id) && ginji.state!=='DEAD' &&
+          Math.hypot(ginji.x-site.x,ginji.z-site.z)<window.CrownlessForestDiscoveries.RANGE) {
+        spawnPopup('体勢を立て直してから調べよう',ginji.x,ginji.z,ginji.y+48,'#fef08a');
+        return true;
+      }
+      return false;
+    }
     if (site) {
       if (state.forestFinds.has(site.id)) {
         spawnPopup('ここは調査済み',site.x,site.z,getGroundHeightAt(site.x,site.z)+65,'#cbd5e1');
