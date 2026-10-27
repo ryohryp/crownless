@@ -48,6 +48,45 @@ async function walkTo(page, x, z) {
   } finally { await keys(page, held, []); }
 }
 
+// Prove the scouted footsteps cue with actual keyboard movement, not by
+// injecting fighter coordinates or invoking the HUD formatter in isolation.
+async function hearGuardianBehind(page) {
+  const held=new Set();
+  const start=Date.now();
+  const trace=[];
+  try {
+    while (Date.now()-start<7000) {
+      const s=await read(page);
+      const guardian=s.enemies.find(e=>e.name==='苔祠の番人' && e.hp>0 && e.state!=='DEAD');
+      assert(guardian && s.phase==='fight' && s.player.hp>0,
+        'guardian must be alive while listening for footsteps: '+JSON.stringify({s,trace}));
+      const dx=guardian.x-s.player.x, dz=guardian.z-s.player.z;
+      const hint=await page.locator('#forestExploreHint').innerText();
+      if (hint.includes('背後に足音')) {
+        assert(Math.abs(dx)>10 && Math.abs(dx)<=95 && Math.abs(dz)<=25 &&
+          Math.sign(dx)!==s.player.facing,
+          'footsteps require a real nearby threat behind the hero: '+JSON.stringify({s,trace}));
+        assert.equal(guardian.scoutOpeningActive,false,
+          'the first-strike timer must wait until the player turns around');
+        assert.match(hint,/未帰還の牙 [0-9]+個/,
+          'the audible cue must keep unsecured loot at stake');
+        return {gap:Math.round(Math.hypot(dx,dz)),facing:s.player.facing,hint};
+      }
+      if (trace.length<40) trace.push({ms:Date.now()-start,gap:Math.round(Math.hypot(dx,dz)),
+        facing:s.player.facing,hero:s.player.state,guardian:guardian.state,hint:hint.slice(0,50)});
+      const wanted=[];
+      if (Math.abs(dz)>12) wanted.push(dz>0?'s':'w');
+      // Approach only to the sound radius, then deliberately face away.
+      // Never run an attack here: the bonus must still be available on turning.
+      if (Math.abs(dx)>95) wanted.push(dx>0?'d':'a');
+      else if (Math.sign(dx)===s.player.facing) wanted.push(dx>0?'a':'d');
+      await keys(page,held,wanted);
+      await page.waitForTimeout(55);
+    }
+    throw new Error('real-input footsteps cue did not appear: '+JSON.stringify({state:await read(page),trace}));
+  } finally { await keys(page,held,[]); }
+}
+
 // The guardian may be occupied with the ally. A player must deliberately
 // close the gap to earn the player-specific warning; waiting in place is not play.
 async function approachGuardianWarning(page) {
@@ -198,13 +237,24 @@ async function verifyTracksShrineRisk(page, crafted) {
       'the active guardian must replace stale discovery cues with live HP');
     assert(guardianHint.includes('未帰還の牙 '+after.unbanked+'個'),
       'the guardian hint must show the actual unsecured materials');
-    // Real guardian movement must trigger the earned warning; a rule-only
-    // simulation cannot establish that the player sees it on a phone.
+    // First hear the guardian behind the hero, then deliberately turn to
+    // claim the still-unused first-strike window on a 390px phone viewport.
+    const behindCue=await hearGuardianBehind(page);
+    const behindBounds=await page.locator('#forestExploreHint').boundingBox();
+    const behindViewport=page.viewportSize();
+    assert(behindBounds && behindBounds.x>=0 && behindBounds.y>=0 &&
+      behindBounds.x+behindBounds.width<=behindViewport.width &&
+      behindBounds.y+behindBounds.height<=behindViewport.height,
+      'the real footsteps cue must fit inside the phone viewport');
+    await page.screenshot({path:path.join(output,
+      'pixel-forest-guardian-footsteps-'+(crafted?'forged':'starter')+'-390.png')});
     await approachGuardianWarning(page);
     await page.waitForFunction(() =>
       document.getElementById('forestExploreHint')?.textContent?.includes('足跡の先読み'),
       null,{timeout:2000});
     const openingHint=await page.locator('#forestExploreHint').innerText();
+    assert(behindCue.gap<=95 && !openingHint.includes('背後に足音'),
+      'turning toward the guardian must replace footsteps with the earned opening');
     assert.match(openingHint,/足跡の先読み 残り[0-9]+\.[0-9]秒/,
       'real approaching guardian must grant a visible, timed scouting opening');
     assert.match(openingHint,/攻撃\+12か回避/,
