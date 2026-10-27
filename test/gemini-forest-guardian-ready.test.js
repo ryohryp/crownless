@@ -189,7 +189,7 @@ test('guardian warns before striking, and stepping away earns a counterattack wi
   assert.equal(guardian.guardianTellUntil,100.65);
   assert.equal(D.guardianStrikeTell(guardian,100.3,true,true,true,'hero'),'warning');
   assert.equal(D.guardianStrikeTell(guardian,100.66,false,true,true,'hero'),'evaded');
-  assert.equal(guardian.nextStrikeAt,101.46);
+  assert.equal(guardian.nextStrikeAt,101.86);
   assert.equal(D.guardianStrikeTell(guardian,100.7,true,true,false,'hero'),'none');
   assert.equal(D.guardianStrikeTell(guardian,101.5,true,true,true,'hero'),'start');
   assert.equal(D.guardianStrikeTell(guardian,102.2,true,true,true,'hero'),'strike');
@@ -205,10 +205,22 @@ test('guardian warns before striking, and stepping away earns a counterattack wi
   const ai=html.slice(html.indexOf('function sampleEnemyAI('),html.indexOf('function updateFighter('));
   assert.match(ai,/guardianStrikeTell\(/,'the live enemy AI must use the warning');
   assert.match(ai,/guardianAttack==='strike'/,'the actual strike must wait for the warning');
+  assert.match(ai,/!\['DOWN','JUMP'\]\.includes\(target\.state\)/,
+    'a genuine airborne jump must evade the guardian tell instead of being treated as a landed strike');
   assert.match(ai,/enemy\.name!=='苔祠の番人' &&/,'the old random attack must exclude the guardian');
   const hint=html.slice(html.indexOf('function forestGuardianHint('),html.indexOf('function updateForestExploreHint('));
   assert.match(hint,/guardianTellUntil>nowSec/,'the phone HUD must show the warning while active');
   assert.match(hint,/跳ぶか離れよう/,'the warning must name a real player response');
+});
+
+test('a timed jump evades the guardian warning and leaves a landing-to-counter window',()=>{
+  const guardian={name:'苔祠の番人',nextStrikeAt:0};
+  assert.equal(D.guardianStrikeTell(guardian,100,true,true,true,'hero'),'start');
+  // The live AI treats JUMP as outside the strike lane (asserted above).
+  assert.equal(D.guardianStrikeTell(guardian,100.66,false,true,true,'hero'),'evaded');
+  assert.equal(guardian.guardianCounterUntil,101.86);
+  assert.equal(D.guardianCounterStrikeBonus(guardian,101.85,'hero'),8);
+  assert.equal(D.guardianCounterStrikeBonus(guardian,101.86,'hero'),0);
 });
 
 test('dodging the guardian tell grants only the defender one landed +8 counter',()=>{
@@ -224,7 +236,9 @@ test('dodging the guardian tell grants only the defender one landed +8 counter',
     'one successful counter cannot be farmed');
   guardian.guardianCounterClaimed=false;
   assert.equal(D.guardianCounterStrikeBonus(guardian,100.8,'hero'),8);
-  assert.equal(D.guardianCounterStrikeBonus(guardian,101.46,'hero'),0,
+  assert.equal(D.guardianCounterStrikeBonus(guardian,101.85,'hero'),8,
+    'landing after a jump still leaves a brief real counter opportunity');
+  assert.equal(D.guardianCounterStrikeBonus(guardian,101.86,'hero'),0,
     'expired counter window never rewards late attacks');
   assert.equal(D.guardianCounterStrikeBonus({...guardian,name:'苔牙ゴブリン'},100.8,'hero'),0);
   const cancelled={name:'苔祠の番人',nextStrikeAt:0};

@@ -1499,7 +1499,7 @@
     const hasToken = state.tokenManager.requestToken(enemy.id, nowSec, 1.3);
     const guardianAttack=window.CrownlessForestDiscoveries.guardianStrikeTell(
       enemy,nowSec,
-      hasToken && Math.abs(dx)<48 && Math.abs(dz)<20 && target.state!=='DOWN',
+      hasToken && Math.abs(dx)<48 && Math.abs(dz)<20 && !['DOWN','JUMP'].includes(target.state),
       hasToken && ['IDLE','WALK','RUN'].includes(enemy.state),
       window.CrownlessHitRecovery.readyToStrike(enemy,nowSec),target.id);
     if(guardianAttack==='start'){

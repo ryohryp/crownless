@@ -189,6 +189,7 @@
   // one close-range strike. Stepping out of range or jumping can avoid it;
   // the warning is cancelled if the guardian is stunned or changes target.
   // Other enemies keep their existing attack behavior.
+  const GUARDIAN_COUNTER_SECONDS=1.2; // allow a jump dodge to land before the follow-up
   function guardianStrikeTell(enemy,nowSec,inMelee,canAct,ready,targetId){
     if(!enemy || enemy.name!=='苔祠の番人' || !Number.isFinite(nowSec)) return 'none';
     if(enemy.guardianTellUntil>0){
@@ -204,7 +205,7 @@
       if(inMelee) return ready ? 'strike' : 'none';
       // The defender really left the attack lane. Only a landed counter
       // from that same defender can claim this one-time bonus.
-      enemy.guardianCounterUntil=nowSec+0.8;
+      enemy.guardianCounterUntil=nowSec+GUARDIAN_COUNTER_SECONDS;
       enemy.guardianCounterTargetId=dodgedTargetId;
       enemy.guardianCounterClaimed=false;
       enemy.nextStrikeAt=Math.max(enemy.nextStrikeAt||0,enemy.guardianCounterUntil);
