@@ -476,10 +476,10 @@ async function main() {
           assert.equal(forged.crafted,true);
           assert.equal(forged.banked,returned.banked-3);
           const revisitLabel=await page.locator('#rpgDepart').innerText();
-          assert.match(revisitLabel,/足跡の先を確かめに再遠征/,
-            'the real 390px camp remembers the tracks actually inspected before forging');
-          assert.doesNotMatch(revisitLabel,/石門|隠し道|開通/,
-            'the next-trip action must not spoil the still-unexplored destination');
+          assert.match(revisitLabel,/もう一度、森へ遠征/,
+            'after using the swordless gate herbs, camp must not promise an undiscovered destination');
+          assert.doesNotMatch(revisitLabel,/足跡の先を確かめ|石門|隠し道|開通/,
+            'the next-trip action must not treat an already inspected gate as an undiscovered secret');
           const departBounds=await page.locator('#rpgDepart').boundingBox();
           assert(departBounds && departBounds.x>=0 &&
             departBounds.x+departBounds.width<=page.viewportSize().width &&
