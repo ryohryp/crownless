@@ -449,8 +449,26 @@ async function main() {
           await tapSite(page,'hollow');
           const gatePanel=page.locator('#forestGateChoice');
           assert(await gatePanel.isVisible(),'the crafted gate offers an explicit reward-or-healing choice');
-          assert.match(await page.locator('#forestGateStakes').innerText(),/生還時だけ倉庫に残り/,
+          const gateStakes=await page.locator('#forestGateStakes').innerText();
+          assert.match(gateStakes,/生還時だけ倉庫に残り/,
             'the gate choice explains that loot is still unsecured');
+          const temperCost=await page.evaluate(()=>window.CrownlessRpgLoop.TEMPER_COST);
+          if(hollowBefore.banked>=temperCost) {
+            assert.match(gateStakes,/倉庫の牙だけで剣を研ぎ直せる/,
+              'already-banked materials must be distinguished from risky new loot');
+          } else if(hollowBefore.banked+hollowBefore.unbanked>=temperCost) {
+            assert.match(gateStakes,/生還すれば剣の研ぎ直し素材が揃う（今は未帰還）/,
+              'a full provisional bag must still require safe return');
+          } else {
+            const need=temperCost-hollowBefore.banked-hollowBefore.unbanked;
+            assert.match(gateStakes,new RegExp('剣の研ぎ直しまで牙あと'+need+'個'),
+              'the gate must show the actual remaining upgrade requirement');
+          }
+          const gateStakesBounds=await page.locator('#forestGateChoice > div').boundingBox();
+          assert(gateStakesBounds && gateStakesBounds.y>=0 &&
+            gateStakesBounds.y+gateStakesBounds.height<=page.viewportSize().height,
+            'the real upgrade warning must fit the phone before a choice is tapped');
+          await page.screenshot({path:path.join(output,'pixel-forest-gate-upgrade-stakes-390.png')});
           await page.locator('#forestGateCancel').click();
           assert(!(await read(page)).found.includes('hollow'),'declining the gate does not spend its one visit');
           await tapSite(page,'hollow');
