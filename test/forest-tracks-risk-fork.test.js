@@ -89,7 +89,7 @@ test('low HP blocks risk; controls use existing mobile choice area',()=>{
 test('forest safe-return text remains truthful across reload and after banking loot',()=>{
   const app=fs.readFileSync('src/slice-app.js','utf8');
   const source=app.slice(app.indexOf('function fieldDecision(x){'),app.indexOf('const logs = x =>'));
-  assert.match(source,/x\\.materials\\?\\.wolfFang>0\\?'狼牙を持って生還':x\\.scrap>0\\?'鉄片を持って生還':'ここで生還する'/);
+  assert.match(source,/x\.materials\?\.wolfFang>0\?'狼牙を持って生還':x\.scrap>0\?'鉄片を持って生還':'ここで生還する'/);
   const found=E.act(tracks({...E.initial(),mode:'demo'}),'forest-tracks-risk');
   const restored=E.parse(E.serialize(found));
   assert.equal(restored.expedition.materials.wolfFang,1,'unbanked fang survives current save format');
