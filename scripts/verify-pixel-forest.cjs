@@ -431,6 +431,39 @@ async function main() {
           assert(!locked.found.includes('hollow'),'declining the swordless herb choice keeps the gate unspent');
           assert.equal(locked.unbanked,lockedBefore.unbanked,'locked hollow grants no material');
           await page.screenshot({path:path.join(output,'pixel-forest-hollow-locked.png')});
+          // Complete the swordless alternative through actual phone input.
+          // Declining once leaves herbs available; taking them must not grant
+          // the fang reward locked behind the crafted sword.
+          await tapSite(page,'hollow');
+          assert.equal(await unarmedGate.isVisible(),true,
+            'canceling the gate decision must allow a later real inspection');
+          const beforeSwordlessHerbs=await read(page);
+          assert.equal(beforeSwordlessHerbs.crafted,false);
+          assert(beforeSwordlessHerbs.player.hp<beforeSwordlessHerbs.player.maxHp,
+            'the real shrine risk must leave a wound that herbs can heal');
+          const herbs=page.locator('#forestGateHeal');
+          const herbsBounds=await herbs.boundingBox();
+          assert(herbsBounds && herbsBounds.width>=44 && herbsBounds.height>=44 &&
+            herbsBounds.y>=0 && herbsBounds.y+herbsBounds.height<=page.viewportSize().height,
+            'the swordless herb action must remain thumb-sized and visible');
+          await page.touchscreen.tap(herbsBounds.x+herbsBounds.width/2,
+            herbsBounds.y+herbsBounds.height/2);
+          const afterSwordlessHerbs=await read(page);
+          assert(afterSwordlessHerbs.found.includes('hollow'),
+            'swordless healing must spend the gate choice once');
+          assert.equal(afterSwordlessHerbs.unbanked,beforeSwordlessHerbs.unbanked,
+            'herbs must not bypass the sword requirement to award fangs');
+          assert.equal(afterSwordlessHerbs.player.hp,
+            Math.min(beforeSwordlessHerbs.player.maxHp,beforeSwordlessHerbs.player.hp+45),
+            'real swordless herb touch must heal at most 45 HP');
+          assert.equal(await unarmedGate.isVisible(),false,
+            'the choice sheet closes after using the herbs');
+          await tapSite(page,'hollow');
+          assert.equal((await read(page)).unbanked,afterSwordlessHerbs.unbanked,
+            'a second gate tap cannot farm the blocked reward');
+          assert.equal(await unarmedGate.isVisible(),false,
+            'a consumed gate cannot offer another herb or material choice');
+          await page.screenshot({path:path.join(output,'pixel-forest-swordless-herbs-used-390.png')});
           await page.locator('#rpgOpenResults').click();
           await page.locator('#rpgReturn').click();
           const returned=await read(page);
@@ -641,7 +674,7 @@ async function main() {
             'the next real expedition gets the tempered kick bonus');
           assert.equal(await page.evaluate(()=>localStorage.getItem('crownless-expedition-v1-demo')),
             saveBefore,'the unrelated location-game save stays untouched');
-          report.loop={first,shrineBeforeForge,locked,returned,forged,second,shrineAfterForge,unlocked,banked,restored,
+          report.loop={first,shrineBeforeForge,locked,gateHerbsBeforeForge:{before:beforeSwordlessHerbs,after:afterSwordlessHerbs},returned,forged,second,shrineAfterForge,unlocked,banked,restored,
             gateHealing:{before:beforeGateHeal,after:afterGateHeal,returned:gateHealedReturn},
             gateCautious:{before:beforeCautious,after:afterCautious,returned:cautiousReturn,restored:cautiousRestored},
             temperedCamp};
@@ -654,7 +687,7 @@ async function main() {
     }
     report.passed=true;
     await fs.writeFile(path.join(output,'pixel-forest-report.json'),JSON.stringify(report,null,2)+'\n');
-    console.log('Pixel forest: 360/390/430px aspect + touch; real combat → discovery → return → forge → revisit → hollow (material/heal/cautious) → saved reload PASS');
+    console.log('Pixel forest: 360/390/430px aspect + touch; real combat → discovery → swordless gate herbs → return → forge → revisit → hollow (material/heal/cautious) → saved reload PASS');
     console.log(JSON.stringify(report,null,2));
   } finally {
     if(browser) await browser.close();
