@@ -55,6 +55,12 @@
   function available(phase){
     return phase==='fight'||phase==='return';
   }
+  // A downed or restrained explorer must recover before opening a choice
+  // sheet that pauses combat. Rejected taps never consume the find.
+  function canInspect(player,phase){
+    return Boolean(player && available(phase) &&
+      !['DEAD','HURT','DOWN','GRAB'].includes(player.state));
+  }
   // Reading the animal tracks reveals firmer footing around the shrine.
   // This optional detour changes the risk, without locking out first-time explorers.
   // Reading the tracks also gives a brief reaction window before the optional guardian closes in.
@@ -110,6 +116,7 @@
   }
   function uncover(player,found,phase,hp,maxHp,crafted=false,shrineChoice='auto'){
     if(!available(phase)) return {ok:false};
+    if(!canInspect(player,phase)) return {ok:false,reason:'busy'};
     const spot=near(player,found);
     if(!spot) return {ok:false};
     if(spot.kind==='cache'){
@@ -153,5 +160,5 @@
       heal:gateHeal?Math.min(45,Math.max(0,maxHp-hp)):
         spot.kind==='healing' && !scavenge?Math.min(35,Math.max(0,maxHp-hp)):0};
   }
-  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,near,cueNear,spotAtTap,available,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,guardianScoutStrikeBonus,shrineRiskDamage,uncover};
+  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,near,cueNear,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,guardianScoutStrikeBonus,shrineRiskDamage,uncover};
 });

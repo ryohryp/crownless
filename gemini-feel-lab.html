@@ -1899,8 +1899,7 @@
   }
 
   function tryTapForestSite(clientX,clientY,allowNearby) {
-    if (!ginji || ginji.state==='DEAD' ||
-        !window.CrownlessForestDiscoveries.available(rpg.phase)) return false;
+    if (!window.CrownlessForestDiscoveries.canInspect(ginji,rpg.phase)) return false;
     const site=window.CrownlessForestDiscoveries.spotAtTap(
       {x:clientX,y:clientY},canvas.getBoundingClientRect(),{width:virtualW,height:VIRTUAL_H},
       state.cameraX,getGroundHeightAt);
@@ -2011,7 +2010,7 @@
   });
 
   function tryExploreForest(f,shrineChoice='auto') {
-    if (f !== ginji || !window.CrownlessForestDiscoveries.available(rpg.phase)) return false;
+    if (f !== ginji || !window.CrownlessForestDiscoveries.canInspect(f,rpg.phase)) return false;
     const nearby = window.CrownlessForestDiscoveries.near(f,state.forestFinds);
     if (!nearby) return false;
     const discovery = window.CrownlessForestDiscoveries.uncover(
