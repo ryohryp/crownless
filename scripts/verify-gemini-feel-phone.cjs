@@ -5,6 +5,7 @@ const assert = require('node:assert/strict');
 const { spawn } = require('node:child_process');
 const fs = require('node:fs/promises');
 const path = require('node:path');
+const rpgRules = require('../src/gemini-rpg-loop.js');
 
 function listen(server) {
   return new Promise((resolve, reject) => {
@@ -436,11 +437,18 @@ async function main() {
         assert.equal(await page.locator('#forestShrineChoice').getAttribute('aria-modal'),'true',
           'the shrine choice must block accidental background taps');
         const stakesAtChoice=await readForestShrine();
-        const forgeNeed=Math.max(0,3-stakesAtChoice.banked-stakesAtChoice.unbanked);
-        const forgeChoice=stakesAtChoice.crafted?'鍛冶剣は装備済み。':
-          forgeNeed===0?'鍛冶剣の素材は揃っている。':
-          '鍛冶剣まで牙あと'+forgeNeed+'個（+1なら残り'+Math.max(0,forgeNeed-1)+
-          '、+2なら残り'+Math.max(0,forgeNeed-2)+'）。';
+        // Keep the real-touch assertion aligned with the current next smithing
+        // goal, including the one-time temper upgrade after the first forge.
+        const forgeCost=stakesAtChoice.crafted?rpgRules.TEMPER_COST:rpgRules.COST;
+        const forgeNeed=Math.max(0,forgeCost-stakesAtChoice.banked-stakesAtChoice.unbanked);
+        const forgeChoice=stakesAtChoice.tempered?'剣は研ぎ直し済み。牙の追加強化はまだない。':
+          stakesAtChoice.crafted
+            ? forgeNeed===0?'剣の研ぎ直し素材は揃っている（攻撃+4）。':
+              '剣の研ぎ直しまで牙あと'+forgeNeed+'個（+1なら残り'+Math.max(0,forgeNeed-1)+
+              '、+2なら残り'+Math.max(0,forgeNeed-2)+'）。'
+            : forgeNeed===0?'鍛冶剣の素材は揃っている。':
+              '鍛冶剣まで牙あと'+forgeNeed+'個（+1なら残り'+Math.max(0,forgeNeed-1)+
+              '、+2なら残り'+Math.max(0,forgeNeed-2)+'）。';
         assert.equal(await page.locator('#forestShrineStakes').textContent(),
           '現在 HP '+Math.floor(stakesAtChoice.player.hp)+'/'+stakesAtChoice.player.maxHp+
           '、未帰還の牙 '+stakesAtChoice.unbanked+
