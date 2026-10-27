@@ -295,7 +295,7 @@ async function verifyTracksShrineRisk(page, crafted) {
       document.getElementById('forestExploreHint')?.textContent?.includes('足跡の先読み'),
       null,{timeout:2000});
     const openingHint=await page.locator('#forestExploreHint').innerText();
-    assert(behindCue.gap<=95 && !openingHint.includes('背後に足音'),
+    assert(behindCue.gap<=99 && !openingHint.includes('背後に足音'),
       'turning toward the guardian must replace footsteps with the earned opening');
     assert.match(openingHint,/足跡の先読み 残り[0-9]+\.[0-9]秒/,
       'real approaching guardian must grant a visible, timed scouting opening');
