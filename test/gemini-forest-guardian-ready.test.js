@@ -182,3 +182,31 @@ test('scouted footsteps behind the hero invite a turn without spending the strik
   assert.equal(D.guardianBehindWarning(hero,guardian,tracks),false,'armed cue never repeats');
   assert.match(hint(guardian,tracks,3,101.2,hero),/足跡の先読み 残り1\.6秒/);
 });
+
+test('guardian warns before striking, and stepping away earns a counterattack window',()=>{
+  const guardian={name:'苔祠の番人',nextStrikeAt:0};
+  assert.equal(D.guardianStrikeTell(guardian,100,true,true,true,'hero'),'start');
+  assert.equal(guardian.guardianTellUntil,100.65);
+  assert.equal(D.guardianStrikeTell(guardian,100.3,true,true,true,'hero'),'warning');
+  assert.equal(D.guardianStrikeTell(guardian,100.66,false,true,true,'hero'),'evaded');
+  assert.equal(guardian.nextStrikeAt,101.46);
+  assert.equal(D.guardianStrikeTell(guardian,100.7,true,true,false,'hero'),'none');
+  assert.equal(D.guardianStrikeTell(guardian,101.5,true,true,true,'hero'),'start');
+  assert.equal(D.guardianStrikeTell(guardian,102.2,true,true,true,'hero'),'strike');
+  assert.equal(D.guardianStrikeTell(guardian,103,true,true,true,'hero'),'start');
+  assert.equal(D.guardianStrikeTell(guardian,103.2,true,false,true,'hero'),'none',
+    'stunning the guardian must cancel its committed attack');
+  assert.equal(guardian.guardianTellUntil,0);
+  assert.equal(D.guardianStrikeTell(guardian,104,true,true,true,'hero'),'start');
+  assert.equal(D.guardianStrikeTell(guardian,104.2,true,true,true,'ally'),'none',
+    'switching targets must not turn a hero warning into an ally strike');
+  assert.equal(D.guardianStrikeTell({...guardian,name:'苔牙ゴブリン'},105,true,true,true,'hero'),'none');
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const ai=html.slice(html.indexOf('function sampleEnemyAI('),html.indexOf('function updateFighter('));
+  assert.match(ai,/guardianStrikeTell\(/,'the live enemy AI must use the warning');
+  assert.match(ai,/guardianAttack==='strike'/,'the actual strike must wait for the warning');
+  assert.match(ai,/enemy\.name!=='苔祠の番人' &&/,'the old random attack must exclude the guardian');
+  const hint=html.slice(html.indexOf('function forestGuardianHint('),html.indexOf('function updateForestExploreHint('));
+  assert.match(hint,/guardianTellUntil>nowSec/,'the phone HUD must show the warning while active');
+  assert.match(hint,/跳ぶか離れよう/,'the warning must name a real player response');
+});
