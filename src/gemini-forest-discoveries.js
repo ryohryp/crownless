@@ -105,14 +105,15 @@
     enemy.nextStrikeAt=Math.max(enemy.nextStrikeAt||0,enemy.scoutOpeningEndsAt);
     return true;
   }
-  // The companion yields the earned first strike to the explorer while the
-  // scouted guardian's opening is pending. After a landed strike or expiry,
-  // ordinary companion support resumes. Unscouted encounters are unchanged.
+  // Yield only during the *armed* player strike window. Before the
+  // explorer approaches, the ally must still defend: otherwise a guardian
+  // fighting the ally can stall forever while the player hangs back.
+  // After a landed strike or expiry, ordinary support resumes.
   function companionYieldsGuardianOpening(enemy,nowSec){
     return Boolean(enemy && enemy.name==='苔祠の番人' &&
-      enemy.scoutOpeningSeconds>0 && !enemy.scoutStrikeClaimed &&
-      Number.isFinite(nowSec) &&
-      (!enemy.scoutOpeningArmed || enemy.scoutOpeningEndsAt>nowSec));
+      enemy.scoutOpeningSeconds>0 && enemy.scoutOpeningArmed &&
+      !enemy.scoutStrikeClaimed && Number.isFinite(nowSec) &&
+      enemy.scoutOpeningEndsAt>nowSec);
   }
   function guardianScoutStrikeBonus(enemy,nowSec){
     return enemy && enemy.name==='苔祠の番人' &&
