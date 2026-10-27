@@ -1361,10 +1361,10 @@
       return out;
     }
 
-    // A scouted guardian is the player's earned opening, not the ally's.
-    // Hold companion attacks (including knockdowns) until the player lands
-    // the first strike or the reaction window expires. If Ginji is unable
-    // to act, the companion can still protect him.
+    // Yield only after the player actually approaches and arms the earned
+    // opening. Before that, the ally must not stand idle if the guardian
+    // engages it while the player stays back. Once armed, preserve the
+    // player's first strike; protect Ginji if he becomes incapacitated.
     const scoutedGuardian=state.fighters.find(f=>
       f.team===1 && f.name==='苔祠の番人' && f.state!=='DEAD');
     if (scoutedGuardian && !['HURT','DOWN','GRAB'].includes(ginji.state) &&
