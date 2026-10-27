@@ -210,3 +210,37 @@ test('guardian warns before striking, and stepping away earns a counterattack wi
   assert.match(hint,/guardianTellUntil>nowSec/,'the phone HUD must show the warning while active');
   assert.match(hint,/跳ぶか離れよう/,'the warning must name a real player response');
 });
+
+test('dodging the guardian tell grants only the defender one landed +8 counter',()=>{
+  const guardian={name:'苔祠の番人',nextStrikeAt:0};
+  assert.equal(D.guardianStrikeTell(guardian,100,true,true,true,'hero'),'start');
+  assert.equal(D.guardianStrikeTell(guardian,100.66,false,true,true,'hero'),'evaded');
+  assert.equal(D.guardianCounterStrikeBonus(guardian,100.7,'hero'),8);
+  assert.equal(D.guardianCounterStrikeBonus(guardian,100.7,'ally'),0,
+    'the companion cannot steal the player-earned counter');
+  assert.equal(D.guardianCounterStrikeBonus(guardian,100.7,null),0);
+  guardian.guardianCounterClaimed=true;
+  assert.equal(D.guardianCounterStrikeBonus(guardian,100.7,'hero'),0,
+    'one successful counter cannot be farmed');
+  guardian.guardianCounterClaimed=false;
+  assert.equal(D.guardianCounterStrikeBonus(guardian,100.8,'hero'),8);
+  assert.equal(D.guardianCounterStrikeBonus(guardian,101.46,'hero'),0,
+    'expired counter window never rewards late attacks');
+  assert.equal(D.guardianCounterStrikeBonus({...guardian,name:'苔牙ゴブリン'},100.8,'hero'),0);
+  const cancelled={name:'苔祠の番人',nextStrikeAt:0};
+  assert.equal(D.guardianStrikeTell(cancelled,100,true,true,true,'hero'),'start');
+  assert.equal(D.guardianStrikeTell(cancelled,100.66,true,true,false,'hero'),'none',
+    'an unavailable attack is not a player dodge');
+  assert.equal(D.guardianCounterStrikeBonus(cancelled,100.7,'hero'),0);
+});
+
+test('real combat and phone HUD wire the earned counter to a landed player hit',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const attack=html.slice(html.indexOf('function performAttackHitbox('),html.indexOf('function inflictDamage('));
+  assert.match(attack,/guardianCounterStrikeBonus\(target,performance\.now\(\)\/1000,attacker\.id\)/);
+  assert.match(attack,/finalDmg\+scoutBonus\+counterBonus/);
+  assert.match(attack,/if \(!inflictDamage\([\s\S]*?continue;[\s\S]*?if \(counterBonus\) \{\s*target\.guardianCounterClaimed=true;/);
+  const hint=html.slice(html.indexOf('function forestGuardianHint('),html.indexOf('function updateForestExploreHint('));
+  assert.match(hint,/guardianCounterTargetId===hero\.id/);
+  assert.match(hint,/空振り！反撃\+8 残り/);
+});
