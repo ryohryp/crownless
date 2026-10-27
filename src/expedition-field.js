@@ -44,17 +44,17 @@
   const nextSeen=(mask,pos)=>[pos,...neighbors(pos)].reduce((value,n)=>
     value+(Math.floor(value/(2**n))%2?0:2**n),mask);
   const initial=()=>({pos:START,seen:nextSeen(0,START),
-    cache:false,tracks:false,treasure:false,wolf:false,secret:false,shrine:false,glade:false,fox:false,foxCache:false,lanternClue:false});
+    cache:false,tracks:false,treasure:false,wolf:false,secret:false,shrine:false,glade:false,fox:false,foxCache:false,lanternClue:false,tracksRisk:false});
   const valid=f=>f&&typeof f==='object'&&!Array.isArray(f)&&
-    Object.keys(f).every(k=>['pos','seen','cache','tracks','treasure','wolf','secret','shrine','glade','fox','foxCache','lanternClue'].includes(k))&&
+    Object.keys(f).every(k=>['pos','seen','cache','tracks','treasure','wolf','secret','shrine','glade','fox','foxCache','lanternClue','tracksRisk'].includes(k))&&
     ['pos','seen','cache','tracks'].every(k=>Object.prototype.hasOwnProperty.call(f,k))&&
-    ['treasure','wolf','secret','shrine','glade','fox','foxCache','lanternClue'].every(k=>f[k]===undefined||typeof f[k]==='boolean')&&
+    ['treasure','wolf','secret','shrine','glade','fox','foxCache','lanternClue','tracksRisk'].every(k=>f[k]===undefined||typeof f[k]==='boolean')&&
     (f.pos!==SECRET||f.secret===true)&&
     inBounds(f.pos)&&!WALLS.includes(f.pos)&&
     Number.isSafeInteger(f.seen)&&f.seen>0&&f.seen<=MAX_SEEN&&
     visible(f,f.pos)&&typeof f.cache==='boolean'&&typeof f.tracks==='boolean';
   const canMove=(f,to)=>valid(f)&&inBounds(to)&&!WALLS.includes(to)&&
-    adjacent(f.pos,to)&&(to!==SECRET||f.secret===true);
+    visible(f,to)&&adjacent(f.pos,to)&&(to!==SECRET||f.secret===true);
   function move(f,to){
     if(!canMove(f,to))return null;
     return {...f,pos:to,seen:nextSeen(f.seen,to)};

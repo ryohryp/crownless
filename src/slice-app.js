@@ -263,16 +263,18 @@
   function fieldDecision(x){
     const wolfStatus=window.CrownlessField?.wolfAwareness(x.field);
     const skillPending=x.field.tracks&&!state.characters[0]?.skills?.trailReading;
-    const event=x.field.wolf?'狼を倒した！ 同じ森を探索できる。残る宝箱を探してもいい。':wolfStatus==='alert'?'狼の視線がこちらを追っている。巣穴へ踏み込んで戦うか、横道へ逃げるか。':x.field.pos===20?'森の入り口。どこへ踏み込む？':x.field.cache&&x.field.tracks?'素材と足跡を見つけた。奥に進むか、生還するか。':x.field.cache?'傷つきながら鉄片を拾った。持ち帰るか先へ進むか。':x.field.tracks?'獣の足跡を読んだ。危険な巣穴を避ける道を探せ。':'足元の霧が晴れた。知らない道が現れた。';
-    return `<div class="field-decision"><div class="field-status">${vitals(x)}<div class="path-risk"><span>持ち帰れる鉄片</span><strong>${x.scrap}</strong><small>倒れれば失う</small></div></div>
+    const event=x.field.wolf?'狼を倒した！ 同じ森を探索できる。残る宝箱を探してもいい。':wolfStatus==='alert'?'狼の視線がこちらを追っている。巣穴へ踏み込んで戦うか、横道へ逃げるか。':x.field.pos===20?'森の入り口。どこへ踏み込む？':x.field.tracksRisk?'棘の奥で狼牙を拾った。まだ背嚢の中だ。生還して確保するか、狼の気配がする奥へ進むか。':x.field.cache&&x.field.tracks?'素材と足跡を見つけた。奥に進むか、生還するか。':x.field.cache?'傷つきながら鉄片を拾った。持ち帰るか先へ進むか。':x.field.tracks?'獣の足跡を読んだ。危険な巣穴を避ける道を探せ。':'足元の霧が晴れた。知らない道が現れた。';
+    return `<div class="field-decision"><div class="field-status">${vitals(x)}<div class="path-risk" data-forest-bag="true"><span>背嚢の戦利品</span><strong>${x.materials?.wolfFang>0?'狼牙 '+x.materials.wolfFang+' · ':''}鉄片 ${x.scrap}</strong><small>生還で確定 · 倒れれば失う</small></div></div>
       ${skillPending?'<p class="skill-learning-hint" role="status">⌁ 新しい探索技術《獣道読み》の手掛かりを得た。<strong>無事に生還すると習得！</strong></p>':''}
       <p class="field-moment${trailSkillResult(x)?' skill-result':''}" role="status">${trailSkillResult(x)?trailResultLabel:''}${esc(x.log[0]||event)}</p>
-      <div class="field-choices">${x.field.pos===window.CrownlessField.TRACKS && state.ownedTools?.includes(E.SCOUT_LANTERN.id) && !x.field.lanternClue
-        ? button('lantern-examine','斥候の灯で霧を照らす','霧に隠れた手掛かりを探す',{class:'primary'}) : ''}
+      <div class="field-choices">${x.field.pos===window.CrownlessField.TRACKS && x.field.tracks && !x.field.lanternClue && !x.field.tracksRisk
+        ? '<div class="forest-tracks-fork" role="group" aria-label="獣の足跡の分かれ道"><p>茂みの奥に獣骨の気配。棘を越えれば何か見つかるかもしれない。斥候の灯があれば安全に別の痕跡を調べられる。どちらも生還まで未確定。</p>'+
+          (state.ownedTools?.includes(E.SCOUT_LANTERN.id) ? button('lantern-examine','斥候の灯で霧を照らす','体力消費なし · 手掛かりを探す',{class:'primary'}) : '')+
+          button('forest-tracks-risk','棘の茂みへ踏み込む','体力 −4 · 獣骨を調べる（危険）',{class:'secondary',disabled:x.hp<=4||x.materials.wolfFang>=1000000})+'</div>' : ''}
       ${x.field.lanternClue ? '<p class="scout-lantern-clue" role="status">✦ 灯りが映した痕跡：倒木の近くで霧が揺らいでいる。周囲を歩いて調べよう。</p>' : ''}
       ${trailSkillButton(x)}
       ${x.foundDesign==='fang_moon' ? '<p class="notice" role="status">✦ 月影の短剣の設計図を背嚢に入れた。生還するまで失う可能性がある。</p>' : ''}
-      ${button('return','ここで生還する','拾った素材を確定する',{class:'secondary'})}
+      ${button('return',x.materials?.wolfFang>0?'狼牙を持って生還':x.scrap>0?'鉄片を持って生還':'ここで生還する','拾った素材を確定する',{class:'secondary'})}
       ${button('heal',`薬草 ${x.potions} · 体力 +12`,'',{class:'text-button',disabled:x.potions===0||x.hp===E.maxHp(state)})}</div>
     </div>`;
   }
@@ -943,6 +945,7 @@
     }
     else if (action === 'field-step') { state=E.act(state,'field-step:'+value); }
     else if (action === 'lantern-examine') { state=E.act(state,'lantern-examine'); }
+    else if (action === 'forest-tracks-risk') { state=E.act(state,'forest-tracks-risk'); }
     else if (action === 'tower-step') { state=E.act(state,'tower-step:'+value); }
     else if (action === 'fen-step') { state=E.act(state,'fen-step:'+value); }
     else if (action === 'auto-fight') { state = E.resolveFight(state); }
