@@ -161,6 +161,12 @@ async function verifyTracksShrineRisk(page, crafted) {
     window.__forestHapticPatterns.filter(p=>Array.isArray(p)&&p.join(',')==='20,45,20').length);
   if (wasClear) assert.match(await risk.innerText(),/奥に気配・追加戦闘あり・撃退まで帰還不可/,
     'post-victory extra loot must warn about a real guardian before tapping');
+  // Spoiler boundary: the choice warns of an unavoidable fight but does not name its foe.
+  const preChoice=await page.locator('#forestShrineChoice').innerText();
+  assert.doesNotMatch(preChoice,/苔祠の番人|番人/,
+    'the player should discover the guardian identity only after choosing the danger');
+  if (wasClear) assert.match(preChoice,/追加戦闘あり・撃退まで帰還不可/,
+    'the surprise must not conceal the real cost of choosing the risky route');
   await risk.click();
   const after=await read(page);
   assert(after.found.includes('shrine'),'the selected branch consumes the shrine');
