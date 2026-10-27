@@ -1516,6 +1516,10 @@
       window.CrownlessHitRecovery.registerEnemyStrike(enemy,nowSec);
       return out;
     }
+    if(guardianAttack==='evaded'){
+      spawnPopup('🍃 番人が空振り！反撃の好機',enemy.x,enemy.z,enemy.y+65,'#6ee7b7');
+      sfx.haptic(15);
+    }
 
     if (hasToken) {
       if (Math.abs(dx) < 48 && Math.abs(dz) < 20 && target.state !== 'DOWN') {
