@@ -5,8 +5,8 @@ const fs=require('node:fs');
 const vm=require('node:vm');
 const D=require('../src/gemini-forest-discoveries.js');
 
-test('downed, stunned, grabbed and dead explorers cannot consume a find',()=>{
-  for(const state of ['HURT','DOWN','GRAB','DEAD']){
+test('busy, airborne, downed and dead explorers cannot consume a find',()=>{
+  for(const state of ['HURT','DOWN','GRAB','DEAD','ATTACK','SPECIAL','JUMP']){
     const found=new Set(['traces']);
     const player={x:910,z:235,state};
     assert.equal(D.canInspect(player,'return'),false);
@@ -79,8 +79,18 @@ test('blocked real-site tap shows recovery cue but never spends a find or become
   player.x=660;
   player.state='DEAD';
   assert.equal(tap(200,200,false),false,'dead explorer receives no false recovery prompt');
+  player.state='ATTACK';
+  assert.equal(tap(200,200,false),true,'an attacking explorer cannot pause combat by inspecting');
+  assert.match(popups.at(-1)[0],/動作を終えてから調べよう/);
+  assert.equal(finds.size,0,'an interrupted attack cannot claim a reward');
+  player.state='JUMP';
+  assert.equal(tap(200,200,false),true,'jumping cannot open a choice sheet midair');
+  assert.match(popups.at(-1)[0],/動作を終えてから調べよう/);
+  player.state='SPECIAL';
+  assert.equal(tap(200,200,false),true,'special attack cannot pause combat');
+  assert.match(popups.at(-1)[0],/動作を終えてから調べよう/);
   player.state='HURT';
   finds.add('shrine');
   assert.equal(tap(200,200,false),false,'already-spent site cannot prompt a new interaction');
-  assert.equal(popups.length,1,'only the valid blocked nearby touch gives feedback');
+  assert.equal(popups.length,4,'only unspent nearby blocked touches give feedback');
 });
