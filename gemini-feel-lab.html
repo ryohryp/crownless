@@ -1,0 +1,2843 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Crownless — 原作手触り戦闘ラボ / 2.5D</title>
+<script src="https://cdn.tailwindcss.com/3.4.17"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;700;900&family=Noto+Sans+JP:wght@500;700;900&display=swap" rel="stylesheet">
+<!-- Standalone comparison experiment. Mechanical logic adapted directly from user-provided 2_5d.html. No expedition, GPS or save integration. -->
+<link rel="stylesheet" href="pixel-forest.css">
+<style>
+  * {
+    box-sizing: border-box;
+    user-select: none;
+    -webkit-user-select: none;
+    -webkit-touch-callout: none;
+  }
+  html, body {
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+    background: #090b10;
+    font-family: 'Noto Sans JP', 'Inter', sans-serif;
+    touch-action: none;
+  }
+  canvas {
+    display: block;
+    image-rendering: auto;
+  }
+  .arcade-btn {
+    transition: transform 0.05s cubic-bezier(0.2, 0, 0, 1), filter 0.08s ease, box-shadow 0.08s ease;
+    touch-action: none;
+  }
+  .arcade-btn:active, .arcade-btn.pressed {
+    transform: scale(0.88);
+    filter: brightness(1.35);
+  }
+  @keyframes pulseGlow {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(250, 204, 21, 0.55), 0 8px 20px rgba(0,0,0,0.6); }
+    50% { box-shadow: 0 0 0 8px rgba(250, 204, 21, 0), 0 8px 25px rgba(250, 204, 21, 0.45); }
+  }
+  .context-glow {
+    animation: pulseGlow 1.1s infinite;
+  }
+  @keyframes kabukiPulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.75), 0 0 18px rgba(251, 191, 36, 0.8); }
+    50% { box-shadow: 0 0 0 10px rgba(244, 63, 94, 0), 0 0 28px rgba(251, 191, 36, 1); }
+  }
+  .kabuki-glow {
+    animation: kabukiPulse 0.85s infinite;
+  }
+</style>
+</head>
+<body class="flex flex-col w-full h-full bg-slate-950 text-white overflow-hidden" data-combat-origin="gemini-original-2_5d" data-combat-experiment="fantasy-reskin">
+
+  <!-- 原作のボタン配置・タイミング・攻撃権トークン・相棒AI・コンボを保持した比較実験。 -->
+  <header class="flex flex-wrap items-center justify-between gap-1.5 px-2.5 py-1.5 bg-slate-900/95 border-b border-amber-500/40 z-20 shrink-0">
+    <!-- 左：旅人＆従者HP・闘志（義憤）ゲージ・所持金・脅威度 -->
+    <div class="flex flex-wrap items-center gap-1.5 sm:gap-2.5 text-xs">
+      <div class="flex items-center gap-1.5 bg-slate-800/95 px-2 py-1 rounded-md border border-sky-400/40">
+        <span class="inline-block w-2 h-2 rounded-full bg-sky-400"></span>
+        <span class="font-bold text-sky-300">旅人</span>
+        <div class="w-12 sm:w-20 h-2.5 bg-slate-950 rounded-full overflow-hidden border border-slate-700">
+          <div id="hpBarKunio" class="h-full bg-emerald-400 transition-all duration-150" style="width: 100%;"></div>
+        </div>
+        <span id="hpTextKunio" class="font-mono text-[11px] text-slate-200">140</span>
+      </div>
+
+      <div class="flex items-center gap-1.5 bg-slate-800/95 px-2 py-1 rounded-md border border-emerald-400/40">
+        <span class="inline-block w-2 h-2 rounded-full bg-emerald-400"></span>
+        <span class="font-bold text-emerald-300">従者</span>
+        <div class="w-10 sm:w-16 h-2.5 bg-slate-950 rounded-full overflow-hidden border border-slate-700">
+          <div id="hpBarTsuru" class="h-full bg-emerald-400 transition-all duration-150" style="width: 100%;"></div>
+        </div>
+        <span id="hpTextTsuru" class="font-mono text-[11px] text-slate-200">130</span>
+      </div>
+
+      <!-- 独自要素①：闘志（義憤）ゲージ＆覚醒バーストボタン -->
+      <button id="btnKabukiBurst" type="button" class="flex items-center gap-1.5 bg-rose-950/90 border border-rose-400/50 px-2 py-1 rounded-md text-xs font-bold transition-all" title="100%でタップすると『紋章・覚醒バースト』発動！">
+        <span>🌸闘志</span>
+        <div class="w-12 sm:w-16 h-2.5 bg-slate-950 rounded-full overflow-hidden border border-rose-800">
+          <div id="ikiBarFill" class="h-full bg-gradient-to-r from-amber-400 via-rose-500 to-fuchsia-500 transition-all duration-150" style="width: 50%;"></div>
+        </div>
+        <span id="ikiText" class="font-mono text-[10px] text-amber-200">50%</span>
+      </button>
+
+      <div class="flex items-center gap-1 bg-amber-950/90 border border-amber-400/50 px-2 py-1 rounded-md text-amber-300 font-bold">
+        <span>🪙</span>
+        <span id="moneyText">600</span>
+        <span class="text-[10px]">枚</span>
+      </div>
+
+      <!-- 独自要素③：魔物・脅威度（番付） -->
+      <div id="wantedBadge" class="hidden sm:flex items-center gap-1 bg-purple-950/90 border border-purple-400/50 px-2 py-1 rounded-md text-purple-200 font-bold text-[11px]">
+        <span>🏮脅威:</span>
+        <span id="wantedStars" class="text-amber-300">★☆☆</span>
+      </div>
+    </div>
+
+    <!-- 右：システム・UIモード切替ボタン群 -->
+    <div class="flex items-center gap-1 text-[11px] sm:text-xs">
+      <button id="btnToggleInput" type="button" class="px-2 py-1 rounded font-bold bg-emerald-800 border border-emerald-400/60 text-white" aria-pressed="true">🖐 操作: ジェスチャー</button>
+      <button id="btnToggleLayout" type="button" class="px-2 py-1 rounded font-bold bg-teal-700 hover:bg-teal-600 border border-teal-300/50 text-white shadow" title="画面を隠さないスプリット筐体モードと画面内オーバーレイを切り替えます">
+        📱 UI: 全画面(枠なし)
+      </button>
+      <button id="btnToggleAI" type="button" class="px-2 py-1 rounded font-bold bg-indigo-600 hover:bg-indigo-500 border border-indigo-300/50 text-white shadow">
+        🤖 相棒: 同行AI
+      </button>
+      <button id="btnOpenShop" type="button" class="px-2 py-1 rounded font-bold bg-amber-500 hover:bg-amber-400 border border-amber-200 text-slate-950 shadow">
+        📜 戦技試験場（デモ）
+      </button>
+      <button id="btnSpawnWave" type="button" class="hidden px-2 py-1 rounded font-bold bg-rose-700 hover:bg-rose-600 border border-rose-400/50 text-white">
+        ⚔️ 魔物増援
+      </button>
+      <button id="btnToggleArtPreview" type="button" aria-pressed="true">景観: 森 / 比較</button>
+      <button id="btnToggleSound" type="button" class="px-2 py-1 rounded font-bold bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200">
+        🔊 音ON
+      </button>
+    </div>
+  </header>
+
+  <!-- ステータス＆原作手触り維持ガイドバー -->
+  <div class="flex items-center justify-between px-3 py-1 bg-slate-900/80 border-b border-slate-800 text-[11px] text-slate-300 shrink-0 z-10">
+    <div class="truncate">
+      <span class="text-amber-400 font-bold">習得奥義:</span>
+      <span id="skillsBanner" class="text-white font-semibold ml-1">疾風連斬</span>
+    </div>
+    <div id="contextHintBanner" class="text-emerald-300 font-bold shrink-0 ml-2">
+      🌸 闘志50%＋相棒接近で「🐉双剣連携」 / 闘志100%で「🎭覚醒バースト」！
+    </div>
+  </div>
+
+  <!-- メインレイアウト領域（操作系・技ロジックは原作維持） -->
+  <main id="canvasContainer" class="relative flex-1 flex flex-col w-full overflow-hidden bg-slate-950">
+    <!-- ゲーム画面ビューポート（100%フルスクリーン） -->
+    <div id="stageViewport" class="relative w-full h-full flex-1 overflow-hidden bg-slate-950">
+      <canvas id="gameCanvas" class="w-full h-full"></canvas>
+      <button id="btnForestAtmosphere" type="button" aria-pressed="true" class="forest-atmosphere-toggle">霧と光 ON</button>
+
+      <!-- ゲーム画面内の軽量フローティング通知（Z軸ライン一致＆天候インジケーター） -->
+      <div class="absolute top-2 left-2 flex flex-col gap-1 pointer-events-none">
+        <div id="rpgSaveWarning" class="hidden rounded border border-rose-400 bg-rose-950/95 px-2 py-1 max-w-60 text-[10px] text-rose-100 font-bold" role="alert"></div>
+        <div id="weatherBadge" class="px-2 py-0.5 rounded bg-slate-900/85 border border-amber-400/40 text-amber-200 text-[10px] font-bold">
+          🌅 刻限：茜色の古街道（第1陣）
+        </div>
+        <div id="rpgStatusBadge" class="px-2 py-0.5 rounded bg-amber-950/85 border border-amber-400/50 text-amber-100 text-[10px] font-bold">
+          🎒 未帰還 0　倉庫 0　武器：初期装備
+        </div>
+        <div id="zAxisBadge" class="hidden px-2 py-0.5 rounded bg-emerald-950/85 border border-emerald-400/60 text-emerald-300 text-[10px] font-bold">
+          🎯 Z軸（奥行き）ロックオン中！攻撃が当たります
+        </div>
+        <div id="forestExploreHint" class="max-w-56 px-2 py-1 rounded bg-emerald-950/80 border border-emerald-500/40 text-emerald-100 text-[10px] font-bold" role="status">
+          🌲 獣の痕跡や古い祠へ近づき、地点そのものをタップして調べよう
+        </div>
+      </div>
+      <button id="rpgOpenResults" type="button" class="hidden absolute top-2 right-2 z-20 min-h-11 px-3 rounded-lg bg-emerald-900/95 border border-emerald-300 text-amber-50 text-xs font-black shadow-lg">
+        🏕 生還 / さらに奥へ
+      </button>
+    </div>
+
+    <!-- 枠なしフルスクリーン・オーバーレイ（左側コントローラーエリア枠は完全非表示、タッチ中のみスティック出現） -->
+    <div id="touchControls" class="absolute inset-0 flex items-end justify-between px-3 sm:px-8 pb-3 z-10 select-none pointer-events-none">
+
+      <!-- 左半分全体：完全透明のタッチ検出領域（タッチした瞬間だけその指の下にスティックが出現） -->
+      <div id="leftTouchPadArea" class="relative w-[52%] h-full bg-transparent flex items-center justify-center overflow-hidden pointer-events-auto">
+        <!-- スティック本体（非タッチ時は opacity-0 で完全非表示） -->
+        <div id="joystickZone" class="relative w-28 h-28 sm:w-32 sm:h-32 rounded-full bg-slate-950/45 border-2 border-sky-300/60 flex items-center justify-center pointer-events-none opacity-0 transition-opacity duration-100">
+          <!-- ダッシュ閾値リング -->
+          <div id="dashOuterRing" class="absolute inset-1.5 rounded-full border border-dashed border-sky-300/35 pointer-events-none"></div>
+          <!-- 8方向ガイドドット -->
+          <span class="absolute top-1.5 text-[9px] text-slate-400 font-bold">▲奥</span>
+          <span class="absolute bottom-1.5 text-[9px] text-slate-400 font-bold">▼手前</span>
+          <span class="absolute left-1.5 text-[9px] text-sky-300 font-bold">◀疾走</span>
+          <span class="absolute right-1.5 text-[9px] text-sky-300 font-bold">疾走▶</span>
+          <!-- スティックノブ -->
+          <div id="joystickKnob" class="w-12 h-12 sm:w-14 sm:h-14 rounded-full bg-gradient-to-b from-sky-300 to-sky-500 border-2 border-white shadow-lg flex items-center justify-center text-[10px] font-black text-slate-950 pointer-events-none">
+            移動
+          </div>
+        </div>
+      </div>
+
+      <!-- 中央ミニステータス：現在の武器・ダッシュ固定トグル -->
+      <div class="hidden md:flex flex-col items-center justify-center gap-2 px-2 pointer-events-auto">
+        <div id="weaponSlotBadge" class="px-3 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-xs text-slate-300 font-bold text-center">
+          武器: 素手
+        </div>
+        <button id="btnAutoRunToggle" type="button" class="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs font-bold text-sky-300">
+          🏃 常時疾走: OFF
+        </button>
+      </div>
+
+      <!-- 右半分：親指アーク（Thumb Arc）扇形ボタン配置 ＋ 特大コンテキストメインボタン -->
+      <div id="gestureActionArea" class="absolute right-0 top-0 w-[48%] h-full z-10 pointer-events-auto touch-none" aria-label="右側の戦闘操作。タップで斬撃、横スワイプで蹴り、上で跳躍、下で組み技">
+        <div id="gestureHint" class="absolute right-2 bottom-2 max-w-[95%] text-right rounded bg-slate-950/50 px-2 py-1 text-[10px] text-sky-100 pointer-events-none">
+          タップ:斬撃　横:蹴り　↑跳ぶ　↓組む
+        </div>
+      </div>
+      <div id="arcadeActionButtons" class="hidden relative w-[50%] sm:w-[44%] h-full max-h-48 pointer-events-auto flex items-center justify-end">
+        <div class="relative w-56 h-40 sm:w-64 sm:h-44">
+
+          <!-- ① 特大メインボタン（右下中央・親指のホームポジション）：殴る / 拾う / 追撃追撃（長押しオート連打対応） -->
+          <button id="btnPunch" type="button" data-action="punch"
+            class="arcade-btn absolute right-3 bottom-2 w-20 h-20 sm:w-24 sm:h-24 rounded-full bg-gradient-to-b from-rose-500 to-rose-700 border-4 border-rose-200 text-white font-black shadow-xl flex flex-col items-center justify-center">
+            <span id="btnPunchIcon" class="text-xl sm:text-2xl leading-none">👊</span>
+            <span id="btnPunchMainLabel" class="text-sm sm:text-base leading-tight mt-0.5">連斬</span>
+            <span id="btnPunchSubLabel" class="text-[9px] font-semibold text-rose-100">長押し連打</span>
+          </button>
+
+          <!-- ② 親指アーク左（メインの左横）：蹴る / 武器投げ（長押し連打対応） -->
+          <button id="btnKick" type="button" data-action="kick"
+            class="arcade-btn absolute right-28 sm:right-32 bottom-2 w-16 h-16 sm:w-[70px] sm:h-[70px] rounded-full bg-gradient-to-b from-amber-500 to-amber-700 border-2 border-amber-200 text-white font-black shadow-lg flex flex-col items-center justify-center">
+            <span id="btnKickIcon" class="text-base leading-none">🦶</span>
+            <span id="btnKickMainLabel" class="text-xs sm:text-sm leading-tight mt-0.5">蹴/投</span>
+            <span id="btnKickSubLabel" class="text-[9px] font-normal text-amber-100">旋風脚</span>
+          </button>
+
+          <!-- ③ 親指アーク左上（斜め上）：跳ぶ（ジャンプ＆見切り回避） -->
+          <button id="btnJump" type="button" data-action="jump"
+            class="arcade-btn absolute right-24 sm:right-28 top-1 w-16 h-16 sm:w-[68px] sm:h-[68px] rounded-full bg-gradient-to-b from-sky-500 to-sky-700 border-2 border-sky-200 text-white font-black shadow-lg flex flex-col items-center justify-center">
+            <span class="text-base leading-none">🍃</span>
+            <span class="text-xs sm:text-sm leading-tight mt-0.5">跳躍</span>
+            <span class="text-[9px] font-normal text-sky-100">段差/回避</span>
+          </button>
+
+          <!-- ④ 親指アーク右上（メインの真上）：双剣合体連携 / 覚醒バースト / 風車大回転 / 襟首投げ -->
+          <button id="btnGrab" type="button" data-action="grab"
+            class="arcade-btn absolute right-2 top-0 w-16 h-16 sm:w-[68px] sm:h-[68px] rounded-full bg-gradient-to-b from-emerald-500 to-emerald-700 border-2 border-emerald-200 text-white font-black shadow-lg flex flex-col items-center justify-center">
+            <span id="btnGrabIcon" class="text-base leading-none">🐉</span>
+            <span id="btnGrabMainLabel" class="text-xs sm:text-sm leading-tight mt-0.5">双剣技</span>
+            <span id="btnGrabSubLabel" class="text-[9px] font-normal text-emerald-100">連携/投げ</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Tiny local RPG loop: encounter result, safe return and smithing.
+         It is intentionally separate from the original combat HUD / touch arc. -->
+    <div id="rpgPanel" class="hidden absolute inset-0 bg-slate-950/90 z-40 flex items-center justify-center p-3">
+      <div class="w-full max-w-sm rounded-xl border-2 border-amber-400 bg-slate-900 text-amber-50 shadow-xl p-4 space-y-3 max-h-full overflow-y-auto" role="dialog" aria-labelledby="rpgTitle" aria-modal="true">
+        <p class="text-[11px] text-amber-300 font-black">CROWNLESS / 遠征・生還・鍛冶</p>
+        <h2 id="rpgTitle" class="text-xl font-black">遠征の結果</h2>
+        <p id="rpgInfo" class="text-sm leading-relaxed text-slate-200"></p>
+        <p id="rpgBank" class="text-xs font-bold text-amber-200">持ち帰り前 0 / 倉庫 0</p>
+        <div class="grid gap-2">
+          <button id="rpgKeepExploring" class="hidden min-h-12 bg-sky-900 border border-sky-500 rounded-lg font-bold text-sm p-2" type="button">🌲 森の探索を続ける</button>
+          <button id="rpgReturn" class="hidden min-h-12 bg-emerald-700 border border-emerald-400 rounded-lg font-black text-sm p-2" type="button">🏕 生還して素材を確保</button>
+          <button id="rpgPush" class="hidden min-h-12 bg-rose-900 border border-rose-500 rounded-lg font-bold text-sm p-2" type="button">⚔ さらに奥へ（敗北時は素材を失う）</button>
+          <button id="rpgForge" class="hidden min-h-12 bg-amber-600 border border-amber-300 rounded-lg font-black text-slate-950 text-sm p-2" type="button">⚒ 鍛冶で風裂きの剣を製作</button>
+          <button id="rpgDepart" class="hidden min-h-12 bg-sky-700 border border-sky-400 rounded-lg font-black text-sm p-2" type="button">🗺 もう一度、森へ遠征</button>
+          <button id="rpgBackToMap" class="hidden min-h-12 bg-slate-700 border border-slate-500 rounded-lg font-bold text-sm p-2" type="button">← 発見した森の地図へ戻る</button>
+        </div>
+        <p id="rpgSaveNote" class="text-[10px] text-slate-400">独立した試遊版。帰還する前に中断すると、未帰還の素材は失われます。</p>
+        
+      </div>
+    </div>
+
+    <!-- 冒険者アジト・野営地ショップモーダル -->
+    <div id="shopModal" class="hidden absolute inset-0 bg-slate-950/85 backdrop-blur-sm z-30 flex items-center justify-center p-4">
+      <div class="w-full max-w-md bg-slate-900 border-2 border-amber-400 rounded-xl shadow-2xl overflow-hidden">
+        <div class="flex items-center justify-between px-4 py-3 bg-amber-500 text-slate-950">
+          <h2 class="font-black text-base flex items-center gap-1.5">📜 冒険者の隠れ家・街道野営地（独自奥義＆薬草）</h2>
+          <button id="btnCloseShop" type="button" class="px-3 py-1 rounded bg-slate-950 text-amber-300 font-bold text-xs">閉じる</button>
+        </div>
+        <div class="p-4 space-y-2.5 max-h-[75vh] overflow-y-auto">
+          <div class="flex items-center justify-between bg-slate-800/90 px-3 py-2 rounded-lg border border-amber-400/30">
+            <span class="text-xs text-slate-300">魔物から奪い返した「枚」でオリジナル奥義を習得！</span>
+            <button id="btnUnlockAllDemo" type="button" class="px-2.5 py-1 rounded bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-[11px] shrink-0">
+              🎁 テスト用: 全奥義＆闘志MAX
+            </button>
+          </div>
+          <div id="shopItemsContainer" class="space-y-2"></div>
+        </div>
+      </div>
+    </div>
+  </main>
+
+<script src="src/gemini-rpg-loop.js"></script>
+<script src="src/gemini-action-save.js"></script>
+<script src="src/gemini-combat-gesture.js"></script>
+<script src="src/gemini-hit-recovery.js"></script>
+<script src="src/gemini-forest-discoveries.js"></script>
+<script src="src/pixel-forest.js"></script>
+<script src="src/pixel-forest-effects.js"></script>
+<script src="src/pixel-actors.js"></script>
+<script src="src/hero-still-review.js"></script>
+<script>
+(() => {
+  // ============================================================================
+  // 1. レトロ効果音＆触覚フィードバックエンジン (Web Audio API + Vibration API)
+  // ============================================================================
+  class RetroSoundEngine {
+    constructor() {
+      this.ctx = null;
+      this.enabled = true;
+    }
+    init() {
+      if (!this.ctx) {
+        const AudioCtx = window.AudioContext || window.webkitAudioContext;
+        if (AudioCtx) this.ctx = new AudioCtx();
+      }
+      if (this.ctx && this.ctx.state === 'suspended') {
+        this.ctx.resume();
+      }
+    }
+    haptic(ms = 12) {
+      try {
+        if (navigator.vibrate) navigator.vibrate(ms);
+      } catch (_e) {}
+    }
+    play(type) {
+      if (!this.enabled) return;
+      this.init();
+      if (!this.ctx) return;
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+
+      if (type === 'punch') {
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(240, now);
+        osc.frequency.exponentialRampToValueAtTime(58, now + 0.08);
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.08);
+        osc.start(now);
+        osc.stop(now + 0.08);
+      } else if (type === 'heavy') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(175, now);
+        osc.frequency.exponentialRampToValueAtTime(36, now + 0.16);
+        gain.gain.setValueAtTime(0.22, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.16);
+        osc.start(now);
+        osc.stop(now + 0.16);
+      } else if (type === 'jump') {
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(190, now);
+        osc.frequency.exponentialRampToValueAtTime(540, now + 0.13);
+        gain.gain.setValueAtTime(0.11, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.13);
+        osc.start(now);
+        osc.stop(now + 0.13);
+      } else if (type === 'coin') {
+        osc.type = 'square';
+        osc.frequency.setValueAtTime(987.77, now);
+        osc.frequency.setValueAtTime(1318.51, now + 0.06);
+        gain.gain.setValueAtTime(0.14, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.22);
+        osc.start(now);
+        osc.stop(now + 0.22);
+      } else if (type === 'skill') {
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(330, now);
+        osc.frequency.linearRampToValueAtTime(880, now + 0.18);
+        gain.gain.setValueAtTime(0.18, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.18);
+        osc.start(now);
+        osc.stop(now + 0.18);
+      } else if (type === 'kabuki') {
+        // 紋章の柝（き）・ツケ打ち風の和風インパクト音
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(620, now);
+        osc.frequency.exponentialRampToValueAtTime(180, now + 0.26);
+        gain.gain.setValueAtTime(0.26, now);
+        gain.gain.linearRampToValueAtTime(0.01, now + 0.26);
+        osc.start(now);
+        osc.stop(now + 0.26);
+      }
+    }
+  }
+  const sfx = new RetroSoundEngine();
+
+  // ============================================================================
+  // 2. 独自アレンジ奥義・ショップカタログ定義 (Original SkillCatalog)
+  // ============================================================================
+  const SKILL_CATALOG = [
+    {
+      id: 'hayate_ken',
+      name: '疾風連斬（はやてひゃくれつけん）',
+      price: 300,
+      desc: '「殴る」長押しで目にも留まらぬ高速連撃を叩き込み、闘志ゲージを素早く溜める冒険者の基本奥義！',
+      type: 'skill'
+    },
+    {
+      id: 'taikoban_sp',
+      name: '御用改め・追撃（たいこばん）',
+      price: 400,
+      desc: 'ダウンした魔物の近くでボタンが「⚡追撃」に変化！飛び乗って連打し、追加の古貨を叩き出す独自技！',
+      type: 'skill'
+    },
+    {
+      id: 'kazaguruma',
+      name: '風車大回転（かざぐるまだいかいてん）',
+      price: 500,
+      desc: '桜吹雪を纏って回転突撃！段差上の敵も巻き込み、周囲の敵を一掃する空中奥義。',
+      type: 'skill'
+    },
+    {
+      id: 'senko_kyaku',
+      name: '閃光連脚（せんこうれんきゃく）',
+      price: 350,
+      desc: '「蹴る」ボタン長押しでリーチの長い高速回し蹴りを連続で繰り出す！',
+      type: 'skill'
+    },
+    {
+      id: 'dango_set',
+      name: '名物・火消し薬草（HP全快＆腕力+5＆闘志+50%）',
+      price: 150,
+      desc: '旅人と従者の体力を全回復し、基礎攻撃力+5、さらに「闘志ゲージ」を+50%チャージする。',
+      type: 'consumable'
+    }
+  ];
+
+  // ============================================================================
+  // 3. ステージ定数＆石橋（段差）の高さ関数
+  // ============================================================================
+  const WORLD = {
+    minX: 50,
+    maxX: 950,
+    minZ: 210,
+    maxZ: 410,
+    gravity: 980,
+    bridgeMinX: 430,
+    bridgeMaxX: 730,
+    bridgeMinZ: 235,
+    bridgeMaxZ: 345
+  };
+
+  function getGroundHeightAt(x, z) {
+    if (z >= WORLD.bridgeMinZ && z <= WORLD.bridgeMaxZ && x >= WORLD.bridgeMinX && x <= WORLD.bridgeMaxX) {
+      const center = (WORLD.bridgeMinX + WORLD.bridgeMaxX) * 0.5;
+      const halfSpan = (WORLD.bridgeMaxX - WORLD.bridgeMinX) * 0.5;
+      const norm = (x - center) / halfSpan;
+      return Math.max(0, Math.cos(norm * Math.PI * 0.5) * 46);
+    }
+    return 0;
+  }
+
+  // ============================================================================
+  // 4. 攻撃権トークン管理 (BattleTokenManager)
+  // ============================================================================
+  class BattleTokenManager {
+    constructor(maxSlots = 2) {
+      this.maxSlots = maxSlots;
+      this.holders = new Map();
+    }
+    requestToken(fighterId, now, duration = 1.3) {
+      for (const [id, exp] of this.holders.entries()) {
+        if (exp <= now) this.holders.delete(id);
+      }
+      if (this.holders.has(fighterId)) {
+        this.holders.set(fighterId, now + duration);
+        return true;
+      }
+      if (this.holders.size < this.maxSlots) {
+        this.holders.set(fighterId, now + duration);
+        return true;
+      }
+      return false;
+    }
+  }
+
+  // ============================================================================
+  // 5. 全キャラクター共通 Fighter クラス
+  // ============================================================================
+  let nextFighterId = 1;
+  class Fighter {
+    constructor(opts) {
+      this.id = nextFighterId++;
+      this.name = opts.name;
+      this.team = opts.team;
+      this.x = opts.x;
+      this.z = opts.z;
+      this.y = getGroundHeightAt(opts.x, opts.z);
+      this.vx = 0;
+      this.vz = 0;
+      this.vy = 0;
+      this.facing = opts.facing || 1;
+      this.maxHp = opts.maxHp || 120;
+      this.hp = this.maxHp;
+      this.punchPower = opts.punchPower || 14;
+      this.kickPower = opts.kickPower || 16;
+      this.speed = opts.speed || 155;
+      this.kimonoColor = opts.kimonoColor || '#2563eb';
+      this.obiColor = opts.obiColor || '#facc15';
+      this.headbandColor = opts.headbandColor || null;
+      this.isBoss = Boolean(opts.isBoss);
+
+      this.state = 'IDLE';
+      this.stateTimer = 0;
+      this.hitGuardRemaining = 0; // only hero team gains brief damage immunity after a hit
+      this.nextStrikeAt = 0;      // enemy-only cooldown between attempted strikes
+      this.skillTimer = 0;
+      this.activeSkill = null;
+      this.heldWeapon = null;
+      this.grabTarget = null;
+      this.animTime = Math.random() * 10;
+      this.aiOrbitAngle = Math.random() * Math.PI * 2;
+    }
+
+    isGrounded() {
+      return this.y <= getGroundHeightAt(this.x, this.z) + 1;
+    }
+  }
+
+  // ============================================================================
+  // 6. ゲーム状態管理（独自アレンジ：闘志ゲージ・紋章バースト・桜吹雪・脅威度）
+  // ============================================================================
+  const state = {
+    moneyMon: 600,
+    unlockedSkills: new Set(['hayate_ken']),
+    isPartnerAI: true,
+    isSplitDeckLayout: false,
+    autoRunEnabled: false,
+    tokenManager: new BattleTokenManager(2),
+    fighters: [],
+    forestFinds: new Set(),
+    items: [],
+    popups: [],
+    hitSparks: [],
+    sakuraPetals: [],
+    slashLines: [],
+    cameraX: 0,
+    waveCount: 1,
+    wantedLevel: 1,
+    ikiGauge: 55,       // 0〜100%（50%で双剣連携、100%で紋章・覚醒バースト！）
+    kabukiBurstTimer: 0 // >0 の間は隈取ハイパーアーマー＆桜吹雪バースト状態
+  };
+
+  let ginji = null;
+  let sasuke = null;
+  // This page-only progression does not touch Crownless's production saves.
+  const rpgRules = window.CrownlessRpgLoop;
+  const rpg = rpgRules.create();
+  const actionSave = window.CrownlessActionSave;
+  const actionFromMap = new URLSearchParams(window.location.search).get('from') === 'discovered-wood';
+  let actionKey = null;
+  let actionPreviousRaw = null;
+  let actionSaveBlocked = false;
+  function actionSaveError(message) {
+    actionSaveBlocked = true;
+    const warning = document.getElementById('rpgSaveWarning');
+    warning.textContent = message;
+    warning.classList.remove('hidden');
+    const note = document.getElementById('rpgSaveNote');
+    note.textContent = 'この試遊の進行は保存できません。閉じる前に注意してください。';
+  }
+  if (actionFromMap) {
+    try {
+      // Only the existing demo/walk mode is read. We do not read/write game saves,
+      // store real coordinates, or share the prototype weapon with production.
+      actionKey = actionSave.key(localStorage.getItem('crownless-expedition-mode'));
+      if (actionKey) {
+        actionPreviousRaw = localStorage.getItem(actionKey);
+        const snapshot = actionSave.decode(actionPreviousRaw);
+        if (snapshot) {
+          actionSave.restore(rpg, snapshot);
+          document.getElementById('rpgSaveNote').textContent =
+            '試遊専用の素材倉庫・製作済み装備は生還時に自動保存。未帰還素材は中断すると失われます。本編の倉庫とは別です。';
+        } else {
+          actionSaveError('以前の試遊データを読み込めません。上書きを防ぐため、この画面では保存を停止しました。');
+        }
+      } else {
+        actionSaveError('散策モードを確認できず、試遊の進行は保存されません。');
+      }
+    } catch {
+      actionSaveError('端末の保存を利用できません。試遊の進行はこの画面限りです。');
+    }
+  }
+  window.addEventListener('storage', event => {
+    if (actionKey && event.key === actionKey && event.newValue !== actionPreviousRaw) {
+      actionSaveError('別のタブで試遊の進行が変わりました。上書きを防ぐため保存を停止しました。');
+    }
+  });
+  function saveActionProgress() {
+    if (!actionKey || actionSaveBlocked) return false;
+    try {
+      if (localStorage.getItem(actionKey) !== actionPreviousRaw) {
+        actionSaveError('別のタブで試遊の進行が変わりました。上書きを防ぐため保存を停止しました。');
+        return false;
+      }
+      const raw = actionSave.encode(rpg);
+      localStorage.setItem(actionKey, raw);
+      if (localStorage.getItem(actionKey) !== raw) throw new Error('storage did not persist');
+      actionPreviousRaw = raw;
+      return true;
+    } catch {
+      actionSaveError('試遊の進行を端末へ保存できません。今回の成果は画面を閉じると失われます。');
+      return false;
+    }
+  }
+
+  function addIki(amount) {
+    if (state.kabukiBurstTimer > 0) return;
+    state.ikiGauge = Math.max(0, Math.min(100, state.ikiGauge + amount));
+    updateUI();
+  }
+
+  function spawnPopup(text, x, z, y, color = '#fde047') {
+    state.popups.push({ text, x, z, y, color, timer: 0.95 });
+  }
+
+  function spawnSpark(x, z, y, isSakura = false) {
+    state.hitSparks.push({ x, z, y, timer: 0.2, isSakura });
+  }
+
+  function spawnSakuraBurst(x, z, y, count = 14) {
+    for (let i = 0; i < count; i++) {
+      state.sakuraPetals.push({
+        x: x + (Math.random() - 0.5) * 60,
+        y: (z - y) + (Math.random() - 0.5) * 40,
+        vx: (Math.random() - 0.5) * 140,
+        vy: -30 + Math.random() * 90,
+        size: 3 + Math.random() * 3,
+        timer: 1.4 + Math.random() * 0.8
+      });
+    }
+  }
+
+  function spawnItem(type, x, z, y = 10, val = 150) {
+    state.items.push({
+      id: Math.random(),
+      type,
+      x,
+      z,
+      y: Math.max(y, getGroundHeightAt(x, z)),
+      vx: (Math.random() - 0.5) * 40,
+      vz: (Math.random() - 0.5) * 20,
+      vy: 140,
+      value: val,
+      thrownTeam: -1,
+      damage: 0
+    });
+  }
+
+  function initStage() {
+    state.fighters = [];
+    state.forestFinds = new Set();
+    state.items = [];
+    state.popups = [];
+    state.sakuraPetals = [];
+    forestEffects.reset();
+
+    ginji = new Fighter({
+      name: '旅人',
+      team: 0,
+      x: 210,
+      z: 310,
+      facing: 1,
+      maxHp: 140,
+      punchPower: 15,
+      kickPower: 17,
+      speed: 172,
+      kimonoColor: '#586a83',
+      obiColor: '#d8b66e',
+      headbandColor: '#c89b5b'
+    });
+
+    sasuke = new Fighter({
+      name: '従者',
+      team: 0,
+      x: 155,
+      z: 345,
+      facing: 1,
+      maxHp: 130,
+      punchPower: 14,
+      kickPower: 16,
+      speed: 168,
+      kimonoColor: '#5b7168',
+      obiColor: '#c8ad7b',
+      headbandColor: '#97af8e'
+    });
+
+    state.fighters.push(ginji, sasuke);
+    spawnEnemyWave(1);
+
+    // No found finished weapon: the stronger sword is crafted by the smith after a safe return.
+    spawnItem('stone', 480, 290, 50);
+    spawnItem('dango', 260, 255, 20, 45);
+    updateUI();
+  }
+
+  function spawnEnemyWave(waveNum) {
+    const baseNames = ['苔牙ゴブリン', '灰羽ゴブリン', '石肌ゴブリン', '影走りゴブリン', '黒鉄のオーク'];
+    const colors = ['#5e7847', '#67734b', '#6b7157', '#3e6d60', '#695246'];
+    const count = 3;
+    state.wantedLevel = Math.min(3, 1 + Math.floor((waveNum - 1) / 2));
+
+    for (let i = 0; i < count; i++) {
+      const idx = (waveNum + i) % baseNames.length;
+      const isBoss = idx === 4;
+      const ex = Math.min(WORLD.maxX - 40, Math.max(360, (ginji ? ginji.x : 220) + 190 + i * 90));
+      const ez = 245 + (i * 55) % 140;
+      const enemy = new Fighter({
+        name: baseNames[idx],
+        team: 1,
+        x: ex,
+        z: ez,
+        facing: -1,
+        maxHp: isBoss ? 155 : 95,
+        punchPower: isBoss ? 15 : 9,
+        kickPower: isBoss ? 17 : 11,
+        speed: isBoss ? 134 : 116,
+        kimonoColor: colors[idx],
+        obiColor: '#fbbf24',
+        isBoss
+      });
+      // 脅威度が上がると屋根上から奇襲降下してくる演出！
+      if (waveNum >= 2 && i === count - 1) {
+        enemy.y = 180;
+        spawnPopup('屋根上から刺客奇襲！', ex, ez, 120, '#c084fc');
+      }
+      state.fighters.push(enemy);
+    }
+
+    const weatherNames = [
+      '🌲 霧晴れの囁きの森',
+      '🏰 黄昏の砦跡',
+      '🌙 月明かりの古い石橋'
+    ];
+    const wLabel = weatherNames[(waveNum - 1) % weatherNames.length];
+    const wBadge = document.getElementById('weatherBadge');
+    if (wBadge) wBadge.textContent = `${wLabel}（第${waveNum}陣）`;
+
+    spawnPopup(`第${waveNum}陣 推参！`, (ginji ? ginji.x : 300) + 110, 290, 60, '#f87171');
+    updateUI();
+  }
+
+  // ============================================================================
+  // 7. 独自システム①：紋章『大見得（おおみえ）バースト』＆②『双剣合体連携』
+  // ============================================================================
+  function triggerKabukiBurst() {
+    if (!ginji || ginji.state === 'DEAD') return;
+    if (state.ikiGauge < 100 && state.kabukiBurstTimer <= 0) return;
+
+    state.ikiGauge = 0;
+    state.kabukiBurstTimer = 8.0; // 8秒間、紋章の隈取オーラ＆桜吹雪＆攻撃速度1.5倍！
+    sfx.play('kabuki');
+    sfx.haptic(40);
+    spawnSakuraBurst(ginji.x, ginji.z, ginji.y + 20, 28);
+    spawnPopup('🎭 紋章・覚醒バースト！！', ginji.x, ginji.z, ginji.y + 68, '#f43f5e');
+
+    // 周囲の敵全員を見得の衝撃波で吹き飛ばす
+    for (const f of state.fighters) {
+      if (f.team === 1 && f.state !== 'DEAD') {
+        const d = Math.hypot(f.x - ginji.x, f.z - ginji.z);
+        if (d < 190) {
+          const dir = f.x >= ginji.x ? 1 : -1;
+          inflictDamage(f, 22, dir * 240, 250, true);
+        }
+      }
+    }
+    updateUI();
+  }
+
+  function canTriggerDualTagArt() {
+    if (!ginji || !sasuke || ginji.state === 'DEAD' || sasuke.state === 'DEAD') return false;
+    if (state.ikiGauge < 50 && state.kabukiBurstTimer <= 0) return false;
+    const dist = Math.hypot(ginji.x - sasuke.x, ginji.z - sasuke.z);
+    if (dist > 150) return false;
+    return state.fighters.some(e =>
+      e.team === 1 &&
+      e.state !== 'DEAD' &&
+      Math.hypot(e.x - ginji.x, e.z - ginji.z) < 135
+    );
+  }
+
+  function triggerDualTagArt() {
+    if (!ginji || !sasuke) return false;
+    const targets = state.fighters.filter(e =>
+      e.team === 1 &&
+      e.state !== 'DEAD' &&
+      Math.hypot(e.x - ginji.x, e.z - ginji.z) < 145
+    );
+    if (targets.length === 0) return false;
+
+    if (state.kabukiBurstTimer <= 0) {
+      state.ikiGauge = Math.max(0, state.ikiGauge - 50);
+    }
+
+    const mainTarget = targets[0];
+    // 旅人と従者が敵の左右へ瞬時に回り込んでクロス雷撃！
+    ginji.x = Math.max(WORLD.minX, mainTarget.x - 36);
+    ginji.z = mainTarget.z;
+    ginji.facing = 1;
+    ginji.state = 'ATTACK';
+    ginji.stateTimer = 0.32;
+
+    sasuke.x = Math.min(WORLD.maxX, mainTarget.x + 36);
+    sasuke.z = mainTarget.z;
+    // Keep combo teleports inside the actual world bounds.
+    clampToWorld(ginji);
+    clampToWorld(sasuke);
+    sasuke.facing = -1;
+    sasuke.state = 'ATTACK';
+    sasuke.stateTimer = 0.32;
+
+    state.slashLines.push({
+      x: mainTarget.x,
+      y: mainTarget.z - mainTarget.y - 24,
+      timer: 0.35
+    });
+
+    sfx.play('kabuki');
+    sfx.haptic(35);
+    spawnSakuraBurst(mainTarget.x, mainTarget.z, mainTarget.y + 24, 20);
+    spawnPopup('🐉 双剣・挟撃乱舞！！', mainTarget.x, mainTarget.z, mainTarget.y + 66, '#fde047');
+
+    for (const t of targets) {
+      inflictDamage(t, 38, (t.x >= ginji.x ? 1 : -1) * 220, 270, true);
+      // 冒険者ボーナスで古貨が飛び散る！
+      spawnItem('coin', t.x, t.z, t.y + 20, 100);
+    }
+    updateUI();
+    return true;
+  }
+
+  // ============================================================================
+  // 8. スマホ人間工学タッチ入力（フローティング＆リーシュ追従スティック＋長押し連打）
+  // ============================================================================
+  const keys = {};
+  const touchInput = {
+    moveX: 0,
+    moveZ: 0,
+    run: false,
+    punchJust: false,
+    punchHeld: false,
+    kickJust: false,
+    kickHeld: false,
+    jumpJust: false,
+    grabJust: false,
+    grabHeld: false,
+    holdRepeatTimer: 0
+  };
+
+  let lastKeyTapDir = 0;
+  let lastKeyTapTime = 0;
+  let keyRunLatched = false;
+
+  window.addEventListener('keydown', (e) => {
+    if (keys[e.code]) return;
+    keys[e.code] = true;
+    const now = performance.now();
+    if (e.code === 'KeyD' || e.code === 'ArrowRight') {
+      if (lastKeyTapDir === 1 && now - lastKeyTapTime < 260) keyRunLatched = true;
+      lastKeyTapDir = 1;
+      lastKeyTapTime = now;
+    } else if (e.code === 'KeyA' || e.code === 'ArrowLeft') {
+      if (lastKeyTapDir === -1 && now - lastKeyTapTime < 260) keyRunLatched = true;
+      lastKeyTapDir = -1;
+      lastKeyTapTime = now;
+    }
+    if (e.code === 'KeyJ') { touchInput.punchJust = true; touchInput.punchHeld = true; }
+    if (e.code === 'KeyK') { touchInput.kickJust = true; touchInput.kickHeld = true; }
+    if (e.code === 'Space') touchInput.jumpJust = true;
+    if (e.code === 'KeyL') { touchInput.grabJust = true; touchInput.grabHeld = true; }
+    if (e.code === 'KeyU') triggerKabukiBurst();
+    if (e.code === 'F2') togglePartnerAI();
+    if (e.code === 'F3') toggleShopModal();
+  });
+
+  window.addEventListener('keyup', (e) => {
+    keys[e.code] = false;
+    if (e.code === 'KeyJ') touchInput.punchHeld = false;
+    if (e.code === 'KeyK') touchInput.kickHeld = false;
+    if (e.code === 'KeyL') touchInput.grabHeld = false;
+    if (!keys['KeyA'] && !keys['KeyD']) keyRunLatched = false;
+  });
+
+  // The new phone default has no floating action buttons or fake moving walls.
+  // Gestures feed the EXACT same one-frame flags the original action buttons use.
+  let combatInputMode = 'gesture';
+  let lastCombatGesture = null;
+  let combatGestureCount = 0;
+  const gestureArea = document.getElementById('gestureActionArea');
+  const gestureHint = document.getElementById('gestureHint');
+  let gesturePointer = null;
+  let gestureHoldTimer = null;
+  function releaseGestureHold() {
+    if (gestureHoldTimer !== null) clearTimeout(gestureHoldTimer);
+    gestureHoldTimer = null;
+    touchInput.punchHeld = false;
+  }
+  function fireGesture(action) {
+    // Cleared waves remain playable, so a tap can still inspect or slash.
+    if (rpg.phase !== 'fight' && rpg.phase !== 'return') return;
+    const flag = { punch: 'punchJust', kick: 'kickJust', jump: 'jumpJust', grab: 'grabJust' }[action];
+    if (!flag) return;
+    touchInput[flag] = true;
+    lastCombatGesture = action;
+    combatGestureCount++;
+    gestureHint.textContent = {punch:'👊 斬撃',kick:'🦶 蹴り / 投擲',jump:'🍃 跳躍',grab:'🐉 組み技 / 連携'}[action];
+    sfx.haptic(9);
+  }
+  gestureArea.addEventListener('pointerdown', (event) => {
+    if (combatInputMode !== 'gesture' || gesturePointer) return;
+    event.preventDefault();
+    sfx.init();
+    gesturePointer = { id: event.pointerId, x: event.clientX, y: event.clientY, moved: false, held: false };
+    gestureArea.setPointerCapture(event.pointerId);
+    gestureHoldTimer = setTimeout(() => {
+      if (!gesturePointer || gesturePointer.moved || combatInputMode !== 'gesture') return;
+      gesturePointer.held = true;
+      fireGesture('punch');
+      touchInput.punchHeld = true;
+      touchInput.holdRepeatTimer = 0.15;
+    }, 230);
+  });
+  gestureArea.addEventListener('pointermove', (event) => {
+    if (!gesturePointer || event.pointerId !== gesturePointer.id) return;
+    if (Math.hypot(event.clientX-gesturePointer.x,event.clientY-gesturePointer.y)>12) {
+      gesturePointer.moved = true;
+      if (gestureHoldTimer !== null) clearTimeout(gestureHoldTimer);
+      gestureHoldTimer = null;
+    }
+  });
+  gestureArea.addEventListener('pointerup', (event) => {
+    if (!gesturePointer || event.pointerId !== gesturePointer.id) return;
+    const p = gesturePointer;
+    gesturePointer = null;
+    releaseGestureHold();
+    if (!p.held) {
+      const action=window.CrownlessCombatGesture.resolve(event.clientX-p.x,event.clientY-p.y);
+      if (action==='punch' && tryTapForestSite(event.clientX,event.clientY,true)) return;
+      fireGesture(action);
+    }
+  });
+  gestureArea.addEventListener('pointercancel', (event) => {
+    if (gesturePointer?.id === event.pointerId) {
+      gesturePointer = null;
+      releaseGestureHold();
+    }
+  });
+  window.CrownlessGestureReadout = () => ({
+    mode: combatInputMode, lastAction: lastCombatGesture, count: combatGestureCount,
+    buttonsVisible: !document.getElementById('arcadeActionButtons').classList.contains('hidden')
+  });
+  function applyCombatInputMode() {
+    const gestures = combatInputMode === 'gesture';
+    gesturePointer = null;
+    releaseGestureHold();
+    touchInput.kickHeld = false;
+    touchInput.grabHeld = false;
+    gestureArea.classList.toggle('hidden', !gestures);
+    document.getElementById('arcadeActionButtons').classList.toggle('hidden', gestures);
+    document.getElementById('btnToggleLayout').classList.toggle('hidden', gestures);
+    const toggle = document.getElementById('btnToggleInput');
+    toggle.textContent = gestures ? '🖐 操作: ジェスチャー' : '🎮 操作: ボタン';
+    toggle.setAttribute('aria-pressed', String(gestures));
+    // The old large buttons may be compared, but they live BELOW the battle
+    // rather than covering characters or bringing back the unnatural fence.
+    state.isSplitDeckLayout = !gestures;
+    applyLayoutMode();
+  }
+  document.getElementById('btnToggleInput').addEventListener('click', () => {
+    combatInputMode = combatInputMode === 'gesture' ? 'buttons' : 'gesture';
+    applyCombatInputMode();
+  });
+
+  const leftTouchPadArea = document.getElementById('leftTouchPadArea');
+  const joystickZone = document.getElementById('joystickZone');
+  const joystickKnob = document.getElementById('joystickKnob');
+  const dashOuterRing = document.getElementById('dashOuterRing');
+
+  let activeStickPointerId = null;
+  let leftTapStart = null;
+  let stickOriginX = 0;
+  let stickOriginY = 0;
+  const STICK_MAX_RADIUS = 50;
+
+  function setJoystickVisualCenter(clientX, clientY) {
+    const areaRect = leftTouchPadArea.getBoundingClientRect();
+    const localX = clientX - (areaRect.left + areaRect.width / 2);
+    const localY = clientY - (areaRect.top + areaRect.height / 2);
+    joystickZone.style.transform = `translate(${localX}px, ${localY}px)`;
+  }
+
+  function updateFloatingJoystick(clientX, clientY) {
+    let dx = clientX - stickOriginX;
+    let dy = clientY - stickOriginY;
+    const dist = Math.hypot(dx, dy);
+
+    if (dist > STICK_MAX_RADIUS * 1.35) {
+      const excess = dist - STICK_MAX_RADIUS * 1.35;
+      stickOriginX += (dx / dist) * excess;
+      stickOriginY += (dy / dist) * excess;
+      setJoystickVisualCenter(stickOriginX, stickOriginY);
+      dx = clientX - stickOriginX;
+      dy = clientY - stickOriginY;
+    }
+
+    const clampedDist = Math.min(dist, STICK_MAX_RADIUS);
+    const angle = Math.atan2(dy, dx);
+    const kx = Math.cos(angle) * clampedDist;
+    const ky = Math.sin(angle) * clampedDist;
+    joystickKnob.style.transform = `translate(${kx}px, ${ky}px)`;
+
+    const norm = clampedDist / STICK_MAX_RADIUS;
+    if (norm < 0.14) {
+      touchInput.moveX = 0;
+      touchInput.moveZ = 0;
+      touchInput.run = state.autoRunEnabled;
+      joystickKnob.textContent = '移動';
+      dashOuterRing.className = 'absolute inset-1.5 rounded-full border border-dashed border-sky-300/35 pointer-events-none';
+      return;
+    }
+
+    const snapAngle = Math.round(angle / (Math.PI / 4)) * (Math.PI / 4);
+    const blendAngle = Math.abs(angle - snapAngle) < 0.22 ? snapAngle : angle;
+
+    touchInput.moveX = Math.cos(blendAngle) * norm;
+    touchInput.moveZ = Math.sin(blendAngle) * norm;
+    touchInput.run = state.autoRunEnabled || norm > 0.76;
+
+    joystickKnob.textContent = touchInput.run ? '⚡疾走' : '歩';
+    dashOuterRing.className = touchInput.run
+      ? 'absolute inset-1 rounded-full border-2 border-amber-300 pointer-events-none'
+      : 'absolute inset-1.5 rounded-full border border-dashed border-sky-300/35 pointer-events-none';
+  }
+
+  function resetFloatingJoystick() {
+    activeStickPointerId = null;
+    joystickZone.classList.remove('opacity-100');
+    joystickZone.classList.add('opacity-0');
+    joystickZone.style.transform = 'translate(0px, 0px)';
+    joystickKnob.style.transform = 'translate(0px, 0px)';
+    joystickKnob.textContent = '移動';
+    touchInput.moveX = 0;
+    touchInput.moveZ = 0;
+    touchInput.run = state.autoRunEnabled;
+    dashOuterRing.className = 'absolute inset-1.5 rounded-full border border-dashed border-sky-300/35 pointer-events-none';
+  }
+
+  leftTouchPadArea.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    sfx.init();
+    sfx.haptic(8);
+    activeStickPointerId = e.pointerId;
+    leftTapStart = {id:e.pointerId,x:e.clientX,y:e.clientY};
+    leftTouchPadArea.setPointerCapture(e.pointerId);
+    stickOriginX = e.clientX;
+    stickOriginY = e.clientY;
+    joystickZone.classList.remove('opacity-0');
+    joystickZone.classList.add('opacity-100');
+    setJoystickVisualCenter(stickOriginX, stickOriginY);
+    updateFloatingJoystick(e.clientX, e.clientY);
+  });
+
+  leftTouchPadArea.addEventListener('pointermove', (e) => {
+    if (e.pointerId === activeStickPointerId) {
+      updateFloatingJoystick(e.clientX, e.clientY);
+    }
+  });
+
+  leftTouchPadArea.addEventListener('pointerup', (e) => {
+    if (e.pointerId !== activeStickPointerId) return;
+    const start=leftTapStart;
+    leftTapStart=null;
+    resetFloatingJoystick();
+    // A stationary tap on a visible shrine/clue must not be treated as a
+    // joystick that does nothing. Drags keep their movement behavior.
+    if (start && start.id===e.pointerId &&
+        Math.hypot(e.clientX-start.x,e.clientY-start.y)<13) {
+      tryTapForestSite(e.clientX,e.clientY,false);
+    }
+  });
+  leftTouchPadArea.addEventListener('pointercancel', (e) => {
+    if (e.pointerId === activeStickPointerId) {
+      leftTapStart=null;
+      resetFloatingJoystick();
+    }
+  });
+
+  function bindArcadeButton(btnId, onDown, onUp) {
+    const el = document.getElementById(btnId);
+    el.addEventListener('pointerdown', (e) => {
+      e.preventDefault();
+      sfx.init();
+      sfx.haptic(12);
+      el.setPointerCapture(e.pointerId);
+      el.classList.add('pressed');
+      onDown();
+    });
+    const release = () => {
+      el.classList.remove('pressed');
+      if (onUp) onUp();
+    };
+    el.addEventListener('pointerup', release);
+    el.addEventListener('pointercancel', release);
+  }
+
+  bindArcadeButton(
+    'btnPunch',
+    () => { touchInput.punchJust = true; touchInput.punchHeld = true; touchInput.holdRepeatTimer = 0.15; },
+    () => { touchInput.punchHeld = false; }
+  );
+  bindArcadeButton(
+    'btnKick',
+    () => { touchInput.kickJust = true; touchInput.kickHeld = true; touchInput.holdRepeatTimer = 0.17; },
+    () => { touchInput.kickHeld = false; }
+  );
+  bindArcadeButton(
+    'btnJump',
+    () => { touchInput.jumpJust = true; }
+  );
+  bindArcadeButton(
+    'btnGrab',
+    () => { touchInput.grabJust = true; touchInput.grabHeld = true; },
+    () => { touchInput.grabHeld = false; }
+  );
+
+  document.getElementById('btnKabukiBurst').addEventListener('click', () => {
+    if (state.ikiGauge >= 100) {
+      triggerKabukiBurst();
+    } else {
+      // テストしやすいようにタップで闘志ゲージを+25%ブースト可能に！
+      addIki(25);
+      if (ginji) spawnPopup('🌸 闘志チャージ +25%！', ginji.x, ginji.z, ginji.y + 46, '#f472b6');
+      sfx.play('coin');
+    }
+  });
+
+  // ============================================================================
+  // 9. コンテキスト・センシティブUI更新（独自アレンジ技に合わせて自動変化）
+  // ============================================================================
+  function findNearbyInteractableItem(f) {
+    if (!f) return null;
+    for (const it of state.items) {
+      if (it.thrownTeam !== -1) continue;
+      if (Math.hypot(it.x - f.x, it.z - f.z) < 48) return it;
+    }
+    return null;
+  }
+
+  function findNearbyGrabbableEnemy(f) {
+    if (!f) return null;
+    for (const other of state.fighters) {
+      if (other.team === f.team || other.state === 'DEAD') continue;
+      if (Math.abs(other.x - f.x) < 48 && Math.abs(other.z - f.z) < 24) return other;
+    }
+    return null;
+  }
+
+  function hasAlignedEnemyInZ(f) {
+    if (!f) return false;
+    return state.fighters.some(other =>
+      other.team !== f.team &&
+      other.state !== 'DEAD' &&
+      Math.abs(other.z - f.z) <= 22 &&
+      Math.abs(other.x - f.x) <= 130
+    );
+  }
+
+  function updateContextualButtons() {
+    if (!ginji) return;
+    const btnPunch = document.getElementById('btnPunch');
+    const punchIcon = document.getElementById('btnPunchIcon');
+    const punchMain = document.getElementById('btnPunchMainLabel');
+    const punchSub = document.getElementById('btnPunchSubLabel');
+
+    const kickIcon = document.getElementById('btnKickIcon');
+    const kickMain = document.getElementById('btnKickMainLabel');
+    const kickSub = document.getElementById('btnKickSubLabel');
+
+    const btnGrab = document.getElementById('btnGrab');
+    const grabIcon = document.getElementById('btnGrabIcon');
+    const grabMain = document.getElementById('btnGrabMainLabel');
+    const grabSub = document.getElementById('btnGrabSubLabel');
+
+    const nearItem = findNearbyInteractableItem(ginji);
+    const nearDowned = hasNearbyDownedEnemy(ginji);
+    const nearGrabTarget = findNearbyGrabbableEnemy(ginji);
+    const dualReady = canTriggerDualTagArt();
+
+    // 1. メインボタン（疾風連斬 / 拾う / 御用改め・追撃 / 風車大回転）
+    if (nearItem) {
+      punchIcon.textContent = '📥';
+      punchMain.textContent = nearItem.type === 'coin' ? '古貨回収' : (nearItem.type === 'dango' ? '薬草食す' : '武器拾う');
+      punchSub.textContent = 'ワンタップ回収';
+      btnPunch.classList.add('context-glow');
+    } else if (nearDowned && state.unlockedSkills.has('taikoban_sp')) {
+      punchIcon.textContent = '⚡';
+      punchMain.textContent = '追撃！';
+      punchSub.textContent = '追い打ち古貨奪取';
+      btnPunch.classList.add('context-glow');
+    } else if (!ginji.isGrounded() && state.unlockedSkills.has('kazaguruma')) {
+      punchIcon.textContent = '🌸';
+      punchMain.textContent = '風車回転';
+      punchSub.textContent = '桜吹雪突撃';
+      btnPunch.classList.add('context-glow');
+    } else {
+      punchIcon.textContent = '👊';
+      punchMain.textContent = state.unlockedSkills.has('hayate_ken') ? '連斬' : '殴る';
+      punchSub.textContent = '長押しオート連打';
+      btnPunch.classList.remove('context-glow');
+    }
+
+    // 2. サブボタン（閃光連脚 / 武器投げ）
+    if (ginji.heldWeapon) {
+      kickIcon.textContent = '🗡️';
+      kickMain.textContent = '武器投げ';
+      kickSub.textContent = ginji.heldWeapon.type === 'katana' ? '名刀一閃投擲' : '礫（つぶて）投げ';
+    } else {
+      kickIcon.textContent = '🦶';
+      kickMain.textContent = state.unlockedSkills.has('senko_kyaku') ? '旋風脚' : '蹴る';
+      kickSub.textContent = '長押しオート連打';
+    }
+
+    // 3. 第4ボタン（覚醒バースト / 双剣合体連携 / 巴投げ / 風車大回転）
+    if (state.ikiGauge >= 100 && state.kabukiBurstTimer <= 0) {
+      grabIcon.textContent = '🎭';
+      grabMain.textContent = '大見得！';
+      grabSub.textContent = '紋章バースト発動';
+      btnGrab.classList.add('kabuki-glow');
+    } else if (dualReady) {
+      grabIcon.textContent = '🐉';
+      grabMain.textContent = '双剣連携';
+      grabSub.textContent = '従者と挟撃乱舞！';
+      btnGrab.classList.add('kabuki-glow');
+    } else if (ginji.state === 'GRAB' || nearGrabTarget) {
+      grabIcon.textContent = '🤼';
+      grabMain.textContent = '一本背負';
+      grabSub.textContent = '敵を放り投げる';
+      btnGrab.classList.remove('kabuki-glow');
+    } else if (state.unlockedSkills.has('kazaguruma')) {
+      grabIcon.textContent = '🌸';
+      grabMain.textContent = '風車回転';
+      grabSub.textContent = 'ワンタップ発動';
+      btnGrab.classList.remove('kabuki-glow');
+    } else {
+      grabIcon.textContent = '🤼';
+      grabMain.textContent = '組み技';
+      grabSub.textContent = '接近時に使用';
+      btnGrab.classList.remove('kabuki-glow');
+    }
+
+    const zBadge = document.getElementById('zAxisBadge');
+    if (hasAlignedEnemyInZ(ginji)) {
+      zBadge.classList.remove('hidden');
+    } else {
+      zBadge.classList.add('hidden');
+    }
+
+    const weaponBadge = document.getElementById('weaponSlotBadge');
+    if (weaponBadge) {
+      weaponBadge.textContent = ginji.heldWeapon
+        ? `武器: ${ginji.heldWeapon.type === 'katana' ? '🗡️ 古剣・古剣' : '🪨 飛礫（つぶて）'}`
+        : '武器: 素手';
+    }
+  }
+
+  // ============================================================================
+  // 10. InputProvider 実装（1P / 2P / 同行NPC AI / 敵AI）
+  // ============================================================================
+  function samplePlayer1Input(dt) {
+    let mx = touchInput.moveX;
+    let mz = touchInput.moveZ;
+    if (keys['KeyA']) mx = -1;
+    if (keys['KeyD']) mx = 1;
+    if (keys['KeyW']) mz = -1;
+    if (keys['KeyS']) mz = 1;
+
+    let autoPunch = false;
+    let autoKick = false;
+    const repeatInterval = state.kabukiBurstTimer > 0 ? 0.09 : 0.14;
+    if (touchInput.punchHeld || touchInput.kickHeld) {
+      touchInput.holdRepeatTimer -= dt;
+      if (touchInput.holdRepeatTimer <= 0) {
+        touchInput.holdRepeatTimer = repeatInterval;
+        if (touchInput.punchHeld) autoPunch = true;
+        if (touchInput.kickHeld) autoKick = true;
+      }
+    }
+
+    const frame = {
+      moveX: mx,
+      moveZ: mz,
+      run: state.autoRunEnabled || touchInput.run || keyRunLatched || Boolean(keys['ShiftLeft']),
+      punch: touchInput.punchJust || autoPunch,
+      kick: touchInput.kickJust || autoKick,
+      jump: touchInput.jumpJust,
+      grab: touchInput.grabJust || touchInput.grabHeld || Boolean(keys['KeyL'])
+    };
+    touchInput.punchJust = false;
+    touchInput.kickJust = false;
+    touchInput.jumpJust = false;
+    touchInput.grabJust = false;
+    return frame;
+  }
+
+  function samplePlayer2Input() {
+    let mx = 0, mz = 0;
+    if (keys['ArrowLeft']) mx = -1;
+    if (keys['ArrowRight']) mx = 1;
+    if (keys['ArrowUp']) mz = -1;
+    if (keys['ArrowDown']) mz = 1;
+    return {
+      moveX: mx,
+      moveZ: mz,
+      run: false,
+      punch: Boolean(keys['KeyZ']),
+      kick: Boolean(keys['KeyX']),
+      jump: Boolean(keys['Enter']),
+      grab: Boolean(keys['KeyC'])
+    };
+  }
+
+  function sampleCompanionAI(selfFighter) {
+    const out = { moveX: 0, moveZ: 0, run: false, punch: false, kick: false, jump: false, grab: false };
+    if (!ginji || ginji.state === 'DEAD') return out;
+
+    const distHero = Math.hypot(ginji.x - selfFighter.x, ginji.z - selfFighter.z);
+    if (distHero > 220) {
+      const tx = ginji.x - ginji.facing * 45;
+      const tz = ginji.z + 20;
+      const angle = Math.atan2(tz - selfFighter.z, tx - selfFighter.x);
+      out.moveX = Math.cos(angle);
+      out.moveZ = Math.sin(angle);
+      out.run = true;
+      return out;
+    }
+
+    for (const item of state.items) {
+      if (item.thrownTeam !== -1) continue;
+      if (item.type === 'coin' || (!selfFighter.heldWeapon && (item.type === 'katana' || item.type === 'stone'))) {
+        const d = Math.hypot(item.x - selfFighter.x, item.z - selfFighter.z);
+        if (d < 130) {
+          if (d < 36) {
+            out.punch = true;
+          } else {
+            const ang = Math.atan2(item.z - selfFighter.z, item.x - selfFighter.x);
+            out.moveX = Math.cos(ang);
+            out.moveZ = Math.sin(ang);
+          }
+          return out;
+        }
+      }
+    }
+
+    const enemies = state.fighters.filter(f => f.team === 1 && f.state !== 'DEAD');
+    if (enemies.length === 0) {
+      const idleX = ginji.x - ginji.facing * 52;
+      const idleZ = ginji.z + 24;
+      if (Math.hypot(idleX - selfFighter.x, idleZ - selfFighter.z) > 28) {
+        const ang = Math.atan2(idleZ - selfFighter.z, idleX - selfFighter.x);
+        out.moveX = Math.cos(ang);
+        out.moveZ = Math.sin(ang);
+      }
+      return out;
+    }
+
+    let bestTarget = enemies[0];
+    let bestScore = -9999;
+    for (const e of enemies) {
+      const d = Math.hypot(e.x - selfFighter.x, e.z - selfFighter.z);
+      let score = 300 - d;
+      const dHero = Math.hypot(e.x - ginji.x, e.z - ginji.z);
+      if (dHero > 75) score += 55;
+      if (e.state === 'DOWN') {
+        score += state.unlockedSkills.has('taikoban_sp') ? 90 : -120;
+      }
+      if (score > bestScore) {
+        bestScore = score;
+        bestTarget = e;
+      }
+    }
+
+    const dx = bestTarget.x - selfFighter.x;
+    const dz = bestTarget.z - selfFighter.z;
+
+    if (bestTarget.state === 'DOWN' && state.unlockedSkills.has('taikoban_sp')) {
+      if (Math.abs(dx) < 28 && Math.abs(dz) < 18) {
+        out.punch = true;
+      } else {
+        const ang = Math.atan2(dz, dx);
+        out.moveX = Math.cos(ang);
+        out.moveZ = Math.sin(ang);
+        out.run = true;
+      }
+      return out;
+    }
+
+    // 旅人と反対側の背後へ回り込んで挟み撃ち（双剣連携の布陣）を作る！
+    const side = (ginji.x < bestTarget.x) ? 1 : -1;
+    const slotX = bestTarget.x + side * 42;
+    const slotZ = bestTarget.z;
+    if (Math.abs(dx) < 52 && Math.abs(dz) < 20) {
+      selfFighter.facing = dx >= 0 ? 1 : -1;
+      if (state.unlockedSkills.has('kazaguruma') && Math.random() < 0.04) {
+        out.jump = true;
+        out.kick = true;
+      } else if (Math.random() < 0.15) {
+        out.punch = true;
+      } else if (Math.random() < 0.08) {
+        out.kick = true;
+      }
+    } else {
+      const ang = Math.atan2(slotZ - selfFighter.z, slotX - selfFighter.x);
+      out.moveX = Math.cos(ang);
+      out.moveZ = Math.sin(ang);
+      out.run = Math.abs(dx) > 140;
+    }
+    return out;
+  }
+
+  function sampleEnemyAI(enemy, nowSec) {
+    const out = { moveX: 0, moveZ: 0, run: false, punch: false, kick: false, jump: false, grab: false };
+    const heroes = state.fighters.filter(f => f.team === 0 && f.state !== 'DEAD');
+    if (heroes.length === 0) return out;
+
+    let target = heroes[0];
+    let minD = 9999;
+    for (const h of heroes) {
+      const d = Math.hypot(h.x - enemy.x, h.z - enemy.z);
+      if (d < minD) {
+        minD = d;
+        target = h;
+      }
+    }
+
+    const dx = target.x - enemy.x;
+    const dz = target.z - enemy.z;
+    const hasToken = state.tokenManager.requestToken(enemy.id, nowSec, 1.3);
+
+    if (hasToken) {
+      if (Math.abs(dx) < 48 && Math.abs(dz) < 20 && target.state !== 'DOWN') {
+        enemy.facing = dx >= 0 ? 1 : -1;
+        // The original per-frame 12% attack lottery let two enemies chain
+        // strikes faster than a hero could finish hitstun. Cool down only
+        // successful attempts, retaining their random punch/kick choice.
+        if (window.CrownlessHitRecovery.readyToStrike(enemy, nowSec) &&
+            (enemy.state === 'IDLE' || enemy.state === 'WALK' || enemy.state === 'RUN')) {
+          if (Math.random() < 0.08) out.punch = true;
+          else if (Math.random() < 0.04) out.kick = true;
+          if (out.punch || out.kick) {
+            window.CrownlessHitRecovery.registerEnemyStrike(enemy, nowSec);
+          }
+        }
+      } else {
+        const slotX = target.x + (dx > 0 ? -40 : 40);
+        const ang = Math.atan2(target.z - enemy.z, slotX - enemy.x);
+        out.moveX = Math.cos(ang);
+        out.moveZ = Math.sin(ang);
+      }
+    } else {
+      enemy.aiOrbitAngle += 0.02;
+      const waitX = target.x + Math.cos(enemy.aiOrbitAngle) * 115;
+      const waitZ = target.z + Math.sin(enemy.aiOrbitAngle) * 48;
+      const ang = Math.atan2(waitZ - enemy.z, waitX - enemy.x);
+      if (Math.hypot(waitX - enemy.x, waitZ - enemy.z) > 20) {
+        out.moveX = Math.cos(ang) * 0.7;
+        out.moveZ = Math.sin(ang) * 0.7;
+      }
+      enemy.facing = dx >= 0 ? 1 : -1;
+    }
+    return out;
+  }
+
+  // ============================================================================
+  // 11. ステートマシン＆物理更新ループ
+  // ============================================================================
+  function updateFighter(f, input, dt) {
+    f.animTime += dt * 10;
+    const groundY = getGroundHeightAt(f.x, f.z);
+
+    if (f.state === 'DEAD') return;
+    window.CrownlessHitRecovery.step(f, dt);
+
+    if (f.y > groundY || f.vy > 0) {
+      f.vy -= WORLD.gravity * dt;
+      f.y += f.vy * dt;
+      if (f.y <= groundY) {
+        f.y = groundY;
+        f.vy = 0;
+        if (f.state === 'JUMP' || (f.state === 'SPECIAL' && f.activeSkill === 'kazaguruma')) {
+          f.state = 'IDLE';
+          f.activeSkill = null;
+        }
+      }
+    } else {
+      f.y = groundY;
+    }
+
+    if (f.state === 'HURT' || f.state === 'DOWN') {
+      f.stateTimer -= dt;
+      f.x += f.vx * dt;
+      f.z += f.vz * dt;
+      f.vx *= 0.88;
+      f.vz *= 0.88;
+      clampToWorld(f);
+      if (f.stateTimer <= 0 && f.y <= getGroundHeightAt(f.x, f.z) + 1) {
+        f.state = 'IDLE';
+      }
+      return;
+    }
+
+    if (f.state === 'ATTACK') {
+      f.stateTimer -= dt;
+      f.x += f.vx * dt;
+      f.vx *= 0.85;
+      clampToWorld(f);
+      if (f.stateTimer <= 0) f.state = 'IDLE';
+      return;
+    }
+
+    if (f.state === 'SPECIAL') {
+      f.stateTimer -= dt;
+      f.skillTimer -= dt;
+      f.x += f.vx * dt;
+      clampToWorld(f);
+      if (f.skillTimer <= 0) {
+        f.skillTimer = 0.08;
+        const isKazaguruma = f.activeSkill === 'kazaguruma';
+        const isTaikoban = f.activeSkill === 'taikoban_sp';
+        if (isKazaguruma) spawnSakuraBurst(f.x, f.z, f.y + 20, 3);
+        performAttackHitbox(
+          f,
+          isKazaguruma ? 17 : 10,
+          isKazaguruma ? 185 : 75,
+          isKazaguruma ? 240 : 95,
+          isTaikoban,
+          isKazaguruma ? 70 : 58
+        );
+        sfx.play('punch');
+      }
+      if (f.stateTimer <= 0) {
+        f.state = f.isGrounded() ? 'IDLE' : 'JUMP';
+        f.activeSkill = null;
+      }
+      return;
+    }
+
+    if (f.state === 'GRAB') {
+      f.stateTimer -= dt;
+      if (!f.grabTarget || f.grabTarget.state === 'DEAD') {
+        f.grabTarget = null;
+        f.state = 'IDLE';
+        return;
+      }
+      f.grabTarget.x = f.x + f.facing * 26;
+      f.grabTarget.z = f.z;
+      clampToWorld(f.grabTarget);
+      if (input.punch || input.kick || input.grab || f.stateTimer <= 0) {
+        const throwDir = input.moveX * f.facing < -0.2 ? -f.facing : f.facing;
+        f.facing = throwDir;
+        inflictDamage(f.grabTarget, f.punchPower + 10, throwDir * 240, 290, true);
+        addIki(12);
+        sfx.play('heavy');
+        sfx.haptic(25);
+        spawnPopup('一本背負い！', f.x, f.z, f.y + 45, '#38bdf8');
+        f.grabTarget = null;
+        f.state = 'IDLE';
+      }
+      return;
+    }
+
+    const burstSpeedBoost = (f.team === 0 && state.kabukiBurstTimer > 0) ? 1.25 : 1.0;
+    const mult = (input.run ? 1.55 : 1.0) * burstSpeedBoost;
+    f.vx = input.moveX * f.speed * mult;
+    f.vz = input.moveZ * f.speed * 0.78 * mult;
+    f.x += f.vx * dt;
+    f.z += f.vz * dt;
+    clampToWorld(f);
+
+    if (Math.abs(input.moveX) > 0.1) {
+      f.facing = input.moveX > 0 ? 1 : -1;
+    }
+
+    if (f.isGrounded()) {
+      if (Math.hypot(input.moveX, input.moveZ) < 0.1) f.state = 'IDLE';
+      else f.state = input.run ? 'RUN' : 'WALK';
+
+      if (input.jump) {
+        f.vy = 395;
+        f.state = 'JUMP';
+        sfx.play('jump');
+        // 敵の攻撃間合いでジャンプすると「見切り回避」ボーナスで闘志ゲージ+8%！
+        if (f === ginji && hasAlignedEnemyInZ(ginji)) {
+          addIki(8);
+          spawnPopup('🍃 見切り！闘志+8%', f.x, f.z, f.y + 42, '#6ee7b7');
+        }
+        return;
+      }
+    } else {
+      if ((input.punch || input.kick || input.grab) && f.team === 0 && state.unlockedSkills.has('kazaguruma')) {
+        f.state = 'SPECIAL';
+        f.activeSkill = 'kazaguruma';
+        f.stateTimer = 0.48;
+        f.skillTimer = 0;
+        f.vx = f.facing * 275;
+        f.vy = Math.max(f.vy, 130);
+        sfx.play('skill');
+        spawnPopup('🌸 風車大回転！', f.x, f.z, f.y + 48, '#f472b6');
+        return;
+      }
+      if (input.punch || input.kick) {
+        performAttackHitbox(f, f.kickPower, 150, 180, false, 58);
+        sfx.play('punch');
+      }
+      return;
+    }
+
+    if (input.punch) {
+      if (tryPickupItem(f)) return;
+      if (f.team === 0 && state.unlockedSkills.has('taikoban_sp') && hasNearbyDownedEnemy(f)) {
+        f.state = 'SPECIAL';
+        f.activeSkill = 'taikoban_sp';
+        f.stateTimer = 0.52;
+        f.skillTimer = 0;
+        f.vx = 0;
+        sfx.play('skill');
+        spawnPopup('⚡ 御用改め・追撃！', f.x, f.z, f.y + 48, '#fbbf24');
+        return;
+      }
+      if (f.team === 0 && state.unlockedSkills.has('hayate_ken')) {
+        f.state = 'SPECIAL';
+        f.activeSkill = 'hayate_ken';
+        f.stateTimer = 0.32;
+        f.skillTimer = 0;
+        f.vx = f.facing * 55;
+        sfx.play('skill');
+        spawnPopup('疾風連斬！', f.x, f.z, f.y + 46, '#38bdf8');
+        return;
+      }
+      f.state = 'ATTACK';
+      f.stateTimer = 0.18;
+      f.vx = f.facing * 45;
+      const bonus = f.heldWeapon ? 14 : 0;
+      performAttackHitbox(f, f.punchPower + bonus, 110, 110, false, f.heldWeapon ? 70 : 54);
+      sfx.play('punch');
+      return;
+    }
+
+    if (input.kick) {
+      if (f.heldWeapon) {
+        throwHeldWeapon(f);
+        return;
+      }
+      if (f.team === 0 && state.unlockedSkills.has('senko_kyaku')) {
+        f.state = 'SPECIAL';
+        f.activeSkill = 'senko_kyaku';
+        f.stateTimer = 0.36;
+        f.skillTimer = 0;
+        f.vx = f.facing * 75;
+        sfx.play('skill');
+        spawnPopup('閃光連脚！', f.x, f.z, f.y + 46, '#f59e0b');
+        return;
+      }
+      f.state = 'ATTACK';
+      f.stateTimer = 0.22;
+      f.vx = f.facing * 65;
+      performAttackHitbox(f, f.kickPower, 175, 210, false, 58);
+      sfx.play('heavy');
+      return;
+    }
+
+    // 第4ボタン：
+    // ① 闘志100%なら『紋章・覚醒バースト』発動！
+    // ② 相棒従者が近く＆闘志50%以上なら『双剣・挟撃乱舞』発動！
+    // ③ 近くに敵がいれば『一本背負い（組み投げ）』
+    // ④ 離れていて風車大回転習得済みならワンタップ『風車大回転』発動！
+    if (input.grab) {
+      if (f === ginji && state.ikiGauge >= 100 && state.kabukiBurstTimer <= 0) {
+        triggerKabukiBurst();
+        return;
+      }
+      if (f === ginji && canTriggerDualTagArt()) {
+        if (triggerDualTagArt()) return;
+      }
+      for (const other of state.fighters) {
+        if (other.team === f.team || other.state === 'DEAD') continue;
+        if (Math.abs(other.x - f.x) < 48 && Math.abs(other.z - f.z) < 24) {
+          f.grabTarget = other;
+          f.state = 'GRAB';
+          f.stateTimer = 0.25;
+          return;
+        }
+      }
+      if (f.team === 0 && state.unlockedSkills.has('kazaguruma')) {
+        f.vy = 220;
+        f.y += 2;
+        f.state = 'SPECIAL';
+        f.activeSkill = 'kazaguruma';
+        f.stateTimer = 0.48;
+        f.skillTimer = 0;
+        f.vx = f.facing * 275;
+        sfx.play('skill');
+        spawnPopup('🌸 風車大回転！', f.x, f.z, f.y + 48, '#f472b6');
+      }
+    }
+  }
+
+  function hasNearbyDownedEnemy(f) {
+    return state.fighters.some(other =>
+      other.team !== f.team &&
+      other.state === 'DOWN' &&
+      Math.abs(other.x - f.x) < 46 &&
+      Math.abs(other.z - f.z) < 25
+    );
+  }
+
+  function performAttackHitbox(attacker, dmg, kbX, kbY, hitDowned, reachX = 56) {
+    const burstMult = (attacker.team === 0 && state.kabukiBurstTimer > 0) ? 1.45 : 1.0;
+    // Crafting is felt in the original blowback physics, not only the damage number.
+    const forgedStrike = attacker === ginji && rpg.crafted;
+    const finalDmg = Math.round(dmg * burstMult * (forgedStrike ? 1.25 : 1));
+    const finalKnockback = forgedStrike ? kbX * 1.55 : kbX;
+
+    for (const target of state.fighters) {
+      if (target === attacker || target.team === attacker.team || target.state === 'DEAD') continue;
+      if (target.state === 'DOWN' && !hitDowned) continue;
+      const dx = (target.x - attacker.x) * attacker.facing;
+      const dz = Math.abs(target.z - attacker.z);
+      const dy = Math.abs(target.y - attacker.y);
+      if (dx >= -14 && dx <= reachX && dz <= 25 && dy <= 48) {
+        // An invulnerable recovering hero does not award a hit or hit spark.
+        if (!inflictDamage(target, finalDmg, attacker.facing * finalKnockback, kbY, kbY >= 170 || hitDowned)) continue;
+        spawnSpark((attacker.x + target.x) * 0.5, target.z, target.y + 24, state.kabukiBurstTimer > 0);
+        if (attacker.team === 0) {
+          addIki(7);
+          // 御用改め・追撃のヒット時は古貨チャリン効果！
+          if (hitDowned && Math.random() < 0.35) {
+            state.moneyMon += 25;
+            spawnPopup('+25枚！', target.x, target.z, target.y + 52, '#facc15');
+          }
+        }
+        if (attacker === ginji) sfx.haptic(15);
+      }
+    }
+  }
+
+  function inflictDamage(target, dmg, vx, vy, knockdown) {
+    // Reject subsequent hits from *all* foes during recovery, including
+    // projectiles. Keep enemy vulnerability and player combo behavior intact.
+    if (!window.CrownlessHitRecovery.acceptsHit(target)) return false;
+    window.CrownlessHitRecovery.registerHit(target);
+    if (target.team === 0 && state.kabukiBurstTimer <= 0) {
+      spawnPopup('立て直し猶予！', target.x, target.z, target.y + 63, '#93c5fd');
+    }
+    // 紋章バースト中の旅人・従者は被ダメージ半減＆のけぞらないハイパーアーマー！
+    if (target.team === 0 && state.kabukiBurstTimer > 0) {
+      dmg = Math.max(1, Math.round(dmg * 0.4));
+      knockdown = false;
+    }
+
+    target.hp = Math.max(0, target.hp - dmg);
+    if (pixelArt && target.team === 1) forestEffects.burst(target.x,target.z,target.y+25,
+      target.hp<=0?'victory':'hit',performance.now());
+    spawnPopup(`-${dmg}`, target.x, target.z, target.y + 42, '#fb7185');
+
+    if (target.hp <= 0) {
+      target.state = 'DEAD';
+      target.vx = vx;
+      target.vy = 220;
+      const quotes = ['「冒険者一味め、おぼえてろ！」', '「御用だ、御用だーっ！」', '「こりゃかなわねえ！」'];
+      const q = quotes[Math.floor(Math.random() * quotes.length)];
+      spawnPopup(q, target.x, target.z, target.y + 58, '#fde047');
+      if (target.team === 1) {
+        if (rpgRules.claimMaterial(rpg)) {
+          spawnPopup('ゴブリンの牙 +1（未帰還）', target.x, target.z, target.y + 69, '#f4cf8f');
+          updateRpgStatus();
+        }
+        addIki(16);
+        spawnItem('coin', target.x, target.z, target.y + 12, target.isBoss ? 320 : 150);
+      }
+      sfx.play('heavy');
+      if (target === ginji && rpgRules.loseExpedition(rpg)) {
+        updateRpgStatus();
+        showRpgPanel();
+      }
+      setTimeout(() => {
+        const idx = state.fighters.indexOf(target);
+        if (idx !== -1) state.fighters.splice(idx, 1);
+        const remainingEnemies = state.fighters.filter(f => f.team === 1 && f.state !== 'DEAD');
+        if (remainingEnemies.length === 0 && rpgRules.clearWave(rpg)) {
+          updateRpgStatus();
+          spawnPopup('森を自由に探索できる！帰還も選べる',ginji.x,ginji.z,ginji.y+55,'#fef08a');
+          // Do NOT block the whole screen the moment the fight ends.
+          // The hero can find things, or open the existing results when ready.
+        }
+        updateUI();
+      }, 650);
+      updateUI();
+      return true;
+    }
+
+    if (target.team === 0 && state.kabukiBurstTimer > 0) {
+      updateUI();
+      return true;
+    }
+
+    if (knockdown) {
+      target.state = 'DOWN';
+      target.stateTimer = window.CrownlessHitRecovery.knockdownTime(target);
+      target.vx = vx;
+      target.vy = vy;
+    } else {
+      target.state = 'HURT';
+      target.stateTimer = 0.24;
+      target.vx = vx * 0.45;
+    }
+    updateUI();
+    return true;
+  }
+
+  function tryTapForestSite(clientX,clientY,allowNearby) {
+    if (!ginji || ginji.state==='DEAD' ||
+        !window.CrownlessForestDiscoveries.available(rpg.phase)) return false;
+    const site=window.CrownlessForestDiscoveries.spotAtTap(
+      {x:clientX,y:clientY},canvas.getBoundingClientRect(),{width:virtualW,height:VIRTUAL_H},
+      state.cameraX,getGroundHeightAt);
+    // The right-hand attack tap can still interact from anywhere on its
+    // half when near a clue. Direct taps work on either half of the scene.
+    if (!site && !allowNearby) return false;
+    const near=window.CrownlessForestDiscoveries.near(ginji,state.forestFinds);
+    if (site) {
+      if (state.forestFinds.has(site.id)) {
+        spawnPopup('ここは調査済み',site.x,site.z,getGroundHeightAt(site.x,site.z)+65,'#cbd5e1');
+        return true;
+      }
+      if (Math.hypot(ginji.x-site.x,ginji.z-site.z)>=window.CrownlessForestDiscoveries.RANGE) {
+        spawnPopup('もう少し近づいて調べよう',site.x,site.z,getGroundHeightAt(site.x,site.z)+65,'#fef08a');
+        return true;
+      }
+    }
+    if (site || near) return tryExploreForest(ginji);
+    return false;
+  }
+
+  function tryExploreForest(f) {
+    if (f !== ginji || !window.CrownlessForestDiscoveries.available(rpg.phase)) return false;
+    const nearby = window.CrownlessForestDiscoveries.near(f,state.forestFinds);
+    if (!nearby) return false;
+    const discovery = window.CrownlessForestDiscoveries.uncover(
+      f,state.forestFinds,rpg.phase,f.hp,f.maxHp,rpg.crafted);
+    if (!discovery.ok) {
+      if(discovery.reason==='trail'||discovery.reason==='thorns') {
+        spawnPopup(discovery.reason==='trail'?'手前の獣の痕跡に、道の手がかりがある':'茨が行く手を塞ぐ。鍛冶した剣なら切り開けそう',f.x,f.z,f.y+48,'#e3d4ac');
+        return true;
+      }
+      if(discovery.reason==='full') {
+        spawnPopup('体力は満タン。傷ついたらまた来よう',f.x,f.z,f.y+48,'#a7f3d0');
+        return true;
+      }
+      return false;
+    }
+    if(discovery.material) {
+      for(let i=0;i<discovery.material;i++) if (!rpgRules.claimMaterial(rpg)) return false;
+      spawnPopup(discovery.spot.id==='hollow'?'石門の薬草と牙 +2（未帰還）':'獣の痕跡を発見！牙 +1 / 足跡は石門へ',f.x,f.z,f.y+48,'#fde68a');
+    }
+    if(discovery.heal) {
+      f.hp=Math.min(f.maxHp,f.hp+discovery.heal);
+      spawnPopup((discovery.spot.id==='hollow'?'石門の薬草':'古い祠で傷を癒やした')+' HP +'+discovery.heal,f.x,f.z,f.y+48,'#86efac');
+    }
+    if (pixelArt) forestEffects.burst(discovery.spot.x,discovery.spot.z,
+      getGroundHeightAt(discovery.spot.x,discovery.spot.z)+44,'discovery',performance.now());
+    sfx.play('coin');
+    spawnSakuraBurst(f.x,f.z,f.y+35,9);
+    updateUI();
+    updateRpgStatus();
+    return true;
+  }
+
+  // Read-only gameplay probe used by real-touch browser regression tests.
+  // Only fictional coordinates within this combat scene; no GPS data.
+  window.CrownlessForestReadout=()=>({
+    player:ginji ? {x:ginji.x,z:ginji.z,hp:ginji.hp,maxHp:ginji.maxHp,state:ginji.state,facing:ginji.facing} : null,
+    enemies:state.fighters.filter(f=>f.team===1).map(f=>({x:f.x,z:f.z,hp:f.hp,state:f.state})),
+    crafted:rpg.crafted,unbanked:rpg.unbanked,banked:rpg.banked,
+    art:pixelArt?'pixel':'classic',assetsReady:forestArt.ready(),
+    forestEffects: forestEffects.readout(),
+    heroAnimation:heroStillReview.status(),
+    cameraX:state.cameraX,
+    viewport:{width:virtualW,height:VIRTUAL_H,pixelRatio:canvas.width/virtualW},
+    found:[...state.forestFinds],
+    phase:rpg.phase
+  });
+
+  function tryPickupItem(f) {
+    // Tapping near an actual place in the scene explores rather than attacks.
+    if (tryExploreForest(f)) return true;
+    for (let i = 0; i < state.items.length; i++) {
+      const it = state.items[i];
+      if (it.thrownTeam !== -1) continue;
+      if (Math.hypot(it.x - f.x, it.z - f.z) < 48) {
+        if (it.type === 'coin') {
+          state.moneyMon += it.value;
+          addIki(6);
+          spawnPopup(`+${it.value}枚`, f.x, f.z, f.y + 45, '#facc15');
+          sfx.play('coin');
+          state.items.splice(i, 1);
+        } else if (it.type === 'dango') {
+          f.hp = Math.min(f.maxHp, f.hp + it.value);
+          addIki(15);
+          spawnPopup(`HP +${it.value}`, f.x, f.z, f.y + 45, '#4ade80');
+          sfx.play('coin');
+          state.items.splice(i, 1);
+        } else {
+          f.heldWeapon = { type: it.type };
+          spawnPopup(it.type === 'katana' ? '古剣・古剣装備！' : '飛礫（つぶて）所持！', f.x, f.z, f.y + 45, '#7dd3fc');
+          sfx.play('jump');
+          state.items.splice(i, 1);
+        }
+        updateUI();
+        return true;
+      }
+    }
+    return false;
+  }
+
+  function throwHeldWeapon(f) {
+    if (!f.heldWeapon) return;
+    const wType = f.heldWeapon.type;
+    f.heldWeapon = null;
+    state.items.push({
+      id: Math.random(),
+      type: wType,
+      x: f.x + f.facing * 24,
+      z: f.z,
+      y: f.y + 22,
+      vx: f.facing * 420,
+      vz: 0,
+      vy: 150,
+      value: 0,
+      thrownTeam: f.team,
+      damage: wType === 'katana' ? 30 : 22
+    });
+    sfx.play('jump');
+  }
+
+  function clampToWorld(ent) {
+    ent.x = Math.max(WORLD.minX, Math.min(WORLD.maxX, ent.x));
+    ent.z = Math.max(WORLD.minZ, Math.min(WORLD.maxZ, ent.z));
+   }
+
+  // ============================================================================
+  // 12. 2.5Dドット絵レンダラー（天候変化・提灯点灯・紋章隈取オーラ・桜吹雪対応）
+  // ============================================================================
+  const canvas = document.getElementById('gameCanvas');
+  // In the comparison "button" layout, the right side of the bare canvas
+  // has no combat overlay. Allow direct landmark taps there as well.
+  let canvasTapStart=null;
+  canvas.addEventListener('pointerdown',e=>{
+    if(combatInputMode!=='buttons') return;
+    canvasTapStart={id:e.pointerId,x:e.clientX,y:e.clientY};
+    canvas.setPointerCapture(e.pointerId);
+  });
+  canvas.addEventListener('pointerup',e=>{
+    const start=canvasTapStart;
+    canvasTapStart=null;
+    if(start?.id===e.pointerId &&
+       Math.hypot(e.clientX-start.x,e.clientY-start.y)<13) {
+      tryTapForestSite(e.clientX,e.clientY,false);
+    }
+  });
+  canvas.addEventListener('pointercancel',()=>{canvasTapStart=null;});
+  const ctx = canvas.getContext('2d');
+  const forestArt = window.CrownlessPixelForest.create();
+  const fxParams = new URLSearchParams(location.search);
+  const reducedMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const forestEffects = window.CrownlessForestEffects.create({enabled: fxParams.get('fx') !== 'off' && !reducedMotion});
+  const atmosphereButton = document.getElementById('btnForestAtmosphere');
+  function syncAtmosphereButton() {
+    atmosphereButton.textContent = forestEffects.enabled() ? '霧と光 ON' : '霧と光 OFF';
+    atmosphereButton.setAttribute('aria-pressed', String(forestEffects.enabled()));
+    atmosphereButton.hidden = !pixelArt;
+  }
+  atmosphereButton.addEventListener('click', () => { forestEffects.setEnabled(!forestEffects.enabled()); syncAtmosphereButton(); });
+  const heroStillReview = window.CrownlessHeroStill.create();
+  let pixelArt = new URLSearchParams(location.search).get('art') !== 'classic';
+  const artButton = document.getElementById('btnToggleArtPreview');
+  function syncArtButton() {
+    artButton.textContent = pixelArt ? '景観: ピクセルの森' : '景観: 従来';
+    artButton.setAttribute('aria-pressed',String(pixelArt));
+  }
+  syncArtButton();
+  artButton.addEventListener('click',()=>{pixelArt=!pixelArt;syncArtButton();syncAtmosphereButton();});
+  syncAtmosphereButton();
+  const VIRTUAL_H = 420;
+  let virtualW = 740;
+  function resizeCanvas() {
+    const rect = canvas.parentElement.getBoundingClientRect();
+    const aspect = rect.width / Math.max(1, rect.height);
+    virtualW = Math.round(VIRTUAL_H * aspect);
+    // World units stay fixed. Rasterize text and approved source art at the
+    // displayed phone density instead of enlarging a 420px-tall screenshot.
+    const density = Math.min(2,window.devicePixelRatio || 1);
+    const scale = Math.max(1,Math.min(4,rect.height / VIRTUAL_H * density));
+    canvas.width = Math.round(virtualW * scale);
+    canvas.height = Math.round(VIRTUAL_H * scale);
+  }
+  window.addEventListener('resize', resizeCanvas);
+
+  function renderScene() {
+    const drawPixelArt=pixelArt && forestArt.ready();
+    ctx.setTransform(canvas.width/virtualW,0,0,canvas.height/VIRTUAL_H,0,0);
+    ctx.clearRect(0, 0, virtualW, VIRTUAL_H);
+
+    // 独自要素③：ウェーブに応じた時間帯・天候変化（夕暮れ → 宵闇 → 月夜月夜）
+    const weatherPhase = (state.waveCount - 1) % 3;
+    if (drawPixelArt) {
+      forestArt.background(ctx,virtualW,state.cameraX,state.waveCount);
+      forestEffects.background(ctx,virtualW,state.cameraX,performance.now());
+    }
+    else {
+    const skyGrad = ctx.createLinearGradient(0, 0, 0, 195);
+    if (weatherPhase === 0) {
+      skyGrad.addColorStop(0, '#1e1b4b');
+      skyGrad.addColorStop(0.6, '#7c2d12');
+      skyGrad.addColorStop(1, '#f97316');
+    } else if (weatherPhase === 1) {
+      skyGrad.addColorStop(0, '#090d16');
+      skyGrad.addColorStop(0.6, '#1e1b4b');
+      skyGrad.addColorStop(1, '#4c1d95');
+    } else {
+      skyGrad.addColorStop(0, '#0f172a');
+      skyGrad.addColorStop(0.55, '#3b0764');
+      skyGrad.addColorStop(1, '#be185d');
+    }
+    ctx.fillStyle = skyGrad;
+    ctx.fillRect(0, 0, virtualW, 195);
+
+    // 満月（宵闇・月夜モード時）
+    if (weatherPhase >= 1) {
+      ctx.fillStyle = '#fef08a';
+      ctx.beginPath();
+      ctx.arc(virtualW - 110, 52, 22, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    const fujiX = 360 - state.cameraX * 0.25;
+    ctx.fillStyle = weatherPhase === 0 ? '#312e81' : '#1e1b4b';
+    ctx.beginPath();
+    ctx.moveTo(fujiX - 150, 195);
+    ctx.lineTo(fujiX - 24, 92);
+    ctx.lineTo(fujiX + 24, 92);
+    ctx.lineTo(fujiX + 150, 195);
+    ctx.closePath();
+    ctx.fill();
+    ctx.fillStyle = '#f8fafc';
+    ctx.beginPath();
+    ctx.moveTo(fujiX - 24, 92);
+    ctx.lineTo(fujiX + 24, 92);
+    ctx.lineTo(fujiX + 46, 122);
+    ctx.lineTo(fujiX - 46, 122);
+    ctx.closePath();
+    ctx.fill();
+
+    }
+    ctx.save();
+    ctx.translate(-state.cameraX, 0);
+    if (drawPixelArt) {
+      forestArt.ground(ctx,getGroundHeightAt);
+      forestArt.trail(ctx,state.forestFinds);
+    } else {
+
+    // Ancient forest and abandoned stone outposts (visual swap only).
+    for (let bx = 20; bx < 980; bx += 190) {
+      ctx.fillStyle = '#2e3934';
+      ctx.fillRect(bx + 12, 105, 26, 98);
+      ctx.fillStyle = '#405747';
+      ctx.beginPath();
+      ctx.moveTo(bx - 26, 161);
+      ctx.lineTo(bx + 24, 77);
+      ctx.lineTo(bx + 80, 161);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#2f473b';
+      ctx.beginPath();
+      ctx.moveTo(bx - 17, 143);
+      ctx.lineTo(bx + 24, 61);
+      ctx.lineTo(bx + 65, 143);
+      ctx.closePath();
+      ctx.fill();
+      ctx.fillStyle = '#595b55';
+      ctx.fillRect(bx + 93, 145, 67, 59);
+      ctx.fillStyle = '#444b49';
+      ctx.fillRect(bx + 101, 119, 49, 30);
+      for (let j = 0; j < 4; j++) {
+        ctx.fillRect(bx + 97 + j * 18, 136, 11, 16);
+      }
+      ctx.fillStyle = '#171f26';
+      ctx.fillRect(bx + 113, 163, 14, 25);
+      ctx.fillStyle = weatherPhase >= 1 ? '#f5d99b' : '#a8a28a';
+      ctx.fillRect(bx + 135, 162, 9, 12);
+    }
+
+    // 街道の地面
+    ctx.fillStyle = weatherPhase >= 1 ? '#5e6656' : '#7c8268';
+    ctx.fillRect(0, 200, 1050, 240);
+    ctx.fillStyle = '#555c4d';
+    for (let gx = 30; gx < 1000; gx += 75) {
+      ctx.fillRect(gx, 215, 36, 4);
+      ctx.fillRect(gx + 25, 345, 42, 4);
+    }
+
+    // 石橋（段差プラットフォーム）
+    ctx.fillStyle = '#62625a';
+    ctx.beginPath();
+    for (let x = WORLD.bridgeMinX; x <= WORLD.bridgeMaxX; x += 10) {
+      const h = getGroundHeightAt(x, 280);
+      const sy = WORLD.bridgeMaxZ - h;
+      if (x === WORLD.bridgeMinX) ctx.moveTo(x, WORLD.bridgeMaxZ);
+      ctx.lineTo(x, sy);
+    }
+    ctx.lineTo(WORLD.bridgeMaxX, WORLD.bridgeMaxZ);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = '#b7ae93';
+    ctx.lineWidth = 5;
+    ctx.beginPath();
+    for (let x = WORLD.bridgeMinX; x <= WORLD.bridgeMaxX; x += 10) {
+      const h = getGroundHeightAt(x, 280);
+      const sy = WORLD.bridgeMinZ - h - 12;
+      if (x === WORLD.bridgeMinX) ctx.moveTo(x, sy);
+      else ctx.lineTo(x, sy);
+    }
+    ctx.stroke();
+
+    }
+
+    // Explore at physical coordinates; landmarks scroll with the FOREST,
+    // never with phone controls. Each site is discoverable once per trip.
+    for(const spot of window.CrownlessForestDiscoveries.spots) {
+      const found=state.forestFinds.has(spot.id);
+      const ground=spot.z-getGroundHeightAt(spot.x,spot.z);
+      if(drawPixelArt) continue; // Pixel props share the actors' foot-depth sort below.
+      ctx.save();
+      ctx.translate(spot.x,ground);
+      ctx.fillStyle=found?'rgba(100,116,139,0.35)':'rgba(254,240,138,0.28)';
+      ctx.beginPath();
+      ctx.ellipse(0,0,29,10,0,0,Math.PI*2);
+      ctx.fill();
+      if(spot.id==='traces') {
+        ctx.fillStyle=found?'#64748b':'#e8cfa2';
+        ctx.fillRect(-18,-8,36,9);
+        ctx.fillRect(-10,-16,18,8);
+        ctx.fillStyle='#453c36';
+        ctx.fillRect(-8,-12,8,3);
+      } else {
+        ctx.fillStyle=found?'#64748b':'#9fb7a2';
+        ctx.fillRect(-18,-56,36,54);
+        ctx.fillStyle='#475569';
+        ctx.fillRect(-23,-60,46,7);
+        ctx.fillStyle=found?'#64748b':'#fcd34d';
+        ctx.fillRect(-5,-45,10,15);
+      }
+      ctx.font='bold 13px "Noto Sans JP",sans-serif';
+      ctx.fillStyle=found?'#94a3b8':'#fef08a';
+      ctx.textAlign='center';
+      ctx.fillText(found?'調査済':spot.label,0,-69);
+      const near=ginji&&Math.hypot(ginji.x-spot.x,ginji.z-spot.z)<window.CrownlessForestDiscoveries.RANGE;
+      if(near&&!found) {
+        ctx.fillStyle='#f8fafc';
+        ctx.font='bold 12px "Noto Sans JP",sans-serif';
+        ctx.fillText('👆 ここをタップ',0,-88);
+      }
+      ctx.restore();
+    }
+
+    // 旅人の足元Z軸（奥行き）ガイドライン
+    if (ginji && ginji.state !== 'DEAD') {
+      const kGround = getGroundHeightAt(ginji.x, ginji.z);
+      const lineY = ginji.z - kGround;
+      ctx.strokeStyle = state.kabukiBurstTimer > 0 ? 'rgba(244, 63, 94, 0.55)' : 'rgba(56, 189, 248, 0.32)';
+      ctx.lineWidth = 2;
+      ctx.setLineDash([6, 6]);
+      ctx.beginPath();
+      ctx.moveTo(ginji.x - 160, lineY);
+      ctx.lineTo(ginji.x + 160, lineY);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    }
+
+    // 双剣連携が可能なら旅人と従者の間に金色のキズナ共鳴ラインを描画！
+    if (canTriggerDualTagArt()) {
+      ctx.strokeStyle = 'rgba(250, 204, 21, 0.75)';
+      ctx.lineWidth = 2.5;
+      ctx.beginPath();
+      ctx.moveTo(ginji.x, ginji.z - ginji.y - 20);
+      ctx.lineTo(sasuke.x, sasuke.z - sasuke.y - 20);
+      ctx.stroke();
+    }
+
+    // Zソート描画
+    const drawList = [];
+    if(drawPixelArt) for(const spot of window.CrownlessForestDiscoveries.spots) drawList.push({z:spot.z,type:'site',obj:spot});
+    for (const it of state.items) drawList.push({ z: it.z, type: 'item', obj: it });
+    for (const f of state.fighters) drawList.push({ z: f.z, type: 'fighter', obj: f });
+    drawList.sort((a, b) => a.z - b.z);
+
+    for (const entry of drawList) {
+      if(entry.type==='site') {
+        const spot=entry.obj;
+        forestArt.site(ctx,{...spot,z:spot.z-getGroundHeightAt(spot.x,spot.z)},state.forestFinds.has(spot.id),
+          rpg.crafted,state.forestFinds.has('traces'),ginji&&Math.hypot(ginji.x-spot.x,ginji.z-spot.z)<110,performance.now());
+      }
+      else if (entry.type === 'item') drawItem(entry.obj);
+      else drawFighter(entry.obj);
+    }
+
+    if(drawPixelArt) {
+      forestArt.foreground(ctx,state.cameraX,virtualW,performance.now(),ginji);
+      forestEffects.overlay(ctx,state.cameraX,virtualW,performance.now(),ginji,state.forestFinds,rpg.crafted);
+    }
+
+    // 双剣クロス斬撃エフェクト
+    for (const sl of state.slashLines) {
+      ctx.strokeStyle = '#fde047';
+      ctx.lineWidth = 4;
+      ctx.beginPath();
+      ctx.moveTo(sl.x - 45, sl.y - 35);
+      ctx.lineTo(sl.x + 45, sl.y + 35);
+      ctx.moveTo(sl.x + 45, sl.y - 35);
+      ctx.lineTo(sl.x - 45, sl.y + 35);
+      ctx.stroke();
+    }
+
+    // ヒットスパーク
+    for (const sp of state.hitSparks) {
+      const sy = sp.z - sp.y;
+      ctx.fillStyle = sp.isSakura ? '#f43f5e' : '#fef08a';
+      ctx.beginPath();
+      ctx.arc(sp.x, sy, 12, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    // 桜吹雪パーティクル描画
+    for (const p of state.sakuraPetals) {
+      ctx.fillStyle = '#fbcfe8';
+      ctx.beginPath();
+      ctx.ellipse(p.x, p.y, p.size, p.size * 0.6, p.timer * 3, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    ctx.font = 'bold 12px "Noto Sans JP", sans-serif';
+    ctx.textAlign = 'center';
+    for (const p of state.popups) {
+      const lines=[];let line='';
+      const limit=Math.min(250,virtualW-24);
+      for(const char of p.text) {
+        if(ctx.measureText(line+char).width>limit) {lines.push(line);line='';}
+        line+=char;
+      }
+      lines.push(line);
+      const widest=Math.max(...lines.map(l=>ctx.measureText(l).width));
+      const x=Math.max(state.cameraX+12+widest/2,Math.min(state.cameraX+virtualW-12-widest/2,p.x));
+      lines.forEach((text,i)=>{
+        const y=p.z-p.y-(lines.length-1-i)*16;
+        ctx.fillStyle='#182018';ctx.fillText(text,x+1,y+1);
+        ctx.fillStyle=p.color;ctx.fillText(text,x,y);
+      });
+    }
+
+    ctx.restore();
+  }
+
+  function drawItem(it) {
+    const groundH = getGroundHeightAt(it.x, it.z);
+    const isNearHero = ginji && Math.hypot(it.x - ginji.x, it.z - ginji.z) < 48;
+
+    ctx.fillStyle = isNearHero ? 'rgba(250, 204, 21, 0.55)' : 'rgba(0,0,0,0.35)';
+    ctx.beginPath();
+    ctx.ellipse(it.x, it.z - groundH, isNearHero ? 15 : 10, isNearHero ? 6 : 4, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    const sy = it.z - it.y;
+    ctx.save();
+    ctx.translate(it.x, sy);
+    if (it.type === 'katana') {
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillRect(-14, -3, 28, 4);
+      ctx.fillStyle = '#facc15';
+      ctx.fillRect(-6, -6, 3, 10);
+      ctx.fillStyle = '#451a03';
+      ctx.fillRect(-16, -4, 10, 6);
+    } else if (it.type === 'stone') {
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillRect(-7, -7, 14, 12);
+    } else if (it.type === 'coin') {
+      ctx.fillStyle = '#facc15';
+      ctx.beginPath();
+      ctx.ellipse(0, -4, 9, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = '#713f12';
+      ctx.fillRect(-2, -6, 4, 4);
+    } else if (it.type === 'dango') {
+      ctx.fillStyle = '#f472b6';
+      ctx.beginPath(); ctx.arc(-6, -5, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#f8fafc';
+      ctx.beginPath(); ctx.arc(0, -5, 5, 0, Math.PI * 2); ctx.fill();
+      ctx.fillStyle = '#4ade80';
+      ctx.beginPath(); ctx.arc(6, -5, 5, 0, Math.PI * 2); ctx.fill();
+    }
+    if (isNearHero) {
+      ctx.font = 'bold 10px "Noto Sans JP", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#fde047';
+      ctx.fillText('▼拾う', 0, -14);
+    }
+    ctx.restore();
+  }
+
+  function drawFighter(f) {
+    const groundH = getGroundHeightAt(f.x, f.z);
+    const zAlignedWithHero = ginji && f.team === 1 && Math.abs(f.z - ginji.z) <= 24;
+
+    ctx.fillStyle = zAlignedWithHero ? 'rgba(52, 211, 153, 0.55)' : 'rgba(0,0,0,0.42)';
+    ctx.beginPath();
+    ctx.ellipse(f.x, f.z - groundH, 16, 6, 0, 0, Math.PI * 2);
+    ctx.fill();
+    if (zAlignedWithHero) {
+      ctx.strokeStyle = '#34d399';
+      ctx.lineWidth = 1.5;
+      ctx.beginPath();
+      ctx.ellipse(f.x, f.z - groundH, 19, 8, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    const sy = f.z - f.y;
+    ctx.save();
+    if (f.team === 0 && f.hitGuardRemaining > 0) {
+      // Gentle flicker communicates temporary immunity, unlike hidden damage.
+      ctx.globalAlpha = Math.floor(f.hitGuardRemaining * 11) % 2 ? 0.65 : 1;
+    }
+    ctx.translate(Math.round(f.x), Math.round(sy));
+
+    // 紋章・覚醒バースト中の紅白隈取オーラ描画
+    if (f.team === 0 && state.kabukiBurstTimer > 0) {
+      ctx.strokeStyle = 'rgba(244, 63, 94, 0.85)';
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      ctx.arc(0, -26, 28 + Math.sin(f.animTime * 2) * 3, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+
+    ctx.font = 'bold 11px "Noto Sans JP", sans-serif';
+    ctx.textAlign = 'center';
+    const tag = f === ginji ? ' [1P]' : (f === sasuke ? (state.isPartnerAI ? ' [相棒AI]' : ' [2P]') : '');
+    ctx.fillStyle = f.team === 0 ? '#7dd3fc' : '#fca5a5';
+    const detailedActor = pixelArt && forestArt.ready();
+    ctx.fillText(f.name + tag, 0, detailedActor ? -78 : -60);
+
+    const barW = 32;
+    const hpRatio = Math.max(0, f.hp / f.maxHp);
+    ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+    const hpY = detailedActor ? -73 : -55;
+    ctx.fillRect(-barW / 2, hpY, barW, 4);
+    ctx.fillStyle = f.team === 0 ? '#34d399' : '#f43f5e';
+    ctx.fillRect(-barW / 2, hpY, Math.round(barW * hpRatio), 4);
+
+    ctx.scale(f.facing, 1);
+
+    if (f.state === 'SPECIAL' && f.activeSkill === 'kazaguruma') {
+      ctx.translate(0, -24);
+      ctx.rotate(f.animTime * 2.2);
+      ctx.translate(0, 24);
+    } else if (f.state === 'DOWN' || f.state === 'DEAD') {
+      ctx.translate(0, -8);
+      ctx.rotate(-Math.PI * 0.5);
+      ctx.translate(0, 8);
+    }
+
+    const bob = (f.state === 'WALK' || f.state === 'RUN') ? Math.abs(Math.sin(f.animTime * 1.4)) * 3 : 0;
+
+    if (f === ginji && pixelArt && heroStillReview.draw(ctx,f)) {
+      if(rpg.crafted||f.heldWeapon) window.CrownlessPixelActors.drawEquipment(ctx,rpg.crafted?'sword':f.heldWeapon.type);
+      ctx.restore();
+      return;
+    }
+
+    if (pixelArt && forestArt.ready()) {
+      window.CrownlessPixelActors.draw(ctx,f,{
+        role:f===ginji?'traveler':f===sasuke?'companion':'enemy',
+        crafted:f===ginji&&rpg.crafted,
+        burst:f.team===0&&state.kabukiBurstTimer>0
+      });
+      ctx.restore();
+      return;
+    }
+
+    ctx.fillStyle = '#f8fafc';
+    ctx.fillRect(-10, -6 + bob, 8, 6);
+    ctx.fillRect(3, -6 - bob, 8, 6);
+
+    ctx.fillStyle = f.kimonoColor;
+    ctx.fillRect(-12, -28 - bob, 24, 22);
+    // Shoulder armor, only visual; original attacks/reach/hitboxes remain unchanged.
+    ctx.fillStyle = f.team === 0 ? '#879398' : '#566d4f';
+    ctx.fillRect(-15, -29 - bob, 7, 7);
+    ctx.fillRect(9, -29 - bob, 7, 7);
+
+    ctx.fillStyle = f.obiColor;
+    ctx.fillRect(-12, -16 - bob, 24, 4);
+
+    const isAttacking = f.state === 'ATTACK' || f.state === 'SPECIAL';
+    const armReach = isAttacking ? (Math.sin(f.animTime * 6) > 0 ? 18 : 8) : 4;
+    ctx.fillStyle = '#fed7aa';
+    ctx.fillRect(8 + armReach, -24 - bob, 9, 8);
+
+    if (f === ginji && rpg.crafted) {
+      // The smith-forged blade is always visible, even after throwing a temporary pickup.
+      ctx.fillStyle = '#ffe5ac';
+      ctx.fillRect(14 + armReach, -30 - bob, 33, 5);
+      ctx.fillStyle = '#ca8d49';
+      ctx.fillRect(12 + armReach, -34 - bob, 4, 13);
+    }
+    if (f.heldWeapon) {
+      if (f.heldWeapon.type === 'katana') {
+        ctx.fillStyle = '#e2e8f0';
+        ctx.fillRect(14 + armReach, -28 - bob, 26, 4);
+      } else {
+        ctx.fillStyle = '#94a3b8';
+        ctx.fillRect(14 + armReach, -26 - bob, 10, 10);
+      }
+    }
+
+    ctx.fillStyle = '#fed7aa';
+    ctx.fillRect(-11, -48 - bob, 22, 20);
+    if (f.team === 1) {
+      ctx.fillStyle = '#809b61';
+      ctx.fillRect(-19, -44 - bob, 10, 6);
+      ctx.fillRect(10, -44 - bob, 10, 6);
+    }
+
+    // 独自キャラらしい髪型（旅人は闘志な銀髪総髪、従者は刺客頭巾風）
+    ctx.fillStyle = f === ginji ? '#e2e8f0' : '#1e293b';
+    ctx.fillRect(-11, -50 - bob, 22, 6);
+    ctx.fillRect(-6, -56 - bob, 12, 6);
+
+    if (f.headbandColor) {
+      ctx.fillStyle = f.headbandColor;
+      ctx.fillRect(-11, -45 - bob, 22, 3);
+    }
+
+    if (f.state === 'HURT' || f.state === 'DOWN' || f.state === 'DEAD') {
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(1, -43 - bob, 6, 6);
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(4, -41 - bob, 2, 2);
+      ctx.fillStyle = '#991b1b';
+      ctx.fillRect(2, -35 - bob, 7, 5);
+    } else {
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(2, -41 - bob, 3, 4);
+      ctx.fillRect(7, -41 - bob, 3, 4);
+      // 紋章バースト中は赤い隈取メイクが入る！
+      if (f.team === 0 && state.kabukiBurstTimer > 0) {
+        ctx.fillStyle = '#e11d48';
+        ctx.fillRect(0, -39 - bob, 10, 2);
+      }
+      ctx.fillStyle = f.team === 0 ? '#dc2626' : '#1e293b';
+      ctx.fillRect(3, -34 - bob, 6, 2);
+    }
+
+    ctx.restore();
+  }
+
+  // ============================================================================
+  // 13. UI・レイアウトモード切替・ショップモーダル制御
+  // ============================================================================
+  function updateUI() {
+    if (ginji) {
+      const pct = Math.max(0, Math.min(100, (ginji.hp / ginji.maxHp) * 100));
+      document.getElementById('hpBarKunio').style.width = `${pct}%`;
+      document.getElementById('hpTextKunio').textContent = `${ginji.hp}`;
+    }
+    if (sasuke) {
+      const pct = Math.max(0, Math.min(100, (sasuke.hp / sasuke.maxHp) * 100));
+      document.getElementById('hpBarTsuru').style.width = `${pct}%`;
+      document.getElementById('hpTextTsuru').textContent = `${sasuke.hp}`;
+    }
+    document.getElementById('moneyText').textContent = `${state.moneyMon}`;
+
+    // 闘志ゲージ＆覚醒バースト表示更新
+    const ikiFill = document.getElementById('ikiBarFill');
+    const ikiText = document.getElementById('ikiText');
+    const btnBurst = document.getElementById('btnKabukiBurst');
+    if (state.kabukiBurstTimer > 0) {
+      const pct = Math.round((state.kabukiBurstTimer / 8.0) * 100);
+      ikiFill.style.width = `${pct}%`;
+      ikiText.textContent = '大見得中!';
+      btnBurst.classList.add('kabuki-glow');
+    } else {
+      ikiFill.style.width = `${state.ikiGauge}%`;
+      ikiText.textContent = state.ikiGauge >= 100 ? '発動可!' : `${Math.round(state.ikiGauge)}%`;
+      if (state.ikiGauge >= 100) btnBurst.classList.add('kabuki-glow');
+      else btnBurst.classList.remove('kabuki-glow');
+    }
+
+    // 脅威度（番付）スター更新
+    const starsEl = document.getElementById('wantedStars');
+    if (starsEl) {
+      starsEl.textContent = '★'.repeat(state.wantedLevel) + '☆'.repeat(3 - state.wantedLevel);
+    }
+
+    const names = SKILL_CATALOG
+      .filter(s => state.unlockedSkills.has(s.id))
+      .map(s => s.name.split('（')[0]);
+    document.getElementById('skillsBanner').textContent =
+      names.length > 0 ? names.join(' / ') : 'なし（「📜 冒険者アジト」で習得）';
+
+    renderShopItems();
+  }
+
+  function applyLayoutMode() {
+    const stageVp = document.getElementById('stageViewport');
+    const touchDeck = document.getElementById('touchControls');
+    const btnLayout = document.getElementById('btnToggleLayout');
+
+    if (state.isSplitDeckLayout) {
+      stageVp.className = 'relative w-full h-[62%] shrink-0 overflow-hidden bg-slate-950 border-b border-amber-500/30';
+      touchDeck.className = 'relative flex-1 w-full bg-slate-950 flex items-center justify-between px-3 sm:px-8 py-2 z-10 select-none';
+      btnLayout.textContent = '📱 UI: 下部余白あり';
+    } else {
+      stageVp.className = 'relative w-full h-full flex-1 overflow-hidden bg-slate-950';
+      touchDeck.className = 'absolute inset-0 flex items-end justify-between px-3 sm:px-8 pb-3 z-10 select-none pointer-events-none';
+      btnLayout.textContent = '📱 UI: 全画面(枠なし)';
+    }
+    resizeCanvas();
+  }
+
+  function togglePartnerAI() {
+    state.isPartnerAI = !state.isPartnerAI;
+    const btn = document.getElementById('btnToggleAI');
+    btn.textContent = state.isPartnerAI ? '🤖 相棒: 同行AI' : '🎮 相棒: 2P手動';
+    if (sasuke) {
+      spawnPopup(
+        state.isPartnerAI ? '従者：同行AIモード' : '従者：2P手動操作',
+        sasuke.x,
+        sasuke.z,
+        sasuke.y + 52,
+        '#34d399'
+      );
+    }
+  }
+
+  function toggleShopModal(forceOpen) {
+    const modal = document.getElementById('shopModal');
+    const shouldOpen = typeof forceOpen === 'boolean' ? forceOpen : modal.classList.contains('hidden');
+    if (shouldOpen) {
+      renderShopItems();
+      modal.classList.remove('hidden');
+    } else {
+      modal.classList.add('hidden');
+    }
+  }
+
+  function renderShopItems() {
+    const container = document.getElementById('shopItemsContainer');
+    if (!container) return;
+    container.innerHTML = '';
+    for (const item of SKILL_CATALOG) {
+      const owned = item.type === 'skill' && state.unlockedSkills.has(item.id);
+      const canAfford = state.moneyMon >= item.price;
+      const row = document.createElement('div');
+      row.className = 'flex items-center justify-between gap-2 p-2.5 rounded-lg bg-slate-800 border border-slate-700';
+      row.innerHTML = `
+        <div class="min-w-0">
+          <div class="font-bold text-sm text-amber-300">${item.name} <span class="text-xs text-slate-300">(${item.price}枚)</span></div>
+          <div class="text-xs text-slate-300 mt-0.5">${item.desc}</div>
+        </div>
+      `;
+      const buyBtn = document.createElement('button');
+      buyBtn.type = 'button';
+      buyBtn.disabled = owned || !canAfford;
+      buyBtn.className = owned
+        ? 'px-3 py-1.5 rounded text-xs font-bold bg-slate-700 text-emerald-300 shrink-0'
+        : (canAfford
+            ? 'px-3 py-1.5 rounded text-xs font-bold bg-amber-500 hover:bg-amber-400 text-slate-950 shrink-0'
+            : 'px-3 py-1.5 rounded text-xs font-bold bg-slate-700 text-slate-400 shrink-0');
+      buyBtn.textContent = owned ? '習得済' : '購入';
+      buyBtn.addEventListener('click', () => {
+        if (state.moneyMon < item.price) return;
+        state.moneyMon -= item.price;
+        if (item.type === 'skill') {
+          state.unlockedSkills.add(item.id);
+          if (ginji) spawnPopup(`『${item.name.split('（')[0]}』習得！`, ginji.x, ginji.z, ginji.y + 52, '#fde047');
+        } else {
+          if (ginji) { ginji.hp = ginji.maxHp; ginji.punchPower += 5; ginji.kickPower += 5; }
+          if (sasuke) { sasuke.hp = sasuke.maxHp; sasuke.punchPower += 5; }
+          addIki(50);
+          if (ginji) spawnPopup('体力全快＆腕力+5＆闘志+50%！', ginji.x, ginji.z, ginji.y + 52, '#4ade80');
+        }
+        sfx.play('coin');
+        updateUI();
+      });
+      row.appendChild(buyBtn);
+      container.appendChild(row);
+    }
+  }
+
+  document.getElementById('btnToggleLayout').addEventListener('click', () => {
+    state.isSplitDeckLayout = !state.isSplitDeckLayout;
+    applyLayoutMode();
+  });
+
+  const btnAutoRun = document.getElementById('btnAutoRunToggle');
+  if (btnAutoRun) {
+    btnAutoRun.addEventListener('click', () => {
+      state.autoRunEnabled = !state.autoRunEnabled;
+      touchInput.run = state.autoRunEnabled;
+      btnAutoRun.textContent = state.autoRunEnabled ? '🏃 常時疾走: ON' : '🏃 常時疾走: OFF';
+      btnAutoRun.className = state.autoRunEnabled
+        ? 'px-3 py-1.5 rounded-lg bg-sky-600 border border-sky-300 text-xs font-bold text-white'
+        : 'px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 border border-slate-600 text-xs font-bold text-sky-300';
+    });
+  }
+
+  document.getElementById('btnUnlockAllDemo').addEventListener('click', () => {
+    for (const s of SKILL_CATALOG) {
+      if (s.type === 'skill') state.unlockedSkills.add(s.id);
+    }
+    state.ikiGauge = 100;
+    sfx.play('kabuki');
+    if (ginji) spawnPopup('全奥義解放＆闘志100%！', ginji.x, ginji.z, ginji.y + 52, '#fde047');
+    updateUI();
+    toggleShopModal(false);
+  });
+
+  document.getElementById('btnToggleAI').addEventListener('click', togglePartnerAI);
+  document.getElementById('btnOpenShop').addEventListener('click', () => toggleShopModal(true));
+  document.getElementById('btnCloseShop').addEventListener('click', () => toggleShopModal(false));
+  document.getElementById('btnSpawnWave').addEventListener('click', () => {
+    state.waveCount++;
+    spawnEnemyWave(state.waveCount);
+  });
+  document.getElementById('btnToggleSound').addEventListener('click', (e) => {
+    sfx.enabled = !sfx.enabled;
+    e.currentTarget.textContent = sfx.enabled ? '🔊 音ON' : '🔇 音OFF';
+  });
+
+  // ============================================================================
+  // 14. 生還・鍛冶：元のアクションを変えない一画面の実験
+  // ============================================================================
+  function updateRpgStatus() {
+    const badge = document.getElementById('rpgStatusBadge');
+    badge.textContent = '🎒 未帰還 ' + rpg.unbanked + '　倉庫 ' + rpg.banked +
+      '　武器：' + (rpg.crafted ? '⚔ 風裂きの剣' : '初期装備');
+    document.getElementById('rpgOpenResults').classList.toggle('hidden',rpg.phase!=='return');
+  }
+  function updateForestExploreHint() {
+    const hint=document.getElementById('forestExploreHint');
+    if(rpg.phase==='camp') {hint.classList.add('hidden');return;}
+    hint.classList.remove('hidden');
+    const near=window.CrownlessForestDiscoveries.near(ginji,state.forestFinds);
+    const label=near
+      ? near.id==='hollow' && !state.forestFinds.has('traces')
+        ? '石門の手前に獣の痕跡。足跡を調べてみよう'
+        : near.id==='hollow' && !rpg.crafted
+          ? '茨の石門：風裂きの剣で切り開けそう。牙を持ち帰って鍛冶へ'
+          : '✨ '+near.label+'：地点をタップ、または右側をタップ'
+      : state.forestFinds.has('traces') && !state.forestFinds.has('hollow')
+        ? '足跡は右奥の石門へ。'+(rpg.crafted?'剣で茨を切り開こう':'茨を切る剣を作って再訪しよう')
+      : rpg.phase==='return'
+        ? '🌲 戦闘終了！ 森を歩いて発見を探すか「🏕 生還 / さらに奥へ」'
+        : '🌲 獣の痕跡や古い祠へ近づき、地点そのものをタップして調べよう';
+    if(hint.textContent!==label) hint.textContent=label;
+  }
+
+  function showRpgPanel() {
+    const panel = document.getElementById('rpgPanel');
+    const result = rpg.phase === 'return';
+    const camp = rpg.phase === 'camp';
+    panel.classList.toggle('hidden', !(result || camp));
+
+    document.getElementById('rpgKeepExploring').classList.toggle('hidden', !result);
+    document.getElementById('rpgReturn').classList.toggle('hidden', !result);
+    document.getElementById('rpgPush').classList.toggle('hidden', !result);
+    document.getElementById('rpgForge').classList.toggle('hidden', !camp || rpg.crafted);
+    document.getElementById('rpgDepart').classList.toggle('hidden', !camp);
+    document.getElementById('rpgBackToMap').classList.toggle('hidden', !camp || new URLSearchParams(location.search).get('from') !== 'discovered-wood');
+
+    document.getElementById('rpgBank').textContent =
+      '🎒 未帰還素材 ' + rpg.unbanked + ' / 倉庫のゴブリンの牙 ' + rpg.banked;
+    const forge = document.getElementById('rpgForge');
+    forge.disabled = rpg.banked < rpgRules.COST;
+    forge.textContent = '⚒ 風裂きの剣を製作（牙 ' + rpgRules.COST + '個）';
+    forge.classList.toggle('opacity-40', forge.disabled);
+    forge.classList.toggle('cursor-not-allowed', forge.disabled);
+    document.getElementById('rpgTitle').textContent = result ? '敵を退けた！ 帰還する？' :
+      (rpg.lastOutcome === 'defeated' ? '敗北。素材を失った……' :
+       rpg.lastOutcome === 'crafted' ? '鍛冶師の剣が完成！' : '無事に生還！');
+    document.getElementById('rpgInfo').textContent = result
+      ? '倒した魔物の牙は、まだ背嚢の中。生きて帰れば鍛冶の素材になる。奥へ進めば戦利品は増えるが、敗北すると今回の背嚢を失う。'
+      : (rpg.lastOutcome === 'defeated'
+         ? '今回の未帰還素材は失った。以前に倉庫へ持ち帰った分と制作済みの武器は残る。'
+         : rpg.crafted
+           ? '鍛冶師が仕立てた風裂きの剣を装備。次の遠征では攻撃が強まり、痕跡の先の石門を覆う茨も切り開ける。'
+           : '倉庫に集めたゴブリンの牙3個から、鍛冶師が風裂きの剣を作れる。');
+  }
+
+  document.getElementById('rpgOpenResults').addEventListener('click',showRpgPanel);
+  document.getElementById('rpgKeepExploring').addEventListener('click',()=>{
+    if(rpg.phase==='return') document.getElementById('rpgPanel').classList.add('hidden');
+  });
+  document.getElementById('rpgReturn').addEventListener('click', () => {
+    if (!rpgRules.returnAlive(rpg, ginji && ginji.hp)) return;
+    saveActionProgress();
+    updateRpgStatus();
+    showRpgPanel();
+  });
+  document.getElementById('rpgPush').addEventListener('click', () => {
+    if (!rpgRules.pushDeeper(rpg)) return;
+    state.waveCount++;
+    spawnEnemyWave(state.waveCount);
+    updateRpgStatus();
+    showRpgPanel();
+  });
+  document.getElementById('rpgForge').addEventListener('click', () => {
+    if (!rpgRules.forge(rpg)) return;
+    saveActionProgress();
+    sfx.play('heavy');
+    updateRpgStatus();
+    showRpgPanel();
+  });
+  document.getElementById('rpgBackToMap').addEventListener('click', () => {
+    // Exit only from camp, after the player returned alive or lost this run.
+    // Do not import the lab's separate banked materials into production saves.
+    if (rpg.phase !== 'camp' || new URLSearchParams(location.search).get('from') !== 'discovered-wood') return;
+    window.location.assign('expedition.html');
+  });
+  document.getElementById('rpgDepart').addEventListener('click', () => {
+    if (!rpgRules.depart(rpg)) return;
+    state.waveCount = 1;
+    state.tokenManager = new BattleTokenManager(2);
+    state.kabukiBurstTimer = 0;
+    initStage();
+    updateRpgStatus();
+    showRpgPanel();
+  });
+
+  // ============================================================================
+  // 15. メインゲームループ
+  // ============================================================================
+  let lastTimestamp = performance.now();
+  function gameLoop(now) {
+    const dt = Math.min(0.05, (now - lastTimestamp) / 1000);
+    lastTimestamp = now;
+    const nowSec = now / 1000;
+
+    if (state.kabukiBurstTimer > 0) {
+      state.kabukiBurstTimer = Math.max(0, state.kabukiBurstTimer - dt);
+      if (ginji && Math.random() < 0.35) {
+        spawnSakuraBurst(ginji.x, ginji.z, ginji.y + 25, 1);
+      }
+      if (state.kabukiBurstTimer === 0) updateUI();
+    }
+
+    // 月夜モード時は環境パーティクルとして桜が舞う
+    if ((state.waveCount - 1) % 3 === 2 && Math.random() < 0.22 && ginji) {
+      spawnSakuraBurst(ginji.x + (Math.random() - 0.5) * 420, 220, 120, 1);
+    }
+
+    // Continue traversing the same world after the enemies fall.
+    if (rpg.phase === 'fight' || rpg.phase === 'return') for (const f of state.fighters) {
+      let input;
+      if (f === ginji) {
+        input = samplePlayer1Input(dt);
+      } else if (f === sasuke) {
+        input = state.isPartnerAI ? sampleCompanionAI(f) : samplePlayer2Input();
+      } else {
+        input = sampleEnemyAI(f, nowSec);
+      }
+      updateFighter(f, input, dt);
+    }
+
+    for (let i = state.items.length - 1; i >= 0; i--) {
+      const it = state.items[i];
+      const gH = getGroundHeightAt(it.x, it.z);
+      if (it.y > gH || it.vy > 0) {
+        it.vy -= WORLD.gravity * dt;
+        it.y += it.vy * dt;
+        it.x += it.vx * dt;
+        it.z += it.vz * dt;
+        if (it.y <= gH) {
+          it.y = gH;
+          it.vy = 0;
+          it.vx = 0;
+          it.vz = 0;
+          it.thrownTeam = -1;
+        }
+      }
+      if (it.thrownTeam !== -1) {
+        for (const f of state.fighters) {
+          if (f.team === it.thrownTeam || f.state === 'DEAD' || f.state === 'DOWN') continue;
+          if (Math.abs(f.x - it.x) < 28 && Math.abs(f.z - it.z) < 22 && Math.abs(f.y - it.y) < 42) {
+            inflictDamage(f, it.damage, Math.sign(it.vx) * 190, 210, true);
+            spawnSpark(it.x, it.z, it.y + 15);
+            it.vx = -it.vx * 0.25;
+            it.vy = 140;
+            it.thrownTeam = -1;
+            break;
+          }
+        }
+      }
+    }
+
+    for (let i = state.popups.length - 1; i >= 0; i--) {
+      state.popups[i].y += 28 * dt;
+      state.popups[i].timer -= dt;
+      if (state.popups[i].timer <= 0) state.popups.splice(i, 1);
+    }
+    for (let i = state.hitSparks.length - 1; i >= 0; i--) {
+      state.hitSparks[i].timer -= dt;
+      if (state.hitSparks[i].timer <= 0) state.hitSparks.splice(i, 1);
+    }
+    for (let i = state.slashLines.length - 1; i >= 0; i--) {
+      state.slashLines[i].timer -= dt;
+      if (state.slashLines[i].timer <= 0) state.slashLines.splice(i, 1);
+    }
+    for (let i = state.sakuraPetals.length - 1; i >= 0; i--) {
+      const p = state.sakuraPetals[i];
+      p.x += p.vx * dt;
+      p.y += p.vy * dt;
+      p.timer -= dt;
+      if (p.timer <= 0) state.sakuraPetals.splice(i, 1);
+    }
+
+    if (ginji) {
+      const targetCamX = Math.max(0, Math.min(WORLD.maxX - virtualW + 40, ginji.x - virtualW * 0.38));
+      state.cameraX += (targetCamX - state.cameraX) * Math.min(1, dt * 6);
+    }
+    updateContextualButtons();
+    updateForestExploreHint();
+    renderScene();
+    requestAnimationFrame(gameLoop);
+  }
+
+  window.onload = () => {
+    applyCombatInputMode();
+    initStage();
+    updateRpgStatus();
+    requestAnimationFrame(gameLoop);
+  };
+})();
+</script>
+</body>
+</html>

@@ -13,6 +13,8 @@
     ctx.fillStyle='#17242c';ctx.fillRect(0,0,W,W);
     // Tower floor is a single joined stone interior, not forest scenery.
     for(let id=0;id<T.COUNT;id++){
+      // Unseen cells have no floor or wall silhouette beneath the soft fog.
+      if(!T.visible(f,id))continue;
       const [x,y]=center(id),col=id%5,row=Math.floor(id/5),wall=T.WALLS.includes(id);
       if(wall){
         ctx.fillStyle='#34414a';ctx.fillRect(x-59,y-59,118,118);
@@ -33,8 +35,10 @@
         ellipse(ctx,x+35,y+29,13,5,'#2837409c');
       }
     }
+    // Paint real terrain clues only after discovery. Soft fog overlaps tile edges,
+    // so drawing hidden objects beneath it would leak the secret silhouette.
     // Sealed passage disguised as a stone wall. It has no waypoint.
-    {
+    if(T.visible(f,T.SECRET)){
       const [x,y]=center(T.SECRET);
       ctx.fillStyle=f.open?'#1d2a33':'#39474b';
       ctx.fillRect(x-55,y-54,110,108);
@@ -49,20 +53,24 @@
       }
     }
     // Bell fragment: the strange low ring leaks through the floor.
-    {
+    if(T.visible(f,T.ECHO)){
       const [x,y]=center(T.ECHO);
-      ellipse(ctx,x,y+12,38,20,'#142c36d8');
-      ctx.fillStyle='#bda46c';ctx.beginPath();
-      ctx.moveTo(x-32,y+13);ctx.lineTo(x-20,y-17);ctx.lineTo(x+12,y-24);
-      ctx.lineTo(x+32,y+8);ctx.closePath();ctx.fill();
-      ctx.strokeStyle='#e0ce9a';ctx.lineWidth=4;
-      ctx.beginPath();ctx.moveTo(x-34,y+16);ctx.quadraticCurveTo(x,y+35,x+35,y+10);ctx.stroke();
-      const pulse=16+(Math.sin(time/470)+1)*10;
+      // Nearby floors reveal only a pulse; the broken bell is discovered on arrival.
+      if(f.echo){
+        ellipse(ctx,x,y+12,38,20,'#142c36d8');
+        ctx.fillStyle='#bda46c';ctx.beginPath();
+        ctx.moveTo(x-32,y+13);ctx.lineTo(x-20,y-17);ctx.lineTo(x+12,y-24);
+        ctx.lineTo(x+32,y+8);ctx.closePath();ctx.fill();
+        ctx.strokeStyle='#e0ce9a';ctx.lineWidth=4;
+        ctx.beginPath();ctx.moveTo(x-34,y+16);ctx.quadraticCurveTo(x,y+35,x+35,y+10);ctx.stroke();
+      }
+      // The bell's earned echo grows clearer once the concealed stair is opened.
+      const pulse=(f.open?24:16)+(Math.sin(time/(f.open?190:470))+1)*(f.open?14:10);
       ctx.beginPath();ctx.arc(x,y-4,pulse,0,Math.PI*2);
       ctx.strokeStyle='#eed8a654';ctx.lineWidth=3;ctx.stroke();
     }
     // A collapsed stair offers tactical focus, not more free treasure.
-    {
+    if(T.visible(f,T.CACHE)){
       const [x,y]=center(T.CACHE);
       ctx.save();ctx.translate(x,y);
       ctx.rotate(-.28);
@@ -72,7 +80,7 @@
       }ctx.restore();
     }
     // Stone sarcophagus is behind the hidden stair, not visible from the hall.
-    {
+    if(T.visible(f,T.RELIC)){
       const [x,y]=center(T.RELIC);
       ellipse(ctx,x,y+30,47,18,'#142732');
       ctx.fillStyle=f.relic?'#626864':'#9b9a7d';
@@ -86,7 +94,7 @@
       }
     }
     // Upward stairs are locked until the physical guard has been defeated.
-    {
+    if(T.visible(f,T.STAIRS)){
       const [x,y]=center(T.STAIRS);
       ctx.fillStyle='#132630';ctx.fillRect(x-43,y-55,86,111);
       for(let i=0;i<5;i++){
@@ -98,7 +106,7 @@
         ctx.moveTo(x+31,y-16);ctx.lineTo(x-31,y+26);ctx.stroke();}
     }
     // The guardian appears only when lit through exploration fog.
-    if(!f.guard){
+    if(!f.guard&&T.visible(f,T.GUARD)){
       const [x,y]=center(T.GUARD);
       ellipse(ctx,x,y+37,30,11,'#0c1c28b5');
       const bob=Math.sin(time/490)*2;
@@ -112,6 +120,7 @@
     }
     // Warm side torches make the halls feel different from green woodland.
     for(const id of [14,22]){
+      if(!T.visible(f,id))continue;
       const [x,y]=center(id);
       const n=Math.sin(time/250+id)*3;
       ctx.fillStyle='#282c2d';ctx.fillRect(x-42,y-45,7,48);
@@ -164,17 +173,23 @@
     section.classList.add('world-painted');
     const worldspace=section.querySelector('.field-worldspace');
     const size=worldspace?.clientWidth||0;
-    const last=previous;previous=f.pos;
-    const start=last!==null&&T.adjacent(last,f.pos)?center(last):center(f.pos);
+    const last=previous;previous={pos:f.pos,open:f.open};
+    const start=last!==null&&T.adjacent(last.pos,f.pos)?center(last.pos):center(f.pos);
     const end=center(f.pos),zoom=1.62;
     const started=root.performance?.now?.()||0;
     const reduced=root.matchMedia?.('(prefers-reduced-motion: reduce)')?.matches;
+    // Celebrate the instant the stair is discovered, not every revisit or reload.
+    // Stay idle elsewhere and honor reduced-motion preference.
+    const echoRing=!reduced&&f.open&&f.pos===T.ECHO&&last?.pos===T.ECHO&&!last.open;
+    const animationMs=echoRing?1600:400;
     const instance={raf:0};active=instance;
     let lastFrame=0;
     function frame(time){
       if(!canvas.isConnected||active!==instance)return;
       const t=reduced?1:Math.min(1,Math.max(0,(time-started)/400));
-      if(time-lastFrame<45&&t<1){instance.raf=root.requestAnimationFrame(frame);return;}
+      if(time-lastFrame<45&&!reduced&&time-started<animationMs){
+        instance.raf=root.requestAnimationFrame(frame);return;
+      }
       lastFrame=time;
       const ease=1-(1-t)**3;
       const x=start[0]+(end[0]-start[0])*ease,y=start[1]+(end[1]-start[1])*ease;
@@ -188,8 +203,8 @@
       const grad=ctx.createRadialGradient(300,300,100,300,300,420);
       grad.addColorStop(0,'#0c171a00');grad.addColorStop(1,'#09131d9f');
       ctx.fillStyle=grad;ctx.fillRect(0,0,W,W);
-      // The tower is still after the step. Continuous redraws flash on phones.
-      instance.raf=t<1?root.requestAnimationFrame(frame):0;
+      // Stop after the short earned echo; never keep an idle phone redrawing.
+      instance.raf=!reduced&&time-started<animationMs?root.requestAnimationFrame(frame):0;
     }
     frame(started+50);
   }

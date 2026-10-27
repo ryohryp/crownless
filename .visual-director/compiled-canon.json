@@ -25,6 +25,7 @@
     "baked-in text on scene art",
     "historical blue-green board as current approved global reference"
   ],
+  "global_reference_path": "docs/assets/player-unarmed-approved-pixel-anchor-v1.png",
   "global_style_lock": "Western medieval fantasy illustrated in expressive Japanese sumi-e on warm handmade washi. Black and charcoal-gray ink washes, feathered edges, irregular dry-brush contours, layered atmospheric distance and generous unpainted paper. Distinct silhouettes for tower, village, bridge, forest, river, shop and relic. Sparse muted vermilion only for danger, rivals, seals or meaningful focus. Map, town, forge, event and UI feel drawn on the same page; compact readable annotation-like controls. Not a simple sepia filter on clean vector graphics.",
   "grand_design": {
     "asset_types": {
@@ -129,7 +130,7 @@
   },
   "project_id": "crownless",
   "schema_version": 1,
-  "source_revision": "94d9f4645ac923f68d9eaa99153ede81f489523a36982f853b2f1f420bf99577",
+  "source_revision": "374e773168021008414f895e790aab7f735c8ed22ad4fb8d36cc752deaf84996",
   "subjects": [
     {
       "allowed_changes": [
@@ -156,6 +157,32 @@
       ],
       "subject_id": "player-unarmed",
       "subject_lock": "素手の主人公 (player-unarmed) - Approved Visual Anchor: docs/assets/player-unarmed-approved-anchor-v0.4.png. anonymous unknown survivor with no crown, class costume, or permanent allegiance intentionally unarmed with wrapped, visually emphasized hands in a credible fighting stance patched cloth, scavenged belt / pouch, mismatched protection, visibly poor equipment compact grounded silhouette that makes bare-handed combat look deliberate rather than incomplete no weapon or shield in the base state oblique three-quarter top-down pose with readable foot contact, not a portrait pose Use `docs/visual-canon.md` and `docs/visual/GLOBAL_VISUAL_STYLE.md` for current global ink-wash/washi language. The former `docs/assets/crownless-visual-design-reference-v0.1.jpg` is historical only where its palette/woodcut treatment conflicts. Historical `assets/combat/minimal-v0.1/actors/` art was removed under ADR-0005, and is **not** a current runtime dependency or approved generation parent. Preserve the archived role silhouettes only as history. Older character / battle reference sheets are supporting style references only where they do not conflict with the accepted actor set. Keep humanoid figures approximately **3–3.5 heads tall**, strongly deformed, compact, weathered, asymmetrical, and readable at phone scale. Keep faces tiny, restrained, crude, and folk-art-like rather than cute, anime-like, painterly, or realistic. Combat figures must be authored for an **oblique top-down / three-quarter battlefield view** rather than as front-facing standing portraits. Generated images are review candidates and must not replace accepted anchors automatically. `docs/assets/player-unarmed-approved-anchor-v0.4.png`"
+    },
+    {
+      "allowed_changes": [
+        "Adapt lighting, ruins, vegetation, ink density and landmark composition within the active sumi-e-on-washi Canon.",
+        "For characters, preserve each approved anchor's silhouette, clothing, fixed combat camera and pivot.",
+        "Apply the newer connected-field map direction (ADR-0014) only to maps, without overruling non-map gameplay art."
+      ],
+      "approved_anchor_path": "docs/assets/player-unarmed-approved-pixel-anchor-v1.png",
+      "display_name": "素手の主人公（ピクセル版）",
+      "forbidden_changes": [
+        "Do not use legacy, transitional, archived late-state, or exploration-only assets as the generation parent.",
+        "Do not chain a new variation from a candidate or derived variation; return to the Approved Visual Anchor.",
+        "Do not silently fall back to an older generation when an approved asset cannot be read.",
+        "Do not treat the historical board as the unarchived 2026-10-08 approved global image.",
+        "Do not adopt a new candidate as Canon or derive approved anchors from rejected candidates.",
+        "Do not substitute generic glossy fantasy, dominant teal/gold, anime, or clean-vector art for expressive ink wash.",
+        "Use `docs/visual-canon.md` and `docs/visual/GLOBAL_VISUAL_STYLE.md` for current global ink-wash/washi language. The former `docs/assets/crownless-visual-design-reference-v0.1.jpg` is historical only where its palette/woodcut treatment conflicts.",
+        "Historical `assets/combat/minimal-v0.1/actors/` art was removed under ADR-0005, and is **not** a current runtime dependency or approved generation parent. Preserve the archived role silhouettes only as history.",
+        "Older character / battle reference sheets are supporting style references only where they do not conflict with the accepted actor set.",
+        "Keep humanoid figures approximately **3–3.5 heads tall**, strongly deformed, compact, weathered, asymmetrical, and readable at phone scale.",
+        "Keep faces tiny, restrained, crude, and folk-art-like rather than cute, anime-like, painterly, or realistic.",
+        "Combat figures must be authored for an **oblique top-down / three-quarter battlefield view** rather than as front-facing standing portraits.",
+        "Generated images are review candidates and must not replace accepted anchors automatically."
+      ],
+      "subject_id": "player-unarmed-pixel",
+      "subject_lock": "素手の主人公（ピクセル版） (player-unarmed-pixel) - Approved Visual Anchor: docs/assets/player-unarmed-approved-pixel-anchor-v1.png. Preserve the approved dark tied hair, muted red headband/scarf, patched cream and charcoal clothing, belt pouch, wrapped unarmed hands and worn boots. Preserve the approved face, body proportions, camera and coherent whole-body silhouette. Pixel rendering follows the user's current direction; do not reproduce the rejected code-drawn character anatomy. Walking uses temporal poses of this same character facing right in the same camera. Direction variants are not walking frames. No new weapons, armor class or ornaments in the base unarmed animation. Equipment layers come later. The human approval covers this still. New animation remains subject to actual phone-scale review. Use `docs/visual-canon.md` and `docs/visual/GLOBAL_VISUAL_STYLE.md` for current global ink-wash/washi language. The former `docs/assets/crownless-visual-design-reference-v0.1.jpg` is historical only where its palette/woodcut treatment conflicts. Historical `assets/combat/minimal-v0.1/actors/` art was removed under ADR-0005, and is **not** a current runtime dependency or approved generation parent. Preserve the archived role silhouettes only as history. Older character / battle reference sheets are supporting style references only where they do not conflict with the accepted actor set. Keep humanoid figures approximately **3–3.5 heads tall**, strongly deformed, compact, weathered, asymmetrical, and readable at phone scale. Keep faces tiny, restrained, crude, and folk-art-like rather than cute, anime-like, painterly, or realistic. Combat figures must be authored for an **oblique top-down / three-quarter battlefield view** rather than as front-facing standing portraits. Generated images are review candidates and must not replace accepted anchors automatically. `docs/assets/player-unarmed-approved-anchor-v0.4.png`"
     }
   ],
   "world_direction": [

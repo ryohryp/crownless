@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Crownless — 主人公の原画レビュー</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#202920;color:#ece5d2;font:16px/1.7 system-ui,sans-serif}main{max-width:1000px;margin:auto;padding:28px 20px}h1{font-size:26px;line-height:1.4}h2{font-size:17px;color:#d6c7a2}p{max-width:68ch}a{color:#e2c994}section{padding:18px 0;border-top:1px solid #657057}.comparison{display:flex;align-items:end;gap:42px;flex-wrap:wrap}.sample{display:flex;flex-direction:column;align-items:center;gap:12px}.art{display:block;object-fit:contain;image-rendering:pixelated}.large{height:430px;max-width:100%}.phone{height:114px}.frame{background:linear-gradient(#6d735b,#48573c);padding:20px 35px;border-radius:6px}small{color:#b5bda7}.links{display:flex;gap:22px;flex-wrap:wrap}
+</style><main>
+<p>CROWNLESS / ART REVIEW</p>
+<h1>承認した姿で、森を歩く。</h1>
+<p>主人公の原画は確認済みです。同じ顔・髪・服を保った歩行4コマを作りました。立ち止まると原画に戻ります。</p>
+<section class="comparison">
+<div class="sample"><h2>承認済みの原画</h2><img class="art large" src="assets/action-forest/hero-idle.png" alt="黒髪、赤い布、補修された服、手を包帯で巻いた素手の旅人"></div>
+<div class="sample"><h2>ゲーム内に近い大きさ</h2><div class="frame"><img class="art phone" src="assets/action-forest/hero-idle.png" alt="小さく表示した主人公候補"></div><small>人物の高さは約102px</small></div>
+</section>
+<section><h2>歩行を確認する</h2><canvas id="walkPreview" width="360" height="250" style="max-width:100%;background:#394335;image-rendering:pixelated" aria-label="主人公の歩行4コマプレビュー"></canvas><p><button id="toggleWalk" type="button">歩行を止める</button></p>
+<div class="links"><a href="gemini-feel-lab.html?actor=walk">森を歩いて確認する</a><a href="gemini-feel-lab.html?actor=still">静止画と比較する</a></div></section>
+<section><h2>今回の素材について</h2><p>承認済み主人公を参照して画像生成し、Pixeloramaで読み込み・書き出した候補です。元画像は1024×1536px。64×96pxの完成したドット素材や、パーツ別アニメーションとしては扱っていません。</p><p>編集用OpenRaster原画と、歩行4フレームを編集できるAseprite形式のデータを保存しています。攻撃・被弾の専用アニメと、新しい装飾は次の工程です。</p></section>
+</main><script src="src/hero-still-review.js"></script><script>
+const actor=CrownlessHeroStill.create(),ctx=document.querySelector('#walkPreview').getContext('2d');let moving=true;
+document.querySelector('#toggleWalk').onclick=()=>{moving=!moving;document.querySelector('#toggleWalk').textContent=moving?'歩行を止める':'歩行を再生する';};
+function preview(t){ctx.clearRect(0,0,360,250);ctx.save();ctx.translate(180,230);ctx.scale(3,3);actor.draw(ctx,{state:moving?'WALK':'IDLE',animTime:t/100});ctx.restore();requestAnimationFrame(preview);}requestAnimationFrame(preview);
+</script></html>

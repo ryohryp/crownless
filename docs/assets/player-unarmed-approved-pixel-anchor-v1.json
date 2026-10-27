@@ -1,0 +1,14 @@
+{
+  "project_id": "crownless",
+  "subject_id": "player-unarmed-pixel",
+  "status": "approved",
+  "approval_date": "2026-10-23",
+  "approval_evidence": "Direct user response to presented still and actual-size review: これでいいよ",
+  "path": "docs/assets/player-unarmed-approved-pixel-anchor-v1.png",
+  "sha256": "1248dc470d9e68afdae3d1b7c1ab5be9fb1a6ebc2c657eb3db63fd79b77cc928",
+  "dimensions": [1024, 1536],
+  "presented_file": "docs/assets/candidates/hero-still-v1/hero-review.png",
+  "generated_source": "docs/assets/candidates/hero-still-v1/source-v2.png",
+  "previous_identity_reference": "docs/assets/player-unarmed-approved-anchor-v0.4.png",
+  "scope": "Pixel protagonist still identity and appearance; derived animations require review and are not approved anchors."
+}

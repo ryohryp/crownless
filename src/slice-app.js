@@ -90,7 +90,9 @@
   // hard stone walls, a sound clue and a deliberately unsignposted secret stair.
   function towerField(x,title){
     const T=window.CrownlessTowerField, f=x.tower;
-    const names={wall:'崩れた石壁',start:'塔の入口',floor:'冷たい石床',echo:'反響する鐘の欠片',
+    const names={wall:'崩れた石壁',start:'塔の入口',floor:'冷たい石床',
+      // Only a listened-to echo earns the bell fragment's name.
+      echo:f.echo?'反響する鐘の欠片':'かすかに鳴る石床',
       secret:f.open?'発見した隠し階段':'ひびの入った石壁',relic:f.relic?'空の納骨室':'封じられた納骨室',
       cache:'崩れた階段',guard:f.guard?'退いた番人':'鎧の足音',stairs:'上階への階段'};
     const cells=Array.from({length:T.COUNT},(_,i)=>{
@@ -108,11 +110,30 @@
         data-action="tower-step" data-value="${i}" aria-label="${label}へ進む"></button>`;
       return `<span class="${classes}" style="${style}" aria-label="${label}"></span>`;
     }).join('');
+    // Echoes and loot must change what the traveler understands on revisiting.
+    // Do not name the hidden chamber or its material before it is discovered.
+    const sceneCue=f.guard
+      ? '番人は退いた。上階への道が開いた。背嚢を持ち帰るか、先へ進むか。'
+      : f.relic
+        ? '納骨室で鐘鉄を見つけた。まだ背嚢の中だ。生還して持ち帰るか、番人に挑むか。'
+        : f.open
+          ? f.pos===T.ECHO
+            ? '石壁の奥に隠し階段が開いた。この石床から進める。'
+            : f.pos===T.SECRET
+              ? '見つけた隠し階段の中にいる。奥から冷たい風が吹く。先を確かめよう。'
+              : '隠し階段を見つけた石床は別の場所だ。足場をたどって戻ろう。'
+          : f.echo
+            ? f.pos===T.ECHO
+              ? '鐘の欠片の反響が石壁の向こうから返る。この石床で壁を調べよう。'
+              : '鐘の反響を聞いた石床は別の場所だ。足場をたどって戻ろう。'
+            : f.rumor
+              ? '鐘がないのに、石床の下から鳴る。床をタップして分かれ道へ。'
+              : '鐘の反響をたどって、石床をタップして進もう。';
     return `<section class="forest-field tower-field" data-field-pos="${f.pos}" data-field-seen="${f.seen}"
       data-tower-echo="${f.echo}" data-tower-open="${f.open}" data-tower-relic="${f.relic}"
       data-tower-guard="${f.guard}" data-tower-cache="${f.cache}" aria-label="歩いて探索できる鐘なき塔の入口階">
       <div class="forest-field-header"><span class="kicker">THE SILENT BELL · 石の塔</span>
-      <h2>${esc(title)}</h2><small>${f.rumor?'鐘がないのに、石床の下から鳴る。床をタップして分かれ道へ。':'鐘の反響をたどって、石床をタップして進もう。'}</small></div>
+      <h2>${esc(title)}</h2><small>${esc(sceneCue)}</small></div>
       <div class="field-terrain" role="group" aria-label="鐘なき塔の入口階を歩く">
       <div class="field-worldspace"><canvas class="forest-world-canvas" width="600" height="600" aria-hidden="true"></canvas>${cells}</div></div>
       <div class="forest-field-footer"><span>♜ 崩れた塔</span>
@@ -197,7 +218,7 @@
         (foundRelicAtFork?'納骨室で鐘鉄を発見。鎧の足音に、背嚢の鐘鉄がかすかに応える。帰れば確定、進めば失うかもしれない。':foundStairAtFork?'鐘の反響を調べ、石壁の奥に隠し階段を見つけた。先を確かめるか、鎧の足音を追うか。':'床下には鐘の音。奥には鎧の足音。どちらを追う？')+'</p>'+
         (foundRelicAtFork
           ? button('return','鐘鉄を守って生還','背嚢の素材を確定する',{class:'secondary'})
-          : button('tower-step',foundStairAtFork?'見つけた階段を確かめる':'床下の鐘の音を追う',foundStairAtFork?'階段の先はまだ未踏。何が眠る？':'石の向こうで残響が揺れる。何がある？',{value:String(T.ECHO),class:'secondary'}))+
+          : button('tower-step',foundStairAtFork?'反響する石床へ戻る':'床下の鐘の音を追う',foundStairAtFork?'まず鐘の欠片の石床へ一歩。そこから隠し階段へ進める':'石の向こうで残響が揺れる。何がある？',{value:String(T.ECHO),class:'secondary'}))+
         button('tower-step','鎧の足音を追う',foundRelicAtFork
           ? (x.focus<3?'鐘鉄の共鳴で初手 +1。':'')+(state.designs?.shield_thorn?'勝てば鐘鉄 +1':'勝てば盾の製法')+'、敗れれば背嚢を失う'
           : '重い足音が近づく。まだ引き返せる',{value:'23',class:'secondary'})+
@@ -210,8 +231,8 @@
           x.focus>=3?'集中は既に十分 · 鐘鉄を選べる':'鐘鉄を諦めて集中を3以上に / 次の戦闘に備える',
           {disabled:x.focus>=3})
       : '';
-    const echoChoice=x.tower?.pos===window.CrownlessTowerField?.ECHO&&!x.tower.open
-      ? button('tower-step','鐘の反響を確かめる','壁の向こうに響く音を調べる',
+    const echoChoice=x.tower?.pos===window.CrownlessTowerField?.ECHO
+      ? button('tower-step',x.tower.open?'見つけた隠し階段へ進む':'鐘の反響を確かめる',x.tower.open?'この石床からだけ進める · 戦利品は生還まで未確定':'壁の向こうに響く音を調べる',
           {value:String(window.CrownlessTowerField.SECRET),class:'tower-echo-investigate'}) : '';
     const listenChoice=x.tower?.pos===19&&!x.tower.guard&&!x.tower.listened
       ? button('tower-listen','足音に耳を澄ます','石段の奥の気配を確かめる',
@@ -821,6 +842,19 @@
     if (action === 'mode') { loadMode(value); save(); return; }
     if (action === 'switch-mode') { loadMode(state.mode === 'demo' ? 'walk' : 'demo'); save(); return; }
     if (action === 'district') { state = E.selectDistrict(state,value); selected = N.get(state.neighborhood).biome; tab = 'explore'; nearbyView = 'map'; nearbyPage=null; notice = ''; }
+    else if (action === 'action-forest-lab') {
+      // Only a selected, already-discovered woodland in the current mode can
+      // launch the optional lab. No coordinate, route, inventory or save is sent.
+      const d = N.get(state.neighborhood);
+      const discoveredWood = state.mode && d?.biome === 'wood' &&
+        state.neighborhood?.districts?.some(site => site.id === d.id);
+      if (discoveredWood && !state.expedition && !state.report &&
+          state.activeCharacter === 0 && !conflict && !saveBlocked) {
+        window.location.assign('gemini-feel-lab.html?from=discovered-wood');
+        return;
+      }
+      notice = '発見済みの森を選び、旅人で拠点にいるときだけ試せます。';
+    }
     else if (action === 'nearby-view') { nearbyView = ['detail','scout'].includes(value) ? value : 'map'; notice = ''; }
     else if (action === 'nearby-page') { nearbyPage=Math.max(0,Number(value)||0); nearbyView='map'; }
     else if (action === 'poi') { const d=N.get(state.neighborhood), poi=N.pointOfInterest(d);

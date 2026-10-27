@@ -29,9 +29,9 @@ test('one continuous ink illustration sits behind 25 earned-destination hit targ
   assert.match(html,/track-fog/);
   assert.match(html,/data-action="district"/);
   assert.match(html,/data-action="nearby-view" data-value="scout"/);
-  assert.match(html,/data-action="depart" data-value="wood"/);
+  assert.match(html,/data-action="action-forest-lab"/);
   assert.match(html,/data-action="settings"/);
-  assert.match(html,/この土地へ遠征/);
+  assert.match(html,/アクション遠征へ/);
   assert.match(html,/道は模式図/);
 });
 test('same scenic field still renders the normal detail and real-world scouting views',()=>{

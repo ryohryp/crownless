@@ -25,6 +25,10 @@ Keep the real-world discovery trigger and existing game actions intact.
 
 ## Approved direction — Western medieval fantasy × sumi-e
 
+### Action-forest protagonist approval — 2026-10-23
+
+The user explicitly approved the coherent pixel protagonist still after rejecting the code-drawn characters: “これでいいよ”. The exact approved image is `docs/assets/player-unarmed-approved-pixel-anchor-v1.png`, copied unchanged from the Pixelorama export presented in the preceding review. This is the character's action-forest identity/material reference and the current concrete image reference for that production workflow. The earlier v0.4 illustration remains archived unchanged as provenance. Preserve the approved face, dark tied hair, muted red cloth, patched clothing and wrapped hands; derive temporal walking frames from this exact image. The requested pixel medium takes precedence over older ink-hatching rendering prescriptions for this protagonist. This approval does not approve a generated animation, other actors or background replacements. The still remains a detailed source image, not a native low-resolution sprite sheet.
+
 The user explicitly approved the **ink-wash map / town / forge / local-event composite** on 2026-10-08. It replaces the former blue-green/aged-gold medieval manuscript board as the **global style direction**. The approved chat reference is **not yet archived as a repository binary**: do not claim an older `docs/assets/*` board is that image, and do not substitute a new generated candidate for it without review.
 
 A Crownless screen should feel like **the same illustrated page of a medieval travel journal painted in Japanese sumi-e**, not a conventional glossy fantasy UI.

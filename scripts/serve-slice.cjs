@@ -3,12 +3,18 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const isAllowed = name => !name.includes('..') && (
-  ['index.html','expedition.html','architecture-lab.html','architecture-lab.js'].includes(name) ||
+  ['index.html','expedition.html','architecture-lab.html','architecture-lab.js','gemini-feel-lab.html','hero-art-review.html'].includes(name) ||
   (name.endsWith('.css') && !name.includes('/')) ||
   (name.startsWith('src/') && name.endsWith('.js') && name.indexOf('/', 4) === -1) ||
+  ['docs/assets/candidates/forest-hd2d-v0.2.png','docs/assets/candidates/forest-objects-v1.png',
+   'docs/assets/candidates/hero-still-v1/hero-review.png',
+   'docs/assets/player-unarmed-approved-pixel-anchor-v1.png',
+   'docs/assets/candidates/hero-walk-v1/walk.png',
+   'assets/action-forest/terrain.png','assets/action-forest/objects.png',
+   'assets/action-forest/hero-idle.png','assets/action-forest/hero-walk.png'].includes(name) ||
   (name.startsWith('assets/') && name.endsWith('.svg') && name.indexOf('/', 7) === -1)
 );
-const types = {'.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml'};
+const types = {'.png':'image/png','.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml'};
 const server = http.createServer((req,res) => {
   const name = new URL(req.url,'http://localhost').pathname.slice(1) || 'index.html';
   if (!['GET','HEAD'].includes(req.method) || !isAllowed(name)) { res.writeHead(404); res.end('Not found'); return; }
