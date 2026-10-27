@@ -144,7 +144,7 @@ test('the shrine guardian pursues a nearby active explorer, not a nearer compani
   assert.equal(D.guardianTargetsExplorer(guardian,null),false);
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   const ai=html.slice(html.indexOf('function sampleEnemyAI('),html.indexOf('function updateFighter('));
-  assert.match(ai,/guardianTargetsExplorer\\(enemy,ginji\\)/,
+  assert.match(ai,/guardianTargetsExplorer\(enemy,ginji\)/,
     'the live guardian must use the same proximity and recovery rule');
 });
 
