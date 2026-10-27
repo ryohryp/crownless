@@ -807,7 +807,7 @@ test('companion defends before scouting activates, then yields the earned strike
   assert.equal(D.companionYieldsGuardianOpening(guardian,NaN),false);
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   const ai=html.slice(html.indexOf('function sampleCompanionAI('),html.indexOf('function sampleEnemyAI('));
-  assert.match(ai,/companionYieldsGuardianOpening\([\s\S]*?scoutedGuardian,performance\.now\(\)\/1000\)\s*\|\|[\s\S]*?companionYieldsGuardianFootsteps\([\s\S]*?ginji,scoutedGuardian,state\.forestFinds\)\)\) return out;/,
+  assert.match(ai,/companionYieldsGuardianOpening\([\s\S]*?scoutedGuardian,performance\.now\(\)\/1000\)\s*\|\|[\s\S]*?companionYieldsGuardianFootsteps\([\s\S]*?ginji,scoutedGuardian,state\.forestFinds,selfFighter\)\)\) return out;/,
     'the real companion AI must honor the earned opening');
   assert.match(ai,/!\['HURT','DOWN','GRAB'\]\.includes\(ginji\.state\)/,
     'the ally must still protect an incapacitated explorer');
