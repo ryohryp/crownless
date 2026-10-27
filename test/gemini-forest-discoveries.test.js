@@ -707,17 +707,16 @@ test('scouted guardian warning starts on close approach exactly once, not at spa
 
 test('grappling the guardian cannot waste the earned first-strike window',()=>{
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
-  const condition=html.match(/const scoutInStrikeLane=([\s\S]*?);/)?.[1];
-  assert.ok(condition,'the live enemy AI must gate the warning on player control');
-  const inLane=state=>require('node:vm').runInNewContext('Boolean('+condition+')',{
-    ginji:{x:0,z:0,state},enemy:{x:30,z:0}
-  });
+  assert.match(html,/guardianReadyForOpening\(ginji,enemy\)/,
+    'the live enemy AI must use the shared actionable scouting rule');
+  const inLane=state=>D.guardianReadyForOpening(
+    {x:0,z:0,state},{x:30,z:0,state:'IDLE'});
   for(const state of ['HURT','DOWN','GRAB'])
     assert.equal(inLane(state),false,state+' must not spend the earned 1.8 seconds');
   assert.equal(inLane('IDLE'),true,'a recovered player can earn the full window');
-  assert.equal(require('node:vm').runInNewContext('Boolean('+condition+')',{
-    ginji:{x:0,z:0,state:'IDLE'},enemy:{x:30,z:0,state:'DOWN'}
-  }),false,'a knocked-down guardian cannot be struck with the normal scouting attack');
+  assert.equal(D.guardianReadyForOpening(
+    {x:0,z:0,state:'IDLE'},{x:30,z:0,state:'DOWN'}),false,
+    'a knocked-down guardian cannot be struck with the normal scouting attack');
   const guardian={name:'苔祠の番人',scoutOpeningSeconds:1.8,nextStrikeAt:0};
   assert.equal(D.armGuardianOpening(guardian,30,100,inLane('GRAB')),false);
   assert.equal(guardian.scoutOpeningArmed,undefined,'grapple must not consume the one-shot cue');
@@ -893,9 +892,9 @@ test('crafted camp remembers an earned track clue without exposing the hidden de
 
 test('scouted guardian opening waits until the player can act, not while stunned or down',()=>{
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
-  const source=html.match(/const scoutInStrikeLane=([^;]+);/)?.[1];
-  assert.ok(source,'guardian approach must use the actual player action/depth condition');
-  const canRespond=Function('ginji','enemy','return ('+source+');');
+  assert.match(html,/guardianReadyForOpening\(ginji,enemy\)/,
+    'guardian approach must use the shared player action/depth condition');
+  const canRespond=(ginji,enemy)=>D.guardianReadyForOpening(ginji,enemy);
   const guardian={z:230};
   assert.equal(canRespond({state:'HURT',z:230},guardian),false,
     'hitstun must not spend a discovered 1.8s warning');
@@ -930,8 +929,8 @@ test('scouted guardian opening waits for a reachable attack-depth lane',()=>{
     're-entering the lane cannot refresh the one-shot advantage');
   assert.equal(enemy.scoutOpeningEndsAt,102.3);
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
-  assert.match(html,/const scoutInStrikeLane=ginji && ginji\.state!=='HURT' && ginji\.state!=='DOWN' &&\s*ginji\.state!=='GRAB' && enemy\.state!=='DOWN' && Math\.abs\(ginji\.z-enemy\.z\)<=25;/,
-    'the real combat scene must use the same depth limit as player hit detection');
+  assert.match(html,/const scoutInStrikeLane=window\.CrownlessForestDiscoveries\.guardianReadyForOpening\(ginji,enemy\);/,
+    'the real combat scene must use the tested depth limit and action readiness rule');
   assert.match(html,/armGuardianOpening\(enemy,scoutDistance,nowSec,scoutInStrikeLane\)/,
     'the depth-lane check must gate the actual one-shot warning');
 });
