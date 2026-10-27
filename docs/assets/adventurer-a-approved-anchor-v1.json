@@ -1,0 +1,13 @@
+{
+  "subject_id": "adventurer_a",
+  "status": "approved_identity_only",
+  "approved_at": "2026-10-27",
+  "approval": "User accepted Adventurer A as a new official character, separately from the current unarmed protagonist.",
+  "approved_anchor": "docs/assets/adventurer-a-approved-anchor-v1.png",
+  "image_sha256": "73c6569adf0510bbbfccb7d7da80578e8deb07ba9b1f773f530e0ed2e5342c91",
+  "source": "Chosen leftmost Adventurer A concept, isolated standalone visual still; no temporal motion approved",
+  "width": 128,
+  "height": 192,
+  "animation_status": "not_approved",
+  "runtime_integration": false
+}

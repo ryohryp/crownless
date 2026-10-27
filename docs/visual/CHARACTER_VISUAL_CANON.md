@@ -12,6 +12,27 @@ This file maps Crownless combat subjects to the current character rules used by 
 - Combat figures must be authored for an **oblique top-down / three-quarter battlefield view** rather than as front-facing standing portraits.
 - Generated images are review candidates and must not replace accepted anchors automatically.
 
+## 冒険者A
+
+### Approved Visual Anchor
+
+- `docs/assets/adventurer-a-approved-anchor-v1.png`
+
+The user selected the leftmost Adventurer A concept and, on 2026-10-27, explicitly approved making this design a separate official Crownless character. This approved anchor records **identity and appearance only**; it does not approve any current walking animation or replace the established `素手の主人公` or its pixel variant.
+
+### Accepted visual conditions
+
+- Charcoal tousled hair with a conspicuous silver forelock; short dark stubble.
+- Deep indigo / navy split long coat, rolled ivory sleeves, dark trousers, worn strapped brown leather boots, belts and practical pouches.
+- A sheathed sword on the back is part of the selected reference look; actual inventory, damage and weapon availability remain gameplay-controlled.
+- Full-body right-facing oblique three-quarter pixel-art appearance, not a flat code-drawn puppet, with readable garments, highlights and natural material texture at phone scale.
+- Character anatomy, facing direction, garment identity and facial features remain coherent through every temporal frame; no cloning, warping of a static portrait or swapping direction variants into a walk loop.
+- Keep this identity distinct from the approved red-scarf, wrapped-hand `素手の主人公（ピクセル版）`.
+
+### Animation acceptance status
+
+The color-coded eight-pose walk dummy was approved by the user for **gait and timing only** on 2026-10-27. Its two legs alternate contact with level grounded soles and arms counter-swing. The flat, code-drawn costume overlay was explicitly rejected for weak art quality. Future high-detail temporal pixel animation must retain the approved gait while drawing all eight poses consistently from this identity anchor, then pass human phone-scale review before runtime adoption. No runtime sprite is currently approved here.
+
 ## 素手の主人公
 
 ### Approved Visual Anchor

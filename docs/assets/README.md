@@ -10,6 +10,13 @@ The active approved direction is **Western medieval fantasy × expressive Japane
 
 Until the current approved composite is securely archived, Visual Director uses **text-only global style + separately approved subject anchors**. Follow the newer ADR-0014 connected-field map rules where they override older map-only imagery. Do not automatically approve a generated candidate.
 
+## Approved Adventurer A identity Anchor (2026-10-27)
+
+- `adventurer-a-approved-anchor-v1.png` — independently approved character identity derived from the selected leftmost Adventurer A design (charcoal/silver hair, stubble, navy split coat, wrapped cuffs, leather boots, back sword). **Identity reference only; no walk animation is approved or shipped.**
+- `adventurer-a-approved-anchor-v1.json` — provenance and identity-only approval record.
+
+Adventurer A is a separate character entry and does not supersede the red-scarf unarmed protagonist or its pixel anchor. New sprite art must be evaluated for faithful appearance and already-approved human gait separately.
+
 ## Approved protagonist visual Anchor
 
 - `player-unarmed-approved-anchor-v0.4.png` — **the approved protagonist identity Anchor**.

@@ -22,6 +22,11 @@
           "display_name": "敵：Skirmisher",
           "character_file": "docs/characters/enemy-skirmisher.md",
           "canon_heading": "敵：Skirmisher"
+        },
+        "adventurer_a": {
+          "display_name": "冒険者A",
+          "character_file": "docs/characters/adventurer-a.md",
+          "canon_heading": "冒険者A"
         }
       },
       "documents": {
