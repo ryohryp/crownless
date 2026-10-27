@@ -84,6 +84,33 @@ test('live forest enemy AI uses the same actionable scouting rule',()=>{
 });
 
 
+test('ally yields only for an actionable, nearby scouted threat behind the hero',()=>{
+  const found=new Set(['traces']);
+  const hero={x:0,z:230,state:'IDLE',facing:-1};
+  const guardian={name:'苔祠の番人',x:105,z:230,hp:140,
+    state:'DOWN',scoutOpeningSeconds:1.8};
+  assert.equal(D.companionYieldsGuardianFootsteps(hero,guardian,found),true,
+    'the ally must let the downed guardian recover so the player can hear it approach');
+  assert.equal(D.companionYieldsGuardianFootsteps(hero,{...guardian,x:121},found),false,
+    'the ally still protects the explorer before the threat comes near');
+  assert.equal(D.companionYieldsGuardianFootsteps({...hero,facing:1},guardian,found),false,
+    'turning toward the threat resumes normal assistance');
+  assert.equal(D.companionYieldsGuardianFootsteps({...hero,state:'HURT'},guardian,found),false,
+    'the ally must protect an incapacitated hero');
+  assert.equal(D.companionYieldsGuardianFootsteps(hero,{...guardian,z:260},found),false,
+    'another depth lane must not silence the ally');
+  assert.equal(D.companionYieldsGuardianFootsteps(hero,{...guardian,scoutOpeningArmed:true},found),false,
+    'the armed first-hit window has its separate yield rule');
+  assert.equal(D.companionYieldsGuardianFootsteps(hero,guardian,new Set()),false,
+    'unscouted fights must never pause the ally');
+  assert.equal(D.companionYieldsGuardianFootsteps(hero,{...guardian,name:'苔牙ゴブリン'},found),false);
+  assert.equal(D.companionYieldsGuardianFootsteps(hero,{...guardian,hp:0},found),false);
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const ai=html.slice(html.indexOf('function sampleCompanionAI('),html.indexOf('function sampleEnemyAI('));
+  assert.match(ai,/companionYieldsGuardianFootsteps\(\s*ginji,scoutedGuardian,state\.forestFinds\)/,
+    'the live companion must use the same bounded behind-cue yield rule');
+});
+
 test('scouted footsteps behind the hero invite a turn without spending the strike timer',()=>{
   const tracks=new Set(['traces']);
   const hero={x:0,z:230,state:'IDLE',facing:-1};
