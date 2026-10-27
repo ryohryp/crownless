@@ -250,6 +250,33 @@ test('the stone gate stays discoverable while locked and needs both a trail and 
   assert.equal(D.near(player,visited),null);
   assert.equal(D.uncover(player,visited,'fight',50,140,true).ok,false,'no duplicate reward');
 });
+test('unforged explorers can heal at the gate edge without claiming blocked salvage',()=>{
+  const gate={x:910,z:235};
+  const unread=new Set();
+  assert.equal(D.uncover(gate,unread,'return',50,140,false,'heal').reason,'trail',
+    'the player must still discover the tracks before inspecting the gate');
+  assert.equal(unread.size,0);
+  const found=new Set(['traces']);
+  assert.equal(D.uncover(gate,found,'return',50,140,false,'material').reason,'thorns');
+  assert.equal(D.uncover(gate,found,'return',50,140,false,'cautious').reason,'thorns');
+  assert.equal(D.uncover(gate,found,'return',50,140,false).reason,'thorns');
+  assert.equal(found.has('hollow'),false,'blocked salvage must not consume the site');
+  const healed=D.uncover(gate,found,'return',50,140,false,'heal');
+  assert.equal(healed.ok,true);
+  assert.equal(healed.heal,45);
+  assert.equal(healed.material,0);
+  assert.equal(healed.damage,0);
+  assert.equal(D.uncover(gate,found,'return',50,140,true,'material').ok,false,
+    'using herbs must consume the one visit even after crafting');
+  const full=new Set(['traces']);
+  assert.equal(D.uncover(gate,full,'return',140,140,false,'heal').reason,'full');
+  assert.equal(full.has('hollow'),false,'a useless heal cannot consume the gate');
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  assert.match(html,/if \(site\?\.id==='hollow' && state\.forestFinds\.has\('traces'\)\) \{/);
+  assert.match(html,/salvage\.disabled=!rpg\.crafted \|\| ginji\.hp<salvageCost\+1/);
+  assert.match(html,/cautious\.disabled=!rpg\.crafted \|\| ginji\.hp<cautiousCost\+1/);
+  assert.match(html,/茨の手前の薬草は使える。牙の回収には鍛冶剣が必要/);
+});
 test('stone gate offers either two provisional fangs or up to 45 HP, never both',()=>{
   const spot={x:910,z:235};
   for(const [hp,heal] of [[125,15],[80,45]]){
@@ -329,7 +356,7 @@ test('cautious gate salvage trades one fang for a smaller nonlethal wound',()=>{
   assert.equal(D.uncover(gate,new Set(),'return',4,140,true,'cautious').reason,'trail');
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   assert.match(html,/id="forestGateCautious"/);
-  assert.match(html,/cautious\.disabled=ginji\.hp<cautiousCost\+1/);
+  assert.match(html,/cautious\.disabled=!rpg\.crafted \|\| ginji\.hp<cautiousCost\+1/);
   assert.match(html,/\['forestGateCautious','cautious'\]/);
 });
 test('a forged sword opens the gate on a later expedition and loot banks only after returning alive',()=>{
@@ -787,7 +814,7 @@ test('victory return panel hints at remaining discoveries without spoiling them 
   assert.match(unread,/湿った土/);
   assert.match(tracksRead,/苔の間/);
   assert.match(shrineRead,/茨の奥/);
-  assert.match(shrineRead,/今の装備では踏み込めない。牙を持ち帰って鍛冶に備えよう/,
+  assert.match(shrineRead,/今の装備では奥へ踏み込めない。手前を調べる余地はありそうだ/,
     'without a forged blade, the result must not promise an immediately accessible route');
   assert.doesNotMatch(shrineRead,/今調べるか|今確かめよう/,
     'an inaccessible discovery must not be presented as an available immediate choice');
