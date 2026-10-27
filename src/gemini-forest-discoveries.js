@@ -119,7 +119,13 @@
   // animation, or while the guardian is invulnerable / being grappled.
   // The cue should begin only when the player can choose a fresh strike or dodge.
   function guardianReadyForOpening(player,enemy){
-    return Boolean(player && enemy &&
+    // A scouting bonus is not actionable while the hero faces away from the
+    // guardian. Allow point-blank overlap; turning is meaningless there.
+    // Older rule-only callers may omit coordinates, but live fighters have them.
+    const facingTarget=!Number.isFinite(player?.x)||!Number.isFinite(enemy?.x)||
+      !Number.isFinite(player?.facing)||Math.abs(enemy.x-player.x)<=10||
+      Math.sign(enemy.x-player.x)===player.facing;
+    return Boolean(player && enemy && facingTarget &&
       !['DEAD','HURT','DOWN','GRAB','ATTACK','SPECIAL','JUMP'].includes(player.state) &&
       !['DEAD','HURT','DOWN','GRAB'].includes(enemy.state) &&
       Math.abs(player.z-enemy.z)<=25);
