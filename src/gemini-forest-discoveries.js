@@ -105,6 +105,15 @@
     enemy.nextStrikeAt=Math.max(enemy.nextStrikeAt||0,enemy.scoutOpeningEndsAt);
     return true;
   }
+  // The companion yields the earned first strike to the explorer while the
+  // scouted guardian's opening is pending. After a landed strike or expiry,
+  // ordinary companion support resumes. Unscouted encounters are unchanged.
+  function companionYieldsGuardianOpening(enemy,nowSec){
+    return Boolean(enemy && enemy.name==='苔祠の番人' &&
+      enemy.scoutOpeningSeconds>0 && !enemy.scoutStrikeClaimed &&
+      Number.isFinite(nowSec) &&
+      (!enemy.scoutOpeningArmed || enemy.scoutOpeningEndsAt>nowSec));
+  }
   function guardianScoutStrikeBonus(enemy,nowSec){
     return enemy && enemy.name==='苔祠の番人' &&
       enemy.scoutOpeningArmed && !enemy.scoutStrikeClaimed &&
@@ -160,5 +169,5 @@
       heal:gateHeal?Math.min(45,Math.max(0,maxHp-hp)):
         spot.kind==='healing' && !scavenge?Math.min(35,Math.max(0,maxHp-hp)):0};
   }
-  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,near,cueNear,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,guardianScoutStrikeBonus,shrineRiskDamage,uncover};
+  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,near,cueNear,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,guardianScoutStrikeBonus,companionYieldsGuardianOpening,shrineRiskDamage,uncover};
 });
