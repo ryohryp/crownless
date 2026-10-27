@@ -59,7 +59,7 @@
   // sheet that pauses combat. Rejected taps never consume the find.
   function canInspect(player,phase){
     return Boolean(player && available(phase) &&
-      !['DEAD','HURT','DOWN','GRAB'].includes(player.state));
+      !['DEAD','HURT','DOWN','GRAB','ATTACK','SPECIAL','JUMP'].includes(player.state));
   }
   // Reading the animal tracks reveals firmer footing around the shrine.
   // This optional detour changes the risk, without locking out first-time explorers.
