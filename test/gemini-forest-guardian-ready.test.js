@@ -34,6 +34,28 @@ test('earned scouting warning waits for a controllable hero and a hittable guard
   assert.equal(D.guardianReadyForOpening(hero,null),false);
 });
 
+test('scouting warning waits until the hero faces the approaching guardian',()=>{
+  const hero={state:'IDLE',x:0,z:230,facing:-1};
+  const guardian={name:'苔祠の番人',state:'IDLE',x:35,z:230,scoutOpeningSeconds:1.8,nextStrikeAt:0};
+  assert.equal(D.guardianReadyForOpening(hero,guardian),false,
+    'being in attack range while facing away cannot spend the earned warning');
+  assert.equal(D.armGuardianOpening(guardian,35,100,D.guardianReadyForOpening(hero,guardian)),false);
+  assert.equal(guardian.scoutOpeningArmed,undefined);
+  hero.facing=1;
+  assert.equal(D.guardianReadyForOpening(hero,guardian),true,
+    'turning to face the guardian makes the opening actionable');
+  assert.equal(D.armGuardianOpening(guardian,35,101,D.guardianReadyForOpening(hero,guardian)),true);
+  assert.equal(guardian.scoutOpeningEndsAt,102.8);
+  guardian.x=-35;
+  assert.equal(D.guardianReadyForOpening(hero,guardian),false,
+    'facing right cannot start a fresh left-side warning');
+  hero.facing=-1;
+  assert.equal(D.guardianReadyForOpening(hero,guardian),true);
+  guardian.x=hero.x;
+  assert.equal(D.guardianReadyForOpening(hero,guardian),true,
+    'overlapping fighters are close enough to strike regardless of facing');
+});
+
 test('deferred warning remains a one-shot opportunity once both fighters recover',()=>{
   const hero={state:'JUMP',z:230};
   const guardian={name:'苔祠の番人',state:'IDLE',z:230,scoutOpeningSeconds:1.8,nextStrikeAt:0};
