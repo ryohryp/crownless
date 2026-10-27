@@ -112,7 +112,7 @@ test('after smithing, more returned fangs offer a real next-expedition attack up
 
 function shrineGoal(state) {
   const html = fs.readFileSync('gemini-feel-lab.html', 'utf8');
-  const source=html.match(/function forestShrineCraftHint\\(run,rules\\) \\{[\\s\\S]*?\\n  \\}/);
+  const source=html.match(/function forestShrineCraftHint\(run,rules\) \{[\s\S]*?\n  \}/);
   assert.ok(source,'the actual shrine smithing preview must be present');
   const rpg = { banked: 0, unbanked: 0, crafted: false, tempered: false, ...state };
   const hint=vm.runInNewContext('('+source[0]+')',{}, { timeout: 1000 });
