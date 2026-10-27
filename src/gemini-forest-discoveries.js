@@ -115,6 +115,15 @@
       !enemy.scoutStrikeClaimed && Number.isFinite(nowSec) &&
       enemy.scoutOpeningEndsAt>nowSec);
   }
+  // Do not spend the one-time scouting warning while Ginji is locked in an
+  // animation, or while the guardian is invulnerable / being grappled.
+  // The cue should begin only when the player can choose a fresh strike or dodge.
+  function guardianReadyForOpening(player,enemy){
+    return Boolean(player && enemy &&
+      !['DEAD','HURT','DOWN','GRAB','ATTACK','SPECIAL','JUMP'].includes(player.state) &&
+      !['DEAD','HURT','DOWN','GRAB'].includes(enemy.state) &&
+      Math.abs(player.z-enemy.z)<=25);
+  }
   function guardianScoutStrikeBonus(enemy,nowSec){
     return enemy && enemy.name==='苔祠の番人' &&
       enemy.scoutOpeningArmed && !enemy.scoutStrikeClaimed &&
@@ -170,5 +179,5 @@
       heal:gateHeal?Math.min(45,Math.max(0,maxHp-hp)):
         spot.kind==='healing' && !scavenge?Math.min(35,Math.max(0,maxHp-hp)):0};
   }
-  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,near,cueNear,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,guardianScoutStrikeBonus,companionYieldsGuardianOpening,shrineRiskDamage,uncover};
+  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,near,cueNear,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,guardianScoutStrikeBonus,guardianReadyForOpening,companionYieldsGuardianOpening,shrineRiskDamage,uncover};
 });
