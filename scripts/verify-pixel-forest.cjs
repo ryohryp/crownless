@@ -1024,8 +1024,13 @@ async function main() {
           assert(await temperedGatePanel.isVisible(),
             'the upgraded sword opens the same deliberate gate choice on revisit');
           const temperedStakes=await page.locator('#forestGateStakes').innerText();
-          assert.match(temperedStakes,/強引に牙 \+2（HP -4）／研ぎ直した剣で負傷軽減/,
-            'the phone explains the reduced injury before committing to the risky route');
+          assert.match(temperedStakes,/慎重に牙 \+1（負傷なし）、強引に牙 \+2（HP -4）／研ぎ直した剣で負傷軽減/,
+            'the phone offers a genuine no-wound vs two-fang risk choice after tempering');
+          const temperedCautious=page.locator('#forestGateCautious');
+          assert(await temperedCautious.isEnabled(),
+            'tempered cautious salvage remains available at the real phone decision');
+          assert.match(await temperedCautious.innerText(),/負傷なし.*未帰還素材 \+1/,
+            'the cautious phone button must not claim an injury that the rules avoid');
           assert.match(temperedStakes,/生還時だけ倉庫に残り/,
             'even a tempered blade cannot bank provisional materials at the gate');
           const temperedMaterial=page.locator('#forestGateMaterial');
