@@ -1367,11 +1367,19 @@
     // window, when the ally yields the earned first hit again.
     const scoutedGuardian=state.fighters.find(f=>
       f.team===1 && f.name==='苔祠の番人' && f.state!=='DEAD');
+    const guardianNow=performance.now()/1000;
     if (scoutedGuardian && !['HURT','DOWN','GRAB'].includes(ginji.state) &&
         (window.CrownlessForestDiscoveries.companionYieldsGuardianOpening(
-          scoutedGuardian,performance.now()/1000) ||
+          scoutedGuardian,guardianNow) ||
          window.CrownlessForestDiscoveries.companionYieldsGuardianFootsteps(
-          ginji,scoutedGuardian,state.forestFinds,selfFighter))) return out;
+          ginji,scoutedGuardian,state.forestFinds,selfFighter) ||
+         // A companion hit must not cancel the clearly telegraphed lunge
+         // or steal the player's brief earned dodge-counter opportunity.
+         (scoutedGuardian.guardianTellUntil>guardianNow &&
+           scoutedGuardian.guardianTellTargetId===ginji.id) ||
+         (scoutedGuardian.guardianCounterUntil>guardianNow &&
+           !scoutedGuardian.guardianCounterClaimed &&
+           scoutedGuardian.guardianCounterTargetId===ginji.id))) return out;
 
     for (const item of state.items) {
       if (item.thrownTeam !== -1) continue;
