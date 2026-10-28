@@ -1074,10 +1074,61 @@ async function main() {
           assert.equal(temperedRestored.unbanked,0);
           assert.equal(await page.evaluate(()=>localStorage.getItem('crownless-expedition-v1-demo')),
             saveBefore,'the unrelated location-game save remains untouched');
+          // Revisit once more with the same saved tempered sword, this time
+          // taking the *safe* one-fang choice by a real phone touch. This
+          // distinguishes its outcome from the already-tested risky +2 route.
+          assert.equal(temperedRestored.phase,'fight',
+            'the previous living return can launch another genuine expedition');
+          await clearWave(page);
+          await walkTo(page,800,365);
+          await tapSite(page,'traces');
+          await walkTo(page,910,235);
+          const beforeTemperedCautious=await read(page);
+          await tapSite(page,'hollow');
+          const safeChoice=page.locator('#forestGateCautious');
+          assert(await safeChoice.isEnabled(),
+            'the sharpened sword opens the safe one-fang route on the next expedition');
+          assert.match(await safeChoice.innerText(),/負傷なし.*未帰還素材 \\+1/,
+            'the live choice advertises zero HP loss before the tap');
+          const safeBounds=await safeChoice.boundingBox();
+          assert(safeBounds && safeBounds.width>=44 && safeBounds.height>=44 &&
+            safeBounds.y>=0 && safeBounds.y+safeBounds.height<=page.viewportSize().height,
+            'the safe tempered choice is touch-reachable on the 390px phone');
+          await page.screenshot({path:path.join(output,'pixel-forest-tempered-safe-choice-390.png')});
+          await page.touchscreen.tap(safeBounds.x+safeBounds.width/2,
+            safeBounds.y+safeBounds.height/2);
+          const afterTemperedCautious=await read(page);
+          assert(afterTemperedCautious.found.includes('hollow'),
+            'the safe choice consumes the gate only once');
+          assert.equal(afterTemperedCautious.player.hp,beforeTemperedCautious.player.hp,
+            'the actual safe tempered salvage causes no injury');
+          assert.equal(afterTemperedCautious.unbanked,beforeTemperedCautious.unbanked+1,
+            'the safe route grants exactly one unsecured fang');
+          await tapSite(page,'hollow');
+          assert.equal((await read(page)).unbanked,afterTemperedCautious.unbanked,
+            'the safe tempered route cannot be repeated for free loot');
+          await page.locator('#rpgOpenResults').click();
+          await page.locator('#rpgReturn').click();
+          const safeReturn=await read(page);
+          assert.equal(safeReturn.phase,'camp');
+          assert.equal(safeReturn.banked,
+            temperedRestored.banked+beforeTemperedCautious.unbanked+1,
+            'safe return banks the actual one-fang reward, not the risky two-fang amount');
+          assert.equal(safeReturn.unbanked,0);
+          await page.reload({waitUntil:'domcontentloaded'});
+          await page.waitForFunction(()=>window.CrownlessForestReadout?.().assetsReady);
+          const safeRestored=await read(page);
+          assert.equal(safeRestored.banked,safeReturn.banked,
+            'safe tempered salvage survives reload without duplication');
+          assert.equal(safeRestored.tempered,true);
+          assert.equal(safeRestored.unbanked,0);
+          assert.equal(await page.evaluate(()=>localStorage.getItem('crownless-expedition-v1-demo')),
+            saveBefore,'the separate location-game save stays untouched');
           report.loop={first,shrineBeforeForge,locked,gateHerbsBeforeForge:{before:beforeSwordlessHerbs,after:afterSwordlessHerbs},returned,forged,second,shrineAfterForge,forgedDodge,unlocked,banked,restored,
             gateHealing:{before:beforeGateHeal,after:afterGateHeal,returned:gateHealedReturn},
             gateCautious:{before:beforeCautious,after:afterCautious,returned:cautiousReturn,restored:cautiousRestored},
-            temperedCamp,temperedGate:{before:beforeTemperedGate,after:afterTemperedGate,returned:temperedReturn,restored:temperedRestored}};
+            temperedCamp,temperedGate:{before:beforeTemperedGate,after:afterTemperedGate,returned:temperedReturn,restored:temperedRestored},
+            temperedSafeGate:{before:beforeTemperedCautious,after:afterTemperedCautious,returned:safeReturn,restored:safeRestored}};
         }
         assert.deepEqual(errors,[],'no browser runtime errors');
       } catch(error) {
@@ -1087,7 +1138,7 @@ async function main() {
     }
     report.passed=true;
     await fs.writeFile(path.join(output,'pixel-forest-report.json'),JSON.stringify(report,null,2)+'\n');
-    console.log('Pixel forest: 360/390/430px aspect + touch; real combat → discovery → swordless gate herbs → return → forge → revisit → hollow (material/heal/cautious) → temper → revisited gate (-4 HP/+2 fangs) → safe return/reload PASS');
+    console.log('Pixel forest: 360/390/430px aspect + touch; real combat → discovery → swordless gate herbs → return → forge → revisit → hollow (material/heal/cautious) → temper → revisited gate (-4 HP/+2 fangs) → safe tempered gate (0 HP/+1 fang) → return/reload PASS');
     console.log(JSON.stringify(report,null,2));
   } finally {
     if(browser) await browser.close();
