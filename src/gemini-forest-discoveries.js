@@ -20,8 +20,13 @@
   // A sharpened smith-made blade cuts the thorned gate with less injury.
   // Careful cutting with a tempered sword avoids injury, but yields only one fang.
   // Forceful salvage still yields two fangs at a real HP cost.
-  function gateSalvageDamage(choice,tempered=false){
-    return choice==='cautious' ? (tempered ? 0 : GATE_CAUTIOUS_DAMAGE) :
+  // An unarmed explorer can take one fang by hand at a higher wound cost.
+  // The forged sword still unlocks the two-fang salvage; sharpening makes
+  // careful salvage wound-free, but never grants extra materials.
+  const GATE_BAREHAND_DAMAGE=6;
+  function gateSalvageDamage(choice,tempered=false,crafted=true){
+    return choice==='cautious' ? (!crafted ? GATE_BAREHAND_DAMAGE :
+      tempered ? 0 : GATE_CAUTIOUS_DAMAGE) :
       tempered ? 4 : GATE_SALVAGE_DAMAGE;
   }
   function near(player,found){
@@ -287,7 +292,8 @@
       if(!found.has('traces')) return {ok:false,reason:'trail',spot};
       // The sword is needed to cut through the thorns for fangs, but an
       // injured explorer can still reach the herbs at the edge of the gate.
-      if(!crafted && shrineChoice!=='heal') return {ok:false,reason:'thorns',spot};
+      if(!crafted && !['heal','cautious'].includes(shrineChoice))
+        return {ok:false,reason:'thorns',spot};
     }
     // A discovered stone gate offers a one-time choice: take its materials
     // home or use its herbs to survive. Never award both on the same visit.
@@ -295,7 +301,7 @@
       return {ok:false,reason:'choice',spot};
     if(spot.kind==='cache' && shrineChoice==='heal' && hp>=maxHp)
       return {ok:false,reason:'full',spot};
-    const gateDamage=gateSalvageDamage(shrineChoice,crafted && tempered);
+    const gateDamage=gateSalvageDamage(shrineChoice,crafted && tempered,crafted);
     if(spot.kind==='cache' && shrineChoice!=='heal' && hp<gateDamage+1)
       return {ok:false,reason:'weak',spot};
     // The shrine offers a deliberate trade-off; a full-HP heal must not waste it.
@@ -324,5 +330,5 @@
       heal:gateHeal?Math.min(45,Math.max(0,maxHp-hp)):
         spot.kind==='healing' && !scavenge?Math.min(35,Math.max(0,maxHp-hp)):0};
   }
-  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,gateSalvageDamage,near,cueNear,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,guardianScoutStrikeBonus,guardianReadyForOpening,guardianBehindWarning,companionYieldsGuardianOpening,companionYieldsGuardianRecovery,companionYieldsGuardianFootsteps,guardianTargetsExplorer,guardianStrikeTell,guardianKeepsTellOnHit,guardianDodgeCueActive,guardianCounterStrikeBonus,claimGuardianCounter,shrineRiskDamage,uncover};
+  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,GATE_BAREHAND_DAMAGE,gateSalvageDamage,near,cueNear,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,guardianScoutStrikeBonus,guardianReadyForOpening,guardianBehindWarning,companionYieldsGuardianOpening,companionYieldsGuardianRecovery,companionYieldsGuardianFootsteps,guardianTargetsExplorer,guardianStrikeTell,guardianKeepsTellOnHit,guardianDodgeCueActive,guardianCounterStrikeBonus,claimGuardianCounter,shrineRiskDamage,uncover};
 });
