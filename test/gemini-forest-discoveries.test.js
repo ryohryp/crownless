@@ -1042,8 +1042,22 @@ test('tempered smith sword makes forceful gate salvage safer without granting ex
   const gate={x:910,z:235};
   assert.equal(D.gateSalvageDamage('material',false),8);
   assert.equal(D.gateSalvageDamage('material',true),4);
-  assert.equal(D.gateSalvageDamage('cautious',true),3,
-    'the cautious option retains its smaller one-fang trade-off');
+  assert.equal(D.gateSalvageDamage('cautious',false),3);
+  assert.equal(D.gateSalvageDamage('cautious',true),0,
+    'a tempered blade makes careful salvage safe, not more lucrative');
+  for(const [tempered,hp,damage] of [[false,4,3],[true,1,0]]){
+    const found=new Set(['traces']);
+    const reward=D.uncover(gate,found,'return',hp,140,true,'cautious',tempered);
+    assert.equal(reward.ok,true);
+    assert.equal(reward.damage,damage);
+    assert.equal(reward.material,1);
+    assert.equal(reward.heal,0);
+    assert.equal(found.has('hollow'),true);
+    assert.equal(D.uncover(gate,found,'return',hp,140,true,'material',tempered).ok,false,
+      'careful salvage cannot also claim the risky two-fang reward');
+  }
+  assert.equal(D.uncover(gate,new Set(['traces']),'return',1,140,true,'material',true).reason,'weak',
+    'the forceful route must remain dangerous even when cautious salvage is safe');
   for(const [tempered,damage] of [[false,8],[true,4]]){
     const found=new Set(['traces']);
     const reward=D.uncover(gate,found,'return',20,140,true,'material',tempered);
@@ -1063,6 +1077,10 @@ test('tempered smith sword makes forceful gate salvage safer without granting ex
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   assert.match(html,/gateSalvageDamage\('material',rpg\.tempered\)/,
     'phone preview must derive the actual equipment-dependent wound');
+  assert.match(html,/gateSalvageDamage\('cautious',rpg\.tempered\)/,
+    'careful salvage preview must use the same tempered rule as the reward');
+  assert.match(html,/cautiousCost===0\?'負傷なし'/,
+    'zero-risk choice must be legible instead of advertising HP -0');
   assert.match(html,/rpg\.crafted,shrineChoice,rpg\.tempered\)/,
     'the live tap applies the same tempered state as the preview');
   assert.match(html,/研ぎ直した剣で負傷軽減/,
