@@ -243,10 +243,10 @@ test('guardian warns before striking, and stepping away earns a counterattack wi
   assert.match(ai,/guardianCounterUntil>nowSec\)\{[\s\S]*?return out;/,
     'a dodged guardian must pause pursuit long enough for a landing counter');
   const hint=html.slice(html.indexOf('function forestGuardianHint('),html.indexOf('function updateForestExploreHint('));
-  assert.match(hint,/guardianDodgeCueActive\\(guardian,hero,nowSec\\)/,
+  assert.match(hint,/guardianDodgeCueActive\(guardian,hero,nowSec\)/,
     'the phone HUD must use the same target-aware warning as the swipe control');
   assert.match(hint,/跳ぶか離れよう/,'the warning must name a real player response');
-  const source=hint.match(/function forestGuardianHint\\([^)]*\\) \\{[\\s\\S]*?\\n  \\}/)?.[0];
+  const source=hint.match(/function forestGuardianHint\([^)]*\) \{[\s\S]*?\n  \}/)?.[0];
   assert.ok(source,'the live guardian HUD function must remain executable');
   const liveHint=Function('window','return ('+source+')')({CrownlessForestDiscoveries:D});
   const hero={id:'hero',state:'IDLE',x:0,z:0,facing:1};
