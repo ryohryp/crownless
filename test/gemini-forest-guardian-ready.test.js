@@ -208,6 +208,11 @@ test('guardian warns before striking, and stepping away earns a counterattack wi
   assert.match(ai,/!\['DOWN','JUMP'\]\.includes\(target\.state\)/,
     'a genuine airborne jump must evade the guardian tell instead of being treated as a landed strike');
   assert.match(ai,/enemy\.name!=='苔祠の番人' &&/,'the old random attack must exclude the guardian');
+  const ally=html.slice(html.indexOf('function sampleCompanionAI('),html.indexOf('function sampleEnemyAI('));
+  assert.match(ally,/guardianTellUntil>guardianNow[\s\S]*?guardianTellTargetId===ginji\.id/,
+    'ally must not interrupt a telegraphed strike aimed at the player');
+  assert.match(ally,/guardianCounterUntil>guardianNow[\s\S]*?guardianCounterTargetId===ginji\.id/,
+    'ally must leave the earned counter to the same defender');
   assert.match(ai,/guardianCounterUntil>nowSec\)\{[\s\S]*?return out;/,
     'a dodged guardian must pause pursuit long enough for a landing counter');
   const hint=html.slice(html.indexOf('function forestGuardianHint('),html.indexOf('function updateForestExploreHint('));
