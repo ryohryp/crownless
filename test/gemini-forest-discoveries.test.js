@@ -595,7 +595,7 @@ test('a deliberate shrine tap opens touch-sized material and healing actions',()
     'the player must know that gathering is not yet banked');
   assert.match(html,/if \(site\?\.id==='shrine'\)/);
   assert.match(html,/tryExploreForest\(ginji,choice\)/);
-  assert.match(html,/rpg\.crafted,shrineChoice\)/);
+  assert.match(html,/rpg\.crafted,shrineChoice,rpg\.tempered\)/);
 });
 
 test('unavailable deep shrine search still previews its cost, reward and guardian',()=>{
