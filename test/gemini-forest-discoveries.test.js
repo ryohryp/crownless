@@ -298,7 +298,7 @@ test('the stone gate stays discoverable while locked and needs both a trail and 
   assert.equal(D.near(player,visited),null);
   assert.equal(D.uncover(player,visited,'fight',50,140,true).ok,false,'no duplicate reward');
 });
-test('unforged explorers can heal at the gate edge without claiming blocked salvage',()=>{
+test('unforged explorers can choose costly one-fang salvage or healing, but not forceful salvage',()=>{
   const gate={x:910,z:235};
   const unread=new Set();
   assert.equal(D.uncover(gate,unread,'return',50,140,false,'heal').reason,'trail',
@@ -306,8 +306,11 @@ test('unforged explorers can heal at the gate edge without claiming blocked salv
   assert.equal(unread.size,0);
   const found=new Set(['traces']);
   assert.equal(D.uncover(gate,found,'return',50,140,false,'material').reason,'thorns');
-  assert.equal(D.uncover(gate,found,'return',50,140,false,'cautious').reason,'thorns');
   assert.equal(D.uncover(gate,found,'return',50,140,false).reason,'thorns');
+  const barehand=D.uncover(gate,new Set(['traces']),'return',50,140,false,'cautious');
+  assert.equal(barehand.material,1,'the swordless detour earns one provisional fang');
+  assert.equal(barehand.damage,D.GATE_BAREHAND_DAMAGE,'bare hands pay a real thorn injury');
+  assert.equal(barehand.heal,0,'salvage sacrifices the herbs');
   assert.equal(found.has('hollow'),false,'blocked salvage must not consume the site');
   const healed=D.uncover(gate,found,'return',50,140,false,'heal');
   assert.equal(healed.ok,true);
@@ -322,10 +325,12 @@ test('unforged explorers can heal at the gate edge without claiming blocked salv
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   assert.match(html,/if \(site\?\.id==='hollow' && state\.forestFinds\.has\('traces'\)\) \{/);
   assert.match(html,/salvage\.disabled=!rpg\.crafted \|\| ginji\.hp<salvageCost\+1/);
-  assert.match(html,/cautious\.disabled=!rpg\.crafted \|\| ginji\.hp<cautiousCost\+1/);
-  assert.match(html,/茨の手前の薬草は使える。牙の回収には鍛冶剣が必要/);
-  assert.match(html,/rpg\.crafted\?'／牙 \+2は見送った':'／牙の回収には鍛冶剣が必要'/,
-    'the herb popup must not claim an unavailable fang reward was sacrificed');
+  assert.match(html,/cautious\.disabled=ginji\.hp<cautiousCost\+1/);
+  assert.match(html,/gateSalvageDamage\('cautious',rpg\.tempered,rpg\.crafted\)/,
+    'phone previews barehand injury from the same rule as the reward');
+  assert.match(html,/素手で牙 \+1（HP -/);
+  assert.match(html,/rpg\.crafted\?'／牙 \+2は見送った':'／牙 \+1は見送った'/,
+    'herbs sacrifice only the one fang the unarmed explorer could have earned');
 });
 test('stone gate offers either two provisional fangs or up to 45 HP, never both',()=>{
   const spot={x:910,z:235};
@@ -369,7 +374,7 @@ test('stone gate offers either two provisional fangs or up to 45 HP, never both'
   assert.match(html,/id="forestGateMaterial"/);
   assert.match(html,/id="forestGateHeal"/);
   assert.match(html,/id="forestGateCancel"/);
-  assert.match(html,/rpg\.tempered && shrineChoice==='material'\?'研ぎ直した剣で茨を払った！ ':'石門の茨を払って'/,
+  assert.match(html,/rpg\.tempered && shrineChoice==='material'\?'研ぎ直した剣で茨を払った！ ':!rpg\.crafted\?'素手で茨をかき分けて':'石門の茨を払って'/,
     'only the upgraded risky salvage should celebrate the sharpened blade');
   assert.match(html,/\+'牙 \+'\+discovery\.material\+'（未帰還）／HP -'\+discovery\.damage\+'・薬草は見送った'/,
     'all salvage choices must describe provisional fangs, actual injury and foregoing herbs');
@@ -404,12 +409,43 @@ test('cautious gate salvage trades one fang for a smaller nonlethal wound',()=>{
     assert.equal(D.uncover(gate,found,'return',hp,140,true,'heal').ok,true,
       'a critically wounded explorer may still take the healing option');
   }
-  assert.equal(D.uncover(gate,new Set(['traces']),'return',4,140,false,'cautious').reason,'thorns');
+  assert.equal(D.uncover(gate,new Set(['traces']),'return',4,140,false,'cautious').reason,'weak');
   assert.equal(D.uncover(gate,new Set(),'return',4,140,true,'cautious').reason,'trail');
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   assert.match(html,/id="forestGateCautious"/);
-  assert.match(html,/cautious\.disabled=!rpg\.crafted \|\| ginji\.hp<cautiousCost\+1/);
+  assert.match(html,/cautious\.disabled=ginji\.hp<cautiousCost\+1/);
   assert.match(html,/\['forestGateCautious','cautious'\]/);
+});
+test('barehand salvage is nonlethal, one-time, and cannot bypass living-return banking',()=>{
+  const gate={x:910,z:235};
+  assert.equal(D.gateSalvageDamage('cautious',false,false),6);
+  assert.equal(D.gateSalvageDamage('cautious',true,false),6,
+    'a non-existent tempered sword cannot protect bare hands');
+  for(const hp of [1,6,6.5]){
+    const found=new Set(['traces']);
+    assert.equal(D.uncover(gate,found,'return',hp,140,false,'cautious').reason,'weak');
+    assert.equal(found.has('hollow'),false,'an impossible attempt does not spend the site');
+  }
+  const found=new Set(['traces']);
+  const reward=D.uncover(gate,found,'return',7,140,false,'cautious');
+  assert.equal(reward.ok,true);
+  assert.equal(reward.material,1);
+  assert.equal(reward.damage,6);
+  assert.equal(reward.heal,0);
+  assert.equal(D.uncover(gate,found,'return',7,140,false,'heal').ok,false);
+  const run=R.create();
+  assert.equal(R.claimMaterial(run),true);
+  assert.equal(run.unbanked,1);
+  assert.equal(run.banked,0);
+  R.loseExpedition(run);
+  assert.equal(run.unbanked,0);
+  assert.equal(run.banked,0,'defeat still loses the barehand reward');
+  const survived=R.create();
+  R.claimMaterial(survived);
+  R.clearWave(survived);
+  assert.equal(R.returnAlive(survived,1),true);
+  assert.equal(survived.banked,1,'only living return banks the single fang');
+  assert.equal(survived.unbanked,0);
 });
 test('a forged sword opens the gate on a later expedition and loot banks only after returning alive',()=>{
   const run=R.create();
