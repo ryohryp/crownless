@@ -138,7 +138,8 @@ async function jumpCounterGuardian(page) {
     while(Date.now()-started<14000) {
       const {s,gestureCue}=await page.evaluate(()=>({
         s:window.CrownlessForestReadout(),
-        gestureCue:document.getElementById('gestureHint')?.textContent||''
+        gestureCue:document.getElementById('gestureHint')?.classList.contains('guardian-dodge-cue')
+          ? document.getElementById('gestureHint').textContent : ''
       }));
       const enemy=s.enemies.find(e=>e.name==='苔祠の番人' && e.hp>0 && e.state!=='DEAD');
       assert(enemy && s.phase==='fight' && s.player.hp>0,
