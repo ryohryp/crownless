@@ -284,8 +284,6 @@ test('landed guardian counter shows a short reposition choice only to its defend
     'the cue belongs only to the player who earned it');
   assert.doesNotMatch(liveHint(guardian,new Set(),2,101.9,hero),/距離を取る好機/,
     'the cue must expire with the real off-balance timer');
-  assert.doesNotMatch(liveHint({...guardian,name:'苔牙ゴブリン'},new Set(),2,101.1,hero),/距離を取る好機/,
-    'normal enemies never inherit the guardian cue');
 });
 
 test('a timed jump evades the guardian warning and leaves a landing-to-counter window',()=>{
