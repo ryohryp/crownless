@@ -2957,9 +2957,12 @@
       : behind ? '👂 背後に足音。振り向けば先手の機会｜' : '';
     const strikeCue=window.CrownlessForestDiscoveries.guardianDodgeCueActive(guardian,hero,nowSec)
       ? '⚠ 番人が踏み込む！跳ぶか離れよう｜'
-      : guardian.guardianCounterUntil>nowSec && !guardian.guardianCounterClaimed &&
+      : guardian.guardianCounterUntil>nowSec &&
         hero && guardian.guardianCounterTargetId===hero.id
-        ? '🍃 空振り！反撃+8 残り'+(Math.ceil((guardian.guardianCounterUntil-nowSec)*10)/10).toFixed(1)+'秒｜' : '';
+        ? guardian.guardianCounterClaimed
+          ? '🍃 反撃成功！距離を取る好機 残り'+(Math.ceil((guardian.guardianCounterUntil-nowSec)*10)/10).toFixed(1)+'秒｜'
+          : '🍃 空振り！反撃+8 残り'+(Math.ceil((guardian.guardianCounterUntil-nowSec)*10)/10).toFixed(1)+'秒｜'
+        : '';
     return strikeCue+lead+'⚠ 番人HP '+Math.ceil(guardian.hp)+'/'+guardian.maxHp+
       '｜倒すまで帰還不可｜未帰還の牙 '+unbanked+'個';
   }
