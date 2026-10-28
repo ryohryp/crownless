@@ -127,6 +127,33 @@ test('ally yields only for an actionable, nearby scouted threat behind the hero'
     'the live companion must use the same bounded behind-cue yield rule');
 });
 
+test('ally allows a bounded first guardian tell after a scouted player hit',()=>{
+  const hero={x:0,z:230,state:'IDLE'};
+  const guardian={name:'苔祠の番人',x:35,z:230,scoutStrikeClaimed:true,
+    scoutFirstHitYieldUntil:103.2};
+  assert.equal(D.companionYieldsGuardianRecovery(hero,guardian,101),true,
+    'the guardian must recover to telegraph instead of being finished by the ally');
+  assert.equal(D.companionYieldsGuardianRecovery(hero,guardian,103.2),false,
+    'the yield must expire if the guardian never reaches its first tell');
+  assert.equal(D.companionYieldsGuardianRecovery(hero,{...guardian,x:120},101),false,
+    'a distant hero must not leave the ally idle');
+  assert.equal(D.companionYieldsGuardianRecovery(hero,{...guardian,z:260},101),false,
+    'the ally must still defend in another depth lane');
+  assert.equal(D.companionYieldsGuardianRecovery({...hero,state:'DOWN'},guardian,101),false,
+    'a downed hero must receive normal companion protection');
+  assert.equal(D.companionYieldsGuardianRecovery(hero,{...guardian,scoutStrikeClaimed:false},101),false);
+  assert.equal(D.companionYieldsGuardianRecovery(hero,{...guardian,name:'苔牙ゴブリン'},101),false,
+    'ordinary enemies are unaffected');
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const ally=html.slice(html.indexOf('function sampleCompanionAI('),html.indexOf('function sampleEnemyAI('));
+  assert.match(ally,/companionYieldsGuardianRecovery\(\s*ginji,scoutedGuardian,guardianNow\)/,
+    'the live companion uses the bounded recovery rule');
+  assert.match(html,/target\.scoutFirstHitYieldUntil=performance\.now\(\)\/1000\+3\.2/,
+    'a landed scouted hit begins the short recovery yield');
+  assert.match(html,/enemy\.scoutFirstHitYieldUntil=0/,
+    'the first visible tell releases the recovery yield');
+});
+
 test('the shrine guardian pursues a nearby active explorer, not a nearer companion',()=>{
   const hero={x:0,z:230,state:'IDLE'};
   const guardian={name:'苔祠の番人',x:170,z:230,state:'IDLE'};
