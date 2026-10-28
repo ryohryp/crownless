@@ -208,9 +208,9 @@ async function approachGuardianWarning(page) {
   } finally { await keys(page,held,[]); }
 }
 
-// Compare a real attack-only guardian response with the starter's timed jump.
-// This is a diagnostic, not a matched-gear fun verdict: the forged run has
-// different equipment. Never inject HP, positions, combat flags or rewards.
+// Compare attack-only and timed jump with the same forged equipment on
+// separate real expeditions. No HP, positions, combat flags or rewards are
+// injected; report the starting HP so different prior damage stays visible.
 async function clearWave(page,{attackOnlyGuardian=false}={}) {
   const held = new Set();
   const start = Date.now();
@@ -275,7 +275,7 @@ async function tapSite(page, id) {
 }
 
 // The clue must change the *actual* next choice, not only a rule test or hint.
-async function verifyTracksShrineRisk(page, crafted) {
+async function verifyTracksShrineRisk(page, crafted, {dodgeGuardian=false}={}) {
   const foundTracks=await read(page);
   assert(foundTracks.found.includes('traces'),'the detour must be discovered by real touch first');
   assert(!foundTracks.found.includes('shrine'),'the shrine is still unspent');
@@ -380,13 +380,17 @@ async function verifyTracksShrineRisk(page, crafted) {
   }
   // The starter encounter must demonstrate the actual input-driven
   // jump→evade→landed counter, not only isolated rules and HUD wiring.
-  const counterEvidence=wasClear && !crafted ? await jumpCounterGuardian(page) : null;
+  const counterEvidence=wasClear && (!crafted || dodgeGuardian) ? await jumpCounterGuardian(page) : null;
   // Respond to the short opening before testing a repeat tap. The latter
   // used to spend the earned warning while the browser waited on input.
-  // On the forged revisit, use only normal attacks (no jump or grapple).
-  // The starter run already proves the genuine jump→dodge→counter path.
+  // Both forged strategies finish with the same normal attacks. The only
+  // tactical difference is whether the player jumps through the tell first.
   const guardian=wasClear?await clearWave(page,{attackOnlyGuardian:crafted}):null;
   if (guardian) {
+    if (dodgeGuardian) assert(counterEvidence?.counterClaimed,
+      'the forged dodge strategy must land its earned counter in real Chromium');
+    if (crafted && !dodgeGuardian) assert.equal(guardian.guardianCounterClaimed,false,
+      'the forged attack-only strategy must not earn a dodge counter');
     assert.equal(guardian.after.phase,'return',
       'defeating the guardian resumes ordinary exploration and safe return');
     // Reading the tracks must now produce an actual first-hit payoff in
@@ -407,10 +411,12 @@ async function verifyTracksShrineRisk(page, crafted) {
   await tapSite(page,'shrine');
   assert.equal((await read(page)).unbanked,beforeRepeat.unbanked,
     'repeat touches cannot duplicate the shrine reward');
-  return {crafted,cost,hpBefore:before.player.hp,hpAfter:after.player.hp,
+  return {crafted,cost,dodgeGuardian,hpBefore:before.player.hp,hpAfter:after.player.hp,
     provisionalBefore:before.unbanked,
     provisionalAfter:guardian?guardian.after.unbanked:after.unbanked,
     guardian:guardian&&{seconds:guardian.seconds,minimumHp:guardian.minimumHp,
+      hpAtStart:after.player.hp,hpAtEnd:guardian.after.player.hp,
+      hpLostFromRisk:Math.max(0,after.player.hp-guardian.after.player.hp),
       hpLost:guardian.hpLost,attackOnlyGuardian:guardian.attackOnlyGuardian,
       guardianTellSeen:guardian.guardianTellSeen,
       guardianCounterClaimed:guardian.guardianCounterClaimed},
@@ -754,7 +760,15 @@ async function main() {
           await clearWave(page);
           await walkTo(page,800,365);
           await tapSite(page,'traces');
-          await verifyTracksShrineRisk(page,true);
+          const forgedDodge=await verifyTracksShrineRisk(page,true,{dodgeGuardian:true});
+          assert.equal(shrineAfterForge.crafted,forgedDodge.crafted,
+            'both tactical comparisons use the same forged equipment');
+          assert.equal(shrineAfterForge.cost,forgedDodge.cost,
+            'both tactical comparisons pay the same scouted shrine risk');
+          assert.equal(shrineAfterForge.guardian.attackOnlyGuardian,true);
+          assert.equal(forgedDodge.guardian.attackOnlyGuardian,true);
+          assert.equal(shrineAfterForge.guardian.guardianCounterClaimed,false);
+          assert.equal(forgedDodge.guardian.guardianCounterClaimed,true);
           await walkTo(page,910,235);
           const beforeGateHeal=await read(page);
           assert(beforeGateHeal.player.hp<beforeGateHeal.player.maxHp,
@@ -869,7 +883,7 @@ async function main() {
             'the next real expedition gets the tempered kick bonus');
           assert.equal(await page.evaluate(()=>localStorage.getItem('crownless-expedition-v1-demo')),
             saveBefore,'the unrelated location-game save stays untouched');
-          report.loop={first,shrineBeforeForge,locked,gateHerbsBeforeForge:{before:beforeSwordlessHerbs,after:afterSwordlessHerbs},returned,forged,second,shrineAfterForge,unlocked,banked,restored,
+          report.loop={first,shrineBeforeForge,locked,gateHerbsBeforeForge:{before:beforeSwordlessHerbs,after:afterSwordlessHerbs},returned,forged,second,shrineAfterForge,forgedDodge,unlocked,banked,restored,
             gateHealing:{before:beforeGateHeal,after:afterGateHeal,returned:gateHealedReturn},
             gateCautious:{before:beforeCautious,after:afterCautious,returned:cautiousReturn,restored:cautiousRestored},
             temperedCamp};
