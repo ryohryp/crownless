@@ -2030,7 +2030,7 @@
       const panel=document.getElementById('forestGateChoice');
       const heal=document.getElementById('forestGateHeal');
       const salvage=document.getElementById('forestGateMaterial');
-      const salvageCost=window.CrownlessForestDiscoveries.GATE_SALVAGE_DAMAGE;
+      const salvageCost=window.CrownlessForestDiscoveries.gateSalvageDamage('material',rpg.tempered);
       const cautiousCost=window.CrownlessForestDiscoveries.GATE_CAUTIOUS_DAMAGE;
       const cautious=document.getElementById('forestGateCautious');
       cautious.disabled=!rpg.crafted || ginji.hp<cautiousCost+1;
@@ -2049,7 +2049,7 @@
       document.getElementById('forestGateStakes').textContent=
         '現在 HP '+Math.floor(ginji.hp)+'/'+ginji.maxHp+'、未帰還の牙 '+rpg.unbanked+
         '個。'+(rpg.crafted?forestGateTemperHint(rpg,rpgRules):'茨の手前の薬草は使える。牙の回収には鍛冶剣が必要。')+
-        (rpg.crafted?'慎重に牙 +1（HP -'+cautiousCost+'）、強引に牙 +2（HP -'+salvageCost+'）、または薬草で回復。':'傷を癒やすか、今は調べず帰るか選べる。')+
+        (rpg.crafted?'慎重に牙 +1（HP -'+cautiousCost+'）、強引に牙 +2（HP -'+salvageCost+'）'+(rpg.tempered?'／研ぎ直した剣で負傷軽減':'')+'、または薬草で回復。':'傷を癒やすか、今は調べず帰るか選べる。')+
         '一度だけ選べる。素材は生還時だけ倉庫に残り、敗北すると失う。';
       panel.classList.remove('hidden');
       return true;
@@ -2124,7 +2124,7 @@
     const nearby = window.CrownlessForestDiscoveries.near(f,state.forestFinds);
     if (!nearby) return false;
     const discovery = window.CrownlessForestDiscoveries.uncover(
-      f,state.forestFinds,rpg.phase,f.hp,f.maxHp,rpg.crafted,shrineChoice);
+      f,state.forestFinds,rpg.phase,f.hp,f.maxHp,rpg.crafted,shrineChoice,rpg.tempered);
     if (!discovery.ok) {
       if(discovery.reason==='trail'||discovery.reason==='thorns') {
         spawnPopup(discovery.reason==='trail'?'手前の獣の痕跡に、道の手がかりがある':'茨が行く手を塞ぐ。鍛冶した剣なら切り開けそう',f.x,f.z,f.y+48,'#e3d4ac');
