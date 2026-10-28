@@ -1854,8 +1854,11 @@
           sfx.haptic([35,25,35]);
         }
         if (counterBonus) {
-          target.guardianCounterClaimed=true;
-          spawnPopup('🍃 反撃成功！+'+counterBonus,target.x,target.z,target.y+82,'#6ee7b7');
+          // Only a real landed player counter can briefly stagger the guardian.
+          window.CrownlessForestDiscoveries.claimGuardianCounter(
+            target,performance.now()/1000,attacker.id);
+          spawnPopup('🍃 反撃成功！+'+counterBonus+'｜番人がよろめく',
+            target.x,target.z,target.y+82,'#6ee7b7');
         }
         if (scoutBonus) {
           target.scoutStrikeClaimed=true;
