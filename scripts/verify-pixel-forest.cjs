@@ -151,6 +151,9 @@ async function jumpCounterGuardian(page) {
   const started=Date.now();
   let stage='first-hit',jumpSeen=false,dodgeSeen=false,phoneCueSeen=false;
   const trace=[];
+  const startingHp=(await read(page)).player.hp;
+  let previousHp=startingHp;
+  const damageEvents=[];
   // Prepare the CDP touch channel before the short warning starts. Opening
   // a new session during the 0.65s tell could consume the dodge window.
   const bounds=await page.locator('#gestureActionArea').boundingBox();
@@ -167,6 +170,13 @@ async function jumpCounterGuardian(page) {
         'the real jump counter must remain a living encounter: '+JSON.stringify({stage,trace,s}));
       const dx=enemy.x-s.player.x,dz=enemy.z-s.player.z;
       const gap=Math.hypot(dx,dz);
+      if(s.player.hp<previousHp) damageEvents.push({
+        ms:Date.now()-started,stage,damage:previousHp-s.player.hp,
+        hpAfter:s.player.hp,guardianState:enemy.state,
+        tellActive:enemy.guardianTellUntil>s.nowSec,
+        counterActive:enemy.guardianCounterUntil>s.nowSec
+      });
+      previousHp=s.player.hp;
       if(stage==='first-hit' && enemy.scoutStrikeClaimed) stage='wait-tell';
       if(stage==='wait-tell' && enemy.guardianTellUntil>s.nowSec) stage='tell';
       if(stage==='tell' && enemy.guardianTellUntil-s.nowSec>0.2 &&
@@ -181,6 +191,7 @@ async function jumpCounterGuardian(page) {
         assert(dodgeSeen && jumpSeen,'counter must follow the visible jump dodge');
         assert(phoneCueSeen,'the real phone control must show the targeted jump instruction');
         return {jumpSeen,dodgeSeen,phoneCueSeen,counterClaimed:true,
+          hpAtStart:startingHp,hpAtCounter:s.player.hp,damageEvents,
           seconds:Math.round((Date.now()-started)/100)/10,trace};
       }
       if(trace.length<110) trace.push({ms:Date.now()-started,stage,
@@ -249,6 +260,8 @@ async function clearWave(page,{attackOnlyGuardian=false}={}) {
   let scoutedFirstHit = false;
   let guardianTellSeen = false;
   let guardianCounterClaimed = false;
+  let previousHp=before.player.hp;
+  const damageEvents=[];
   const scoutTrace = [];
   try {
     while (Date.now() - start < 75000) {
@@ -257,9 +270,19 @@ async function clearWave(page,{attackOnlyGuardian=false}={}) {
       scoutedFirstHit ||= s.enemies.some(e => e.name === '苔祠の番人' && e.scoutStrikeClaimed);
       guardianTellSeen ||= s.enemies.some(e => e.name === '苔祠の番人' && e.guardianTellUntil>s.nowSec);
       guardianCounterClaimed ||= s.enemies.some(e => e.name === '苔祠の番人' && e.guardianCounterClaimed);
+      if(s.player.hp<previousHp) {
+        const guardian=s.enemies.find(e=>e.name==='苔祠の番人');
+        damageEvents.push({ms:Date.now()-start,damage:previousHp-s.player.hp,
+          hpAfter:s.player.hp,guardianState:guardian?.state||null,
+          tellActive:Boolean(guardian?.guardianTellUntil>s.nowSec),
+          counterActive:Boolean(guardian?.guardianCounterUntil>s.nowSec),
+          counterClaimed:Boolean(guardian?.guardianCounterClaimed)});
+      }
+      previousHp=s.player.hp;
       if (s.phase === 'return') return { seconds: Math.round((Date.now()-start)/100)/10,
         minimumHp, hpLost:before.player.hp-minimumHp, scoutedFirstHit,
-        attackOnlyGuardian, guardianTellSeen, guardianCounterClaimed, scoutTrace, after:s };
+        attackOnlyGuardian, guardianTellSeen, guardianCounterClaimed,
+        damageEvents,scoutTrace, after:s };
       assert(s.phase === 'fight' && s.player.hp > 0,
         'real-input combat ended in defeat: ' + JSON.stringify(s));
       assert(Array.isArray(s.enemies), 'read-only probe must expose enemy positions');
@@ -449,10 +472,14 @@ async function verifyTracksShrineRisk(page, crafted, {dodgeGuardian=false}={}) {
       hpLostFromRisk:Math.max(0,after.player.hp-guardian.after.player.hp),
       hpLost:guardian.hpLost,attackOnlyGuardian:guardian.attackOnlyGuardian,
       guardianTellSeen:guardian.guardianTellSeen,
-      guardianCounterClaimed:guardian.guardianCounterClaimed},
+      guardianCounterClaimed:guardian.guardianCounterClaimed,
+      damageEvents:guardian.damageEvents},
     counterEvidence:counterEvidence&&{jumpSeen:counterEvidence.jumpSeen,
       dodgeSeen:counterEvidence.dodgeSeen,phoneCueSeen:counterEvidence.phoneCueSeen,
       counterClaimed:counterEvidence.counterClaimed,
+      hpAtStart:counterEvidence.hpAtStart,
+      hpAtCounter:counterEvidence.hpAtCounter,
+      damageEvents:counterEvidence.damageEvents,
       seconds:counterEvidence.seconds}};
 }
 
@@ -800,6 +827,25 @@ async function main() {
           assert.equal(forgedDodge.guardian.attackOnlyGuardian,true);
           assert.equal(shrineAfterForge.guardian.guardianCounterClaimed,false);
           assert.equal(forgedDodge.guardian.guardianCounterClaimed,true);
+          // Separate damage before the earned counter from damage after it.
+          // A successful swipe alone must not be reported as damage prevention.
+          const dodgeLossBeforeCounter=Math.max(0,
+            forgedDodge.guardian.hpAtStart-forgedDodge.counterEvidence.hpAtCounter);
+          const dodgeLossAfterCounter=Math.max(0,
+            forgedDodge.counterEvidence.hpAtCounter-forgedDodge.guardian.hpAtEnd);
+          assert.equal(dodgeLossBeforeCounter+dodgeLossAfterCounter,
+            forgedDodge.guardian.hpLostFromRisk,
+            'the real HP delta must reconcile across the dodge/counter boundary');
+          report.guardianStrategyComparison={
+            attackOnly:{hpLost:shrineAfterForge.guardian.hpLostFromRisk,
+              damageEvents:shrineAfterForge.guardian.damageEvents},
+            dodgeCounter:{hpLost:forgedDodge.guardian.hpLostFromRisk,
+              hpLostBeforeCounter:dodgeLossBeforeCounter,
+              hpLostAfterCounter:dodgeLossAfterCounter,
+              damageBeforeCounter:forgedDodge.counterEvidence.damageEvents,
+              damageAfterCounter:forgedDodge.guardian.damageEvents},
+            note:'Separate expeditions; HP/AI timing may differ. No fun claim.'
+          };
           await walkTo(page,910,235);
           const beforeGateHeal=await read(page);
           assert(beforeGateHeal.player.hp<beforeGateHeal.player.maxHp,
