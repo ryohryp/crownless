@@ -2942,7 +2942,7 @@
     document.getElementById('btnJump').classList.toggle('guardian-dodge-cue',active);
   }
   function forestGuardianHint(guardian,found,unbanked,nowSec,hero) {
-    if (!guardian || guardian.name!=='苔祠の番人') return '';
+    if (!guardian) return '';
     const openingActive=found.has('traces') && guardian.scoutOpeningEndsAt>nowSec;
     // A scouted sound behind the hero invites a deliberate turn before the
     // timer starts; do not pretend the attack bonus is already active.
