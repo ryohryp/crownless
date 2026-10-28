@@ -216,6 +216,14 @@
     enemy.guardianTellTargetId=targetId;
     return 'start';
   }
+  // Repeated light hits still deal damage, but cannot erase an announced
+  // shrine-guardian lunge. The player must respond to the tell; a killing
+  // blow still ends the encounter normally.
+  function guardianKeepsTellOnHit(enemy,nowSec){
+    return Boolean(enemy && enemy.name==='苔祠の番人' &&
+      enemy.hp>0 && enemy.state!=='DEAD' && Number.isFinite(nowSec) &&
+      enemy.guardianTellUntil>nowSec);
+  }
   const GUARDIAN_COUNTER_BONUS=8;
   function guardianCounterStrikeBonus(enemy,nowSec,attackerId){
     return enemy && enemy.name==='苔祠の番人' &&
@@ -278,5 +286,5 @@
       heal:gateHeal?Math.min(45,Math.max(0,maxHp-hp)):
         spot.kind==='healing' && !scavenge?Math.min(35,Math.max(0,maxHp-hp)):0};
   }
-  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,near,cueNear,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,guardianScoutStrikeBonus,guardianReadyForOpening,guardianBehindWarning,companionYieldsGuardianOpening,companionYieldsGuardianFootsteps,guardianTargetsExplorer,guardianStrikeTell,guardianCounterStrikeBonus,shrineRiskDamage,uncover};
+  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,near,cueNear,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,guardianScoutStrikeBonus,guardianReadyForOpening,guardianBehindWarning,companionYieldsGuardianOpening,companionYieldsGuardianFootsteps,guardianTargetsExplorer,guardianStrikeTell,guardianKeepsTellOnHit,guardianCounterStrikeBonus,shrineRiskDamage,uncover};
 });
