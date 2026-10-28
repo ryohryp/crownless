@@ -208,19 +208,28 @@ async function approachGuardianWarning(page) {
   } finally { await keys(page,held,[]); }
 }
 
-async function clearWave(page) {
+// Compare a real attack-only guardian response with the starter's timed jump.
+// This is a diagnostic, not a matched-gear fun verdict: the forged run has
+// different equipment. Never inject HP, positions, combat flags or rewards.
+async function clearWave(page,{attackOnlyGuardian=false}={}) {
   const held = new Set();
   const start = Date.now();
   const before = await read(page);
   let minimumHp = before.player.hp;
   let scoutedFirstHit = false;
+  let guardianTellSeen = false;
+  let guardianCounterClaimed = false;
   const scoutTrace = [];
   try {
     while (Date.now() - start < 75000) {
       const s = await read(page);
       minimumHp = Math.min(minimumHp, s.player.hp);
       scoutedFirstHit ||= s.enemies.some(e => e.name === '苔祠の番人' && e.scoutStrikeClaimed);
-      if (s.phase === 'return') return { seconds: Math.round((Date.now()-start)/100)/10, minimumHp, scoutedFirstHit, scoutTrace, after:s };
+      guardianTellSeen ||= s.enemies.some(e => e.name === '苔祠の番人' && e.guardianTellUntil>s.nowSec);
+      guardianCounterClaimed ||= s.enemies.some(e => e.name === '苔祠の番人' && e.guardianCounterClaimed);
+      if (s.phase === 'return') return { seconds: Math.round((Date.now()-start)/100)/10,
+        minimumHp, hpLost:before.player.hp-minimumHp, scoutedFirstHit,
+        attackOnlyGuardian, guardianTellSeen, guardianCounterClaimed, scoutTrace, after:s };
       assert(s.phase === 'fight' && s.player.hp > 0,
         'real-input combat ended in defeat: ' + JSON.stringify(s));
       assert(Array.isArray(s.enemies), 'read-only probe must expose enemy positions');
@@ -229,7 +238,7 @@ async function clearWave(page) {
       // Use the real grab/throw input when the guardian closes in, rather
       // than relying on an unbroken kick hold against its stronger attacks.
       // Normal enemies retain the baseline kick-only screening path.
-      const grappleGuardian=target?.name==='苔祠の番人' && !target.scoutOpeningActive &&
+      const grappleGuardian=!attackOnlyGuardian && target?.name==='苔祠の番人' && !target.scoutOpeningActive &&
         Math.abs(target.x-s.player.x)<42 && Math.abs(target.z-s.player.z)<20;
       const wanted = [grappleGuardian?'l':'k'];
       if (target?.name === '苔祠の番人' && scoutTrace.length < 35) {
@@ -374,7 +383,9 @@ async function verifyTracksShrineRisk(page, crafted) {
   const counterEvidence=wasClear && !crafted ? await jumpCounterGuardian(page) : null;
   // Respond to the short opening before testing a repeat tap. The latter
   // used to spend the earned warning while the browser waited on input.
-  const guardian=wasClear?await clearWave(page):null;
+  // On the forged revisit, use only normal attacks (no jump or grapple).
+  // The starter run already proves the genuine jump→dodge→counter path.
+  const guardian=wasClear?await clearWave(page,{attackOnlyGuardian:crafted}):null;
   if (guardian) {
     assert.equal(guardian.after.phase,'return',
       'defeating the guardian resumes ordinary exploration and safe return');
@@ -399,7 +410,10 @@ async function verifyTracksShrineRisk(page, crafted) {
   return {crafted,cost,hpBefore:before.player.hp,hpAfter:after.player.hp,
     provisionalBefore:before.unbanked,
     provisionalAfter:guardian?guardian.after.unbanked:after.unbanked,
-    guardian:guardian&&{seconds:guardian.seconds,minimumHp:guardian.minimumHp},
+    guardian:guardian&&{seconds:guardian.seconds,minimumHp:guardian.minimumHp,
+      hpLost:guardian.hpLost,attackOnlyGuardian:guardian.attackOnlyGuardian,
+      guardianTellSeen:guardian.guardianTellSeen,
+      guardianCounterClaimed:guardian.guardianCounterClaimed},
     counterEvidence:counterEvidence&&{jumpSeen:counterEvidence.jumpSeen,
       dodgeSeen:counterEvidence.dodgeSeen,counterClaimed:counterEvidence.counterClaimed,
       seconds:counterEvidence.seconds}};
