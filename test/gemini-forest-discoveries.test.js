@@ -34,6 +34,17 @@ test('reading tracks extends only the hidden gate vibration, never touch range o
   assert.equal(pulseKey({id:'hollow'},{id:'hollow'}),'hollow');
   assert.equal(pulseKey({id:'shrine'},{id:'shrine'}),'shrine');
   assert.equal(pulseKey(null,null),undefined);
+  const pulseSource=html.match(/const pulsePattern=([\s\S]*?);/)?.[1];
+  assert.ok(pulseSource,'the actual phone cue must distinguish shrine from tracks and gate');
+  const pulse=Function('cue','near','return ('+pulseSource+');');
+  assert.deepEqual(pulse({id:'shrine'},{id:'shrine'}),[18,65,36],
+    'the cool shrine has a distinct soft two-beat cue before inspection');
+  assert.deepEqual(pulse({id:'hollow'},null),[28,45,28],
+    'the earned distant gate cue stays distinct');
+  assert.equal(pulse({id:'hollow'},{id:'hollow'}),34,
+    'the close gate confirmation stays a single pulse');
+  assert.equal(pulse({id:'traces'},{id:'traces'}),34,
+    'ordinary tracks retain their quiet single pulse');
   const pulsed=new Set();
   const once=(cue,near)=>{
     const key=pulseKey(cue,near);

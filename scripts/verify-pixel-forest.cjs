@@ -371,10 +371,17 @@ async function verifyTracksShrineRisk(page, crafted, {dodgeGuardian=false}={}) {
   assert(foundTracks.found.includes('traces'),'the detour must be discovered by real touch first');
   assert(!foundTracks.found.includes('shrine'),'the shrine is still unspent');
   assert.equal(foundTracks.crafted,crafted,'compare starter gear and the forged sword');
-  const cueBefore=await page.evaluate(() => window.__forestHapticPatterns.filter(p=>p===34).length);
+  const shrinePulseCount=()=>page.evaluate(() =>
+    window.__forestHapticPatterns.filter(p=>Array.isArray(p)&&p.join(',')==='18,65,36').length);
+  const cueBefore=await shrinePulseCount();
   await walkTo(page,660,230);
-  assert.equal(await page.evaluate(() => window.__forestHapticPatterns.filter(p=>p===34).length),cueBefore+1,
-    'the untouched shrine gives one quiet discovery pulse after combat');
+  assert.equal(await shrinePulseCount(),cueBefore+1,
+    'the untouched shrine gives one distinct cool two-beat cue on a phone');
+  await page.waitForTimeout(200);
+  assert.equal(await shrinePulseCount(),cueBefore+1,
+    'standing near the shrine must not repeat the sensory cue');
+  assert(!(await read(page)).found.includes('shrine'),
+    'the new cue must not automatically reveal or consume the shrine');
   const before=await read(page);
   assert(Math.hypot(before.player.x-660,before.player.z-230)<54,
     'the player must physically reach the shrine before touching it');

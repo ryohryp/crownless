@@ -2993,7 +2993,12 @@
       // A distant clue earned by reading tracks has a distinct two-beat
       // pulse. Ordinary nearby clues keep the single short pulse; neither
       // pattern reveals a route or automatically investigates the site.
-      sfx.haptic(cue.id==='hollow' && !near ? [28,45,28] : 34);
+      // The cool shrine has its own gentle two-beat feel. Tracks stay a
+      // single tap and the distant stone gate keeps its earned heavier cue.
+      // No site identity, hidden route, or interaction range is revealed.
+      const pulsePattern=cue.id==='hollow' && !near ? [28,45,28] :
+        cue.id==='shrine' ? [18,65,36] : 34;
+      sfx.haptic(pulsePattern);
     }
     if (near?.id!=='shrine') document.getElementById('forestShrineChoice').classList.add('hidden');
     if (near?.id!=='hollow') document.getElementById('forestGateChoice').classList.add('hidden');
