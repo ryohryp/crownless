@@ -1371,6 +1371,8 @@
     if (scoutedGuardian && !['HURT','DOWN','GRAB'].includes(ginji.state) &&
         (window.CrownlessForestDiscoveries.companionYieldsGuardianOpening(
           scoutedGuardian,guardianNow) ||
+         window.CrownlessForestDiscoveries.companionYieldsGuardianRecovery(
+          ginji,scoutedGuardian,guardianNow) ||
          window.CrownlessForestDiscoveries.companionYieldsGuardianFootsteps(
           ginji,scoutedGuardian,state.forestFinds,selfFighter) ||
          // A companion hit must not cancel the clearly telegraphed lunge
@@ -1511,6 +1513,7 @@
       hasToken && ['IDLE','WALK','RUN'].includes(enemy.state),
       window.CrownlessHitRecovery.readyToStrike(enemy,nowSec),target.id);
     if(guardianAttack==='start'){
+      enemy.scoutFirstHitYieldUntil=0; // the visible tell now protects the decision
       spawnPopup('⚠ 番人が踏み込む！跳ぶか離れよう',enemy.x,enemy.z,enemy.y+65,'#fbbf24');
       sfx.haptic([25,35,25]);
     }
@@ -1849,6 +1852,9 @@
         }
         if (scoutBonus) {
           target.scoutStrikeClaimed=true;
+          // Let the guardian recover to show its first lunge; do not make
+          // the companion wait forever if the hero retreats or never engages.
+          target.scoutFirstHitYieldUntil=performance.now()/1000+3.2;
           spawnPopup('👁 先手成功！+'+scoutBonus,target.x,target.z,target.y+70,'#fef08a');
         }
         spawnSpark((attacker.x + target.x) * 0.5, target.z, target.y + 24, state.kabukiBurstTimer > 0);
