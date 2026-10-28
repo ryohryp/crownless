@@ -1035,3 +1035,34 @@ test('post-combat discovery pulse is once per unexamined clue and never navigati
     'a discovered clue must not be eligible for a new proximity cue');
   assert.equal(D.near({x:800,z:365},new Set())?.id,'traces');
 });
+
+test('tempered smith sword makes forceful gate salvage safer without granting extra loot',()=>{
+  const gate={x:910,z:235};
+  assert.equal(D.gateSalvageDamage('material',false),8);
+  assert.equal(D.gateSalvageDamage('material',true),4);
+  assert.equal(D.gateSalvageDamage('cautious',true),3,
+    'the cautious option retains its smaller one-fang trade-off');
+  for(const [tempered,damage] of [[false,8],[true,4]]){
+    const found=new Set(['traces']);
+    const reward=D.uncover(gate,found,'return',20,140,true,'material',tempered);
+    assert.equal(reward.ok,true);
+    assert.equal(reward.material,2,'sharpening never mints extra fangs');
+    assert.equal(reward.damage,damage);
+    assert.equal(reward.heal,0);
+    assert.equal(D.uncover(gate,found,'return',20,140,true,'heal',tempered).ok,false,
+      'the gate remains once per expedition');
+  }
+  const weak=new Set(['traces']);
+  assert.equal(D.uncover(gate,weak,'return',4.5,140,true,'material',true).reason,'weak');
+  assert.equal(weak.has('hollow'),false,'a lethal salvage cannot consume the gate');
+  assert.equal(D.uncover(gate,weak,'return',5,140,true,'material',true).damage,4);
+  assert.equal(D.uncover(gate,new Set(['traces']),'return',20,140,false,'material',true).reason,'thorns',
+    'tempering never unlocks salvage without the forged sword');
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  assert.match(html,/gateSalvageDamage\('material',rpg\.tempered\)/,
+    'phone preview must derive the actual equipment-dependent wound');
+  assert.match(html,/rpg\.crafted,shrineChoice,rpg\.tempered\)/,
+    'the live tap applies the same tempered state as the preview');
+  assert.match(html,/研ぎ直した剣で負傷軽減/,
+    'the reason for a changed risk must be visible before choosing');
+});
