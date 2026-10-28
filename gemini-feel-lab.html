@@ -1981,6 +1981,18 @@
   }
 
   // A bag that has not reached camp cannot yet pay the smith.
+  // The unarmed gate's one-fang choice can complete the *first* sword.
+  // Show that concrete payoff before choosing HP loss over healing; do not
+  // advertise the inaccessible two-fang option without a crafted sword.
+  function forestGateCraftHint(run,rules) {
+    if (run.crafted) return forestGateTemperHint(run,rules);
+    const need=Math.max(0,rules.COST-run.banked-run.unbanked);
+    if (run.banked>=rules.COST) return '倉庫の牙だけで鍛冶剣を作れる。';
+    if (need===0) return '生還すれば鍛冶剣の素材が揃う（今は未帰還）。';
+    if (need===1) return 'ここで牙を1個拾って生還すれば、鍛冶剣を作れる。';
+    return '鍛冶剣まで牙あと'+need+'個。ここで牙+1なら残り'+(need-1)+'個。';
+  }
+
   function forestShrineCraftHint(run,rules) {
     if (run.tempered) return '剣は研ぎ直し済み。牙の追加強化はまだない。';
     const cost=run.crafted?rules.TEMPER_COST:rules.COST;
@@ -2050,7 +2062,7 @@
         : '傷がないため回復不可';
       document.getElementById('forestGateStakes').textContent=
         '現在 HP '+Math.floor(ginji.hp)+'/'+ginji.maxHp+'、未帰還の牙 '+rpg.unbanked+
-        '個。'+(rpg.crafted?forestGateTemperHint(rpg,rpgRules):'茨の手前の薬草は使える。強引な回収には鍛冶剣が必要。')+
+        '個。'+forestGateCraftHint(rpg,rpgRules)+(!rpg.crafted?'強引な回収には鍛冶剣が必要。':'')+
         (rpg.crafted?'慎重に牙 +1（'+cautiousWound+'）、強引に牙 +2（HP -'+salvageCost+'）'+(rpg.tempered?'／研ぎ直した剣で負傷軽減':'')+'、または薬草で回復。':'素手で牙 +1（HP -'+cautiousCost+'）、または薬草で回復。')+
         '一度だけ選べる。素材は生還時だけ倉庫に残り、敗北すると失う。';
       panel.classList.remove('hidden');
