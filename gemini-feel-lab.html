@@ -2031,13 +2031,14 @@
       const heal=document.getElementById('forestGateHeal');
       const salvage=document.getElementById('forestGateMaterial');
       const salvageCost=window.CrownlessForestDiscoveries.gateSalvageDamage('material',rpg.tempered);
-      const cautiousCost=window.CrownlessForestDiscoveries.gateSalvageDamage('cautious',rpg.tempered);
+      const cautiousCost=window.CrownlessForestDiscoveries.gateSalvageDamage('cautious',rpg.tempered,rpg.crafted);
       const cautiousWound=cautiousCost===0?'負傷なし':'HP -'+cautiousCost;
       const cautious=document.getElementById('forestGateCautious');
-      cautious.disabled=!rpg.crafted || ginji.hp<cautiousCost+1;
-      cautious.textContent=!rpg.crafted ? '慎重に牙を拾う（鍛冶剣が必要）' : cautious.disabled
-        ? '慎重に牙を拾う（'+cautiousWound+'・未帰還素材 +1／HP '+(cautiousCost+1)+'以上必要）'
-        : '慎重に牙を拾う（'+cautiousWound+' →残り'+Math.floor(ginji.hp-cautiousCost)+'・未帰還素材 +1）';
+      const cautiousVerb=rpg.crafted?'慎重に牙を拾う':'素手で慎重に牙を拾う';
+      cautious.disabled=ginji.hp<cautiousCost+1;
+      cautious.textContent=cautious.disabled
+        ? cautiousVerb+'（'+cautiousWound+'・未帰還素材 +1／HP '+(cautiousCost+1)+'以上必要）'
+        : cautiousVerb+'（'+cautiousWound+' →残り'+Math.floor(ginji.hp-cautiousCost)+'・未帰還素材 +1）';
       salvage.disabled=!rpg.crafted || ginji.hp<salvageCost+1;
       salvage.textContent=!rpg.crafted ? '牙を拾う（鍛冶剣が必要）' : salvage.disabled
         ? '牙を拾う（HP -'+salvageCost+'・未帰還素材 +2／HP '+(salvageCost+1)+'以上必要）'
@@ -2049,8 +2050,8 @@
         : '傷がないため回復不可';
       document.getElementById('forestGateStakes').textContent=
         '現在 HP '+Math.floor(ginji.hp)+'/'+ginji.maxHp+'、未帰還の牙 '+rpg.unbanked+
-        '個。'+(rpg.crafted?forestGateTemperHint(rpg,rpgRules):'茨の手前の薬草は使える。牙の回収には鍛冶剣が必要。')+
-        (rpg.crafted?'慎重に牙 +1（'+cautiousWound+'）、強引に牙 +2（HP -'+salvageCost+'）'+(rpg.tempered?'／研ぎ直した剣で負傷軽減':'')+'、または薬草で回復。':'傷を癒やすか、今は調べず帰るか選べる。')+
+        '個。'+(rpg.crafted?forestGateTemperHint(rpg,rpgRules):'茨の手前の薬草は使える。強引な回収には鍛冶剣が必要。')+
+        (rpg.crafted?'慎重に牙 +1（'+cautiousWound+'）、強引に牙 +2（HP -'+salvageCost+'）'+(rpg.tempered?'／研ぎ直した剣で負傷軽減':'')+'、または薬草で回復。':'素手で牙 +1（HP -'+cautiousCost+'）、または薬草で回復。')+
         '一度だけ選べる。素材は生還時だけ倉庫に残り、敗北すると失う。';
       panel.classList.remove('hidden');
       return true;
@@ -2144,14 +2145,14 @@
     if(discovery.material) {
       for(let i=0;i<discovery.material;i++) if (!rpgRules.claimMaterial(rpg)) return false;
       spawnPopup(discovery.spot.id==='shrine' && discovery.damage?'祠の奥で牙 +2（未帰還）／HP -'+discovery.damage:
-        discovery.spot.id==='hollow'?(shrineChoice==='cautious' && discovery.damage===0?'研ぎ直した剣で慎重に茨を払い、無傷で牙 +'+discovery.material+'（未帰還）・薬草は見送った':(rpg.tempered && shrineChoice==='material'?'研ぎ直した剣で茨を払った！ ':'石門の茨を払って')+'牙 +'+discovery.material+'（未帰還）／HP -'+discovery.damage+'・薬草は見送った'):
+        discovery.spot.id==='hollow'?(shrineChoice==='cautious' && discovery.damage===0?'研ぎ直した剣で慎重に茨を払い、無傷で牙 +'+discovery.material+'（未帰還）・薬草は見送った':(rpg.tempered && shrineChoice==='material'?'研ぎ直した剣で茨を払った！ ':!rpg.crafted?'素手で茨をかき分けて':'石門の茨を払って')+'牙 +'+discovery.material+'（未帰還）／HP -'+discovery.damage+'・薬草は見送った'):
         discovery.spot.id==='shrine'?'祠の隙間で牙 +1（未帰還）／この遠征の癒やしは使い切った':
         '獣の痕跡！牙 +1／危険な調査で受ける傷を3軽減',f.x,f.z,f.y+48,'#fde68a');
     }
     if(discovery.damage) f.hp=Math.max(1,f.hp-discovery.damage);
     if(discovery.heal) {
       f.hp=Math.min(f.maxHp,f.hp+discovery.heal);
-      spawnPopup((discovery.spot.id==='hollow'?'石門の薬草':'古い祠で傷を癒やした')+' HP +'+discovery.heal+(discovery.spot.id==='hollow'?(rpg.crafted?'／牙 +2は見送った':'／牙の回収には鍛冶剣が必要'):''),f.x,f.z,f.y+48,'#86efac');
+      spawnPopup((discovery.spot.id==='hollow'?'石門の薬草':'古い祠で傷を癒やした')+' HP +'+discovery.heal+(discovery.spot.id==='hollow'?(rpg.crafted?'／牙 +2は見送った':'／牙 +1は見送った'):''),f.x,f.z,f.y+48,'#86efac');
     }
     sfx.play('coin');
     spawnSakuraBurst(f.x,f.z,f.y+35,9);
