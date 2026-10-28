@@ -337,7 +337,10 @@ test('a landed counter briefly staggers only the guardian, once per dodge',()=>{
 test('real combat and phone HUD wire the earned counter to a landed player hit',()=>{
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   const attack=html.slice(html.indexOf('function performAttackHitbox('),html.indexOf('function inflictDamage('));
-  assert.match(attack,/guardianCounterStrikeBonus\(target,performance\.now\(\)\/1000,attacker\.id\)/);
+  assert.match(attack,/const hitNowSec=performance\.now\(\)\/1000/);
+  assert.match(attack,/guardianCounterStrikeBonus\(target,hitNowSec,attacker\.id\)/);
+  assert.match(attack,/claimGuardianCounter\(\s*target,hitNowSec,attacker\.id\)/,
+    'bonus and recovery claim share the same hit timestamp');
   assert.match(attack,/finalDmg\+scoutBonus\+counterBonus/);
   assert.match(attack,/if \(!inflictDamage\([\s\S]*?continue;[\s\S]*?if \(counterBonus\) \{[\s\S]*?claimGuardianCounter\(/);
   assert.match(attack,/反撃成功！[\s\S]*?番人がよろめく/,
