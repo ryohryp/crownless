@@ -243,8 +243,23 @@ test('guardian warns before striking, and stepping away earns a counterattack wi
   assert.match(ai,/guardianCounterUntil>nowSec\)\{[\s\S]*?return out;/,
     'a dodged guardian must pause pursuit long enough for a landing counter');
   const hint=html.slice(html.indexOf('function forestGuardianHint('),html.indexOf('function updateForestExploreHint('));
-  assert.match(hint,/guardianTellUntil>nowSec/,'the phone HUD must show the warning while active');
+  assert.match(hint,/guardianDodgeCueActive\\(guardian,hero,nowSec\\)/,
+    'the phone HUD must use the same target-aware warning as the swipe control');
   assert.match(hint,/跳ぶか離れよう/,'the warning must name a real player response');
+  const source=hint.match(/function forestGuardianHint\\([^)]*\\) \\{[\\s\\S]*?\\n  \\}/)?.[0];
+  assert.ok(source,'the live guardian HUD function must remain executable');
+  const liveHint=Function('window','return ('+source+')')({CrownlessForestDiscoveries:D});
+  const hero={id:'hero',state:'IDLE',x:0,z:0,facing:1};
+  const tell={name:'苔祠の番人',state:'IDLE',x:35,z:0,hp:180,maxHp:180,
+    guardianTellUntil:100.65,guardianTellTargetId:'hero'};
+  assert.match(liveHint(tell,new Set(),2,100.2,hero),/跳ぶか離れよう/,
+    'an actionable hero-targeted tell shows the real dodge warning');
+  assert.doesNotMatch(liveHint({...tell,guardianTellTargetId:'ally'},new Set(),2,100.2,hero),/跳ぶか離れよう/,
+    'an ally-targeted lunge must not warn the player to dodge');
+  assert.doesNotMatch(liveHint(tell,new Set(),2,100.65,hero),/跳ぶか離れよう/,
+    'the warning must clear as soon as the tell expires');
+  assert.doesNotMatch(liveHint(tell,new Set(),2,100.2,{...hero,state:'JUMP'}),/跳ぶか離れよう/,
+    'an already-airborne hero must not see a stale jump instruction');
 });
 
 test('a timed jump evades the guardian warning and leaves a landing-to-counter window',()=>{
