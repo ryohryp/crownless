@@ -276,7 +276,7 @@ test('landed guardian counter shows a short reposition choice only to its defend
   assert.doesNotMatch(liveHint(guardian,new Set(),2,100.8,hero),/距離を取る好機/,
     'a missed or unclaimed counter must not promise recovery');
   assert.equal(D.claimGuardianCounter(guardian,101,'hero'),true);
-  assert.match(liveHint(guardian,new Set(),2,101.1,hero),/反撃成功！距離を取る好機 残り[0-9]+\.[0-9]秒/,
+  assert.match(liveHint(guardian,new Set(),2,101.1,hero),/反撃成功！距離を取る好機：左パッドで離れよう 残り[0-9]+\.[0-9]秒/,
     'a landed counter should communicate the remaining tactical choice');
   assert.doesNotMatch(liveHint(guardian,new Set(),2,101.1,hero),/反撃\+8/,
     'a spent counter must not promise a second damage bonus');
