@@ -17,6 +17,12 @@
   // This is the cost of taking fangs instead of choosing the healing herbs.
   const GATE_SALVAGE_DAMAGE=8;
   const GATE_CAUTIOUS_DAMAGE=3;
+  // A sharpened smith-made blade cuts the thorned gate with less injury.
+  // Cautious salvage still trades one fang for its original smaller wound.
+  function gateSalvageDamage(choice,tempered=false){
+    return choice==='cautious' ? GATE_CAUTIOUS_DAMAGE :
+      tempered ? 4 : GATE_SALVAGE_DAMAGE;
+  }
   function near(player,found){
     if(!player) return null;
     return spots.find(spot=>
@@ -271,7 +277,7 @@
   function shrineRiskDamage(found,crafted){
     return (crafted?6:12)-(found.has('traces')?3:0);
   }
-  function uncover(player,found,phase,hp,maxHp,crafted=false,shrineChoice='auto'){
+  function uncover(player,found,phase,hp,maxHp,crafted=false,shrineChoice='auto',tempered=false){
     if(!available(phase)) return {ok:false};
     if(!canInspect(player,phase)) return {ok:false,reason:'busy'};
     const spot=near(player,found);
@@ -288,7 +294,7 @@
       return {ok:false,reason:'choice',spot};
     if(spot.kind==='cache' && shrineChoice==='heal' && hp>=maxHp)
       return {ok:false,reason:'full',spot};
-    const gateDamage=shrineChoice==='cautious'?GATE_CAUTIOUS_DAMAGE:GATE_SALVAGE_DAMAGE;
+    const gateDamage=gateSalvageDamage(shrineChoice,crafted && tempered);
     if(spot.kind==='cache' && shrineChoice!=='heal' && hp<gateDamage+1)
       return {ok:false,reason:'weak',spot};
     // The shrine offers a deliberate trade-off; a full-HP heal must not waste it.
@@ -317,5 +323,5 @@
       heal:gateHeal?Math.min(45,Math.max(0,maxHp-hp)):
         spot.kind==='healing' && !scavenge?Math.min(35,Math.max(0,maxHp-hp)):0};
   }
-  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,near,cueNear,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,guardianScoutStrikeBonus,guardianReadyForOpening,guardianBehindWarning,companionYieldsGuardianOpening,companionYieldsGuardianRecovery,companionYieldsGuardianFootsteps,guardianTargetsExplorer,guardianStrikeTell,guardianKeepsTellOnHit,guardianDodgeCueActive,guardianCounterStrikeBonus,claimGuardianCounter,shrineRiskDamage,uncover};
+  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,gateSalvageDamage,near,cueNear,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,guardianScoutStrikeBonus,guardianReadyForOpening,guardianBehindWarning,companionYieldsGuardianOpening,companionYieldsGuardianRecovery,companionYieldsGuardianFootsteps,guardianTargetsExplorer,guardianStrikeTell,guardianKeepsTellOnHit,guardianDodgeCueActive,guardianCounterStrikeBonus,claimGuardianCounter,shrineRiskDamage,uncover};
 });
