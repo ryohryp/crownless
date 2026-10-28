@@ -1081,6 +1081,8 @@ test('tempered smith sword makes forceful gate salvage safer without granting ex
     'careful salvage preview must use the same tempered rule as the reward');
   assert.match(html,/cautiousCost===0\?'負傷なし'/,
     'zero-risk choice must be legible instead of advertising HP -0');
+  assert.match(html,/shrineChoice==='cautious' && discovery\.damage===0\?'研ぎ直した剣で慎重に茨を払い、無傷で牙 \+'\+discovery\.material/,
+    'a wound-free actual gate reward must not falsely announce HP -0');
   assert.match(html,/rpg\.crafted,shrineChoice,rpg\.tempered\)/,
     'the live tap applies the same tempered state as the preview');
   assert.match(html,/研ぎ直した剣で負傷軽減/,
