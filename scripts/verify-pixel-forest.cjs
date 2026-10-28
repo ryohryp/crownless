@@ -190,7 +190,12 @@ async function jumpCounterGuardian(page) {
       if(stage==='counter' && enemy.guardianCounterClaimed) {
         assert(dodgeSeen && jumpSeen,'counter must follow the visible jump dodge');
         assert(phoneCueSeen,'the real phone control must show the targeted jump instruction');
-        return {jumpSeen,dodgeSeen,phoneCueSeen,counterClaimed:true,
+        // The earned 0.9s recovery must be legible in the live 390px HUD,
+        // not just in a pure-function test or a transient floating popup.
+        await page.waitForFunction(() =>
+          document.getElementById('forestExploreHint')?.textContent?.includes('距離を取る好機'),
+          null,{timeout:650});
+        return {jumpSeen,dodgeSeen,phoneCueSeen,repositionCueSeen:true,counterClaimed:true,
           hpAtStart:startingHp,hpAtCounter:s.player.hp,damageEvents,
           seconds:Math.round((Date.now()-started)/100)/10,trace};
       }
@@ -476,6 +481,7 @@ async function verifyTracksShrineRisk(page, crafted, {dodgeGuardian=false}={}) {
       damageEvents:guardian.damageEvents},
     counterEvidence:counterEvidence&&{jumpSeen:counterEvidence.jumpSeen,
       dodgeSeen:counterEvidence.dodgeSeen,phoneCueSeen:counterEvidence.phoneCueSeen,
+      repositionCueSeen:counterEvidence.repositionCueSeen,
       counterClaimed:counterEvidence.counterClaimed,
       hpAtStart:counterEvidence.hpAtStart,
       hpAtCounter:counterEvidence.hpAtCounter,
