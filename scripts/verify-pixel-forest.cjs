@@ -1157,6 +1157,28 @@ async function main() {
             assert(beforeBarehand.player.hp>=7,
               'real starter must be able to survive the six-point thorn wound');
             await tapSite(barehandPage,'hollow');
+            const forgeCost=await barehandPage.evaluate(()=>window.CrownlessRpgLoop.COST);
+            const gateCraftHint=await barehandPage.locator('#forestGateStakes').innerText();
+            const stillNeeded=Math.max(0,forgeCost-beforeBarehand.banked-beforeBarehand.unbanked);
+            if(beforeBarehand.banked>=forgeCost) {
+              assert.match(gateCraftHint,/倉庫の牙だけで鍛冶剣を作れる/,
+                'banked materials already afford a first sword without any gate injury');
+            } else if(stillNeeded===0) {
+              assert.match(gateCraftHint,/生還すれば鍛冶剣の素材が揃う/,
+                'the phone must disclose when taking more gate damage is unnecessary for the first sword');
+            } else if(stillNeeded===1) {
+              assert.match(gateCraftHint,/ここで牙を1個拾って生還すれば、鍛冶剣を作れる/,
+                'the real +1 gate choice should visibly complete the first sword recipe');
+            } else {
+              assert.match(gateCraftHint,new RegExp('鍛冶剣まで牙あと'+stillNeeded+'個'),
+                'the swordless gate must show the actual remaining smithing need');
+            }
+            assert.doesNotMatch(gateCraftHint,/\\+2なら残り/,
+              'without a sword the gate must not advertise inaccessible two-fang salvage');
+            const gateHintBounds=await barehandPage.locator('#forestGateChoice > div').boundingBox();
+            assert(gateHintBounds && gateHintBounds.y>=0 &&
+              gateHintBounds.y+gateHintBounds.height<=barehandPage.viewportSize().height,
+              'first-sword consequence and choices fit the 390px phone viewport');
             const barehandButton=barehandPage.locator('#forestGateCautious');
             assert.equal(await barehandButton.isEnabled(),true);
             assert.match(await barehandButton.innerText(),/素手で慎重に牙を拾う.*HP -6.*未帰還素材 \+1/);
