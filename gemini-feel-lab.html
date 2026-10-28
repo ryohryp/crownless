@@ -2960,7 +2960,7 @@
       : guardian.guardianCounterUntil>nowSec &&
         hero && guardian.guardianCounterTargetId===hero.id
         ? guardian.guardianCounterClaimed
-          ? '🍃 反撃成功！距離を取る好機：左パッドで離れよう 残り'+(Math.ceil((guardian.guardianCounterUntil-nowSec)*10)/10).toFixed(1)+'秒｜'
+          ? '🍃 反撃成功！追撃はタップ／退避は左パッド 残り'+(Math.ceil((guardian.guardianCounterUntil-nowSec)*10)/10).toFixed(1)+'秒｜'
           : '🍃 空振り！反撃+8 残り'+(Math.ceil((guardian.guardianCounterUntil-nowSec)*10)/10).toFixed(1)+'秒｜'
         : '';
     return strikeCue+lead+'⚠ 番人HP '+Math.ceil(guardian.hp)+'/'+guardian.maxHp+
