@@ -1130,6 +1130,81 @@ async function main() {
           assert.equal(safeRestored.unbanked,0);
           assert.equal(await page.evaluate(()=>localStorage.getItem('crownless-expedition-v1-demo')),
             saveBefore,'the separate location-game save stays untouched');
+          // Separate fresh-phone expedition: prove the new *unforged* gate
+          // alternative with a real touch and a living return. The long
+          // crafted/tempered loop above cannot exercise this starter-only choice.
+          const barehandContext=await browser.newContext({
+            viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:2
+          });
+          try {
+            const barehandPage=await barehandContext.newPage();
+            const barehandErrors=[];
+            barehandPage.on('pageerror',error=>barehandErrors.push(error.message));
+            await barehandPage.goto('http://127.0.0.1:'+port+'/expedition.html',
+              {waitUntil:'domcontentloaded'});
+            await barehandPage.locator('[data-action="mode"][data-value="demo"]').click();
+            await barehandPage.locator('[data-action="action-forest-lab"]').first().click();
+            await barehandPage.waitForURL('**/gemini-feel-lab.html?from=discovered-wood');
+            await barehandPage.waitForFunction(()=>window.CrownlessForestReadout?.().assetsReady,
+              null,{timeout:20000});
+            await clearWave(barehandPage);
+            await walkTo(barehandPage,800,365);
+            await tapSite(barehandPage,'traces');
+            await walkTo(barehandPage,910,235);
+            const beforeBarehand=await read(barehandPage);
+            assert.equal(beforeBarehand.crafted,false,
+              'fresh starter has no sword before the risky gate choice');
+            assert(beforeBarehand.player.hp>=7,
+              'real starter must be able to survive the six-point thorn wound');
+            await tapSite(barehandPage,'hollow');
+            const barehandButton=barehandPage.locator('#forestGateCautious');
+            assert.equal(await barehandButton.isEnabled(),true);
+            assert.match(await barehandButton.innerText(),/素手で慎重に牙を拾う.*HP -6.*未帰還素材 \\+1/);
+            const barehandTap=await barehandButton.boundingBox();
+            assert(barehandTap && barehandTap.height>=44 &&
+              barehandTap.y>=0 &&
+              barehandTap.y+barehandTap.height<=barehandPage.viewportSize().height,
+              'actual swordless salvage touch fits the 390px viewport');
+            await barehandPage.screenshot({
+              path:path.join(output,'pixel-forest-barehand-choice-390.png')
+            });
+            await barehandPage.touchscreen.tap(barehandTap.x+barehandTap.width/2,
+              barehandTap.y+barehandTap.height/2);
+            const afterBarehand=await read(barehandPage);
+            assert(afterBarehand.found.includes('hollow'),
+              'real barehand tap must consume the one-time gate choice');
+            assert.equal(afterBarehand.player.hp,beforeBarehand.player.hp-6,
+              'real barehand salvage must pay the advertised six HP');
+            assert.equal(afterBarehand.unbanked,beforeBarehand.unbanked+1,
+              'real barehand salvage grants exactly one provisional fang');
+            await tapSite(barehandPage,'hollow');
+            assert.equal((await read(barehandPage)).unbanked,afterBarehand.unbanked,
+              'touching a consumed gate cannot duplicate the barehand fang');
+            assert.equal(await barehandPage.locator('#forestGateChoice').isVisible(),false);
+            await barehandPage.locator('#rpgOpenResults').click();
+            await barehandPage.locator('#rpgReturn').click();
+            const barehandReturn=await read(barehandPage);
+            assert.equal(barehandReturn.phase,'camp');
+            assert.equal(barehandReturn.banked,afterBarehand.unbanked,
+              'living return must bank the exact provisional bag, including barehand loot');
+            await barehandPage.reload({waitUntil:'domcontentloaded'});
+            await barehandPage.waitForFunction(()=>window.CrownlessForestReadout?.().assetsReady,
+              null,{timeout:20000});
+            const barehandRestored=await read(barehandPage);
+            assert.equal(barehandRestored.banked,barehandReturn.banked,
+              'the swordless salvage reward survives reload');
+            assert.equal(barehandRestored.unbanked,0,
+              'reload never duplicates provisional fangs');
+            assert.deepEqual(barehandErrors,[],'swordless touch path has no browser errors');
+            report.barehandGate={before:beforeBarehand,after:afterBarehand,
+              returned:barehandReturn,restored:barehandRestored};
+          } catch(error) {
+            const pages=barehandContext.pages();
+            if(pages[0]) await pages[0].screenshot({
+              path:path.join(output,'pixel-forest-barehand-failure-390.png')
+            }).catch(()=>{});
+            throw error;
+          } finally { await barehandContext.close(); }
           report.loop={first,shrineBeforeForge,locked,gateHerbsBeforeForge:{before:beforeSwordlessHerbs,after:afterSwordlessHerbs},returned,forged,second,shrineAfterForge,forgedDodge,unlocked,banked,restored,
             gateHealing:{before:beforeGateHeal,after:afterGateHeal,returned:gateHealedReturn},
             gateCautious:{before:beforeCautious,after:afterCautious,returned:cautiousReturn,restored:cautiousRestored},
