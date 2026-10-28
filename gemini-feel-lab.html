@@ -2999,6 +2999,11 @@
       const pulsePattern=cue.id==='hollow' && !near ? [28,45,28] :
         cue.id==='shrine' ? [18,65,36] : 34;
       sfx.haptic(pulsePattern);
+      // Browser/phone haptics may be unavailable. The *earned* far cue must
+      // still be perceptible without revealing a site name, route or position.
+      if (cue.id==='hollow' && !near) {
+        spawnPopup('遠くで、何かが軋む音がした',ginji.x,ginji.z,ginji.y+48,'#d9f99d');
+      }
     }
     if (near?.id!=='shrine') document.getElementById('forestShrineChoice').classList.add('hidden');
     if (near?.id!=='hollow') document.getElementById('forestGateChoice').classList.add('hidden');
