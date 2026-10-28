@@ -126,6 +126,63 @@ async function ignoreGuardianFootsteps(page) {
     JSON.stringify({state:await read(page),trace}));
 }
 
+// Real-input proof of the tactical promise: a scouted hit, a visible tell,
+// an actual jump at the strike moment, and a landed +8 counter. Never write
+// actor positions, combat flags or HP from the test.
+async function jumpCounterGuardian(page) {
+  const held=new Set();
+  const started=Date.now();
+  let stage='first-hit',jumpSeen=false,dodgeSeen=false;
+  const trace=[];
+  try {
+    while(Date.now()-started<14000) {
+      const s=await read(page);
+      const enemy=s.enemies.find(e=>e.name==='苔祠の番人' && e.hp>0 && e.state!=='DEAD');
+      assert(enemy && s.phase==='fight' && s.player.hp>0,
+        'the real jump counter must remain a living encounter: '+JSON.stringify({stage,trace,s}));
+      const dx=enemy.x-s.player.x,dz=enemy.z-s.player.z;
+      const gap=Math.hypot(dx,dz);
+      if(stage==='first-hit' && enemy.scoutStrikeClaimed) stage='wait-tell';
+      if(stage==='wait-tell' && enemy.guardianTellUntil>s.nowSec) stage='tell';
+      if(stage==='jump' && s.player.state==='JUMP') jumpSeen=true;
+      if(stage==='jump' && enemy.guardianCounterUntil>s.nowSec) {
+        assert(jumpSeen,'the counter must follow a genuine keyboard jump');
+        dodgeSeen=true;
+        stage='counter';
+      }
+      if(stage==='counter' && enemy.guardianCounterClaimed) {
+        assert(dodgeSeen && jumpSeen,'counter must follow the visible jump dodge');
+        return {jumpSeen,dodgeSeen,counterClaimed:true,
+          seconds:Math.round((Date.now()-started)/100)/10,trace};
+      }
+      if(trace.length<110) trace.push({ms:Date.now()-started,stage,
+        gap:Math.round(gap),hero:s.player.state,enemy:enemy.state,
+        tell:Math.round(Math.max(0,enemy.guardianTellUntil-s.nowSec)*100)/100,
+        counter:Math.round(Math.max(0,enemy.guardianCounterUntil-s.nowSec)*100)/100,
+        claimed:enemy.guardianCounterClaimed});
+      if(stage==='tell' && enemy.guardianTellUntil-s.nowSec<0.5 &&
+          enemy.guardianTellUntil-s.nowSec>0.1 &&
+          ['IDLE','WALK','RUN'].includes(s.player.state)) {
+        await page.keyboard.press('Space',{delay:65});
+        stage='jump';
+      }
+      const wanted=[];
+      if(stage==='first-hit' || stage==='counter' && s.player.state!=='JUMP') wanted.push('k');
+      // Keep the hero in the guardian's actual melee lane. During the tell,
+      // stop moving so the test cannot fake a jump dodge by simply retreating.
+      if(stage==='first-hit' || stage==='wait-tell' || stage==='counter') {
+        if(Math.abs(dx)>37 || (Math.abs(dx)>8 && Math.sign(dx)!==s.player.facing))
+          wanted.push(dx>0?'d':'a');
+        if(Math.abs(dz)>12) wanted.push(dz>0?'s':'w');
+      }
+      await keys(page,held,wanted);
+      await page.waitForTimeout(45);
+    }
+    throw new Error('jump→evade→landed counter not reached: '+
+      JSON.stringify({stage,jumpSeen,dodgeSeen,trace,state:await read(page)}));
+  } finally { await keys(page,held,[]); }
+}
+
 // The guardian may be occupied with the ally. A player must deliberately
 // close the gap to earn the player-specific warning; waiting in place is not play.
 async function approachGuardianWarning(page) {
@@ -312,6 +369,9 @@ async function verifyTracksShrineRisk(page, crafted) {
     await page.screenshot({path:path.join(output,
       'pixel-forest-guardian-warning-'+(crafted?'forged':'starter')+'-390.png')});
   }
+  // The starter encounter must demonstrate the actual input-driven
+  // jump→evade→landed counter, not only isolated rules and HUD wiring.
+  const counterEvidence=wasClear && !crafted ? await jumpCounterGuardian(page) : null;
   // Respond to the short opening before testing a repeat tap. The latter
   // used to spend the earned warning while the browser waited on input.
   const guardian=wasClear?await clearWave(page):null;
@@ -339,7 +399,10 @@ async function verifyTracksShrineRisk(page, crafted) {
   return {crafted,cost,hpBefore:before.player.hp,hpAfter:after.player.hp,
     provisionalBefore:before.unbanked,
     provisionalAfter:guardian?guardian.after.unbanked:after.unbanked,
-    guardian:guardian&&{seconds:guardian.seconds,minimumHp:guardian.minimumHp}};
+    guardian:guardian&&{seconds:guardian.seconds,minimumHp:guardian.minimumHp},
+    counterEvidence:counterEvidence&&{jumpSeen:counterEvidence.jumpSeen,
+      dodgeSeen:counterEvidence.dodgeSeen,counterClaimed:counterEvidence.counterClaimed,
+      seconds:counterEvidence.seconds}};
 }
 
 async function main() {
