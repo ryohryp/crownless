@@ -1917,6 +1917,19 @@
       return true;
     }
 
+    // The guardian commits to its visible lunge even if the player mashes
+    // attacks. Damage and a killing blow still count; only nonlethal hitstun
+    // is ignored during the announced 0.65-second tell.
+    if (window.CrownlessForestDiscoveries.guardianKeepsTellOnHit(target,performance.now()/1000)) {
+      if (target.guardianWindupNoticeUntil!==target.guardianTellUntil) {
+        target.guardianWindupNoticeUntil=target.guardianTellUntil;
+        spawnPopup('⚠ 踏み込みは止まらない！跳んで避けよう',
+          target.x,target.z,target.y+65,'#fbbf24');
+      }
+      updateUI();
+      return true;
+    }
+
     if (knockdown) {
       target.state = 'DOWN';
       target.stateTimer = window.CrownlessHitRecovery.knockdownTime(target);
