@@ -722,8 +722,14 @@ async function main() {
             'without a sword, inspecting the gate offers the reachable herbs instead of a dead end');
           assert.equal(await page.locator('#forestGateMaterial').isDisabled(),true,
             'unforged explorers cannot take the thorn-blocked two-fang reward');
-          assert.equal(await page.locator('#forestGateCautious').isDisabled(),true,
-            'unforged explorers cannot take the thorn-blocked cautious reward');
+          const barehandChoice=page.locator('#forestGateCautious');
+          assert.equal(await barehandChoice.isEnabled(),true,
+            'without a sword the player may risk six HP for one unsecured fang');
+          assert.match(await barehandChoice.innerText(),/素手で慎重に牙を拾う.*HP -6.*未帰還素材 \+1/,
+            'the phone must preview the real barehand wound and reward');
+          const barehandBounds=await barehandChoice.boundingBox();
+          assert(barehandBounds && barehandBounds.width>=44 && barehandBounds.height>=44,
+            'the new swordless alternative must be thumb-sized');
           assert.equal(await page.locator('#forestGateHeal').isEnabled(),true,
             'a wounded explorer can use the herbs without forging a sword');
           const unarmedGateBounds=await page.locator('#forestGateChoice > div').boundingBox();
