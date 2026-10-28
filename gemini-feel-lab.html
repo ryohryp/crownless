@@ -1837,6 +1837,12 @@
         // A hit can claim the scouted opening and the dodge reward, but
         // never spend either when the enemy rejects a hit during recovery.
         if (!inflictDamage(target, finalDmg+scoutBonus+counterBonus, attacker.facing * finalKnockback, kbY, kbY >= 170 || hitDowned)) continue;
+        // Only a landed shrine-guardian lunge gets this distinct failure cue.
+        // A missed strike or an invulnerable defender must never be called a hit.
+        if (attacker.name==='苔祠の番人' && target===ginji) {
+          spawnPopup('⚠ 踏み込み直撃！次は跳んで避けよう',target.x,target.z,target.y+77,'#fbbf24');
+          sfx.haptic([35,25,35]);
+        }
         if (counterBonus) {
           target.guardianCounterClaimed=true;
           spawnPopup('🍃 反撃成功！+'+counterBonus,target.x,target.z,target.y+82,'#6ee7b7');
