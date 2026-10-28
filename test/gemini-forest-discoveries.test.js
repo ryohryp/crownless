@@ -728,7 +728,9 @@ test('earned guardian opening warning is visible, expires, and never leaks to un
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   const source=html.match(/function forestGuardianHint\([^)]*\) \{[\s\S]*?\n  \}/)?.[0];
   assert.ok(source,'guardian warning must be wired into the actual forest scene');
-  const hint=Function('return ('+source+')')();
+  // Evaluate the live browser function with its actual discovery helpers, not
+  // an undefined Node global. The HUD now shares the targeted dodge guard.
+  const hint=Function('window','return ('+source+')')({CrownlessForestDiscoveries:D});
   const guardian={hp:180,maxHp:180,scoutOpeningEndsAt:101.8,nextStrikeAt:101.8};
   const scouted=new Set(['traces']);
   assert.match(hint(guardian,scouted,3,100),/足跡の先読み 残り1\.8秒/,
