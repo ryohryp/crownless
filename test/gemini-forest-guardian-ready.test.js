@@ -208,6 +208,8 @@ test('guardian warns before striking, and stepping away earns a counterattack wi
   assert.match(ai,/!\['DOWN','JUMP'\]\.includes\(target\.state\)/,
     'a genuine airborne jump must evade the guardian tell instead of being treated as a landed strike');
   assert.match(ai,/enemy\.name!=='苔祠の番人' &&/,'the old random attack must exclude the guardian');
+  assert.match(ai,/guardianCounterUntil>nowSec\)\{[\s\S]*?return out;/,
+    'a dodged guardian must pause pursuit long enough for a landing counter');
   const hint=html.slice(html.indexOf('function forestGuardianHint('),html.indexOf('function updateForestExploreHint('));
   assert.match(hint,/guardianTellUntil>nowSec/,'the phone HUD must show the warning while active');
   assert.match(hint,/跳ぶか離れよう/,'the warning must name a real player response');
