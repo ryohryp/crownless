@@ -18,9 +18,10 @@
   const GATE_SALVAGE_DAMAGE=8;
   const GATE_CAUTIOUS_DAMAGE=3;
   // A sharpened smith-made blade cuts the thorned gate with less injury.
-  // Cautious salvage still trades one fang for its original smaller wound.
+  // Careful cutting with a tempered sword avoids injury, but yields only one fang.
+  // Forceful salvage still yields two fangs at a real HP cost.
   function gateSalvageDamage(choice,tempered=false){
-    return choice==='cautious' ? GATE_CAUTIOUS_DAMAGE :
+    return choice==='cautious' ? (tempered ? 0 : GATE_CAUTIOUS_DAMAGE) :
       tempered ? 4 : GATE_SALVAGE_DAMAGE;
   }
   function near(player,found){
