@@ -51,6 +51,13 @@
   .kabuki-glow {
     animation: kabukiPulse 0.85s infinite;
   }
+  /* The guardian's brief lunge cue must identify the real phone input,
+     without changing touch targets or covering the combat scene. */
+  .guardian-dodge-cue {
+    outline: 3px solid #fbbf24;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 3px rgba(15,23,42,.85), 0 0 16px rgba(251,191,36,.65);
+  }
 </style>
 </head>
 <body class="flex flex-col w-full h-full bg-slate-950 text-white overflow-hidden" data-combat-origin="gemini-original-2_5d" data-combat-experiment="fantasy-reskin">
@@ -2919,6 +2926,15 @@
   }
   // Make the earned scouting advantage visible while the guardian's opening
   // strike is held back. This is a warning window, not a promised hit timer.
+  function updateGuardianDodgeControls(guardian,hero,nowSec) {
+    const active=window.CrownlessForestDiscoveries.guardianDodgeCueActive(guardian,hero,nowSec);
+    const gestureHint=document.getElementById('gestureHint');
+    gestureHint.textContent=active
+      ? '⚠ ↑スワイプで跳躍回避'
+      : 'タップ:斬撃　横:蹴り　↑跳ぶ　↓組む';
+    gestureHint.classList.toggle('guardian-dodge-cue',active);
+    document.getElementById('btnJump').classList.toggle('guardian-dodge-cue',active);
+  }
   function forestGuardianHint(guardian,found,unbanked,nowSec,hero) {
     if (!guardian) return '';
     const openingActive=found.has('traces') && guardian.scoutOpeningEndsAt>nowSec;
@@ -2933,7 +2949,7 @@
           ? '👁 番人転倒中｜先手の機会を温存｜'
           : '👁 足跡の先読み 残り'+(Math.ceil((guardian.scoutOpeningEndsAt-nowSec)*10)/10).toFixed(1)+'秒：攻撃+12か回避｜'
       : behind ? '👂 背後に足音。振り向けば先手の機会｜' : '';
-    const strikeCue=guardian.guardianTellUntil>nowSec
+    const strikeCue=window.CrownlessForestDiscoveries.guardianDodgeCueActive(guardian,hero,nowSec)
       ? '⚠ 番人が踏み込む！跳ぶか離れよう｜'
       : guardian.guardianCounterUntil>nowSec && !guardian.guardianCounterClaimed &&
         hero && guardian.guardianCounterTargetId===hero.id
@@ -2945,6 +2961,7 @@
   function updateForestExploreHint() {
     const hint=document.getElementById('forestExploreHint');
     if(rpg.phase==='camp') {
+      updateGuardianDodgeControls(null,ginji,performance.now()/1000);
       hint.classList.add('hidden');
       document.getElementById('forestShrineChoice').classList.add('hidden');
       document.getElementById('forestGateChoice').classList.add('hidden');
@@ -2976,6 +2993,7 @@
     const guardian=rpg.phase==='fight'
       ? state.fighters.find(f=>f.team===1 && f.name==='苔祠の番人' && f.state!=='DEAD')
       : null;
+    updateGuardianDodgeControls(guardian,ginji,performance.now()/1000);
     const label=guardian
       ? forestGuardianHint(guardian,state.forestFinds,rpg.unbanked,performance.now()/1000,ginji)
       : near

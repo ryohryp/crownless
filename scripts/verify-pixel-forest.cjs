@@ -132,11 +132,14 @@ async function ignoreGuardianFootsteps(page) {
 async function jumpCounterGuardian(page) {
   const held=new Set();
   const started=Date.now();
-  let stage='first-hit',jumpSeen=false,dodgeSeen=false;
+  let stage='first-hit',jumpSeen=false,dodgeSeen=false,phoneCueSeen=false;
   const trace=[];
   try {
     while(Date.now()-started<14000) {
-      const s=await read(page);
+      const {s,gestureCue}=await page.evaluate(()=>({
+        s:window.CrownlessForestReadout(),
+        gestureCue:document.getElementById('gestureHint')?.textContent||''
+      }));
       const enemy=s.enemies.find(e=>e.name==='苔祠の番人' && e.hp>0 && e.state!=='DEAD');
       assert(enemy && s.phase==='fight' && s.player.hp>0,
         'the real jump counter must remain a living encounter: '+JSON.stringify({stage,trace,s}));
@@ -144,6 +147,8 @@ async function jumpCounterGuardian(page) {
       const gap=Math.hypot(dx,dz);
       if(stage==='first-hit' && enemy.scoutStrikeClaimed) stage='wait-tell';
       if(stage==='wait-tell' && enemy.guardianTellUntil>s.nowSec) stage='tell';
+      if(stage==='tell' && enemy.guardianTellUntil-s.nowSec>0.2 &&
+          gestureCue.includes('↑スワイプで跳躍回避')) phoneCueSeen=true;
       if(stage==='jump' && s.player.state==='JUMP') jumpSeen=true;
       if(stage==='jump' && enemy.guardianCounterUntil>s.nowSec) {
         assert(jumpSeen,'the counter must follow a genuine keyboard jump');
@@ -152,7 +157,8 @@ async function jumpCounterGuardian(page) {
       }
       if(stage==='counter' && enemy.guardianCounterClaimed) {
         assert(dodgeSeen && jumpSeen,'counter must follow the visible jump dodge');
-        return {jumpSeen,dodgeSeen,counterClaimed:true,
+        assert(phoneCueSeen,'the real phone control must show the targeted jump instruction');
+        return {jumpSeen,dodgeSeen,phoneCueSeen,counterClaimed:true,
           seconds:Math.round((Date.now()-started)/100)/10,trace};
       }
       if(trace.length<110) trace.push({ms:Date.now()-started,stage,
@@ -421,7 +427,8 @@ async function verifyTracksShrineRisk(page, crafted, {dodgeGuardian=false}={}) {
       guardianTellSeen:guardian.guardianTellSeen,
       guardianCounterClaimed:guardian.guardianCounterClaimed},
     counterEvidence:counterEvidence&&{jumpSeen:counterEvidence.jumpSeen,
-      dodgeSeen:counterEvidence.dodgeSeen,counterClaimed:counterEvidence.counterClaimed,
+      dodgeSeen:counterEvidence.dodgeSeen,phoneCueSeen:counterEvidence.phoneCueSeen,
+      counterClaimed:counterEvidence.counterClaimed,
       seconds:counterEvidence.seconds}};
 }
 

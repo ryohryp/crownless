@@ -333,3 +333,28 @@ test('only a landed shrine-guardian blow tells the player the dodge failed',()=>
   assert.match(ai,/if\(guardianAttack==='strike'\)\{[\s\S]*?out\.punch=true/,
     'the guarded attack remains the actual lunge, not a new passive damage source');
 });
+
+
+test('guardian dodge cue points to the real thumb control only when the hero is threatened',()=>{
+  const hero={id:'traveler',state:'IDLE'};
+  const guardian={name:'苔祠の番人',guardianTellUntil:100.65,guardianTellTargetId:'traveler'};
+  assert.equal(D.guardianDodgeCueActive(guardian,hero,100.2),true);
+  assert.equal(D.guardianDodgeCueActive(guardian,hero,100.65),false,'expired warning clears the cue');
+  assert.equal(D.guardianDodgeCueActive({...guardian,guardianTellTargetId:'ally'},hero,100.2),false,
+    'an ally-targeted strike must not mislead the player');
+  for(const state of ['DEAD','DOWN','HURT','GRAB','JUMP'])
+    assert.equal(D.guardianDodgeCueActive(guardian,{...hero,state},100.2),false,
+      state+' cannot respond to the prompt');
+  assert.equal(D.guardianDodgeCueActive({...guardian,name:'苔牙ゴブリン'},hero,100.2),false);
+  assert.equal(D.guardianDodgeCueActive(null,hero,100.2),false);
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  assert.match(html,/guardianDodgeCueActive\(guardian,hero,nowSec\)/,
+    'the live hint and controls must share the tested target guard');
+  assert.match(html,/updateGuardianDodgeControls\(guardian,ginji,performance\.now\(\)\/1000\)/,
+    'the real scene must refresh the cue while the guardian is active');
+  assert.match(html,/updateGuardianDodgeControls\(null,ginji,performance\.now\(\)\/1000\)/,
+    'returning to camp must clear the control cue');
+  assert.match(html,/↑スワイプで跳躍回避/);
+  assert.match(html,/btnJump'\)\.classList\.toggle\('guardian-dodge-cue',active\)/,
+    'arcade button mode must receive the same cue');
+});

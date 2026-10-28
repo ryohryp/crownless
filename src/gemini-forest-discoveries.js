@@ -234,6 +234,14 @@
       enemy.hp>0 && enemy.state!=='DEAD' && Number.isFinite(nowSec) &&
       enemy.guardianTellUntil>nowSec);
   }
+  // Only warn about a dodge the explorer can actually perform. An ally's
+  // incoming lunge must never light up the player's jump control.
+  function guardianDodgeCueActive(enemy,hero,nowSec){
+    return Boolean(enemy && enemy.name==='苔祠の番人' && hero &&
+      !['DEAD','DOWN','HURT','GRAB','JUMP'].includes(hero.state) &&
+      Number.isFinite(nowSec) && enemy.guardianTellUntil>nowSec &&
+      enemy.guardianTellTargetId===hero.id);
+  }
   const GUARDIAN_COUNTER_BONUS=8;
   function guardianCounterStrikeBonus(enemy,nowSec,attackerId){
     return enemy && enemy.name==='苔祠の番人' &&
@@ -296,5 +304,5 @@
       heal:gateHeal?Math.min(45,Math.max(0,maxHp-hp)):
         spot.kind==='healing' && !scavenge?Math.min(35,Math.max(0,maxHp-hp)):0};
   }
-  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,near,cueNear,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,guardianScoutStrikeBonus,guardianReadyForOpening,guardianBehindWarning,companionYieldsGuardianOpening,companionYieldsGuardianRecovery,companionYieldsGuardianFootsteps,guardianTargetsExplorer,guardianStrikeTell,guardianKeepsTellOnHit,guardianCounterStrikeBonus,shrineRiskDamage,uncover};
+  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,near,cueNear,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,guardianScoutStrikeBonus,guardianReadyForOpening,guardianBehindWarning,companionYieldsGuardianOpening,companionYieldsGuardianRecovery,companionYieldsGuardianFootsteps,guardianTargetsExplorer,guardianStrikeTell,guardianKeepsTellOnHit,guardianDodgeCueActive,guardianCounterStrikeBonus,shrineRiskDamage,uncover};
 });
