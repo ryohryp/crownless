@@ -369,8 +369,10 @@ test('stone gate offers either two provisional fangs or up to 45 HP, never both'
   assert.match(html,/id="forestGateMaterial"/);
   assert.match(html,/id="forestGateHeal"/);
   assert.match(html,/id="forestGateCancel"/);
-  assert.match(html,/石門の茨を払って牙 \+'\+discovery\.material\+'（未帰還）／HP -.*薬草は見送った/,
-    'taking materials must describe foregoing herbs, not consuming them');
+  assert.match(html,/rpg\.tempered && shrineChoice==='material'\?'研ぎ直した剣で茨を払った！ ':'石門の茨を払って'/,
+    'only the upgraded risky salvage should celebrate the sharpened blade');
+  assert.match(html,/\+'牙 \+'\+discovery\.material\+'（未帰還）／HP -'\+discovery\.damage\+'・薬草は見送った'/,
+    'all salvage choices must describe provisional fangs, actual injury and foregoing herbs');
   assert.match(html,/石門の薬草.*?牙 \+2は見送った/s,
     'healing must explicitly acknowledge the two provisional fangs forgone');
   assert.match(html,/tryExploreForest\(ginji,choice\)/,
