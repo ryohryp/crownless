@@ -129,19 +129,15 @@ async function ignoreGuardianFootsteps(page) {
 // Exercise the real touch gesture handler, not a keyboard shortcut or a
 // direct call to fireGesture(). A phone player must be able to act on the
 // 0.65-second guardian warning using the advertised upward swipe.
-async function swipeJump(page) {
-  const bounds=await page.locator('#gestureActionArea').boundingBox();
+async function swipeJump(page,touch,bounds) {
   assert(bounds && bounds.width>=80 && bounds.height>=100,
     'the right-hand swipe zone must be touch-reachable');
   const before=await page.evaluate(()=>window.CrownlessGestureReadout());
   assert.equal(before.mode,'gesture','the dodge hint promises a gesture');
   const x=bounds.x+bounds.width*.65,y=bounds.y+bounds.height*.70;
-  const touch=await page.context().newCDPSession(page);
-  try {
-    await touch.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});
-    await touch.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y:y-72}]});
-    await touch.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
-  } finally { await touch.detach(); }
+  await touch.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});
+  await touch.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y:y-72}]});
+  await touch.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
   const after=await page.evaluate(()=>window.CrownlessGestureReadout());
   assert.equal(after.lastAction,'jump','an actual upward touch swipe must resolve to jump');
   assert.equal(after.count,before.count+1,'one swipe must trigger exactly one combat action');
@@ -155,6 +151,10 @@ async function jumpCounterGuardian(page) {
   const started=Date.now();
   let stage='first-hit',jumpSeen=false,dodgeSeen=false,phoneCueSeen=false;
   const trace=[];
+  // Prepare the CDP touch channel before the short warning starts. Opening
+  // a new session during the 0.65s tell could consume the dodge window.
+  const bounds=await page.locator('#gestureActionArea').boundingBox();
+  const touch=await page.context().newCDPSession(page);
   try {
     while(Date.now()-started<14000) {
       const {s,gestureCue}=await page.evaluate(()=>({
@@ -191,7 +191,7 @@ async function jumpCounterGuardian(page) {
       if(stage==='tell' && enemy.guardianTellUntil-s.nowSec<0.5 &&
           enemy.guardianTellUntil-s.nowSec>0.1 &&
           ['IDLE','WALK','RUN'].includes(s.player.state)) {
-        await swipeJump(page);
+        await swipeJump(page,touch,bounds);
         stage='jump';
       }
       const wanted=[];
@@ -208,7 +208,9 @@ async function jumpCounterGuardian(page) {
     }
     throw new Error('jump→evade→landed counter not reached: '+
       JSON.stringify({stage,jumpSeen,dodgeSeen,trace,state:await read(page)}));
-  } finally { await keys(page,held,[]); }
+  } finally {
+    try { await keys(page,held,[]); } finally { await touch.detach(); }
+  }
 }
 
 // The guardian may be occupied with the ally. A player must deliberately
