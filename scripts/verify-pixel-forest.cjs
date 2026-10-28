@@ -143,6 +143,34 @@ async function swipeJump(page,touch,bounds) {
   assert.equal(after.count,before.count+1,'one swipe must trigger exactly one combat action');
 }
 
+// After the earned counter, act on the HUD's "距離を取る好機" using the
+// actual phone movement pad. Measure the real retreat instead of assuming
+// that a successful dodge automatically prevents later damage.
+async function retreatAfterCounter(page,touch) {
+  const before=await read(page);
+  const guardian=before.enemies.find(e=>e.name==='苔祠の番人' && e.hp>0 && e.state!=='DEAD');
+  assert(guardian && before.phase==='fight','retreat needs a living guardian');
+  const away=guardian.x>=before.player.x?-1:1;
+  const pad=await page.locator('#leftTouchPadArea').boundingBox();
+  assert(pad && pad.width>100,'counter retreat must use the visible phone movement pad');
+  const x=pad.x+pad.width*.5,y=pad.y+pad.height*.72;
+  await touch.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});
+  try {
+    await touch.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x:x+away*38,y}]});
+    await page.waitForTimeout(520);
+  } finally {
+    await touch.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+  }
+  const after=await read(page);
+  const moved=(after.player.x-before.player.x)*away;
+  const gap=s=>Math.hypot(s.enemies.find(e=>e.name==='苔祠の番人')?.x-s.player.x||0,
+    s.enemies.find(e=>e.name==='苔祠の番人')?.z-s.player.z||0);
+  assert(moved>10,'the counter cue must allow a real thumb retreat: '+
+    JSON.stringify({before:before.player,after:after.player,moved}));
+  return {moved:Math.round(moved),gapBefore:Math.round(gap(before)),
+    gapAfter:Math.round(gap(after)),hpLost:Math.max(0,before.player.hp-after.player.hp)};
+}
+
 // Real-input proof of the tactical promise: a scouted hit, a visible tell,
 // an actual jump at the strike moment, and a landed +8 counter. Never write
 // actor positions, combat flags or HP from the test.
@@ -195,8 +223,9 @@ async function jumpCounterGuardian(page) {
         await page.waitForFunction(() =>
           document.getElementById('forestExploreHint')?.textContent?.includes('距離を取る好機'),
           null,{timeout:650});
+        const retreat=await retreatAfterCounter(page,touch);
         return {jumpSeen,dodgeSeen,phoneCueSeen,repositionCueSeen:true,counterClaimed:true,
-          hpAtStart:startingHp,hpAtCounter:s.player.hp,damageEvents,
+          hpAtStart:startingHp,hpAtCounter:s.player.hp,retreat,damageEvents,
           seconds:Math.round((Date.now()-started)/100)/10,trace};
       }
       if(trace.length<110) trace.push({ms:Date.now()-started,stage,
@@ -482,7 +511,7 @@ async function verifyTracksShrineRisk(page, crafted, {dodgeGuardian=false}={}) {
     counterEvidence:counterEvidence&&{jumpSeen:counterEvidence.jumpSeen,
       dodgeSeen:counterEvidence.dodgeSeen,phoneCueSeen:counterEvidence.phoneCueSeen,
       repositionCueSeen:counterEvidence.repositionCueSeen,
-      counterClaimed:counterEvidence.counterClaimed,
+      counterClaimed:counterEvidence.counterClaimed,retreat:counterEvidence.retreat,
       hpAtStart:counterEvidence.hpAtStart,
       hpAtCounter:counterEvidence.hpAtCounter,
       damageEvents:counterEvidence.damageEvents,
@@ -848,6 +877,7 @@ async function main() {
             dodgeCounter:{hpLost:forgedDodge.guardian.hpLostFromRisk,
               hpLostBeforeCounter:dodgeLossBeforeCounter,
               hpLostAfterCounter:dodgeLossAfterCounter,
+              retreat:forgedDodge.counterEvidence.retreat,
               damageBeforeCounter:forgedDodge.counterEvidence.damageEvents,
               damageAfterCounter:forgedDodge.guardian.damageEvents},
             note:'Separate expeditions; HP/AI timing may differ. No fun claim.'
