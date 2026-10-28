@@ -297,12 +297,51 @@ test('dodging the guardian tell grants only the defender one landed +8 counter',
   assert.equal(D.guardianCounterStrikeBonus(cancelled,100.7,'hero'),0);
 });
 
+test('a landed counter briefly staggers only the guardian, once per dodge',()=>{
+  const guardian={name:'苔祠の番人',hp:120,state:'IDLE',nextStrikeAt:0};
+  assert.equal(D.guardianStrikeTell(guardian,100,true,true,true,'hero'),'start');
+  assert.equal(D.guardianStrikeTell(guardian,100.66,false,true,true,'hero'),'evaded');
+  assert.equal(D.claimGuardianCounter(guardian,101,'ally'),false,
+    'the ally cannot claim a player-earned opening');
+  assert.equal(D.claimGuardianCounter(guardian,101,'hero'),true);
+  assert.equal(guardian.guardianCounterClaimed,true);
+  assert.ok(Math.abs(guardian.guardianCounterUntil-101.9)<1e-9,
+    'the guardian stays off balance for 0.9s after the landed counter');
+  assert.ok(Math.abs(guardian.nextStrikeAt-102.4)<1e-9,
+    'the next announced lunge is delayed, not deleted');
+  assert.equal(D.guardianCounterStrikeBonus(guardian,101.1,'hero'),0);
+  assert.equal(D.claimGuardianCounter(guardian,101.2,'hero'),false,
+    'repeated hits cannot extend the reward');
+  assert.ok(Math.abs(guardian.nextStrikeAt-102.4)<1e-9);
+  assert.equal(D.guardianStrikeTell(guardian,101.9,true,true,false,'hero'),'none',
+    'no lunge during earned recovery');
+  assert.equal(D.guardianStrikeTell(guardian,102.4,true,true,true,'hero'),'start',
+    'the guardian resumes attacking after the bounded respite');
+
+  const expired={name:'苔祠の番人',hp:120,nextStrikeAt:0};
+  D.guardianStrikeTell(expired,100,true,true,true,'hero');
+  D.guardianStrikeTell(expired,100.66,false,true,true,'hero');
+  assert.equal(D.claimGuardianCounter(expired,101.86,'hero'),false);
+  assert.equal(expired.guardianCounterClaimed,false);
+  const normal={...expired,name:'苔牙ゴブリン'};
+  assert.equal(D.claimGuardianCounter(normal,101,'hero'),false);
+  const dead={name:'苔祠の番人',hp:0,state:'DEAD',nextStrikeAt:0};
+  D.guardianStrikeTell(dead,100,true,true,true,'hero');
+  D.guardianStrikeTell(dead,100.66,false,true,true,'hero');
+  assert.equal(D.claimGuardianCounter(dead,101,'hero'),true,
+    'a lethal counter can still claim its damage bonus');
+  assert.equal(dead.nextStrikeAt,101.86,
+    'a dead guardian does not gain a new recovery cooldown');
+});
+
 test('real combat and phone HUD wire the earned counter to a landed player hit',()=>{
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   const attack=html.slice(html.indexOf('function performAttackHitbox('),html.indexOf('function inflictDamage('));
   assert.match(attack,/guardianCounterStrikeBonus\(target,performance\.now\(\)\/1000,attacker\.id\)/);
   assert.match(attack,/finalDmg\+scoutBonus\+counterBonus/);
-  assert.match(attack,/if \(!inflictDamage\([\s\S]*?continue;[\s\S]*?if \(counterBonus\) \{\s*target\.guardianCounterClaimed=true;/);
+  assert.match(attack,/if \(!inflictDamage\([\s\S]*?continue;[\s\S]*?if \(counterBonus\) \{[\s\S]*?claimGuardianCounter\(/);
+  assert.match(attack,/反撃成功！[\s\S]*?番人がよろめく/,
+    'a landed counter explains its brief tactical opening');
   const hint=html.slice(html.indexOf('function forestGuardianHint('),html.indexOf('function updateForestExploreHint('));
   assert.match(hint,/guardianCounterTargetId===hero\.id/);
   assert.match(hint,/空振り！反撃\+8 残り/);
