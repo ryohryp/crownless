@@ -280,8 +280,10 @@
       Number.isFinite(nowSec) && enemy.scoutOpeningEndsAt>nowSec
       ? GUARDIAN_SCOUT_STRIKE_BONUS : 0;
   }
-  function shrineRiskDamage(found,crafted){
-    return (crafted?6:12)-(found.has('traces')?3:0);
+  // A tempered smith-made blade also helps clear the shrine's thorned gap.
+  // Scouted footing and sharpening reduce wounds, never the guardian fight.
+  function shrineRiskDamage(found,crafted,tempered=false){
+    return (crafted?6:12)-(found.has('traces')?3:0)-(crafted && tempered?2:0);
   }
   function uncover(player,found,phase,hp,maxHp,crafted=false,shrineChoice='auto',tempered=false){
     if(!available(phase)) return {ok:false};
@@ -315,7 +317,7 @@
     if(spot.kind==='healing' && shrineChoice==='risk' && phase!=='return')
       return {ok:false,reason:'clear-first',spot};
     // A forged sword clears the thorns, halving the deep-search wound.
-    const riskDamage=shrineRiskDamage(found,crafted);
+    const riskDamage=shrineRiskDamage(found,crafted,tempered);
     if(spot.kind==='healing' && shrineChoice==='risk' && hp<riskDamage+1)
       return {ok:false,reason:'weak',spot};
     const risky=spot.kind==='healing' && shrineChoice==='risk';
