@@ -249,6 +249,19 @@
       !enemy.guardianCounterClaimed && Number.isFinite(nowSec) &&
       enemy.guardianCounterUntil>nowSec ? GUARDIAN_COUNTER_BONUS : 0;
   }
+  // A *landed* dodge counter earns a short, non-stackable chance to reposition.
+  // Missing the counter or letting the window expire grants no recovery.
+  // Reuse the existing off-balance timer so the guardian cannot chase or
+  // start a new lunge immediately; do not alter other enemies.
+  function claimGuardianCounter(enemy,nowSec,attackerId){
+    if(!guardianCounterStrikeBonus(enemy,nowSec,attackerId)) return false;
+    enemy.guardianCounterClaimed=true;
+    if(enemy.hp>0 && enemy.state!=='DEAD'){
+      enemy.guardianCounterUntil=Math.max(enemy.guardianCounterUntil||0,nowSec+0.9);
+      enemy.nextStrikeAt=Math.max(enemy.nextStrikeAt||0,nowSec+1.4);
+    }
+    return true;
+  }
   function guardianScoutStrikeBonus(enemy,nowSec){
     return enemy && enemy.name==='苔祠の番人' &&
       enemy.scoutOpeningArmed && !enemy.scoutStrikeClaimed &&
@@ -304,5 +317,5 @@
       heal:gateHeal?Math.min(45,Math.max(0,maxHp-hp)):
         spot.kind==='healing' && !scavenge?Math.min(35,Math.max(0,maxHp-hp)):0};
   }
-  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,near,cueNear,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,guardianScoutStrikeBonus,guardianReadyForOpening,guardianBehindWarning,companionYieldsGuardianOpening,companionYieldsGuardianRecovery,companionYieldsGuardianFootsteps,guardianTargetsExplorer,guardianStrikeTell,guardianKeepsTellOnHit,guardianDodgeCueActive,guardianCounterStrikeBonus,shrineRiskDamage,uncover};
+  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,near,cueNear,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,guardianScoutStrikeBonus,guardianReadyForOpening,guardianBehindWarning,companionYieldsGuardianOpening,companionYieldsGuardianRecovery,companionYieldsGuardianFootsteps,guardianTargetsExplorer,guardianStrikeTell,guardianKeepsTellOnHit,guardianDodgeCueActive,guardianCounterStrikeBonus,claimGuardianCounter,shrineRiskDamage,uncover};
 });
