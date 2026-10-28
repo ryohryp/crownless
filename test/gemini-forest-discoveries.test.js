@@ -64,6 +64,43 @@ test('reading tracks extends only the hidden gate vibration, never touch range o
     'normal contextual hints still use the original interaction radius');
 });
 
+test('earned far gate cue is perceivable without haptics, once only, and reveals no route',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const hintStart=html.indexOf('  function updateForestExploreHint()');
+  const start=html.indexOf('    const near=window.CrownlessForestDiscoveries.near(ginji,state.forestFinds);',hintStart);
+  const end=html.indexOf("    if (near?.id!=='shrine')",start);
+  assert(hintStart>=0 && start>hintStart && end>start,'use the actual live cue block');
+  const tick=new Function('window','ginji','state','rpg','document','sfx','spawnPopup',html.slice(start,end));
+  const player={x:850,z:260,y:0};
+  const state={forestFinds:new Set(['traces']),forestCuePulsed:new Set()};
+  const popups=[],haptics=[];
+  const doc={getElementById:()=>({classList:{contains:()=>true}})};
+  const window={CrownlessForestDiscoveries:D};
+  const sfx={haptic:pattern=>haptics.push(pattern)};
+  const run=(phase='return')=>tick(window,player,state,{phase},doc,sfx,(...args)=>popups.push(args));
+  run('fight');
+  assert.equal(popups.length,0,'combat cannot disclose the earned clue');
+  run();
+  assert.equal(popups.length,1,'non-haptic devices still get one perceptible clue');
+  assert.equal(popups[0][0],'遠くで、何かが軋む音がした');
+  assert.equal(popups[0][1],player.x,'feedback is anchored to the hero, not the hidden gate');
+  assert.equal(popups[0][2],player.z);
+  assert.deepEqual(haptics,[[28,45,28]],'haptic cue is retained where supported');
+  assert.equal(state.forestCuePulsed.has('hollow:far'),true);
+  assert.deepEqual([...state.forestFinds],['traces'],'cue cannot discover the gate or award loot');
+  run();
+  assert.equal(popups.length,1,'standing inside the far radius must not spam');
+  player.x=910;player.z=235;
+  run();
+  assert.equal(popups.length,1,'close-range confirmation must not repeat the distant popup');
+  assert.equal(haptics.length,2,'the close-range tactile confirmation remains independent');
+  assert.equal(state.forestCuePulsed.has('hollow'),true);
+  assert.equal(state.forestFinds.has('hollow'),false,'approach still requires a deliberate tap');
+  state.forestFinds=new Set();state.forestCuePulsed.clear();
+  run();
+  assert.equal(popups.length,1,'an unscouted nearby gate must not receive the earned far cue');
+});
+
 test('approaching the traces and tapping earns exactly one unbanked material, not a banked weapon',()=>{
   const visited=new Set(),run=R.create();
   const player={x:800,z:365};
