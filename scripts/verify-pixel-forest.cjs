@@ -1088,7 +1088,7 @@ async function main() {
           const safeChoice=page.locator('#forestGateCautious');
           assert(await safeChoice.isEnabled(),
             'the sharpened sword opens the safe one-fang route on the next expedition');
-          assert.match(await safeChoice.innerText(),/負傷なし.*未帰還素材 \\+1/,
+          assert.match(await safeChoice.innerText(),/負傷なし.*未帰還素材 \+1/,
             'the live choice advertises zero HP loss before the tap');
           const safeBounds=await safeChoice.boundingBox();
           assert(safeBounds && safeBounds.width>=44 && safeBounds.height>=44 &&
