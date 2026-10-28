@@ -1113,7 +1113,7 @@ test('tempered smith sword makes forceful gate salvage safer without granting ex
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   assert.match(html,/gateSalvageDamage\('material',rpg\.tempered\)/,
     'phone preview must derive the actual equipment-dependent wound');
-  assert.match(html,/gateSalvageDamage\('cautious',rpg\.tempered\)/,
+  assert.match(html,/gateSalvageDamage\('cautious',rpg\.tempered,rpg\.crafted\)/,
     'careful salvage preview must use the same tempered rule as the reward');
   assert.match(html,/cautiousCost===0\?'負傷なし'/,
     'zero-risk choice must be legible instead of advertising HP -0');
