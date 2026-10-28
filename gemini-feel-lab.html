@@ -2074,11 +2074,11 @@
       const missing=Math.max(0,ginji.maxHp-ginji.hp);
       heal.disabled=missing===0;
       const risk=document.getElementById('forestShrineRisk');
-      const riskCost=window.CrownlessForestDiscoveries.shrineRiskDamage(state.forestFinds,rpg.crafted);
+      const riskCost=window.CrownlessForestDiscoveries.shrineRiskDamage(state.forestFinds,rpg.crafted,rpg.tempered);
       risk.disabled=ginji.hp<riskCost+1 || rpg.phase!=='return';
       risk.textContent=rpg.phase!=='return'?'奥まで探る（魔物を倒してから／奥に気配がある｜HP -'+riskCost+'・未帰還素材 +2／追加戦闘）':
         risk.disabled?'奥まで探る（HP -'+riskCost+'・未帰還素材 +2／追加戦闘・撃退まで帰還不可｜HP '+(riskCost+1)+'以上必要）':
-        '奥まで探る（HP -'+riskCost+' →残り'+Math.floor(ginji.hp-riskCost)+'・未帰還素材 +2'+(rpg.crafted?'／鍛冶剣で軽減':'')+
+        '奥まで探る（HP -'+riskCost+' →残り'+Math.floor(ginji.hp-riskCost)+'・未帰還素材 +2'+(rpg.tempered?'／研ぎ直した剣で負傷 -2':rpg.crafted?'／鍛冶剣で軽減':'')+
         (state.forestFinds.has('traces')?'／足跡を読んで負傷 -3・接近する物音を早く察知':'')+
         (rpg.phase==='return'?'／奥に気配・追加戦闘あり・撃退まで帰還不可':'')+'）';
       heal.textContent=missing ? '傷を癒やす（HP +'+Math.min(35,missing)+'・素材なし）' : '傷がないため回復不可';
