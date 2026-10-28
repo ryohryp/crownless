@@ -292,3 +292,17 @@ test('announced shrine lunge survives nonlethal button-mashing but not a killing
   assert.match(hit,/踏み込みは止まらない！跳んで避けよう/,
     'show the player why repeated attacks did not stop the lunge');
 });
+
+test('only a landed shrine-guardian blow tells the player the dodge failed',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const hit=html.slice(html.indexOf('function performAttackHitbox('),html.indexOf('function inflictDamage('));
+  const success=hit.indexOf('if (!inflictDamage(');
+  const failureCue=hit.indexOf('踏み込み直撃！次は跳んで避けよう');
+  assert(success>=0 && failureCue>success,
+    'a missed or rejected strike cannot display a false hit warning');
+  assert.match(hit,/if \(attacker\.name==='苔祠の番人' && target===ginji\) \{[\s\S]*?踏み込み直撃！次は跳んで避けよう[\s\S]*?sfx\.haptic\(\[35,25,35\]\)/,
+    'only a real guardian hit on the player gets distinct visual and phone feedback');
+  const ai=html.slice(html.indexOf('function sampleEnemyAI('),html.indexOf('function updateFighter('));
+  assert.match(ai,/if\(guardianAttack==='strike'\)\{[\s\S]*?out\.punch=true/,
+    'the guarded attack remains the actual lunge, not a new passive damage source');
+});
