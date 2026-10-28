@@ -167,6 +167,10 @@ async function retreatAfterCounter(page,touch) {
     s.enemies.find(e=>e.name==='苔祠の番人')?.z-s.player.z||0);
   assert(moved>10,'the counter cue must allow a real thumb retreat: '+
     JSON.stringify({before:before.player,after:after.player,moved}));
+  assert(gap(after)>gap(before)+10,
+    'the real phone retreat must widen the guardian gap, not just move the hero');
+  assert.equal(after.player.hp,before.player.hp,
+    'the earned reposition window must protect the player while moving away');
   return {moved:Math.round(moved),gapBefore:Math.round(gap(before)),
     gapAfter:Math.round(gap(after)),hpLost:Math.max(0,before.player.hp-after.player.hp)};
 }
