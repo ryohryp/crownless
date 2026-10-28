@@ -1173,7 +1173,7 @@ async function main() {
               assert.match(gateCraftHint,new RegExp('鍛冶剣まで牙あと'+stillNeeded+'個'),
                 'the swordless gate must show the actual remaining smithing need');
             }
-            assert.doesNotMatch(gateCraftHint,/\\+2なら残り/,
+            assert.doesNotMatch(gateCraftHint,/\+2なら残り/,
               'without a sword the gate must not advertise inaccessible two-fang salvage');
             const gateHintBounds=await barehandPage.locator('#forestGateChoice > div').boundingBox();
             assert(gateHintBounds && gateHintBounds.y>=0 &&
