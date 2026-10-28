@@ -290,8 +290,8 @@
     if(!spot) return {ok:false};
     if(spot.kind==='cache'){
       if(!found.has('traces')) return {ok:false,reason:'trail',spot};
-      // The sword is needed to cut through the thorns for fangs, but an
-      // injured explorer can still reach the herbs at the edge of the gate.
+      // A sword is required for the two-fang haul. Bare hands may risk a
+      // deeper wound for one fang, or use the accessible healing herbs.
       if(!crafted && !['heal','cautious'].includes(shrineChoice))
         return {ok:false,reason:'thorns',spot};
     }
