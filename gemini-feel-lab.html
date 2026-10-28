@@ -1520,6 +1520,13 @@
       spawnPopup('🍃 番人が空振り！反撃+8の好機',enemy.x,enemy.z,enemy.y+65,'#6ee7b7');
       sfx.haptic(15);
     }
+    // A correctly dodged lunge leaves the guardian briefly off balance.
+    // Do not let it immediately chase the jumping hero out of counter range;
+    // the defender still has to land a real hit before the one-shot timer ends.
+    if(enemy.name==='苔祠の番人' && enemy.guardianCounterUntil>nowSec){
+      enemy.facing=dx>=0?1:-1;
+      return out;
+    }
 
     if (hasToken) {
       if (Math.abs(dx) < 48 && Math.abs(dz) < 20 && target.state !== 'DOWN') {
@@ -2113,7 +2120,11 @@
       punchPower:ginji.punchPower,kickPower:ginji.kickPower} : null,
     enemies:state.fighters.filter(f=>f.team===1).map(f=>({name:f.name,x:f.x,z:f.z,hp:f.hp,maxHp:f.maxHp,state:f.state,
       scoutStrikeClaimed:!!f.scoutStrikeClaimed,
-      scoutOpeningActive:!!f.scoutOpeningEndsAt && f.scoutOpeningEndsAt>performance.now()/1000})),
+      scoutOpeningActive:!!f.scoutOpeningEndsAt && f.scoutOpeningEndsAt>performance.now()/1000,
+      guardianTellUntil:f.guardianTellUntil||0,
+      guardianCounterUntil:f.guardianCounterUntil||0,
+      guardianCounterClaimed:!!f.guardianCounterClaimed})),
+    nowSec:performance.now()/1000,
     crafted:rpg.crafted,tempered:rpg.tempered,unbanked:rpg.unbanked,banked:rpg.banked,
     art:pixelArt?'pixel':'classic',assetsReady:forestArt.ready(),
     heroAnimation:heroStillReview.status(),
