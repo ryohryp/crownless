@@ -143,7 +143,7 @@ async function swipeJump(page,touch,bounds) {
   assert.equal(after.count,before.count+1,'one swipe must trigger exactly one combat action');
 }
 
-// After the earned counter, act on the HUD's "距離を取る好機" using the
+// After the earned counter, act on the HUD's "追撃はタップ／退避は左パッド" using the
 // actual phone movement pad. Measure the real retreat instead of assuming
 // that a successful dodge automatically prevents later damage.
 async function retreatAfterCounter(page,touch) {
@@ -225,7 +225,7 @@ async function jumpCounterGuardian(page) {
         // The earned 0.9s recovery must be legible in the live 390px HUD,
         // not just in a pure-function test or a transient floating popup.
         await page.waitForFunction(() =>
-          document.getElementById('forestExploreHint')?.textContent?.includes('距離を取る好機'),
+          document.getElementById('forestExploreHint')?.textContent?.includes('追撃はタップ／退避は左パッド'),
           null,{timeout:650});
         const retreat=await retreatAfterCounter(page,touch);
         return {jumpSeen,dodgeSeen,phoneCueSeen,repositionCueSeen:true,counterClaimed:true,
