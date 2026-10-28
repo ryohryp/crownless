@@ -265,3 +265,30 @@ test('real combat and phone HUD wire the earned counter to a landed player hit',
   assert.match(hint,/guardianCounterTargetId===hero\.id/);
   assert.match(hint,/空振り！反撃\+8 残り/);
 });
+
+test('announced shrine lunge survives nonlethal button-mashing but not a killing hit',()=>{
+  const guardian={name:'苔祠の番人',state:'IDLE',hp:120,nextStrikeAt:0};
+  assert.equal(D.guardianStrikeTell(guardian,100,true,true,true,'hero'),'start');
+  assert.equal(D.guardianKeepsTellOnHit(guardian,100.2),true);
+  assert.equal(D.guardianStrikeTell(guardian,100.3,true,true,true,'hero'),'warning',
+    'nonlethal hits cannot erase the readable attack cue');
+  assert.equal(D.guardianKeepsTellOnHit(guardian,100.65),false,
+    'armor ends with the tell');
+  assert.equal(D.guardianKeepsTellOnHit({...guardian,hp:0},100.2),false,
+    'lethal hits still defeat the guardian and grant normal loot');
+  assert.equal(D.guardianKeepsTellOnHit({...guardian,state:'DEAD'},100.2),false);
+  assert.equal(D.guardianKeepsTellOnHit({...guardian,name:'苔牙ゴブリン'},100.2),false,
+    'ordinary enemies retain normal hitstun');
+  assert.equal(D.guardianKeepsTellOnHit({...guardian,guardianTellUntil:0},100.2),false);
+  assert.equal(D.guardianKeepsTellOnHit(null,100.2),false);
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const hit=html.slice(html.indexOf('function inflictDamage('),html.indexOf('function forestGateTemperHint('));
+  assert.match(hit,/target\.hp = Math\.max\(0, target\.hp - dmg\)/,
+    'the armor must not negate damage');
+  assert.match(hit,/if \(target\.hp <= 0\)[\s\S]*?guardianKeepsTellOnHit\(target,performance\.now\(\)\/1000\)/,
+    'lethal hit handling must precede windup armor');
+  assert.match(hit,/guardianKeepsTellOnHit\([\s\S]*?return true;[\s\S]*?if \(knockdown\)/,
+    'only nonlethal hitstun/knockdown is suppressed');
+  assert.match(hit,/踏み込みは止まらない！跳んで避けよう/,
+    'show the player why repeated attacks did not stop the lunge');
+});
