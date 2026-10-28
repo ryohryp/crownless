@@ -108,12 +108,22 @@
   // Yield only during the *armed* player strike window. Before the
   // explorer approaches, the ally must still defend: otherwise a guardian
   // fighting the ally can stall forever while the player hangs back.
-  // After a landed strike or expiry, ordinary support resumes.
+  // After a landed strike, the separate bounded recovery yield gives the
+  // guardian time to telegraph once; expiry otherwise resumes normal support.
   function companionYieldsGuardianOpening(enemy,nowSec){
     return Boolean(enemy && enemy.name==='苔祠の番人' &&
       enemy.scoutOpeningSeconds>0 && enemy.scoutOpeningArmed &&
       !enemy.scoutStrikeClaimed && Number.isFinite(nowSec) &&
       enemy.scoutOpeningEndsAt>nowSec);
+  }
+  // Prevent the ally from killing a downed guardian before its first tell.
+  // The yield is bounded and only near an active hero; retreat, incapacity
+  // or expiry restores normal ally defense instead of stalling combat.
+  function companionYieldsGuardianRecovery(player,enemy,nowSec){
+    return Boolean(player && enemy && enemy.name==='苔祠の番人' &&
+      enemy.scoutStrikeClaimed && enemy.scoutFirstHitYieldUntil>nowSec &&
+      !['DEAD','HURT','DOWN','GRAB'].includes(player.state) &&
+      Math.abs(enemy.x-player.x)<120 && Math.abs(enemy.z-player.z)<30);
   }
   // Do not spend the one-time scouting warning while Ginji is locked in an
   // animation, or while the guardian is invulnerable / being grappled.
@@ -286,5 +296,5 @@
       heal:gateHeal?Math.min(45,Math.max(0,maxHp-hp)):
         spot.kind==='healing' && !scavenge?Math.min(35,Math.max(0,maxHp-hp)):0};
   }
-  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,near,cueNear,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,guardianScoutStrikeBonus,guardianReadyForOpening,guardianBehindWarning,companionYieldsGuardianOpening,companionYieldsGuardianFootsteps,guardianTargetsExplorer,guardianStrikeTell,guardianKeepsTellOnHit,guardianCounterStrikeBonus,shrineRiskDamage,uncover};
+  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,near,cueNear,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,guardianScoutStrikeBonus,guardianReadyForOpening,guardianBehindWarning,companionYieldsGuardianOpening,companionYieldsGuardianRecovery,companionYieldsGuardianFootsteps,guardianTargetsExplorer,guardianStrikeTell,guardianKeepsTellOnHit,guardianCounterStrikeBonus,shrineRiskDamage,uncover};
 });
