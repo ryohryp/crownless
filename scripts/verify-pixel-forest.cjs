@@ -1007,10 +1007,72 @@ async function main() {
             'the next real expedition gets the tempered kick bonus');
           assert.equal(await page.evaluate(()=>localStorage.getItem('crownless-expedition-v1-demo')),
             saveBefore,'the unrelated location-game save stays untouched');
+          // Prove the smith upgrade changes a *later* expedition, not only
+          // a static rule preview. Reach the same gate with the saved sword,
+          // deliberately choose the risky +2 route and bring the loot home.
+          assert.equal(cautiousRestored.phase,'fight',
+            'a tempered camp reload starts a new expedition with no unsecured loot');
+          await clearWave(page);
+          await walkTo(page,800,365);
+          await tapSite(page,'traces');
+          await walkTo(page,910,235);
+          const beforeTemperedGate=await read(page);
+          assert(beforeTemperedGate.player.hp>=5,
+            'the tempered risky route needs at least five HP to remain nonlethal');
+          await tapSite(page,'hollow');
+          const temperedGatePanel=page.locator('#forestGateChoice');
+          assert(await temperedGatePanel.isVisible(),
+            'the upgraded sword opens the same deliberate gate choice on revisit');
+          const temperedStakes=await page.locator('#forestGateStakes').innerText();
+          assert.match(temperedStakes,/強引に牙 \+2（HP -4）／研ぎ直した剣で負傷軽減/,
+            'the phone explains the reduced injury before committing to the risky route');
+          assert.match(temperedStakes,/生還時だけ倉庫に残り/,
+            'even a tempered blade cannot bank provisional materials at the gate');
+          const temperedMaterial=page.locator('#forestGateMaterial');
+          assert(await temperedMaterial.isEnabled(),
+            'the reduced-cost risky choice is actually actionable');
+          assert.match(await temperedMaterial.innerText(),/HP -4.*未帰還素材 \+2/,
+            'the actual tap target advertises the same cost as the rules');
+          const temperedBounds=await temperedMaterial.boundingBox();
+          assert(temperedBounds && temperedBounds.width>=44 && temperedBounds.height>=44 &&
+            temperedBounds.y>=0 &&
+            temperedBounds.y+temperedBounds.height<=page.viewportSize().height,
+            'the upgraded gate choice stays reachable on a 390px phone');
+          await page.screenshot({path:path.join(output,'pixel-forest-tempered-gate-choice-390.png')});
+          await page.touchscreen.tap(temperedBounds.x+temperedBounds.width/2,
+            temperedBounds.y+temperedBounds.height/2);
+          const afterTemperedGate=await read(page);
+          assert(afterTemperedGate.found.includes('hollow'),
+            'the upgraded risky salvage consumes this expedition gate');
+          assert.equal(afterTemperedGate.player.hp,beforeTemperedGate.player.hp-4,
+            'the upgraded sword saves four HP on the actual later expedition');
+          assert.equal(afterTemperedGate.unbanked,beforeTemperedGate.unbanked+2,
+            'the upgraded sword does not duplicate the two provisional fangs');
+          await tapSite(page,'hollow');
+          assert.equal((await read(page)).unbanked,afterTemperedGate.unbanked,
+            'the upgraded gate cannot be harvested twice in one expedition');
+          await page.locator('#rpgOpenResults').click();
+          await page.locator('#rpgReturn').click();
+          const temperedReturn=await read(page);
+          assert.equal(temperedReturn.phase,'camp');
+          assert.equal(temperedReturn.banked,
+            cautiousRestored.banked+beforeTemperedGate.unbanked+2,
+            'only a living return banks the upgraded gate reward and combat finds');
+          assert.equal(temperedReturn.unbanked,0);
+          await page.reload({waitUntil:'domcontentloaded'});
+          await page.waitForFunction(()=>window.CrownlessForestReadout?.().assetsReady);
+          const temperedRestored=await read(page);
+          assert.equal(temperedRestored.tempered,true,
+            'the upgraded sword survives another complete return and reload');
+          assert.equal(temperedRestored.banked,temperedReturn.banked,
+            'the safely banked tempered-gate loot survives reload without duplication');
+          assert.equal(temperedRestored.unbanked,0);
+          assert.equal(await page.evaluate(()=>localStorage.getItem('crownless-expedition-v1-demo')),
+            saveBefore,'the unrelated location-game save remains untouched');
           report.loop={first,shrineBeforeForge,locked,gateHerbsBeforeForge:{before:beforeSwordlessHerbs,after:afterSwordlessHerbs},returned,forged,second,shrineAfterForge,forgedDodge,unlocked,banked,restored,
             gateHealing:{before:beforeGateHeal,after:afterGateHeal,returned:gateHealedReturn},
             gateCautious:{before:beforeCautious,after:afterCautious,returned:cautiousReturn,restored:cautiousRestored},
-            temperedCamp};
+            temperedCamp,temperedGate:{before:beforeTemperedGate,after:afterTemperedGate,returned:temperedReturn,restored:temperedRestored}};
         }
         assert.deepEqual(errors,[],'no browser runtime errors');
       } catch(error) {
@@ -1020,7 +1082,7 @@ async function main() {
     }
     report.passed=true;
     await fs.writeFile(path.join(output,'pixel-forest-report.json'),JSON.stringify(report,null,2)+'\n');
-    console.log('Pixel forest: 360/390/430px aspect + touch; real combat → discovery → swordless gate herbs → return → forge → revisit → hollow (material/heal/cautious) → saved reload PASS');
+    console.log('Pixel forest: 360/390/430px aspect + touch; real combat → discovery → swordless gate herbs → return → forge → revisit → hollow (material/heal/cautious) → temper → revisited gate (-4 HP/+2 fangs) → safe return/reload PASS');
     console.log(JSON.stringify(report,null,2));
   } finally {
     if(browser) await browser.close();
