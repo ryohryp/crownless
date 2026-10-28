@@ -126,6 +126,27 @@ async function ignoreGuardianFootsteps(page) {
     JSON.stringify({state:await read(page),trace}));
 }
 
+// Exercise the real touch gesture handler, not a keyboard shortcut or a
+// direct call to fireGesture(). A phone player must be able to act on the
+// 0.65-second guardian warning using the advertised upward swipe.
+async function swipeJump(page) {
+  const bounds=await page.locator('#gestureActionArea').boundingBox();
+  assert(bounds && bounds.width>=80 && bounds.height>=100,
+    'the right-hand swipe zone must be touch-reachable');
+  const before=await page.evaluate(()=>window.CrownlessGestureReadout());
+  assert.equal(before.mode,'gesture','the dodge hint promises a gesture');
+  const x=bounds.x+bounds.width*.65,y=bounds.y+bounds.height*.70;
+  const touch=await page.context().newCDPSession(page);
+  try {
+    await touch.send('Input.dispatchTouchEvent',{type:'touchStart',touchPoints:[{x,y}]});
+    await touch.send('Input.dispatchTouchEvent',{type:'touchMove',touchPoints:[{x,y:y-72}]});
+    await touch.send('Input.dispatchTouchEvent',{type:'touchEnd',touchPoints:[]});
+  } finally { await touch.detach(); }
+  const after=await page.evaluate(()=>window.CrownlessGestureReadout());
+  assert.equal(after.lastAction,'jump','an actual upward touch swipe must resolve to jump');
+  assert.equal(after.count,before.count+1,'one swipe must trigger exactly one combat action');
+}
+
 // Real-input proof of the tactical promise: a scouted hit, a visible tell,
 // an actual jump at the strike moment, and a landed +8 counter. Never write
 // actor positions, combat flags or HP from the test.
@@ -152,7 +173,7 @@ async function jumpCounterGuardian(page) {
           gestureCue.includes('↑スワイプで跳躍回避')) phoneCueSeen=true;
       if(stage==='jump' && s.player.state==='JUMP') jumpSeen=true;
       if(stage==='jump' && enemy.guardianCounterUntil>s.nowSec) {
-        assert(jumpSeen,'the counter must follow a genuine keyboard jump');
+        assert(jumpSeen,'the counter must follow a genuine touch-swipe jump');
         dodgeSeen=true;
         stage='counter';
       }
@@ -170,7 +191,7 @@ async function jumpCounterGuardian(page) {
       if(stage==='tell' && enemy.guardianTellUntil-s.nowSec<0.5 &&
           enemy.guardianTellUntil-s.nowSec>0.1 &&
           ['IDLE','WALK','RUN'].includes(s.player.state)) {
-        await page.keyboard.press('Space',{delay:65});
+        await swipeJump(page);
         stage='jump';
       }
       const wanted=[];
