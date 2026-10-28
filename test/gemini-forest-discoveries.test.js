@@ -776,8 +776,8 @@ test('reading tracks rewards one landed early guardian hit, never a miss or late
   assert.equal(D.guardianScoutStrikeBonus(guardian,NaN),0,'invalid time grants no bonus');
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   const hit=html.slice(html.indexOf('function performAttackHitbox('),html.indexOf('function inflictDamage('));
-  assert.match(hit,/attacker===ginji[\s\S]*?guardianScoutStrikeBonus\(target,performance\.now\(\)\/1000\)/,
-    'only the player can claim the scouting bonus');
+  assert.match(hit,/attacker===ginji[\s\S]*?guardianScoutStrikeBonus\(target,hitNowSec\)/,
+    'only the player can claim the scouting bonus using the hit timestamp');
   assert.match(hit,/inflictDamage\(target, finalDmg\+scoutBonus/,
     'the bonus must affect actual damage');
   assert(hit.indexOf('if (!inflictDamage(')<hit.indexOf('target.scoutStrikeClaimed=true'),
