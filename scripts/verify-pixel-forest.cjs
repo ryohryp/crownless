@@ -1159,7 +1159,7 @@ async function main() {
             await tapSite(barehandPage,'hollow');
             const barehandButton=barehandPage.locator('#forestGateCautious');
             assert.equal(await barehandButton.isEnabled(),true);
-            assert.match(await barehandButton.innerText(),/素手で慎重に牙を拾う.*HP -6.*未帰還素材 \\+1/);
+            assert.match(await barehandButton.innerText(),/素手で慎重に牙を拾う.*HP -6.*未帰還素材 \+1/);
             const barehandTap=await barehandButton.boundingBox();
             assert(barehandTap && barehandTap.height>=44 &&
               barehandTap.y>=0 &&
