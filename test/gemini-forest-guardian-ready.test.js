@@ -273,16 +273,16 @@ test('landed guardian counter shows a short reposition choice only to its defend
   assert.equal(D.guardianStrikeTell(guardian,100,true,true,true,'hero'),'start');
   assert.equal(D.guardianStrikeTell(guardian,100.66,false,true,true,'hero'),'evaded');
   assert.match(liveHint(guardian,new Set(),2,100.8,hero),/空振り！反撃\+8/);
-  assert.doesNotMatch(liveHint(guardian,new Set(),2,100.8,hero),/距離を取る好機/,
+  assert.doesNotMatch(liveHint(guardian,new Set(),2,100.8,hero),/追撃はタップ／退避は左パッド/,
     'a missed or unclaimed counter must not promise recovery');
   assert.equal(D.claimGuardianCounter(guardian,101,'hero'),true);
-  assert.match(liveHint(guardian,new Set(),2,101.1,hero),/反撃成功！距離を取る好機：左パッドで離れよう 残り[0-9]+\.[0-9]秒/,
+  assert.match(liveHint(guardian,new Set(),2,101.1,hero),/反撃成功！追撃はタップ／退避は左パッド：左パッドで離れよう 残り[0-9]+\.[0-9]秒/,
     'a landed counter should communicate the remaining tactical choice');
   assert.doesNotMatch(liveHint(guardian,new Set(),2,101.1,hero),/反撃\+8/,
     'a spent counter must not promise a second damage bonus');
-  assert.doesNotMatch(liveHint(guardian,new Set(),2,101.1,{...hero,id:'ally'}),/距離を取る好機/,
+  assert.doesNotMatch(liveHint(guardian,new Set(),2,101.1,{...hero,id:'ally'}),/追撃はタップ／退避は左パッド/,
     'the cue belongs only to the player who earned it');
-  assert.doesNotMatch(liveHint(guardian,new Set(),2,101.9,hero),/距離を取る好機/,
+  assert.doesNotMatch(liveHint(guardian,new Set(),2,101.9,hero),/追撃はタップ／退避は左パッド/,
     'the cue must expire with the real off-balance timer');
 });
 
