@@ -742,9 +742,9 @@ async function main() {
           assert(!locked.found.includes('hollow'),'declining the swordless herb choice keeps the gate unspent');
           assert.equal(locked.unbanked,lockedBefore.unbanked,'locked hollow grants no material');
           await page.screenshot({path:path.join(output,'pixel-forest-hollow-locked.png')});
-          // Complete the swordless alternative through actual phone input.
-          // Declining once leaves herbs available; taking them must not grant
-          // the fang reward locked behind the crafted sword.
+          // Complete the swordless herb alternative through actual phone input.
+          // Declining once leaves the gate available; taking herbs must not
+          // also grant the optional, injury-costly barehand fang.
           await tapSite(page,'hollow');
           assert.equal(await unarmedGate.isVisible(),true,
             'canceling the gate decision must allow a later real inspection');
