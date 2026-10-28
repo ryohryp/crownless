@@ -240,6 +240,33 @@ test('forged sword mitigates shrine deep-search wounds without free loot',()=>{
   assert.equal(D.uncover(player,weak,'fight',6.5,140,true,'material').material,1);
 });
 
+test('tempered sword reduces optional shrine wounds but still requires a guarded return',()=>{
+  const shrine={x:660,z:230};
+  for(const [scouted,expected] of [[false,4],[true,1]]){
+    const found=scouted?new Set(['traces']):new Set();
+    assert.equal(D.shrineRiskDamage(found,true,true),expected,
+      'tempering must reduce the real injury by two HP');
+    assert.equal(D.shrineRiskDamage(found,true,false),expected+2,
+      'ordinary forged sword retains the old injury');
+    const weak=D.uncover(shrine,new Set(found),'return',expected,140,true,'risk',true);
+    assert.equal(weak.reason,'weak','never spend a site on an unsurvivable risk');
+    const result=D.uncover(shrine,new Set(found),'return',expected+1,140,true,'risk',true);
+    assert.equal(result.ok,true);
+    assert.equal(result.damage,expected);
+    assert.equal(result.material,2,'sharpening does not mint extra fangs');
+    assert.equal(result.heal,0);
+  }
+  assert.equal(D.shrineRiskDamage(new Set(['traces']),false,true),9,
+    'no sword cannot claim a sharpening bonus');
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  assert.ok(html.includes('CrownlessForestDiscoveries.shrineRiskDamage(state.forestFinds,rpg.crafted,rpg.tempered)'),
+    'the phone preview must use the exact same tempered rule as the reward');
+  assert.match(html,/研ぎ直した剣で負傷 -2/,
+    'the player must see the new equipment advantage before choosing the guarded route');
+  assert.match(html,/追加戦闘あり・撃退まで帰還不可/,
+    'the extra guardian remains an explicit consequence of deep searching');
+});
+
 test('reading tracks first makes the shrine deep search safer without making the detour mandatory',()=>{
   const shrine={x:660,z:230};
   for(const [crafted,base,read] of [[false,12,9],[true,6,3]]){
@@ -264,7 +291,7 @@ test('reading tracks first makes the shrine deep search safer without making the
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   assert.match(html,/足跡は右奥へ続いている。安全な足場を発見（危険な調査の負傷 -3）/,
     'the discovered tracks should explain their benefit without naming the hidden shrine');
-  assert.ok(html.includes('CrownlessForestDiscoveries.shrineRiskDamage(state.forestFinds,rpg.crafted)'),
+  assert.ok(html.includes('CrownlessForestDiscoveries.shrineRiskDamage(state.forestFinds,rpg.crafted,rpg.tempered)'),
     'the visible HP cost must come from the same rule as the reward');
   assert.match(html,/足跡を読んで負傷 -3/,'the benefit must be visible before committing');
   assert.ok(html.includes('獣の痕跡！牙 +1／危険な調査で受ける傷を3軽減'),
