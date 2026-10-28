@@ -262,6 +262,32 @@ test('guardian warns before striking, and stepping away earns a counterattack wi
     'an already-airborne hero must not see a stale jump instruction');
 });
 
+test('landed guardian counter shows a short reposition choice only to its defender',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const hint=html.slice(html.indexOf('function forestGuardianHint('),html.indexOf('function updateForestExploreHint('));
+  const source=hint.match(/function forestGuardianHint\\([^)]*\\) \\{[\\s\\S]*?\\n  \\}/)?.[0];
+  assert.ok(source,'the real phone HUD must contain an executable guardian hint');
+  const liveHint=Function('window','return ('+source+')')({CrownlessForestDiscoveries:D});
+  const hero={id:'hero',state:'IDLE',x:0,z:0,facing:1};
+  const guardian={name:'苔祠の番人',hp:120,maxHp:180,state:'IDLE',x:35,z:0,nextStrikeAt:0};
+  assert.equal(D.guardianStrikeTell(guardian,100,true,true,true,'hero'),'start');
+  assert.equal(D.guardianStrikeTell(guardian,100.66,false,true,true,'hero'),'evaded');
+  assert.match(liveHint(guardian,new Set(),2,100.8,hero),/空振り！反撃\\+8/);
+  assert.doesNotMatch(liveHint(guardian,new Set(),2,100.8,hero),/距離を取る好機/,
+    'a missed or unclaimed counter must not promise recovery');
+  assert.equal(D.claimGuardianCounter(guardian,101,'hero'),true);
+  assert.match(liveHint(guardian,new Set(),2,101.1,hero),/反撃成功！距離を取る好機 残り0\\.8秒/,
+    'a landed counter should communicate the remaining tactical choice');
+  assert.doesNotMatch(liveHint(guardian,new Set(),2,101.1,hero),/反撃\\+8/,
+    'a spent counter must not promise a second damage bonus');
+  assert.doesNotMatch(liveHint(guardian,new Set(),2,101.1,{...hero,id:'ally'}),/距離を取る好機/,
+    'the cue belongs only to the player who earned it');
+  assert.doesNotMatch(liveHint(guardian,new Set(),2,101.9,hero),/距離を取る好機/,
+    'the cue must expire with the real off-balance timer');
+  assert.doesNotMatch(liveHint({...guardian,name:'苔牙ゴブリン'},new Set(),2,101.1,hero),/距離を取る好機/,
+    'normal enemies never inherit the guardian cue');
+});
+
 test('a timed jump evades the guardian warning and leaves a landing-to-counter window',()=>{
   const guardian={name:'苔祠の番人',nextStrikeAt:0};
   assert.equal(D.guardianStrikeTell(guardian,100,true,true,true,'hero'),'start');
