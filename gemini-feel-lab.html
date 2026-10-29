@@ -2094,7 +2094,8 @@
       const forgeChoice=forestShrineCraftHint(rpg,rpgRules);
       document.getElementById('forestShrineStakes').textContent=
         '現在 HP '+Math.floor(ginji.hp)+'/'+ginji.maxHp+'、未帰還の牙 '+rpg.unbanked+
-        '個。'+forgeChoice+'素材は生還時だけ倉庫に残る（敗北すると失う）。';
+        '個。'+(state.forestFinds.has('traces')?'':'足元の筋は未調査。今は引き返して探す手もある。')+
+        forgeChoice+'素材は生還時だけ倉庫に残る（敗北すると失う）。';
       panel.classList.remove('hidden');
       return true;
     }
