@@ -354,17 +354,17 @@ test('a landed counter briefly staggers only the guardian, once per dodge',()=>{
     'the ally cannot claim a player-earned opening');
   assert.equal(D.claimGuardianCounter(guardian,101,'hero'),true);
   assert.equal(guardian.guardianCounterClaimed,true);
-  assert.ok(Math.abs(guardian.guardianCounterUntil-101.9)<1e-9,
-    'the guardian stays off balance for 0.9s after the landed counter');
-  assert.ok(Math.abs(guardian.nextStrikeAt-102.4)<1e-9,
+  assert.ok(Math.abs(guardian.guardianCounterUntil-102.2)<1e-9,
+    'the guardian stays off balance for 1.2s after the landed counter');
+  assert.ok(Math.abs(guardian.nextStrikeAt-102.8)<1e-9,
     'the next announced lunge is delayed, not deleted');
   assert.equal(D.guardianCounterStrikeBonus(guardian,101.1,'hero'),0);
   assert.equal(D.claimGuardianCounter(guardian,101.2,'hero'),false,
     'repeated hits cannot extend the reward');
-  assert.ok(Math.abs(guardian.nextStrikeAt-102.4)<1e-9);
-  assert.equal(D.guardianStrikeTell(guardian,101.9,true,true,false,'hero'),'none',
+  assert.ok(Math.abs(guardian.nextStrikeAt-102.8)<1e-9);
+  assert.equal(D.guardianStrikeTell(guardian,102.2,true,true,false,'hero'),'none',
     'no lunge during earned recovery');
-  assert.equal(D.guardianStrikeTell(guardian,102.4,true,true,true,'hero'),'start',
+  assert.equal(D.guardianStrikeTell(guardian,102.8,true,true,true,'hero'),'start',
     'the guardian resumes attacking after the bounded respite');
 
   const expired={name:'苔祠の番人',hp:120,nextStrikeAt:0};
