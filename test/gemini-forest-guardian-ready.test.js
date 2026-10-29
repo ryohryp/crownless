@@ -451,9 +451,11 @@ test('landed guardian dodge-counter earns one provisional fang, once, until safe
   assert.equal(R.pushDeeper(run),true);
   assert.equal(D.guardianCounterStrikeBonus(guardian,101,heroId),8);
   assert.equal(D.claimGuardianCounter(guardian,101,heroId),true);
-  assert.equal(R.claimMaterial(run),true);
+  assert.equal(D.claimGuardianCounterFang(guardian,()=>R.claimMaterial(run)),true);
   assert.equal(run.unbanked,1);
   assert.equal(run.banked,0,'counter loot cannot enter the warehouse mid-fight');
+  assert.equal(D.claimGuardianCounterFang(guardian,()=>R.claimMaterial(run)),false,
+    'repeated claim in the same counter cannot duplicate provisional loot');
   assert.equal(D.claimGuardianCounter(guardian,101.1,heroId),false,
     'a repeated hit must not award a second fang');
   assert.equal(D.guardianCounterStrikeBonus(guardian,101.1,heroId),0);
@@ -461,13 +463,28 @@ test('landed guardian dodge-counter earns one provisional fang, once, until safe
     'an expired counter cannot earn loot');
   assert.equal(D.claimGuardianCounter({...guardian,guardianCounterClaimed:false},101,'ally'),false,
     'the companion cannot claim the player-earned fang');
+  // The next real telegraphed lunge may still be countered for damage, but
+  // must not mint another fang from this same guardian.
+  assert.equal(D.guardianStrikeTell(guardian,102.5,true,true,true,heroId),'start');
+  assert.equal(D.guardianStrikeTell(guardian,103.2,false,true,true,heroId),'evaded');
+  assert.equal(D.guardianCounterStrikeBonus(guardian,103.3,heroId),8);
+  assert.equal(D.claimGuardianCounter(guardian,103.3,heroId),true);
+  assert.equal(D.claimGuardianCounterFang(guardian,()=>R.claimMaterial(run)),false);
+  assert.equal(run.unbanked,1,'second successful dodge is not a loot farm');
+  const freshGuardian={name:'苔祠の番人',guardianCounterClaimed:true};
+  let freshClaims=0;
+  assert.equal(D.claimGuardianCounterFang(freshGuardian,()=>{freshClaims++;return false;}),false);
+  assert.equal(D.claimGuardianCounterFang(freshGuardian,()=>{freshClaims++;return true;}),true,
+    'failed material claim must not permanently consume the encounter reward');
+  assert.equal(D.claimGuardianCounterFang(freshGuardian,()=>{freshClaims++;return true;}),false);
+  assert.equal(freshClaims,2,'new guardian can award once, never twice');
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   const hit=html.slice(html.indexOf('const hitNowSec=performance.now()/1000;'),
     html.indexOf('if (scoutBonus) {',html.indexOf('const hitNowSec=performance.now()/1000;')));
   assert.match(hit,/if \(!inflictDamage\([\s\S]*?\) continue;/,
     'the reward must be downstream of a real landed hit');
-  assert.match(hit,/const earnedFang=earnedCounter && rpgRules\.claimMaterial\(rpg\);/,
-    'only a successful one-shot counter can add provisional loot');
+  assert.match(hit,/const earnedFang=earnedCounter &&[\s\S]*?claimGuardianCounterFang\([\s\S]*?target,\(\)=>rpgRules\.claimMaterial\(rpg\)\)/,
+    'only a landed counter can claim one provisional fang per guardian');
   assert.match(hit,/牙 \+1（未帰還）/,
     'the real action scene must label the reward as unsecured');
   assert.equal(R.clearWave(run),true);

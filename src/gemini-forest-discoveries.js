@@ -274,6 +274,17 @@
     }
     return true;
   }
+  // A guardian yields at most one provisional fang per encounter. Repeated
+  // earned dodge-counters still deal +8 and create a recovery window, but
+  // keeping the guardian alive must not become an unlimited material farm.
+  function claimGuardianCounterFang(enemy,claimMaterial){
+    if(!enemy || enemy.name!=='苔祠の番人' ||
+       !enemy.guardianCounterClaimed || enemy.guardianCounterFangClaimed ||
+       typeof claimMaterial!=='function') return false;
+    if(!claimMaterial()) return false;
+    enemy.guardianCounterFangClaimed=true;
+    return true;
+  }
   function guardianScoutStrikeBonus(enemy,nowSec){
     return enemy && enemy.name==='苔祠の番人' &&
       enemy.scoutOpeningArmed && !enemy.scoutStrikeClaimed &&
@@ -332,5 +343,5 @@
       heal:gateHeal?Math.min(45,Math.max(0,maxHp-hp)):
         spot.kind==='healing' && !scavenge?Math.min(35,Math.max(0,maxHp-hp)):0};
   }
-  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,GATE_BAREHAND_DAMAGE,gateSalvageDamage,near,cueNear,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,guardianScoutStrikeBonus,guardianReadyForOpening,guardianBehindWarning,companionYieldsGuardianOpening,companionYieldsGuardianRecovery,companionYieldsGuardianFootsteps,guardianTargetsExplorer,guardianStrikeTell,guardianKeepsTellOnHit,guardianDodgeCueActive,guardianCounterStrikeBonus,claimGuardianCounter,shrineRiskDamage,uncover};
+  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,GATE_BAREHAND_DAMAGE,gateSalvageDamage,near,cueNear,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,guardianScoutStrikeBonus,guardianReadyForOpening,guardianBehindWarning,companionYieldsGuardianOpening,companionYieldsGuardianRecovery,companionYieldsGuardianFootsteps,guardianTargetsExplorer,guardianStrikeTell,guardianKeepsTellOnHit,guardianDodgeCueActive,guardianCounterStrikeBonus,claimGuardianCounter,claimGuardianCounterFang,shrineRiskDamage,uncover};
 });
