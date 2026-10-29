@@ -755,8 +755,8 @@ async function main() {
             'inspecting an already-pulsed clue must not trigger another proximity pulse');
           assert.match(await returnButton.innerText(),new RegExp('牙'+afterTracks.unbanked+'）'),
             'the return choice updates even when the clue hint takes priority');
-          await page.waitForFunction(()=>document.getElementById('forestExploreHint')?.textContent?.includes('足元の踏み跡が途切れ途切れに続く'));
-          assert.match(await page.locator('#forestExploreHint').innerText(),/安全な足場を発見（危険な調査の負傷 -3）/,
+          await page.waitForFunction(()=>document.getElementById('forestExploreHint')?.textContent?.includes('足元の踏み跡が二手に分かれ'));
+          assert.ok((await page.locator('#forestExploreHint').innerText()).includes('周囲の違いを見て、どちらを追う？（危険な調査の負傷 -3）'),
             'discovering tracks should immediately reveal the safer next choice');
           // Capture the actual phone canvas with the earned fork in view;
           // this is visual evidence, not a claim that the signs are readable.
