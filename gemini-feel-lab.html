@@ -1519,7 +1519,7 @@
       hasToken && Math.abs(dx)<48 && Math.abs(dz)<20 && !['DOWN','JUMP'].includes(target.state),
       hasToken && ['IDLE','WALK','RUN'].includes(enemy.state),
       window.CrownlessHitRecovery.readyToStrike(enemy,nowSec),target.id,
-      !['DEAD','HURT','DOWN','GRAB'].includes(target.state));
+      !['DEAD','HURT','DOWN','GRAB'].includes(target.state),target===ginji);
     if(guardianAttack==='start'){
       enemy.scoutFirstHitYieldUntil=0; // the visible tell now protects the decision
       // An ally-targeted tell or a locked attack cannot be answered by a hero jump.
