@@ -307,7 +307,9 @@ test('landed guardian counter shows a short reposition choice only to its defend
     'a spent counter must not promise a second damage bonus');
   assert.doesNotMatch(liveHint(guardian,new Set(['traces']),2,101.1,{...hero,id:'ally'}),/追撃はタップ／退避は左パッド/,
     'the cue belongs only to the player who earned it');
-  assert.doesNotMatch(liveHint(guardian,new Set(['traces']),2,101.9,hero),/追撃はタップ／退避は左パッド/,
+  assert.match(liveHint(guardian,new Set(['traces']),2,102.19,hero),/追撃はタップ／退避は左パッド/,
+    'the player still has a visible choice just before the longer recovery ends');
+  assert.doesNotMatch(liveHint(guardian,new Set(['traces']),2,102.2,hero),/追撃はタップ／退避は左パッド/,
     'the cue must expire with the real off-balance timer');
 });
 
