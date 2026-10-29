@@ -273,11 +273,22 @@ test('landed guardian counter shows a short reposition choice only to its defend
   assert.equal(D.guardianStrikeTell(guardian,100,true,true,true,'hero'),'start');
   assert.equal(D.guardianStrikeTell(guardian,100.66,false,true,true,'hero'),'evaded');
   assert.match(liveHint(guardian,new Set(),2,100.8,hero),/空振り！反撃\+8/);
+  assert.match(liveHint(guardian,new Set(),2,100.8,hero),/命中で牙\+1（未帰還）/,
+    'after an earned dodge, the player sees the optional unsecured reward before committing to a counter');
   assert.doesNotMatch(liveHint(guardian,new Set(),2,100.8,hero),/追撃はタップ／退避は左パッド/,
     'a missed or unclaimed counter must not promise recovery');
   assert.equal(D.claimGuardianCounter(guardian,101,'hero'),true);
   assert.match(liveHint(guardian,new Set(),2,101.1,hero),/反撃成功！追撃はタップ／退避は左パッド 残り[0-9]+\.[0-9]秒/,
     'a landed counter should communicate the remaining tactical choice');
+  assert.equal(D.claimGuardianCounterFang(guardian,()=>true),true);
+  assert.match(liveHint(guardian,new Set(),3,101.1,hero),/牙は獲得済み/,
+    'the HUD confirms the fang is already claimed, not another repeatable reward');
+  assert.doesNotMatch(liveHint(guardian,new Set(),3,101.1,hero),/命中で牙\+1/,
+    'claimed fang is never offered twice');
+  assert.match(liveHint({...guardian,guardianCounterClaimed:false},new Set(),3,101.1,hero),/空振り！反撃\+8（牙は獲得済み）/,
+    'subsequent earned counters still offer tactical damage, not extra loot');
+  assert.doesNotMatch(liveHint(guardian,new Set(),3,101.1,{...hero,id:'ally'}),/牙は獲得済み/,
+    'the counter reward cue belongs only to the defender');
   assert.doesNotMatch(liveHint(guardian,new Set(),2,101.1,hero),/反撃\+8/,
     'a spent counter must not promise a second damage bonus');
   assert.doesNotMatch(liveHint(guardian,new Set(),2,101.1,{...hero,id:'ally'}),/追撃はタップ／退避は左パッド/,
@@ -371,7 +382,7 @@ test('real combat and phone HUD wire the earned counter to a landed player hit',
     'a landed counter explains its brief tactical opening');
   const hint=html.slice(html.indexOf('function forestGuardianHint('),html.indexOf('function updateForestExploreHint('));
   assert.match(hint,/guardianCounterTargetId===hero\.id/);
-  assert.match(hint,/空振り！反撃\+8 残り/);
+  assert.match(hint,/空振り！反撃\+8.*残り/);
 });
 
 test('announced shrine lunge survives nonlethal button-mashing but not a killing hit',()=>{
