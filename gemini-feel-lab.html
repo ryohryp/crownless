@@ -2962,8 +2962,15 @@
   function updateGuardianDodgeControls(guardian,hero,nowSec) {
     const active=window.CrownlessForestDiscoveries.guardianDodgeCueActive(guardian,hero,nowSec);
     const gestureHint=document.getElementById('gestureHint');
+    // Do not advertise a jump while the hero is locked into an attack.
+    // Keep the incoming threat visible beside the actual touch control.
+    const attackLocked=Boolean(guardian && hero &&
+      ['ATTACK','SPECIAL'].includes(hero.state) &&
+      guardian.guardianTellUntil>nowSec &&
+      guardian.guardianTellTargetId===hero.id);
     gestureHint.textContent=active
       ? '⚠ ↑スワイプで跳躍回避'
+      : attackLocked ? '⚠ 攻撃中は跳べない！番人の踏み込みに注意'
       : 'タップ:斬撃　横:蹴り　↑跳ぶ　↓組む';
     gestureHint.classList.toggle('guardian-dodge-cue',active);
     document.getElementById('btnJump').classList.toggle('guardian-dodge-cue',active);
