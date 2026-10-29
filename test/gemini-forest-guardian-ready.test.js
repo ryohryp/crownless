@@ -439,3 +439,44 @@ test('guardian dodge cue points to the real thumb control only when the hero is 
   assert.match(html,/btnJump'\)\.classList\.toggle\('guardian-dodge-cue',active\)/,
     'arcade button mode must receive the same cue');
 });
+
+test('landed guardian dodge-counter earns one provisional fang, once, until safe return',()=>{
+  const R=require('../src/gemini-rpg-loop.js');
+  const heroId='hero';
+  const guardian={name:'苔祠の番人',hp:100,state:'IDLE',
+    guardianCounterTargetId:heroId,guardianCounterUntil:103,
+    guardianCounterClaimed:false,nextStrikeAt:0};
+  const run=R.create();
+  assert.equal(R.clearWave(run),true);
+  assert.equal(R.pushDeeper(run),true);
+  assert.equal(D.guardianCounterStrikeBonus(guardian,101,heroId),8);
+  assert.equal(D.claimGuardianCounter(guardian,101,heroId),true);
+  assert.equal(R.claimMaterial(run),true);
+  assert.equal(run.unbanked,1);
+  assert.equal(run.banked,0,'counter loot cannot enter the warehouse mid-fight');
+  assert.equal(D.claimGuardianCounter(guardian,101.1,heroId),false,
+    'a repeated hit must not award a second fang');
+  assert.equal(D.guardianCounterStrikeBonus(guardian,101.1,heroId),0);
+  assert.equal(D.claimGuardianCounter({...guardian,guardianCounterClaimed:false},103,heroId),false,
+    'an expired counter cannot earn loot');
+  assert.equal(D.claimGuardianCounter({...guardian,guardianCounterClaimed:false},101,'ally'),false,
+    'the companion cannot claim the player-earned fang');
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const hit=html.slice(html.indexOf('const hitNowSec=performance.now()/1000;'),
+    html.indexOf('if (scoutBonus) {',html.indexOf('const hitNowSec=performance.now()/1000;')));
+  assert.match(hit,/if \(!inflictDamage\([\s\S]*?\) continue;/,
+    'the reward must be downstream of a real landed hit');
+  assert.match(hit,/const earnedFang=earnedCounter && rpgRules\.claimMaterial\(rpg\);/,
+    'only a successful one-shot counter can add provisional loot');
+  assert.match(hit,/牙 \+1（未帰還）/,
+    'the real action scene must label the reward as unsecured');
+  assert.equal(R.clearWave(run),true);
+  assert.equal(R.returnAlive(run,100),true);
+  assert.equal(run.unbanked,0);
+  assert.equal(run.banked,1);
+  const lost=R.create();
+  assert.equal(R.claimMaterial(lost),true);
+  assert.equal(R.loseExpedition(lost),true);
+  assert.equal(lost.unbanked,0);
+  assert.equal(lost.banked,0,'defeat must erase the unreturned counter loot');
+});
