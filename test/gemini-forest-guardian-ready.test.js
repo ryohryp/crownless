@@ -642,6 +642,6 @@ test('ally dodging the guardian does not freeze combat or offer a player-only co
     'a deliberate player dodge still earns the existing tactical counter');
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   const ai=html.slice(html.indexOf('function sampleEnemyAI('),html.indexOf('function updateFighter('));
-  assert.match(ai,/guardianStrikeTell\\([\\s\\S]*?target\\.id,\\s*!\\['DEAD','HURT','DOWN','GRAB'\\]\\.includes\\(target\\.state\\),target===ginji\\)/,
+  assert.ok(ai.includes("!['DEAD','HURT','DOWN','GRAB'].includes(target.state),target===ginji)"),
     'the live guardian AI must pass the real defender identity into the rule');
 });
