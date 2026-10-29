@@ -65,6 +65,10 @@ class WalkPocTest(unittest.TestCase):
             ik_study.create(out, anchor)
             self.assertEqual(len(list(out.glob('pose-*.png'))), 8)
             self.assertIn('provisional_not_original', (out/'guide.json').read_text())
+            with Image.open(out/'lower-mask.png') as mask:
+                self.assertEqual(mask.size,(512,512))
+                self.assertEqual(mask.getpixel((256,350)), (255,255,255))
+                self.assertEqual(mask.getpixel((256,150)), (0,0,0))
             with self.assertRaises(FileExistsError):
                 ik_study.create(out, anchor)
         self.assertEqual(anchor.read_bytes(), before)
@@ -157,6 +161,12 @@ class WalkPocTest(unittest.TestCase):
         phased = poc.workflow('reference.png', 'pose.png', 'pixel.safetensors', 'candidate', phase='near foot forward', control_strength=1.4)
         self.assertIn('near foot forward', phased['2']['inputs']['text'])
         self.assertEqual(phased['8']['inputs']['strength'], 1.4)
+        masked = poc.workflow('reference.png', 'pose.png', 'pixel.safetensors', 'candidate', adapter=True, lower_mask='lower.png')
+        self.assertEqual(masked['40']['inputs']['image'], 'lower.png')
+        self.assertEqual(masked['42']['inputs'], {'samples':['6',0], 'mask':['41',0]})
+        self.assertEqual(masked['9']['inputs']['latent_image'], ['42',0])
+        with self.assertRaises(ValueError):
+            poc.workflow('reference.png', 'pose.png', 'pixel.safetensors', 'candidate', adapter=True, text2img=True, lower_mask='lower.png')
 
 if __name__ == '__main__':
     unittest.main()

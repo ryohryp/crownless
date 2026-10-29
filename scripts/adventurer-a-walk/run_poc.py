@@ -22,7 +22,7 @@ def get(path, data=None):
     with urllib.request.urlopen(req, timeout=15) as response:
         return json.load(response)
 
-def workflow(anchor, pose, model, prefix, denoise=0.55, adapter=False, text2img=False, no_lora=False, sprite_trigger=False, phase=None, control_strength=0.9):
+def workflow(anchor, pose, model, prefix, denoise=0.55, adapter=False, text2img=False, no_lora=False, sprite_trigger=False, phase=None, control_strength=0.9, lower_mask=None):
     graph = {
         '1': {'class_type': 'CheckpointLoaderSimple', 'inputs': {'ckpt_name': model}},
         '2': {'class_type': 'CLIPTextEncode', 'inputs': {'clip': ['1', 1], 'text': 'full body right facing oblique three quarter medieval adventurer, detailed pixel art, charcoal tousled hair with silver forelock, short stubble, indigo split coat, cream sleeves, brown leather strapped boots, belt, pouches, sheathed sword on back, same character, compact 3 to 3.5 heads, small restrained face, natural walking pose, pixel art with irregular dry-brush contours and restrained charcoal, warm ivory and sparse muted vermilion, Japanese sumi-e on warm washi style, plain neutral background, no labels'}},
@@ -56,12 +56,21 @@ def workflow(anchor, pose, model, prefix, denoise=0.55, adapter=False, text2img=
         del graph['12']
     if sprite_trigger:
         graph['2']['inputs']['text'] += ', pixelsprite'
+    if lower_mask:
+        if text2img:
+            raise ValueError('Lower-body inpainting requires anchor img2img')
+        graph['40'] = {'class_type':'LoadImage', 'inputs':{'image':lower_mask}}
+        graph['41'] = {'class_type':'ImageToMask', 'inputs':{'image':['40',0], 'channel':'red'}}
+        graph['42'] = {'class_type':'SetLatentNoiseMask', 'inputs':{'samples':['6',0], 'mask':['41',0]}}
+        graph['9']['inputs']['latent_image'] = ['42',0]
     if text2img:
         graph['6'] = {'class_type': 'EmptyLatentImage', 'inputs': {'width': 512, 'height': 512, 'batch_size': 1}}
         graph['9']['inputs']['denoise'] = 1.0
     return graph
 
 def run(args):
+    if args.lower_inpaint and args.text2img:
+        raise ValueError('Lower-body inpainting requires anchor img2img')
     if args.text2img and not args.adapter:
         raise ValueError('Text-to-image mode requires the approved-anchor adapter')
     if hashlib.sha256(args.anchor.read_bytes()).hexdigest() != ANCHOR_SHA:
@@ -101,6 +110,8 @@ def run(args):
     staging = args.comfy / 'input' / run_id
     staging.mkdir(exist_ok=False)
     shutil.copyfile(args.study / 'anchor-input.png', staging / 'anchor.png')
+    if args.lower_inpaint:
+        shutil.copyfile(args.study / 'lower-mask.png', staging / 'lower-mask.png')
     frames = []
     indices = [0, 4] if args.contacts_only else list(range(8))
     for i in indices:
@@ -108,7 +119,7 @@ def run(args):
         phase = None
         if args.phase_prompt:
             phase = ('near leg forward, far leg back, both boots touch the ground' if i == 0 else 'far leg forward, near leg back, both boots touch the ground' if i == 4 else 'walking transition, one foot passing the other')
-        graph = workflow(f'{run_id}/anchor.png', f'{run_id}/pose-{i:02}.png', args.checkpoint, f'{run_id}/frame-{i:02}', args.denoise, args.adapter, args.text2img, args.no_lora, args.sprite_trigger, phase, args.control_strength)
+        graph = workflow(f'{run_id}/anchor.png', f'{run_id}/pose-{i:02}.png', args.checkpoint, f'{run_id}/frame-{i:02}', args.denoise, args.adapter, args.text2img, args.no_lora, args.sprite_trigger, phase, args.control_strength, f'{run_id}/lower-mask.png' if args.lower_inpaint else None)
         pid = get('/prompt', {'prompt': graph})['prompt_id']
         print(f'Frame {i+1}/8 queued: {pid}', flush=True)
         deadline = time.monotonic() + 600
@@ -137,7 +148,7 @@ def run(args):
         draw.text((128 * i + 5, 136), str(indices[i] + 1), fill='white')
     sheet.save(target / 'review-sheet.png')
     frames[0].save(target / 'review.gif', save_all=True, append_images=frames[1:], duration=125, loop=0)
-    (target / 'manifest.json').write_text(json.dumps({'status': 'unapproved_experiment', 'anchor_sha256': ANCHOR_SHA, 'model': args.checkpoint, 'checkpoint_sha256': checkpoint_sha, 'controlnet': CONTROL, 'seed': 74293, 'denoise': 1.0 if args.text2img else args.denoise, 'indices': indices, 'pose_sha256': {str(i): hashlib.sha256((args.study / f'pose-{i:02}.png').read_bytes()).hexdigest() for i in indices}, 'adapter': args.adapter, 'text2img': args.text2img, 'no_lora': args.no_lora, 'sprite_trigger': args.sprite_trigger, 'phase_prompt': args.phase_prompt, 'control_strength': args.control_strength, 'note': 'New provisional pose study; not the original approved mannequin. No runtime adoption.'}, indent=2), encoding='utf-8')
+    (target / 'manifest.json').write_text(json.dumps({'status': 'unapproved_experiment', 'anchor_sha256': ANCHOR_SHA, 'model': args.checkpoint, 'checkpoint_sha256': checkpoint_sha, 'controlnet': CONTROL, 'seed': 74293, 'denoise': 1.0 if args.text2img else args.denoise, 'indices': indices, 'pose_sha256': {str(i): hashlib.sha256((args.study / f'pose-{i:02}.png').read_bytes()).hexdigest() for i in indices}, 'adapter': args.adapter, 'text2img': args.text2img, 'no_lora': args.no_lora, 'sprite_trigger': args.sprite_trigger, 'phase_prompt': args.phase_prompt, 'control_strength': args.control_strength, 'lower_inpaint': args.lower_inpaint, 'mask_sha256': hashlib.sha256((args.study / 'lower-mask.png').read_bytes()).hexdigest() if args.lower_inpaint else None, 'note': 'New provisional pose study; not the original approved mannequin. No runtime adoption.'}, indent=2), encoding='utf-8')
     print('Unapproved review output:', target)
 
 if __name__ == '__main__':
@@ -147,11 +158,12 @@ if __name__ == '__main__':
     p.add_argument('--comfy', type=Path, required=True)
     p.add_argument('--checkpoint', required=True)
     p.add_argument('--adapter', action='store_true', help='Use IP-Adapter Plus and pixel LoRA')
+    p.add_argument('--lower-inpaint', action='store_true', help='Redraw the lower-body masked region from the anchor')
     p.add_argument('--phase-prompt', action='store_true', help='Describe near/far contact in addition to the pose image')
     p.add_argument('--control-strength', type=float, default=0.9, choices=[0.9, 1.4])
     p.add_argument('--no-lora', action='store_true', help='Do not load pixel LoRA with the adapter')
     p.add_argument('--sprite-trigger', action='store_true', help='Use pixelsprite for the PublicPrompts pixel model')
     p.add_argument('--text2img', action='store_true', help='Use an empty latent, retaining approved reference via adapter')
     p.add_argument('--contacts-only', action='store_true', help='Generate poses 1 and 5 only')
-    p.add_argument('--denoise', type=float, default=0.55, choices=[0.35, 0.55, 0.75])
+    p.add_argument('--denoise', type=float, default=0.55, choices=[0.35, 0.55, 0.75, 1.0])
     run(p.parse_args())

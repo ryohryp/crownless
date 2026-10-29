@@ -115,3 +115,21 @@ $python = 'I:\02_AI\ComfyUI-Crownless\therock-gfx1030-test\Scripts\python.exe'
 & $python scripts/adventurer-a-walk/run_poc.py --study 'I:\02_AI\ComfyUI-Crownless\new-ik-study' --anchor docs/assets/adventurer-a-approved-anchor-v1.png --comfy 'I:\02_AI\ComfyUI-Crownless\ComfyUI_windows_portable\ComfyUI' --checkpoint public-prompts-pixel.safetensors --adapter --no-lora --sprite-trigger --text2img --phase-prompt --control-strength 1.4
 # Then run analyze_walk.py with the new run directory and a new output JSON path.
 ```
+
+## User feedback and lower-body redraw experiment (2026-10-30)
+
+The user reviewed the new fixed-length pose study and responded 「方向性は近い」. This is feedback on the gait direction, not approval of the missing original mannequin, the rendered character, or runtime adoption. The existing approved Adventurer A anchor and human review boundary remain unchanged.
+
+Using the same fixed-length guide, anchor, pixel checkpoint and IP-Adapter on the RX 6800, two ordinary anchor-img2img contact comparisons at denoise 0.55 and 0.75 kept appearance closer but showed little leg movement (`ik-img2img-055-contacts.png`, `ik-img2img-075-contacts.png`). The `--lower-inpaint` experiment uses an explicit feathered lower-body mask, the approved anchor latent, OpenPose and the same identity adapter. The mask and each pose image's SHA-256 are recorded in each run manifest; the upper body is still VAE decoded, so it is not byte-identical to the anchor. It does not cut, move, or warp the approved image into a runtime sprite. Each candidate frame is generated from the same approved source and remains unapproved.
+
+The actual 8-frame local run (`ik-masked-review.png` / `.gif`) kept the head and upper garment visibly closer and showed more leg movement than the ordinary img2img comparison. It still has an opaque gray background, partly static upper body, uncertain near/far contact and continuity of foot, garment and sword details; it is not an accepted walk, a transparent atlas, or a substitute for a human visual review. A simple 512px foreground threshold reported top-row range 0px and bottom-row range 8px (`ik-masked-bbox.json`); those are bounding-box diagnostics, not proof of head/torso stability or foot contact.
+
+`adventurer-a-walk-review.html` compares the selected still with this candidate at approximately phone-sized actor heights, without loading or changing game state. A headless browser loaded both images with no page errors or horizontal overflow at widths 360, 390 and 430; the 390px comparison and four moments of the GIF were visually inspected. This is a comparison page rather than a real-game or physical-phone review, and no animation approval is implied.
+
+Example after starting local ComfyUI:
+
+```powershell
+$python = 'I:\02_AI\ComfyUI-Crownless\therock-gfx1030-test\Scripts\python.exe'
+& $python scripts/adventurer-a-walk/pose_study_ik.py 'I:\02_AI\ComfyUI-Crownless\new-mask-study' docs/assets/adventurer-a-approved-anchor-v1.png
+& $python scripts/adventurer-a-walk/run_poc.py --study 'I:\02_AI\ComfyUI-Crownless\new-mask-study' --anchor docs/assets/adventurer-a-approved-anchor-v1.png --comfy 'I:\02_AI\ComfyUI-Crownless\ComfyUI_windows_portable\ComfyUI' --checkpoint public-prompts-pixel.safetensors --adapter --no-lora --sprite-trigger --denoise 1.0 --phase-prompt --control-strength 1.4 --lower-inpaint
+```

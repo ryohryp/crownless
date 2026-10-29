@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>冒険者 A 歩行試作の比較</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #eee7d9; color: #292520; font: 16px/1.55 system-ui, sans-serif; }
+    main { max-width: 640px; margin: auto; padding: 20px 16px 32px; }
+    h1 { font-size: 1.25rem; margin: 0 0 8px; }
+    p { margin: 8px 0 16px; }
+    .stage { display: flex; flex-wrap: wrap; gap: 12px; }
+    figure { margin: 0; flex: 1 1 150px; min-width: 0; }
+    .view { height: 160px; display: grid; place-items: center; background: #888; }
+    img { image-rendering: pixelated; }
+    .anchor { width: 64px; height: 96px; }
+    .walk { width: 128px; height: 128px; }
+    figcaption { margin-top: 6px; font-weight: 600; }
+    small { display: block; margin-top: 18px; }
+  </style>
+</head>
+<body><main>
+  <h1>冒険者 A 歩行試作</h1>
+  <p>左は承認済みの外見、右は下半身を描き直した未承認の実験です。これはゲーム画面ではありません。</p>
+  <div class="stage">
+    <figure><div class="view"><img class="anchor" src="../assets/adventurer-a-approved-anchor-v1.png" alt="承認済み冒険者 A の静止画"></div><figcaption>承認済みの外見</figcaption></figure>
+    <figure><div class="view"><img class="walk" src="../assets/candidates/adventurer-a-local-poc/ik-masked-review.gif" alt="未承認の8コマ歩行実験"></div><figcaption>歩行の実験</figcaption></figure>
+  </div>
+  <small>候補の足・服・装備の変化や背景は未検証です。素体の「方向性は近い」という感想は、この画像の承認を意味しません。</small>
+</main></body>
+</html>

@@ -6,7 +6,7 @@ study for local ControlNet experiments and require visual/human review.
 import json
 import math
 from pathlib import Path
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 
 # OpenPose COCO body connections and palette, based on the ControlNet renderer.
 # Only the first 17 limbs are rendered; the shoulder-to-ear links are omitted.
@@ -57,6 +57,11 @@ def create(output,anchor):
     canvas=Image.new('RGBA',(512,512),(128,128,128,255))
     canvas.alpha_composite(ref,(128,64))
     canvas.convert('RGB').save(output/'anchor-input.png')
+    # White marks the lower body eligible for redraw. The blur is deliberate;
+    # it does not assert that the retained upper body is a finished animation.
+    mask = Image.new('L',(512,512),0)
+    ImageDraw.Draw(mask).rectangle((145,278,375,450),fill=255)
+    mask.filter(ImageFilter.GaussianBlur(10)).convert('RGB').save(output/'lower-mask.png')
     frames=[]; data=[]
     for i,points in enumerate(poses()):
         im=Image.new('RGB',(512,512),(0,0,0)); draw=ImageDraw.Draw(im)
