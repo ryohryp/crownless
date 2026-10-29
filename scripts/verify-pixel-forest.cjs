@@ -535,6 +535,7 @@ async function verifyTracksShrineRisk(page, crafted, {dodgeGuardian=false}={}) {
       damageEvents:guardian.damageEvents},
     counterEvidence:counterEvidence&&{jumpSeen:counterEvidence.jumpSeen,
       dodgeSeen:counterEvidence.dodgeSeen,phoneCueSeen:counterEvidence.phoneCueSeen,
+      airCounterCueSeen:counterEvidence.airCounterCueSeen,
       repositionCueSeen:counterEvidence.repositionCueSeen,
       counterClaimed:counterEvidence.counterClaimed,retreat:counterEvidence.retreat,
       hpAtStart:counterEvidence.hpAtStart,
