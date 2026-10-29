@@ -1153,6 +1153,39 @@ test('ally knockdown cannot spend the earned guardian strike window',()=>{
     'the phone HUD must not promise a hittable strike while the ally has knocked the guardian down');
 });
 
+test('guardian knockdown cannot waste the earned dodge counter or duplicate a fang',()=>{
+  const guardian={name:'苔祠の番人',state:'DOWN',hp:80,x:20,z:0,
+    guardianCounterUntil:101.2,guardianCounterTargetId:3,
+    guardianCounterClaimed:false,nextStrikeAt:101.2};
+  const hero={id:3,x:0,z:0,state:'IDLE'};
+  for(let i=1;i<=30;i++) assert.equal(
+    D.pauseGuardianCounter(guardian,hero,0.05,100+i*0.05),true);
+  assert(Math.abs(guardian.guardianCounterUntil-102.7)<0.00001);
+  assert.equal(guardian.nextStrikeAt,guardian.guardianCounterUntil);
+  guardian.state='IDLE';
+  assert.equal(D.pauseGuardianCounter(guardian,hero,0.05,101.6),false);
+  assert.equal(D.guardianCounterStrikeBonus(guardian,101.6,3),8);
+  assert.equal(D.claimGuardianCounter(guardian,101.6,3),true);
+  const run=R.create();
+  assert.equal(D.claimGuardianCounterFang(guardian,()=>R.claimMaterial(run),true),true);
+  assert.equal(D.claimGuardianCounterFang(guardian,()=>R.claimMaterial(run),true),false);
+  assert.equal(run.unbanked,1);
+  assert.equal(R.clearWave(run),true);
+  assert.equal(R.returnAlive(run,80),true);
+  assert.equal(run.banked,1,'earned loot is banked only on living return');
+  guardian.state='DOWN';
+  assert.equal(D.pauseGuardianCounter(guardian,hero,0.05,101.7),false,
+    'claimed counters cannot be extended');
+  const fresh={...guardian,guardianCounterClaimed:false,guardianCounterUntil:104};
+  assert.equal(D.pauseGuardianCounter(fresh,{...hero,id:4},0.05,102),false);
+  assert.equal(D.pauseGuardianCounter(fresh,{...hero,state:'HURT'},0.05,102),false);
+  assert.equal(D.pauseGuardianCounter(fresh,{...hero,x:500},0.05,102),false);
+  assert.equal(D.pauseGuardianCounter({...fresh,guardianCounterUntil:101},hero,0.05,102),false);
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  assert.ok(html.includes('pauseGuardianCounter(f,ginji,dt,nowSec)'));
+  assert.ok(html.includes("guardian.state==='DOWN' ? '🍃 番人転倒中｜反撃の機会を温存｜'"));
+});
+
 test('post-combat discovery pulse is once per unexamined clue and never navigation',()=>{
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   assert.match(html,/forestCuePulsed: new Set\(\)/,
