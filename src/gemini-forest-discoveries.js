@@ -212,10 +212,12 @@
   // the warning is cancelled if the guardian is stunned or changes target.
   // Other enemies keep their existing attack behavior.
   const GUARDIAN_COUNTER_SECONDS=1.2; // allow a jump dodge to land before the follow-up
-  function guardianStrikeTell(enemy,nowSec,inMelee,canAct,ready,targetId){
+  function guardianStrikeTell(enemy,nowSec,inMelee,canAct,ready,targetId,defenderActive=true){
     if(!enemy || enemy.name!=='苔祠の番人' || !Number.isFinite(nowSec)) return 'none';
     if(enemy.guardianTellUntil>0){
-      if(!canAct || enemy.guardianTellTargetId!==targetId){
+      // A knockdown or grab is not a deliberate dodge; cancel the tell
+      // without granting a counter or a provisional material opportunity.
+      if(!canAct || !defenderActive || enemy.guardianTellTargetId!==targetId){
         enemy.guardianTellUntil=0;
         enemy.guardianTellTargetId=null;
         return 'none';
