@@ -611,6 +611,49 @@ async function main() {
         await page.touchscreen.tap(action.x+action.width*.7,action.y+action.height*.75);
         assert.equal(await page.evaluate(()=>window.CrownlessGestureReadout().lastAction),'punch','real touch attacks');
         report.viewports.push({width,layout,touchDistance:Math.round(afterMove.player.x-beforeMove.player.x)});
+        if(width===360) {
+          // Before reading tracks, the real shrine choice must allow a
+          // reversible detour. Do not reveal the guardian or award anything
+          // for opening and canceling the panel.
+          await clearWave(page);
+          await walkTo(page,660,230);
+          assert(!(await read(page)).found.includes('traces'),
+            'the detour must begin with genuinely unread tracks');
+          const beforeDetour=await read(page);
+          await tapSite(page,'shrine');
+          const sheet=page.locator('#forestShrineChoice');
+          assert(await sheet.isVisible(),'an unscouted shrine must remain inspectable');
+          const stakes=await page.locator('#forestShrineStakes').innerText();
+          assert.match(stakes,/足元の筋は未調査。今は引き返して探す手もある。/,
+            'the actual phone choice suggests a reversible investigation');
+          assert.match(stakes,/素材は生還時だけ倉庫に残る/,
+            'the unscouted choice retains the real loss condition');
+          assert.doesNotMatch(stakes,/苔祠の番人/,
+            'the risky guardian is still a surprise');
+          const box=await sheet.locator('> div').boundingBox();
+          assert(box && box.y>=0 && box.y+box.height<=page.viewportSize().height,
+            'the additional clue must fit the 360px phone viewport');
+          await page.screenshot({path:path.join(output,'pixel-forest-unscouted-shrine-detour-360.png')});
+          await page.locator('#forestShrineCancel').click();
+          const deferred=await read(page);
+          assert(!deferred.found.includes('shrine') &&
+            deferred.unbanked===beforeDetour.unbanked,
+            'declining the risk cannot consume the find or mint materials');
+          await walkTo(page,800,365);
+          await tapSite(page,'traces');
+          assert((await read(page)).found.includes('traces'),
+            'the player must deliberately inspect the clue');
+          await walkTo(page,660,230);
+          await tapSite(page,'shrine');
+          assert.doesNotMatch(await page.locator('#forestShrineStakes').innerText(),
+            /足元の筋は未調査/,'the old warning clears after actual investigation');
+          assert.match(await page.locator('#forestShrineRisk').innerText(),
+            /足跡を読んで負傷 -3/,'reading tracks changes the real risk');
+          await page.locator('#forestShrineCancel').click();
+          assert(!(await read(page)).found.includes('shrine'),
+            'reopening and declining must still preserve the one-time choice');
+          report.unscoutedShrineDetour={width,tracksInspected:true,shrineUnspent:true};
+        }
         if(width===390) {
           const first=await clearWave(page);
           assert(first.after.unbanked>=3,'three actual enemies provide crafting materials');
