@@ -477,7 +477,7 @@ test('airborne guardian counter hint advertises the real aerial tap, not a landi
   const hero={id:'hero',state:'JUMP'};
   const air=hint(guardian,new Set(['traces']),2,101,hero);
   assert.match(air,/空中タップで反撃/,'the jump counter window is actionable before landing');
-  assert.match(air,/命中で牙\\+1（未帰還）/,'the scouted provisional reward remains clear');
+  assert.ok(air.includes('命中で牙+1（未帰還）'),'the scouted provisional reward remains clear');
   assert.doesNotMatch(hint(guardian,new Set(['traces']),2,101,{...hero,state:'IDLE'}),/空中タップ/);
   assert.doesNotMatch(hint(guardian,new Set(['traces']),2,101,{...hero,state:'ATTACK'}),/空中タップ/);
   assert.doesNotMatch(hint({...guardian,guardianCounterTargetId:'ally'},new Set(['traces']),2,101,hero),/空中タップ/,
@@ -487,7 +487,8 @@ test('airborne guardian counter hint advertises the real aerial tap, not a landi
   assert.match(hint(guardian,new Set(),2,101,hero),/痕跡未調査：牙の追加なし/,
     'aerial hint cannot mint an unearned material reward');
   const fighter=html.slice(html.indexOf('  function updateFighter('),html.indexOf('  function performAttackHitbox('));
-  assert.match(fighter,/if \\(input\\.punch \\|\\| input\\.kick\\) \\{\\s*performAttackHitbox\\(f, f\\.kickPower, 150, 180, false, 58\\)/,
+  assert.ok(fighter.includes('if (input.punch || input.kick) {') &&
+    fighter.includes('performAttackHitbox(f, f.kickPower, 150, 180, false, 58);'),
     'the existing airborne attack path must really accept a tap');
 });
 
