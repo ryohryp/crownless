@@ -597,6 +597,34 @@ test('undiscovered forest hints convey sensory cues without naming every hidden 
   assert.doesNotMatch(hint,/獣の痕跡や古い祠へ近づき/,'generic hint must not spoil specific locations');
 });
 
+test('touching the locked gate before reading tracks preserves the mystery and spends nothing',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const start=html.indexOf('  function tryExploreForest(f,shrineChoice=');
+  const end=html.indexOf('  // Read-only gameplay probe',start);
+  assert(start>=0 && end>start,'exercise the actual forest reward handler');
+  const player={x:910,z:235,y:0,hp:100,maxHp:140,state:'IDLE'};
+  const state={forestFinds:new Set()};
+  const rpg={phase:'return',crafted:false,tempered:false,unbanked:0};
+  const popups=[];
+  const handler=new Function('window','ginji','rpg','state','spawnPopup',
+    'return ('+html.slice(start,end).trim()+');')(
+      {CrownlessForestDiscoveries:D},player,rpg,state,(...args)=>popups.push(args));
+  assert.equal(D.uncover(player,state.forestFinds,'return',100,140,false).reason,'trail');
+  assert.equal(handler(player),true,'a real nearby tap gives a clue rather than punching');
+  assert.equal(popups.length,1);
+  assert.match(popups[0][0],/周囲の足元を調べよう/);
+  assert.doesNotMatch(popups[0][0],/獣の痕跡|茨の石門|道の手がかり|隠し道/,
+    'an undiscovered clue or secret route must not be named');
+  assert.equal(state.forestFinds.size,0,'the hint cannot consume either discovery');
+  assert.equal(rpg.unbanked,0,'the hint cannot award materials');
+  state.forestFinds.add('traces');
+  assert.equal(handler(player),true,'reading tracks changes the gate response');
+  assert.match(popups[1][0],/鍛冶した剣なら切り開けそう/,
+    'only after the tracks are read may the forged-sword solution be hinted');
+  assert.equal(state.forestFinds.has('hollow'),false,'the locked gate remains available');
+  assert.equal(rpg.unbanked,0);
+});
+
 test('guardian fight overrides stale clue hints with live HP and unsecured loot',()=>{
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   const start=html.indexOf('function updateForestExploreHint() {');
