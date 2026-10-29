@@ -2978,6 +2978,10 @@
       : behind ? '👂 背後に足音。振り向けば先手の機会｜' : '';
     const strikeCue=window.CrownlessForestDiscoveries.guardianDodgeCueActive(guardian,hero,nowSec)
       ? '⚠ 番人が踏み込む！跳ぶか離れよう｜'
+      : hero && guardian.guardianTellUntil>nowSec &&
+        guardian.guardianTellTargetId===hero.id &&
+        ['ATTACK','SPECIAL'].includes(hero.state)
+        ? '⚠ 攻撃動作中！番人の踏み込みに注意｜'
       : guardian.guardianCounterUntil>nowSec &&
         hero && guardian.guardianCounterTargetId===hero.id
         ? guardian.guardianCounterClaimed
