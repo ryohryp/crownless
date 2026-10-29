@@ -651,3 +651,42 @@ test('ally dodging the guardian does not freeze combat or offer a player-only co
   assert.ok(ai.includes("!['DEAD','HURT','DOWN','GRAB'].includes(target.state),target===ginji)"),
     'the live guardian AI must pass the real defender identity into the rule');
 });
+
+test('live phone gesture hint distinguishes an attack-locked guardian tell from an actionable jump',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const start=html.indexOf('  function updateGuardianDodgeControls(');
+  const end=html.indexOf('  function forestGuardianHint(',start);
+  assert(start>=0 && end>start,'inspect the real phone gesture formatter');
+  const hint={textContent:'',classList:{toggle(name,on){this[name]=on;}}};
+  const jump={classList:{toggle(name,on){this[name]=on;}}};
+  const document={getElementById(id){
+    if(id==='gestureHint') return hint;
+    if(id==='btnJump') return jump;
+    throw new Error('unexpected DOM id '+id);
+  }};
+  const update=new Function('window','document',
+    html.slice(start,end)+'\nreturn updateGuardianDodgeControls;')(
+      {CrownlessForestDiscoveries:D},document);
+  const hero={id:7,state:'ATTACK'};
+  const guardian={name:'苔祠の番人',guardianTellUntil:12,guardianTellTargetId:7};
+  for(const state of ['ATTACK','SPECIAL']){
+    hero.state=state; update(guardian,hero,11);
+    assert.match(hint.textContent,/攻撃中は跳べない！番人の踏み込みに注意/);
+    assert.equal(hint.classList['guardian-dodge-cue'],false,
+      'an unavailable dodge must not highlight the jump input');
+    assert.equal(jump.classList['guardian-dodge-cue'],false);
+  }
+  hero.state='IDLE'; update(guardian,hero,11);
+  assert.match(hint.textContent,/↑スワイプで跳躍回避/);
+  assert.equal(hint.classList['guardian-dodge-cue'],true);
+  assert.equal(jump.classList['guardian-dodge-cue'],true);
+  hero.state='JUMP'; update(guardian,hero,11);
+  assert.doesNotMatch(hint.textContent,/跳躍回避|攻撃中は跳べない/);
+  hero.state='IDLE'; guardian.guardianTellTargetId=8;
+  update(guardian,hero,11);
+  assert.doesNotMatch(hint.textContent,/跳躍回避|攻撃中は跳べない/,
+    'an ally-targeted lunge must not warn the hero to dodge');
+  guardian.guardianTellTargetId=7; update(guardian,hero,12);
+  assert.doesNotMatch(hint.textContent,/跳躍回避|攻撃中は跳べない/,
+    'expired tells must restore the ordinary gesture hint');
+});
