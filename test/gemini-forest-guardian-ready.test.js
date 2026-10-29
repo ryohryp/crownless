@@ -210,6 +210,27 @@ test('scouted footsteps behind the hero invite a turn without spending the strik
   assert.match(hint(guardian,tracks,3,101.2,hero),/足跡の先読み 残り1\.6秒/);
 });
 
+test('incapacitation cancels the guardian tell without a fake dodge reward',()=>{
+  for(const state of ['DEAD','HURT','DOWN','GRAB']){
+    const guardian={name:'苔祠の番人',nextStrikeAt:0};
+    assert.equal(D.guardianStrikeTell(guardian,100,true,true,true,'hero',true),'start');
+    assert.equal(D.guardianStrikeTell(guardian,100.3,false,true,true,'hero',false),'none',
+      state+' must cancel rather than count as a deliberate dodge');
+    assert.equal(guardian.guardianTellUntil,0);
+    assert.equal(D.guardianCounterStrikeBonus(guardian,100.8,'hero'),0,
+      state+' must not open a +8 counter or an extra fang opportunity');
+  }
+  const jumper={name:'苔祠の番人',nextStrikeAt:0};
+  D.guardianStrikeTell(jumper,100,true,true,true,'hero',true);
+  assert.equal(D.guardianStrikeTell(jumper,100.66,false,true,true,'hero',true),'evaded',
+    'an intentional jump still earns the counter');
+  assert.equal(D.guardianCounterStrikeBonus(jumper,100.8,'hero'),8);
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const ai=html.slice(html.indexOf('function sampleEnemyAI('),html.indexOf('function updateFighter('));
+  assert.match(ai,/!\['DEAD','HURT','DOWN','GRAB'\]\.includes\(target\.state\)/,
+    'live enemy AI must pass the defender incapacitation guard');
+});
+
 test('guardian warns before striking, and stepping away earns a counterattack window',()=>{
   const guardian={name:'苔祠の番人',nextStrikeAt:0};
   assert.equal(D.guardianStrikeTell(guardian,100,true,true,true,'hero'),'start');
