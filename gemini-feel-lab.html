@@ -1857,14 +1857,14 @@
           sfx.haptic([35,25,35]);
         }
         if (counterBonus) {
-          // A landed counter earns the first unsecured fang from this guardian.
-          // Further dodges still grant the +8 tactical counter and recovery,
+          // A scouted, landed counter earns one unsecured fang from this guardian.
+          // Unscouted dodges still grant the +8 tactical counter and recovery,
           // but cannot farm infinite materials by prolonging the encounter.
           const earnedCounter=window.CrownlessForestDiscoveries.claimGuardianCounter(
             target,hitNowSec,attacker.id);
           const earnedFang=earnedCounter &&
             window.CrownlessForestDiscoveries.claimGuardianCounterFang(
-              target,()=>rpgRules.claimMaterial(rpg));
+              target,()=>rpgRules.claimMaterial(rpg),state.forestFinds.has('traces'));
           spawnPopup('🍃 反撃成功！+'+counterBonus+'｜番人がよろめく'+
             (earnedFang?'／牙 +1（未帰還）':''),
             target.x,target.z,target.y+82,'#6ee7b7');
@@ -2982,7 +2982,7 @@
         hero && guardian.guardianCounterTargetId===hero.id
         ? guardian.guardianCounterClaimed
           ? '🍃 反撃成功！'+(guardian.guardianCounterFangClaimed?'牙は獲得済み／':'')+'追撃はタップ／退避は左パッド 残り'+(Math.ceil((guardian.guardianCounterUntil-nowSec)*10)/10).toFixed(1)+'秒｜'
-          : '🍃 空振り！反撃+8'+(guardian.guardianCounterFangClaimed?'（牙は獲得済み）':'／命中で牙+1（未帰還）')+' 残り'+(Math.ceil((guardian.guardianCounterUntil-nowSec)*10)/10).toFixed(1)+'秒｜'
+          : '🍃 空振り！反撃+8'+(guardian.guardianCounterFangClaimed?'（牙は獲得済み）':found.has('traces')?'／命中で牙+1（未帰還）':'（痕跡未調査：牙の追加なし）')+' 残り'+(Math.ceil((guardian.guardianCounterUntil-nowSec)*10)/10).toFixed(1)+'秒｜'
         : '';
     return strikeCue+lead+'⚠ 番人HP '+Math.ceil(guardian.hp)+'/'+guardian.maxHp+
       '｜倒すまで帰還不可｜未帰還の牙 '+unbanked+'個';

@@ -272,28 +272,28 @@ test('landed guardian counter shows a short reposition choice only to its defend
   const guardian={name:'苔祠の番人',hp:120,maxHp:180,state:'IDLE',x:35,z:0,nextStrikeAt:0};
   assert.equal(D.guardianStrikeTell(guardian,100,true,true,true,'hero'),'start');
   assert.equal(D.guardianStrikeTell(guardian,100.66,false,true,true,'hero'),'evaded');
-  assert.match(liveHint(guardian,new Set(),2,100.8,hero),/空振り！反撃\+8/);
-  assert.match(liveHint(guardian,new Set(),2,100.8,hero),/命中で牙\+1（未帰還）/,
+  assert.match(liveHint(guardian,new Set(['traces']),2,100.8,hero),/空振り！反撃\+8/);
+  assert.match(liveHint(guardian,new Set(['traces']),2,100.8,hero),/命中で牙\+1（未帰還）/,
     'after an earned dodge, the player sees the optional unsecured reward before committing to a counter');
-  assert.doesNotMatch(liveHint(guardian,new Set(),2,100.8,hero),/追撃はタップ／退避は左パッド/,
+  assert.doesNotMatch(liveHint(guardian,new Set(['traces']),2,100.8,hero),/追撃はタップ／退避は左パッド/,
     'a missed or unclaimed counter must not promise recovery');
   assert.equal(D.claimGuardianCounter(guardian,101,'hero'),true);
-  assert.match(liveHint(guardian,new Set(),2,101.1,hero),/反撃成功！追撃はタップ／退避は左パッド 残り[0-9]+\.[0-9]秒/,
+  assert.match(liveHint(guardian,new Set(['traces']),2,101.1,hero),/反撃成功！追撃はタップ／退避は左パッド 残り[0-9]+\.[0-9]秒/,
     'a landed counter should communicate the remaining tactical choice');
-  assert.equal(D.claimGuardianCounterFang(guardian,()=>true),true);
-  assert.match(liveHint(guardian,new Set(),3,101.1,hero),/牙は獲得済み/,
+  assert.equal(D.claimGuardianCounterFang(guardian,()=>true,true),true);
+  assert.match(liveHint(guardian,new Set(['traces']),3,101.1,hero),/牙は獲得済み/,
     'the HUD confirms the fang is already claimed, not another repeatable reward');
-  assert.doesNotMatch(liveHint(guardian,new Set(),3,101.1,hero),/命中で牙\+1/,
+  assert.doesNotMatch(liveHint(guardian,new Set(['traces']),3,101.1,hero),/命中で牙\+1/,
     'claimed fang is never offered twice');
-  assert.match(liveHint({...guardian,guardianCounterClaimed:false},new Set(),3,101.1,hero),/空振り！反撃\+8（牙は獲得済み）/,
+  assert.match(liveHint({...guardian,guardianCounterClaimed:false},new Set(['traces']),3,101.1,hero),/空振り！反撃\+8（牙は獲得済み）/,
     'subsequent earned counters still offer tactical damage, not extra loot');
-  assert.doesNotMatch(liveHint(guardian,new Set(),3,101.1,{...hero,id:'ally'}),/牙は獲得済み/,
+  assert.doesNotMatch(liveHint(guardian,new Set(['traces']),3,101.1,{...hero,id:'ally'}),/牙は獲得済み/,
     'the counter reward cue belongs only to the defender');
-  assert.doesNotMatch(liveHint(guardian,new Set(),2,101.1,hero),/反撃\+8/,
+  assert.doesNotMatch(liveHint(guardian,new Set(['traces']),2,101.1,hero),/反撃\+8/,
     'a spent counter must not promise a second damage bonus');
-  assert.doesNotMatch(liveHint(guardian,new Set(),2,101.1,{...hero,id:'ally'}),/追撃はタップ／退避は左パッド/,
+  assert.doesNotMatch(liveHint(guardian,new Set(['traces']),2,101.1,{...hero,id:'ally'}),/追撃はタップ／退避は左パッド/,
     'the cue belongs only to the player who earned it');
-  assert.doesNotMatch(liveHint(guardian,new Set(),2,101.9,hero),/追撃はタップ／退避は左パッド/,
+  assert.doesNotMatch(liveHint(guardian,new Set(['traces']),2,101.9,hero),/追撃はタップ／退避は左パッド/,
     'the cue must expire with the real off-balance timer');
 });
 
@@ -451,6 +451,35 @@ test('guardian dodge cue points to the real thumb control only when the hero is 
     'arcade button mode must receive the same cue');
 });
 
+
+test('only scouted guardian counters yield an extra fang; unscouted dodges keep their tactical bonus',()=>{
+  const enemy={name:'苔祠の番人',hp:120,state:'IDLE',nextStrikeAt:0,
+    guardianCounterTargetId:'hero',guardianCounterUntil:103,guardianCounterClaimed:false};
+  assert.equal(D.guardianCounterStrikeBonus(enemy,101,'hero'),8,
+    'scouting must not gate the dodge-counter damage');
+  assert.equal(D.claimGuardianCounter(enemy,101,'hero'),true);
+  let claims=0;
+  assert.equal(D.claimGuardianCounterFang(enemy,()=>{claims++;return true;},false),false);
+  assert.equal(D.claimGuardianCounterFang(enemy,()=>{claims++;return true;}),false,
+    'an omitted scouting flag must never grant unsecured loot');
+  assert.equal(claims,0,'unscouted counters cannot mint materials');
+  assert.equal(enemy.guardianCounterFangClaimed,undefined);
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const hint=html.slice(html.indexOf('function forestGuardianHint('),html.indexOf('function updateForestExploreHint('));
+  const source=hint.match(/function forestGuardianHint\([^)]*\) \{[\s\S]*?\n  \}/)?.[0];
+  assert.ok(source);
+  const liveHint=Function('window','return ('+source+')')({CrownlessForestDiscoveries:D});
+  const defender={id:'hero',state:'IDLE',x:0,z:0,facing:1};
+  const pending={...enemy,guardianCounterClaimed:false,guardianCounterFangClaimed:false};
+  assert.match(liveHint(pending,new Set(),0,101.1,defender),/痕跡未調査：牙の追加なし/);
+  assert.doesNotMatch(liveHint(pending,new Set(),0,101.1,defender),/命中で牙\+1/);
+  assert.match(liveHint(pending,new Set(['traces']),0,101.1,defender),/命中で牙\+1（未帰還）/);
+  assert.equal(D.claimGuardianCounterFang(enemy,()=>{claims++;return true;},true),true,
+    'a separately scouted guardian may still grant its single fang');
+  assert.equal(D.claimGuardianCounterFang(enemy,()=>{claims++;return true;},true),false);
+  assert.equal(claims,1);
+});
+
 test('landed guardian dodge-counter earns one provisional fang, once, until safe return',()=>{
   const R=require('../src/gemini-rpg-loop.js');
   const heroId='hero';
@@ -462,10 +491,10 @@ test('landed guardian dodge-counter earns one provisional fang, once, until safe
   assert.equal(R.pushDeeper(run),true);
   assert.equal(D.guardianCounterStrikeBonus(guardian,101,heroId),8);
   assert.equal(D.claimGuardianCounter(guardian,101,heroId),true);
-  assert.equal(D.claimGuardianCounterFang(guardian,()=>R.claimMaterial(run)),true);
+  assert.equal(D.claimGuardianCounterFang(guardian,()=>R.claimMaterial(run),true),true);
   assert.equal(run.unbanked,1);
   assert.equal(run.banked,0,'counter loot cannot enter the warehouse mid-fight');
-  assert.equal(D.claimGuardianCounterFang(guardian,()=>R.claimMaterial(run)),false,
+  assert.equal(D.claimGuardianCounterFang(guardian,()=>R.claimMaterial(run),true),false,
     'repeated claim in the same counter cannot duplicate provisional loot');
   assert.equal(D.claimGuardianCounter(guardian,101.1,heroId),false,
     'a repeated hit must not award a second fang');
@@ -480,21 +509,21 @@ test('landed guardian dodge-counter earns one provisional fang, once, until safe
   assert.equal(D.guardianStrikeTell(guardian,103.2,false,true,true,heroId),'evaded');
   assert.equal(D.guardianCounterStrikeBonus(guardian,103.3,heroId),8);
   assert.equal(D.claimGuardianCounter(guardian,103.3,heroId),true);
-  assert.equal(D.claimGuardianCounterFang(guardian,()=>R.claimMaterial(run)),false);
+  assert.equal(D.claimGuardianCounterFang(guardian,()=>R.claimMaterial(run),true),false);
   assert.equal(run.unbanked,1,'second successful dodge is not a loot farm');
   const freshGuardian={name:'苔祠の番人',guardianCounterClaimed:true};
   let freshClaims=0;
-  assert.equal(D.claimGuardianCounterFang(freshGuardian,()=>{freshClaims++;return false;}),false);
-  assert.equal(D.claimGuardianCounterFang(freshGuardian,()=>{freshClaims++;return true;}),true,
+  assert.equal(D.claimGuardianCounterFang(freshGuardian,()=>{freshClaims++;return false;},true),false);
+  assert.equal(D.claimGuardianCounterFang(freshGuardian,()=>{freshClaims++;return true;},true),true,
     'failed material claim must not permanently consume the encounter reward');
-  assert.equal(D.claimGuardianCounterFang(freshGuardian,()=>{freshClaims++;return true;}),false);
+  assert.equal(D.claimGuardianCounterFang(freshGuardian,()=>{freshClaims++;return true;},true),false);
   assert.equal(freshClaims,2,'new guardian can award once, never twice');
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   const hit=html.slice(html.indexOf('const hitNowSec=performance.now()/1000;'),
     html.indexOf('if (scoutBonus) {',html.indexOf('const hitNowSec=performance.now()/1000;')));
   assert.match(hit,/if \(!inflictDamage\([\s\S]*?\) continue;/,
     'the reward must be downstream of a real landed hit');
-  assert.match(hit,/const earnedFang=earnedCounter &&[\s\S]*?claimGuardianCounterFang\([\s\S]*?target,\(\)=>rpgRules\.claimMaterial\(rpg\)\)/,
+  assert.match(hit,/const earnedFang=earnedCounter &&[\s\S]*?claimGuardianCounterFang\([\s\S]*?target,\(\)=>rpgRules\.claimMaterial\(rpg\),state\.forestFinds\.has\('traces'\)\)/,
     'only a landed counter can claim one provisional fang per guardian');
   assert.match(hit,/牙 \+1（未帰還）/,
     'the real action scene must label the reward as unsecured');

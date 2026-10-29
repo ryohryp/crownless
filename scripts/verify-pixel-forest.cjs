@@ -186,6 +186,8 @@ async function jumpCounterGuardian(page) {
   const startingState=await read(page);
   const startingHp=startingState.player.hp;
   const startingFangs=startingState.unbanked;
+  assert(startingState.found.includes('traces'),
+    'a counter fang requires tracks inspected by a real site tap');
   let previousHp=startingHp;
   const damageEvents=[];
   // Prepare the CDP touch channel before the short warning starts. Opening

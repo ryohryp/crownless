@@ -274,11 +274,12 @@
     }
     return true;
   }
+  // Only explorers who deliberately read the tracks can harvest a counter fang.
   // A guardian yields at most one provisional fang per encounter. Repeated
   // earned dodge-counters still deal +8 and create a recovery window, but
   // keeping the guardian alive must not become an unlimited material farm.
-  function claimGuardianCounterFang(enemy,claimMaterial){
-    if(!enemy || enemy.name!=='苔祠の番人' ||
+  function claimGuardianCounterFang(enemy,claimMaterial,scouted=false){
+    if(!scouted || !enemy || enemy.name!=='苔祠の番人' ||
        !enemy.guardianCounterClaimed || enemy.guardianCounterFangClaimed ||
        typeof claimMaterial!=='function') return false;
     if(!claimMaterial()) return false;
