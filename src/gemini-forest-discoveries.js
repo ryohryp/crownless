@@ -269,8 +269,10 @@
     if(!guardianCounterStrikeBonus(enemy,nowSec,attackerId)) return false;
     enemy.guardianCounterClaimed=true;
     if(enemy.hp>0 && enemy.state!=='DEAD'){
-      enemy.guardianCounterUntil=Math.max(enemy.guardianCounterUntil||0,nowSec+0.9);
-      enemy.nextStrikeAt=Math.max(enemy.nextStrikeAt||0,nowSec+1.4);
+      // A landed counter should buy a perceptible reposition-or-follow-up
+      // choice, not merely bonus damage. Keep this brief and guardian-only.
+      enemy.guardianCounterUntil=Math.max(enemy.guardianCounterUntil||0,nowSec+1.2);
+      enemy.nextStrikeAt=Math.max(enemy.nextStrikeAt||0,nowSec+1.8);
     }
     return true;
   }
