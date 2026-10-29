@@ -617,6 +617,37 @@ test('guardian fight overrides stale clue hints with live HP and unsecured loot'
     'the active threat must show the actual unsecured materials at stake');
 });
 
+test('unscouted successful guardian counter explains the missed fang and invites scouting next run',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const helper=html.match(/function forestGuardianHint\([^)]*\) \{[\s\S]*?\n  \}/)?.[0];
+  assert.ok(helper,'live guardian HUD helper exists');
+  const hint=Function('window','return ('+helper+');')({
+    CrownlessForestDiscoveries:{
+      guardianBehindWarning:()=>false,
+      guardianDodgeCueActive:()=>false
+    }
+  });
+  const guardian={
+    hp:100,maxHp:180,guardianCounterUntil:12,guardianCounterTargetId:3,
+    guardianCounterClaimed:true,guardianCounterFangClaimed:false,
+    scoutOpeningEndsAt:0
+  };
+  const hero={id:3};
+  const unscouted=hint(guardian,new Set(),4,10,hero);
+  assert.match(unscouted,/反撃成功！痕跡未調査：牙の追加なし／追撃はタップ/,
+    'after a real unscouted counter, HUD must explain why no extra fang appeared');
+  assert.doesNotMatch(unscouted,/牙は獲得済み/,
+    'a missed scouting reward must not be presented as already collected');
+  const scouted=hint({...guardian,guardianCounterFangClaimed:true},
+    new Set(['traces']),5,10,hero);
+  assert.match(scouted,/反撃成功！牙は獲得済み／追撃はタップ/,
+    'scouted successful counter keeps the existing collected-fang feedback');
+  assert.doesNotMatch(scouted,/痕跡未調査/,
+    'scouted play must never be labeled as missing tracks');
+  assert.match(html,/earnedFang\?'／牙 \+1（未帰還）':!state\.forestFinds\.has\('traces'\)\?'／痕跡未調査：牙の追加なし'/,
+    'the actual hit popup must explain the unscouted missed reward too');
+});
+
 test('forest discoveries are in-scene actions, no navigation route/save/GPS coupling',()=>{
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   assert.match(html,/src\/gemini-forest-discoveries\.js/);
