@@ -630,7 +630,7 @@ async function main() {
             'the unscouted choice retains the real loss condition');
           assert.doesNotMatch(stakes,/苔祠の番人/,
             'the risky guardian is still a surprise');
-          const box=await sheet.locator('> div').boundingBox();
+          const box=await sheet.locator(':scope > div').boundingBox();
           assert(box && box.y>=0 && box.y+box.height<=page.viewportSize().height,
             'the additional clue must fit the 360px phone viewport');
           await page.screenshot({path:path.join(output,'pixel-forest-unscouted-shrine-detour-360.png')});
