@@ -1857,11 +1857,16 @@
           sfx.haptic([35,25,35]);
         }
         if (counterBonus) {
-          // Only a real landed player counter can briefly stagger the guardian.
-          window.CrownlessForestDiscoveries.claimGuardianCounter(
+          // A deliberate jump-and-landed counter salvages one extra fang.
+          // Claim it only after a real hit and the one-shot counter token;
+          // it remains unsecured until the normal living return.
+          const earnedCounter=window.CrownlessForestDiscoveries.claimGuardianCounter(
             target,hitNowSec,attacker.id);
-          spawnPopup('🍃 反撃成功！+'+counterBonus+'｜番人がよろめく',
+          const earnedFang=earnedCounter && rpgRules.claimMaterial(rpg);
+          spawnPopup('🍃 反撃成功！+'+counterBonus+'｜番人がよろめく'+
+            (earnedFang?'／牙 +1（未帰還）':''),
             target.x,target.z,target.y+82,'#6ee7b7');
+          if(earnedFang) updateRpgStatus();
         }
         if (scoutBonus) {
           target.scoutStrikeClaimed=true;
