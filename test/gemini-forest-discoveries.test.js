@@ -1023,9 +1023,17 @@ test('victory return panel hints at remaining discoveries without spoiling them 
   const unread=teaser(new Set());
   const tracksRead=teaser(new Set(['traces']));
   const shrineRead=teaser(new Set(['traces','shrine']));
+  const gateRead=teaser(new Set(['traces','hollow']));
   const equippedRead=teaser(new Set(['traces','shrine']),true);
   assert.match(unread,/湿った土/);
-  assert.match(tracksRead,/苔の間/);
+  assert.match(tracksRead,/二手に分かれ/,
+    'with both branches unexplored, the result panel must invite a choice, not prescribe the shrine');
+  assert.match(tracksRead,/苔の湿りと折れた茨/,
+    'the result prompt reflects the two earned physical signs');
+  assert.doesNotMatch(tracksRead,/祠|石門|右|左|先に苔/,
+    'the first branch and hidden destinations remain the player\'s discovery');
+  assert.match(gateRead,/苔の間/,
+    'inspecting the gate first leaves the other branch available');
   assert.match(shrineRead,/茨の奥/);
   assert.match(shrineRead,/今の装備では奥へ踏み込めない。手前を調べる余地はありそうだ/,
     'without a forged blade, the result must not promise an immediately accessible route');
@@ -1035,7 +1043,7 @@ test('victory return panel hints at remaining discoveries without spoiling them 
     'equipped players should still inspect the unknown location themselves');
   assert.equal(teaser(new Set(['traces','shrine','hollow'])),'',
     'once all sites are examined the panel should not invent more discoveries');
-  for(const hint of [unread,tracksRead,shrineRead,equippedRead]) {
+  for(const hint of [unread,tracksRead,shrineRead,gateRead,equippedRead]) {
     assert.doesNotMatch(hint,/獣の痕跡|苔むす祠|茨の石門|切り開ける|進めそう/,
       'undiscovered places must remain unnamed');
   }

@@ -3075,6 +3075,10 @@
   // Never name a location before the player has inspected it.
   function forestReturnTeaser(found,crafted=false) {
     if (!found.has('traces')) return '湿った土にまだ読めない筋がある。';
+    // Before either branch is investigated, leave the order to the player.
+    // Sensory signs match the earned fork marks; neither site is named.
+    if (!found.has('shrine') && !found.has('hollow'))
+      return '二手に分かれた踏み跡には、苔の湿りと折れた茨が残る。どちらを先に追う？';
     if (!found.has('shrine')) return '苔の間から冷たい風が流れている。';
     if (!found.has('hollow')) return crafted
       ? '茨の奥から硬い音が響く。鍛えた剣を手に、何があるか確かめよう。'
