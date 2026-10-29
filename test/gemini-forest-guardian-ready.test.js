@@ -623,3 +623,25 @@ test('landed guardian dodge-counter earns one provisional fang, once, until safe
   assert.equal(lost.unbanked,0);
   assert.equal(lost.banked,0,'defeat must erase the unreturned counter loot');
 });
+
+test('ally dodging the guardian does not freeze combat or offer a player-only counter',()=>{
+  const allyGuardian={name:'苔祠の番人',hp:120,state:'IDLE',nextStrikeAt:0};
+  assert.equal(D.guardianStrikeTell(allyGuardian,100,true,true,true,'ally',true,false),'start');
+  assert.equal(D.guardianStrikeTell(allyGuardian,100.66,false,true,true,'ally',true,false),'none',
+    'the companion evades but cannot create a player counter opportunity');
+  assert.equal(allyGuardian.guardianCounterUntil||0,0,
+    'an AI dodge cannot freeze the guardian for a reward nobody can claim');
+  assert.equal(allyGuardian.nextStrikeAt,0,
+    'the ally dodge must not delay the next guardian decision');
+  assert.equal(D.guardianCounterStrikeBonus(allyGuardian,100.8,'ally'),0);
+  assert.equal(D.guardianCounterStrikeBonus(allyGuardian,100.8,'hero'),0);
+  const heroGuardian={name:'苔祠の番人',hp:120,state:'IDLE',nextStrikeAt:0};
+  assert.equal(D.guardianStrikeTell(heroGuardian,100,true,true,true,'hero',true,true),'start');
+  assert.equal(D.guardianStrikeTell(heroGuardian,100.66,false,true,true,'hero',true,true),'evaded');
+  assert.equal(D.guardianCounterStrikeBonus(heroGuardian,100.8,'hero'),8,
+    'a deliberate player dodge still earns the existing tactical counter');
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const ai=html.slice(html.indexOf('function sampleEnemyAI('),html.indexOf('function updateFighter('));
+  assert.match(ai,/guardianStrikeTell\\([\\s\\S]*?target\\.id,\\s*!\\['DEAD','HURT','DOWN','GRAB'\\]\\.includes\\(target\\.state\\),target===ginji\\)/,
+    'the live guardian AI must pass the real defender identity into the rule');
+});
