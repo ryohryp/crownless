@@ -56,3 +56,20 @@ test('fork signs differ by environmental evidence, not destination labels or arr
     'thorn clues stay small enough not to read as path arrows');
   assert.deepEqual(trackMarks(new Set()), [], 'unread tracks reveal neither branch sign');
 });
+
+test('the live post-track HUD asks for observation, not a prescribed gate route', () => {
+  const html = fs.readFileSync('gemini-feel-lab.html', 'utf8');
+  const start = html.indexOf('    const label=guardian\\n'.replace('\\n', '\n'));
+  const end = html.indexOf('    if(hint.textContent!==label)', start);
+  assert(start >= 0 && end > start, 'evaluate the real forest HUD label expression');
+  const label = vm.runInNewContext(html.slice(start, end) + '\nlabel', {
+    guardian: null,
+    near: null,
+    state: { forestFinds: new Set(['traces']) },
+    rpg: { crafted: false, phase: 'return', unbanked: 2 }
+  });
+  assert.match(label, /二手に分かれ/);
+  assert.match(label, /負傷 -3/, 'earned footing bonus remains legible');
+  assert.doesNotMatch(label, /石門|祠|右|左|茨を調べ|新しい剣/,
+    'the HUD must not preselect the destination or spoil either branch');
+});
