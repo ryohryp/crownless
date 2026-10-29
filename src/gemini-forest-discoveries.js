@@ -198,11 +198,11 @@
   }
   // The optional shrine guardian should threaten the explorer who chose
   // to search deeper, not spend the entire short fight hitting a nearer ally.
-  // Fall back to ordinary nearest-target AI when the hero is down or distant,
+  // Fall back to ordinary nearest-target AI when the hero is stunned, down or distant,
   // so companion protection and recovery cannot stall the encounter.
   function guardianTargetsExplorer(enemy,hero){
     return Boolean(enemy && enemy.name==='苔祠の番人' && hero &&
-      !['DEAD','DOWN','GRAB'].includes(hero.state) &&
+      !['DEAD','HURT','DOWN','GRAB'].includes(hero.state) &&
       Number.isFinite(enemy.x) && Number.isFinite(enemy.z) &&
       Number.isFinite(hero.x) && Number.isFinite(hero.z) &&
       Math.hypot(hero.x-enemy.x,hero.z-enemy.z)<=200);

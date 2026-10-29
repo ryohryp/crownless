@@ -162,6 +162,8 @@ test('the shrine guardian pursues a nearby active explorer, not a nearer compani
   assert.equal(D.guardianTargetsExplorer({...guardian,x:201},hero),false,
     'a distant player must not strand the companion in an unwinnable chase');
   assert.equal(D.guardianTargetsExplorer({...guardian,x:200},hero),true);
+  assert.equal(D.guardianTargetsExplorer(guardian,{...hero,state:'HURT'}),false,
+    'a hit-stunned explorer cannot dodge, so the nearby companion must take over');
   assert.equal(D.guardianTargetsExplorer(guardian,{...hero,state:'DOWN'}),false,
     'a downed player must not cause guardian AI to stall while an ally can defend');
   assert.equal(D.guardianTargetsExplorer(guardian,{...hero,state:'DEAD'}),false);
