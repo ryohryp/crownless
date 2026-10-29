@@ -445,8 +445,31 @@ test('announced shrine lunge survives nonlethal button-mashing but not a killing
     'lethal hit handling must precede windup armor');
   assert.match(hit,/guardianKeepsTellOnHit\([\s\S]*?return true;[\s\S]*?if \(knockdown\)/,
     'only nonlethal hitstun/knockdown is suppressed');
-  assert.match(hit,/踏み込みは止まらない！跳んで避けよう/,
-    'show the player why repeated attacks did not stop the lunge');
+  assert.match(hit,/踏み込みは止まらない！次の回避に備えよう/,
+    'repeated hits must not promise an immediate jump while an attack is locked');
+});
+
+test('guardian lunge popup names only an actionable response for the threatened fighter',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const ai=html.slice(html.indexOf('function sampleEnemyAI('),html.indexOf('function updateFighter('));
+  const source=ai.match(/const tellMessage=([\\s\\S]*?);\\s*spawnPopup\\(tellMessage,enemy\\.x/)?.[1];
+  assert.ok(source,'the actual lunge popup must use defender-aware text');
+  const message=Function('target','ginji','return ('+source+')');
+  const hero={id:'hero',state:'IDLE'},ally={id:'ally',state:'IDLE'};
+  assert.match(message(hero,hero),/跳ぶか離れよう/,
+    'an idle targeted hero can choose a real dodge');
+  for(const state of ['ATTACK','SPECIAL']){
+    hero.state=state;
+    assert.match(message(hero,hero),/攻撃動作中！番人の踏み込みに注意/,
+      state+' cannot immediately jump out of a committed action');
+    assert.doesNotMatch(message(hero,hero),/跳ぶか離れよう/);
+  }
+  hero.state='IDLE';
+  assert.match(message(ally,hero),/仲間へ踏み込む/,
+    'an ally-targeted lunge must not falsely prompt the hero to dodge');
+  assert.doesNotMatch(message(ally,hero),/跳ぶか離れよう/);
+  assert.match(ai,/spawnPopup\\(tellMessage,enemy\\.x,enemy\\.z,enemy\\.y\\+65/,
+    'the real enemy AI must display the tested contextual popup');
 });
 
 test('only a landed shrine-guardian blow tells the player the dodge failed',()=>{
