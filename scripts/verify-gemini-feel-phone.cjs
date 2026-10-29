@@ -454,7 +454,8 @@ async function main() {
         assert.equal(await page.locator('#forestShrineStakes').textContent(),
           '現在 HP '+Math.floor(stakesAtChoice.player.hp)+'/'+stakesAtChoice.player.maxHp+
           '、未帰還の牙 '+stakesAtChoice.unbanked+
-          '個。'+forgeChoice+'素材は生還時だけ倉庫に残る（敗北すると失う）。',
+          '個。'+(stakesAtChoice.found.includes('traces')?'':'足元の筋は未調査。今は引き返して探す手もある。')+
+           forgeChoice+'素材は生還時だけ倉庫に残る（敗北すると失う）。',
           'real phone choice must show the safe/risky forge payoff without promising banked loot');
         const shrineBounds=await page.locator('#forestShrineChoice > div').boundingBox();
         assert(shrineBounds && shrineBounds.y>=0 &&
