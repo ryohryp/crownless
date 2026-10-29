@@ -83,3 +83,20 @@ $python = 'I:\02_AI\ComfyUI-Crownless\therock-gfx1030-test\Scripts\python.exe'
 ```
 
 The conversion command intentionally fails if its destination already exists. No paid service is required for this local run, but usage remains subject to the models' respective licenses.
+
+## Temporal AnimateDiff experiment (2026-10-29)
+
+The prior loop generated every frame independently. This experiment instead feeds all eight provisional pose images in order into one ComfyUI `ImageBatch`, samples eight latents in one KSampler job and uses an AnimateDiff v3 temporal module. IP-Adapter references only the approved Adventurer A anchor, and the same pinned pixel checkpoint and OpenPose ControlNet are used. It is still a local, review-only experiment; temporal coupling does not by itself guarantee identity, gait or a seamless loop.
+
+The tested custom node was [AnimateDiff Evolved](https://github.com/Kosinkadink/ComfyUI-AnimateDiff-Evolved) commit `9257651221002dcba0a12f9cff37e1944e58fb60`. The [original AnimateDiff motion model](https://huggingface.co/guoyww/animatediff/blob/9cfaa8a83b89eec48b4b0ee8c970e8b9f69f2089/v3_sd15_mm.safetensors) is Apache-2.0, revision `9cfaa8a83b89eec48b4b0ee8c970e8b9f69f2089`, SHA-256 `73c4b969c778b2ea96a172c3b432572b654e91865f9f224a709dbda13e730043`. It is stored on I: and not included in the repository. The runner verifies the motion model, checkpoint, ControlNet, IP-Adapter, CLIP vision and anchor hashes. The extension commit is recorded but not enforced by the runner.
+
+On the same RX 6800 / TheRock environment, all three jobs completed with eight 512×512 output images. The noise-start run (`temporal-noise`) had a consistent but noisy scene background and nearly static legs. Repeating the approved anchor latent for each frame (`temporal-anchor-09` and `temporal-anchor-14`, ControlNet 0.9 and 1.4) preserved the general costume more closely but still did not produce visible alternating foot contacts; backgrounds deteriorated in later frames. Inspect the PNG sheets and GIFs under `docs/assets/candidates/adventurer-a-local-poc/`. These are failures, not approved sprites; backgrounds are opaque, the original 8-pose mannequin is still unavailable, and no human phone-scale acceptance is claimed. Do not adopt them or use them as new generation parents.
+
+Example after installing the pinned extension and model, and starting the local ComfyUI:
+
+```powershell
+$python = 'I:\02_AI\ComfyUI-Crownless\therock-gfx1030-test\Scripts\python.exe'
+& $python scripts/adventurer-a-walk/run_temporal_poc.py --study 'I:\02_AI\ComfyUI-Crownless\walk-poc-20261029-v4' --anchor docs/assets/adventurer-a-approved-anchor-v1.png --comfy 'I:\02_AI\ComfyUI-Crownless\ComfyUI_windows_portable\ComfyUI' --img2img --control-strength 0.9
+```
+
+Generate a new study using `pose_study.py ... --face-guide` if that local path is absent. Time coupling worked on this machine, but another motion/identity strategy or a better approved pose source is still needed before phone-scale human review.

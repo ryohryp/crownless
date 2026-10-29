@@ -16,6 +16,7 @@ def load(name, path):
 study = load('pose_study', 'scripts/adventurer-a-walk/pose_study.py')
 poc = load('run_poc', 'scripts/adventurer-a-walk/run_poc.py')
 conversion = load('conversion', 'scripts/adventurer-a-walk/convert_pixel_checkpoint.py')
+temporal = load('temporal', 'scripts/adventurer-a-walk/run_temporal_poc.py')
 
 class WalkPocTest(unittest.TestCase):
     def test_eight_distinct_temporal_poses_contact_and_passing(self):
@@ -68,6 +69,24 @@ class WalkPocTest(unittest.TestCase):
                 with self.assertRaises(FileExistsError):
                     conversion.convert(source, target)
                 self.assertEqual(target.read_bytes(), original)
+
+    def test_temporal_graph_uses_ordered_pose_batch_and_motion_model(self):
+        poses = [f'pose-{i:02}.png' for i in range(8)]
+        graph = temporal.workflow('approved.png', poses, 'review')
+        self.assertEqual(graph['6']['inputs']['batch_size'], 8)
+        self.assertEqual(graph['9']['inputs']['model'], ['18', 0])
+        self.assertEqual(graph['18']['inputs']['m_models'], ['17', 0])
+        self.assertEqual(graph['8']['inputs']['image'], ['37', 0])
+        self.assertEqual(graph['31']['inputs'], {'image1': ['20', 0], 'image2': ['21', 0]})
+        self.assertEqual(graph['37']['inputs']['image2'], ['27', 0])
+        self.assertEqual(graph['27']['inputs']['image'], 'pose-07.png')
+        anchored = temporal.workflow('approved.png', poses, 'review', img2img=True, control_strength=0.9)
+        self.assertEqual(anchored['6']['inputs']['pixels'], ['4', 0])
+        self.assertEqual(anchored['19']['inputs'], {'samples': ['6', 0], 'amount': 8})
+        self.assertEqual(anchored['9']['inputs']['latent_image'], ['19', 0])
+        self.assertEqual(anchored['8']['inputs']['strength'], 0.9)
+        with self.assertRaises(ValueError):
+            temporal.workflow('approved.png', poses[:2], 'review')
 
     def test_workflow_uses_same_anchor_and_pose_control(self):
         g = poc.workflow('reference.png', 'pose.png', 'test.safetensors', 'candidate')
