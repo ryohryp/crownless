@@ -1130,6 +1130,71 @@ async function main() {
           assert.equal(safeRestored.unbanked,0);
           assert.equal(await page.evaluate(()=>localStorage.getItem('crownless-expedition-v1-demo')),
             saveBefore,'the separate location-game save stays untouched');
+          // A later expedition must also prove the tempered sword's *shrine*
+          // payoff in the real 390px scene, not just the isolated damage rule.
+          // Travel and fight normally; never inject HP, position, loot or saves.
+          await clearWave(page);
+          await walkTo(page,800,365);
+          await tapSite(page,'traces');
+          await walkTo(page,660,230);
+          const beforeTemperedShrine=await read(page);
+          assert.equal(beforeTemperedShrine.phase,'return');
+          assert.equal(beforeTemperedShrine.crafted,true);
+          assert.equal(beforeTemperedShrine.tempered,true);
+          assert(beforeTemperedShrine.found.includes('traces') &&
+            !beforeTemperedShrine.found.includes('shrine'));
+          await tapSite(page,'shrine');
+          const temperedShrineRisk=page.locator('#forestShrineRisk');
+          assert(await temperedShrineRisk.isEnabled(),
+            'tempered shrine risk must be actionable after the ordinary wave');
+          assert.match(await temperedShrineRisk.innerText(),/HP -1.*未帰還素材 \+2/,
+            'scouting and tempering must preview the real one-HP wound');
+          assert.match(await temperedShrineRisk.innerText(),/追加戦闘あり・撃退まで帰還不可/,
+            'the one-HP risk still requires a guardian victory');
+          const shrineBounds=await temperedShrineRisk.boundingBox();
+          assert(shrineBounds && shrineBounds.width>=44 && shrineBounds.height>=44 &&
+            shrineBounds.y>=0 &&
+            shrineBounds.y+shrineBounds.height<=page.viewportSize().height,
+            'tempered shrine choice must fit the 390px touch viewport');
+          await page.screenshot({path:path.join(output,'pixel-forest-tempered-shrine-choice-390.png')});
+          await page.touchscreen.tap(shrineBounds.x+shrineBounds.width/2,
+            shrineBounds.y+shrineBounds.height/2);
+          const afterTemperedShrine=await read(page);
+          assert(afterTemperedShrine.found.includes('shrine'),
+            'the real touch consumes the one-time shrine choice');
+          assert.equal(afterTemperedShrine.player.hp,beforeTemperedShrine.player.hp-1,
+            'the tempered and scouted shrine must cost exactly one HP');
+          assert.equal(afterTemperedShrine.unbanked,beforeTemperedShrine.unbanked+2,
+            'the shrine gives two provisional fangs, never banked loot');
+          assert.equal(afterTemperedShrine.phase,'fight',
+            'even the tempered blade cannot bypass the optional guardian');
+          const temperedGuardian=await clearWave(page);
+          assert.equal(temperedGuardian.after.phase,'return',
+            'guardian victory returns to ordinary exploration');
+          await tapSite(page,'shrine');
+          assert.equal((await read(page)).unbanked,temperedGuardian.after.unbanked,
+            'repeated shrine taps cannot duplicate the reward');
+          await page.locator('#rpgOpenResults').click();
+          await page.locator('#rpgReturn').click();
+          const temperedShrineReturn=await read(page);
+          assert.equal(temperedShrineReturn.phase,'camp');
+          assert.equal(temperedShrineReturn.banked,
+            safeRestored.banked+temperedGuardian.after.unbanked,
+            'only the living return banks the entire provisional bag');
+          assert.equal(temperedShrineReturn.unbanked,0);
+          await page.reload({waitUntil:'domcontentloaded'});
+          await page.waitForFunction(()=>window.CrownlessForestReadout?.().assetsReady);
+          const temperedShrineRestored=await read(page);
+          assert.equal(temperedShrineRestored.tempered,true);
+          assert.equal(temperedShrineRestored.banked,temperedShrineReturn.banked,
+            'tempered shrine loot must survive reload without duplication');
+          assert.equal(temperedShrineRestored.unbanked,0);
+          assert.equal(await page.evaluate(()=>localStorage.getItem('crownless-expedition-v1-demo')),
+            saveBefore,'the unrelated location save must remain untouched');
+          report.temperedShrine={before:beforeTemperedShrine,after:afterTemperedShrine,
+            guardian:{hpAfter:temperedGuardian.after.player.hp,
+              scoutedFirstHit:temperedGuardian.scoutedFirstHit},
+            returned:temperedShrineReturn,restored:temperedShrineRestored};
           // Separate fresh-phone expedition: prove the new *unforged* gate
           // alternative with a real touch and a living return. The long
           // crafted/tempered loop above cannot exercise this starter-only choice.
