@@ -656,6 +656,7 @@ async function main() {
           await tapSite(page,'traces');
           assert((await read(page)).found.includes('traces'),
             'the player must deliberately inspect the clue');
+          await page.screenshot({path:path.join(output,'pixel-forest-fork-360.png')});
           await walkTo(page,660,230);
           await tapSite(page,'shrine');
           assert.doesNotMatch(await page.locator('#forestShrineStakes').innerText(),
@@ -757,6 +758,9 @@ async function main() {
           await page.waitForFunction(()=>document.getElementById('forestExploreHint')?.textContent?.includes('足元の踏み跡が途切れ途切れに続く'));
           assert.match(await page.locator('#forestExploreHint').innerText(),/安全な足場を発見（危険な調査の負傷 -3）/,
             'discovering tracks should immediately reveal the safer next choice');
+          // Capture the actual phone canvas with the earned fork in view;
+          // this is visual evidence, not a claim that the signs are readable.
+          await page.screenshot({path:path.join(output,'pixel-forest-fork-390.png')});
           // Inspect the earned early cue *before* the shrine guardian can
           // pull the hero near the gate and legitimately trigger it.
           const gateCueBefore=await page.evaluate(() => window.__forestHapticPatterns.filter(p=>Array.isArray(p) && p.join(',')==='28,45,28').length);
