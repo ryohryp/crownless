@@ -168,17 +168,17 @@
           ctx.fillStyle=i>=5?'#aa9876':'#e0c99a';
           ctx.fillRect(x,z,6,4);
           ctx.fillRect(x+side*5,z+6,4,3);
-          // A closer look distinguishes the two leads without naming either
-          // destination: cool moss on one side, snapped thorn fibers on the other.
-          // These are clues to investigate, never arrows or walkable routes.
+          // The fork must be readable on a phone: two small, contrasting
+          // patches of moss or snapped thorn fibers, not destination arrows.
+          // These are clues to investigate, never navigation or a route reveal.
           if(i===2 || i===6) {
-            ctx.fillStyle=side<0?'#617459':'#6d5343';
+            ctx.fillStyle=side<0?'#a2c087':'#c78b67';
             if(side<0) {
-              ctx.fillRect(x-7,z-3,3,2);
-              ctx.fillRect(x-3,z-6,2,3);
+              ctx.fillRect(x-9,z-4,6,4);
+              ctx.fillRect(x-4,z-8,4,5);
             } else {
-              ctx.fillRect(x+9,z-5,5,1);
-              ctx.fillRect(x+12,z-7,1,4);
+              ctx.fillRect(x+9,z-6,8,2);
+              ctx.fillRect(x+14,z-9,2,7);
             }
           }
         }
