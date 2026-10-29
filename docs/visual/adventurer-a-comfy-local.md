@@ -100,3 +100,18 @@ $python = 'I:\02_AI\ComfyUI-Crownless\therock-gfx1030-test\Scripts\python.exe'
 ```
 
 Generate a new study using `pose_study.py ... --face-guide` if that local path is absent. Time coupling worked on this machine, but another motion/identity strategy or a better approved pose source is still needed before phone-scale human review.
+
+## Fixed-length pose guide and comparison (2026-10-29)
+
+`pose_study_ik.py` creates a **new, unapproved** 8-pose guide; the earlier human-approved mannequin remains unavailable. The previous guide interpolated knees directly and changed segment length from frame to frame. This study solves the knee with two equal 62px segments, uses alternating contact and swing phases, keeps a 400px ground line and counter-swings the arms. The planted foot translates backward by a constant amount relative to the character during each stance. OpenPose limb order and colors follow the [ControlNet OpenPose renderer](https://github.com/lllyasviel/ControlNet/blob/main/annotator/openpose/util.py). Foot marks are added only to the review GIF, not to the ControlNet input. `pose-study-ik.json` retains coordinates and ground flags, and `pose-study-ik.gif` shows the provisional guide. Tests check segment lengths, contact order, stance displacement, passing height, head range, and refusal to overwrite the output directory. These checks verify authored coordinates, not natural movement or user approval.
+
+With the same pixel-trained checkpoint, IP-Adapter, seed and ControlNet settings as the prior independent-frame comparison, the RX 6800 generated eight 512px frames (`ik-independent.png` / `.gif`). The middle leg poses vary more visibly than the previous guide but the character becomes side-facing, the back sword disappears and actual near/far foot alternation is not established. The temporal configuration (`ik-temporal.png` / `.gif`) completed but remained near-static with a deteriorating background. Both are unapproved failures with opaque backgrounds.
+
+`analyze_walk.py` reports foreground bounding-box diagnostics for images with near-uniform corners and rejects unsuitable inputs. The independent run's lowest foreground row varied by 8px and top row by 4px on the 512px source; see `ik-bbox-diagnostic.json`. Thresholds may include shadows, hair and background artifacts, so these values are **not** foot-contact, crossing, torso stability, or identity measurements. Human visual inspection remains necessary; no game or Canon asset is changed.
+
+```powershell
+$python = 'I:\02_AI\ComfyUI-Crownless\therock-gfx1030-test\Scripts\python.exe'
+& $python scripts/adventurer-a-walk/pose_study_ik.py 'I:\02_AI\ComfyUI-Crownless\new-ik-study' docs/assets/adventurer-a-approved-anchor-v1.png
+& $python scripts/adventurer-a-walk/run_poc.py --study 'I:\02_AI\ComfyUI-Crownless\new-ik-study' --anchor docs/assets/adventurer-a-approved-anchor-v1.png --comfy 'I:\02_AI\ComfyUI-Crownless\ComfyUI_windows_portable\ComfyUI' --checkpoint public-prompts-pixel.safetensors --adapter --no-lora --sprite-trigger --text2img --phase-prompt --control-strength 1.4
+# Then run analyze_walk.py with the new run directory and a new output JSON path.
+```

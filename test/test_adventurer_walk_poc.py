@@ -1,8 +1,10 @@
 import importlib.util
 import hashlib
+import math
 from unittest.mock import patch
 import torch
 from safetensors.torch import load_file
+from PIL import Image, ImageDraw
 import pathlib
 import tempfile
 import unittest
@@ -14,9 +16,11 @@ def load(name, path):
     spec.loader.exec_module(mod)
     return mod
 study = load('pose_study', 'scripts/adventurer-a-walk/pose_study.py')
+ik_study = load('pose_study_ik', 'scripts/adventurer-a-walk/pose_study_ik.py')
 poc = load('run_poc', 'scripts/adventurer-a-walk/run_poc.py')
 conversion = load('conversion', 'scripts/adventurer-a-walk/convert_pixel_checkpoint.py')
 temporal = load('temporal', 'scripts/adventurer-a-walk/run_temporal_poc.py')
+analysis = load('analysis', 'scripts/adventurer-a-walk/analyze_walk.py')
 
 class WalkPocTest(unittest.TestCase):
     def test_eight_distinct_temporal_poses_contact_and_passing(self):
@@ -34,6 +38,36 @@ class WalkPocTest(unittest.TestCase):
         face = list(study.poses(face_guide=True))
         self.assertEqual(len(face), 8)
         self.assertTrue(all(p[0][0] > p[1][0] and all(i in p for i in (14, 15, 16, 17)) for p in face))
+
+    def test_fixed_leg_guide_alternates_contact_without_changing_bone_lengths(self):
+        frames = list(ik_study.poses())
+        self.assertEqual(len(frames), 8)
+        for points in frames:
+            for hip, joint, foot in [(8,9,10),(11,12,13)]:
+                self.assertAlmostEqual(math.dist(points[hip], points[joint]), 62, places=5)
+                self.assertAlmostEqual(math.dist(points[joint], points[foot]), 62, places=5)
+            self.assertEqual(max(points[10][1], points[13][1]), 400)
+        self.assertEqual([frames[i][10][0] for i in range(5)], [304,274,244,214,184])
+        self.assertEqual([frames[i % 8][13][0] for i in range(4,9)], [327,297,267,237,207])
+        self.assertGreater(frames[0][10][0], frames[0][13][0])
+        self.assertLess(frames[4][10][0], frames[4][13][0])
+        self.assertEqual(frames[2][13][1], 376)
+        self.assertEqual(frames[6][10][1], 376)
+        self.assertLessEqual(max(p[0][1] for p in frames)-min(p[0][1] for p in frames), 3)
+        with self.assertRaises(ValueError):
+            ik_study.knee((0,0),(0,125))
+
+    def test_fixed_leg_guide_never_overwrites_existing_directory(self):
+        anchor = ROOT / 'docs/assets/adventurer-a-approved-anchor-v1.png'
+        before = anchor.read_bytes()
+        with tempfile.TemporaryDirectory() as temp:
+            out = pathlib.Path(temp) / 'study'
+            ik_study.create(out, anchor)
+            self.assertEqual(len(list(out.glob('pose-*.png'))), 8)
+            self.assertIn('provisional_not_original', (out/'guide.json').read_text())
+            with self.assertRaises(FileExistsError):
+                ik_study.create(out, anchor)
+        self.assertEqual(anchor.read_bytes(), before)
 
     def test_study_creates_new_outputs_and_preserves_anchor(self):
         anchor = ROOT / 'docs/assets/adventurer-a-approved-anchor-v1.png'
@@ -87,6 +121,18 @@ class WalkPocTest(unittest.TestCase):
         self.assertEqual(anchored['8']['inputs']['strength'], 0.9)
         with self.assertRaises(ValueError):
             temporal.workflow('approved.png', poses[:2], 'review')
+
+    def test_bbox_diagnostic_handles_simple_foreground_and_rejects_bad_background(self):
+        im=Image.new('RGB',(512,512),(128,128,128))
+        ImageDraw.Draw(im).rectangle((100,120,200,400),fill=(20,20,20))
+        result=analysis.measure(im)
+        self.assertEqual(result['bbox_inclusive'],[100,120,200,400])
+        self.assertEqual(result['lowest_six_rows_x_span'],[100,200])
+        im.putpixel((511,511),(0,0,0))
+        with self.assertRaisesRegex(ValueError,'Background corners differ'):
+            analysis.measure(im)
+        with self.assertRaisesRegex(ValueError,'No foreground'):
+            analysis.measure(Image.new('RGB',(512,512),(128,128,128)))
 
     def test_workflow_uses_same_anchor_and_pose_control(self):
         g = poc.workflow('reference.png', 'pose.png', 'test.safetensors', 'candidate')
