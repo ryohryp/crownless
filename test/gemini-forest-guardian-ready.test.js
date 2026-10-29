@@ -260,6 +260,20 @@ test('guardian warns before striking, and stepping away earns a counterattack wi
     'the warning must clear as soon as the tell expires');
   assert.doesNotMatch(liveHint(tell,new Set(),2,100.2,{...hero,state:'JUMP'}),/跳ぶか離れよう/,
     'an already-airborne hero must not see a stale jump instruction');
+  assert.equal(D.guardianDodgeCueActive(tell,hero,100.2),true,
+    'an idle defender can still use the highlighted jump control');
+  for(const state of ['ATTACK','SPECIAL']){
+    const locked={...hero,state};
+    assert.equal(D.guardianDodgeCueActive(tell,locked,100.2),false,
+      'a committed '+state+' animation cannot promise an immediate jump');
+    assert.match(liveHint(tell,new Set(),2,100.2,locked),/攻撃動作中！番人の踏み込みに注意/,
+      'the phone still warns of danger instead of silently hiding the lunge');
+    assert.doesNotMatch(liveHint(tell,new Set(),2,100.2,locked),/跳ぶか離れよう/,
+      'the phone must not recommend an unavailable jump while '+state+' is locked');
+  }
+  assert.doesNotMatch(liveHint({...tell,guardianTellTargetId:'ally'},new Set(),2,100.2,
+    {...hero,state:'ATTACK'}),/攻撃動作中！/,
+    'an ally-targeted attack cannot create a false player danger warning');
 });
 
 test('landed guardian counter shows a short reposition choice only to its defender',()=>{
