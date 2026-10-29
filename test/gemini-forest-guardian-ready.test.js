@@ -452,7 +452,7 @@ test('announced shrine lunge survives nonlethal button-mashing but not a killing
 test('guardian lunge popup names only an actionable response for the threatened fighter',()=>{
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   const ai=html.slice(html.indexOf('function sampleEnemyAI('),html.indexOf('function updateFighter('));
-  const source=ai.match(/const tellMessage=([\\s\\S]*?);\\s*spawnPopup\\(tellMessage,enemy\\.x/)?.[1];
+  const source=ai.match(/const tellMessage=([\s\S]*?);\s*spawnPopup\(tellMessage,enemy\.x/)?.[1];
   assert.ok(source,'the actual lunge popup must use defender-aware text');
   const message=Function('target','ginji','return ('+source+')');
   const hero={id:'hero',state:'IDLE'},ally={id:'ally',state:'IDLE'};
@@ -468,7 +468,7 @@ test('guardian lunge popup names only an actionable response for the threatened 
   assert.match(message(ally,hero),/仲間へ踏み込む/,
     'an ally-targeted lunge must not falsely prompt the hero to dodge');
   assert.doesNotMatch(message(ally,hero),/跳ぶか離れよう/);
-  assert.match(ai,/spawnPopup\\(tellMessage,enemy\\.x,enemy\\.z,enemy\\.y\\+65/,
+  assert.match(ai,/spawnPopup\(tellMessage,enemy\.x,enemy\.z,enemy\.y\+65/,
     'the real enemy AI must display the tested contextual popup');
 });
 
