@@ -181,7 +181,7 @@ async function retreatAfterCounter(page,touch) {
 async function jumpCounterGuardian(page) {
   const held=new Set();
   const started=Date.now();
-  let stage='first-hit',jumpSeen=false,dodgeSeen=false,phoneCueSeen=false,airCounterCueSeen=false;
+  let stage='first-hit',jumpSeen=false,dodgeSeen=false,phoneCueSeen=false,attackLockedCueSeen=false,airCounterCueSeen=false;
   const trace=[];
   const startingState=await read(page);
   const startingHp=startingState.player.hp;
@@ -196,10 +196,11 @@ async function jumpCounterGuardian(page) {
   const touch=await page.context().newCDPSession(page);
   try {
     while(Date.now()-started<14000) {
-      const {s,gestureCue,hud}=await page.evaluate(()=>({
+      const {s,gestureCue,gestureText,hud}=await page.evaluate(()=>({
         s:window.CrownlessForestReadout(),
         gestureCue:document.getElementById('gestureHint')?.classList.contains('guardian-dodge-cue')
           ? document.getElementById('gestureHint').textContent : '',
+        gestureText:document.getElementById('gestureHint')?.textContent||'',
         hud:document.getElementById('forestExploreHint')?.textContent||''
       }));
       const enemy=s.enemies.find(e=>e.name==='苔祠の番人' && e.hp>0 && e.state!=='DEAD');
@@ -216,8 +217,15 @@ async function jumpCounterGuardian(page) {
       previousHp=s.player.hp;
       if(stage==='first-hit' && enemy.scoutStrikeClaimed) stage='wait-tell';
       if(stage==='wait-tell' && enemy.guardianTellUntil>s.nowSec) stage='tell';
-      if(stage==='tell' && enemy.guardianTellUntil-s.nowSec>0.2 &&
-          gestureCue.includes('↑スワイプで跳躍回避')) phoneCueSeen=true;
+      // Observe the live control throughout the target's tell, including the
+      // final actionable 0.2s. The old narrow sampling window could miss a
+      // valid instruction even when the actual swipe and counter succeeded.
+      if(enemy.guardianTellUntil>s.nowSec &&
+          enemy.guardianTellTargetId===s.player.id) {
+        if(gestureCue.includes('↑スワイプで跳躍回避')) phoneCueSeen=true;
+        if(['ATTACK','SPECIAL'].includes(s.player.state) &&
+            gestureText.includes('攻撃中は跳べない')) attackLockedCueSeen=true;
+      }
       if(stage==='jump' && s.player.state==='JUMP') jumpSeen=true;
       if(stage==='jump' && enemy.guardianCounterUntil>s.nowSec) {
         assert(jumpSeen,'the counter must follow a genuine touch-swipe jump');
@@ -233,7 +241,8 @@ async function jumpCounterGuardian(page) {
         assert.equal(s.unbanked,startingFangs+1,
           'a landed guardian dodge-counter must earn exactly one unsecured fang');
         assert(dodgeSeen && jumpSeen,'counter must follow the visible jump dodge');
-        assert(phoneCueSeen,'the real phone control must show the targeted jump instruction');
+        assert(phoneCueSeen,'the real phone control must show the targeted jump instruction; '+
+          JSON.stringify({attackLockedCueSeen,trace:trace.slice(-40)}));
         // The earned 0.9s recovery must be legible in the live 390px HUD,
         // not just in a pure-function test or a transient floating popup.
         await page.waitForFunction(() => {
@@ -242,7 +251,7 @@ async function jumpCounterGuardian(page) {
             hud.includes('牙は獲得済み');
         },null,{timeout:650});
         const retreat=await retreatAfterCounter(page,touch);
-        return {jumpSeen,dodgeSeen,phoneCueSeen,airCounterCueSeen,repositionCueSeen:true,counterClaimed:true,
+        return {jumpSeen,dodgeSeen,phoneCueSeen,attackLockedCueSeen,airCounterCueSeen,repositionCueSeen:true,counterClaimed:true,
           hpAtStart:startingHp,hpAtCounter:s.player.hp,retreat,damageEvents,
           seconds:Math.round((Date.now()-started)/100)/10,trace};
       }
@@ -254,6 +263,10 @@ async function jumpCounterGuardian(page) {
       if(stage==='tell' && enemy.guardianTellUntil-s.nowSec<0.5 &&
           enemy.guardianTellUntil-s.nowSec>0.1 &&
           ['IDLE','WALK','RUN'].includes(s.player.state)) {
+        // Capture the exact visible control when the real swipe is issued;
+        // never infer a visible cue from the internal guardian state alone.
+        const cueAtSwipe=await page.locator('#gestureHint').innerText();
+        if(cueAtSwipe.includes('↑スワイプで跳躍回避')) phoneCueSeen=true;
         await swipeJump(page,touch,bounds);
         stage='jump';
       }
