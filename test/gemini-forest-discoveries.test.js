@@ -289,7 +289,7 @@ test('reading tracks first makes the shrine deep search safer without making the
       'skipping tracks is still a viable route');
   }
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
-  assert.match(html,/足元の踏み跡が途切れ途切れに続く。安全な足場を発見（危険な調査の負傷 -3）/,
+  assert.ok(html.includes('足元の踏み跡が二手に分かれ、途中で途切れている。周囲の違いを見て、どちらを追う？（危険な調査の負傷 -3）'),
     'the discovered tracks should explain their benefit without naming the hidden shrine');
   assert.ok(html.includes('CrownlessForestDiscoveries.shrineRiskDamage(state.forestFinds,rpg.crafted,rpg.tempered)'),
     'the visible HP cost must come from the same rule as the reward');
@@ -587,14 +587,14 @@ test('undiscovered forest hints convey sensory cues without naming every hidden 
   assert.match(hint,/near\.id==='shrine'\s*\? '🍃 苔の間から冷たい風が流れる。素材か癒やしか、一度だけ選べる/,
     'injured players see healing versus lost material before a one-time tap');
   assert.match(hint,/茨の向こうで何かが軋む/,'gate is sensed before it is named');
-  assert.match(hint,/足元の踏み跡が途切れ途切れに続く/,'discovered tracks invite the player to inspect the ground instead of giving a compass direction');
+  assert.match(hint,/足元の踏み跡が二手に分かれ、途中で途切れている/,'discovered tracks invite a visual choice without giving a compass direction');
   assert.doesNotMatch(hint,/足跡は右奥へ続いている/,'the HUD must not give away the trail direction before the player follows it');
   const pixel=fs.readFileSync('src/pixel-forest.js','utf8');
   assert.match(pixel,/function trail\(ctx,found\) \{\s*if\(!found.has\('traces'\)\) return;/,'the visible trail is earned by reading the tracks');
   assert.match(html,/forestArt\.trail\(ctx,state\.forestFinds\)/,'the live pixel forest draws the earned trail in the world');
   assert.match(hint,/足元のかすかな筋を辿ろう/,'unread tracks are suggested without naming the gate');
   assert.match(hint,/茨の奥で何かが軋む/,'locked gate invites an actual inspection before revealing equipment requirements');
-  assert.match(hint,/奥の茨を調べてみよう/,'trail alone does not spoil the crafting solution');
+  assert.doesNotMatch(hint,/奥の茨を調べてみよう|新しい剣で奥を調べよう/,'tracks must not prescribe the gate or a crafted-sword route');
   assert.doesNotMatch(hint,/石門の手前に獣の痕跡|茨の石門：風裂きの剣|鍛冶した剣があれば先へ/,'uninspected gate cannot reveal its name or answer');
   assert.match(hint,/気になる地点を直接タップ/,'the player must deliberately inspect');
   assert.doesNotMatch(hint,/near\.label/,'the hint must not automatically reveal an undiscovered name');
