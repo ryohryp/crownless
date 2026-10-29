@@ -2981,8 +2981,8 @@
       : guardian.guardianCounterUntil>nowSec &&
         hero && guardian.guardianCounterTargetId===hero.id
         ? guardian.guardianCounterClaimed
-          ? '🍃 反撃成功！追撃はタップ／退避は左パッド 残り'+(Math.ceil((guardian.guardianCounterUntil-nowSec)*10)/10).toFixed(1)+'秒｜'
-          : '🍃 空振り！反撃+8 残り'+(Math.ceil((guardian.guardianCounterUntil-nowSec)*10)/10).toFixed(1)+'秒｜'
+          ? '🍃 反撃成功！'+(guardian.guardianCounterFangClaimed?'牙は獲得済み／':'')+'追撃はタップ／退避は左パッド 残り'+(Math.ceil((guardian.guardianCounterUntil-nowSec)*10)/10).toFixed(1)+'秒｜'
+          : '🍃 空振り！反撃+8'+(guardian.guardianCounterFangClaimed?'（牙は獲得済み）':'／命中で牙+1（未帰還）')+' 残り'+(Math.ceil((guardian.guardianCounterUntil-nowSec)*10)/10).toFixed(1)+'秒｜'
         : '';
     return strikeCue+lead+'⚠ 番人HP '+Math.ceil(guardian.hp)+'/'+guardian.maxHp+
       '｜倒すまで帰還不可｜未帰還の牙 '+unbanked+'個';
