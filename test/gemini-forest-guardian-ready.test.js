@@ -466,6 +466,31 @@ test('guardian dodge cue points to the real thumb control only when the hero is 
 });
 
 
+test('airborne guardian counter hint advertises the real aerial tap, not a landing wait',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const start=html.indexOf('  function forestGuardianHint(');
+  const end=html.indexOf('  function updateForestExploreHint()',start);
+  assert(start>=0 && end>start,'use the live guardian HUD');
+  const hint=Function('window',html.slice(start,end)+';return forestGuardianHint;')({CrownlessForestDiscoveries:D});
+  const guardian={name:'苔祠の番人',hp:60,maxHp:100,
+    guardianCounterUntil:103,guardianCounterTargetId:'hero',guardianCounterClaimed:false};
+  const hero={id:'hero',state:'JUMP'};
+  const air=hint(guardian,new Set(['traces']),2,101,hero);
+  assert.match(air,/空中タップで反撃/,'the jump counter window is actionable before landing');
+  assert.match(air,/命中で牙\\+1（未帰還）/,'the scouted provisional reward remains clear');
+  assert.doesNotMatch(hint(guardian,new Set(['traces']),2,101,{...hero,state:'IDLE'}),/空中タップ/);
+  assert.doesNotMatch(hint(guardian,new Set(['traces']),2,101,{...hero,state:'ATTACK'}),/空中タップ/);
+  assert.doesNotMatch(hint({...guardian,guardianCounterTargetId:'ally'},new Set(['traces']),2,101,hero),/空中タップ/,
+    'the ally dodge must not promise the hero a counter');
+  assert.doesNotMatch(hint(guardian,new Set(['traces']),2,103,hero),/空中タップ/,
+    'an expired counter must not invite a late hit');
+  assert.match(hint(guardian,new Set(),2,101,hero),/痕跡未調査：牙の追加なし/,
+    'aerial hint cannot mint an unearned material reward');
+  const fighter=html.slice(html.indexOf('  function updateFighter('),html.indexOf('  function performAttackHitbox('));
+  assert.match(fighter,/if \\(input\\.punch \\|\\| input\\.kick\\) \\{\\s*performAttackHitbox\\(f, f\\.kickPower, 150, 180, false, 58\\)/,
+    'the existing airborne attack path must really accept a tap');
+});
+
 test('only scouted guardian counters yield an extra fang; unscouted dodges keep their tactical bonus',()=>{
   const enemy={name:'苔祠の番人',hp:120,state:'IDLE',nextStrikeAt:0,
     guardianCounterTargetId:'hero',guardianCounterUntil:103,guardianCounterClaimed:false};
