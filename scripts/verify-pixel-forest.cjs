@@ -183,7 +183,9 @@ async function jumpCounterGuardian(page) {
   const started=Date.now();
   let stage='first-hit',jumpSeen=false,dodgeSeen=false,phoneCueSeen=false;
   const trace=[];
-  const startingHp=(await read(page)).player.hp;
+  const startingState=await read(page);
+  const startingHp=startingState.player.hp;
+  const startingFangs=startingState.unbanked;
   let previousHp=startingHp;
   const damageEvents=[];
   // Prepare the CDP touch channel before the short warning starts. Opening
@@ -220,6 +222,8 @@ async function jumpCounterGuardian(page) {
         stage='counter';
       }
       if(stage==='counter' && enemy.guardianCounterClaimed) {
+        assert.equal(s.unbanked,startingFangs+1,
+          'a landed guardian dodge-counter must earn exactly one unsecured fang');
         assert(dodgeSeen && jumpSeen,'counter must follow the visible jump dodge');
         assert(phoneCueSeen,'the real phone control must show the targeted jump instruction');
         // The earned 0.9s recovery must be legible in the live 390px HUD,
