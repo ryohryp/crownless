@@ -94,3 +94,35 @@ test('blocked real-site tap shows recovery cue but never spends a find or become
   assert.equal(tap(200,200,false),false,'already-spent site cannot prompt a new interaction');
   assert.equal(popups.length,4,'only unspent nearby blocked touches give feedback');
 });
+
+
+test('unread tracks offer a reversible shrine detour without spoiling the guardian',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const start=html.indexOf("document.getElementById('forestShrineStakes').textContent=");
+  const end=html.indexOf(';',start);
+  assert(start>=0 && end>start,'the live shrine choice stakes must be present');
+  const assignment=html.slice(start,end+1);
+  const render=(tracks)=>{
+    const label={textContent:''};
+    vm.runInNewContext(assignment,{
+      document:{getElementById:()=>label},
+      state:{forestFinds:new Set(tracks)},
+      ginji:{hp:60,maxHp:140},
+      rpg:{unbanked:3},
+      forgeChoice:''
+    });
+    return label.textContent;
+  };
+  const unscouted=render([]);
+  assert.match(unscouted,/足元の筋は未調査。今は引き返して探す手もある。/,
+    'the player can defer the dangerous choice and deliberately seek a clue');
+  assert.match(unscouted,/素材は生還時だけ倉庫に残る/,
+    'the detour cannot hide the existing unsecured-loot stakes');
+  assert.doesNotMatch(unscouted,/苔祠の番人/,
+    'the decision cannot spoil the guardian before the risk is chosen');
+  const scouted=render(['traces']);
+  assert.doesNotMatch(scouted,/足元の筋は未調査/,
+    'the warning disappears after an actual clue inspection');
+  assert.match(scouted,/現在 HP 60\/140、未帰還の牙 3個/,
+    'the existing HP and provisional material counts remain correct');
+});
