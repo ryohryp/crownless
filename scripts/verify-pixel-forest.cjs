@@ -228,9 +228,11 @@ async function jumpCounterGuardian(page) {
         assert(phoneCueSeen,'the real phone control must show the targeted jump instruction');
         // The earned 0.9s recovery must be legible in the live 390px HUD,
         // not just in a pure-function test or a transient floating popup.
-        await page.waitForFunction(() =>
-          document.getElementById('forestExploreHint')?.textContent?.includes('追撃はタップ／退避は左パッド'),
-          null,{timeout:650});
+        await page.waitForFunction(() => {
+          const hud=document.getElementById('forestExploreHint')?.textContent||'';
+          return hud.includes('追撃はタップ／退避は左パッド') &&
+            hud.includes('牙は獲得済み');
+        },null,{timeout:650});
         const retreat=await retreatAfterCounter(page,touch);
         return {jumpSeen,dodgeSeen,phoneCueSeen,repositionCueSeen:true,counterClaimed:true,
           hpAtStart:startingHp,hpAtCounter:s.player.hp,retreat,damageEvents,
