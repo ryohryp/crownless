@@ -1518,7 +1518,8 @@
       enemy,nowSec,
       hasToken && Math.abs(dx)<48 && Math.abs(dz)<20 && !['DOWN','JUMP'].includes(target.state),
       hasToken && ['IDLE','WALK','RUN'].includes(enemy.state),
-      window.CrownlessHitRecovery.readyToStrike(enemy,nowSec),target.id);
+      window.CrownlessHitRecovery.readyToStrike(enemy,nowSec),target.id,
+      !['DEAD','HURT','DOWN','GRAB'].includes(target.state));
     if(guardianAttack==='start'){
       enemy.scoutFirstHitYieldUntil=0; // the visible tell now protects the decision
       spawnPopup('⚠ 番人が踏み込む！跳ぶか離れよう',enemy.x,enemy.z,enemy.y+65,'#fbbf24');
