@@ -13,6 +13,8 @@ from PIL import Image, ImageDraw, ImageChops
 BASE = 'http://127.0.0.1:8188'
 ANCHOR_SHA = '73c6569adf0510bbbfccb7d7da80578e8deb07ba9b1f773f530e0ed2e5342c91'
 CONTROL = 'openpose-sd15-b25b1125.safetensors'
+PIXEL_CHECKPOINT = 'public-prompts-pixel.safetensors'
+PIXEL_SHA = '7e0557dfa8083a0f6d1ccb969c8a31a8195e5c005784c1a9b61caf354e40d292'
 
 def get(path, data=None):
     body = json.dumps(data).encode() if data is not None else None
@@ -20,7 +22,7 @@ def get(path, data=None):
     with urllib.request.urlopen(req, timeout=15) as response:
         return json.load(response)
 
-def workflow(anchor, pose, model, prefix, denoise=0.55, adapter=False, text2img=False):
+def workflow(anchor, pose, model, prefix, denoise=0.55, adapter=False, text2img=False, no_lora=False, sprite_trigger=False, phase=None, control_strength=0.9):
     graph = {
         '1': {'class_type': 'CheckpointLoaderSimple', 'inputs': {'ckpt_name': model}},
         '2': {'class_type': 'CLIPTextEncode', 'inputs': {'clip': ['1', 1], 'text': 'full body right facing oblique three quarter medieval adventurer, detailed pixel art, charcoal tousled hair with silver forelock, short stubble, indigo split coat, cream sleeves, brown leather strapped boots, belt, pouches, sheathed sword on back, same character, compact 3 to 3.5 heads, small restrained face, natural walking pose, pixel art with irregular dry-brush contours and restrained charcoal, warm ivory and sparse muted vermilion, Japanese sumi-e on warm washi style, plain neutral background, no labels'}},
@@ -34,6 +36,9 @@ def workflow(anchor, pose, model, prefix, denoise=0.55, adapter=False, text2img=
         '10': {'class_type': 'VAEDecode', 'inputs': {'samples': ['9', 0], 'vae': ['1', 2]}},
         '11': {'class_type': 'SaveImage', 'inputs': {'images': ['10', 0], 'filename_prefix': prefix}},
     }
+    graph['8']['inputs']['strength'] = control_strength
+    if phase:
+        graph['2']['inputs']['text'] += ', ' + phase
     if adapter:
         graph.update({
             '12': {'class_type': 'LoraLoader', 'inputs': {'model': ['1', 0], 'clip': ['1', 1], 'lora_name': 'pixel-art-sd15.safetensors', 'strength_model': 0.8, 'strength_clip': 0.8}},
@@ -44,6 +49,13 @@ def workflow(anchor, pose, model, prefix, denoise=0.55, adapter=False, text2img=
         graph['2']['inputs']['clip'] = ['12', 1]
         graph['3']['inputs']['clip'] = ['12', 1]
         graph['9']['inputs']['model'] = ['15', 0]
+    if no_lora and adapter:
+        graph['15']['inputs']['model'] = ['1', 0]
+        graph['2']['inputs']['clip'] = ['1', 1]
+        graph['3']['inputs']['clip'] = ['1', 1]
+        del graph['12']
+    if sprite_trigger:
+        graph['2']['inputs']['text'] += ', pixelsprite'
     if text2img:
         graph['6'] = {'class_type': 'EmptyLatentImage', 'inputs': {'width': 512, 'height': 512, 'batch_size': 1}}
         graph['9']['inputs']['denoise'] = 1.0
@@ -67,10 +79,19 @@ def run(args):
     if control_sha != 'b25b1125e870275550b2a7de289056cb3c236c01c293bd5ba883657b1c006e3e':
         raise ValueError('ControlNet checksum mismatch')
     if args.adapter:
-        for rel, expected_sha in [('models/ipadapter/ip-adapter-plus_sd15.safetensors', 'a1c250be40455cc61a43da1201ec3f1edaea71214865fb47f57927e06cbe4996'), ('models/clip_vision/clip_vision_h.safetensors', '64a7ef761bfccbadbaa3da77366aac4185a6c58fa5de5f589b42a65bcc21f161'), ('models/loras/pixel-art-sd15.safetensors', 'ad5034703699e910d5f9525ea5db64abcbd8d7396ff8f771c09403f3adb048ad')]:
+        checks = [('models/ipadapter/ip-adapter-plus_sd15.safetensors', 'a1c250be40455cc61a43da1201ec3f1edaea71214865fb47f57927e06cbe4996'), ('models/clip_vision/clip_vision_h.safetensors', '64a7ef761bfccbadbaa3da77366aac4185a6c58fa5de5f589b42a65bcc21f161'), ('models/loras/pixel-art-sd15.safetensors', 'ad5034703699e910d5f9525ea5db64abcbd8d7396ff8f771c09403f3adb048ad')]
+        if args.no_lora:
+            checks.pop()
+        for rel, expected_sha in checks:
             with (args.comfy / rel).open('rb') as f:
                 if hashlib.file_digest(f, 'sha256').hexdigest() != expected_sha:
                     raise ValueError('Model checksum mismatch: ' + rel)
+    checkpoint_sha = None
+    if args.checkpoint == PIXEL_CHECKPOINT:
+        with (args.comfy / 'models' / 'checkpoints' / PIXEL_CHECKPOINT).open('rb') as checkpoint:
+            checkpoint_sha = hashlib.file_digest(checkpoint, 'sha256').hexdigest()
+        if checkpoint_sha != PIXEL_SHA:
+            raise ValueError('Converted pixel checkpoint checksum mismatch')
     devices = get('/system_stats').get('devices', [])
     if not any('RX 6800' in d.get('name', '') and d.get('type') == 'cuda' for d in devices):
         raise RuntimeError('ComfyUI did not report RX 6800 GPU')
@@ -84,7 +105,10 @@ def run(args):
     indices = [0, 4] if args.contacts_only else list(range(8))
     for i in indices:
         shutil.copyfile(args.study / f'pose-{i:02}.png', staging / f'pose-{i:02}.png')
-        graph = workflow(f'{run_id}/anchor.png', f'{run_id}/pose-{i:02}.png', args.checkpoint, f'{run_id}/frame-{i:02}', args.denoise, args.adapter, args.text2img)
+        phase = None
+        if args.phase_prompt:
+            phase = ('near leg forward, far leg back, both boots touch the ground' if i == 0 else 'far leg forward, near leg back, both boots touch the ground' if i == 4 else 'walking transition, one foot passing the other')
+        graph = workflow(f'{run_id}/anchor.png', f'{run_id}/pose-{i:02}.png', args.checkpoint, f'{run_id}/frame-{i:02}', args.denoise, args.adapter, args.text2img, args.no_lora, args.sprite_trigger, phase, args.control_strength)
         pid = get('/prompt', {'prompt': graph})['prompt_id']
         print(f'Frame {i+1}/8 queued: {pid}', flush=True)
         deadline = time.monotonic() + 600
@@ -113,7 +137,7 @@ def run(args):
         draw.text((128 * i + 5, 136), str(indices[i] + 1), fill='white')
     sheet.save(target / 'review-sheet.png')
     frames[0].save(target / 'review.gif', save_all=True, append_images=frames[1:], duration=125, loop=0)
-    (target / 'manifest.json').write_text(json.dumps({'status': 'unapproved_experiment', 'anchor_sha256': ANCHOR_SHA, 'model': args.checkpoint, 'controlnet': CONTROL, 'seed': 74293, 'denoise': 1.0 if args.text2img else args.denoise, 'indices': indices, 'adapter': args.adapter, 'text2img': args.text2img, 'note': 'New provisional pose study; not the original approved mannequin. No runtime adoption.'}, indent=2), encoding='utf-8')
+    (target / 'manifest.json').write_text(json.dumps({'status': 'unapproved_experiment', 'anchor_sha256': ANCHOR_SHA, 'model': args.checkpoint, 'checkpoint_sha256': checkpoint_sha, 'controlnet': CONTROL, 'seed': 74293, 'denoise': 1.0 if args.text2img else args.denoise, 'indices': indices, 'pose_sha256': {str(i): hashlib.sha256((args.study / f'pose-{i:02}.png').read_bytes()).hexdigest() for i in indices}, 'adapter': args.adapter, 'text2img': args.text2img, 'no_lora': args.no_lora, 'sprite_trigger': args.sprite_trigger, 'phase_prompt': args.phase_prompt, 'control_strength': args.control_strength, 'note': 'New provisional pose study; not the original approved mannequin. No runtime adoption.'}, indent=2), encoding='utf-8')
     print('Unapproved review output:', target)
 
 if __name__ == '__main__':
@@ -123,6 +147,10 @@ if __name__ == '__main__':
     p.add_argument('--comfy', type=Path, required=True)
     p.add_argument('--checkpoint', required=True)
     p.add_argument('--adapter', action='store_true', help='Use IP-Adapter Plus and pixel LoRA')
+    p.add_argument('--phase-prompt', action='store_true', help='Describe near/far contact in addition to the pose image')
+    p.add_argument('--control-strength', type=float, default=0.9, choices=[0.9, 1.4])
+    p.add_argument('--no-lora', action='store_true', help='Do not load pixel LoRA with the adapter')
+    p.add_argument('--sprite-trigger', action='store_true', help='Use pixelsprite for the PublicPrompts pixel model')
     p.add_argument('--text2img', action='store_true', help='Use an empty latent, retaining approved reference via adapter')
     p.add_argument('--contacts-only', action='store_true', help='Generate poses 1 and 5 only')
     p.add_argument('--denoise', type=float, default=0.55, choices=[0.35, 0.55, 0.75])

@@ -1,4 +1,8 @@
 import importlib.util
+import hashlib
+from unittest.mock import patch
+import torch
+from safetensors.torch import load_file
 import pathlib
 import tempfile
 import unittest
@@ -11,6 +15,7 @@ def load(name, path):
     return mod
 study = load('pose_study', 'scripts/adventurer-a-walk/pose_study.py')
 poc = load('run_poc', 'scripts/adventurer-a-walk/run_poc.py')
+conversion = load('conversion', 'scripts/adventurer-a-walk/convert_pixel_checkpoint.py')
 
 class WalkPocTest(unittest.TestCase):
     def test_eight_distinct_temporal_poses_contact_and_passing(self):
@@ -25,6 +30,9 @@ class WalkPocTest(unittest.TestCase):
         self.assertLess(poses[6][10][1], 400)
         self.assertTrue(all(max(p[10][1], p[13][1]) == 400 for p in poses))
         self.assertLessEqual(max(p[0][1] for p in poses) - min(p[0][1] for p in poses), 5)
+        face = list(study.poses(face_guide=True))
+        self.assertEqual(len(face), 8)
+        self.assertTrue(all(p[0][0] > p[1][0] and all(i in p for i in (14, 15, 16, 17)) for p in face))
 
     def test_study_creates_new_outputs_and_preserves_anchor(self):
         anchor = ROOT / 'docs/assets/adventurer-a-approved-anchor-v1.png'
@@ -37,6 +45,29 @@ class WalkPocTest(unittest.TestCase):
             with self.assertRaises(FileExistsError):
                 study.create(out, anchor)
         self.assertEqual(anchor.read_bytes(), before)
+
+    def test_conversion_rejects_unverified_bytes_without_creating_output(self):
+        with tempfile.TemporaryDirectory() as temp:
+            source = pathlib.Path(temp) / 'unknown.ckpt'
+            target = pathlib.Path(temp) / 'out.safetensors'
+            source.write_bytes(b'unverified')
+            with self.assertRaisesRegex(ValueError, 'hash differs'):
+                conversion.convert(source, target)
+            self.assertFalse(target.exists())
+
+    def test_conversion_roundtrips_tensors_and_refuses_overwrite(self):
+        with tempfile.TemporaryDirectory() as temp:
+            source = pathlib.Path(temp) / 'input.ckpt'
+            target = pathlib.Path(temp) / 'out.safetensors'
+            torch.save({'state_dict': {'model.x': torch.tensor([1.5, 2.5])}}, source)
+            digest = hashlib.sha256(source.read_bytes()).hexdigest()
+            with patch.object(conversion, 'EXPECTED', digest):
+                conversion.convert(source, target)
+                self.assertTrue(torch.equal(load_file(str(target))['model.x'], torch.tensor([1.5, 2.5])))
+                original = target.read_bytes()
+                with self.assertRaises(FileExistsError):
+                    conversion.convert(source, target)
+                self.assertEqual(target.read_bytes(), original)
 
     def test_workflow_uses_same_anchor_and_pose_control(self):
         g = poc.workflow('reference.png', 'pose.png', 'test.safetensors', 'candidate')
@@ -53,6 +84,14 @@ class WalkPocTest(unittest.TestCase):
         self.assertEqual(t['6']['class_type'], 'EmptyLatentImage')
         self.assertEqual(t['9']['inputs']['denoise'], 1.0)
         self.assertEqual(t['15']['inputs']['image'], ['4', 0])
+        pixel = poc.workflow('reference.png', 'pose.png', 'pixel.safetensors', 'candidate', adapter=True, text2img=True, no_lora=True, sprite_trigger=True)
+        self.assertNotIn('12', pixel)
+        self.assertEqual(pixel['15']['inputs']['model'], ['1', 0])
+        self.assertEqual(pixel['2']['inputs']['clip'], ['1', 1])
+        self.assertIn('pixelsprite', pixel['2']['inputs']['text'])
+        phased = poc.workflow('reference.png', 'pose.png', 'pixel.safetensors', 'candidate', phase='near foot forward', control_strength=1.4)
+        self.assertIn('near foot forward', phased['2']['inputs']['text'])
+        self.assertEqual(phased['8']['inputs']['strength'], 1.4)
 
 if __name__ == '__main__':
     unittest.main()
