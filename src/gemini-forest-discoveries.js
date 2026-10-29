@@ -230,7 +230,13 @@
       // Only the player can deliberately choose a dodge-counter. An ally
       // escaping the lunge does not freeze the guardian or advertise a
       // counter that the player cannot earn.
-      if(!counterEligible) return 'none';
+      if(!counterEligible){
+        // An ally's sidestep grants no player counter, but also should not
+        // retrigger a warning on the very next frame. Briefly cool down
+        // the next lunge without freezing movement or companion support.
+        enemy.nextStrikeAt=Math.max(enemy.nextStrikeAt||0,nowSec+0.6);
+        return 'none';
+      }
       // The defender really left the attack lane. Only a landed counter
       // from that same defender can claim this one-time bonus.
       enemy.guardianCounterUntil=nowSec+GUARDIAN_COUNTER_SECONDS;

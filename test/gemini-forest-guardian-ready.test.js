@@ -631,8 +631,12 @@ test('ally dodging the guardian does not freeze combat or offer a player-only co
     'the companion evades but cannot create a player counter opportunity');
   assert.equal(allyGuardian.guardianCounterUntil||0,0,
     'an AI dodge cannot freeze the guardian for a reward nobody can claim');
-  assert.equal(allyGuardian.nextStrikeAt,0,
-    'the ally dodge must not delay the next guardian decision');
+  assert.ok(Math.abs(allyGuardian.nextStrikeAt-101.26)<1e-9,
+    'a short lunge cooldown prevents frame-by-frame ally-targeted warning spam');
+  assert.equal(D.guardianStrikeTell(allyGuardian,101,true,true,false,'ally',true,false),'none',
+    'guardian can move but must not immediately repeat the telegraph');
+  assert.equal(D.guardianStrikeTell(allyGuardian,101.26,true,true,true,'ally',true,false),'start',
+    'normal guardian attacks resume promptly after the brief cooldown');
   assert.equal(D.guardianCounterStrikeBonus(allyGuardian,100.8,'ally'),0);
   assert.equal(D.guardianCounterStrikeBonus(allyGuardian,100.8,'hero'),0);
   const heroGuardian={name:'苔祠の番人',hp:120,state:'IDLE',nextStrikeAt:0};
