@@ -181,7 +181,7 @@ async function retreatAfterCounter(page,touch) {
 async function jumpCounterGuardian(page) {
   const held=new Set();
   const started=Date.now();
-  let stage='first-hit',jumpSeen=false,dodgeSeen=false,phoneCueSeen=false;
+  let stage='first-hit',jumpSeen=false,dodgeSeen=false,phoneCueSeen=false,airCounterCueSeen=false;
   const trace=[];
   const startingState=await read(page);
   const startingHp=startingState.player.hp;
@@ -196,10 +196,11 @@ async function jumpCounterGuardian(page) {
   const touch=await page.context().newCDPSession(page);
   try {
     while(Date.now()-started<14000) {
-      const {s,gestureCue}=await page.evaluate(()=>({
+      const {s,gestureCue,hud}=await page.evaluate(()=>({
         s:window.CrownlessForestReadout(),
         gestureCue:document.getElementById('gestureHint')?.classList.contains('guardian-dodge-cue')
-          ? document.getElementById('gestureHint').textContent : ''
+          ? document.getElementById('gestureHint').textContent : '',
+        hud:document.getElementById('forestExploreHint')?.textContent||''
       }));
       const enemy=s.enemies.find(e=>e.name==='苔祠の番人' && e.hp>0 && e.state!=='DEAD');
       assert(enemy && s.phase==='fight' && s.player.hp>0,
@@ -220,6 +221,11 @@ async function jumpCounterGuardian(page) {
       if(stage==='jump' && s.player.state==='JUMP') jumpSeen=true;
       if(stage==='jump' && enemy.guardianCounterUntil>s.nowSec) {
         assert(jumpSeen,'the counter must follow a genuine touch-swipe jump');
+        if(s.player.state==='JUMP') {
+          assert(hud.includes('空中タップで反撃'),
+            'the real 390px HUD must explain the aerial counter while the hero is airborne');
+          airCounterCueSeen=true;
+        }
         dodgeSeen=true;
         stage='counter';
       }
@@ -236,7 +242,7 @@ async function jumpCounterGuardian(page) {
             hud.includes('牙は獲得済み');
         },null,{timeout:650});
         const retreat=await retreatAfterCounter(page,touch);
-        return {jumpSeen,dodgeSeen,phoneCueSeen,repositionCueSeen:true,counterClaimed:true,
+        return {jumpSeen,dodgeSeen,phoneCueSeen,airCounterCueSeen,repositionCueSeen:true,counterClaimed:true,
           hpAtStart:startingHp,hpAtCounter:s.player.hp,retreat,damageEvents,
           seconds:Math.round((Date.now()-started)/100)/10,trace};
       }
