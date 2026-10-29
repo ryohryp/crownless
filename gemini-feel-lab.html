@@ -2149,7 +2149,7 @@
       f,state.forestFinds,rpg.phase,f.hp,f.maxHp,rpg.crafted,shrineChoice,rpg.tempered);
     if (!discovery.ok) {
       if(discovery.reason==='trail'||discovery.reason==='thorns') {
-        spawnPopup(discovery.reason==='trail'?'手前の獣の痕跡に、道の手がかりがある':'茨が行く手を塞ぐ。鍛冶した剣なら切り開けそう',f.x,f.z,f.y+48,'#e3d4ac');
+        spawnPopup(discovery.reason==='trail'?'茨の向こうで何かが軋む。先に周囲の足元を調べよう':'茨が行く手を塞ぐ。鍛冶した剣なら切り開けそう',f.x,f.z,f.y+48,'#e3d4ac');
         return true;
       }
       if(discovery.reason==='weak') {
