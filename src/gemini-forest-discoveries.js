@@ -212,7 +212,7 @@
   // the warning is cancelled if the guardian is stunned or changes target.
   // Other enemies keep their existing attack behavior.
   const GUARDIAN_COUNTER_SECONDS=1.2; // allow a jump dodge to land before the follow-up
-  function guardianStrikeTell(enemy,nowSec,inMelee,canAct,ready,targetId,defenderActive=true){
+  function guardianStrikeTell(enemy,nowSec,inMelee,canAct,ready,targetId,defenderActive=true,counterEligible=true){
     if(!enemy || enemy.name!=='苔祠の番人' || !Number.isFinite(nowSec)) return 'none';
     if(enemy.guardianTellUntil>0){
       // A knockdown or grab is not a deliberate dodge; cancel the tell
@@ -227,6 +227,10 @@
       enemy.guardianTellUntil=0;
       enemy.guardianTellTargetId=null;
       if(inMelee) return ready ? 'strike' : 'none';
+      // Only the player can deliberately choose a dodge-counter. An ally
+      // escaping the lunge does not freeze the guardian or advertise a
+      // counter that the player cannot earn.
+      if(!counterEligible) return 'none';
       // The defender really left the attack lane. Only a landed counter
       // from that same defender can claim this one-time bonus.
       enemy.guardianCounterUntil=nowSec+GUARDIAN_COUNTER_SECONDS;
