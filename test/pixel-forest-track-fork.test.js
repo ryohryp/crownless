@@ -34,7 +34,7 @@ test('reading forest tracks reveals two broken visual leads, never an unearned d
   assert(marks.some(({rect:[x]}) => x < 750), 'one lead veers left');
   assert(marks.some(({rect:[x]}) => x > 850), 'another lead veers right');
   assert(marks.every(({rect:[x, z, w, h]}) =>
-    x >= 710 && x < 900 && z >= 270 && z <= 360 && w <= 6 && h <= 4
+    x >= 710 && x < 900 && z >= 270 && z <= 360 && w <= 8 && h <= 7
   ), 'both leads end before either uninspected site; no route overlay');
   assert.deepEqual(trackMarks(found), marks, 'the clue is stable, not a flashing nav arrow');
   assert.deepEqual([...found], ['traces'], 'rendering cannot discover a site or claim loot');
@@ -44,16 +44,20 @@ test('reading forest tracks reveals two broken visual leads, never an unearned d
 
 test('fork signs differ by environmental evidence, not destination labels or arrows', () => {
   const marks = trackMarks(new Set(['traces']));
-  const moss = marks.filter(mark => mark.ink === '#617459');
-  const thorns = marks.filter(mark => mark.ink === '#6d5343');
+  const moss = marks.filter(mark => mark.ink === '#a2c087');
+  const thorns = marks.filter(mark => mark.ink === '#c78b67');
   assert.equal(moss.length, 4, 'the left lead carries two small moss flecks');
   assert.equal(thorns.length, 4, 'the right lead carries two snapped-thorn marks');
   assert(moss.every(({rect:[x]}) => x < 800), 'moss stays on the left branch');
   assert(thorns.every(({rect:[x]}) => x > 800), 'thorn signs stay on the right branch');
-  assert(moss.every(({rect:[, , w, h]}) => w <= 3 && h <= 3),
+  assert(moss.every(({rect:[, , w, h]}) => w <= 6 && h <= 5),
     'moss clues stay small enough not to read as path arrows');
-  assert(thorns.every(({rect:[, , w, h]}) => w <= 5 && h <= 4),
+  assert(thorns.every(({rect:[, , w, h]}) => w <= 8 && h <= 7),
     'thorn clues stay small enough not to read as path arrows');
+  assert(moss.some(({rect:[, , w, h]}) => w >= 6 && h >= 4),
+    'moss must be large enough to notice on a phone, not a 2px fleck');
+  assert(thorns.some(({rect:[, , w]}) => w >= 8),
+    'snapped thorns must remain distinct from moss at phone scale');
   assert.deepEqual(trackMarks(new Set()), [], 'unread tracks reveal neither branch sign');
 });
 
