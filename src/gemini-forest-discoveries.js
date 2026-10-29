@@ -250,7 +250,7 @@
   // incoming lunge must never light up the player's jump control.
   function guardianDodgeCueActive(enemy,hero,nowSec){
     return Boolean(enemy && enemy.name==='苔祠の番人' && hero &&
-      !['DEAD','DOWN','HURT','GRAB','JUMP'].includes(hero.state) &&
+      !['DEAD','DOWN','HURT','GRAB','ATTACK','SPECIAL','JUMP'].includes(hero.state) &&
       Number.isFinite(nowSec) && enemy.guardianTellUntil>nowSec &&
       enemy.guardianTellTargetId===hero.id);
   }
