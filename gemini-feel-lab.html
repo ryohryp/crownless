@@ -1522,7 +1522,11 @@
       !['DEAD','HURT','DOWN','GRAB'].includes(target.state));
     if(guardianAttack==='start'){
       enemy.scoutFirstHitYieldUntil=0; // the visible tell now protects the decision
-      spawnPopup('⚠ 番人が踏み込む！跳ぶか離れよう',enemy.x,enemy.z,enemy.y+65,'#fbbf24');
+      // An ally-targeted tell or a locked attack cannot be answered by a hero jump.
+      const tellMessage=target!==ginji ? '⚠ 番人が仲間へ踏み込む！' :
+        ['ATTACK','SPECIAL'].includes(ginji.state) ? '⚠ 攻撃動作中！番人の踏み込みに注意' :
+        '⚠ 番人が踏み込む！跳ぶか離れよう';
+      spawnPopup(tellMessage,enemy.x,enemy.z,enemy.y+65,'#fbbf24');
       sfx.haptic([25,35,25]);
     }
     if(guardianAttack==='start' || guardianAttack==='warning'){
@@ -1956,7 +1960,7 @@
     if (window.CrownlessForestDiscoveries.guardianKeepsTellOnHit(target,performance.now()/1000)) {
       if (target.guardianWindupNoticeUntil!==target.guardianTellUntil) {
         target.guardianWindupNoticeUntil=target.guardianTellUntil;
-        spawnPopup('⚠ 踏み込みは止まらない！跳んで避けよう',
+        spawnPopup('⚠ 踏み込みは止まらない！次の回避に備えよう',
           target.x,target.z,target.y+65,'#fbbf24');
       }
       updateUI();
