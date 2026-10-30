@@ -33,6 +33,22 @@ if (-not (Test-Path -LiteralPath $controlDir -PathType Container)) {
     throw "ComfyUI controlnet folder not found: $controlDir"
 }
 
+# Check that a usable 3D generator exists BEFORE transferring the large model.
+if (-not $DepthDir) {
+    if (-not $DepthPython) { $DepthPython = $Python }
+    if (-not (Test-Path -LiteralPath $DepthPython -PathType Leaf)) {
+        throw "Choose an installed Python with numpy, trimesh and Pillow using -DepthPython"
+    }
+    & $DepthPython -c 'import numpy, trimesh, PIL'
+    if ($LASTEXITCODE -ne 0) {
+        throw "3D libraries missing in DepthPython. Use a separate existing Python with numpy/trimesh/Pillow, or supply -DepthDir from the previously generated ZIP. No model was downloaded."
+    }
+} else {
+    if (-not (Test-Path -LiteralPath $DepthDir -PathType Container)) {
+        throw "Specified depth reference directory does not exist: $DepthDir"
+    }
+}
+
 if (Test-Path -LiteralPath $modelPath) {
     if (-not (Test-Path -LiteralPath $modelPath -PathType Leaf)) {
         throw "Depth model path exists but is not a file: $modelPath"
@@ -68,10 +84,6 @@ if (Test-Path -LiteralPath $modelPath) {
 }
 
 if (-not $DepthDir) {
-    if (-not $DepthPython) { $DepthPython = $Python }
-    if (-not (Test-Path -LiteralPath $DepthPython -PathType Leaf)) {
-        throw "Choose a Python containing numpy, trimesh and Pillow with -DepthPython"
-    }
     # Distinct output to protect earlier reference images and candidate studies.
     $studyRoot = Split-Path (Split-Path $ComfyRoot -Parent) -Parent
     $DepthDir = Join-Path $studyRoot ('depth-contact-' + [guid]::NewGuid().ToString('N'))
