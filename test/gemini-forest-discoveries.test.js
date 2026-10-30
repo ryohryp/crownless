@@ -625,12 +625,12 @@ test('undiscovered forest hints convey sensory cues without naming every hidden 
   assert(start>=0 && end>start,'the live forest hint must be present');
   const hint=html.slice(start,end);
   assert.match(hint,/湿った土に細い筋がある/,'tracks are sensed before they are named');
-  assert.match(hint,/苔の間から冷たい風が流れる/,'shrine is sensed before it is named');
-  assert.match(hint,/素材を探すか、傷ついてから癒やすか/,
+  assert.match(hint,/🍃 冷たい風。牙を拾うか、回復の機会を残すか/,'shrine is sensed before it is named');
+  assert.match(hint,/回復の機会を残すか/,
     'healthy players see the irreversible shrine trade-off before tapping');
   assert.match(hint,/near\.id==='shrine' && ginji\.hp>=ginji\.maxHp/,
     'full-health shrine hint is chosen only when healthy');
-  assert.match(hint,/near\.id==='shrine'\s*\? '🍃 苔の間から冷たい風が流れる。素材か癒やしか、一度だけ選べる/,
+  assert.match(hint,/near\.id==='shrine'\s*\? '🍃 冷たい風。牙か回復か、一度だけ選べる/,
     'injured players see healing versus lost material before a one-time tap');
   assert.match(hint,/茨の向こうで何かが軋む/,'gate is sensed before it is named');
   assert.match(hint,/足跡は二手に分かれ、途切れた/,'discovered tracks invite a visual choice without giving a compass direction');
@@ -645,6 +645,25 @@ test('undiscovered forest hints convey sensory cues without naming every hidden 
   assert.match(hint,/気になる地点を直接タップ/,'the player must deliberately inspect');
   assert.doesNotMatch(hint,/near\.label/,'the hint must not automatically reveal an undiscovered name');
   assert.doesNotMatch(hint,/獣の痕跡や古い祠へ近づき/,'generic hint must not spoil specific locations');
+});
+
+test('nearby shrine stays readable on phone while preserving the one-time choice',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const start=html.indexOf('    const label=guardian' + String.fromCharCode(10));
+  const end=html.indexOf('    if(hint.textContent!==label)',start);
+  assert(start>=0 && end>start,'execute the actual forest HUD expression');
+  const labelFor=new Function('guardian','near','state','rpg','ginji',
+    html.slice(start,end)+'\\nreturn label;'.replace('\\n',String.fromCharCode(10)));
+  for(const hp of [140,80]){
+    const label=labelFor(null,{id:'shrine'},{forestFinds:new Set()},
+      {phase:'return',unbanked:1,crafted:false},{hp,maxHp:140});
+    assert(label.length<=40,'shrine hint must leave room to inspect the forest on a 360px phone');
+    assert.match(label,/冷たい風/,'the first cue stays sensory');
+    assert.match(label,hp===140?/回復の機会を残すか/:/牙か回復か/,
+      'full and wounded explorers see the appropriate reversible decision');
+    assert.match(label,/タップで調査/,'finding the site still requires deliberate inspection');
+    assert.doesNotMatch(label,/苔むす祠|石門|右|左/,'do not spoil a site or draw a route');
+  }
 });
 
 test('touching the locked gate before reading tracks preserves the mystery and spends nothing',()=>{

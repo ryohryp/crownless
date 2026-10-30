@@ -3068,9 +3068,9 @@
         : near.id==='hollow' && !rpg.crafted
           ? '🌿 茨の奥で何かが軋む。気になる地点を直接タップ'
           : near.id==='shrine' && ginji.hp>=ginji.maxHp
-          ? '🍃 苔の間から冷たい風が流れる。素材を探すか、傷ついてから癒やすか。気になる地点を直接タップ'
+          ? '🍃 冷たい風。牙を拾うか、回復の機会を残すか。タップで調査'
           : near.id==='shrine'
-          ? '🍃 苔の間から冷たい風が流れる。素材か癒やしか、一度だけ選べる。気になる地点を直接タップ'
+          ? '🍃 冷たい風。牙か回復か、一度だけ選べる。タップで調査'
           : '🍃 '+(near.id==='traces'?'湿った土に細い筋がある':'茨の向こうで何かが軋む')+'。気になる地点を直接タップ'
       : state.forestFinds.has('traces') && !state.forestFinds.has('shrine') && !state.forestFinds.has('hollow')
         ? '足跡は二手に分かれ、途切れた。どちらを追う？（調査負傷 -3）'
