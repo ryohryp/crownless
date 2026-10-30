@@ -1262,6 +1262,8 @@ async function main() {
             'the shrine gives two provisional fangs, never banked loot');
           assert.equal(afterTemperedShrine.phase,'fight',
             'even the tempered blade cannot bypass the optional guardian');
+          assert.equal(afterTemperedShrine.enemies.find(e=>e.name==='苔祠の番人')?.scoutOpeningSeconds,1.8,
+            'real shrine-first encounter keeps the ordinary scouted 1.8s warning');
           const temperedGuardian=await clearWave(page);
           assert.equal(temperedGuardian.after.phase,'return',
             'guardian victory returns to ordinary exploration');
@@ -1289,6 +1291,74 @@ async function main() {
             guardian:{hpAfter:temperedGuardian.after.player.hp,
               scoutedFirstHit:temperedGuardian.scoutedFirstHit},
             returned:temperedShrineReturn,restored:temperedShrineRestored};
+          // Real 390px gate-first comparison: deliberately inspect the thorn
+          // lead before choosing the optional shrine fight. The same tempered
+          // sword is used as in the shrine-first run above; no test-only
+          // teleport, reward injection, or save edits are permitted.
+          assert.equal(temperedShrineRestored.phase,'fight');
+          await clearWave(page);
+          await walkTo(page,800,365);
+          await tapSite(page,'traces');
+          await walkTo(page,910,235);
+          const gateFirstBefore=await read(page);
+          assert(!gateFirstBefore.found.includes('hollow') &&
+            !gateFirstBefore.found.includes('shrine'),
+            'both fork destinations remain unclaimed before the detour');
+          await tapSite(page,'hollow');
+          const gateFirstCautious=page.locator('#forestGateCautious');
+          assert(await gateFirstCautious.isEnabled(),
+            'the tempered sword opens the nonlethal thorn investigation');
+          assert.match(await gateFirstCautious.innerText(),/負傷なし.*未帰還素材 \\+1/,
+            'the player sees the cost and provisional reward before choosing');
+          await gateFirstCautious.click();
+          const gateFirstAfter=await read(page);
+          assert(gateFirstAfter.found.includes('hollow'),
+            'real phone touch, not a cue, discovers the thorn gate');
+          assert.equal(gateFirstAfter.player.hp,gateFirstBefore.player.hp,
+            'the tempered cautious gate detour costs no HP');
+          assert.equal(gateFirstAfter.unbanked,gateFirstBefore.unbanked+1,
+            'the gate gives one provisional fang, not free banked loot');
+          await walkTo(page,660,230);
+          await tapSite(page,'shrine');
+          const gateFirstStakes=await page.locator('#forestShrineStakes').innerText();
+          assert.match(gateFirstStakes,/石門の茨の手がかりで先手の猶予 \\+0\\.6秒/,
+            'the phone choice explains the earned gate-first tactical advantage');
+          assert.doesNotMatch(gateFirstStakes,/苔祠の番人/,
+            'the choice still conceals the guardian identity');
+          await page.screenshot({path:path.join(output,'pixel-forest-gate-first-shrine-390.png')});
+          const beforeGateFirstRisk=await read(page);
+          await page.locator('#forestShrineRisk').click();
+          const gateFirstRisk=await read(page);
+          assert.equal(gateFirstRisk.phase,'fight',
+            'the tactical advantage cannot bypass the optional guardian');
+          assert.equal(gateFirstRisk.enemies.find(e=>e.name==='苔祠の番人')?.scoutOpeningSeconds,2.4,
+            'real gate-first encounter earns 2.4s rather than shrine-first 1.8s');
+          assert.equal(gateFirstRisk.unbanked,beforeGateFirstRisk.unbanked+2,
+            'the shrine reward remains unsecured until survival');
+          const gateFirstGuardian=await clearWave(page);
+          assert.equal(gateFirstGuardian.after.phase,'return',
+            'the gate-first guardian victory returns to ordinary exploration');
+          await page.locator('#rpgOpenResults').click();
+          await page.locator('#rpgReturn').click();
+          const gateFirstReturn=await read(page);
+          assert.equal(gateFirstReturn.phase,'camp');
+          assert.equal(gateFirstReturn.banked,
+            temperedShrineRestored.banked+gateFirstGuardian.after.unbanked,
+            'the living return banks only the real provisional materials');
+          assert.equal(gateFirstReturn.unbanked,0);
+          await page.reload({waitUntil:'domcontentloaded'});
+          await page.waitForFunction(()=>window.CrownlessForestReadout?.().assetsReady);
+          const gateFirstRestored=await read(page);
+          assert.equal(gateFirstRestored.banked,gateFirstReturn.banked,
+            'gate-first material banking survives reload without duplication');
+          assert.equal(gateFirstRestored.unbanked,0);
+          report.forkOrderBrowser={
+            shrineFirstWarningSeconds:afterTemperedShrine.enemies.find(e=>e.name==='苔祠の番人').scoutOpeningSeconds,
+            gateFirstWarningSeconds:gateFirstRisk.enemies.find(e=>e.name==='苔祠の番人').scoutOpeningSeconds,
+            gateBefore:gateFirstBefore,gateAfter:gateFirstAfter,
+            returned:gateFirstReturn,restored:gateFirstRestored,
+            note:'Both 390px routes used real movement and touch. CI is not a human fun verdict.'
+          };
           // Separate fresh-phone expedition: prove the new *unforged* gate
           // alternative with a real touch and a living return. The long
           // crafted/tempered loop above cannot exercise this starter-only choice.
