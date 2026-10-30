@@ -1361,3 +1361,24 @@ test('tempered smith sword makes forceful gate salvage safer without granting ex
   assert.match(html,/研ぎ直した剣で負傷軽減/,
     'the reason for a changed risk must be visible before choosing');
 });
+
+
+test('a landed guardian strike acknowledges the gate-first detour, not merely the warning',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const expression=html.match(/const scoutHitMessage=([\s\S]*?);\s*spawnPopup\(scoutHitMessage\+scoutBonus/);
+  assert.ok(expression,'the actual landed-hit popup must use the earned scouting variant');
+  const message=Function('target','return ('+expression[1]+');');
+  assert.match(message({scoutOpeningSeconds:2.4}),/石門の観察が効いた！先手 \+/,
+    'gate-first players see how their earlier choice paid off');
+  assert.match(message({scoutOpeningSeconds:1.8}),/先手成功！\+/,
+    'tracks-only players still see the ordinary earned first strike');
+  assert.doesNotMatch(message({scoutOpeningSeconds:1.8}),/石門/,
+    'do not credit a detour that was not taken');
+  const hit=html.indexOf('if (scoutBonus) {');
+  const popup=html.indexOf('spawnPopup(scoutHitMessage+scoutBonus',hit);
+  assert.ok(hit>=0 && popup>hit && popup-hit<600,
+    'the gate-specific success message is emitted only in the landed-bonus branch');
+  assert.equal(D.guardianOpeningSeconds(new Set(['traces','hollow'])),2.4);
+  assert.equal(D.guardianOpeningSeconds(new Set(['traces'])),1.8);
+  assert.equal(D.guardianOpeningSeconds(new Set()),0);
+});
