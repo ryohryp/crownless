@@ -67,8 +67,10 @@ test('stone-gate choice previews the earned later opening without spoiling an un
     return node.textContent;
   };
   const gateFirst=render(['traces']);
-  assert.match(gateFirst,/奥の危険な調査/,
-    'the bonus applies only to the optional deeper search, not every later fight');
+  assert.match(gateFirst,/慎重な回収だけ先手の猶予 \+0\.6秒/,
+    'only cautious salvage earns the later tactical advantage');
+  assert.match(gateFirst,/強引な回収・薬草なら効果なし/,
+    'the higher-loot and healing routes must not promise the cautious bonus');
   assert(gateFirst.includes('先手の猶予 +0.6秒'),
     'the player can weigh the later encounter benefit before committing to a gate reward');
   assert.match(gateFirst,/薬草なら効果なし/,
