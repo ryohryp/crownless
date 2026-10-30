@@ -1308,7 +1308,7 @@ async function main() {
           const gateFirstCautious=page.locator('#forestGateCautious');
           assert(await gateFirstCautious.isEnabled(),
             'the tempered sword opens the nonlethal thorn investigation');
-          assert.match(await gateFirstCautious.innerText(),/負傷なし.*未帰還素材 \\+1/,
+          assert.match(await gateFirstCautious.innerText(),/負傷なし.*未帰還素材 \+1/,
             'the player sees the cost and provisional reward before choosing');
           await gateFirstCautious.click();
           const gateFirstAfter=await read(page);
@@ -1321,7 +1321,7 @@ async function main() {
           await walkTo(page,660,230);
           await tapSite(page,'shrine');
           const gateFirstStakes=await page.locator('#forestShrineStakes').innerText();
-          assert.match(gateFirstStakes,/石門の茨の手がかりで先手の猶予 \\+0\\.6秒/,
+          assert.match(gateFirstStakes,/石門の茨の手がかりで先手の猶予 \+0\.6秒/,
             'the phone choice explains the earned gate-first tactical advantage');
           assert.doesNotMatch(gateFirstStakes,/苔祠の番人/,
             'the choice still conceals the guardian identity');
