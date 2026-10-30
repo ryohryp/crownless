@@ -3065,8 +3065,12 @@
           : near.id==='shrine'
           ? '🍃 苔の間から冷たい風が流れる。素材か癒やしか、一度だけ選べる。気になる地点を直接タップ'
           : '🍃 '+(near.id==='traces'?'湿った土に細い筋がある':'茨の向こうで何かが軋む')+'。気になる地点を直接タップ'
-      : state.forestFinds.has('traces') && !state.forestFinds.has('hollow')
+      : state.forestFinds.has('traces') && !state.forestFinds.has('shrine') && !state.forestFinds.has('hollow')
         ? '足元の踏み跡が二手に分かれ、途中で途切れている。周囲の違いを見て、どちらを追う？（危険な調査の負傷 -3）'
+      : state.forestFinds.has('traces') && !state.forestFinds.has('shrine')
+        ? '踏み跡の先には、まだ苔の湿りが残っている。周囲を探してみよう'
+      : state.forestFinds.has('traces') && !state.forestFinds.has('hollow')
+        ? '踏み跡の先では、まだ茨が軋んでいる。周囲を探してみよう'
       : rpg.phase==='return'
         ? '🌲 未帰還の牙 '+rpg.unbanked+'個。探索を続けるか、生還して確定'
         : '🌲 森の音や足元の違和感を探そう。気になる地点は直接タップ';
