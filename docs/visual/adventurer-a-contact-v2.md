@@ -11,7 +11,13 @@ The first ChatGPT ComfyUI Local MCP near/far jobs both ran successfully but did 
 
 ## On the Windows owner PC
 
-Use the existing checkout of the feat/adventurer-a-comfy-poc branch, including the newly committed contact_v2.py. In PowerShell, from its Crownless root, replace only the MCP allowlist path with the folder where the owner registered smoke.json and the earlier near/far workflows.
+Use the existing checkout of the `feat/adventurer-a-comfy-poc` branch with `contact_v2.py`, `register_contact_v2.ps1` and the approved anchor. **Recommended:** From the repository root, run the helper below in Windows PowerShell. It displays a file picker for the *existing* `adventurer-a-near-contact.json` (already registered through MCP), validates the paired v1 JSONs, and registers v2 using the known, previously tested TheRock/ComfyUI paths. It never modifies v1 and does not run any ComfyUI jobs:
+
+    powershell -NoProfile -STA -ExecutionPolicy Bypass -File scripts/adventurer-a-walk/register_contact_v2.ps1
+
+If the file picker is unavailable or those paths have moved, pass `-McpWorkflowDir 'YOUR_EXISTING_MCP_ALLOWLIST_FOLDER'` or use the manual command below. This is a local script that has **not** been tested on the user's actual Windows PC; inspect it before running.
+
+Manual alternative (from Crownless root):
 
     $python = 'I:\02_AI\ComfyUI-Crownless\therock-gfx1030-test\Scripts\python.exe'
     $comfy = 'I:\02_AI\ComfyUI-Crownless\ComfyUI_windows_portable\ComfyUI'
