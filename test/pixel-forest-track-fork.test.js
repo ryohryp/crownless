@@ -91,6 +91,8 @@ test('the field HUD keeps the unvisited fork visible after either first discover
   });
   const both = labelFor(['traces']);
   assert.match(both, /二手に分かれ/, 'both branches remain a player choice');
+  assert(both.length<=40, 'fork HUD stays compact over a 360px phone scene');
+  assert.doesNotMatch(both, /石門|祠|苔|茨|右|左/, 'fork HUD asks players to notice environmental signs themselves');
   const moss = labelFor(['traces', 'hollow']);
   assert.match(moss, /苔の湿り/, 'investigating the thorn side leaves the moss clue');
   assert.doesNotMatch(moss, /茨が軋んで/, 'do not repeat an already inspected lead');
