@@ -317,12 +317,13 @@ async function approachGuardianWarning(page) {
 // Compare attack-only and timed jump with the same forged equipment on
 // separate real expeditions. No HP, positions, combat flags or rewards are
 // injected; report the starting HP so different prior damage stays visible.
-async function clearWave(page,{attackOnlyGuardian=false}={}) {
+async function clearWave(page,{attackOnlyGuardian=false,preferScoutedOpening=false}={}) {
   const held = new Set();
   const start = Date.now();
   const before = await read(page);
   let minimumHp = before.player.hp;
   let scoutedFirstHit = false;
+  let openingObserved = false;
   let gateFirstFeedbackSeen = false;
   let guardianTellSeen = false;
   let guardianCounterClaimed = false;
@@ -342,6 +343,7 @@ async function clearWave(page,{attackOnlyGuardian=false}={}) {
         e.name==='苔祠の番人' && e.scoutOpeningSeconds>1.8 &&
         e.scoutStrikeClaimed) && hud.includes('石門の観察が効いた');
       scoutedFirstHit ||= s.enemies.some(e => e.name === '苔祠の番人' && e.scoutStrikeClaimed);
+      openingObserved ||= s.enemies.some(e => e.name === '苔祠の番人' && e.scoutOpeningActive);
       guardianTellSeen ||= s.enemies.some(e => e.name === '苔祠の番人' && e.guardianTellUntil>s.nowSec);
       guardianCounterClaimed ||= s.enemies.some(e => e.name === '苔祠の番人' && e.guardianCounterClaimed);
       if(s.player.hp<previousHp) {
@@ -354,7 +356,7 @@ async function clearWave(page,{attackOnlyGuardian=false}={}) {
       }
       previousHp=s.player.hp;
       if (s.phase === 'return') return { seconds: Math.round((Date.now()-start)/100)/10,
-        minimumHp, hpLost:before.player.hp-minimumHp, scoutedFirstHit,
+        minimumHp, hpLost:before.player.hp-minimumHp, scoutedFirstHit, openingObserved,
         gateFirstFeedbackSeen,attackOnlyGuardian, guardianTellSeen, guardianCounterClaimed,
         damageEvents,scoutTrace, after:s };
       assert(s.phase === 'fight' && s.player.hp > 0,
@@ -365,13 +367,21 @@ async function clearWave(page,{attackOnlyGuardian=false}={}) {
       // Use the real grab/throw input when the guardian closes in, rather
       // than relying on an unbroken kick hold against its stronger attacks.
       // Normal enemies retain the baseline kick-only screening path.
-      const grappleGuardian=!attackOnlyGuardian && target?.name==='苔祠の番人' && !target.scoutOpeningActive &&
+      // A cautious gate detour only matters if the hero actually gets to use
+      // the earned opening. Approach and face the guardian without holding an
+      // attack that would lock the hero out of arming the one-shot warning.
+      // Once observed, attempt the strike; never wait indefinitely for a
+      // second warning if the first one expires or the player misses.
+      const waitForOpening=preferScoutedOpening && target?.name==='苔祠の番人' &&
+        target.scoutOpeningSeconds>0 && !target.scoutStrikeClaimed && !openingObserved;
+      const grappleGuardian=!waitForOpening && !attackOnlyGuardian &&
+        target?.name==='苔祠の番人' && !target.scoutOpeningActive &&
         Math.abs(target.x-s.player.x)<42 && Math.abs(target.z-s.player.z)<20;
-      const wanted = [grappleGuardian?'l':'k'];
+      const wanted = waitForOpening ? [] : [grappleGuardian?'l':'k'];
       if (target?.name === '苔祠の番人' && scoutTrace.length < 35) {
         scoutTrace.push({ms:Date.now()-start, gap:Math.round(Math.hypot(target.x-s.player.x,target.z-s.player.z)),
           hero:s.player.state, guardian:target.state, guardianHp:Math.ceil(target.hp),
-          opening:target.scoutOpeningActive, claimed:target.scoutStrikeClaimed, input:wanted[0]});
+          opening:target.scoutOpeningActive, claimed:target.scoutStrikeClaimed, input:wanted[0]||'approach'});
       }
       if (target) {
         const dx=target.x-s.player.x, dz=target.z-s.player.z;
@@ -1356,10 +1366,14 @@ async function main() {
             'real gate-first encounter earns 2.4s rather than shrine-first 1.8s');
           assert.equal(gateFirstRisk.unbanked,beforeGateFirstRisk.unbanked+2,
             'the shrine reward remains unsecured until survival');
-          const gateFirstGuardian=await clearWave(page);
-          // If the real 390px run lands the earned opening, the phone HUD
-          // must actually show why that hit was earned (not only a popup).
-          if(gateFirstGuardian.scoutedFirstHit) assert(gateFirstGuardian.gateFirstFeedbackSeen,
+          const gateFirstGuardian=await clearWave(page,{preferScoutedOpening:true});
+          assert.equal(gateFirstGuardian.openingObserved,true,
+            'cautious gate-first detour must open a real player-actionable warning; trace='+
+            JSON.stringify(gateFirstGuardian.scoutTrace));
+          assert.equal(gateFirstGuardian.scoutedFirstHit,true,
+            'cautious gate-first detour must land the earned +12 strike, not just lengthen an unused timer; trace='+
+            JSON.stringify(gateFirstGuardian.scoutTrace));
+          assert.equal(gateFirstGuardian.gateFirstFeedbackSeen,true,
             'landed gate-first strike must show its earned consequence on the live 390px HUD');
           assert.equal(gateFirstGuardian.after.phase,'return',
             'the gate-first guardian victory returns to ordinary exploration');
