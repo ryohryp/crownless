@@ -659,9 +659,11 @@ test('live phone gesture hint distinguishes an attack-locked guardian tell from 
   assert(start>=0 && end>start,'inspect the real phone gesture formatter');
   const hint={textContent:'',classList:{toggle(name,on){this[name]=on;}}};
   const jump={classList:{toggle(name,on){this[name]=on;}}};
+  const punch={classList:{toggle(name,on){this[name]=on;}}};
   const document={getElementById(id){
     if(id==='gestureHint') return hint;
     if(id==='btnJump') return jump;
+    if(id==='btnPunch') return punch;
     throw new Error('unexpected DOM id '+id);
   }};
   const update=new Function('window','document',
