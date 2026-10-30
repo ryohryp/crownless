@@ -67,6 +67,8 @@ test('stone-gate choice previews the earned later opening without spoiling an un
     return node.textContent;
   };
   const gateFirst=render(['traces']);
+  assert.match(gateFirst,/奥の危険な調査/,
+    'the bonus applies only to the optional deeper search, not every later fight');
   assert(gateFirst.includes('先手の猶予 +0.6秒'),
     'the player can weigh the later encounter benefit before committing to a gate reward');
   assert.doesNotMatch(gateFirst,/苔祠|番人|右|左/,
