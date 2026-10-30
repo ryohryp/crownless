@@ -60,6 +60,11 @@
     overscroll-behavior: contain;
     -webkit-overflow-scrolling: touch;
   }
+  .guardian-scout-cue {
+    outline: 3px solid #bef264;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 3px rgba(15,23,42,.85), 0 0 16px rgba(190,242,100,.65);
+  }
   .guardian-dodge-cue {
     outline: 3px solid #fbbf24;
     outline-offset: 2px;
@@ -2979,6 +2984,10 @@
   // strike is held back. This is a warning window, not a promised hit timer.
   function updateGuardianDodgeControls(guardian,hero,nowSec) {
     const active=window.CrownlessForestDiscoveries.guardianDodgeCueActive(guardian,hero,nowSec);
+    const scoutStrike=window.CrownlessForestDiscoveries.guardianScoutAttackCueActive(guardian,hero,nowSec);
+    // The thumb's main attack button shows the earned strike directly.
+    // Dodge cues take priority when the guardian announces its lunge.
+    document.getElementById('btnPunch').classList.toggle('guardian-scout-cue',scoutStrike && !active);
     const gestureHint=document.getElementById('gestureHint');
     // Do not advertise a jump while the hero is locked into an attack.
     // Keep the incoming threat visible beside the actual touch control.
@@ -2989,6 +2998,7 @@
     gestureHint.textContent=active
       ? '⚠ ↑スワイプで跳躍回避'
       : attackLocked ? '⚠ 攻撃中は跳べない！番人の踏み込みに注意'
+      : scoutStrike ? '👁 先手の好機！右下の攻撃で+12'
       : 'タップ:斬撃　横:蹴り　↑跳ぶ　↓組む';
     gestureHint.classList.toggle('guardian-dodge-cue',active);
     document.getElementById('btnJump').classList.toggle('guardian-dodge-cue',active);
