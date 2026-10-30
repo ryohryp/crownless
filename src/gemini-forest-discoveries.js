@@ -83,9 +83,9 @@
   // Reading the tracks also warns of the guardian's first lunge. This only
   // buys a short opening to reposition; it does not skip or weaken the fight.
   function guardianOpeningSeconds(found){
-    // Inspecting the thorn lead before the shrine reveals how the unseen
-    // threat moves. The optional detour buys 0.6s to act, not a free hit.
-    return found.has('traces') ? (found.has('hollow') ? 2.4 : 1.8) : 0;
+    // Recovering fangs from the thorn lead teaches its movement pattern;
+    // taking herbs instead preserves HP but cannot grant the extra 0.6s.
+    return found.has('traces') ? (found.has('hollow-scout') ? 2.4 : 1.8) : 0;
   }
   // Start the earned warning when the guardian is close enough to threaten the
   // player, not while it is still walking in from its distant spawn point.
@@ -368,6 +368,9 @@
     const scavenge=spot.kind==='healing' && (risky || shrineChoice==='material' ||
       (shrineChoice==='auto' && hp>=maxHp));
     found.add(spot.id);
+    // Only hands-on thorn salvage earns the guardian scouting advantage.
+    // A herb-only visit still consumes the gate but never grants free combat time.
+    if(spot.kind==='cache' && shrineChoice!=='heal') found.add('hollow-scout');
     const gateHeal=spot.kind==='cache' && shrineChoice==='heal';
     const gateSalvage=spot.kind==='cache' && !gateHeal;
     const gateCautious=spot.kind==='cache' && shrineChoice==='cautious';

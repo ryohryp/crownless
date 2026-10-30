@@ -914,9 +914,24 @@ test('reading tracks grants a short first-strike warning without changing normal
 
 test('thorn-first investigation earns a longer guardian warning without free loot',()=>{
   const tracks=new Set(['traces']);
-  const gateFirst=new Set(['traces','hollow']);
+  const gateFirst=new Set(['traces']);
+  const gateLoot=D.uncover({x:910,z:235},gateFirst,'return',90,140,false,'cautious');
+  assert.equal(gateLoot.ok,true);
+  assert.equal(gateLoot.material,1,'the detour still awards only provisional materials');
+  assert.equal(gateLoot.damage,6,'the unarmed detour pays its existing thorn wound');
   assert.equal(D.guardianOpeningSeconds(tracks),1.8,'tracks alone retain the warning');
-  assert.equal(D.guardianOpeningSeconds(gateFirst),2.4,'the other fork earns 0.6s');
+  assert.equal(D.guardianOpeningSeconds(gateFirst),2.4,'salvaging the other fork earns 0.6s');
+  const herbFirst=new Set(['traces']);
+  const herbs=D.uncover({x:910,z:235},herbFirst,'return',50,140,false,'heal');
+  assert.equal(herbs.ok,true);
+  assert.equal(herbs.heal,45);
+  assert.equal(herbs.material,0);
+  assert.equal(herbFirst.has('hollow'),true,'the herb visit is still consumed');
+  assert.equal(herbFirst.has('hollow-scout'),false,'herbs do not reveal the thorn fighting pattern');
+  assert.equal(D.guardianOpeningSeconds(herbFirst),1.8,
+    'healing first preserves HP but forfeits the extra guardian warning');
+  assert.equal(D.uncover({x:910,z:235},herbFirst,'return',50,140,false,'cautious').ok,false,
+    'healing cannot be followed by free scouting or duplicated loot');
   assert.equal(D.guardianOpeningSeconds(new Set(['hollow'])),0,
     'a gate flag without earned tracks must not grant a warning');
   assert.equal(D.guardianOpeningSeconds(new Set()),0,'unscouted fights are unchanged');
@@ -926,10 +941,10 @@ test('thorn-first investigation earns a longer guardian warning without free loo
   assert.equal(D.guardianScoutStrikeBonus(guardian,102.3),12);
   assert.equal(D.guardianScoutStrikeBonus(guardian,102.4),0,
     'the longer warning still expires, without repeatable rewards');
-  assert.deepEqual([...gateFirst],['traces','hollow'],
+  assert.deepEqual([...gateFirst],['traces','hollow','hollow-scout'],
     'calculating the advantage cannot auto-discover the shrine');
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
-  assert.ok(html.includes("state.forestFinds.has('hollow')") &&
+  assert.ok(html.includes("state.forestFinds.has('hollow-scout')") &&
     html.includes('奥まで探るなら、石門の茨の手がかりで先手の猶予 +0.6秒。'),
     'the advantage is explained before choosing the optional fight');
   assert.ok(html.includes('石門の茨で番人の動きを読んだ！先手の猶予 +0.6秒'),
@@ -1378,7 +1393,9 @@ test('a landed guardian strike acknowledges the gate-first detour, not merely th
   const popup=html.indexOf('spawnPopup(scoutHitMessage+scoutBonus',hit);
   assert.ok(hit>=0 && popup>hit && popup-hit<600,
     'the gate-specific success message is emitted only in the landed-bonus branch');
-  assert.equal(D.guardianOpeningSeconds(new Set(['traces','hollow'])),2.4);
+  assert.equal(D.guardianOpeningSeconds(new Set(['traces','hollow','hollow-scout'])),2.4);
+  assert.equal(D.guardianOpeningSeconds(new Set(['traces','hollow'])),1.8,
+    'herb-only gate visits must not be credited with a salvage advantage');
   assert.equal(D.guardianOpeningSeconds(new Set(['traces'])),1.8);
   assert.equal(D.guardianOpeningSeconds(new Set()),0);
 });

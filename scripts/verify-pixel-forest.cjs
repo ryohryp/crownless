@@ -1317,6 +1317,8 @@ async function main() {
           const gateFirstPreview=await page.locator('#forestGateStakes').innerText();
           assert(gateFirstPreview.includes('先手の猶予 +0.6秒'),
             '390px gate-first choice must disclose its earned later reaction advantage before the tap');
+          assert(gateFirstPreview.includes('薬草なら効果なし'),
+            '390px phone must show that the healing option forfeits the scouting advantage');
           assert.doesNotMatch(gateFirstPreview,/苔祠|番人|右|左/,
             'the preview must not spoil the unseen destination or its guardian');
           const gateFirstCautious=page.locator('#forestGateCautious');
@@ -1328,6 +1330,8 @@ async function main() {
           const gateFirstAfter=await read(page);
           assert(gateFirstAfter.found.includes('hollow'),
             'real phone touch, not a cue, discovers the thorn gate');
+          assert(gateFirstAfter.found.includes('hollow-scout'),
+            'only the actual thorn-salvage tap earns the guardian scouting advantage');
           assert.equal(gateFirstAfter.player.hp,gateFirstBefore.player.hp,
             'the tempered cautious gate detour costs no HP');
           assert.equal(gateFirstAfter.unbanked,gateFirstBefore.unbanked+1,

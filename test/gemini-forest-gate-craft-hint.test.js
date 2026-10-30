@@ -71,6 +71,8 @@ test('stone-gate choice previews the earned later opening without spoiling an un
     'the bonus applies only to the optional deeper search, not every later fight');
   assert(gateFirst.includes('先手の猶予 +0.6秒'),
     'the player can weigh the later encounter benefit before committing to a gate reward');
+  assert.match(gateFirst,/薬草なら効果なし/,
+    'the phone preview must disclose that choosing healing forfeits the tactical bonus');
   assert.doesNotMatch(gateFirst,/苔祠|番人|右|左/,
     'a tactical clue must not reveal the uninspected destination or route');
   assert.match(gateFirst,/未帰還の牙 4個/);
@@ -79,13 +81,16 @@ test('stone-gate choice previews the earned later opening without spoiling an un
   assert(!render(['traces','shrine']).includes('先手の猶予 +0.6秒'),
     'visiting the shrine first cannot promise a retrospective bonus');
   assert.equal(D.guardianOpeningSeconds(new Set(['traces'])),1.8);
-  assert.equal(D.guardianOpeningSeconds(new Set(['traces','hollow'])),2.4);
+  assert.equal(D.guardianOpeningSeconds(new Set(['traces','hollow'])),1.8,
+    'healing at the gate cannot silently grant the salvage scouting bonus');
+  assert.equal(D.guardianOpeningSeconds(new Set(['traces','hollow','hollow-scout'])),2.4);
   const found=new Set(['traces']);
   const result=D.uncover({x:910,z:235},found,'return',90,140,false,'cautious');
   assert.equal(result.ok,true);
   assert.equal(result.material,1);
   assert.equal(result.damage,6);
   assert.equal(found.has('hollow'),true);
+  assert.equal(found.has('hollow-scout'),true,'the hands-on salvage earns the scouting marker');
   assert.equal(D.guardianOpeningSeconds(found),2.4,
     'the visible advantage corresponds to an earned, costly detour');
 });
