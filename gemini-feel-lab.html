@@ -53,6 +53,13 @@
   }
   /* The guardian's brief lunge cue must identify the real phone input,
      without changing touch targets or covering the combat scene. */
+  /* Keep all one-time forest choices reachable on short phone viewports. */
+  .forest-choice-sheet {
+    max-height: calc(100% - 1.5rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
   .guardian-dodge-cue {
     outline: 3px solid #fbbf24;
     outline-offset: 2px;
@@ -162,7 +169,7 @@
         </div>
       </div>
       <div id="forestShrineChoice" class="hidden absolute inset-0 z-30 bg-slate-950/60 pointer-events-auto" role="dialog" aria-modal="true" aria-label="苔むす祠の選択">
-        <div class="absolute inset-x-3 bottom-3 rounded-xl border border-emerald-300 bg-emerald-950/95 p-3 text-emerald-50 shadow-xl">
+        <div class="forest-choice-sheet absolute inset-x-3 bottom-3 rounded-xl border border-emerald-300 bg-emerald-950/95 p-3 text-emerald-50 shadow-xl">
         <p class="mb-2 text-sm font-bold">🍃 苔むす祠：この遠征では一度だけ</p>
         <p id="forestShrineStakes" class="mb-2 text-xs text-amber-100" role="status"></p>
         <div class="flex flex-col gap-2">
@@ -174,7 +181,7 @@
         </div>
       </div>
       <div id="forestGateChoice" class="hidden absolute inset-0 z-30 bg-slate-950/60 pointer-events-auto" role="dialog" aria-modal="true" aria-label="石門の選択">
-        <div class="absolute inset-x-3 bottom-3 rounded-xl border border-emerald-300 bg-emerald-950/95 p-3 text-emerald-50 shadow-xl">
+        <div class="forest-choice-sheet absolute inset-x-3 bottom-3 rounded-xl border border-emerald-300 bg-emerald-950/95 p-3 text-emerald-50 shadow-xl">
           <p class="mb-2 text-sm font-bold">🌿 茨の石門：薬草か素材か、一度だけ</p>
           <p id="forestGateStakes" class="mb-2 text-xs text-amber-100" role="status"></p>
           <div class="flex flex-col gap-2">
