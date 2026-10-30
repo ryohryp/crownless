@@ -1143,10 +1143,20 @@ test('victory return panel hints at remaining discoveries without spoiling them 
   assert.match(gateRead,/苔の間/,
     'inspecting the gate first leaves the other branch available');
   assert.match(shrineRead,/茨の奥/);
-  assert.match(shrineRead,/今の装備では奥へ踏み込めない。手前を調べる余地はありそうだ/,
-    'without a forged blade, the result must not promise an immediately accessible route');
-  assert.doesNotMatch(shrineRead,/今調べるか|今確かめよう/,
-    'an inaccessible discovery must not be presented as an available immediate choice');
+  assert.match(shrineRead,/剣がなくても手前の茨なら探れそうだ。近づいて確かめよう/,
+    'the return prompt must not hide swordless herb and careful salvage options');
+  assert.doesNotMatch(shrineRead,/装備では奥へ踏み込めない|鍛冶した剣が必要/,
+    'do not incorrectly lock an accessible inspection behind a forged sword');
+  const gate={x:910,z:235};
+  const herb=D.uncover(gate,new Set(['traces']),'return',90,140,false,'heal');
+  const barehand=D.uncover(gate,new Set(['traces']),'return',90,140,false,'cautious');
+  assert.equal(herb.ok,true,'the teased swordless investigation offers herbs');
+  assert.equal(herb.heal,45);
+  assert.equal(barehand.ok,true,'the teased swordless investigation offers risky salvage');
+  assert.equal(barehand.material,1);
+  assert.equal(barehand.damage,6);
+  assert.equal(D.uncover(gate,new Set(['traces']),'return',90,140,false,'material').reason,'thorns',
+    'the two-fang route remains gated by a forged sword');
   assert.match(equippedRead,/鍛えた剣を手に、何があるか確かめよう/,
     'equipped players should still inspect the unknown location themselves');
   assert.equal(teaser(new Set(['traces','shrine','hollow'])),'',
