@@ -80,10 +80,10 @@ test('the live post-track HUD asks for observation, not a prescribed gate route'
 
 test('the field HUD keeps the unvisited fork visible after either first discovery', () => {
   const html = fs.readFileSync('gemini-feel-lab.html', 'utf8');
-  const start = html.indexOf('    const label=guardian\\n'.replace('\n', '\n'));
+  const start = html.indexOf('    const label=guardian' + String.fromCharCode(10));
   const end = html.indexOf('    if(hint.textContent!==label)', start);
   assert(start >= 0 && end > start, 'evaluate the live HUD, not a duplicate hint rule');
-  const labelFor = ids => vm.runInNewContext(html.slice(start, end) + '\\nlabel', {
+  const labelFor = ids => vm.runInNewContext(html.slice(start, end) + String.fromCharCode(10) + 'label', {
     guardian: null,
     near: null,
     state: { forestFinds: new Set(ids) },
