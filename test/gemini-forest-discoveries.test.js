@@ -1109,7 +1109,7 @@ test('victory return panel hints at remaining discoveries without spoiling them 
 
 test('camp remembers both earned fork leads in either inspection order without promising a hidden route',()=>{
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
-  const helper=html.match(/function forestRevisitAction\\(found\\) \\{[\\s\\S]*?\\n  \\}/);
+  const helper=html.match(/function forestRevisitAction\(found\) \{[\s\S]*?\n  \}/);
   assert.ok(helper,'the camp action must derive from current expedition findings');
   const revisit=require('node:vm').runInNewContext('('+helper[0]+')');
   const ordinary='🗺 もう一度、森へ遠征';
@@ -1132,7 +1132,7 @@ test('camp remembers both earned fork leads in either inspection order without p
     'the still-unvisited shrine and secret routes remain concealed');
   assert.equal(revisit(new Set(['traces','shrine','hollow'])),ordinary,
     'when both branches have been inspected, no new clue is invented');
-  assert.match(html,/depart\\.textContent=forestRevisitAction\\(state\\.forestFinds\\)/,
+  assert.match(html,/depart\.textContent=forestRevisitAction\(state\.forestFinds\)/,
     'the actual camp button must use the earned clue, not the forged-gear state');
 });
 
