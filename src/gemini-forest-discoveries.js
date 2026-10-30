@@ -53,15 +53,15 @@
         screenY>=ground-108 && screenY<=ground+22;
     })||null;
   }
-  // Reading tracks sharpens the player's sense of a distant, still-hidden
-  // stone gate. This is only a tactile cue: interaction remains at RANGE,
+  // Reading tracks sharpens distant sounds and cool air near both fork leads.
+  // This is only a sensory cue: interaction remains at RANGE,
   // and no route, label, or walkability is revealed early.
   function cueNear(player,found){
     if(!player) return null;
     return spots.find(spot=>
       !found.has(spot.id) &&
       Math.hypot(player.x-spot.x,player.z-spot.z) <
-        (spot.id==='hollow' && found.has('traces') ? 90 : RANGE)
+        ((spot.id==='hollow'||spot.id==='shrine') && found.has('traces') ? 90 : RANGE)
     )||null;
   }
   function available(phase){
