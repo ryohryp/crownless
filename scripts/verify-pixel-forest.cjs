@@ -1305,6 +1305,11 @@ async function main() {
             !gateFirstBefore.found.includes('shrine'),
             'both fork destinations remain unclaimed before the detour');
           await tapSite(page,'hollow');
+          const gateFirstPreview=await page.locator('#forestGateStakes').innerText();
+          assert(gateFirstPreview.includes('先手の猶予 +0.6秒'),
+            '390px gate-first choice must disclose its earned later reaction advantage before the tap');
+          assert.doesNotMatch(gateFirstPreview,/苔祠|番人|右|左/,
+            'the preview must not spoil the unseen destination or its guardian');
           const gateFirstCautious=page.locator('#forestGateCautious');
           assert(await gateFirstCautious.isEnabled(),
             'the tempered sword opens the nonlethal thorn investigation');
