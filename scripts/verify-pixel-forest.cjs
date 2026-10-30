@@ -323,6 +323,7 @@ async function clearWave(page,{attackOnlyGuardian=false}={}) {
   const before = await read(page);
   let minimumHp = before.player.hp;
   let scoutedFirstHit = false;
+  let gateFirstFeedbackSeen = false;
   let guardianTellSeen = false;
   let guardianCounterClaimed = false;
   let previousHp=before.player.hp;
@@ -330,8 +331,16 @@ async function clearWave(page,{attackOnlyGuardian=false}={}) {
   const scoutTrace = [];
   try {
     while (Date.now() - start < 75000) {
-      const s = await read(page);
+      // Read the real phone HUD in the same frame as the combat state.
+      // This is observation only: no fighter, reward, or save injection.
+      const {s,hud} = await page.evaluate(() => ({
+        s:window.CrownlessForestReadout(),
+        hud:document.getElementById('forestExploreHint')?.textContent||''
+      }));
       minimumHp = Math.min(minimumHp, s.player.hp);
+      gateFirstFeedbackSeen ||= s.enemies.some(e =>
+        e.name==='苔祠の番人' && e.scoutOpeningSeconds>1.8 &&
+        e.scoutStrikeClaimed) && hud.includes('石門の観察が効いた');
       scoutedFirstHit ||= s.enemies.some(e => e.name === '苔祠の番人' && e.scoutStrikeClaimed);
       guardianTellSeen ||= s.enemies.some(e => e.name === '苔祠の番人' && e.guardianTellUntil>s.nowSec);
       guardianCounterClaimed ||= s.enemies.some(e => e.name === '苔祠の番人' && e.guardianCounterClaimed);
@@ -346,7 +355,7 @@ async function clearWave(page,{attackOnlyGuardian=false}={}) {
       previousHp=s.player.hp;
       if (s.phase === 'return') return { seconds: Math.round((Date.now()-start)/100)/10,
         minimumHp, hpLost:before.player.hp-minimumHp, scoutedFirstHit,
-        attackOnlyGuardian, guardianTellSeen, guardianCounterClaimed,
+        gateFirstFeedbackSeen,attackOnlyGuardian, guardianTellSeen, guardianCounterClaimed,
         damageEvents,scoutTrace, after:s };
       assert(s.phase === 'fight' && s.player.hp > 0,
         'real-input combat ended in defeat: ' + JSON.stringify(s));
@@ -1341,6 +1350,10 @@ async function main() {
           assert.equal(gateFirstRisk.unbanked,beforeGateFirstRisk.unbanked+2,
             'the shrine reward remains unsecured until survival');
           const gateFirstGuardian=await clearWave(page);
+          // If the real 390px run lands the earned opening, the phone HUD
+          // must actually show why that hit was earned (not only a popup).
+          if(gateFirstGuardian.scoutedFirstHit) assert(gateFirstGuardian.gateFirstFeedbackSeen,
+            'landed gate-first strike must show its earned consequence on the live 390px HUD');
           assert.equal(gateFirstGuardian.after.phase,'return',
             'the gate-first guardian victory returns to ordinary exploration');
           await page.locator('#rpgOpenResults').click();
@@ -1362,6 +1375,8 @@ async function main() {
             gateFirstWarningSeconds:gateFirstRisk.enemies.find(e=>e.name==='苔祠の番人').scoutOpeningSeconds,
             gateBefore:gateFirstBefore,gateAfter:gateFirstAfter,
             returned:gateFirstReturn,restored:gateFirstRestored,
+            scoutedFirstHit:gateFirstGuardian.scoutedFirstHit,
+            gateFirstFeedbackSeen:gateFirstGuardian.gateFirstFeedbackSeen,
             note:'Both 390px routes used real movement and touch. CI is not a human fun verdict.'
           };
           // Separate fresh-phone expedition: prove the new *unforged* gate
