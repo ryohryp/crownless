@@ -46,3 +46,44 @@ test('the first-craft hint describes a real swordless injury-versus-herbs choice
   assert.equal(herbs.heal,9);
   assert.equal(herbs.damage,0);
 });
+
+test('stone-gate choice previews the earned later opening without spoiling an unvisited site',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const start=html.indexOf("document.getElementById('forestGateStakes').textContent=");
+  const end=html.indexOf(';',start);
+  assert(start>=0 && end>start,'evaluate the live gate decision sheet');
+  const assignment=html.slice(start,end+1);
+  const render=ids=>{
+    const node={textContent:''};
+    vm.runInNewContext(assignment,{
+      document:{getElementById:()=>node},
+      state:{forestFinds:new Set(ids)},
+      ginji:{hp:90,maxHp:140},
+      rpg:{crafted:false,tempered:false,unbanked:4},
+      rpgRules:{},
+      cautiousCost:6,cautiousWound:'HP -6',salvageCost:8,
+      forestGateCraftHint:()=> '鍛冶剣まで牙あと1個。'
+    });
+    return node.textContent;
+  };
+  const gateFirst=render(['traces']);
+  assert(gateFirst.includes('先手の猶予 +0.6秒'),
+    'the player can weigh the later encounter benefit before committing to a gate reward');
+  assert.doesNotMatch(gateFirst,/苔祠|番人|右|左/,
+    'a tactical clue must not reveal the uninspected destination or route');
+  assert.match(gateFirst,/未帰還の牙 4個/);
+  assert.match(gateFirst,/敗北すると失う/,
+    'the new preview must not conceal safe-return stakes');
+  assert(!render(['traces','shrine']).includes('先手の猶予 +0.6秒'),
+    'visiting the shrine first cannot promise a retrospective bonus');
+  assert.equal(D.guardianOpeningSeconds(new Set(['traces'])),1.8);
+  assert.equal(D.guardianOpeningSeconds(new Set(['traces','hollow'])),2.4);
+  const found=new Set(['traces']);
+  const result=D.uncover({x:910,z:235},found,'return',90,140,false,'cautious');
+  assert.equal(result.ok,true);
+  assert.equal(result.material,1);
+  assert.equal(result.damage,6);
+  assert.equal(found.has('hollow'),true);
+  assert.equal(D.guardianOpeningSeconds(found),2.4,
+    'the visible advantage corresponds to an earned, costly detour');
+});
