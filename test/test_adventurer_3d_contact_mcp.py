@@ -37,6 +37,7 @@ class ThreeDContactMcpExportTest(TestCase):
             root = Path(folder)
             Image.new("RGB", (512, 512), "black").save(root / "pose-a-openpose.png")
             Image.new("RGB", (512, 512), "black").save(root / "pose-b-openpose.png")
+            Image.new("RGB", (256, 384), "gray").save(root / "fake-approved.png")
             with patch.object(mod.base, "sha256", return_value=mod.base.walk.ANCHOR_SHA):
                 with self.assertRaisesRegex(ValueError, "3D a control"):
                     mod.staged_inputs(root, root / "fake-approved.png")
