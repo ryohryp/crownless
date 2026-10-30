@@ -337,7 +337,7 @@ async function clearWave(page,{attackOnlyGuardian=false,preferScoutedOpening=fal
       // This is observation only: no fighter, reward, or save injection.
       const {s,hud,attackCue} = await page.evaluate(() => {
         const s=window.CrownlessForestReadout();
-        const gestureMode=s.mode==='gesture';
+        const gestureMode=!document.getElementById('gestureActionArea').classList.contains('hidden');
         const cue=gestureMode?document.getElementById('gestureHint'):document.getElementById('btnPunch');
         const action=gestureMode?document.getElementById('gestureActionArea'):cue;
         const actionRect=action?.getBoundingClientRect();
@@ -348,7 +348,7 @@ async function clearWave(page,{attackOnlyGuardian=false,preferScoutedOpening=fal
           hud:document.getElementById('forestExploreHint')?.textContent||'',
           attackCue:{
             active:!!cue?.classList.contains('guardian-scout-cue'),
-            mode:s.mode,
+            mode:gestureMode?'gesture':'buttons',
             text:document.getElementById('gestureHint')?.textContent||'',
             rect:bounds(actionRect),cueRect:bounds(cueRect),
             width:innerWidth,height:innerHeight
