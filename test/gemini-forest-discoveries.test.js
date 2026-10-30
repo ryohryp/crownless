@@ -1107,29 +1107,33 @@ test('victory return panel hints at remaining discoveries without spoiling them 
     'the living-return banking rule must remain the only safe-return path');
 });
 
-test('crafted camp remembers an earned track clue without exposing the hidden destination',()=>{
+test('camp remembers both earned fork leads in either inspection order without promising a hidden route',()=>{
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
-  const helper=html.match(/function forestRevisitAction\(found,crafted\) \{[\s\S]*?\n  \}/);
-  assert.ok(helper,'the camp action must derive only from the current expedition findings');
+  const helper=html.match(/function forestRevisitAction\\(found\\) \\{[\\s\\S]*?\\n  \\}/);
+  assert.ok(helper,'the camp action must derive from current expedition findings');
   const revisit=require('node:vm').runInNewContext('('+helper[0]+')');
   const ordinary='🗺 もう一度、森へ遠征';
-  assert.equal(revisit(new Set(),true),ordinary,'unknown tracks cannot create an earned clue');
-  assert.equal(revisit(new Set(['traces']),false),ordinary,'unforged gear must not imply new reach');
-  const earned=revisit(new Set(['traces','shrine']),true);
-  assert.match(earned,/足跡の先を確かめに再遠征/);
-  assert.doesNotMatch(earned,/石門|隠し道|開通|切り開ける/,'no secret solution before discovery');
-  const gateFirst=revisit(new Set(['traces','hollow']),true);
+  assert.equal(revisit(new Set()),ordinary,'unread tracks cannot create an earned clue');
+  assert.equal(revisit(new Set(['hollow'])),ordinary,'unread tracks cannot advertise a fork');
+  const fork=revisit(new Set(['traces']));
+  assert.match(fork,/二手の踏み跡を確かめに再遠征/,
+    'before either site is inspected, the camp must not prefer the gate');
+  assert.doesNotMatch(fork,/祠|石門|右|左|剣|開通/,
+    'the earned fork must not reveal its destinations or demand equipment');
+  const shrineFirst=revisit(new Set(['traces','shrine']));
+  assert.match(shrineFirst,/茨の軋みを確かめに再遠征/,
+    'inspecting the moss side first preserves the unvisited thorn side');
+  assert.doesNotMatch(shrineFirst,/祠|石門|隠し道|開通|切り開ける|右|左|剣が必要/,
+    'the still-unvisited gate and its solution must not be disclosed');
+  const gateFirst=revisit(new Set(['traces','hollow']));
   assert.match(gateFirst,/苔の湿りを確かめに再遠征/,
-    'finding the thorn-side site first must leave the other fork as a reason to return');
-  assert.equal(revisit(new Set(['traces','hollow']),false),gateFirst,
-    'the remaining moss-side detour is reachable without a crafted sword');
+    'inspecting the thorn side first preserves the unvisited moss side');
   assert.doesNotMatch(gateFirst,/祠|石門|隠し道|開通|切り開ける|右|左/,
-    'the remaining destination stays undiscovered and no secret route is advertised');
-  assert.equal(revisit(new Set(['traces','shrine','hollow']),true),ordinary,
-    'when both branches have been investigated, do not invent another clue');
-  assert.equal(revisit(new Set(['hollow']),true),ordinary,
-    'without reading tracks, the next trip cannot advertise the earned fork');
-  assert.match(html,/depart\.textContent=forestRevisitAction\(state\.forestFinds,rpg\.crafted\)/);
+    'the still-unvisited shrine and secret routes remain concealed');
+  assert.equal(revisit(new Set(['traces','shrine','hollow'])),ordinary,
+    'when both branches have been inspected, no new clue is invented');
+  assert.match(html,/depart\\.textContent=forestRevisitAction\\(state\\.forestFinds\\)/,
+    'the actual camp button must use the earned clue, not the forged-gear state');
 });
 
 
