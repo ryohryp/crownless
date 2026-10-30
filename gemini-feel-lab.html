@@ -2204,6 +2204,7 @@
       punchPower:ginji.punchPower,kickPower:ginji.kickPower} : null,
     enemies:state.fighters.filter(f=>f.team===1).map(f=>({name:f.name,x:f.x,z:f.z,hp:f.hp,maxHp:f.maxHp,state:f.state,
       scoutStrikeClaimed:!!f.scoutStrikeClaimed,
+      scoutOpeningSeconds:f.scoutOpeningSeconds||0,
       scoutOpeningActive:!!f.scoutOpeningEndsAt && f.scoutOpeningEndsAt>performance.now()/1000,
       guardianTellUntil:f.guardianTellUntil||0,
       guardianCounterUntil:f.guardianCounterUntil||0,
