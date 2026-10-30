@@ -336,15 +336,21 @@ async function clearWave(page,{attackOnlyGuardian=false,preferScoutedOpening=fal
       // Read the real phone HUD in the same frame as the combat state.
       // This is observation only: no fighter, reward, or save injection.
       const {s,hud,attackCue} = await page.evaluate(() => {
-        const punch=document.getElementById('btnPunch');
-        const rect=punch?.getBoundingClientRect();
+        const s=window.CrownlessForestReadout();
+        const gestureMode=s.mode==='gesture';
+        const cue=gestureMode?document.getElementById('gestureHint'):document.getElementById('btnPunch');
+        const action=gestureMode?document.getElementById('gestureActionArea'):cue;
+        const actionRect=action?.getBoundingClientRect();
+        const cueRect=cue?.getBoundingClientRect();
+        const bounds=r=>r&&{left:r.left,top:r.top,right:r.right,bottom:r.bottom};
         return {
-          s:window.CrownlessForestReadout(),
+          s,
           hud:document.getElementById('forestExploreHint')?.textContent||'',
           attackCue:{
-            active:!!punch?.classList.contains('guardian-scout-cue'),
+            active:!!cue?.classList.contains('guardian-scout-cue'),
+            mode:s.mode,
             text:document.getElementById('gestureHint')?.textContent||'',
-            rect:rect&&{left:rect.left,top:rect.top,right:rect.right,bottom:rect.bottom},
+            rect:bounds(actionRect),cueRect:bounds(cueRect),
             width:innerWidth,height:innerHeight
           }
         };
@@ -353,12 +359,15 @@ async function clearWave(page,{attackOnlyGuardian=false,preferScoutedOpening=fal
         assert(s.enemies.some(e => e.name==='苔祠の番人' &&
           e.scoutOpeningActive && !e.scoutStrikeClaimed),
           'the attack button must not advertise an unearned or spent +12 opening');
-        assert.match(attackCue.text,/先手の好機！右下の攻撃で\+12/,
-          'the highlighted phone attack button must name the earned action');
-        const r=attackCue.rect;
-        assert(r && r.left>=0 && r.top>=0 && r.right<=attackCue.width+1 &&
-          r.bottom<=attackCue.height+1 && r.right-r.left>=44 && r.bottom-r.top>=44,
-          'the earned attack cue must remain thumb-sized and inside the phone viewport');
+        assert.match(attackCue.text,attackCue.mode==='gesture'
+          ? /先手の好機！右側をタップで\+12/ : /先手の好機！右下の攻撃で\+12/,
+          'the visible cue must name the input for the selected control mode');
+        const r=attackCue.rect,c=attackCue.cueRect;
+        const inside=b=>b && b.left>=0 && b.top>=0 &&
+          b.right<=attackCue.width+1 && b.bottom<=attackCue.height+1;
+        assert(inside(c) && c.right>c.left && c.bottom>c.top &&
+          inside(r) && r.right-r.left>=44 && r.bottom-r.top>=44,
+          'the earned cue and actual touch target must be on-screen: '+JSON.stringify(attackCue));
         scoutAttackCueSeen=true;
       }
       minimumHp = Math.min(minimumHp, s.player.hp);
