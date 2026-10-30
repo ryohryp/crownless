@@ -666,9 +666,9 @@ test('live phone gesture hint distinguishes an attack-locked guardian tell from 
     if(id==='btnPunch') return punch;
     throw new Error('unexpected DOM id '+id);
   }};
-  const update=new Function('window','document',
+  const update=new Function('window','document','combatInputMode',
     html.slice(start,end)+'\nreturn updateGuardianDodgeControls;')(
-      {CrownlessForestDiscoveries:D},document);
+      {CrownlessForestDiscoveries:D},document,'gesture');
   const hero={id:7,state:'ATTACK'};
   const guardian={name:'苔祠の番人',guardianTellUntil:12,guardianTellTargetId:7};
   for(const state of ['ATTACK','SPECIAL']){
@@ -731,12 +731,14 @@ test('earned scouting cues the real attack button only while a first hit is poss
   const toggles=new Map();
   const elements=new Map(['btnPunch','btnJump','gestureHint'].map(id=>
     [id,{textContent:'',classList:{toggle:(name,value)=>toggles.set(id+':'+name,value)}}]));
-  const update=Function('window','document','return ('+source+')')(
-    {CrownlessForestDiscoveries:D},{getElementById:id=>elements.get(id)});
-  const cue=()=>toggles.get('btnPunch:guardian-scout-cue');
+  const makeUpdate=mode=>Function('window','document','combatInputMode','return ('+source+')')(
+    {CrownlessForestDiscoveries:D},{getElementById:id=>elements.get(id)},mode);
+  const update=makeUpdate('gesture');
+  const cue=()=>toggles.get('gestureHint:guardian-scout-cue');
   update(guardian,hero,100);
-  assert.equal(cue(),true,'earned +12 is visible beside the thumb attack button');
-  assert.match(elements.get('gestureHint').textContent,/先手の好機.*攻撃で\+12/);
+  assert.equal(cue(),true,'gesture mode must highlight its visible hint, not a hidden button');
+  assert.equal(toggles.get('btnPunch:guardian-scout-cue'),false);
+  assert.match(elements.get('gestureHint').textContent,/先手の好機.*右側をタップで\+12/);
   assert.equal(toggles.get('btnJump:guardian-dodge-cue'),false);
   update({...guardian,x:85},hero,100);
   assert.equal(cue(),false,'no false attack cue outside strike range');
@@ -755,4 +757,11 @@ test('earned scouting cues the real attack button only while a first hit is poss
   assert.equal(toggles.get('btnJump:guardian-dodge-cue'),true);
   update(null,hero,100);
   assert.equal(cue(),false,'camp and ordinary fights clear the attack highlight');
+  const buttonUpdate=makeUpdate('buttons');
+  buttonUpdate(guardian,hero,100);
+  assert.equal(toggles.get('btnPunch:guardian-scout-cue'),true,
+    'button mode must highlight the visible arcade attack button');
+  assert.equal(toggles.get('gestureHint:guardian-scout-cue'),false,
+    'button mode must not highlight its hidden gesture hint');
+  assert.match(elements.get('gestureHint').textContent,/右下の攻撃で\+12/);
 });
