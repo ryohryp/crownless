@@ -3002,7 +3002,9 @@
     // Once the earned first hit lands, do not promise a second +12 strike.
     const lead=openingActive
       ? guardian.scoutStrikeClaimed
-        ? '👁 先手成功｜'
+        ? guardian.scoutOpeningSeconds>1.8
+          ? '🌿 石門の観察が効いた｜'
+          : '👁 先手成功｜'
         : guardian.state==='DOWN'
           ? '👁 番人転倒中｜先手の機会を温存｜'
           : '👁 足跡の先読み 残り'+(Math.ceil((guardian.scoutOpeningEndsAt-nowSec)*10)/10).toFixed(1)+'秒：攻撃+12か回避｜'
