@@ -3016,13 +3016,13 @@
     }
     hint.classList.remove('hidden');
     const near=window.CrownlessForestDiscoveries.near(ginji,state.forestFinds);
-    // Reading tracks extends the stone-gate vibration beyond tap range.
+    // Reading tracks extends the shrine breeze and gate creak beyond tap range.
     // It reveals neither the hidden route nor the site name, and never
     // changes the normal interaction distance or ordinary walkable nav.
     const cue=window.CrownlessForestDiscoveries.cueNear(ginji,state.forestFinds);
-    // A distant gate signal should not consume the separate confirmation
+    // Each earned distant sign must not consume the separate confirmation
     // earned by walking into actual inspection range. Both are once per run.
-    const cuePulseKey=cue?.id==='hollow' && !near ? 'hollow:far' : cue?.id;
+    const cuePulseKey=cue && !near && (cue.id==='hollow'||cue.id==='shrine') ? cue.id+':far' : cue?.id;
     if (rpg.phase==='return' && cue && !state.forestCuePulsed.has(cuePulseKey) &&
         document.getElementById('rpgPanel').classList.contains('hidden') &&
         document.getElementById('forestShrineChoice').classList.contains('hidden') &&
@@ -3035,12 +3035,14 @@
       // single tap and the distant stone gate keeps its earned heavier cue.
       // No site identity, hidden route, or interaction range is revealed.
       const pulsePattern=cue.id==='hollow' && !near ? [28,45,28] :
+        cue.id==='shrine' && !near ? [12,80,18] :
         cue.id==='shrine' ? [18,65,36] : 34;
       sfx.haptic(pulsePattern);
       // Browser/phone haptics may be unavailable. The *earned* far cue must
       // still be perceptible without revealing a site name, route or position.
-      if (cue.id==='hollow' && !near) {
-        spawnPopup('遠くで、何かが軋む音がした',ginji.x,ginji.z,ginji.y+48,'#d9f99d');
+      if (!near && (cue.id==='hollow'||cue.id==='shrine')) {
+        spawnPopup(cue.id==='hollow' ? '遠くで、何かが軋む音がした' : '頬を冷たい風がかすめた',
+          ginji.x,ginji.z,ginji.y+48,'#d9f99d');
       }
     }
     if (near?.id!=='shrine') document.getElementById('forestShrineChoice').classList.add('hidden');
