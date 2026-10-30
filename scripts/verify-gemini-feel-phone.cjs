@@ -403,9 +403,13 @@ async function main() {
           'the undiscovered shrine name must not appear on the actual canvas');
         assert.equal(await page.evaluate(() => window.__combatLabCanvasText.includes('苔の冷気')),true,
           'nearby shrine must show a sensory cue on the canvas');
+        assert(beforeShrine.hint.length<=40,
+          'nearby shrine clue must not cover the 360px phone scene');
+        assert.match(beforeShrine.hint,/冷たい風.*タップで調査/,
+          'the real phone shows a sensory clue and requires a deliberate tap');
         assert.match(beforeShrine.hint,
           beforeShrine.player.hp>=beforeShrine.player.maxHp
-            ? /素材を探すか、傷ついてから癒やすか/ : /素材か癒やしか、一度だけ選べる/,
+            ? /牙を拾うか、回復の機会を残すか/ : /牙か回復か、一度だけ選べる/,
           'real phone hint must invite an intentional trade-off');
         const readForestShrine=()=>page.evaluate(()=>window.CrownlessForestReadout());
         // The actor can collect a healing dango between the HUD snapshot
