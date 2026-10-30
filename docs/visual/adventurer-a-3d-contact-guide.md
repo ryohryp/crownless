@@ -6,7 +6,7 @@
 
 The objective of this experiment is **not** to animate assembled image cutouts or replace the approved actor with a simple 3D figure. It is to supply a true three-dimensional, inspectable **pose-control reference** to subsequent image generation. A 3D source can encode leg depth, ankle contact and rightward toes that a bare two-dimensional OpenPose diagram cannot.
 
-A *procedural, originally authored* low-poly 3D mannequin is constructed entirely from geometric primitives. No externally licensed humanoid, FBX, Mixamo motion, new paid model or remote code is required. The face, sword and outfit are placeholders; only the approved identity anchor \`docs/assets/adventurer-a-approved-anchor-v1.png\` is authoritative for eventual character art. The approved historic colored walking dummy is not claimed to be recovered.
+A *procedural, originally authored* low-poly 3D mannequin is constructed entirely from geometric primitives. No externally licensed humanoid, FBX, Mixamo motion, new paid model or remote code is required. The face, sword and outfit are placeholders; only the approved identity anchor `docs/assets/adventurer-a-approved-anchor-v1.png` is authoritative for eventual character art. The approved historic colored walking dummy is not claimed to be recovered.
 
 The output is **two deliberate contact poses**, not an eight-frame walk cycle.
 
@@ -20,12 +20,12 @@ The output is **two deliberate contact poses**, not an eight-frame walk cycle.
 
 From the Crownless repository root, in a **separate optional Python virtual environment** (do not replace the working RX 6800 TheRock environment):
 
-\`\`\`powershell
+```powershell
 py -3.12 -m venv .venv-pose3d
 .\.venv-pose3d\Scripts\python.exe -m pip install numpy trimesh matplotlib Pillow
 .\.venv-pose3d\Scripts\python.exe scripts/adventurer-a-walk/prepare_pose_3d.py .qa/candidates/adventurer-a-3d-contact-v1
 .\.venv-pose3d\Scripts\python.exe -m unittest discover -s test -p test_adventurer_pose_3d.py -v
-\`\`\`
+```
 
 The generator will refuse to reuse an output directory containing files. Reruns require a **fresh output directory**. Model downloads and paid APIs are **not required** for this stage.
 
@@ -33,17 +33,17 @@ Outputs:
 
 | Filename | Meaning |
 |---|---|
-| \`contact-a.glb\`, \`contact-b.glb\` | Real 3D triangle meshes suitable for viewing in GLB-aware tools |
-| \`contact-a.png\`, \`contact-b.png\` | Fixed-camera 512×512 3D reference renders |
-| \`pose-a-openpose.png\`, \`pose-b-openpose.png\` | 512×512 projected skeletal ControlNet hints |
-| \`contact-sheet.png\` | Human-inspectable comparison |
-| \`geometry.json\` | World-space and projected joint coordinates plus front-leg, toe and camera contracts |
+| `contact-a.glb`, `contact-b.glb` | Real 3D triangle meshes suitable for viewing in GLB-aware tools |
+| `contact-a.png`, `contact-b.png` | Fixed-camera 512×512 3D reference renders |
+| `pose-a-openpose.png`, `pose-b-openpose.png` | 512×512 projected skeletal ControlNet hints |
+| `contact-sheet.png` | Human-inspectable comparison |
+| `geometry.json` | World-space and projected joint coordinates plus front-leg, toe and camera contracts |
 
 The script has been run independently in an isolated Python container with both 3D poses generated and **2 local unit tests passing**. This does **not** establish that ComfyUI, SD1.5, IP-Adapter or FLUX follows either control image on the owner-PC GPU, or that the two poses form a natural walking cycle.
 
 ## Next: one bounded GPU test, not another broad research task
 
-The existing ComfyUI Local MCP allowlist **does not accept arbitrary workflows or upload a new control image from ChatGPT**. To test the new 3D guide, the Windows-side executor must first stage \`pose-a-openpose.png\` and (after review) \`pose-b-openpose.png\` into the *local* ComfyUI input folder and register **new, uniquely named** API graph files using the existing \`scripts/adventurer-a-walk/run_poc.py\` \`workflow()\` builder, pinned pixel checkpoint, approved Adventurer A anchor, IP-Adapter and OpenPose ControlNet. Never repurpose/overwrite the v1/v2 registered workflow entries. No need to download Klein for this initial comparison.
+The existing ComfyUI Local MCP allowlist **does not accept arbitrary workflows or upload a new control image from ChatGPT**. To test the new 3D guide, the Windows-side executor must first stage `pose-a-openpose.png` and (after review) `pose-b-openpose.png` into the *local* ComfyUI input folder and register **new, uniquely named** API graph files using the existing `scripts/adventurer-a-walk/run_poc.py` `workflow()` builder, pinned pixel checkpoint, approved Adventurer A anchor, IP-Adapter and OpenPose ControlNet. Never repurpose/overwrite the v1/v2 registered workflow entries. No need to download Klein for this initial comparison.
 
 Generate Pose A only and inspect:
 1. Right-facing oblique camera and same charcoal/silver hair, navy coat, boots, sword.
