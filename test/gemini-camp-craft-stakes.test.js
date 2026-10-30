@@ -78,12 +78,12 @@ test('crafted, defeated and return decisions retain their distinct messages', ()
     'the next-wave button must preview the current health and loot at risk');
   assert.match(wounded.keepExploring, /気配を追って調べる/,
     'inspecting this forest must remain a separate action from starting another wave');
-  const blocked = showPanel({ phase: 'return',
+  const swordless = showPanel({ phase: 'return',
     forestFinds: ['traces', 'shrine'], unbanked: 2 });
-  assert.match(blocked.info, /今の装備では奥へ踏み込めない。手前を調べる余地はありそうだ/,
-    'the actual return panel must not promise immediate access to the sword-locked gate');
-  assert.doesNotMatch(blocked.info, /今調べるか、牙を持ち帰って装備を整えるか/,
-    'the old impossible choice must not reappear');
+  assert.match(swordless.info, /剣がなくても手前の茨なら探れそうだ。近づいて確かめよう/,
+    'the actual return panel must invite the accessible swordless gate inspection');
+  assert.doesNotMatch(swordless.info, /今の装備では奥へ踏み込めない|茨の石門/,
+    'do not falsely lock out the player or spoil the uninspected site');
   const equipped = showPanel({ phase: 'return', crafted: true,
     forestFinds: ['traces', 'shrine'] });
   assert.match(equipped.info, /鍛えた剣を手に、何があるか確かめよう/);
