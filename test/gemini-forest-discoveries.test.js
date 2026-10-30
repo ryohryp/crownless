@@ -1118,8 +1118,17 @@ test('crafted camp remembers an earned track clue without exposing the hidden de
   const earned=revisit(new Set(['traces','shrine']),true);
   assert.match(earned,/足跡の先を確かめに再遠征/);
   assert.doesNotMatch(earned,/石門|隠し道|開通|切り開ける/,'no secret solution before discovery');
-  assert.equal(revisit(new Set(['traces','hollow']),true),ordinary,
-    'after examining the destination, the prompt must not pretend it is still unknown');
+  const gateFirst=revisit(new Set(['traces','hollow']),true);
+  assert.match(gateFirst,/苔の湿りを確かめに再遠征/,
+    'finding the thorn-side site first must leave the other fork as a reason to return');
+  assert.equal(revisit(new Set(['traces','hollow']),false),gateFirst,
+    'the remaining moss-side detour is reachable without a crafted sword');
+  assert.doesNotMatch(gateFirst,/祠|石門|隠し道|開通|切り開ける|右|左/,
+    'the remaining destination stays undiscovered and no secret route is advertised');
+  assert.equal(revisit(new Set(['traces','shrine','hollow']),true),ordinary,
+    'when both branches have been investigated, do not invent another clue');
+  assert.equal(revisit(new Set(['hollow']),true),ordinary,
+    'without reading tracks, the next trip cannot advertise the earned fork');
   assert.match(html,/depart\.textContent=forestRevisitAction\(state\.forestFinds,rpg\.crafted\)/);
 });
 
