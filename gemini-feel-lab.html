@@ -2996,11 +2996,16 @@
   function forestGuardianHint(guardian,found,unbanked,nowSec,hero) {
     if (!guardian) return '';
     const openingActive=found.has('traces') && guardian.scoutOpeningEndsAt>nowSec;
+    // A landed opening strike is easy to miss on a phone when it connects
+    // near the timer's end. Keep its *earned* feedback until the existing
+    // short guardian recovery ends; never promise another +12 hit.
+    const recentScoutedHit=found.has('traces') && guardian.scoutStrikeClaimed &&
+      guardian.scoutFirstHitYieldUntil>nowSec;
     // A scouted sound behind the hero invites a deliberate turn before the
     // timer starts; do not pretend the attack bonus is already active.
     const behind=hero && window.CrownlessForestDiscoveries.guardianBehindWarning(hero,guardian,found);
     // Once the earned first hit lands, do not promise a second +12 strike.
-    const lead=openingActive
+    const lead=openingActive || recentScoutedHit
       ? guardian.scoutStrikeClaimed
         ? guardian.scoutOpeningSeconds>1.8
           ? '🌿 石門の観察が効いた｜'
