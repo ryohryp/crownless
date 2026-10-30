@@ -718,3 +718,39 @@ test('gate-first hit feedback stays readable after the warning ends but expires 
   assert.doesNotMatch(hint(gate,new Set(),4,102.9,hero),
     /石門の観察が効いた/,'an unscouted guardian never gains the earned cue');
 });
+
+test('earned scouting cues the real attack button only while a first hit is possible',()=>{
+  const hero={id:'ginji',x:0,z:230,state:'IDLE',facing:1};
+  const guardian={name:'苔祠の番人',x:35,z:230,state:'IDLE',
+    hp:120,scoutOpeningArmed:true,scoutOpeningEndsAt:103,scoutOpeningSeconds:2.4};
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const source=html.match(/function updateGuardianDodgeControls\([^)]*\) \{[\s\S]*?\n  \}/)?.[0];
+  assert.ok(source,'test the live phone control updater');
+  const toggles=new Map();
+  const elements=new Map(['btnPunch','btnJump','gestureHint'].map(id=>
+    [id,{textContent:'',classList:{toggle:(name,value)=>toggles.set(id+':'+name,value)}}]));
+  const update=Function('window','document','return ('+source+')')(
+    {CrownlessForestDiscoveries:D},{getElementById:id=>elements.get(id)});
+  const cue=()=>toggles.get('btnPunch:guardian-scout-cue');
+  update(guardian,hero,100);
+  assert.equal(cue(),true,'earned +12 is visible beside the thumb attack button');
+  assert.match(elements.get('gestureHint').textContent,/先手の好機.*攻撃で\+12/);
+  assert.equal(toggles.get('btnJump:guardian-dodge-cue'),false);
+  update({...guardian,x:85},hero,100);
+  assert.equal(cue(),false,'no false attack cue outside strike range');
+  update({...guardian,z:260},hero,100);
+  assert.equal(cue(),false,'no cue across another depth lane');
+  update(guardian,{...hero,facing:-1},100);
+  assert.equal(cue(),false,'face the guardian before offering a first strike');
+  update({...guardian,state:'DOWN'},hero,100);
+  assert.equal(cue(),false,'a downed guardian is not hittable');
+  update({...guardian,scoutStrikeClaimed:true},hero,100);
+  assert.equal(cue(),false,'one landed bonus cannot be offered again');
+  update(guardian,hero,103);
+  assert.equal(cue(),false,'the expired window must clear the highlight');
+  update({...guardian,guardianTellUntil:101,guardianTellTargetId:'ginji'},hero,100);
+  assert.equal(cue(),false,'incoming lunge takes priority over a first-strike prompt');
+  assert.equal(toggles.get('btnJump:guardian-dodge-cue'),true);
+  update(null,hero,100);
+  assert.equal(cue(),false,'camp and ordinary fights clear the attack highlight');
+});
