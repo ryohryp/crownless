@@ -2985,10 +2985,13 @@
   function updateGuardianDodgeControls(guardian,hero,nowSec) {
     const active=window.CrownlessForestDiscoveries.guardianDodgeCueActive(guardian,hero,nowSec);
     const scoutStrike=window.CrownlessForestDiscoveries.guardianScoutAttackCueActive(guardian,hero,nowSec);
-    // The thumb's main attack button shows the earned strike directly.
+    // Highlight the ACTUAL visible input: gesture mode hides the arcade buttons.
     // Dodge cues take priority when the guardian announces its lunge.
-    document.getElementById('btnPunch').classList.toggle('guardian-scout-cue',scoutStrike && !active);
+    const gestureMode=combatInputMode==='gesture';
+    const earnedCue=scoutStrike && !active;
+    document.getElementById('btnPunch').classList.toggle('guardian-scout-cue',earnedCue && !gestureMode);
     const gestureHint=document.getElementById('gestureHint');
+    gestureHint.classList.toggle('guardian-scout-cue',earnedCue && gestureMode);
     // Do not advertise a jump while the hero is locked into an attack.
     // Keep the incoming threat visible beside the actual touch control.
     const attackLocked=Boolean(guardian && hero &&
@@ -2998,7 +3001,7 @@
     gestureHint.textContent=active
       ? '⚠ ↑スワイプで跳躍回避'
       : attackLocked ? '⚠ 攻撃中は跳べない！番人の踏み込みに注意'
-      : scoutStrike ? '👁 先手の好機！右下の攻撃で+12'
+      : scoutStrike ? (gestureMode ? '👁 先手の好機！右側をタップで+12' : '👁 先手の好機！右下の攻撃で+12')
       : 'タップ:斬撃　横:蹴り　↑跳ぶ　↓組む';
     gestureHint.classList.toggle('guardian-dodge-cue',active);
     document.getElementById('btnJump').classList.toggle('guardian-dodge-cue',active);
