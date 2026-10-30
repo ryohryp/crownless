@@ -18,6 +18,11 @@ test('reading tracks extends only the hidden gate vibration, never touch range o
   assert.equal(D.cueNear(approach,unread),null,'without tracks there is no early gate cue');
   assert.equal(D.cueNear(approach,tracked)?.id,'hollow',
     'reading tracks gives an earlier non-directional cue for the unexamined gate');
+  const shrineApproach={x:730,z:260};
+  assert.equal(D.near(shrineApproach,tracked),null,'distant shrine wind cannot allow an early tap');
+  assert.equal(D.cueNear(shrineApproach,unread),null,'unread tracks do not grant distant shrine wind');
+  assert.equal(D.cueNear(shrineApproach,tracked)?.id,'shrine',
+    'reading tracks also earns a subtle cold-air cue for the other fork lead');
   assert.equal(D.uncover(approach,tracked,'return',100,140,true).ok,false,
     'the player must still walk up to the gate and deliberately inspect it');
   assert.equal(D.cueNear({x:790,z:230},tracked),null,
@@ -31,12 +36,15 @@ test('reading tracks extends only the hidden gate vibration, never touch range o
   assert.ok(pulseKeySource,'the earned far cue and the inspectable gate need separate pulse keys');
   const pulseKey=Function('cue','near','return ('+pulseKeySource+');');
   assert.equal(pulseKey({id:'hollow'},null),'hollow:far');
+  assert.equal(pulseKey({id:'shrine'},null),'shrine:far');
   assert.equal(pulseKey({id:'hollow'},{id:'hollow'}),'hollow');
   assert.equal(pulseKey({id:'shrine'},{id:'shrine'}),'shrine');
   assert.equal(pulseKey(null,null),undefined);
   const pulseSource=html.match(/const pulsePattern=([\s\S]*?);/)?.[1];
   assert.ok(pulseSource,'the actual phone cue must distinguish shrine from tracks and gate');
   const pulse=Function('cue','near','return ('+pulseSource+');');
+  assert.deepEqual(pulse({id:'shrine'},null),[12,80,18],
+    'distant shrine breeze has its own quiet two-beat cue');
   assert.deepEqual(pulse({id:'shrine'},{id:'shrine'}),[18,65,36],
     'the cool shrine has a distinct soft two-beat cue before inspection');
   assert.deepEqual(pulse({id:'hollow'},null),[28,45,28],
@@ -58,6 +66,9 @@ test('reading tracks extends only the hidden gate vibration, never touch range o
     'finding the real gate still gives one tactile confirmation');
   assert.equal(once({id:'hollow'},{id:'hollow'}),false,'standing near cannot spam');
   assert.equal(once({id:'hollow'},null),false,'walking away cannot replay the distant cue');
+  assert.equal(once({id:'shrine'},null),true,'the other branch gets its own earned cue');
+  assert.equal(once({id:'shrine'},null),false,'distant shrine wind cannot spam');
+  assert.equal(once({id:'shrine'},{id:'shrine'}),true,'close shrine confirmation is separate');
   assert.equal(D.cueNear({x:910,z:235},new Set())?.id,'hollow',
     'without tracks the player receives only the ordinary near-site cue');
   assert.match(html,/const near=window\.CrownlessForestDiscoveries\.near\(ginji,state\.forestFinds\)/,
@@ -99,6 +110,41 @@ test('earned far gate cue is perceivable without haptics, once only, and reveals
   state.forestFinds=new Set();state.forestCuePulsed.clear();
   run();
   assert.equal(popups.length,1,'an unscouted nearby gate must not receive the earned far cue');
+});
+
+test('scouted distant shrine breeze is visible without haptics, but never discovers the site',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const hintStart=html.indexOf('  function updateForestExploreHint()');
+  const start=html.indexOf('    const near=window.CrownlessForestDiscoveries.near(ginji,state.forestFinds);',hintStart);
+  const end=html.indexOf("    if (near?.id!=='shrine')",start);
+  assert(start>hintStart && end>start,'run the live phone cue block');
+  const tick=new Function('window','ginji','state','rpg','document','sfx','spawnPopup',html.slice(start,end));
+  const player={x:730,z:260,y:0},popups=[],haptics=[];
+  const state={forestFinds:new Set(['traces']),forestCuePulsed:new Set()};
+  const doc={getElementById:()=>({classList:{contains:()=>true}})};
+  const run=(phase='return')=>tick({CrownlessForestDiscoveries:D},player,state,{phase},doc,
+    {haptic:p=>haptics.push(p)},(...args)=>popups.push(args));
+  assert.equal(D.near(player,state.forestFinds),null,'wind is not an interaction');
+  run('fight');
+  assert.equal(popups.length,0,'do not interrupt combat with a distant discovery');
+  run();
+  assert.equal(popups.length,1,'a phone without haptics still sees the earned breeze');
+  assert.equal(popups[0][0],'頬を冷たい風がかすめた');
+  assert.equal(popups[0][1],player.x,'do not expose the undiscovered shrine coordinates');
+  assert.deepEqual(haptics,[[12,80,18]]);
+  assert.equal(state.forestCuePulsed.has('shrine:far'),true);
+  assert.deepEqual([...state.forestFinds],['traces'],'wind is not an automatic discovery');
+  run();
+  assert.equal(popups.length,1,'standing in the breeze cannot spam a popup');
+  player.x=660;player.z=230;
+  run();
+  assert.equal(haptics.length,2,'walking close earns an independent inspection cue');
+  assert.equal(state.forestCuePulsed.has('shrine'),true);
+  assert.equal(state.forestFinds.has('shrine'),false,'only deliberate inspection can claim the site');
+  player.x=730;player.z=260;
+  state.forestFinds=new Set();state.forestCuePulsed.clear();
+  run();
+  assert.equal(popups.length,1,'without tracks there is no distant shrine hint');
 });
 
 test('approaching the traces and tapping earns exactly one unbanked material, not a banked weapon',()=>{
