@@ -2088,7 +2088,7 @@
         '現在 HP '+Math.floor(ginji.hp)+'/'+ginji.maxHp+'、未帰還の牙 '+rpg.unbanked+
         '個。'+forestGateCraftHint(rpg,rpgRules)+(!rpg.crafted?'強引な回収には鍛冶剣が必要。':'')+
         (rpg.crafted?'慎重に牙 +1（'+cautiousWound+'）、強引に牙 +2（HP -'+salvageCost+'）'+(rpg.tempered?'／研ぎ直した剣で負傷軽減':'')+'、または薬草で回復。':'素手で牙 +1（HP -'+cautiousCost+'）、または薬草で回復。')+
-        (!state.forestFinds.has('shrine') ? '牙を拾えば、奥の危険な調査で先手の猶予 +0.6秒。薬草なら効果なし。' : '')+
+        (!state.forestFinds.has('shrine') ? '慎重な回収だけ先手の猶予 +0.6秒。強引な回収・薬草なら効果なし。' : '')+
         '一度だけ選べる。素材は生還時だけ倉庫に残り、敗北すると失う。';
       panel.classList.remove('hidden');
       return true;

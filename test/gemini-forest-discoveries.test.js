@@ -912,7 +912,7 @@ test('reading tracks grants a short first-strike warning without changing normal
   assert.match(html,/spawnEnemyWave\(state\.waveCount,1,true\)/,'warning never bypasses the fight');
 });
 
-test('thorn-first investigation earns a longer guardian warning without free loot',()=>{
+test('careful thorn-first salvage earns a longer warning while forceful salvage earns more fangs',()=>{
   const tracks=new Set(['traces']);
   const gateFirst=new Set(['traces']);
   const gateLoot=D.uncover({x:910,z:235},gateFirst,'return',90,140,false,'cautious');
@@ -920,7 +920,18 @@ test('thorn-first investigation earns a longer guardian warning without free loo
   assert.equal(gateLoot.material,1,'the detour still awards only provisional materials');
   assert.equal(gateLoot.damage,6,'the unarmed detour pays its existing thorn wound');
   assert.equal(D.guardianOpeningSeconds(tracks),1.8,'tracks alone retain the warning');
-  assert.equal(D.guardianOpeningSeconds(gateFirst),2.4,'salvaging the other fork earns 0.6s');
+  assert.equal(D.guardianOpeningSeconds(gateFirst),2.4,'carefully salvaging the other fork earns 0.6s');
+  const forcefulFirst=new Set(['traces']);
+  const forceful=D.uncover({x:910,z:235},forcefulFirst,'return',90,140,true,'material');
+  assert.equal(forceful.ok,true);
+  assert.equal(forceful.material,2,'forceful salvage earns an extra unsecured fang');
+  assert.equal(forceful.damage,8,'forceful salvage retains the existing wound cost');
+  assert.equal(forcefulFirst.has('hollow-scout'),false,
+    'rushing the salvage must not also earn the careful tactical read');
+  assert.equal(D.guardianOpeningSeconds(forcefulFirst),1.8,
+    'forceful gate-first salvage trades the extra warning for more loot');
+  assert.equal(D.uncover({x:910,z:235},forcefulFirst,'return',90,140,true,'cautious').ok,false,
+    'the same gate cannot be looted twice for both advantages');
   const herbFirst=new Set(['traces']);
   const herbs=D.uncover({x:910,z:235},herbFirst,'return',50,140,false,'heal');
   assert.equal(herbs.ok,true);
@@ -944,6 +955,8 @@ test('thorn-first investigation earns a longer guardian warning without free loo
   assert.deepEqual([...gateFirst],['traces','hollow','hollow-scout'],
     'calculating the advantage cannot auto-discover the shrine');
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  assert.ok(html.includes('慎重な回収だけ先手の猶予 +0.6秒。強引な回収・薬草なら効果なし。'),
+    'the choice preview must disclose the tactical cost of forceful salvage');
   assert.ok(html.includes("state.forestFinds.has('hollow-scout')") &&
     html.includes('奥まで探るなら、石門の茨の手がかりで先手の猶予 +0.6秒。'),
     'the advantage is explained before choosing the optional fight');

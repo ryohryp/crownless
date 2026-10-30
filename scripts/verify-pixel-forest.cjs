@@ -1317,8 +1317,8 @@ async function main() {
           const gateFirstPreview=await page.locator('#forestGateStakes').innerText();
           assert(gateFirstPreview.includes('先手の猶予 +0.6秒'),
             '390px gate-first choice must disclose its earned later reaction advantage before the tap');
-          assert(gateFirstPreview.includes('薬草なら効果なし'),
-            '390px phone must show that the healing option forfeits the scouting advantage');
+          assert(gateFirstPreview.includes('強引な回収・薬草なら効果なし'),
+            '390px phone must distinguish cautious scouting from forceful loot and healing');
           assert.doesNotMatch(gateFirstPreview,/苔祠|番人|右|左/,
             'the preview must not spoil the unseen destination or its guardian');
           const gateFirstCautious=page.locator('#forestGateCautious');
