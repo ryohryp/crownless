@@ -324,6 +324,7 @@ async function clearWave(page,{attackOnlyGuardian=false,preferScoutedOpening=fal
   let minimumHp = before.player.hp;
   let scoutedFirstHit = false;
   let openingObserved = false;
+  let scoutAttackCueSeen = false;
   let gateFirstFeedbackSeen = false;
   let guardianTellSeen = false;
   let guardianCounterClaimed = false;
@@ -334,10 +335,32 @@ async function clearWave(page,{attackOnlyGuardian=false,preferScoutedOpening=fal
     while (Date.now() - start < 75000) {
       // Read the real phone HUD in the same frame as the combat state.
       // This is observation only: no fighter, reward, or save injection.
-      const {s,hud} = await page.evaluate(() => ({
-        s:window.CrownlessForestReadout(),
-        hud:document.getElementById('forestExploreHint')?.textContent||''
-      }));
+      const {s,hud,attackCue} = await page.evaluate(() => {
+        const punch=document.getElementById('btnPunch');
+        const rect=punch?.getBoundingClientRect();
+        return {
+          s:window.CrownlessForestReadout(),
+          hud:document.getElementById('forestExploreHint')?.textContent||'',
+          attackCue:{
+            active:!!punch?.classList.contains('guardian-scout-cue'),
+            text:document.getElementById('gestureHint')?.textContent||'',
+            rect:rect&&{left:rect.left,top:rect.top,right:rect.right,bottom:rect.bottom},
+            width:innerWidth,height:innerHeight
+          }
+        };
+      });
+      if(attackCue.active) {
+        assert(s.enemies.some(e => e.name==='苔祠の番人' &&
+          e.scoutOpeningActive && !e.scoutStrikeClaimed),
+          'the attack button must not advertise an unearned or spent +12 opening');
+        assert.match(attackCue.text,/先手の好機！右下の攻撃で\+12/,
+          'the highlighted phone attack button must name the earned action');
+        const r=attackCue.rect;
+        assert(r && r.left>=0 && r.top>=0 && r.right<=attackCue.width+1 &&
+          r.bottom<=attackCue.height+1 && r.right-r.left>=44 && r.bottom-r.top>=44,
+          'the earned attack cue must remain thumb-sized and inside the phone viewport');
+        scoutAttackCueSeen=true;
+      }
       minimumHp = Math.min(minimumHp, s.player.hp);
       gateFirstFeedbackSeen ||= s.enemies.some(e =>
         e.name==='苔祠の番人' && e.scoutOpeningSeconds>1.8 &&
@@ -357,7 +380,7 @@ async function clearWave(page,{attackOnlyGuardian=false,preferScoutedOpening=fal
       previousHp=s.player.hp;
       if (s.phase === 'return') return { seconds: Math.round((Date.now()-start)/100)/10,
         minimumHp, hpLost:before.player.hp-minimumHp, scoutedFirstHit, openingObserved,
-        gateFirstFeedbackSeen,attackOnlyGuardian, guardianTellSeen, guardianCounterClaimed,
+        scoutAttackCueSeen,gateFirstFeedbackSeen,attackOnlyGuardian, guardianTellSeen, guardianCounterClaimed,
         damageEvents,scoutTrace, after:s };
       assert(s.phase === 'fight' && s.player.hp > 0,
         'real-input combat ended in defeat: ' + JSON.stringify(s));
@@ -1370,6 +1393,8 @@ async function main() {
           assert.equal(gateFirstGuardian.openingObserved,true,
             'cautious gate-first detour must open a real player-actionable warning; trace='+
             JSON.stringify(gateFirstGuardian.scoutTrace));
+          assert.equal(gateFirstGuardian.scoutAttackCueSeen,true,
+            'the earned 2.4s opening must visibly highlight a reachable phone attack button');
           assert.equal(gateFirstGuardian.scoutedFirstHit,true,
             'cautious gate-first detour must land the earned +12 strike, not just lengthen an unused timer; trace='+
             JSON.stringify(gateFirstGuardian.scoutTrace));
