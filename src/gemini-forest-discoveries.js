@@ -324,6 +324,17 @@
       Number.isFinite(nowSec) && enemy.scoutOpeningEndsAt>nowSec
       ? GUARDIAN_SCOUT_STRIKE_BONUS : 0;
   }
+  // Reading tracks earns a brief attack opportunity. Highlight the real touch
+  // action only while the guardian is hittable, in range and facing the hero.
+  // Never promise +12 after a hit, during a lunge, or from another depth lane.
+  function guardianScoutAttackCueActive(enemy,hero,nowSec){
+    return Boolean(hero && enemy && guardianScoutStrikeBonus(enemy,nowSec)>0 &&
+      guardianReadyForOpening(hero,enemy) &&
+      Number.isFinite(hero.x) && Number.isFinite(hero.z) &&
+      Number.isFinite(enemy.x) && Number.isFinite(enemy.z) &&
+      Math.hypot(hero.x-enemy.x,hero.z-enemy.z)<=GUARDIAN_WARNING_RANGE &&
+      !(enemy.guardianTellUntil>nowSec && enemy.guardianTellTargetId===hero.id));
+  }
   // A tempered smith-made blade also helps clear the shrine's thorned gap.
   // Scouted footing and sharpening reduce wounds, never the guardian fight.
   function shrineRiskDamage(found,crafted,tempered=false){
@@ -379,5 +390,5 @@
       heal:gateHeal?Math.min(45,Math.max(0,maxHp-hp)):
         spot.kind==='healing' && !scavenge?Math.min(35,Math.max(0,maxHp-hp)):0};
   }
-  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,GATE_BAREHAND_DAMAGE,gateSalvageDamage,near,cueNear,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,pauseGuardianCounter,guardianScoutStrikeBonus,guardianReadyForOpening,guardianBehindWarning,companionYieldsGuardianOpening,companionYieldsGuardianRecovery,companionYieldsGuardianFootsteps,guardianTargetsExplorer,guardianStrikeTell,guardianKeepsTellOnHit,guardianDodgeCueActive,guardianCounterStrikeBonus,claimGuardianCounter,claimGuardianCounterFang,shrineRiskDamage,uncover};
+  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,GATE_BAREHAND_DAMAGE,gateSalvageDamage,near,cueNear,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,pauseGuardianCounter,guardianScoutStrikeBonus,guardianScoutAttackCueActive,guardianReadyForOpening,guardianBehindWarning,companionYieldsGuardianOpening,companionYieldsGuardianRecovery,companionYieldsGuardianFootsteps,guardianTargetsExplorer,guardianStrikeTell,guardianKeepsTellOnHit,guardianDodgeCueActive,guardianCounterStrikeBonus,claimGuardianCounter,claimGuardianCounterFang,shrineRiskDamage,uncover};
 });
