@@ -33,6 +33,20 @@ Provider-declared SHA-256: 1c4a79aa52fb63f607cb9ff479ea5aa1923b6ceb21267bd14b69b
 
 The upstream model family lllyasviel/control_v11f1p_sd15_depth lists OpenRAIL; review license for production use. Place the official checked file at the already working ComfyUI/models/controlnet directory; never overwrite an existing model. This experiment does NOT download/install it and does not require Klein.
 
+## Recommended single-command Windows preparation
+
+The existing scripts remain the source of truth; `prepare_depth_poc.ps1` only orchestrates them. From an up-to-date **`feat/adventurer-a-comfy-poc` checkout**, in Windows PowerShell:
+
+```powershell
+powershell -NoProfile -STA -ExecutionPolicy Bypass -File scripts/adventurer-a-walk/prepare_depth_poc.ps1
+```
+
+It checks Python 3D dependencies **before** transferring the large model, downloads the free official ~723MB Depth ControlNet model into a uniquely named temporary file only if missing, verifies the pinned provider SHA-256, and moves it into `ComfyUI/models/controlnet` without replacing any existing file. It then generates new A/B depth images and invokes the **existing safe registration helper**. It prompts for the owner-PC's actual MCP allowlist JSON; it never attempts to expose port 8188, queue a job, overwrite v1/v2, or adopt game assets.
+
+If the existing TheRock Python lacks `numpy`, `trimesh` or `Pillow`, the script stops **before downloading**; use `-DepthPython 'FULL_PATH_TO_SEPARATE_PYTHON_WITH_3D_PACKAGES'`, or provide `-DepthDir 'FOLDER_CONTAINING_PREVIOUS_DEPTH_IMAGES'`. Do not pip-install into the known-good ROCm environment just to make this helper run. An already-valid model is reused and checked; a mismatched existing model is never overwritten. A failed/interrupted download leaves no installed checkpoint.
+
+This PowerShell setup script has **not** been run or validated end-to-end on the owner's Windows PC from ChatGPT. Only report setup success when the user-PC command returns success and ComfyUI Local lists both `adventurer-a-3d-depth-a/b`.
+
 ## Windows-side registration
 
 Use scripts/adventurer-a-walk/register_depth_mcp.ps1 once on the PC owner checkout after model installation and depth image preparation:
