@@ -3091,6 +3091,10 @@
   // A clue actually read in the last expedition can motivate the next trip.
   // Do not advertise an unknown place or promise its solution before inspection.
   function forestRevisitAction(found,crafted) {
+    // Inspecting the thorn-side find first must not erase the other,
+    // still-unexplored branch from the next expedition's invitation.
+    if (found.has('traces') && found.has('hollow') && !found.has('shrine'))
+      return '🍃 苔の湿りを確かめに再遠征';
     return crafted && found.has('traces') && !found.has('hollow')
       ? '🌲 足跡の先を確かめに再遠征'
       : '🗺 もう一度、森へ遠征';
