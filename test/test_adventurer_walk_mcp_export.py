@@ -34,7 +34,7 @@ class McpContactExportTest(unittest.TestCase):
             self.assertEqual(graph["9"]["inputs"]["latent_image"], ["42", 0])
             self.assertEqual(graph["11"]["class_type"], "SaveImage")
             self.assertIn("leg forward", graph["2"]["inputs"]["text"])
-            self.assertIn("lower-mask.png", graph["41"]["inputs"]["image"])
+            self.assertIn("lower-mask.png", graph["40"]["inputs"]["image"])
 
     def test_export_is_idempotent_and_refuses_changed_inputs(self):
         with tempfile.TemporaryDirectory() as temp:
