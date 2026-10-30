@@ -690,3 +690,31 @@ test('live phone gesture hint distinguishes an attack-locked guardian tell from 
   assert.doesNotMatch(hint.textContent,/跳躍回避|攻撃中は跳べない/,
     'expired tells must restore the ordinary gesture hint');
 });
+
+test('gate-first hit feedback stays readable after the warning ends but expires with guardian recovery',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const source=html.match(/function forestGuardianHint\([^)]*\) \{[\s\S]*?\n  \}/)?.[0];
+  assert.ok(source,'test the actual phone HUD formatter');
+  const hint=Function('window','return ('+source+')')({CrownlessForestDiscoveries:D});
+  const hero={id:'hero',state:'IDLE',x:0,z:230,facing:1};
+  const gate={name:'苔祠の番人',state:'IDLE',x:35,z:230,hp:80,maxHp:100,
+    scoutOpeningSeconds:2.4,scoutOpeningEndsAt:100.2,
+    scoutStrikeClaimed:true,scoutFirstHitYieldUntil:103.2};
+  const earned=hint(gate,new Set(['traces','hollow']),4,102.9,hero);
+  assert.match(earned,/石門の観察が効いた/,
+    'a landed gate-first hit must remain visible after the 2.4s warning expires');
+  assert.match(earned,/未帰還の牙 4個/,
+    'persistent feedback cannot hide the safe-return stakes');
+  assert.doesNotMatch(earned,/攻撃\+12|先手の機会/,
+    'a claimed hit must not promise another first-strike bonus');
+  assert.doesNotMatch(hint(gate,new Set(['traces','hollow']),4,103.2,hero),
+    /石門の観察が効いた/,'feedback must expire at the bounded recovery deadline');
+  assert.doesNotMatch(hint({...gate,scoutFirstHitYieldUntil:0},new Set(['traces','hollow']),4,102.9,hero),
+    /石門の観察が効いた/,'the next guardian tell clears the feedback');
+  assert.match(hint({...gate,scoutOpeningSeconds:1.8},new Set(['traces']),4,102.9,hero),
+    /先手成功/,'ordinary tracks-only scouting keeps its own feedback');
+  assert.doesNotMatch(hint({...gate,scoutStrikeClaimed:false},new Set(['traces','hollow']),4,102.9,hero),
+    /石門の観察が効いた/,'merely hearing the warning is not a landed hit');
+  assert.doesNotMatch(hint(gate,new Set(),4,102.9,hero),
+    /石門の観察が効いた/,'an unscouted guardian never gains the earned cue');
+});
