@@ -647,7 +647,26 @@ async function main() {
           assert(box && box.y>=0 && box.y+box.height<=page.viewportSize().height,
             'the additional clue must fit the 360px phone viewport');
           await page.screenshot({path:path.join(output,'pixel-forest-unscouted-shrine-detour-360.png')});
+          // Stress the same real choice sheet at a short phone height. The
+          // cancel action must stay reachable without scrolling the game page.
+          await page.setViewportSize({width,height:420});
+          const compact=await page.evaluate(()=>{
+            const sheet=document.querySelector('#forestShrineChoice > div');
+            const rect=sheet.getBoundingClientRect();
+            return {top:rect.top,bottom:rect.bottom,scrollHeight:sheet.scrollHeight,
+              clientHeight:sheet.clientHeight,viewport:innerHeight,
+              pageScroll:document.documentElement.scrollHeight};
+          });
+          assert(compact.top>=0 && compact.bottom<=compact.viewport+1 &&
+            compact.scrollHeight>compact.clientHeight,
+            'short-phone shrine sheet must scroll within the viewport: '+JSON.stringify(compact));
+          await page.locator('#forestShrineCancel').scrollIntoViewIfNeeded();
+          const compactCancel=await page.locator('#forestShrineCancel').boundingBox();
+          assert(compactCancel && compactCancel.y>=0 &&
+            compactCancel.y+compactCancel.height<=420,
+            'the one-time choice can be declined after scrolling on a short phone');
           await page.locator('#forestShrineCancel').click();
+          await page.setViewportSize({width,height:844});
           const deferred=await read(page);
           assert(!deferred.found.includes('shrine') &&
             deferred.unbanked===beforeDetour.unbanked,
