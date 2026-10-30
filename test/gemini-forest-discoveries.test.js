@@ -1382,3 +1382,36 @@ test('a landed guardian strike acknowledges the gate-first detour, not merely th
   assert.equal(D.guardianOpeningSeconds(new Set(['traces'])),1.8);
   assert.equal(D.guardianOpeningSeconds(new Set()),0);
 });
+
+test('gate-first first strike keeps its earned meaning in the live guardian HUD',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const start=html.indexOf('  function forestGuardianHint(');
+  const end=html.indexOf('\n  function updateForestExploreHint()',start);
+  assert(start>=0 && end>start,'extract the real guardian HUD formatter');
+  const guardianHint=Function('window','return ('+html.slice(start,end).trim()+');')({
+    CrownlessForestDiscoveries:{
+      guardianBehindWarning:()=>false,
+      guardianDodgeCueActive:()=>false
+    }
+  });
+  const guardian={name:'苔祠の番人',hp:20,maxHp:30,
+    scoutOpeningEndsAt:22,scoutStrikeClaimed:true,scoutOpeningSeconds:2.4,
+    guardianCounterUntil:0,guardianTellUntil:0};
+  const hero={id:1,state:'IDLE'};
+  const gate=guardianHint(guardian,new Set(['traces','hollow']),4,20,hero);
+  assert.match(gate,/石門の観察が効いた/,'the earned detour stays legible after the hit');
+  assert.match(gate,/倒すまで帰還不可.*未帰還の牙 4個/,
+    'the combat and unsecured-loot stakes remain visible');
+  const tracksOnly=guardianHint({...guardian,scoutOpeningSeconds:1.8},
+    new Set(['traces']),4,20,hero);
+  assert.match(tracksOnly,/先手成功/);
+  assert.doesNotMatch(tracksOnly,/石門/,'do not credit a detour never taken');
+  const expired=guardianHint({...guardian,scoutOpeningEndsAt:19},
+    new Set(['traces','hollow']),4,20,hero);
+  assert.doesNotMatch(expired,/石門の観察が効いた/,
+    'the earned cue must not obscure combat after its brief window');
+  const pending=guardianHint({...guardian,scoutStrikeClaimed:false},
+    new Set(['traces','hollow']),4,20,hero);
+  assert.match(pending,/攻撃\+12か回避/,'before landing, preserve the actual choice');
+  assert.doesNotMatch(pending,/石門の観察が効いた/,'never announce a hit early');
+});
