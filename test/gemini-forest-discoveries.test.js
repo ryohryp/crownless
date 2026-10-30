@@ -912,6 +912,34 @@ test('reading tracks grants a short first-strike warning without changing normal
   assert.match(html,/spawnEnemyWave\(state\.waveCount,1,true\)/,'warning never bypasses the fight');
 });
 
+test('thorn-first investigation earns a longer guardian warning without free loot',()=>{
+  const tracks=new Set(['traces']);
+  const gateFirst=new Set(['traces','hollow']);
+  assert.equal(D.guardianOpeningSeconds(tracks),1.8,'tracks alone retain the warning');
+  assert.equal(D.guardianOpeningSeconds(gateFirst),2.4,'the other fork earns 0.6s');
+  assert.equal(D.guardianOpeningSeconds(new Set(['hollow'])),0,
+    'a gate flag without earned tracks must not grant a warning');
+  assert.equal(D.guardianOpeningSeconds(new Set()),0,'unscouted fights are unchanged');
+  const guardian={name:'苔祠の番人',scoutOpeningSeconds:D.guardianOpeningSeconds(gateFirst),nextStrikeAt:0};
+  assert.equal(D.armGuardianOpening(guardian,40,100,true),true);
+  assert.equal(guardian.scoutOpeningEndsAt,102.4);
+  assert.equal(D.guardianScoutStrikeBonus(guardian,102.3),12);
+  assert.equal(D.guardianScoutStrikeBonus(guardian,102.4),0,
+    'the longer warning still expires, without repeatable rewards');
+  assert.deepEqual([...gateFirst],['traces','hollow'],
+    'calculating the advantage cannot auto-discover the shrine');
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  assert.ok(html.includes("state.forestFinds.has('hollow')") &&
+    html.includes('奥まで探るなら、石門の茨の手がかりで先手の猶予 +0.6秒。'),
+    'the advantage is explained before choosing the optional fight');
+  assert.ok(html.includes('石門の茨で番人の動きを読んだ！先手の猶予 +0.6秒'),
+    'the encounter confirms the scouting advantage');
+  assert.ok(html.includes('guardianOpeningSeconds(state.forestFinds)'),
+    'the live encounter must derive warning time from the investigated route');
+  assert.ok(html.includes('spawnEnemyWave(state.waveCount,1,true)'),
+    'the advantage cannot bypass the guardian');
+});
+
 test('companion supports rather than solo-bursts the optional guardian before the player arrives',()=>{
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   const ai=html.slice(html.indexOf('function sampleCompanionAI('),html.indexOf('function sampleEnemyAI('));
