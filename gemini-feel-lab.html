@@ -1887,7 +1887,12 @@
           // Let the guardian recover to show its first lunge; do not make
           // the companion wait forever if the hero retreats or never engages.
           target.scoutFirstHitYieldUntil=performance.now()/1000+3.2;
-          spawnPopup('👁 先手成功！+'+scoutBonus,target.x,target.z,target.y+70,'#fef08a');
+          // A landed strike should visibly pay off the optional thorn-gate detour.
+          // Do not claim this reward when the player only heard the warning.
+          const scoutHitMessage=target.scoutOpeningSeconds>1.8
+            ? '🌿 石門の観察が効いた！先手 +'
+            : '👁 先手成功！+';
+          spawnPopup(scoutHitMessage+scoutBonus,target.x,target.z,target.y+70,'#fef08a');
         }
         spawnSpark((attacker.x + target.x) * 0.5, target.z, target.y + 24, state.kabukiBurstTimer > 0);
         if (attacker.team === 0) {
