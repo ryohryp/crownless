@@ -83,7 +83,9 @@
   // Reading the tracks also warns of the guardian's first lunge. This only
   // buys a short opening to reposition; it does not skip or weaken the fight.
   function guardianOpeningSeconds(found){
-    return found.has('traces') ? 1.8 : 0;
+    // Inspecting the thorn lead before the shrine reveals how the unseen
+    // threat moves. The optional detour buys 0.6s to act, not a free hit.
+    return found.has('traces') ? (found.has('hollow') ? 2.4 : 1.8) : 0;
   }
   // Start the earned warning when the guardian is close enough to threaten the
   // player, not while it is still walking in from its distant spawn point.
