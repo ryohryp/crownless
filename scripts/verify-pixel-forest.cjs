@@ -1383,6 +1383,99 @@ async function main() {
             gateFirstFeedbackSeen:gateFirstGuardian.gateFirstFeedbackSeen,
             note:'Both 390px routes used real movement and touch. CI is not a human fun verdict.'
           };
+          // Herb-first is the other real decision at the fork. Earn a wound
+          // from the ordinary opening wave (never inject HP), then spend the
+          // gate on healing before taking the shrine's optional guardian risk.
+          // This must NOT award the salvage-only extra 0.6s warning.
+          const herbFightStart=await read(page);
+          assert.equal(herbFightStart.phase,'fight');
+          const woundKeys=new Set();
+          let herbWound=null;
+          try {
+            const woundStarted=Date.now();
+            while(Date.now()-woundStarted<18000) {
+              const s=await read(page);
+              if(s.player.hp<herbFightStart.player.hp) {
+                herbWound={before:herbFightStart.player.hp,after:s.player.hp};
+                break;
+              }
+              assert(s.phase==='fight' && s.player.hp>0,
+                'herb-first route must earn its injury during a living fight');
+              const target=s.enemies.filter(e=>e.hp>0 && e.state!=='DEAD')
+                .sort((a,b)=>Math.hypot(a.x-s.player.x,a.z-s.player.z)-
+                  Math.hypot(b.x-s.player.x,b.z-s.player.z))[0];
+              assert(target,'an ordinary enemy must remain to inflict the wound');
+              const dx=target.x-s.player.x,dz=target.z-s.player.z;
+              const wanted=[];
+              if(Math.abs(dx)>26) wanted.push(dx>0?'d':'a');
+              if(Math.abs(dz)>12) wanted.push(dz>0?'s':'w');
+              await keys(page,woundKeys,wanted);
+              await page.waitForTimeout(90);
+            }
+          } finally { await keys(page,woundKeys,[]); }
+          assert(herbWound,'a real enemy hit must create the herb-first trade-off');
+          await clearWave(page);
+          await walkTo(page,800,365);
+          await tapSite(page,'traces');
+          await walkTo(page,910,235);
+          const herbBefore=await read(page);
+          assert(herbBefore.player.hp<herbBefore.player.maxHp,
+            'healing requires an actual combat wound, not an injected state');
+          assert(!herbBefore.found.includes('shrine') &&
+            !herbBefore.found.includes('hollow'),
+            'both choices are still unspent before healing');
+          await tapSite(page,'hollow');
+          const herbPreview=await page.locator('#forestGateStakes').innerText();
+          assert.match(herbPreview,/薬草なら効果なし/,
+            'the phone warns that healing forfeits the extra scouting time');
+          const herbButton=page.locator('#forestGateHeal');
+          assert(await herbButton.isEnabled(),'the real wound enables gate herbs');
+          const herbBounds=await herbButton.boundingBox();
+          assert(herbBounds && herbBounds.width>=44 && herbBounds.height>=44 &&
+            herbBounds.y>=0 && herbBounds.y+herbBounds.height<=page.viewportSize().height,
+            'the herb-first choice is touch-reachable on a 390px phone');
+          await page.screenshot({path:path.join(output,'pixel-forest-herb-first-choice-390.png')});
+          await page.touchscreen.tap(herbBounds.x+herbBounds.width/2,
+            herbBounds.y+herbBounds.height/2);
+          const herbAfter=await read(page);
+          assert(herbAfter.found.includes('hollow') &&
+            !herbAfter.found.includes('hollow-scout'),
+            'herbs consume the gate but do not grant salvage scouting');
+          assert.equal(herbAfter.unbanked,herbBefore.unbanked,
+            'herbs cannot also grant provisional fangs');
+          assert.equal(herbAfter.player.hp,
+            Math.min(herbBefore.player.maxHp,herbBefore.player.hp+45),
+            'the chosen herbs restore only the promised HP');
+          await walkTo(page,660,230);
+          await tapSite(page,'shrine');
+          const herbShrineStakes=await page.locator('#forestShrineStakes').innerText();
+          assert.doesNotMatch(herbShrineStakes,/石門の茨の手がかりで先手の猶予/,
+            'healing cannot claim the other fork\'s combat preparation');
+          await page.locator('#forestShrineRisk').click();
+          const herbGuardianStart=await read(page);
+          assert.equal(herbGuardianStart.phase,'fight');
+          assert.equal(herbGuardianStart.enemies.find(e=>e.name==='苔祠の番人')?.scoutOpeningSeconds,1.8,
+            'real herb-first guardian warning stays 1.8s, not 2.4s');
+          const herbGuardian=await clearWave(page);
+          assert.equal(herbGuardian.after.phase,'return',
+            'herb-first guardian victory returns to exploration');
+          await page.locator('#rpgOpenResults').click();
+          await page.locator('#rpgReturn').click();
+          const herbReturned=await read(page);
+          assert.equal(herbReturned.banked,
+            gateFirstRestored.banked+herbGuardian.after.unbanked,
+            'only surviving the herb-first route banks its gathered fangs');
+          assert.equal(herbReturned.unbanked,0);
+          await page.reload({waitUntil:'domcontentloaded'});
+          await page.waitForFunction(()=>window.CrownlessForestReadout?.().assetsReady);
+          const herbRestored=await read(page);
+          assert.equal(herbRestored.banked,herbReturned.banked,
+            'herb-first materials persist across reload without duplication');
+          assert.equal(herbRestored.unbanked,0);
+          report.herbFirstBrowser={wound:herbWound,before:herbBefore,after:herbAfter,
+            guardianWarningSeconds:herbGuardianStart.enemies.find(e=>e.name==='苔祠の番人').scoutOpeningSeconds,
+            returned:herbReturned,restored:herbRestored,
+            note:'Real 390px movement, enemy injury and touch; not evidence of fun.'};
           // Separate fresh-phone expedition: prove the new *unforged* gate
           // alternative with a real touch and a living return. The long
           // crafted/tempered loop above cannot exercise this starter-only choice.
