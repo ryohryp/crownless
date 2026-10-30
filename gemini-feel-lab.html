@@ -3066,7 +3066,7 @@
           ? '🍃 苔の間から冷たい風が流れる。素材か癒やしか、一度だけ選べる。気になる地点を直接タップ'
           : '🍃 '+(near.id==='traces'?'湿った土に細い筋がある':'茨の向こうで何かが軋む')+'。気になる地点を直接タップ'
       : state.forestFinds.has('traces') && !state.forestFinds.has('shrine') && !state.forestFinds.has('hollow')
-        ? '足元の踏み跡が二手に分かれ、途中で途切れている。周囲の違いを見て、どちらを追う？（危険な調査の負傷 -3）'
+        ? '足跡は二手に分かれ、途切れた。どちらを追う？（調査負傷 -3）'
       : state.forestFinds.has('traces') && !state.forestFinds.has('shrine')
         ? '踏み跡の先には、まだ苔の湿りが残っている。周囲を探してみよう'
       : state.forestFinds.has('traces') && !state.forestFinds.has('hollow')
