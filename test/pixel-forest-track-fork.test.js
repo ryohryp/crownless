@@ -77,3 +77,29 @@ test('the live post-track HUD asks for observation, not a prescribed gate route'
   assert.doesNotMatch(label, /石門|祠|右|左|茨を調べ|新しい剣/,
     'the HUD must not preselect the destination or spoil either branch');
 });
+
+test('the field HUD keeps the unvisited fork visible after either first discovery', () => {
+  const html = fs.readFileSync('gemini-feel-lab.html', 'utf8');
+  const start = html.indexOf('    const label=guardian\\n'.replace('\n', '\n'));
+  const end = html.indexOf('    if(hint.textContent!==label)', start);
+  assert(start >= 0 && end > start, 'evaluate the live HUD, not a duplicate hint rule');
+  const labelFor = ids => vm.runInNewContext(html.slice(start, end) + '\\nlabel', {
+    guardian: null,
+    near: null,
+    state: { forestFinds: new Set(ids) },
+    rpg: { crafted: false, phase: 'return', unbanked: 2 }
+  });
+  const both = labelFor(['traces']);
+  assert.match(both, /二手に分かれ/, 'both branches remain a player choice');
+  const moss = labelFor(['traces', 'hollow']);
+  assert.match(moss, /苔の湿り/, 'investigating the thorn side leaves the moss clue');
+  assert.doesNotMatch(moss, /茨が軋んで/, 'do not repeat an already inspected lead');
+  const thorns = labelFor(['traces', 'shrine']);
+  assert.match(thorns, /茨が軋んで/, 'investigating the moss side leaves the thorn clue');
+  assert.doesNotMatch(thorns, /苔の湿り/, 'do not repeat an already inspected lead');
+  for (const hint of [both, moss, thorns]) {
+    assert.doesNotMatch(hint, /石門|祠|右|左/, 'no unearned site identity or route');
+  }
+  assert.match(labelFor(['traces', 'shrine', 'hollow']), /未帰還の牙 2個/,
+    'after both inspections, the ordinary safe-return stakes resume');
+});
