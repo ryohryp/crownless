@@ -1479,6 +1479,87 @@ async function main() {
             guardianWarningSeconds:herbGuardianStart.enemies.find(e=>e.name==='苔祠の番人').scoutOpeningSeconds,
             returned:herbReturned,restored:herbRestored,
             note:'Real 390px movement, enemy injury and touch; not evidence of fun.'};
+          // Forceful gate-first is a distinct real phone choice: it earns two
+          // provisional fangs at an HP cost, but must NOT grant the cautious
+          // gate's extra 0.6-second warning. Revisit from a real saved camp;
+          // never inject health, loot, position or discovery flags.
+          assert.equal(herbRestored.phase,'fight',
+            'the forceful comparison starts as a genuine new expedition');
+          await clearWave(page);
+          await walkTo(page,800,365);
+          await tapSite(page,'traces');
+          await walkTo(page,910,235);
+          const forcefulBefore=await read(page);
+          assert.equal(forcefulBefore.tempered,true,
+            'forceful and cautious comparison both use the earned tempered sword');
+          assert(forcefulBefore.player.hp>=6,
+            'the forceful gate and optional shrine must both remain survivable');
+          await tapSite(page,'hollow');
+          const forcefulStakes=await page.locator('#forestGateStakes').innerText();
+          assert.match(forcefulStakes,/強引に牙 \+2（HP -4）/,
+            'the real phone warns of the extra wound for two unsecured fangs');
+          assert.match(forcefulStakes,/強引な回収・薬草なら効果なし/,
+            'the forceful route explicitly forfeits cautious scouting');
+          const forcefulButton=page.locator('#forestGateMaterial');
+          assert(await forcefulButton.isEnabled(),
+            'the forceful option is available with a crafted sword');
+          const forcefulBounds=await forcefulButton.boundingBox();
+          assert(forcefulBounds && forcefulBounds.width>=44 && forcefulBounds.height>=44 &&
+            forcefulBounds.y>=0 &&
+            forcefulBounds.y+forcefulBounds.height<=page.viewportSize().height,
+            'the forceful action is reachable on a 390px touch screen');
+          await page.screenshot({path:path.join(output,'pixel-forest-forceful-gate-choice-390.png')});
+          await page.touchscreen.tap(forcefulBounds.x+forcefulBounds.width/2,
+            forcefulBounds.y+forcefulBounds.height/2);
+          const forcefulAfter=await read(page);
+          assert(forcefulAfter.found.includes('hollow') &&
+            !forcefulAfter.found.includes('hollow-scout'),
+            'forceful salvage claims the gate but never the cautious scouting flag');
+          assert.equal(forcefulAfter.player.hp,forcefulBefore.player.hp-4,
+            'the two-fang route pays its advertised real HP cost');
+          assert.equal(forcefulAfter.unbanked,forcefulBefore.unbanked+2,
+            'forceful salvage grants exactly two provisional fangs');
+          assert.equal(forcefulAfter.banked,forcefulBefore.banked,
+            'unsecured loot must not enter the warehouse before safe return');
+          await tapSite(page,'hollow');
+          assert.equal((await read(page)).unbanked,forcefulAfter.unbanked,
+            'repeated forceful gate taps cannot duplicate the two fangs');
+          await walkTo(page,660,230);
+          await tapSite(page,'shrine');
+          const forcefulShrineStakes=await page.locator('#forestShrineStakes').innerText();
+          assert.doesNotMatch(forcefulShrineStakes,/石門の茨の手がかりで先手の猶予/,
+            'forceful salvage cannot claim the cautious combat advantage');
+          await page.locator('#forestShrineRisk').click();
+          const forcefulGuardianStart=await read(page);
+          assert.equal(forcefulGuardianStart.phase,'fight',
+            'forceful salvage never bypasses the chosen guardian fight');
+          assert.equal(forcefulGuardianStart.enemies.find(e=>e.name==='苔祠の番人')?.scoutOpeningSeconds,1.8,
+            'real forceful gate-first combat keeps 1.8s, not cautious 2.4s');
+          const forcefulGuardian=await clearWave(page);
+          assert.equal(forcefulGuardian.after.phase,'return',
+            'guardian victory returns to ordinary exploration');
+          await page.locator('#rpgOpenResults').click();
+          await page.locator('#rpgReturn').click();
+          const forcefulReturned=await read(page);
+          assert.equal(forcefulReturned.phase,'camp');
+          assert.equal(forcefulReturned.banked,
+            herbRestored.banked+forcefulGuardian.after.unbanked,
+            'only a living return banks the forceful route and guardian loot');
+          assert.equal(forcefulReturned.unbanked,0);
+          await page.reload({waitUntil:'domcontentloaded'});
+          await page.waitForFunction(()=>window.CrownlessForestReadout?.().assetsReady);
+          const forcefulRestored=await read(page);
+          assert.equal(forcefulRestored.banked,forcefulReturned.banked,
+            'the forceful haul survives save/reload without duplication');
+          assert.equal(forcefulRestored.unbanked,0);
+          assert.equal(await page.evaluate(()=>localStorage.getItem('crownless-expedition-v1-demo')),
+            saveBefore,'the unrelated location save remains untouched');
+          report.forcefulGateFirstBrowser={
+            before:forcefulBefore,after:forcefulAfter,
+            guardianWarningSeconds:forcefulGuardianStart.enemies.find(e=>e.name==='苔祠の番人').scoutOpeningSeconds,
+            returned:forcefulReturned,restored:forcefulRestored,
+            note:'390px real movement/touch, two-fang trade-off and safe return; not a fun verdict.'
+          };
           // Separate fresh-phone expedition: prove the new *unforged* gate
           // alternative with a real touch and a living return. The long
           // crafted/tempered loop above cannot exercise this starter-only choice.
