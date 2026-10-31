@@ -1688,6 +1688,30 @@ async function main() {
               'short-phone gate Cancel must stay touch-reachable after local scroll');
             assert.equal(await barehandPage.locator('#forestGateCautious').isEnabled(),true,
               'scrolling the choice sheet must not consume the one-time salvage choice');
+            // A real postponement must leave HP/loot untouched and reopening
+            // must start at the decision, not at the old scroll position.
+            await barehandPage.locator('#forestGateCancel').click();
+            assert.equal(await barehandPage.locator('#forestGateChoice').isVisible(),false,
+              'short-phone Cancel returns to exploration without accepting a wound');
+            const postponed=await read(barehandPage);
+            assert.equal(postponed.player.hp,beforeBarehand.player.hp,
+              'postponement must not consume HP');
+            assert.equal(postponed.unbanked,beforeBarehand.unbanked,
+              'postponement must not grant provisional fangs');
+            assert.equal(postponed.found.includes('hollow'),false,
+              'postponement must leave the one-time gate available');
+            await barehandPage.setViewportSize({width:390,height:844});
+            await tapSite(barehandPage,'hollow');
+            assert.equal(await barehandPage.locator('#forestGateChoice').isVisible(),true,
+              'the postponed gate can be investigated again');
+            await barehandPage.setViewportSize({width:360,height:420});
+            const reopenedSheet=barehandPage.locator('#forestGateChoice > div');
+            assert.equal(await reopenedSheet.evaluate(node=>node.scrollTop),0,
+              'reopened short-phone sheet starts at the first choice');
+            const reopenedFirst=await barehandPage.locator('#forestGateCautious').boundingBox();
+            assert(reopenedFirst && reopenedFirst.y>=0 &&
+              reopenedFirst.y+reopenedFirst.height<=420,
+              'first viable choice is immediately visible after reopening');
             await barehandPage.setViewportSize({width:390,height:844});
             const forgeCost=await barehandPage.evaluate(()=>window.CrownlessRpgLoop.COST);
             const gateCraftHint=await barehandPage.locator('#forestGateStakes').innerText();
