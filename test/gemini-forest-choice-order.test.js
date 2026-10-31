@@ -252,3 +252,33 @@ test('gate-first careful scouting lowers later shrine deep-search injury without
   assert.match(html,/CrownlessForestDiscoveries\.shrineRiskDamage\(state\.forestFinds,rpg\.crafted,rpg\.tempered\)/,
     'the actual preview and applied damage share the same rule');
 });
+
+
+test('shrine herb outcome shows only effective track bonus and lost fang choice', () => {
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const start=html.indexOf('      // Show the actual earned herb benefit');
+  const suffix=",f.x,f.z,f.y+48,'#86efac');";
+  const end=html.indexOf(suffix,start);
+  assert(start>=0 && end>start,'evaluate the live healing popup expression');
+  const expression=html.slice(start,end+suffix.length);
+  const messageFor=(spot,ids,heal,crafted=false)=>{
+    const messages=[];
+    vm.runInNewContext(expression,{
+      discovery:{spot:{id:spot},heal},
+      state:{forestFinds:new Set(ids)},
+      rpg:{crafted},
+      spawnPopup:message=>messages.push(message),
+      f:{x:660,z:230,y:0}
+    });
+    assert.equal(messages.length,1);
+    return messages[0];
+  };
+  assert.match(messageFor('shrine',[],35),/HP \\+35／牙は見送った/);
+  assert.doesNotMatch(messageFor('shrine',[],35),/足跡で回復/);
+  assert.match(messageFor('shrine',['traces'],40),/HP \\+40／足跡で回復 \\+5／牙は見送った/);
+  assert.match(messageFor('shrine',['traces'],37),/HP \\+37／足跡で回復 \\+2／牙は見送った/);
+  assert.match(messageFor('shrine',['traces'],20),/HP \\+20／牙は見送った/);
+  assert.doesNotMatch(messageFor('shrine',['traces'],20),/足跡で回復/);
+  assert.match(messageFor('hollow',['traces'],45,true),/HP \\+45／牙 \\+2は見送った/);
+  assert.doesNotMatch(messageFor('hollow',['traces'],45,true),/足跡で回復|牙は見送った/);
+});
