@@ -1637,6 +1637,11 @@ async function main() {
             assert(beforeBarehand.player.hp>=7,
               'real starter must be able to survive the six-point thorn wound');
             await tapSite(barehandPage,'hollow');
+            assert.equal(await barehandPage.locator('#forestGateChoice button').first().getAttribute('id'),
+              'forestGateCautious',
+              'on a real phone the first gate choice must be usable without a forged sword');
+            assert.equal(await barehandPage.locator('#forestGateMaterial').isEnabled(),false,
+              'the later two-fang route remains a visible but locked smithing goal');
             const forgeCost=await barehandPage.evaluate(()=>window.CrownlessRpgLoop.COST);
             const gateCraftHint=await barehandPage.locator('#forestGateStakes').innerText();
             const stillNeeded=Math.max(0,forgeCost-beforeBarehand.banked-beforeBarehand.unbanked);
