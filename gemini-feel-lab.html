@@ -188,9 +188,10 @@
       </div>
       <div id="forestGateChoice" class="hidden absolute inset-0 z-30 bg-slate-950/60 pointer-events-auto" role="dialog" aria-modal="true" aria-label="石門の選択">
         <div class="forest-choice-sheet absolute inset-x-3 bottom-3 rounded-xl border border-emerald-300 bg-emerald-950/95 p-3 text-emerald-50 shadow-xl">
-          <p class="mb-2 text-sm font-bold">🌿 茨の石門：薬草か素材か、一度だけ</p>
+          <p class="mb-2 text-sm font-bold">🌿 茨の石門：薬草・素材・観察から一度だけ</p>
           <p id="forestGateStakes" class="mb-2 text-xs text-amber-100" role="status"></p>
           <div class="flex flex-col gap-2">
+            <button id="forestGateScout" type="button" class="min-h-11 rounded-lg bg-sky-800 px-3 text-sm font-bold disabled:opacity-50">茨の動きを観察（負傷なし・素材なし・先手猶予 +0.6秒）</button>
             <button id="forestGateCautious" type="button" class="min-h-11 rounded-lg bg-amber-800 px-3 text-sm font-bold disabled:opacity-50">慎重に牙を拾う（HP -3・未帰還素材 +1・回復なし）</button>
             <button id="forestGateMaterial" type="button" class="min-h-11 rounded-lg bg-amber-700 px-3 text-sm font-bold">牙を拾う（HP -8・未帰還素材 +2・回復なし）</button>
             <button id="forestGateHeal" type="button" class="min-h-11 rounded-lg bg-emerald-700 px-3 text-sm font-bold disabled:opacity-50">薬草で癒やす（最大 HP +45・素材なし）</button>
@@ -2080,6 +2081,11 @@
       const cautiousCost=window.CrownlessForestDiscoveries.gateSalvageDamage('cautious',rpg.tempered,rpg.crafted,state.forestFinds.has('shrine'));
       const cautiousWound=cautiousCost===0?'負傷なし':'HP -'+cautiousCost;
       const cautious=document.getElementById('forestGateCautious');
+      const scout=document.getElementById('forestGateScout');
+      scout.disabled=state.forestFinds.has('shrine');
+      scout.textContent=scout.disabled
+        ? '茨の動きを観察（調査済みの危険には効果なし）'
+        : '茨の動きを観察（負傷なし・素材なし・先手猶予 +0.6秒）';
       const cautiousVerb=rpg.crafted?'慎重に牙を拾う':'素手で慎重に牙を拾う';
       // Put the earned tactical payoff on the actual choice button, not only
       // in the long phone stakes paragraph. Never promise it after shrine-first.
@@ -2105,7 +2111,7 @@
         (rpg.tempered?'研ぎ直した剣で負傷軽減。':'')+
         // Button labels already show HP costs, fang counts and recovery. Keep
         // the 360px decision sheet focused on stakes and the unique scouting payoff.
-        (!cautious.disabled && !state.forestFinds.has('shrine') ? '慎重な回収だけ先手の猶予 +0.6秒（強引な回収・薬草なら効果なし）。' : '')+
+        (!state.forestFinds.has('shrine') ? '観察か慎重な回収なら先手の猶予 +0.6秒。観察は牙を持ち帰れない。' : '')+
         '一度だけ選べる。素材は生還時だけ倉庫に残り、敗北すると失う。';
       // Restore the layout box before resetting scroll: scrollTop writes to a
       // display:none sheet can be ignored by the browser.
@@ -2151,7 +2157,7 @@
     return false;
   }
 
-  for (const [id,choice] of [['forestGateMaterial','material'],['forestGateCautious','cautious'],['forestGateHeal','heal']]) {
+  for (const [id,choice] of [['forestGateMaterial','material'],['forestGateCautious','cautious'],['forestGateScout','scout'],['forestGateHeal','heal']]) {
     document.getElementById(id).addEventListener('click',()=>{
       document.getElementById('forestGateChoice').classList.add('hidden');
       if(ginji && ginji.state!=='DEAD' &&
@@ -2220,6 +2226,10 @@
         (state.forestFinds.has('shrine') ? '獣の痕跡！牙 +1（未帰還）／済んだ調査には効かない。まだ茨の軋みを追える' : '獣の痕跡！牙 +1（未帰還）／この先の危険な調査で負傷 -3'),f.x,f.z,f.y+48,'#fde68a');
     }
     if(discovery.damage) f.hp=Math.max(1,f.hp-discovery.damage);
+    if(discovery.spot.id==='hollow' && shrineChoice==='scout') {
+      spawnPopup('茨の揺れを読んだ。牙は拾わず、先の危険に備える（先手猶予 +0.6秒）',
+        f.x,f.z,f.y+48,'#bae6fd');
+    }
     if(discovery.heal) {
       f.hp=Math.min(f.maxHp,f.hp+discovery.heal);
       // Show the actual earned herb benefit and the material trade-off, not a phantom +5.
