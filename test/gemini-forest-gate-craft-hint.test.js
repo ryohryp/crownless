@@ -96,3 +96,34 @@ test('stone-gate choice previews the earned later opening without spoiling an un
   assert.equal(D.guardianOpeningSeconds(found),2.4,
     'the visible advantage corresponds to an earned, costly detour');
 });
+
+test('phone gate choice itself shows the earned scouting payoff only when usable',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const start=html.indexOf('      const cautiousVerb=');
+  const end=html.indexOf('      const missing=',start);
+  assert(start>=0 && end>start,'evaluate the actual gate button formatter');
+  const render=(ids,hp=90,crafted=false)=>{
+    const cautious={disabled:false,textContent:''};
+    const salvage={disabled:false,textContent:''};
+    vm.runInNewContext(html.slice(start,end),{
+      cautious,salvage,ginji:{hp},rpg:{crafted,tempered:false},
+      state:{forestFinds:new Set(ids)},
+      cautiousCost:6,cautiousWound:'HP -6',salvageCost:8
+    });
+    return cautious;
+  };
+  const gateFirst=render(['traces']);
+  assert.equal(gateFirst.disabled,false);
+  assert.match(gateFirst.textContent,/未帰還素材 \+1・先手猶予 \+0\.6秒/,
+    'the benefit must be visible on the tappable choice, not buried in a paragraph');
+  assert.doesNotMatch(gateFirst.textContent,/祠|番人|右|左/,
+    'the gate must not spoil the unvisited threat or its direction');
+  assert.match(render(['traces'],90,true).textContent,/先手猶予 \+0\.6秒/,
+    'the forged-sword cautious route earns the same scouting benefit');
+  assert.doesNotMatch(render(['traces','shrine']).textContent,/先手猶予/,
+    'shrine-first cannot gain a retroactive combat bonus');
+  const weak=render(['traces'],6);
+  assert.equal(weak.disabled,true);
+  assert.doesNotMatch(weak.textContent,/先手猶予/,
+    'a disabled choice must not advertise an unavailable reward');
+});
