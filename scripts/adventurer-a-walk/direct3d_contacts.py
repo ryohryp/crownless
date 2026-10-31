@@ -207,6 +207,15 @@ def build(out,source):
               'REVIEW ONLY: direct 3D geometry/color, no AI pose synthesis; NOT APPROVED GAME ART',
               fill='#614a3d')
     sheet.save(out/'comparison.png')
+    # Phone-scale QA exposes costume legibility failures hidden in large renders.
+    phone=Image.new('RGB',(344,200),'#ece8dd')
+    label_draw=ImageDraw.Draw(phone)
+    for i,label in enumerate(('a','b')):
+        with Image.open(out/f'pose-{label}-review.png') as original:
+            small=original.resize((160,160),Image.Resampling.BOX)
+        phone.paste(small,(6+i*172,25))
+        label_draw.text((12+i*172,8),f'CONTACT {label.upper()} / 160px',fill='#303236')
+    phone.save(out/'phone-scale-qa.png')
     (out/'qa.json').write_text(json.dumps(data,indent=2),encoding='utf8')
     return data
 
