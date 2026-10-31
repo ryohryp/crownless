@@ -68,8 +68,8 @@ test('stone-gate choice previews the earned later opening without spoiling an un
     return node.textContent;
   };
   const gateFirst=render(['traces']);
-  assert.match(gateFirst,/慎重な回収だけ先手の猶予 \+0\.6秒/,
-    'only cautious salvage earns the later tactical advantage');
+  assert.match(gateFirst,/観察か慎重な回収なら先手の猶予 \+0\.6秒/,
+    'a no-loot observation or cautious salvage can earn the later tactical advantage');
   assert.match(gateFirst,/強引な回収・薬草なら効果なし/,
     'the higher-loot and healing routes must not promise the cautious bonus');
   assert(gateFirst.includes('先手の猶予 +0.6秒'),
@@ -89,8 +89,8 @@ test('stone-gate choice previews the earned later opening without spoiling an un
     'compact stakes must retain the next-craft motivation');
   assert(!render(['traces','shrine']).includes('先手の猶予 +0.6秒'),
     'visiting the shrine first cannot promise a retrospective bonus');
-  assert(!render(['traces'],true).includes('先手の猶予 +0.6秒'),
-    'low-HP explorers must not be promised scouting from a disabled salvage choice');
+  assert(render(['traces'],true).includes('先手の猶予 +0.6秒'),
+    'low-HP explorers still have the no-wound, no-loot observation choice');
   assert.match(render(['traces'],false),/先手の猶予 \+0\.6秒/,
     'a usable cautious salvage choice retains its earned scouting preview');
   assert.equal(D.guardianOpeningSeconds(new Set(['traces'])),1.8);
