@@ -1,6 +1,8 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
 const D = require('../src/gemini-forest-discoveries.js');
 const R = require('../src/gemini-rpg-loop.js');
 
@@ -51,4 +53,34 @@ test('shrine-first late salvage remains provisional, one-time and lost on defeat
   assert.equal(R.loseExpedition(run),true);
   assert.equal(run.unbanked,0);
   assert.equal(run.banked,0);
+});
+
+test('late track discovery feedback never promises a retroactive shrine injury reduction', () => {
+  const html = fs.readFileSync('gemini-feel-lab.html', 'utf8');
+  const start = html.indexOf("      spawnPopup(discovery.spot.id==='shrine' && discovery.damage?");
+  const suffix = ",f.x,f.z,f.y+48,'#fde68a');";
+  const end = html.indexOf(suffix, start);
+  assert(start >= 0 && end > start, 'evaluate the live discovery popup expression');
+  const popup = html.slice(start, end + suffix.length);
+  const messageFor = ids => {
+    const messages = [];
+    vm.runInNewContext(popup, {
+      discovery: {spot: {id: 'traces'}, material: 1, damage: 0},
+      state: {forestFinds: new Set(['traces', ...ids])},
+      spawnPopup: message => messages.push(message),
+      f: {x: 800, z: 365, y: 0}
+    });
+    assert.equal(messages.length, 1);
+    return messages[0];
+  };
+  const early = messageFor([]);
+  assert.match(early, /牙 \+1（未帰還）/);
+  assert.match(early, /この先の危険な調査で負傷 -3/);
+  assert.doesNotMatch(early, /祠|石門|右|左/,
+    'an unvisited site must remain undisclosed');
+  const late = messageFor(['shrine']);
+  assert.match(late, /牙 \+1（未帰還）/);
+  assert.match(late, /先に調べた場所への効果はない/);
+  assert.doesNotMatch(late, /負傷 -3|3軽減/,
+    'the player cannot retroactively reduce a completed shrine risk');
 });
