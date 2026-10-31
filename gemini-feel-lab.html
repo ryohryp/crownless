@@ -2076,10 +2076,13 @@
       const cautiousWound=cautiousCost===0?'負傷なし':'HP -'+cautiousCost;
       const cautious=document.getElementById('forestGateCautious');
       const cautiousVerb=rpg.crafted?'慎重に牙を拾う':'素手で慎重に牙を拾う';
+      // Put the earned tactical payoff on the actual choice button, not only
+      // in the long phone stakes paragraph. Never promise it after shrine-first.
+      const cautiousPayoff=state.forestFinds.has('shrine')?'':'・先手猶予 +0.6秒';
       cautious.disabled=ginji.hp<cautiousCost+1;
       cautious.textContent=cautious.disabled
         ? cautiousVerb+'（'+cautiousWound+'・未帰還素材 +1／HP '+(cautiousCost+1)+'以上必要）'
-        : cautiousVerb+'（'+cautiousWound+' →残り'+Math.floor(ginji.hp-cautiousCost)+'・未帰還素材 +1）';
+        : cautiousVerb+'（'+cautiousWound+' →残り'+Math.floor(ginji.hp-cautiousCost)+'・未帰還素材 +1'+cautiousPayoff+'）';
       salvage.disabled=!rpg.crafted || ginji.hp<salvageCost+1;
       salvage.textContent=!rpg.crafted ? '牙を拾う（鍛冶剣が必要）' : salvage.disabled
         ? '牙を拾う（HP -'+salvageCost+'・未帰還素材 +2／HP '+(salvageCost+1)+'以上必要）'
