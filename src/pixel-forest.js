@@ -159,9 +159,29 @@
     }
     function trail(ctx,found) {
       if(!found.has('traces')) return;
-      for(let i=0;i<9;i++) {
-        const x=810+i*11,z=350-i*12;
-        ctx.fillStyle='#c7b68e';ctx.fillRect(x,z,4,3);ctx.fillRect(x+4,z+5,3,3);
+      // Reading the tracks reveals two broken leads, not a bright arrow
+      // to the still-uninspected shrine or gate. Neither is navigation.
+      for(const side of [-1,1]) {
+        for(let i=0;i<8;i++) {
+          if(i===4) continue; // The explorer must look for the next sign.
+          const x=800+side*(10+i*10),z=350-i*9;
+          ctx.fillStyle=i>=5?'#aa9876':'#e0c99a';
+          ctx.fillRect(x,z,6,4);
+          ctx.fillRect(x+side*5,z+6,4,3);
+          // The fork must be readable on a phone: two small, contrasting
+          // patches of moss or snapped thorn fibers, not destination arrows.
+          // These are clues to investigate, never navigation or a route reveal.
+          if(i===2 || i===6) {
+            ctx.fillStyle=side<0?'#a2c087':'#c78b67';
+            if(side<0) {
+              ctx.fillRect(x-9,z-4,6,4);
+              ctx.fillRect(x-4,z-8,4,5);
+            } else {
+              ctx.fillRect(x+9,z-6,8,2);
+              ctx.fillRect(x+14,z-9,2,7);
+            }
+          }
+        }
       }
     }
     function foreground(ctx,cameraX,width,time,player) {
