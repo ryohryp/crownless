@@ -700,6 +700,11 @@ async function main() {
           await tapSite(page,'shrine');
           const sheet=page.locator('#forestShrineChoice');
           assert(await sheet.isVisible(),'an unscouted shrine must remain inspectable');
+          const unscoutedMissing=beforeDetour.player.maxHp-beforeDetour.player.hp;
+          if(unscoutedMissing>0) assert.match(
+            await page.locator('#forestShrineHeal').innerText(),
+            new RegExp('HP \\+'+Math.min(35,unscoutedMissing)),
+            'unscouted phone herbs retain their original 35 HP cap');
           const stakes=await page.locator('#forestShrineStakes').innerText();
           assert.match(stakes,/足元の筋は未調査。今は引き返して探す手もある。/,
             'the actual phone choice suggests a reversible investigation');
@@ -764,6 +769,15 @@ async function main() {
             /足元の筋は未調査/,'the old warning clears after actual investigation');
           assert.match(await page.locator('#forestShrineRisk').innerText(),
             /足跡を読んで負傷 -3/,'reading tracks changes the real risk');
+          const scoutedShrine=await read(page);
+          const scoutedMissing=scoutedShrine.player.maxHp-scoutedShrine.player.hp;
+          if(scoutedMissing>0){
+            const scoutedHeal=await page.locator('#forestShrineHeal').innerText();
+            assert.match(scoutedHeal,new RegExp('HP \\+'+Math.min(40,scoutedMissing)),
+              'the real 360px shrine choice previews earned recovery up to 40 HP');
+            if(scoutedMissing>35) assert.match(scoutedHeal,/足跡の手がかりで回復/,
+              'a real extra recovery must be explained on the touch choice');
+          }
           await page.locator('#forestShrineCancel').click();
           assert(!(await read(page)).found.includes('shrine'),
             'reopening and declining must still preserve the one-time choice');
