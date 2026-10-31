@@ -363,12 +363,16 @@
     }
     // A discovered stone gate offers a one-time choice: take its materials
     // home or use its herbs to survive. Never award both on the same visit.
-    if(spot.kind==='cache' && !['auto','material','heal','cautious'].includes(shrineChoice))
+    if(spot.kind==='cache' && !['auto','material','heal','cautious','scout'].includes(shrineChoice))
       return {ok:false,reason:'choice',spot};
+    // Studying the thorn movement without taking a fang is a low-HP alternative,
+    // but it cannot retroactively help an already explored shrine.
+    if(spot.kind==='cache' && shrineChoice==='scout' && found.has('shrine'))
+      return {ok:false,reason:'late',spot};
     if(spot.kind==='cache' && shrineChoice==='heal' && hp>=maxHp)
       return {ok:false,reason:'full',spot};
     const gateDamage=gateSalvageDamage(shrineChoice,crafted && tempered,crafted,found.has('shrine'));
-    if(spot.kind==='cache' && shrineChoice!=='heal' && hp<gateDamage+1)
+    if(spot.kind==='cache' && !['heal','scout'].includes(shrineChoice) && hp<gateDamage+1)
       return {ok:false,reason:'weak',spot};
     // The shrine offers a deliberate trade-off; a full-HP heal must not waste it.
     // 'auto' preserves existing direct rule callers; the scene passes an explicit choice.
@@ -391,14 +395,15 @@
     // Only a cautious gate detour BEFORE the shrine earns the guardian read.
     // Shrine-first exploration cannot retroactively change a finished encounter.
     // Forceful salvage earns one more fang instead; herbs preserve HP.
-    if(spot.kind==='cache' && shrineChoice==='cautious' && !found.has('shrine'))
+    if(spot.kind==='cache' && ['cautious','scout'].includes(shrineChoice) && !found.has('shrine'))
       found.add('hollow-scout');
     // Reading tracks first reveals a richer herb patch at the shrine: a modest
     // non-combat payoff for scouting, without minting loot or bypassing danger.
     const gateHeal=spot.kind==='cache' && shrineChoice==='heal';
-    const gateSalvage=spot.kind==='cache' && !gateHeal;
+    const gateScout=spot.kind==='cache' && shrineChoice==='scout';
+    const gateSalvage=spot.kind==='cache' && !gateHeal && !gateScout;
     const gateCautious=spot.kind==='cache' && shrineChoice==='cautious';
-    return {ok:true,spot,material:risky?2:scavenge?1:spot.kind==='cache'&&!gateHeal?(gateCautious?1:2):spot.kind==='material'?1:0,
+    return {ok:true,spot,material:risky?2:scavenge?1:spot.kind==='cache'&&!gateHeal&&!gateScout?(gateCautious?1:2):spot.kind==='material'?1:0,
       damage:risky?riskDamage:gateSalvage?gateDamage:0,
       heal:gateHeal?Math.min(45,Math.max(0,maxHp-hp)):
         spot.kind==='healing' && !scavenge?Math.min(found.has('traces')?40:35,Math.max(0,maxHp-hp)):0};
