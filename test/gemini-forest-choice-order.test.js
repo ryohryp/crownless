@@ -282,3 +282,47 @@ test('shrine herb outcome shows only effective track bonus and lost fang choice'
   assert.match(messageFor('hollow',['traces'],45,true),/HP \+45／牙 \+2は見送った/);
   assert.doesNotMatch(messageFor('hollow',['traces'],45,true),/足跡で回復|牙は見送った/);
 });
+
+
+test('no-loot scouting preserves the last HP and trades the gate fang for a future opening', () => {
+  const gate={x:910,z:235,state:'IDLE'};
+  const shrine={x:660,z:230,state:'IDLE'};
+  const found=new Set(['traces']);
+  const result=D.uncover(gate,found,'return',1,140,false,'scout');
+  assert.equal(result.ok,true,'unarmed and 1 HP must be able to observe without wounds');
+  assert.equal(result.material,0,'observing must never mint an unbanked fang');
+  assert.equal(result.damage,0);
+  assert.equal(result.heal,0);
+  assert.equal(found.has('hollow-scout'),true,'a deliberate pre-shrine observation earns the clue');
+  assert.equal(D.guardianOpeningSeconds(found),2.4);
+  assert.equal(D.shrineRiskDamage(found,false),8,'the later deep search uses the observed thorn motion');
+  assert.equal(D.uncover(gate,found,'return',140,140,true,'material').ok,false,
+    'observing consumes the one-time gate choice; it cannot later yield two fangs');
+  assert.equal(found.has('shrine'),false,'scouting cannot auto-discover the shrine');
+  const late=new Set(['traces']);
+  assert.equal(D.uncover(shrine,late,'return',140,140,false,'material').ok,true);
+  assert.equal(D.uncover(gate,late,'return',1,140,false,'scout').reason,'late',
+    'observing after shrine discovery must not award retroactive combat insight');
+  assert.equal(late.has('hollow'),false,'a rejected late choice must not consume the gate');
+  assert.equal(late.has('hollow-scout'),false);
+  assert.equal(D.uncover(gate,late,'return',5,140,false,'cautious').ok,true,
+    'the late gate still offers the existing moss-assisted one-fang route');
+  const run=R.create();
+  assert.equal(R.clearWave(run),true);
+  assert.equal(run.unbanked,0);
+  assert.equal(R.returnAlive(run,1),true,'scouting does not block a living return');
+  assert.equal(run.banked,0,'a scout-only return never banks free material');
+});
+
+test('phone gate offers an explicit scout-only tradeoff without revealing a hidden route', () => {
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  assert.match(html,/id="forestGateScout"[^>]*min-h-11/);
+  assert.match(html,/scout\.disabled=state\.forestFinds\.has\('shrine'\)/);
+  assert.match(html,/\['forestGateScout','scout'\]/,
+    'the actual touch choice must call the new rule');
+  assert.match(html,/discovery\.spot\.id==='hollow' && shrineChoice==='scout'/,
+    'the zero-material choice still needs visible outcome feedback');
+  assert.match(html,/観察は牙を持ち帰れない/);
+  assert.doesNotMatch(html.match(/scout\.textContent=scout\.disabled[\s\S]*?;\n/)[0],/隠し道|祠の位置|石門の奥/,
+    'the choice must not reveal an unvisited destination');
+});
