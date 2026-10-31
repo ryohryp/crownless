@@ -912,6 +912,8 @@ async function main() {
             'without a sword, inspecting the gate offers the reachable herbs instead of a dead end');
           assert.equal(await page.locator('#forestGateMaterial').isDisabled(),true,
             'unforged explorers cannot take the thorn-blocked two-fang reward');
+          assert.equal(await page.locator('#forestGateScout').isDisabled(),true,
+            'shrine-first observation cannot promise a retroactive guardian opening');
           const barehandChoice=page.locator('#forestGateCautious');
           assert.equal(await barehandChoice.isEnabled(),true,
             'after visiting the shrine, the player may risk four HP for one unsecured fang');
@@ -1403,6 +1405,15 @@ async function main() {
             !gateFirstBefore.found.includes('shrine'),
             'both fork destinations remain unclaimed before the detour');
           await tapSite(page,'hollow');
+          const gateScoutButton=page.locator('#forestGateScout');
+          assert.equal(await gateScoutButton.isEnabled(),true,
+            'before shrine discovery, a swordless zero-wound scouting alternative is available');
+          assert.match(await gateScoutButton.innerText(),/負傷なし.*素材なし.*先手猶予 \+0\.6秒/,
+            'the actual phone choice states its no-loot tradeoff');
+          const scoutBounds=await gateScoutButton.boundingBox();
+          assert(scoutBounds && scoutBounds.width>=44 && scoutBounds.height>=44 &&
+            scoutBounds.y>=0 && scoutBounds.y+scoutBounds.height<=page.viewportSize().height,
+            'the scout-only choice must be thumb-sized and visible at 390px');
           const gateFirstPreview=await page.locator('#forestGateStakes').innerText();
           assert(gateFirstPreview.includes('先手の猶予 +0.6秒'),
             '390px gate-first choice must disclose its earned later reaction advantage before the tap');
