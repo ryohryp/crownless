@@ -2127,7 +2127,11 @@
         (state.forestFinds.has('traces')?'／足跡を読んで負傷 -3・接近する物音を早く察知':'')+
         (state.forestFinds.has('hollow-scout') && !rpg.tempered?'／石門の見切りで負傷 -1':'')+
         (rpg.phase==='return'?'／奥に気配・追加戦闘あり・撃退まで帰還不可':'')+'）';
-      heal.textContent=missing ? '傷を癒やす（HP +'+Math.min(35,missing)+'・素材なし）' : '傷がないため回復不可';
+      // Tracks reveal a better herb patch, but only advertise the HP actually restored.
+      const shrineHealAmount=Math.min(state.forestFinds.has('traces')?40:35,missing);
+      const shrineHealBonus=shrineHealAmount-Math.min(35,missing);
+      heal.textContent=missing ? '傷を癒やす（HP +'+shrineHealAmount+
+        (shrineHealBonus>0?'・足跡の手がかりで回復 +'+shrineHealBonus:'')+'・素材なし）' : '傷がないため回復不可';
       // Show what each material route would mean for the next smithing goal.
       // A promising extra fang matters only if the adventurer returns alive.
       const forgeChoice=forestShrineCraftHint(rpg,rpgRules);
