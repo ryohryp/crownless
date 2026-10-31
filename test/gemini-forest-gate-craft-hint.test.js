@@ -150,7 +150,7 @@ test('earned gate scouting stays visible after the choice without naming an unvi
       rpg:{phase,unbanked:3},ginji:{},forestGuardianHint:()=>''}
   );
   const earned=render(['traces','hollow','hollow-scout']);
-  assert.match(earned,/足運びを読んだ/,'the careful detour has a lasting visible consequence');
+  assert.match(earned,/苔の湿りが残る/,'the careful detour has a lasting visible consequence');
   assert.match(earned,/先手猶予 \+0\.6秒/,'the player can still weigh a deeper search against returning alive');
   assert.doesNotMatch(earned,/苔むす祠|苔祠の番人|右|左/,
     'the hint cannot disclose the identity or direction of the uninspected threat');
