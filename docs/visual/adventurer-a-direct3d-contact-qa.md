@@ -32,3 +32,16 @@ Both contact poses visibly alternate. Both 3D boot soles remain grounded; the tr
 However the blockout is too angular and mannequin-like at phone scale. The trousers/knees and coat opening need anatomical/material refinement; the light ivory chest patch and head silhouette only loosely evoke the approved Adventurer A anchor. It does **not** pass the Canon requirements for rich irregular pixel art, tiny restrained face and authentic identity. Two contact frames are not a validated 8-frame looping walk.
 
 **Next smallest useful test:** preserve the exact 3D silhouette/boot grounding; apply only texture/material finishing to the *inside* of the rendered geometry. If a generative model creates texture color, mask/composite it inside the exported RGBA silhouette so it cannot move the legs, soles or camera. Compare the rendered pair at 128–160px and only then decide whether more character modeling is justified. Do not auto-accept, merge, deploy, build eight frames, or overwrite the approved identity and other protagonists.
+
+
+## Next texture-only safeguard implemented (no new AI image claimed)
+
+Added `scripts/adventurer-a-walk/finish_direct3d_material.py` with regression test `test/test_adventurer_direct3d_material_finish.py`. A future locally AI-generated **512x512 texture candidate** can be supplied as `--paint`, while the approved-for-study 3D transparent candidate is `--geometry`. The compositor transfers a *bounded luminance variation only* and forcibly reuses the **exact 3D RGBA alpha**. Consequently, a generated candidate **cannot physically relocate a boot, change the silhouette, or recolor the indigo/boot palette into another identity**; exterior pixels are transparent. It refuses output overwrite and any unsupported image size.
+
+Example only after a texture candidate exists:
+
+```powershell
+python scripts/adventurer-a-walk/finish_direct3d_material.py --geometry 'pose-a-direct3d.png' --paint 'future-ai-texture-a.png' --out 'pose-a-finished-review.png'
+```
+
+This is a constrained material prototype, not proof the candidate is artistically coherent. It cannot fix the current mannequin anatomy or magically produce approved pixel art. No new generative texture images or GPU workflows were run in this step.
