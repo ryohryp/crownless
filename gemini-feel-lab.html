@@ -2126,7 +2126,7 @@
       document.getElementById('forestShrineStakes').textContent=
         '現在 HP '+Math.floor(ginji.hp)+'/'+ginji.maxHp+'、未帰還の牙 '+rpg.unbanked+
         '個。'+(state.forestFinds.has('traces')?'':'足元の筋は未調査。今は引き返して探す手もある。')+
-        forgeChoice+(state.forestFinds.has('hollow-scout')
+        forgeChoice+(!risk.disabled && state.forestFinds.has('hollow-scout')
           ? '奥まで探るなら、石門の茨の手がかりで先手の猶予 +0.6秒。' : '')+
         '素材は生還時だけ倉庫に残る（敗北すると失う）。';
       // A deferred shrine decision must reopen at the first choice, even
