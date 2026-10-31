@@ -2111,7 +2111,7 @@
         (rpg.tempered?'研ぎ直した剣で負傷軽減。':'')+
         // Button labels already show HP costs, fang counts and recovery. Keep
         // the 360px decision sheet focused on stakes and the unique scouting payoff.
-        (!state.forestFinds.has('shrine') ? '観察か慎重な回収なら先手の猶予 +0.6秒。観察は牙を持ち帰れない。' : '')+
+        (!state.forestFinds.has('shrine') ? '観察か慎重な回収なら先手の猶予 +0.6秒（強引な回収・薬草なら効果なし）。観察は牙を持ち帰れない。' : '')+
         '一度だけ選べる。素材は生還時だけ倉庫に残り、敗北すると失う。';
       // Restore the layout box before resetting scroll: scrollTop writes to a
       // display:none sheet can be ignored by the browser.
