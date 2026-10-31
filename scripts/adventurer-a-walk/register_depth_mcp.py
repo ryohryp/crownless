@@ -20,10 +20,11 @@ STAGE = 'crownless-mcp-adventurer-a-depth-v1'
 DEPTH_MODEL = 'control_v11f1p_sd15_depth_fp16.safetensors'
 # Official Hugging Face file page SHA-256; model is not bundled or auto-downloaded.
 DEPTH_MODEL_SHA256 = '1c4a79aa52fb63f607cb9ff479ea5aa1923b6ceb21267bd14b69bd05d7b617be'
-# Fixed-camera mesh-rasterized PNG hashes, not character-art approval.
-DEPTH_IMAGE_SHA256 = {
-    'a': 'f4f9c7d53853c26f5427a1c97941181aa40253fb2453dfff168815b04afe6ce9',
-    'b': '5c5ef52952e286997d9ac856204c3e6ff1d66a0f1a082b6156a89664f69f7f4c',
+# Fixed-camera 512x512 grayscale pixel SHA-256, independent of PNG encoding.
+# Derived from the verified source output; never substitute a new candidate hash.
+DEPTH_IMAGE_PIXEL_SHA256 = {
+    'a': '3ab036afe74a7d5d87b44779fe3d33af7bc218d10e37d0e424c85d6827fafa7c',
+    'b': 'd68a874f4c0889a0ec6a564ef58068f0f262c98adce8da8c32ee3bf19c3fccbb',
 }
 
 
@@ -45,11 +46,15 @@ def checked_inputs(anchor, depth_dir):
           'lower-mask.png':mask.filter(ImageFilter.GaussianBlur(7)).convert('RGB')}
     for label in ('a','b'):
         path=depth_dir/f'pose-{label}-depth.png'
-        if sha(path)!=DEPTH_IMAGE_SHA256[label]:
-            raise ValueError(f'Generated depth source SHA mismatch: {path}')
         with Image.open(path) as im:
             if im.size!=(512,512) or im.mode!='L':
                 raise ValueError('Expected 512x512 grayscale depth control')
+            pixel_hash=hashlib.sha256(im.tobytes()).hexdigest()
+            if pixel_hash!=DEPTH_IMAGE_PIXEL_SHA256[label]:
+                raise ValueError(
+                    f'Generated depth pixels differ from verified 3D control '
+                    f'({label}: actual={pixel_hash}, expected={DEPTH_IMAGE_PIXEL_SHA256[label]}). '
+                    'Do not register an unverified 3D image.')
             data[f'pose-{label}-depth.png']=im.convert('RGB')
     return data
 
