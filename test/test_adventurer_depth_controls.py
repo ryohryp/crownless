@@ -46,10 +46,10 @@ class DepthCandidateTest(unittest.TestCase):
             meta=depth.produce(out,src)
             self.assertEqual(meta['pose_a_front_leg'],'near')
             self.assertEqual(meta['pose_b_front_leg'],'far')
-            self.assertEqual(meta['hashes']['A']['depth'],
-                             'f4f9c7d53853c26f5427a1c97941181aa40253fb2453dfff168815b04afe6ce9')
-            self.assertEqual(meta['hashes']['B']['depth'],
-                             '5c5ef52952e286997d9ac856204c3e6ff1d66a0f1a082b6156a89664f69f7f4c')
+            self.assertEqual(meta['pixel_sha256']['A']['depth'],
+                             '3ab036afe74a7d5d87b44779fe3d33af7bc218d10e37d0e424c85d6827fafa7c')
+            self.assertEqual(meta['pixel_sha256']['B']['depth'],
+                             'd68a874f4c0889a0ec6a564ef58068f0f262c98adce8da8c32ee3bf19c3fccbb')
             for label in 'ab':
                 with Image.open(out/f'pose-{label}-depth.png') as image:
                     self.assertEqual(image.size,(512,512))
