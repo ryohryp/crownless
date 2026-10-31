@@ -2129,7 +2129,10 @@
         forgeChoice+(state.forestFinds.has('hollow-scout')
           ? '奥まで探るなら、石門の茨の手がかりで先手の猶予 +0.6秒。' : '')+
         '素材は生還時だけ倉庫に残る（敗北すると失う）。';
+      // A deferred shrine decision must reopen at the first choice, even
+      // after scrolling to Cancel on a short phone viewport.
       panel.classList.remove('hidden');
+      panel.querySelector('.forest-choice-sheet').scrollTop=0;
       return true;
     }
     if (site) return tryExploreForest(ginji);
