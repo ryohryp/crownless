@@ -200,11 +200,11 @@ test('reading tracks first improves one shrine herb choice without creating free
     vm.runInNewContext(expression,{state:{forestFinds:new Set(ids)},missing,heal});
     return heal.textContent;
   };
-  assert.match(label([],80),/HP \\+35・素材なし/);
-  assert.match(label(['traces'],80),/HP \\+40・足跡の手がかりで回復 \\+5・素材なし/);
-  assert.match(label(['traces'],37),/HP \\+37・足跡の手がかりで回復 \\+2・素材なし/);
-  assert.match(label(['traces'],20),/HP \\+20・素材なし/);
-  assert.doesNotMatch(label(['traces'],20),/回復 \\+5/);
+  assert.match(label([],80),/HP \+35・素材なし/);
+  assert.match(label(['traces'],80),/HP \+40・足跡の手がかりで回復 \+5・素材なし/);
+  assert.match(label(['traces'],37),/HP \+37・足跡の手がかりで回復 \+2・素材なし/);
+  assert.match(label(['traces'],20),/HP \+20・素材なし/);
+  assert.doesNotMatch(label(['traces'],20),/回復 \+5/);
   assert.equal(label(['traces'],0),'傷がないため回復不可');
 });
 
