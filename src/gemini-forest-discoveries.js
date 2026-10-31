@@ -379,9 +379,11 @@
     const scavenge=spot.kind==='healing' && (risky || shrineChoice==='material' ||
       (shrineChoice==='auto' && hp>=maxHp));
     found.add(spot.id);
-    // Only cautious thorn salvage earns the guardian scouting advantage.
+    // Only a cautious gate detour BEFORE the shrine earns the guardian read.
+    // Shrine-first exploration cannot retroactively change a finished encounter.
     // Forceful salvage earns one more fang instead; herbs preserve HP.
-    if(spot.kind==='cache' && shrineChoice==='cautious') found.add('hollow-scout');
+    if(spot.kind==='cache' && shrineChoice==='cautious' && !found.has('shrine'))
+      found.add('hollow-scout');
     const gateHeal=spot.kind==='cache' && shrineChoice==='heal';
     const gateSalvage=spot.kind==='cache' && !gateHeal;
     const gateCautious=spot.kind==='cache' && shrineChoice==='cautious';
