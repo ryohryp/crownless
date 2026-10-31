@@ -914,6 +914,10 @@ async function main() {
             'unforged explorers cannot take the thorn-blocked two-fang reward');
           assert.equal(await page.locator('#forestGateScout').isDisabled(),true,
             'shrine-first observation cannot promise a retroactive guardian opening');
+          assert.equal(await page.locator('#forestGateScout').isVisible(),false,
+            'an obsolete scouting action must not crowd the shrine-first phone choice');
+          assert.match(await page.locator('#forestGateTitle').innerText(),/薬草か素材か、一度だけ/,
+            'the shrine-first heading must list only the available kinds of choice');
           const barehandChoice=page.locator('#forestGateCautious');
           assert.equal(await barehandChoice.isEnabled(),true,
             'after visiting the shrine, the player may risk four HP for one unsecured fang');
@@ -1409,6 +1413,10 @@ async function main() {
           const gateScoutButton=page.locator('#forestGateScout');
           assert.equal(await gateScoutButton.isEnabled(),true,
             'before shrine discovery, a swordless zero-wound scouting alternative is available');
+          assert.equal(await gateScoutButton.isVisible(),true,
+            'the pre-shrine observation remains a visible player choice');
+          assert.match(await page.locator('#forestGateTitle').innerText(),/薬草・素材・観察から一度だけ/,
+            'the pre-shrine heading still advertises observation');
           assert.match(await gateScoutButton.innerText(),/負傷なし.*素材なし.*先手猶予 \+0\.6秒/,
             'the actual phone choice states its no-loot tradeoff');
           const scoutBounds=await gateScoutButton.boundingBox();
