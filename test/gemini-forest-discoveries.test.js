@@ -958,7 +958,7 @@ test('careful thorn-first salvage earns a longer warning while forceful salvage 
   assert.deepEqual([...gateFirst],['traces','hollow','hollow-scout'],
     'calculating the advantage cannot auto-discover the shrine');
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
-  assert.ok(html.includes('慎重な回収だけ先手の猶予 +0.6秒（強引な回収・薬草なら効果なし）。'),
+  assert.ok(html.includes('観察か慎重な回収なら先手の猶予 +0.6秒（強引な回収・薬草なら効果なし）。'),
     'the choice preview must disclose the tactical cost of forceful salvage');
   assert.ok(html.includes("state.forestFinds.has('hollow-scout')") &&
     html.includes('奥まで探るなら、石門の茨の手がかりで先手の猶予 +0.6秒。'),
