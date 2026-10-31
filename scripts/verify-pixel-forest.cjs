@@ -1393,7 +1393,8 @@ async function main() {
             returned:temperedShrineReturn,restored:temperedShrineRestored};
           // Real 390px gate-first comparison: deliberately inspect the thorn
           // lead before choosing the optional shrine fight. The same tempered
-          // sword is used as in the shrine-first run above; no test-only
+          // sword is used as in the shrine-first run above, but the gate's
+          // no-loot observation is chosen; no test-only
           // teleport, reward injection, or save edits are permitted.
           assert.equal(temperedShrineRestored.phase,'fight');
           await clearWave(page);
@@ -1421,21 +1422,28 @@ async function main() {
             '390px phone must distinguish cautious scouting from forceful loot and healing');
           assert.doesNotMatch(gateFirstPreview,/苔祠|番人|右|左/,
             'the preview must not spoil the unseen destination or its guardian');
-          const gateFirstCautious=page.locator('#forestGateCautious');
-          assert(await gateFirstCautious.isEnabled(),
-            'the tempered sword opens the nonlethal thorn investigation');
-          assert.match(await gateFirstCautious.innerText(),/負傷なし.*未帰還素材 \+1/,
-            'the player sees the cost and provisional reward before choosing');
-          await gateFirstCautious.click();
+          // Commit to the no-loot option with a genuine 390px touchscreen tap.
+          // The cautious one-fang route is exercised earlier; this run proves
+          // observation alone can prepare a guardian fight without free loot.
+          await page.screenshot({path:path.join(output,'pixel-forest-gate-observe-choice-390.png')});
+          await page.touchscreen.tap(scoutBounds.x+scoutBounds.width/2,
+            scoutBounds.y+scoutBounds.height/2);
           const gateFirstAfter=await read(page);
           assert(gateFirstAfter.found.includes('hollow'),
-            'real phone touch, not a cue, discovers the thorn gate');
+            'a real observation tap must consume the gate');
           assert(gateFirstAfter.found.includes('hollow-scout'),
-            'only the actual thorn-salvage tap earns the guardian scouting advantage');
+            'observing without salvage must earn the later guardian opening');
           assert.equal(gateFirstAfter.player.hp,gateFirstBefore.player.hp,
-            'the tempered cautious gate detour costs no HP');
-          assert.equal(gateFirstAfter.unbanked,gateFirstBefore.unbanked+1,
-            'the gate gives one provisional fang, not free banked loot');
+            'observation must cost no HP even when loot is forgone');
+          assert.equal(gateFirstAfter.unbanked,gateFirstBefore.unbanked,
+            'observation must not award a provisional fang');
+          assert.equal(gateFirstAfter.banked,gateFirstBefore.banked,
+            'observation must not bank any material');
+          await tapSite(page,'hollow');
+          assert.equal((await read(page)).unbanked,gateFirstBefore.unbanked,
+            'the consumed observation cannot be repeated to farm loot');
+          assert.equal(await page.locator('#forestGateChoice').isVisible(),false,
+            'observing spends the one-time gate decision');
           await walkTo(page,660,230);
           await tapSite(page,'shrine');
           const gateFirstStakes=await page.locator('#forestShrineStakes').innerText();
@@ -1455,12 +1463,12 @@ async function main() {
             'the shrine reward remains unsecured until survival');
           const gateFirstGuardian=await clearWave(page,{preferScoutedOpening:true});
           assert.equal(gateFirstGuardian.openingObserved,true,
-            'cautious gate-first detour must open a real player-actionable warning; trace='+
+            'observation-only gate-first detour must open a real player-actionable warning; trace='+
             JSON.stringify(gateFirstGuardian.scoutTrace));
           assert.equal(gateFirstGuardian.scoutAttackCueSeen,true,
             'the earned 2.4s opening must visibly highlight a reachable phone attack button');
           assert.equal(gateFirstGuardian.scoutedFirstHit,true,
-            'cautious gate-first detour must land the earned +12 strike, not just lengthen an unused timer; trace='+
+            'observation-only gate-first detour must land the earned +12 strike, not just lengthen an unused timer; trace='+
             JSON.stringify(gateFirstGuardian.scoutTrace));
           assert.equal(gateFirstGuardian.gateFirstFeedbackSeen,true,
             'landed gate-first strike must show its earned consequence on the live 390px HUD');
@@ -1487,7 +1495,7 @@ async function main() {
             returned:gateFirstReturn,restored:gateFirstRestored,
             scoutedFirstHit:gateFirstGuardian.scoutedFirstHit,
             gateFirstFeedbackSeen:gateFirstGuardian.gateFirstFeedbackSeen,
-            note:'Both 390px routes used real movement and touch. CI is not a human fun verdict.'
+            note:'The gate-first route chose observation (0 HP, 0 fangs) by real 390px touch before guardian victory and living return; CI is not a human fun verdict.'
           };
           // Herb-first is the other real decision at the fork. Earn a wound
           // from the ordinary opening wave (never inject HP), then spend the
@@ -1862,7 +1870,7 @@ async function main() {
     }
     report.passed=true;
     await fs.writeFile(path.join(output,'pixel-forest-report.json'),JSON.stringify(report,null,2)+'\n');
-    console.log('Pixel forest: 360/390/430px aspect + touch; real combat → discovery → swordless gate herbs → return → forge → revisit → hollow (material/heal/cautious) → temper → revisited gate (-4 HP/+2 fangs) → safe tempered gate (0 HP/+1 fang) → return/reload PASS');
+    console.log('Pixel forest: 360/390/430px aspect + touch; real combat → discovery → swordless gate herbs → return → forge → revisit → hollow (material/heal/cautious/observe) → temper → revisited gate (-4 HP/+2 fangs) → safe tempered gate (0 HP/+1 fang) → return/reload PASS');
     console.log(JSON.stringify(report,null,2));
   } finally {
     if(browser) await browser.close();
