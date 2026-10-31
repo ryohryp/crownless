@@ -401,7 +401,8 @@ test('unforged explorers can choose costly one-fang salvage or healing, but not 
   assert.match(html,/cautious\.disabled=ginji\.hp<cautiousCost\+1/);
   assert.match(html,/gateSalvageDamage\('cautious',rpg\.tempered,rpg\.crafted\)/,
     'phone previews barehand injury from the same rule as the reward');
-  assert.match(html,/素手で牙 \+1（HP -/);
+  assert.match(html,/const cautiousVerb=rpg\.crafted\?'慎重に牙を拾う':'素手で慎重に牙を拾う'/,
+    'unforged explorers still see a distinct barehand option on the choice button');
   assert.match(html,/rpg\.crafted\?'／牙 \+2は見送った':'／牙 \+1は見送った'/,
     'herbs sacrifice only the one fang the unarmed explorer could have earned');
 });
@@ -955,7 +956,7 @@ test('careful thorn-first salvage earns a longer warning while forceful salvage 
   assert.deepEqual([...gateFirst],['traces','hollow','hollow-scout'],
     'calculating the advantage cannot auto-discover the shrine');
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
-  assert.ok(html.includes('慎重な回収だけ先手の猶予 +0.6秒。強引な回収・薬草なら効果なし。'),
+  assert.ok(html.includes('慎重な回収だけ先手の猶予 +0.6秒（強引な回収・薬草なら効果なし）。'),
     'the choice preview must disclose the tactical cost of forceful salvage');
   assert.ok(html.includes("state.forestFinds.has('hollow-scout')") &&
     html.includes('奥まで探るなら、石門の茨の手がかりで先手の猶予 +0.6秒。'),
