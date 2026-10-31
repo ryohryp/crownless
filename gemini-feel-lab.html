@@ -2095,6 +2095,7 @@
       document.getElementById('forestGateStakes').textContent=
         '現在 HP '+Math.floor(ginji.hp)+'/'+ginji.maxHp+'、未帰還の牙 '+rpg.unbanked+
         '個。'+forestGateCraftHint(rpg,rpgRules)+(!rpg.crafted?'強引な回収には鍛冶剣が必要。':'')+
+        (rpg.tempered?'研ぎ直した剣で負傷軽減。':'')+
         // Button labels already show HP costs, fang counts and recovery. Keep
         // the 360px decision sheet focused on stakes and the unique scouting payoff.
         (!state.forestFinds.has('shrine') ? '慎重な回収だけ先手の猶予 +0.6秒（強引な回収・薬草なら効果なし）。' : '')+
