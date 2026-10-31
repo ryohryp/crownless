@@ -900,8 +900,8 @@ async function main() {
             'unforged explorers cannot take the thorn-blocked two-fang reward');
           const barehandChoice=page.locator('#forestGateCautious');
           assert.equal(await barehandChoice.isEnabled(),true,
-            'without a sword the player may risk six HP for one unsecured fang');
-          assert.match(await barehandChoice.innerText(),/素手で慎重に牙を拾う.*HP -6.*未帰還素材 \+1/,
+            'after visiting the shrine, the player may risk four HP for one unsecured fang');
+          assert.match(await barehandChoice.innerText(),/素手で慎重に牙を拾う.*HP -4.*未帰還素材 \+1.*祠で覚えた苔の筋で負傷 -2/,
             'the phone must preview the real barehand wound and reward');
           const barehandBounds=await barehandChoice.boundingBox();
           assert(barehandBounds && barehandBounds.width>=44 && barehandBounds.height>=44,
@@ -1009,9 +1009,9 @@ async function main() {
           await tapSite(page,'hollow');
           const gateMaterial=page.locator('#forestGateMaterial');
           const gateCautious=page.locator('#forestGateCautious');
-          assert.equal(await gateCautious.isEnabled(),hollowBefore.player.hp>=4,
+          assert.equal(await gateCautious.isEnabled(),hollowBefore.player.hp>=2,
             'cautious salvage must be nonlethal and available before the costly route');
-          assert.match(await gateCautious.innerText(),/HP -3.*未帰還素材 \+1/,
+          assert.match(await gateCautious.innerText(),/HP -1.*未帰還素材 \+1.*祠で覚えた苔の筋で負傷 -2/,
             'the real phone panel must explain the one-fang safer alternative');
           assert.equal(await gateMaterial.isEnabled(),hollowBefore.player.hp>=9,
             'material salvage must require at least one surviving HP');
