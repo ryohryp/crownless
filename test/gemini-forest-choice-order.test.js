@@ -257,7 +257,7 @@ test('gate-first careful scouting lowers later shrine deep-search injury without
 test('shrine herb outcome shows only effective track bonus and lost fang choice', () => {
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   const start=html.indexOf('      // Show the actual earned herb benefit');
-  const suffix=",f.x,f.z,f.y+48,'#86efac');";
+  const suffix="f.x,f.z,f.y+48,'#86efac');";
   const end=html.indexOf(suffix,start);
   assert(start>=0 && end>start,'evaluate the live healing popup expression');
   const expression=html.slice(start,end+suffix.length);
