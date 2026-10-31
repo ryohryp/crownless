@@ -2210,7 +2210,7 @@
     if(discovery.material) {
       for(let i=0;i<discovery.material;i++) if (!rpgRules.claimMaterial(rpg)) return false;
       spawnPopup(discovery.spot.id==='shrine' && discovery.damage?'祠の奥で牙 +2（未帰還）／HP -'+discovery.damage:
-        discovery.spot.id==='hollow'?(shrineChoice==='cautious' && discovery.damage===0?'研ぎ直した剣で慎重に茨を払い、無傷で牙 +'+discovery.material+'（未帰還）・薬草は見送った':(rpg.tempered && shrineChoice==='material'?'研ぎ直した剣で茨を払った！ ':!rpg.crafted?'素手で茨をかき分けて':'石門の茨を払って')+'牙 +'+discovery.material+'（未帰還）／HP -'+discovery.damage+'・薬草は見送った'):
+        discovery.spot.id==='hollow'?(shrineChoice==='cautious' && discovery.damage===0?'研ぎ直した剣で慎重に茨を払い、無傷で牙 +'+discovery.material+'（未帰還）・薬草は見送った':(shrineChoice==='cautious' && state.forestFinds.has('shrine')?'祠で覚えた苔の筋をたどり負傷 -2。 ':'')+(rpg.tempered && shrineChoice==='material'?'研ぎ直した剣で茨を払った！ ':!rpg.crafted?'素手で茨をかき分けて':'石門の茨を払って')+'牙 +'+discovery.material+'（未帰還）／HP -'+discovery.damage+'・薬草は見送った'):
         discovery.spot.id==='shrine'?'祠の隙間で牙 +1（未帰還）／この遠征の癒やしは使い切った':
         (state.forestFinds.has('shrine') ? '獣の痕跡！牙 +1（未帰還）／済んだ調査には効かない。まだ茨の軋みを追える' : '獣の痕跡！牙 +1（未帰還）／この先の危険な調査で負傷 -3'),f.x,f.z,f.y+48,'#fde68a');
     }
