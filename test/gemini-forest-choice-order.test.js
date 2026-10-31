@@ -318,6 +318,10 @@ test('phone gate offers an explicit scout-only tradeoff without revealing a hidd
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   assert.match(html,/id="forestGateScout"[^>]*min-h-11/);
   assert.match(html,/scout\.disabled=state\.forestFinds\.has\('shrine'\)/);
+  assert.match(html,/scout\.classList\.toggle\('hidden',scout\.disabled\)/,
+    'the already-useless scout action must not crowd the shrine-first phone sheet');
+  assert.match(html,/id="forestGateTitle"/,
+    'the visible heading must reflect which gate options are still available');
   assert.match(html,/\['forestGateScout','scout'\]/,
     'the actual touch choice must call the new rule');
   assert.match(html,/discovery\.spot\.id==='hollow' && shrineChoice==='scout'/,
