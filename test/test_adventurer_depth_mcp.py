@@ -1,6 +1,7 @@
 """3D Depth MCP graph wiring and safe installation preflight."""
 import importlib.util
 import json
+import hashlib
 from pathlib import Path
 import tempfile
 import types
@@ -27,6 +28,31 @@ class RegisterDepthTest(unittest.TestCase):
                              f'{register.STAGE}/pose-{side}-depth.png')
             self.assertEqual(graph['9']['inputs']['denoise'],0.85)
             self.assertEqual(graph['9']['inputs']['latent_image'],['42',0])
+
+    def test_png_encoding_changes_are_ok_but_pixel_changes_are_rejected(self):
+        with tempfile.TemporaryDirectory() as d:
+            root=Path(d)
+            anchor=root/'anchor.png'
+            Image.new('RGB',(256,384),'gray').save(anchor)
+            image=Image.new('L',(512,512),5)
+            image.putpixel((256,403),190)
+            canonical_hash=hashlib.sha256(image.tobytes()).hexdigest()
+            with patch.dict(register.DEPTH_IMAGE_PIXEL_SHA256,
+                            {'a':canonical_hash,'b':canonical_hash},clear=True):
+                image.save(root/'pose-a-depth.png',compress_level=0)
+                image.save(root/'pose-b-depth.png',compress_level=9)
+                self.assertNotEqual(
+                    register.sha(root/'pose-a-depth.png'),
+                    register.sha(root/'pose-b-depth.png'),
+                    'PNG encoding was intended to differ while decoded pixels match')
+                with patch.object(register,'sha',return_value=register.base.walk.ANCHOR_SHA):
+                    valid=register.checked_inputs(anchor,root)
+                    self.assertEqual(valid['pose-a-depth.png'].size,(512,512))
+                    self.assertEqual(valid['pose-b-depth.png'].size,(512,512))
+                    image.putpixel((256,403),191)
+                    image.save(root/'pose-b-depth.png',compress_level=9)
+                    with self.assertRaisesRegex(ValueError,'depth pixels differ'):
+                        register.checked_inputs(anchor,root)
 
     def test_missing_depth_model_refuses_all_output(self):
         with tempfile.TemporaryDirectory() as d:
