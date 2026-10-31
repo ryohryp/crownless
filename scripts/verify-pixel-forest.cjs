@@ -1642,6 +1642,32 @@ async function main() {
               'on a real phone the first gate choice must be usable without a forged sword');
             assert.equal(await barehandPage.locator('#forestGateMaterial').isEnabled(),false,
               'the later two-fang route remains a visible but locked smithing goal');
+            // Inspect the same live decision at the narrowest supported phone width.
+            // Restore 390px before the real touch/return loop to isolate layout
+            // regression from movement and combat behavior.
+            await barehandPage.setViewportSize({width:360,height:800});
+            const narrowGate=barehandPage.locator('#forestGateChoice > div');
+            const narrowPanel=await narrowGate.boundingBox();
+            assert(narrowPanel && narrowPanel.y>=0 &&
+              narrowPanel.y+narrowPanel.height<=800,
+              '360px gate stakes and all choices must fit one phone viewport');
+            for(const id of ['forestGateCautious','forestGateMaterial',
+              'forestGateHeal','forestGateCancel']) {
+              const button=barehandPage.locator('#'+id);
+              const bounds=await button.boundingBox();
+              assert(bounds && bounds.width>=44 && bounds.height>=44 &&
+                bounds.x>=0 && bounds.x+bounds.width<=360 &&
+                bounds.y>=0 && bounds.y+bounds.height<=800,
+                '360px choice must remain visible and touch-sized: '+id);
+            }
+            assert.equal(await barehandPage.locator('#forestGateCautious').isEnabled(),true,
+              '360px starter can still choose the achievable one-fang route');
+            assert.equal(await barehandPage.locator('#forestGateMaterial').isEnabled(),false,
+              '360px starter sees the future two-fang route without taking it');
+            await barehandPage.screenshot({
+              path:path.join(output,'pixel-forest-barehand-choice-360.png')
+            });
+            await barehandPage.setViewportSize({width:390,height:844});
             const forgeCost=await barehandPage.evaluate(()=>window.CrownlessRpgLoop.COST);
             const gateCraftHint=await barehandPage.locator('#forestGateStakes').innerText();
             const stillNeeded=Math.max(0,forgeCost-beforeBarehand.banked-beforeBarehand.unbanked);
