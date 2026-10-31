@@ -138,3 +138,26 @@ test('phone gate choice itself shows the earned scouting payoff only when usable
   assert.doesNotMatch(weak.textContent,/先手猶予/,
     'a disabled choice must not advertise an unavailable reward');
 });
+
+test('earned gate scouting stays visible after the choice without naming an unvisited threat',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const start=html.indexOf('    const label=guardian\\n');
+  const end=html.indexOf('    if(hint.textContent!==label)',start);
+  assert(start>=0 && end>start,'evaluate the actual persistent forest exploration hint');
+  const render=(ids,phase='return')=>vm.runInNewContext(
+    html.slice(start,end)+'\\nlabel',
+    {guardian:null,near:null,state:{forestFinds:new Set(ids)},
+      rpg:{phase,unbanked:3},ginji:{},forestGuardianHint:()=>''}
+  );
+  const earned=render(['traces','hollow','hollow-scout']);
+  assert.match(earned,/足運びを読んだ/,'the careful detour has a lasting visible consequence');
+  assert.match(earned,/先手猶予 \\+0\\.6秒/,'the player can still weigh a deeper search against returning alive');
+  assert.doesNotMatch(earned,/苔むす祠|苔祠の番人|右|左/,
+    'the hint cannot disclose the identity or direction of the uninspected threat');
+  assert.doesNotMatch(render(['traces','hollow']),/先手猶予/,
+    'forceful salvage or herbs cannot inherit cautious scouting');
+  assert.doesNotMatch(render(['traces','hollow','hollow-scout','shrine']),/先手猶予/,
+    'visiting the shrine first cannot receive a retroactive bonus');
+  assert.doesNotMatch(render(['traces','hollow','hollow-scout'],'fight'),/先手猶予/,
+    'ordinary active combat must not promise a guardian-only opening');
+});
