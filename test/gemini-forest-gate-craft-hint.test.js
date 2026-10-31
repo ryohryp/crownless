@@ -80,6 +80,12 @@ test('stone-gate choice previews the earned later opening without spoiling an un
   assert.match(gateFirst,/未帰還の牙 4個/);
   assert.match(gateFirst,/敗北すると失う/,
     'the new preview must not conceal safe-return stakes');
+  assert.match(gateFirst,/生還時だけ倉庫に残り/,
+    'short phone copy must still explain when the provisional loot is banked');
+  assert.doesNotMatch(gateFirst,/素手で牙 \+1（HP|慎重に牙 \+1（HP|または薬草で回復/,
+    'HP costs and recovery are already visible on the actual choice buttons');
+  assert.match(gateFirst,/鍛冶剣まで牙あと1個/,
+    'compact stakes must retain the next-craft motivation');
   assert(!render(['traces','shrine']).includes('先手の猶予 +0.6秒'),
     'visiting the shrine first cannot promise a retrospective bonus');
   assert.equal(D.guardianOpeningSeconds(new Set(['traces'])),1.8);
