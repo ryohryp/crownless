@@ -1546,8 +1546,8 @@ async function main() {
             'the forceful gate and optional shrine must both remain survivable');
           await tapSite(page,'hollow');
           const forcefulStakes=await page.locator('#forestGateStakes').innerText();
-          assert.match(forcefulStakes,/強引に牙 \+2（HP -4）/,
-            'the real phone warns of the extra wound for two unsecured fangs');
+          assert.match(await page.locator('#forestGateMaterial').innerText(),/HP -4.*未帰還素材 \+2/,
+            'the real phone action button warns of the extra wound for two unsecured fangs');
           assert.match(forcefulStakes,/強引な回収・薬草なら効果なし/,
             'the forceful route explicitly forfeits cautious scouting');
           const forcefulButton=page.locator('#forestGateMaterial');
