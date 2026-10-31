@@ -159,6 +159,55 @@ test('gate salvage feedback acknowledges only an earned shrine-first wound reduc
     'a wound-free blade must not claim a phantom injury reduction');
 });
 
+
+test('reading tracks first improves one shrine herb choice without creating free materials', () => {
+  const shrine={x:660,z:230,state:'IDLE'};
+  for(const [ids,hp,expected] of [
+    [[],60,35], [['traces'],60,40], [['traces'],103,37], [['traces'],120,20]
+  ]){
+    const found=new Set(ids);
+    const outcome=D.uncover(shrine,found,'return',hp,140,false,'heal');
+    assert.equal(outcome.ok,true);
+    assert.equal(outcome.heal,expected,'recovery is capped by actual missing HP');
+    assert.equal(outcome.material,0,'herbs must not mint provisional or banked fangs');
+    assert.equal(outcome.damage,0);
+    assert.equal(D.uncover(shrine,found,'return',hp,140,false,'heal').ok,false,
+      'a shrine herb choice cannot be farmed twice');
+  }
+  const full=new Set(['traces']);
+  assert.equal(D.uncover(shrine,full,'return',140,140,false,'heal').reason,'full');
+  assert.equal(full.has('shrine'),false,'rejecting a full-HP heal preserves the choice');
+  const salvage=D.uncover(shrine,full,'return',140,140,false,'material');
+  assert.equal(salvage.material,1);
+  assert.equal(salvage.heal,0,'the material branch cannot also claim herbs');
+
+  const run=R.create();
+  assert.equal(R.clearWave(run),true);
+  assert.equal(R.claimMaterial(run),true,'tracks provide one unsecured fang');
+  const herbs=D.uncover(shrine,new Set(['traces']),'return',50,140,false,'heal');
+  assert.equal(herbs.material,0);
+  assert.equal(run.unbanked,1,'healing cannot create extra loot');
+  assert.equal(R.returnAlive(run,50+herbs.heal),true);
+  assert.equal(run.banked,1,'only an actual safe return banks the track fang');
+
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const start=html.indexOf('      // Tracks reveal a better herb patch');
+  const end=html.indexOf('      // Show what each material route',start);
+  assert(start>=0 && end>start,'test the live phone shrine-heal label expression');
+  const expression=html.slice(start,end);
+  const label=(ids,missing)=>{
+    const heal={textContent:''};
+    vm.runInNewContext(expression,{state:{forestFinds:new Set(ids)},missing,heal});
+    return heal.textContent;
+  };
+  assert.match(label([],80),/HP \\+35・素材なし/);
+  assert.match(label(['traces'],80),/HP \\+40・足跡の手がかりで回復 \\+5・素材なし/);
+  assert.match(label(['traces'],37),/HP \\+37・足跡の手がかりで回復 \\+2・素材なし/);
+  assert.match(label(['traces'],20),/HP \\+20・素材なし/);
+  assert.doesNotMatch(label(['traces'],20),/回復 \\+5/);
+  assert.equal(label(['traces'],0),'傷がないため回復不可');
+});
+
 test('gate-first careful scouting lowers later shrine deep-search injury without removing its fight', () => {
   const shrine={x:660,z:230,state:'IDLE'};
   const gate={x:910,z:235,state:'IDLE'};
