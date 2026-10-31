@@ -344,7 +344,10 @@
   // A tempered smith-made blade also helps clear the shrine's thorned gap.
   // Scouted footing and sharpening reduce wounds, never the guardian fight.
   function shrineRiskDamage(found,crafted,tempered=false){
-    return (crafted?6:12)-(found.has('traces')?3:0)-(crafted && tempered?2:0);
+    const base=(crafted?6:12)-(found.has('traces')?3:0)-(crafted && tempered?2:0);
+    // Cautious gate scouting reveals a safer approach to the later deep search.
+    // Never remove the last HP of risk: the extra guardian still must be faced.
+    return found.has('traces') && found.has('hollow-scout') ? Math.max(1,base-1) : base;
   }
   function uncover(player,found,phase,hp,maxHp,crafted=false,shrineChoice='auto',tempered=false){
     if(!available(phase)) return {ok:false};

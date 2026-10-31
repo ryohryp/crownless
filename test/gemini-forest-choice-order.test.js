@@ -158,3 +158,48 @@ test('gate salvage feedback acknowledges only an earned shrine-first wound reduc
   assert.doesNotMatch(tempered,/負傷 -2|HP -0/,
     'a wound-free blade must not claim a phantom injury reduction');
 });
+
+test('gate-first careful scouting lowers later shrine deep-search injury without removing its fight', () => {
+  const shrine={x:660,z:230,state:'IDLE'};
+  const gate={x:910,z:235,state:'IDLE'};
+  const tracks={x:800,z:365,state:'IDLE'};
+  for(const [crafted,tempered,normal,scouted] of [
+    [false,false,9,8], [true,false,3,2], [true,true,1,1]
+  ]) {
+    const direct=new Set(['traces']);
+    assert.equal(D.shrineRiskDamage(direct,crafted,tempered),normal);
+    const found=new Set();
+    assert.equal(D.uncover(tracks,found,'return',140,140).ok,true);
+    const scout=D.uncover(gate,found,'return',140,140,crafted,'cautious',tempered);
+    assert.equal(scout.ok,true);
+    assert.equal(scout.material,1,'the scouting detour never mints extra fangs');
+    assert.equal(found.has('hollow-scout'),true);
+    assert.equal(D.shrineRiskDamage(found,crafted,tempered),scouted,
+      'the earned gate clue reduces only future shrine search risk, with a 1 HP floor');
+    assert.equal(D.uncover(shrine,found,'return',scouted,140,crafted,'risk',tempered).reason,'weak',
+      'the deep search must never become lethal or consume a site on rejection');
+    assert.equal(found.has('shrine'),false);
+    const risk=D.uncover(shrine,found,'return',scouted+1,140,crafted,'risk',tempered);
+    assert.equal(risk.ok,true);
+    assert.equal(risk.damage,scouted);
+    assert.equal(risk.material,2,'the bonus never grants banked loot or skips the guardian');
+    assert.equal(risk.heal,0);
+    assert.equal(D.uncover(shrine,found,'return',140,140,crafted,'risk',tempered).ok,false,
+      'the deep reward remains one-time');
+  }
+  assert.equal(D.shrineRiskDamage(new Set(['hollow-scout']),true),6,
+    'an invalid scouting flag without tracks cannot create a shortcut');
+  const forced=new Set(['traces']);
+  assert.equal(D.uncover(gate,forced,'return',140,140,true,'material').ok,true);
+  assert.equal(D.shrineRiskDamage(forced,true),3,
+    'forceful two-fang salvage does not earn the scouting injury reduction');
+  const herbs=new Set(['traces']);
+  assert.equal(D.uncover(gate,herbs,'return',120,140,true,'heal').ok,true);
+  assert.equal(D.shrineRiskDamage(herbs,true),3,
+    'choosing healing does not also earn a deep-search discount');
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  assert.match(html,/state\.forestFinds\.has\('hollow-scout'\) && !rpg\.tempered\?'／石門の見切りで負傷 -1'/,
+    'the live phone button previews the extra injury reduction only when effective');
+  assert.match(html,/CrownlessForestDiscoveries\.shrineRiskDamage\(state\.forestFinds,rpg\.crafted,rpg\.tempered\)/,
+    'the actual preview and applied damage share the same rule');
+});
