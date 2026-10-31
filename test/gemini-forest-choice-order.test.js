@@ -273,12 +273,12 @@ test('shrine herb outcome shows only effective track bonus and lost fang choice'
     assert.equal(messages.length,1);
     return messages[0];
   };
-  assert.match(messageFor('shrine',[],35),/HP \\+35／牙は見送った/);
+  assert.match(messageFor('shrine',[],35),/HP \+35／牙は見送った/);
   assert.doesNotMatch(messageFor('shrine',[],35),/足跡で回復/);
-  assert.match(messageFor('shrine',['traces'],40),/HP \\+40／足跡で回復 \\+5／牙は見送った/);
-  assert.match(messageFor('shrine',['traces'],37),/HP \\+37／足跡で回復 \\+2／牙は見送った/);
-  assert.match(messageFor('shrine',['traces'],20),/HP \\+20／牙は見送った/);
+  assert.match(messageFor('shrine',['traces'],40),/HP \+40／足跡で回復 \+5／牙は見送った/);
+  assert.match(messageFor('shrine',['traces'],37),/HP \+37／足跡で回復 \+2／牙は見送った/);
+  assert.match(messageFor('shrine',['traces'],20),/HP \+20／牙は見送った/);
   assert.doesNotMatch(messageFor('shrine',['traces'],20),/足跡で回復/);
-  assert.match(messageFor('hollow',['traces'],45,true),/HP \\+45／牙 \\+2は見送った/);
+  assert.match(messageFor('hollow',['traces'],45,true),/HP \+45／牙 \+2は見送った/);
   assert.doesNotMatch(messageFor('hollow',['traces'],45,true),/足跡で回復|牙は見送った/);
 });
