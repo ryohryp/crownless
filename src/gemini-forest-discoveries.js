@@ -24,10 +24,16 @@
   // The forged sword still unlocks the two-fang salvage; sharpening makes
   // careful salvage wound-free, but never grants extra materials.
   const GATE_BAREHAND_DAMAGE=6;
-  function gateSalvageDamage(choice,tempered=false,crafted=true){
-    return choice==='cautious' ? (!crafted ? GATE_BAREHAND_DAMAGE :
-      tempered ? 0 : GATE_CAUTIOUS_DAMAGE) :
-      tempered ? 4 : GATE_SALVAGE_DAMAGE;
+  function gateSalvageDamage(choice,tempered=false,crafted=true,shrineFirst=false){
+    if(choice==='cautious'){
+      const base=!crafted ? GATE_BAREHAND_DAMAGE :
+        tempered ? 0 : GATE_CAUTIOUS_DAMAGE;
+      // Shrine-first explorers recognize the soft moss seam in the thorns.
+      // This saves HP on careful salvage, but cannot grant the gate-first
+      // guardian opening or make a wound-free tempered sword even stronger.
+      return Math.max(0,base-(shrineFirst?2:0));
+    }
+    return tempered ? 4 : GATE_SALVAGE_DAMAGE;
   }
   function near(player,found){
     if(!player) return null;
@@ -358,7 +364,7 @@
       return {ok:false,reason:'choice',spot};
     if(spot.kind==='cache' && shrineChoice==='heal' && hp>=maxHp)
       return {ok:false,reason:'full',spot};
-    const gateDamage=gateSalvageDamage(shrineChoice,crafted && tempered,crafted);
+    const gateDamage=gateSalvageDamage(shrineChoice,crafted && tempered,crafted,found.has('shrine'));
     if(spot.kind==='cache' && shrineChoice!=='heal' && hp<gateDamage+1)
       return {ok:false,reason:'weak',spot};
     // The shrine offers a deliberate trade-off; a full-HP heal must not waste it.

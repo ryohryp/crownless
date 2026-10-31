@@ -399,8 +399,10 @@ test('unforged explorers can choose costly one-fang salvage or healing, but not 
   assert.match(html,/if \(site\?\.id==='hollow' && state\.forestFinds\.has\('traces'\)\) \{/);
   assert.match(html,/salvage\.disabled=!rpg\.crafted \|\| ginji\.hp<salvageCost\+1/);
   assert.match(html,/cautious\.disabled=ginji\.hp<cautiousCost\+1/);
-  assert.match(html,/gateSalvageDamage\('cautious',rpg\.tempered,rpg\.crafted\)/,
-    'phone previews barehand injury from the same rule as the reward');
+  assert.match(html,/gateSalvageDamage\('cautious',rpg\.tempered,rpg\.crafted,state\.forestFinds\.has\('shrine'\)\)/,
+    'phone previews shrine-first and barehand injury from the same rule as the reward');
+  assert.match(html,/祠で覚えた苔の筋で負傷 -2/,
+    'the player sees the shrine-first trade-off on the real choice button');
   assert.match(html,/const cautiousVerb=rpg\.crafted\?'慎重に牙を拾う':'素手で慎重に牙を拾う'/,
     'unforged explorers still see a distinct barehand option on the choice button');
   assert.match(html,/rpg\.crafted\?'／牙 \+2は見送った':'／牙 \+1は見送った'/,
@@ -1405,7 +1407,7 @@ test('tempered smith sword makes forceful gate salvage safer without granting ex
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   assert.match(html,/gateSalvageDamage\('material',rpg\.tempered\)/,
     'phone preview must derive the actual equipment-dependent wound');
-  assert.match(html,/gateSalvageDamage\('cautious',rpg\.tempered,rpg\.crafted\)/,
+  assert.match(html,/gateSalvageDamage\('cautious',rpg\.tempered,rpg\.crafted,state\.forestFinds\.has\('shrine'\)\)/,
     'careful salvage preview must use the same tempered rule as the reward');
   assert.match(html,/cautiousCost===0\?'負傷なし'/,
     'zero-risk choice must be legible instead of advertising HP -0');

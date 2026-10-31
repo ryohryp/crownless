@@ -16,7 +16,7 @@ test('gate-first cautious scouting earns a later opening; shrine-first cannot ea
   const careful = D.uncover(gate,gateFirst,'return',100,140,false,'cautious');
   assert.equal(careful.ok,true);
   assert.equal(careful.material,1);
-  assert.equal(careful.damage,6);
+  assert.equal(careful.damage,6,'gate-first keeps its original wound cost');
   assert.equal(gateFirst.has('hollow-scout'),true);
   assert.equal(D.guardianOpeningSeconds(gateFirst),2.4);
   assert.equal(gateFirst.has('shrine'),false,'the detour cannot auto-discover the shrine');
@@ -29,7 +29,7 @@ test('gate-first cautious scouting earns a later opening; shrine-first cannot ea
   const late = D.uncover(gate,shrineFirst,'return',100,140,false,'cautious');
   assert.equal(late.ok,true,'the late gate still offers its one-fang salvage');
   assert.equal(late.material,1);
-  assert.equal(late.damage,6);
+  assert.equal(late.damage,4,'shrine-first moss knowledge saves 2 HP on careful salvage');
   assert.equal(shrineFirst.has('hollow-scout'),false,
     'an already visited shrine cannot grant a phantom future guardian bonus');
   assert.equal(D.guardianOpeningSeconds(shrineFirst),1.8,
@@ -98,4 +98,30 @@ test('late track discovery feedback never promises a retroactive shrine injury r
   assert.equal(afterClue.material,1);
   assert.equal(found.has('hollow-scout'),false,
     'shrine-first exploration never earns a retroactive guardian opening');
+});
+
+test('shrine-first moss seam changes a real gate choice, not forceful loot or the guardian', () => {
+  for (const [crafted,tempered,ordinary,afterShrine] of [
+    [false,false,6,4], [true,false,3,1], [true,true,0,0]
+  ]) {
+    assert.equal(D.gateSalvageDamage('cautious',tempered,crafted,false),ordinary);
+    assert.equal(D.gateSalvageDamage('cautious',tempered,crafted,true),afterShrine);
+    const found=new Set(['traces','shrine']);
+    if(afterShrine>0){
+      assert.equal(D.uncover(gate,found,'return',afterShrine,140,crafted,'cautious',tempered).reason,'weak',
+        'the moss seam cannot permit a lethal salvage');
+      assert.equal(found.has('hollow'),false,'a rejected choice never consumes the gate');
+    }
+    const reward=D.uncover(gate,found,'return',afterShrine+1,140,crafted,'cautious',tempered);
+    assert.equal(reward.ok,true);
+    assert.equal(reward.damage,afterShrine);
+    assert.equal(reward.material,1,'safer salvage never increases the unbanked reward');
+    assert.equal(found.has('hollow-scout'),false,
+      'shrine-first exploration never creates a retroactive guardian bonus');
+    assert.equal(D.uncover(gate,found,'return',140,140,crafted,'cautious',tempered).ok,false,
+      'the reward remains one-time');
+  }
+  assert.equal(D.gateSalvageDamage('material',false,true,true),8,
+    'shrine knowledge does not make forceful two-fang salvage safer');
+  assert.equal(D.gateSalvageDamage('material',true,true,true),4);
 });
