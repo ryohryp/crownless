@@ -80,7 +80,22 @@ test('late track discovery feedback never promises a retroactive shrine injury r
     'an unvisited site must remain undisclosed');
   const late = messageFor(['shrine']);
   assert.match(late, /牙 \+1（未帰還）/);
-  assert.match(late, /先に調べた場所への効果はない/);
-  assert.doesNotMatch(late, /負傷 -3|3軽減/,
-    'the player cannot retroactively reduce a completed shrine risk');
+  assert.match(late, /済んだ調査には効かない/);
+  assert.match(late, /まだ茨の軋みを追える/,
+    'shrine-first readers get a sensory lead to the still-unexplored gate');
+  assert.doesNotMatch(late, /祠|石門|右|左|負傷 -3|3軽減/,
+    'do not reveal the gate location or retroactively change shrine injury');
+  const found = new Set(['shrine']);
+  const gate = {x:910,z:235};
+  assert.equal(D.uncover(gate,found,'return',140,140,false,'cautious').reason,'trail',
+    'the gate remains blocked until the player actually reads the tracks');
+  const tracks = D.uncover({x:800,z:365},found,'return',140,140);
+  assert.equal(tracks.ok,true);
+  assert.equal(tracks.material,1);
+  const afterClue = D.uncover(gate,found,'return',140,140,false,'cautious');
+  assert.equal(afterClue.ok,true,
+    'late track reading makes the gate choice available without auto-discovery');
+  assert.equal(afterClue.material,1);
+  assert.equal(found.has('hollow-scout'),false,
+    'shrine-first exploration never earns a retroactive guardian opening');
 });
