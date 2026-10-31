@@ -96,6 +96,13 @@ test('the field HUD keeps the unvisited fork visible after either first discover
   const moss = labelFor(['traces', 'hollow']);
   assert.match(moss, /苔の湿り/, 'investigating the thorn side leaves the moss clue');
   assert.doesNotMatch(moss, /茨が軋んで/, 'do not repeat an already inspected lead');
+  const scoutedMoss = labelFor(['traces', 'hollow', 'hollow-scout']);
+  assert.match(scoutedMoss, /苔の湿り/,
+    'gate-first scouting must not bury the remaining sensory clue');
+  assert.match(scoutedMoss, /先手猶予 \\+0\\.6秒/,
+    'the earned tactical payoff remains visible without naming the next site');
+  assert.doesNotMatch(scoutedMoss, /石門|祠|右|左|道順/,
+    'scouting does not grant navigation or reveal an uninspected location');
   const thorns = labelFor(['traces', 'shrine']);
   assert.match(thorns, /茨が軋んで/, 'investigating the moss side leaves the thorn clue');
   assert.doesNotMatch(thorns, /苔の湿り/, 'do not repeat an already inspected lead');
