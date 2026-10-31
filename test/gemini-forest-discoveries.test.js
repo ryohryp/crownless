@@ -1137,6 +1137,22 @@ test('shrine guardian cannot be repeatedly grabbed while recovering from a throw
     'the actual grab input must enforce the same rule');
 });
 
+test('swordless thorn gate puts the playable cautious option before the sword-locked haul',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const start=html.indexOf('<div id="forestGateChoice"');
+  const end=html.indexOf('<button id="rpgOpenResults"',start);
+  assert(start>=0 && end>start,'the actual phone gate sheet must exist');
+  const gate=html.slice(start,end);
+  const cautious=gate.indexOf('id="forestGateCautious"');
+  const forceful=gate.indexOf('id="forestGateMaterial"');
+  const heal=gate.indexOf('id="forestGateHeal"');
+  assert(cautious>=0 && forceful>cautious && heal>forceful,
+    'first show the accessible one-fang option, then the forged-sword goal, then healing');
+  const spot={x:910,z:235};
+  assert.equal(D.uncover(spot,new Set(['traces']),'return',90,140,false,'cautious').material,1);
+  assert.equal(D.uncover(spot,new Set(['traces']),'return',90,140,false,'material').reason,'thorns');
+});
+
 test('victory return panel hints at remaining discoveries without spoiling them or altering the safe return',()=>{
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   const helper=html.match(/function forestReturnTeaser\(found,crafted=false\) \{[\s\S]*?\n  \}/);
