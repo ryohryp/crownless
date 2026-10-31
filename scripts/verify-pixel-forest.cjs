@@ -719,6 +719,24 @@ async function main() {
           assert(compactCancel && compactCancel.y>=0 &&
             compactCancel.y+compactCancel.height<=420,
             'the one-time choice can be declined after scrolling on a short phone');
+          const scrolledToCancel=await page.evaluate(()=>
+            document.querySelector('#forestShrineChoice .forest-choice-sheet').scrollTop);
+          assert(scrolledToCancel>0,
+            'short shrine sheet must have actually scrolled to reach Cancel');
+          await page.locator('#forestShrineCancel').click();
+          // Reopen the same still-unspent shrine by real touch at the same
+          // short viewport. Its first decision must not inherit Cancel's scroll.
+          await tapSite(page,'shrine');
+          assert.equal(await page.locator('#forestShrineChoice').isVisible(),true,
+            'a deferred shrine remains inspectable on the short phone');
+          const reopenedScroll=await page.evaluate(()=>
+            document.querySelector('#forestShrineChoice .forest-choice-sheet').scrollTop);
+          assert(reopenedScroll<=1,
+            'reopened shrine must show the first choice, not the previous Cancel position');
+          const firstChoice=await page.locator('#forestShrineMaterial').boundingBox();
+          assert(firstChoice && firstChoice.y>=0 && firstChoice.y+firstChoice.height<=420,
+            'the first material decision must be visible after reopening');
+          await page.screenshot({path:path.join(output,'pixel-forest-shrine-reopened-360x420.png')});
           await page.locator('#forestShrineCancel').click();
           await page.setViewportSize({width,height:844});
           const deferred=await read(page);
