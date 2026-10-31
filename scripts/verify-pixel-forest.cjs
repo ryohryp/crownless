@@ -1704,7 +1704,7 @@ async function main() {
             assert(narrowPanel && narrowPanel.y>=0 &&
               narrowPanel.y+narrowPanel.height<=800,
               '360px gate stakes and all choices must fit one phone viewport');
-            for(const id of ['forestGateCautious','forestGateMaterial',
+            for(const id of ['forestGateCautious','forestGateScout','forestGateMaterial',
               'forestGateHeal','forestGateCancel']) {
               const button=barehandPage.locator('#'+id);
               const bounds=await button.boundingBox();
