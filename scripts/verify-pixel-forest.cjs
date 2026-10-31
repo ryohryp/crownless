@@ -1667,6 +1667,27 @@ async function main() {
             await barehandPage.screenshot({
               path:path.join(output,'pixel-forest-barehand-choice-360.png')
             });
+            // A short handset must still allow the player to review the
+            // unbanked-loot warning and reach Cancel without scrolling the
+            // entire game or accidentally accepting the thorn injury.
+            await barehandPage.setViewportSize({width:360,height:420});
+            const compactGate=await barehandPage.evaluate(()=>{
+              const sheet=document.querySelector('#forestGateChoice > div');
+              const rect=sheet.getBoundingClientRect();
+              return {top:rect.top,bottom:rect.bottom,scrollHeight:sheet.scrollHeight,
+                clientHeight:sheet.clientHeight,viewport:innerHeight};
+            });
+            assert(compactGate.top>=0 && compactGate.bottom<=compactGate.viewport+1 &&
+              compactGate.scrollHeight>compactGate.clientHeight,
+              'short-phone gate must scroll inside its sheet: '+JSON.stringify(compactGate));
+            await barehandPage.locator('#forestGateCancel').scrollIntoViewIfNeeded();
+            const compactGateCancel=await barehandPage.locator('#forestGateCancel').boundingBox();
+            assert(compactGateCancel && compactGateCancel.y>=0 &&
+              compactGateCancel.y+compactGateCancel.height<=420 &&
+              compactGateCancel.height>=44,
+              'short-phone gate Cancel must stay touch-reachable after local scroll');
+            assert.equal(await barehandPage.locator('#forestGateCautious').isEnabled(),true,
+              'scrolling the choice sheet must not consume the one-time salvage choice');
             await barehandPage.setViewportSize({width:390,height:844});
             const forgeCost=await barehandPage.evaluate(()=>window.CrownlessRpgLoop.COST);
             const gateCraftHint=await barehandPage.locator('#forestGateStakes').innerText();
