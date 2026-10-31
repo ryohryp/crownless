@@ -796,7 +796,7 @@ test('a deliberate shrine tap opens touch-sized material and healing actions',()
 
 test('unavailable deep shrine search still previews its cost, reward and guardian',()=>{
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
-  const expression=html.match(/risk\.textContent=([\s\S]*?);\s*heal\.textContent=/)?.[1];
+  const expression=html.match(/risk\.textContent=([\s\S]*?);\s*\/\/ Tracks reveal a better herb patch/)?.[1];
   assert.ok(expression,'the actual risk button label expression must exist');
   assert.doesNotMatch(expression,/番人|苔祠/,
     'the pre-choice hint must warn of a fight without spoiling the guardian identity');
