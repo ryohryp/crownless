@@ -3117,7 +3117,9 @@
       : state.forestFinds.has('traces') && !state.forestFinds.has('shrine') && !state.forestFinds.has('hollow')
         ? '足跡は二手に分かれ、途切れた。どちらを追う？（調査負傷 -3）'
       : rpg.phase==='return' && state.forestFinds.has('hollow-scout') && !state.forestFinds.has('shrine')
-        ? '茨の擦れ跡で足運びを読んだ。奥の危険に踏み込むなら先手猶予 +0.6秒。'
+        // Keep the remaining sensory lead visible even after earning the
+        // gate-first tactical reward; do not reveal a site name or route.
+        ? '苔の湿りが残る。奥の危険には先手猶予 +0.6秒。周囲を探そう'
       : state.forestFinds.has('traces') && !state.forestFinds.has('shrine')
         ? '踏み跡の先には、まだ苔の湿りが残っている。周囲を探してみよう'
       : state.forestFinds.has('traces') && !state.forestFinds.has('hollow')
