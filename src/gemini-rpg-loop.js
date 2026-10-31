@@ -4,8 +4,9 @@
 (function (root) {
   'use strict';
   const COST = 3;
+  const TEMPER_COST = 5; // One earned follow-up use for fangs after the first forged sword.
   function create() {
-    return { phase: 'fight', unbanked: 0, banked: 0, crafted: false,
+    return { phase: 'fight', unbanked: 0, banked: 0, crafted: false, tempered: false,
       victories: 0, retreats: 0, defeats: 0, lastOutcome: '' };
   }
   function claimMaterial(s) {
@@ -49,6 +50,13 @@
     s.lastOutcome = 'crafted';
     return true;
   }
+  function temper(s) {
+    if (s.phase !== 'camp' || !s.crafted || s.tempered || s.banked < TEMPER_COST) return false;
+    s.banked -= TEMPER_COST;
+    s.tempered = true;
+    s.lastOutcome = 'tempered';
+    return true;
+  }
   function depart(s) {
     if (s.phase !== 'camp') return false;
     s.unbanked = 0;
@@ -56,8 +64,8 @@
     s.lastOutcome = 'departed';
     return true;
   }
-  const api = { COST, create, claimMaterial, clearWave, pushDeeper,
-    returnAlive, loseExpedition, forge, depart };
+  const api = { COST, TEMPER_COST, create, claimMaterial, clearWave, pushDeeper,
+    returnAlive, loseExpedition, forge, temper, depart };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.CrownlessRpgLoop = api;
 })(typeof window !== 'undefined' ? window : globalThis);

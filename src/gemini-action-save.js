@@ -18,18 +18,22 @@
     return Boolean(record && !Array.isArray(record) &&
       record.version === VERSION && Number.isSafeInteger(record.banked) &&
       record.banked >= 0 && record.banked <= MAX_BANKED &&
-      typeof record.crafted === 'boolean');
+      typeof record.crafted === 'boolean' &&
+      (record.tempered === undefined || typeof record.tempered === 'boolean') &&
+      (!record.tempered || record.crafted));
   }
   function decode(raw) {
-    if (raw === null) return { version: VERSION, banked: 0, crafted: false };
+    if (raw === null) return { version: VERSION, banked: 0, crafted: false, tempered: false };
     if (typeof raw !== 'string' || raw.length > 2000) return null;
     try {
       const value = JSON.parse(raw);
-      return valid(value) ? { version: VERSION, banked: value.banked, crafted: value.crafted } : null;
+      return valid(value) ? { version: VERSION, banked: value.banked, crafted: value.crafted,
+        tempered: value.tempered === true } : null;
     } catch { return null; }
   }
   function encode(state) {
-    const value = { version: VERSION, banked: state?.banked, crafted: state?.crafted };
+    const value = { version: VERSION, banked: state?.banked, crafted: state?.crafted,
+      tempered: state?.tempered ?? false };
     if (!valid(value)) throw new TypeError('invalid action-lab progress');
     return JSON.stringify(value);
   }
@@ -37,6 +41,7 @@
     if (!valid(record)) return false;
     state.banked = record.banked;
     state.crafted = record.crafted;
+    state.tempered = record.tempered === true;
     // One fresh fight per page load. Interrupted, unreturned loot is not recoverable.
     state.unbanked = 0;
     state.phase = 'fight';
