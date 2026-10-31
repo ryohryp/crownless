@@ -12,9 +12,27 @@ Output from a new, empty destination directory: pose-a-depth.png, pose-b-depth.p
 
 Background depth 0, foreground near surfaces brighter. Constant depth clip [-0.35,1.30] and identical camera for A/B. Local test: 25,666 differing depth pixels, two correctly reversed actual 3D leg-contact poses, 512x512 output.
 
-Pinned PNG SHA-256:
-- Pose A: f4f9c7d53853c26f5427a1c97941181aa40253fb2453dfff168815b04afe6ce9
-- Pose B: 5c5ef52952e286997d9ac856204c3e6ff1d66a0f1a082b6156a89664f69f7f4c
+Depth control identity is now **decoded 512x512 L-mode pixel SHA-256**, not the encoded PNG file hash, because PNG compression/encoder versions differ on Windows. Pixel verification still fails closed for a genuine rendering change.
+- A expected decoded pixel SHA-256: 3ab036afe74a7d5d87b44779fe3d33af7bc218d10e37d0e424c85d6827fafa7c
+- B expected decoded pixel SHA-256: d68a874f4c0889a0ec6a564ef58068f0f262c98adce8da8c32ee3bf19c3fccbb
+
+Original container PNG **file** SHA-256 (not used for cross-platform acceptance):
+- A: f4f9c7d53853c26f5427a1c97941181aa40253fb2453dfff168815b04afe6ce9
+- B: 5c5ef52952e286997d9ac856204c3e6ff1d66a0f1a082b6156a89664f69f7f4c
+
+Windows owner 2026-10-31 reported a fully verified model install and fresh 3D depth A/B output, `changed_depth_pixels=25666`, in `I:\02_AI\ComfyUI-Crownless\depth-contact-47513f610c644778b22a92c0c6321b1d`. The recorded PNG **file** hashes differed from the original reference. This does not establish whether the decoded pixels also differ; use the stricter pixel hash check and do not weaken it to accept arbitrary output.
+
+The setup stopped only at **MCP allowlist selection**: `No MCP workflow allowlist selected`. Do not download the model or regenerate the depth images again. Identify the existing folder containing `adventurer-a-near-contact.json` and supply `-McpWorkflowDir` and `-DepthDir` directly to the existing `register_depth_mcp.ps1`. Example:
+
+```powershell
+$existingMcpWorkflow = Get-ChildItem -Path 'I:\02_AI\ComfyUI-Crownless', 'I:\04_develop', "$env:APPDATA" -Recurse -File -Filter 'adventurer-a-near-contact.json' -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
+if (-not $existingMcpWorkflow) { throw 'Find the existing ComfyUI Local MCP allowlist JSON manually; do not guess the path.' }
+$allowlist = Split-Path -Parent $existingMcpWorkflow
+$depthDir = 'I:\02_AI\ComfyUI-Crownless\depth-contact-47513f610c644778b22a92c0c6321b1d'
+powershell -NoProfile -STA -ExecutionPolicy Bypass -File '.\scripts\adventurer-a-walk\register_depth_mcp.ps1' -McpWorkflowDir $allowlist -DepthDir $depthDir
+```
+
+Run this only after bringing the PR checkout to the updated **pixel-hash verification** commit. Check `git status --short` before updating the checkout. If registration reports a pixel mismatch, inspect the actual decoded pixels rather than accepting the PNG file hashes, and STOP without GPU generation.
 
 Reproduce using a separate Python environment with numpy, trimesh, Pillow. From Crownless repo root run:
 
