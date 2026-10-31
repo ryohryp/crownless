@@ -77,6 +77,7 @@ def produce(destination,source):
     board=Image.new('RGB',(1060,1120),'#e9e7e1')
     draw=ImageDraw.Draw(board)
     hashes={}
+    pixel_hashes={}
     for index,label in enumerate('AB'):
         gray,mask,owner,meshes,joints=pair[label]
         suffix=label.lower()
@@ -90,10 +91,12 @@ def produce(destination,source):
             seg[owner==i]=color
         images['surface-id']=Image.fromarray(seg)
         hashes[label]={}
+        pixel_hashes[label]={}
         for name,img in images.items():
             file=destination/f'pose-{suffix}-{name}.png'
             img.save(file)
             hashes[label][name]=hashlib.sha256(file.read_bytes()).hexdigest()
+            pixel_hashes[label][name]=hashlib.sha256(img.tobytes()).hexdigest()
         board.paste(images['depth'].convert('RGB'),(12+530*index,45))
         board.paste(images['surface-id'],(12+530*index,590))
         draw.text((18+530*index,22),f'Pose {label} / {"near" if label=="A" else "far"} leg forward',fill='#252529')
@@ -103,7 +106,8 @@ def produce(destination,source):
     metadata={'status':'unapproved_depth_control_only','fixed_camera':{'azimuth':src.CAM_AZIMUTH_DEG,'elevation':src.CAM_ELEVATION_DEG},
               'depth_range':[MIN_DEPTH,MAX_DEPTH],'changed_depth_pixels':changed,
               'pose_a_front_leg':'near','pose_b_front_leg':'far',
-              'rasterization':'z-buffer with real visible 3D mesh surfaces','hashes':hashes}
+              'rasterization':'z-buffer with real visible 3D mesh surfaces',
+              'hashes':hashes,'pixel_sha256':pixel_hashes}
     (destination/'depth-manifest.json').write_text(json.dumps(metadata,indent=2)+'\n',encoding='utf-8')
     return metadata
 
