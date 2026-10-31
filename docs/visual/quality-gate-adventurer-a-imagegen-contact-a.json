@@ -1,0 +1,13 @@
+{
+  "schemaVersion": 1,
+  "kind": "character",
+  "candidate": "docs/assets/candidates/adventurer-a-local-poc/imagegen-contact-a-review-20261101.png",
+  "subject": "Adventurer A, near leg forward, one unapproved contact-A pixel-art candidate",
+  "usage": "Review-only visual identity and phone-scale A contact study. Not Canon, not an accepted animation, no runtime integration.",
+  "generationPrompt": "Use case: identity-preserve. Asset: ONE UNAPPROVED Crownless pixel-RPG walking CONTACT A frame. Start fresh from IMAGE 1, the only approved Adventurer A identity, never from prior generated candidates. IMAGE 2 is geometry-only contact-pose control, not an art/identity reference.\n\nCritical revision: this MUST look like a genuinely hand-drawn tiny game sprite, authored on an approximately 96x144 PIXEL GRID then enlarged with strict NEAREST-NEIGHBOR pixel edges. Visibly chunky deliberate 1-pixel/2-pixel clusters; NO smooth airbrush, NO high-res illustration texture, NO antialias blur. Full body inside frame with ample transparent margins. Aim for realistic readable appearance at 70–90 CSS pixels tall on a phone. Compact heroic but weathered figure of 3 to 3.5 HEADS TOTAL, not a tall adult illustration, not cute chibi. Head is small and restrained as in image 1, tiny eyes/stubble, NO large expressive anime eyes.\n\nPreserve the image 1 design identity closely: charcoal messy hair with conspicuous silver forelock, dark stubble, deep navy split coat, ivory rolled sleeves, dark pants, belt pouches, brown strapped boots, back-sheathed sword. Character remains right-facing oblique 3/4 top-down, no front portrait. Depict a WALK STEP: camera-near leg forward to character's right, far leg behind, alternate arm counter-swing, BOTH boot soles convincingly touching same world ground with toes to the right, covered anatomically credible knees and legs, not a huge lunge. Keep upper body and coat coherent in 3/4 silhouette. Use only muted palette and purposeful dark outlines. Transparent alpha background, not even a vignette or shadow; no floor, no text, no frame, no sheet, no second pose, no extra props. Avoid copying image 2's mannequin face, coat or shapes, avoid 3D/AI painted appearance. **Exactly one small pixel-art sprite shown enlarged only for inspection**.",
+  "targetSize": [1024, 1536],
+  "transparent": true,
+  "references": ["docs/assets/adventurer-a-approved-anchor-v1.png"],
+  "attempt": 1,
+  "specPath": "docs/visual/CHARACTER_VISUAL_CANON.md"
+}

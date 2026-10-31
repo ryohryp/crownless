@@ -45,3 +45,24 @@ python scripts/adventurer-a-walk/finish_direct3d_material.py --geometry 'pose-a-
 ```
 
 This is a constrained material prototype, not proof the candidate is artistically coherent. It cannot fix the current mannequin anatomy or magically produce approved pixel art. No new generative texture images or GPU workflows were run in this step.
+
+## 2026-11-01: approved-anchor imagegen appearance study — Contact A only
+
+**Status: unapproved art candidate; no gait, ground-contact, Canon or runtime approval.** This is a separate **appearance experiment**, not an output of the geometry-lock `finish_direct3d_material.py` compositor. The pixel-art generator could still move feet despite receiving the direct-3D A reference.
+
+Source roles:
+
+- **Identity parent:** unchanged `docs/assets/adventurer-a-approved-anchor-v1.png` (approved Adventurer A).
+- **Pose guide only:** the previously reproducible `pose-a-review.png` from `direct3d_contacts.py`, showing camera-near A leg forward. The mannequin's identity, outfit, materials and rendering are rejected and were not intended as the new subject parent.
+- **Style context:** the existing pixel-art Canon; the red-scarf unarmed protagonist remains a different person.
+
+The first full-resolution generation had attractive fabric but drifted toward a high-detail, taller illustration that blurred on a simulated 96×144 grid. A **fresh second generation from the approved anchor** (not a derivative of the first candidate) emphasized small coherent pixel clusters and the compact right-facing silhouette:
+
+- `docs/assets/candidates/adventurer-a-local-poc/imagegen-contact-a-review-20261101.png`: original 1024×1536 RGBA output; preserved for provenance.
+- `docs/assets/candidates/adventurer-a-local-poc/imagegen-contact-a-96x144-review-20261101.png`: unprocessed nearest-neighbor 96×144 review derivative.
+- `docs/assets/candidates/adventurer-a-local-poc/imagegen-contact-a-96x144-alpha50-review-20261101.png`: separate **review-only** pixel-grid derivative with an alpha 50% hard threshold to remove low-opacity fringe. This threshold is a presentation test, not an approved production alpha cleanup.
+- `docs/visual/quality-gate-adventurer-a-imagegen-contact-a.json`: reproducible input/review manifest. No paid semantic or live phone evaluation was run.
+
+At 96×144, the silver forelock, indigo coat, ivory sleeves, pouches and separated strapped boots remain recognizable. This is a visual improvement over the plain 3D mannequin, **not yet a validated game sprite**. Remaining defects include questionable exact 3–3.5-head proportion, uncertain same-ground sole contact, uncertainty over the back-sheathed sword's continuity, and no matched B pose / A→B timing. Large PNG detail must not be mistaken for logical pixel-grid authoring. The raw output also has low-opacity exterior fringe; the alpha-threshold derivative removes that fringe but has not passed in-game compositing QA.
+
+**Next gate:** obtain human 96×144/phone-scale appearance feedback on this A candidate. If its look is worth keeping, generate and compare a genuinely opposite **B** contact from the **approved identity anchor** and B geometry guide, not by morphing A. Verify both planted soles and stable hair/face/coat/sword across the pair before considering intermediate frames. Keep PR #1060 Draft; do not merge, deploy, or replace any runtime or Canon asset.
