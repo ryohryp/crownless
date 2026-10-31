@@ -51,15 +51,29 @@ async function runPixeloramaExport({project, output, scale = 1, bin = process.en
   try { await fsp.access(target); throw Error("candidate_already_exists"); }
   catch (error) { if (error.code !== "ENOENT") throw error; }
 
-  const args = pixeloramaArguments(source, target, scale);
-  try { await execute(bin, args, {cwd: ROOT, timeout: 120000}); }
-  catch (error) {
-    if (error.code === "ENOENT") throw Error("pixelorama_executable_not_found");
-    throw error;
+  // Pixelorama v1.2.3 ignores the filename portion of --output and uses the
+  // project's saved export name. Isolate its output so that neither behavior
+  // can overwrite another candidate or write to an approved asset path.
+  const stagingDir = await fsp.mkdtemp(path.join(path.dirname(target), ".pixelorama-export-"));
+  const stagingTarget = path.join(stagingDir, path.basename(target));
+  const args = pixeloramaArguments(source, stagingTarget, scale);
+  try {
+    try { await execute(bin, args, {cwd: ROOT, timeout: 120000}); }
+    catch (error) {
+      if (error.code === "ENOENT") throw Error("pixelorama_executable_not_found");
+      throw error;
+    }
+    const entries = await fsp.readdir(stagingDir, {withFileTypes: true});
+    const pngFiles = entries.filter(entry => entry.isFile() && entry.name.toLowerCase().endsWith(".png"));
+    if (entries.length !== 1 || pngFiles.length !== 1) throw Error("pixelorama_expected_single_png");
+    const exported = path.join(stagingDir, pngFiles[0].name);
+    const stats = await fsp.stat(exported);
+    if (!stats.size) throw Error("pixelorama_export_missing_or_empty");
+    await fsp.copyFile(exported, target, fs.constants.COPYFILE_EXCL);
+    return {candidate: path.relative(ROOT, target).replace(/\\/g, "/"), bytes: stats.size};
+  } finally {
+    await fsp.rm(stagingDir, {recursive: true, force: true});
   }
-  const stats = await fsp.stat(target);
-  if (!stats.isFile() || !stats.size) throw Error("pixelorama_export_missing_or_empty");
-  return {candidate: path.relative(ROOT, target).replace(/\\/g, "/"), bytes: stats.size};
 }
 
 function cli(argv) {

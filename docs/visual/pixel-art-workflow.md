@@ -18,7 +18,9 @@ $env:PIXELORAMA_BIN = 'C:\path\to\Pixelorama.exe'
 npm run asset:pixelorama -- --project 'art-source/path/to/frame-project.pxo' --output '.qa/candidates/adventurer-a-walk-frame.png'
 ```
 
-This invokes Pixelorama's documented headless sprite-sheet export at native scale (`--scale 1`), using argument arrays rather than a shell command. Exports are allowed only beneath `.qa/candidates/`, `docs/assets/candidates/`, or `.visual-director/candidates/`, and existing outputs are not overwritten. Production asset paths and Canon are never changed. The adapter has mocked unit coverage; **Windows Pixelorama CLI E2E has not yet been verified on the owner's PC.**
+This invokes Pixelorama's documented headless sprite-sheet export at native scale (`--scale 1`), using argument arrays rather than a shell command. Exports are allowed only beneath `.qa/candidates/`, `docs/assets/candidates/`, or `.visual-director/candidates/`, and existing outputs are not overwritten. Production asset paths and Canon are never changed.
+
+**Verified on Linux with official Pixelorama v1.2.3:** A pixel-only six-frame `.pxo` fixture exported a 384×64 PNG at native scale and a 768×128 PNG at scale 2. Both passed the integer-grid/palette/alpha preflight. The test fixture was derived from the project's public example by removing shader-based layer effects; it is not an approved Crownless character. Pixelorama v1.2.3 has a CLI bug where `--output` may ignore the requested basename and export under the project's saved filename. The adapter uses an isolated staging directory, verifies exactly one PNG was produced, then copies it to the requested candidate path without overwrite. A headless export of the unmodified shader-effect example failed; do not assume effects render in headless mode. **Windows Pixelorama CLI E2E remains unverified on the owner's PC.**
 
 CLI reference: https://pixelorama.org/user_manual/cli/
 
