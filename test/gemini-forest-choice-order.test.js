@@ -125,3 +125,36 @@ test('shrine-first moss seam changes a real gate choice, not forceful loot or th
     'shrine knowledge does not make forceful two-fang salvage safer');
   assert.equal(D.gateSalvageDamage('material',true,true,true),4);
 });
+
+test('gate salvage feedback acknowledges only an earned shrine-first wound reduction', () => {
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const start=html.indexOf("      spawnPopup(discovery.spot.id==='shrine' && discovery.damage?");
+  const suffix=",f.x,f.z,f.y+48,'#fde68a');";
+  const end=html.indexOf(suffix,start);
+  assert(start>=0 && end>start,'evaluate the actual in-game reward popup');
+  const popup=html.slice(start,end+suffix.length);
+  const feedback=(ids,damage,crafted=false,tempered=false) => {
+    const messages=[];
+    vm.runInNewContext(popup,{
+      discovery:{spot:{id:'hollow'},material:1,damage},
+      state:{forestFinds:new Set(ids)},
+      shrineChoice:'cautious',
+      rpg:{crafted,tempered},
+      spawnPopup:message=>messages.push(message),
+      f:{x:910,z:235,y:0}
+    });
+    assert.equal(messages.length,1);
+    return messages[0];
+  };
+  const shrineFirst=feedback(['traces','shrine'],4);
+  assert.match(shrineFirst,/苔の筋をたどり負傷 -2/);
+  assert.match(shrineFirst,/牙 \+1（未帰還）／HP -4/);
+  assert.doesNotMatch(shrineFirst,/先手猶予|石門の先|隠し道/);
+  const gateFirst=feedback(['traces'],6);
+  assert.doesNotMatch(gateFirst,/苔の筋をたどり負傷 -2/);
+  assert.match(gateFirst,/牙 \+1（未帰還）／HP -6/);
+  const tempered=feedback(['traces','shrine'],0,true,true);
+  assert.match(tempered,/無傷で牙 \+1（未帰還）/);
+  assert.doesNotMatch(tempered,/負傷 -2|HP -0/,
+    'a wound-free blade must not claim a phantom injury reduction');
+});
