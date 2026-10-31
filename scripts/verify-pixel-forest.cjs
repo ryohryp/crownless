@@ -1688,6 +1688,9 @@ async function main() {
               'short-phone gate Cancel must stay touch-reachable after local scroll');
             assert.equal(await barehandPage.locator('#forestGateCautious').isEnabled(),true,
               'scrolling the choice sheet must not consume the one-time salvage choice');
+            assert((await barehandPage.locator('#forestGateChoice > div')
+              .evaluate(node=>node.scrollTop))>0,
+              'the Cancel test must begin from an actually scrolled short-phone sheet');
             // A real postponement must leave HP/loot untouched and reopening
             // must start at the decision, not at the old scroll position.
             await barehandPage.locator('#forestGateCancel').click();
