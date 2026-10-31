@@ -2098,7 +2098,7 @@
         (rpg.tempered?'研ぎ直した剣で負傷軽減。':'')+
         // Button labels already show HP costs, fang counts and recovery. Keep
         // the 360px decision sheet focused on stakes and the unique scouting payoff.
-        (!state.forestFinds.has('shrine') ? '慎重な回収だけ先手の猶予 +0.6秒（強引な回収・薬草なら効果なし）。' : '')+
+        (!cautious.disabled && !state.forestFinds.has('shrine') ? '慎重な回収だけ先手の猶予 +0.6秒（強引な回収・薬草なら効果なし）。' : '')+
         '一度だけ選べる。素材は生還時だけ倉庫に残り、敗北すると失う。';
       panel.classList.remove('hidden');
       return true;
