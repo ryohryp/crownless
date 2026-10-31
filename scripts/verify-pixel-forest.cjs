@@ -1178,8 +1178,10 @@ async function main() {
           assert(await temperedGatePanel.isVisible(),
             'the upgraded sword opens the same deliberate gate choice on revisit');
           const temperedStakes=await page.locator('#forestGateStakes').innerText();
-          assert.match(temperedStakes,/慎重に牙 \+1（負傷なし）、強引に牙 \+2（HP -4）／研ぎ直した剣で負傷軽減/,
-            'the phone offers a genuine no-wound vs two-fang risk choice after tempering');
+          assert.match(temperedStakes,/研ぎ直した剣で負傷軽減/,
+            'the phone explains why the tempered blade reduces risk');
+          assert.doesNotMatch(temperedStakes,/慎重に牙 \+1（|強引に牙 \+2（/,
+            'the compact stakes do not repeat costs already visible on the two touch buttons');
           const temperedCautious=page.locator('#forestGateCautious');
           assert(await temperedCautious.isEnabled(),
             'tempered cautious salvage remains available at the real phone decision');
