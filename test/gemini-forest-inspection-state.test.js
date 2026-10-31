@@ -109,7 +109,7 @@ test('unread tracks offer a reversible shrine detour without spoiling the guardi
       state:{forestFinds:new Set(tracks)},
       ginji:{hp:60,maxHp:140},
       rpg:{unbanked:3},
-      forgeChoice:''
+      forgeChoice:'',risk:{disabled:false}
     });
     return label.textContent;
   };
