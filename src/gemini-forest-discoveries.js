@@ -358,7 +358,7 @@
       if(!found.has('traces')) return {ok:false,reason:'trail',spot};
       // A sword is required for the two-fang haul. Bare hands may risk a
       // deeper wound for one fang, or use the accessible healing herbs.
-      if(!crafted && !['heal','cautious'].includes(shrineChoice))
+      if(!crafted && !['heal','cautious','scout'].includes(shrineChoice))
         return {ok:false,reason:'thorns',spot};
     }
     // A discovered stone gate offers a one-time choice: take its materials
