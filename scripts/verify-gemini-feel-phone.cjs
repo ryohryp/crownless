@@ -403,9 +403,13 @@ async function main() {
           'the undiscovered shrine name must not appear on the actual canvas');
         assert.equal(await page.evaluate(() => window.__combatLabCanvasText.includes('苔の冷気')),true,
           'nearby shrine must show a sensory cue on the canvas');
+        assert(beforeShrine.hint.length<=40,
+          'nearby shrine clue must not cover the 360px phone scene');
+        assert.match(beforeShrine.hint,/冷たい風.*タップで調査/,
+          'the real phone shows a sensory clue and requires a deliberate tap');
         assert.match(beforeShrine.hint,
           beforeShrine.player.hp>=beforeShrine.player.maxHp
-            ? /素材を探すか、傷ついてから癒やすか/ : /素材か癒やしか、一度だけ選べる/,
+            ? /牙を拾うか、回復の機会を残すか/ : /牙か回復か、一度だけ選べる/,
           'real phone hint must invite an intentional trade-off');
         const readForestShrine=()=>page.evaluate(()=>window.CrownlessForestReadout());
         // The actor can collect a healing dango between the HUD snapshot
@@ -454,7 +458,8 @@ async function main() {
         assert.equal(await page.locator('#forestShrineStakes').textContent(),
           '現在 HP '+Math.floor(stakesAtChoice.player.hp)+'/'+stakesAtChoice.player.maxHp+
           '、未帰還の牙 '+stakesAtChoice.unbanked+
-          '個。'+forgeChoice+'素材は生還時だけ倉庫に残る（敗北すると失う）。',
+          '個。'+(stakesAtChoice.found.includes('traces')?'':'足元の筋は未調査。今は引き返して探す手もある。')+
+           forgeChoice+'素材は生還時だけ倉庫に残る（敗北すると失う）。',
           'real phone choice must show the safe/risky forge payoff without promising banked loot');
         const shrineBounds=await page.locator('#forestShrineChoice > div').boundingBox();
         assert(shrineBounds && shrineBounds.y>=0 &&

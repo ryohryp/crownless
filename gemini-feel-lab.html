@@ -51,6 +51,25 @@
   .kabuki-glow {
     animation: kabukiPulse 0.85s infinite;
   }
+  /* The guardian's brief lunge cue must identify the real phone input,
+     without changing touch targets or covering the combat scene. */
+  /* Keep all one-time forest choices reachable on short phone viewports. */
+  .forest-choice-sheet {
+    max-height: calc(100% - 1.5rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
+  }
+  .guardian-scout-cue {
+    outline: 3px solid #bef264;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 3px rgba(15,23,42,.85), 0 0 16px rgba(190,242,100,.65);
+  }
+  .guardian-dodge-cue {
+    outline: 3px solid #fbbf24;
+    outline-offset: 2px;
+    box-shadow: 0 0 0 3px rgba(15,23,42,.85), 0 0 16px rgba(251,191,36,.65);
+  }
 </style>
 </head>
 <body class="flex flex-col w-full h-full bg-slate-950 text-white overflow-hidden" data-combat-origin="gemini-original-2_5d" data-combat-experiment="fantasy-reskin">
@@ -156,7 +175,7 @@
         </div>
       </div>
       <div id="forestShrineChoice" class="hidden absolute inset-0 z-30 bg-slate-950/60 pointer-events-auto" role="dialog" aria-modal="true" aria-label="苔むす祠の選択">
-        <div class="absolute inset-x-3 bottom-3 rounded-xl border border-emerald-300 bg-emerald-950/95 p-3 text-emerald-50 shadow-xl">
+        <div class="forest-choice-sheet absolute inset-x-3 bottom-3 rounded-xl border border-emerald-300 bg-emerald-950/95 p-3 text-emerald-50 shadow-xl">
         <p class="mb-2 text-sm font-bold">🍃 苔むす祠：この遠征では一度だけ</p>
         <p id="forestShrineStakes" class="mb-2 text-xs text-amber-100" role="status"></p>
         <div class="flex flex-col gap-2">
@@ -168,12 +187,12 @@
         </div>
       </div>
       <div id="forestGateChoice" class="hidden absolute inset-0 z-30 bg-slate-950/60 pointer-events-auto" role="dialog" aria-modal="true" aria-label="石門の選択">
-        <div class="absolute inset-x-3 bottom-3 rounded-xl border border-emerald-300 bg-emerald-950/95 p-3 text-emerald-50 shadow-xl">
+        <div class="forest-choice-sheet absolute inset-x-3 bottom-3 rounded-xl border border-emerald-300 bg-emerald-950/95 p-3 text-emerald-50 shadow-xl">
           <p class="mb-2 text-sm font-bold">🌿 茨の石門：薬草か素材か、一度だけ</p>
           <p id="forestGateStakes" class="mb-2 text-xs text-amber-100" role="status"></p>
           <div class="flex flex-col gap-2">
-            <button id="forestGateMaterial" type="button" class="min-h-11 rounded-lg bg-amber-700 px-3 text-sm font-bold">牙を拾う（HP -8・未帰還素材 +2・回復なし）</button>
             <button id="forestGateCautious" type="button" class="min-h-11 rounded-lg bg-amber-800 px-3 text-sm font-bold disabled:opacity-50">慎重に牙を拾う（HP -3・未帰還素材 +1・回復なし）</button>
+            <button id="forestGateMaterial" type="button" class="min-h-11 rounded-lg bg-amber-700 px-3 text-sm font-bold">牙を拾う（HP -8・未帰還素材 +2・回復なし）</button>
             <button id="forestGateHeal" type="button" class="min-h-11 rounded-lg bg-emerald-700 px-3 text-sm font-bold disabled:opacity-50">薬草で癒やす（最大 HP +45・素材なし）</button>
             <button id="forestGateCancel" type="button" class="min-h-11 rounded-lg border border-emerald-300 px-3 text-sm">今は調べない</button>
           </div>
@@ -1364,6 +1383,28 @@
       return out;
     }
 
+    // Keep the ally active while the player stays far away, but let a
+    // nearby scouted threat recover long enough to be heard from behind.
+    // Once the hero turns, normal support resumes until the armed strike
+    // window, when the ally yields the earned first hit again.
+    const scoutedGuardian=state.fighters.find(f=>
+      f.team===1 && f.name==='苔祠の番人' && f.state!=='DEAD');
+    const guardianNow=performance.now()/1000;
+    if (scoutedGuardian && !['HURT','DOWN','GRAB'].includes(ginji.state) &&
+        (window.CrownlessForestDiscoveries.companionYieldsGuardianOpening(
+          scoutedGuardian,guardianNow) ||
+         window.CrownlessForestDiscoveries.companionYieldsGuardianRecovery(
+          ginji,scoutedGuardian,guardianNow) ||
+         window.CrownlessForestDiscoveries.companionYieldsGuardianFootsteps(
+          ginji,scoutedGuardian,state.forestFinds,selfFighter) ||
+         // A companion hit must not cancel the clearly telegraphed lunge
+         // or steal the player's brief earned dodge-counter opportunity.
+         (scoutedGuardian.guardianTellUntil>guardianNow &&
+           scoutedGuardian.guardianTellTargetId===ginji.id) ||
+         (scoutedGuardian.guardianCounterUntil>guardianNow &&
+           !scoutedGuardian.guardianCounterClaimed &&
+           scoutedGuardian.guardianCounterTargetId===ginji.id))) return out;
+
     for (const item of state.items) {
       if (item.thrownTeam !== -1) continue;
       if (item.type === 'coin' || (!selfFighter.heldWeapon && (item.type === 'katana' || item.type === 'stone'))) {
@@ -1466,6 +1507,9 @@
       }
     }
 
+    // The shrine guardian pursues the adventurer who chose the risk.
+    // Ordinary foes still choose the nearest living hero or companion.
+    if (window.CrownlessForestDiscoveries.guardianTargetsExplorer(enemy,ginji)) target=ginji;
     const dx = target.x - enemy.x;
     const dz = target.z - enemy.z;
     // Put the earned scouting cue beside the actual threat, not only in the HUD.
@@ -1474,12 +1518,10 @@
     // window only when Ginji himself can close the remaining distance.
     const scoutDistance=ginji && ginji.state!=='DEAD'
       ? Math.hypot(ginji.x-enemy.x,ginji.z-enemy.z) : Infinity;
-    // The player must also share the guardian's attack-depth lane: being
-    // nearby but several steps above/below it must not waste the earned opening.
-    // A grappled guardian can only be thrown; that throw cannot claim the
-    // earned +12 strike. Wait until Ginji can choose a normal attack or evade.
-    const scoutInStrikeLane=ginji && ginji.state!=='HURT' && ginji.state!=='DOWN' &&
-      ginji.state!=='GRAB' && enemy.state!=='DOWN' && Math.abs(ginji.z-enemy.z)<=25;
+    // Being close is not enough: an airborne/attacking hero cannot choose
+    // the earned strike yet, and a recovering guardian cannot receive it.
+    // Keep the warning available until both can actually engage in the lane.
+    const scoutInStrikeLane=window.CrownlessForestDiscoveries.guardianReadyForOpening(ginji,enemy);
     if (window.CrownlessForestDiscoveries.armGuardianOpening(enemy,scoutDistance,nowSec,scoutInStrikeLane)) {
       spawnPopup('👁 予兆を察知！攻撃+12か回避',enemy.x,enemy.z,enemy.y+65,'#fef08a');
       // A distinct double pulse makes the brief earned opening perceptible
@@ -1487,6 +1529,42 @@
       sfx.haptic([20,45,20]);
     }
     const hasToken = state.tokenManager.requestToken(enemy.id, nowSec, 1.3);
+    const guardianAttack=window.CrownlessForestDiscoveries.guardianStrikeTell(
+      enemy,nowSec,
+      hasToken && Math.abs(dx)<48 && Math.abs(dz)<20 && !['DOWN','JUMP'].includes(target.state),
+      hasToken && ['IDLE','WALK','RUN'].includes(enemy.state),
+      window.CrownlessHitRecovery.readyToStrike(enemy,nowSec),target.id,
+      !['DEAD','HURT','DOWN','GRAB'].includes(target.state),target===ginji);
+    if(guardianAttack==='start'){
+      enemy.scoutFirstHitYieldUntil=0; // the visible tell now protects the decision
+      // An ally-targeted tell or a locked attack cannot be answered by a hero jump.
+      const tellMessage=target!==ginji ? '⚠ 番人が仲間へ踏み込む！' :
+        ['ATTACK','SPECIAL'].includes(ginji.state) ? '⚠ 攻撃動作中！番人の踏み込みに注意' :
+        '⚠ 番人が踏み込む！跳ぶか離れよう';
+      spawnPopup(tellMessage,enemy.x,enemy.z,enemy.y+65,'#fbbf24');
+      sfx.haptic([25,35,25]);
+    }
+    if(guardianAttack==='start' || guardianAttack==='warning'){
+      enemy.facing=dx>=0?1:-1;
+      return out;
+    }
+    if(guardianAttack==='strike'){
+      enemy.facing=dx>=0?1:-1;
+      out.punch=true;
+      window.CrownlessHitRecovery.registerEnemyStrike(enemy,nowSec);
+      return out;
+    }
+    if(guardianAttack==='evaded'){
+      spawnPopup('🍃 番人が空振り！反撃+8の好機',enemy.x,enemy.z,enemy.y+65,'#6ee7b7');
+      sfx.haptic(15);
+    }
+    // A correctly dodged lunge leaves the guardian briefly off balance.
+    // Do not let it immediately chase the jumping hero out of counter range;
+    // the defender still has to land a real hit before the one-shot timer ends.
+    if(enemy.name==='苔祠の番人' && enemy.guardianCounterUntil>nowSec){
+      enemy.facing=dx>=0?1:-1;
+      return out;
+    }
 
     if (hasToken) {
       if (Math.abs(dx) < 48 && Math.abs(dz) < 20 && target.state !== 'DOWN') {
@@ -1494,7 +1572,8 @@
         // The original per-frame 12% attack lottery let two enemies chain
         // strikes faster than a hero could finish hitstun. Cool down only
         // successful attempts, retaining their random punch/kick choice.
-        if (window.CrownlessHitRecovery.readyToStrike(enemy, nowSec) &&
+        if (enemy.name!=='苔祠の番人' &&
+            window.CrownlessHitRecovery.readyToStrike(enemy, nowSec) &&
             (enemy.state === 'IDLE' || enemy.state === 'WALK' || enemy.state === 'RUN')) {
           if (Math.random() < 0.08) out.punch = true;
           else if (Math.random() < 0.04) out.kick = true;
@@ -1781,13 +1860,47 @@
       if (dx >= -14 && dx <= reachX && dz <= 25 && dy <= 48) {
         // Tracks make the first close approach a choice: land an early blow
         // for a small bonus, or use the warning to reposition instead.
+        // Use one instant for bonus and claim so an expiry-frame hit cannot
+        // earn +8 damage without the promised recovery opening.
+        const hitNowSec=performance.now()/1000;
         const scoutBonus=attacker===ginji
-          ? window.CrownlessForestDiscoveries.guardianScoutStrikeBonus(target,performance.now()/1000) : 0;
-        // Rejected hits must not consume the one-time opening.
-        if (!inflictDamage(target, finalDmg+scoutBonus, attacker.facing * finalKnockback, kbY, kbY >= 170 || hitDowned)) continue;
+          ? window.CrownlessForestDiscoveries.guardianScoutStrikeBonus(target,hitNowSec) : 0;
+        const counterBonus=attacker===ginji
+          ? window.CrownlessForestDiscoveries.guardianCounterStrikeBonus(target,hitNowSec,attacker.id) : 0;
+        // A hit can claim the scouted opening and the dodge reward, but
+        // never spend either when the enemy rejects a hit during recovery.
+        if (!inflictDamage(target, finalDmg+scoutBonus+counterBonus, attacker.facing * finalKnockback, kbY, kbY >= 170 || hitDowned)) continue;
+        // Only a landed shrine-guardian lunge gets this distinct failure cue.
+        // A missed strike or an invulnerable defender must never be called a hit.
+        if (attacker.name==='苔祠の番人' && target===ginji) {
+          spawnPopup('⚠ 踏み込み直撃！次は跳んで避けよう',target.x,target.z,target.y+77,'#fbbf24');
+          sfx.haptic([35,25,35]);
+        }
+        if (counterBonus) {
+          // A scouted, landed counter earns one unsecured fang from this guardian.
+          // Unscouted dodges still grant the +8 tactical counter and recovery,
+          // but cannot farm infinite materials by prolonging the encounter.
+          const earnedCounter=window.CrownlessForestDiscoveries.claimGuardianCounter(
+            target,hitNowSec,attacker.id);
+          const earnedFang=earnedCounter &&
+            window.CrownlessForestDiscoveries.claimGuardianCounterFang(
+              target,()=>rpgRules.claimMaterial(rpg),state.forestFinds.has('traces'));
+          spawnPopup('🍃 反撃成功！+'+counterBonus+'｜番人がよろめく'+
+            (earnedFang?'／牙 +1（未帰還）':!state.forestFinds.has('traces')?'／痕跡未調査：牙の追加なし':''),
+            target.x,target.z,target.y+82,'#6ee7b7');
+          if(earnedFang) updateRpgStatus();
+        }
         if (scoutBonus) {
           target.scoutStrikeClaimed=true;
-          spawnPopup('👁 先手成功！+'+scoutBonus,target.x,target.z,target.y+70,'#fef08a');
+          // Let the guardian recover to show its first lunge; do not make
+          // the companion wait forever if the hero retreats or never engages.
+          target.scoutFirstHitYieldUntil=performance.now()/1000+3.2;
+          // A landed strike should visibly pay off the optional thorn-gate detour.
+          // Do not claim this reward when the player only heard the warning.
+          const scoutHitMessage=target.scoutOpeningSeconds>1.8
+            ? '🌿 石門の観察が効いた！先手 +'
+            : '👁 先手成功！+';
+          spawnPopup(scoutHitMessage+scoutBonus,target.x,target.z,target.y+70,'#fef08a');
         }
         spawnSpark((attacker.x + target.x) * 0.5, target.z, target.y + 24, state.kabukiBurstTimer > 0);
         if (attacker.team === 0) {
@@ -1863,6 +1976,19 @@
       return true;
     }
 
+    // The guardian commits to its visible lunge even if the player mashes
+    // attacks. Damage and a killing blow still count; only nonlethal hitstun
+    // is ignored during the announced 0.65-second tell.
+    if (window.CrownlessForestDiscoveries.guardianKeepsTellOnHit(target,performance.now()/1000)) {
+      if (target.guardianWindupNoticeUntil!==target.guardianTellUntil) {
+        target.guardianWindupNoticeUntil=target.guardianTellUntil;
+        spawnPopup('⚠ 踏み込みは止まらない！次の回避に備えよう',
+          target.x,target.z,target.y+65,'#fbbf24');
+      }
+      updateUI();
+      return true;
+    }
+
     if (knockdown) {
       target.state = 'DOWN';
       target.stateTimer = window.CrownlessHitRecovery.knockdownTime(target);
@@ -1889,6 +2015,18 @@
   }
 
   // A bag that has not reached camp cannot yet pay the smith.
+  // The unarmed gate's one-fang choice can complete the *first* sword.
+  // Show that concrete payoff before choosing HP loss over healing; do not
+  // advertise the inaccessible two-fang option without a crafted sword.
+  function forestGateCraftHint(run,rules) {
+    if (run.crafted) return forestGateTemperHint(run,rules);
+    const need=Math.max(0,rules.COST-run.banked-run.unbanked);
+    if (run.banked>=rules.COST) return '倉庫の牙だけで鍛冶剣を作れる。';
+    if (need===0) return '生還すれば鍛冶剣の素材が揃う（今は未帰還）。';
+    if (need===1) return 'ここで牙を1個拾って生還すれば、鍛冶剣を作れる。';
+    return '鍛冶剣まで牙あと'+need+'個。ここで牙+1なら残り'+(need-1)+'個。';
+  }
+
   function forestShrineCraftHint(run,rules) {
     if (run.tempered) return '剣は研ぎ直し済み。牙の追加強化はまだない。';
     const cost=run.crafted?rules.TEMPER_COST:rules.COST;
@@ -1904,14 +2042,26 @@
   }
 
   function tryTapForestSite(clientX,clientY,allowNearby) {
-    if (!ginji || ginji.state==='DEAD' ||
-        !window.CrownlessForestDiscoveries.available(rpg.phase)) return false;
+    if (!ginji || !window.CrownlessForestDiscoveries.available(rpg.phase)) return false;
     const site=window.CrownlessForestDiscoveries.spotAtTap(
       {x:clientX,y:clientY},canvas.getBoundingClientRect(),{width:virtualW,height:VIRTUAL_H},
       state.cameraX,getGroundHeightAt);
     // Only taps on a visible clue investigate it; ordinary attacks do not
     // consume a one-time find simply because the player is nearby.
     if (!site && !allowNearby) return false;
+    // A real tap on a nearby unspent clue must not silently become a punch
+    // while the explorer is down. Give a generic recovery cue without
+    // revealing the clue's identity or consuming the one-time find.
+    if (!window.CrownlessForestDiscoveries.canInspect(ginji,rpg.phase)) {
+      if (site && !state.forestFinds.has(site.id) && ginji.state!=='DEAD' &&
+          Math.hypot(ginji.x-site.x,ginji.z-site.z)<window.CrownlessForestDiscoveries.RANGE) {
+        spawnPopup(['ATTACK','SPECIAL','JUMP'].includes(ginji.state)
+          ? '動作を終えてから調べよう' : '体勢を立て直してから調べよう',
+          ginji.x,ginji.z,ginji.y+48,'#fef08a');
+        return true;
+      }
+      return false;
+    }
     if (site) {
       if (state.forestFinds.has(site.id)) {
         spawnPopup('ここは調査済み',site.x,site.z,getGroundHeightAt(site.x,site.z)+65,'#cbd5e1');
@@ -1926,13 +2076,18 @@
       const panel=document.getElementById('forestGateChoice');
       const heal=document.getElementById('forestGateHeal');
       const salvage=document.getElementById('forestGateMaterial');
-      const salvageCost=window.CrownlessForestDiscoveries.GATE_SALVAGE_DAMAGE;
-      const cautiousCost=window.CrownlessForestDiscoveries.GATE_CAUTIOUS_DAMAGE;
+      const salvageCost=window.CrownlessForestDiscoveries.gateSalvageDamage('material',rpg.tempered);
+      const cautiousCost=window.CrownlessForestDiscoveries.gateSalvageDamage('cautious',rpg.tempered,rpg.crafted);
+      const cautiousWound=cautiousCost===0?'負傷なし':'HP -'+cautiousCost;
       const cautious=document.getElementById('forestGateCautious');
-      cautious.disabled=!rpg.crafted || ginji.hp<cautiousCost+1;
-      cautious.textContent=!rpg.crafted ? '慎重に牙を拾う（鍛冶剣が必要）' : cautious.disabled
-        ? '慎重に牙を拾う（HP -'+cautiousCost+'・未帰還素材 +1／HP '+(cautiousCost+1)+'以上必要）'
-        : '慎重に牙を拾う（HP -'+cautiousCost+' →残り'+Math.floor(ginji.hp-cautiousCost)+'・未帰還素材 +1）';
+      const cautiousVerb=rpg.crafted?'慎重に牙を拾う':'素手で慎重に牙を拾う';
+      // Put the earned tactical payoff on the actual choice button, not only
+      // in the long phone stakes paragraph. Never promise it after shrine-first.
+      const cautiousPayoff=state.forestFinds.has('shrine')?'':'・先手猶予 +0.6秒';
+      cautious.disabled=ginji.hp<cautiousCost+1;
+      cautious.textContent=cautious.disabled
+        ? cautiousVerb+'（'+cautiousWound+'・未帰還素材 +1／HP '+(cautiousCost+1)+'以上必要）'
+        : cautiousVerb+'（'+cautiousWound+' →残り'+Math.floor(ginji.hp-cautiousCost)+'・未帰還素材 +1'+cautiousPayoff+'）';
       salvage.disabled=!rpg.crafted || ginji.hp<salvageCost+1;
       salvage.textContent=!rpg.crafted ? '牙を拾う（鍛冶剣が必要）' : salvage.disabled
         ? '牙を拾う（HP -'+salvageCost+'・未帰還素材 +2／HP '+(salvageCost+1)+'以上必要）'
@@ -1944,10 +2099,16 @@
         : '傷がないため回復不可';
       document.getElementById('forestGateStakes').textContent=
         '現在 HP '+Math.floor(ginji.hp)+'/'+ginji.maxHp+'、未帰還の牙 '+rpg.unbanked+
-        '個。'+(rpg.crafted?forestGateTemperHint(rpg,rpgRules):'茨の手前の薬草は使える。牙の回収には鍛冶剣が必要。')+
-        (rpg.crafted?'慎重に牙 +1（HP -'+cautiousCost+'）、強引に牙 +2（HP -'+salvageCost+'）、または薬草で回復。':'傷を癒やすか、今は調べず帰るか選べる。')+
+        '個。'+forestGateCraftHint(rpg,rpgRules)+(!rpg.crafted?'強引な回収には鍛冶剣が必要。':'')+
+        (rpg.tempered?'研ぎ直した剣で負傷軽減。':'')+
+        // Button labels already show HP costs, fang counts and recovery. Keep
+        // the 360px decision sheet focused on stakes and the unique scouting payoff.
+        (!cautious.disabled && !state.forestFinds.has('shrine') ? '慎重な回収だけ先手の猶予 +0.6秒（強引な回収・薬草なら効果なし）。' : '')+
         '一度だけ選べる。素材は生還時だけ倉庫に残り、敗北すると失う。';
+      // Restore the layout box before resetting scroll: scrollTop writes to a
+      // display:none sheet can be ignored by the browser.
       panel.classList.remove('hidden');
+      panel.querySelector('.forest-choice-sheet').scrollTop=0;
       return true;
     }
     if (site?.id==='shrine') {
@@ -1956,21 +2117,27 @@
       const missing=Math.max(0,ginji.maxHp-ginji.hp);
       heal.disabled=missing===0;
       const risk=document.getElementById('forestShrineRisk');
-      const riskCost=window.CrownlessForestDiscoveries.shrineRiskDamage(state.forestFinds,rpg.crafted);
+      const riskCost=window.CrownlessForestDiscoveries.shrineRiskDamage(state.forestFinds,rpg.crafted,rpg.tempered);
       risk.disabled=ginji.hp<riskCost+1 || rpg.phase!=='return';
-      risk.textContent=rpg.phase!=='return'?'奥まで探る（魔物を倒してから／番人が待っている｜HP -'+riskCost+'・未帰還素材 +2）':
-        risk.disabled?'奥まで探る（HP -'+riskCost+'・未帰還素材 +2／番人戦｜HP '+(riskCost+1)+'以上必要）':
-        '奥まで探る（HP -'+riskCost+' →残り'+Math.floor(ginji.hp-riskCost)+'・未帰還素材 +2'+(rpg.crafted?'／鍛冶剣で軽減':'')+
-        (state.forestFinds.has('traces')?'／足跡を読んで負傷 -3・番人の接近を早く察知':'')+
-        (rpg.phase==='return'?'／物音で番人が来る・撃退まで帰還不可':'')+'）';
+      risk.textContent=rpg.phase!=='return'?'奥まで探る（魔物を倒してから／奥に気配がある｜HP -'+riskCost+'・未帰還素材 +2／追加戦闘）':
+        risk.disabled?'奥まで探る（HP -'+riskCost+'・未帰還素材 +2／追加戦闘・撃退まで帰還不可｜HP '+(riskCost+1)+'以上必要）':
+        '奥まで探る（HP -'+riskCost+' →残り'+Math.floor(ginji.hp-riskCost)+'・未帰還素材 +2'+(rpg.tempered?'／研ぎ直した剣で負傷 -2':rpg.crafted?'／鍛冶剣で軽減':'')+
+        (state.forestFinds.has('traces')?'／足跡を読んで負傷 -3・接近する物音を早く察知':'')+
+        (rpg.phase==='return'?'／奥に気配・追加戦闘あり・撃退まで帰還不可':'')+'）';
       heal.textContent=missing ? '傷を癒やす（HP +'+Math.min(35,missing)+'・素材なし）' : '傷がないため回復不可';
       // Show what each material route would mean for the next smithing goal.
       // A promising extra fang matters only if the adventurer returns alive.
       const forgeChoice=forestShrineCraftHint(rpg,rpgRules);
       document.getElementById('forestShrineStakes').textContent=
         '現在 HP '+Math.floor(ginji.hp)+'/'+ginji.maxHp+'、未帰還の牙 '+rpg.unbanked+
-        '個。'+forgeChoice+'素材は生還時だけ倉庫に残る（敗北すると失う）。';
+        '個。'+(state.forestFinds.has('traces')?'':'足元の筋は未調査。今は引き返して探す手もある。')+
+        forgeChoice+(!risk.disabled && state.forestFinds.has('hollow-scout')
+          ? '奥まで探るなら、石門の茨の手がかりで先手の猶予 +0.6秒。' : '')+
+        '素材は生還時だけ倉庫に残る（敗北すると失う）。';
+      // A deferred shrine decision must reopen at the first choice, even
+      // after scrolling to Cancel on a short phone viewport.
       panel.classList.remove('hidden');
+      panel.querySelector('.forest-choice-sheet').scrollTop=0;
       return true;
     }
     if (site) return tryExploreForest(ginji);
@@ -2002,9 +2169,11 @@
             state.forestFinds.has('shrine') && rpgRules.pushDeeper(rpg)) {
           state.waveCount++;
           spawnEnemyWave(state.waveCount,1,true);
-          spawnPopup(state.forestFinds.has('traces')
-            ? '足跡の気配で番人の接近を察知！牙を守って生き延びよう'
-            : '奥を探る物音で番人が来た！牙を守って生き延びよう',
+          spawnPopup(state.forestFinds.has('hollow-scout')
+            ? '石門の茨で番人の動きを読んだ！先手の猶予 +0.6秒'
+            : state.forestFinds.has('traces')
+            ? '足跡の先に苔祠の番人！先手を取れ'
+            : '苔祠の番人が姿を現した！牙を守れ',
             ginji.x,ginji.z,ginji.y+60,'#fca5a5');
           updateRpgStatus();
         }
@@ -2016,14 +2185,14 @@
   });
 
   function tryExploreForest(f,shrineChoice='auto') {
-    if (f !== ginji || !window.CrownlessForestDiscoveries.available(rpg.phase)) return false;
+    if (f !== ginji || !window.CrownlessForestDiscoveries.canInspect(f,rpg.phase)) return false;
     const nearby = window.CrownlessForestDiscoveries.near(f,state.forestFinds);
     if (!nearby) return false;
     const discovery = window.CrownlessForestDiscoveries.uncover(
-      f,state.forestFinds,rpg.phase,f.hp,f.maxHp,rpg.crafted,shrineChoice);
+      f,state.forestFinds,rpg.phase,f.hp,f.maxHp,rpg.crafted,shrineChoice,rpg.tempered);
     if (!discovery.ok) {
       if(discovery.reason==='trail'||discovery.reason==='thorns') {
-        spawnPopup(discovery.reason==='trail'?'手前の獣の痕跡に、道の手がかりがある':'茨が行く手を塞ぐ。鍛冶した剣なら切り開けそう',f.x,f.z,f.y+48,'#e3d4ac');
+        spawnPopup(discovery.reason==='trail'?'茨の向こうで何かが軋む。先に周囲の足元を調べよう':'茨が行く手を塞ぐ。鍛冶した剣なら切り開けそう',f.x,f.z,f.y+48,'#e3d4ac');
         return true;
       }
       if(discovery.reason==='weak') {
@@ -2039,14 +2208,14 @@
     if(discovery.material) {
       for(let i=0;i<discovery.material;i++) if (!rpgRules.claimMaterial(rpg)) return false;
       spawnPopup(discovery.spot.id==='shrine' && discovery.damage?'祠の奥で牙 +2（未帰還）／HP -'+discovery.damage:
-        discovery.spot.id==='hollow'?'石門の茨を払って牙 +'+discovery.material+'（未帰還）／HP -'+discovery.damage+'・薬草は見送った':
+        discovery.spot.id==='hollow'?(shrineChoice==='cautious' && discovery.damage===0?'研ぎ直した剣で慎重に茨を払い、無傷で牙 +'+discovery.material+'（未帰還）・薬草は見送った':(rpg.tempered && shrineChoice==='material'?'研ぎ直した剣で茨を払った！ ':!rpg.crafted?'素手で茨をかき分けて':'石門の茨を払って')+'牙 +'+discovery.material+'（未帰還）／HP -'+discovery.damage+'・薬草は見送った'):
         discovery.spot.id==='shrine'?'祠の隙間で牙 +1（未帰還）／この遠征の癒やしは使い切った':
         '獣の痕跡！牙 +1／危険な調査で受ける傷を3軽減',f.x,f.z,f.y+48,'#fde68a');
     }
     if(discovery.damage) f.hp=Math.max(1,f.hp-discovery.damage);
     if(discovery.heal) {
       f.hp=Math.min(f.maxHp,f.hp+discovery.heal);
-      spawnPopup((discovery.spot.id==='hollow'?'石門の薬草':'古い祠で傷を癒やした')+' HP +'+discovery.heal+(discovery.spot.id==='hollow'?(rpg.crafted?'／牙 +2は見送った':'／牙の回収には鍛冶剣が必要'):''),f.x,f.z,f.y+48,'#86efac');
+      spawnPopup((discovery.spot.id==='hollow'?'石門の薬草':'古い祠で傷を癒やした')+' HP +'+discovery.heal+(discovery.spot.id==='hollow'?(rpg.crafted?'／牙 +2は見送った':'／牙 +1は見送った'):''),f.x,f.z,f.y+48,'#86efac');
     }
     if (pixelArt) forestEffects.burst(discovery.spot.x,discovery.spot.z,
       getGroundHeightAt(discovery.spot.x,discovery.spot.z)+44,'discovery',performance.now());
@@ -2064,7 +2233,12 @@
       punchPower:ginji.punchPower,kickPower:ginji.kickPower} : null,
     enemies:state.fighters.filter(f=>f.team===1).map(f=>({name:f.name,x:f.x,z:f.z,hp:f.hp,maxHp:f.maxHp,state:f.state,
       scoutStrikeClaimed:!!f.scoutStrikeClaimed,
-      scoutOpeningActive:!!f.scoutOpeningEndsAt && f.scoutOpeningEndsAt>performance.now()/1000})),
+      scoutOpeningSeconds:f.scoutOpeningSeconds||0,
+      scoutOpeningActive:!!f.scoutOpeningEndsAt && f.scoutOpeningEndsAt>performance.now()/1000,
+      guardianTellUntil:f.guardianTellUntil||0,
+      guardianCounterUntil:f.guardianCounterUntil||0,
+      guardianCounterClaimed:!!f.guardianCounterClaimed})),
+    nowSec:performance.now()/1000,
     crafted:rpg.crafted,tempered:rpg.tempered,unbanked:rpg.unbanked,banked:rpg.banked,
     art:pixelArt?'pixel':'classic',assetsReady:forestArt.ready(),
     forestEffects: forestEffects.readout(),
@@ -2844,24 +3018,71 @@
   }
   // Make the earned scouting advantage visible while the guardian's opening
   // strike is held back. This is a warning window, not a promised hit timer.
-  function forestGuardianHint(guardian,found,unbanked,nowSec) {
+  function updateGuardianDodgeControls(guardian,hero,nowSec) {
+    const active=window.CrownlessForestDiscoveries.guardianDodgeCueActive(guardian,hero,nowSec);
+    const scoutStrike=window.CrownlessForestDiscoveries.guardianScoutAttackCueActive(guardian,hero,nowSec);
+    // Highlight the ACTUAL visible input: gesture mode hides the arcade buttons.
+    // Dodge cues take priority when the guardian announces its lunge.
+    const gestureMode=combatInputMode==='gesture';
+    const earnedCue=scoutStrike && !active;
+    document.getElementById('btnPunch').classList.toggle('guardian-scout-cue',earnedCue && !gestureMode);
+    const gestureHint=document.getElementById('gestureHint');
+    gestureHint.classList.toggle('guardian-scout-cue',earnedCue && gestureMode);
+    // Do not advertise a jump while the hero is locked into an attack.
+    // Keep the incoming threat visible beside the actual touch control.
+    const attackLocked=Boolean(guardian && hero &&
+      ['ATTACK','SPECIAL'].includes(hero.state) &&
+      guardian.guardianTellUntil>nowSec &&
+      guardian.guardianTellTargetId===hero.id);
+    gestureHint.textContent=active
+      ? '⚠ ↑スワイプで跳躍回避'
+      : attackLocked ? '⚠ 攻撃中は跳べない！番人の踏み込みに注意'
+      : scoutStrike ? (gestureMode ? '👁 先手の好機！右側をタップで+12' : '👁 先手の好機！右下の攻撃で+12')
+      : 'タップ:斬撃　横:蹴り　↑跳ぶ　↓組む';
+    gestureHint.classList.toggle('guardian-dodge-cue',active);
+    document.getElementById('btnJump').classList.toggle('guardian-dodge-cue',active);
+  }
+  function forestGuardianHint(guardian,found,unbanked,nowSec,hero) {
     if (!guardian) return '';
     const openingActive=found.has('traces') && guardian.scoutOpeningEndsAt>nowSec;
+    // A landed opening strike is easy to miss on a phone when it connects
+    // near the timer's end. Keep its *earned* feedback until the existing
+    // short guardian recovery ends; never promise another +12 hit.
+    const recentScoutedHit=found.has('traces') && guardian.scoutStrikeClaimed &&
+      guardian.scoutFirstHitYieldUntil>nowSec;
+    // A scouted sound behind the hero invites a deliberate turn before the
+    // timer starts; do not pretend the attack bonus is already active.
+    const behind=hero && window.CrownlessForestDiscoveries.guardianBehindWarning(hero,guardian,found);
     // Once the earned first hit lands, do not promise a second +12 strike.
-    const lead=openingActive
+    const lead=openingActive || recentScoutedHit
       ? guardian.scoutStrikeClaimed
-        ? '👁 先手成功｜'
+        ? guardian.scoutOpeningSeconds>1.8
+          ? '🌿 石門の観察が効いた｜'
+          : '👁 先手成功｜'
         : guardian.state==='DOWN'
           ? '👁 番人転倒中｜先手の機会を温存｜'
           : '👁 足跡の先読み 残り'+(Math.ceil((guardian.scoutOpeningEndsAt-nowSec)*10)/10).toFixed(1)+'秒：攻撃+12か回避｜'
-      : '';
-    return lead+'⚠ 番人HP '+Math.ceil(guardian.hp)+'/'+guardian.maxHp+
+      : behind ? '👂 背後に足音。振り向けば先手の機会｜' : '';
+    const strikeCue=window.CrownlessForestDiscoveries.guardianDodgeCueActive(guardian,hero,nowSec)
+      ? '⚠ 番人が踏み込む！跳ぶか離れよう｜'
+      : hero && guardian.guardianTellUntil>nowSec &&
+        guardian.guardianTellTargetId===hero.id &&
+        ['ATTACK','SPECIAL'].includes(hero.state)
+        ? '⚠ 攻撃動作中！番人の踏み込みに注意｜'
+      : guardian.guardianCounterUntil>nowSec &&
+        hero && guardian.guardianCounterTargetId===hero.id
+        ? guardian.guardianCounterClaimed
+          ? '🍃 反撃成功！'+(guardian.guardianCounterFangClaimed?'牙は獲得済み／':!found.has('traces')?'痕跡未調査：牙の追加なし／':'')+'追撃はタップ／退避は左パッド 残り'+(Math.ceil((guardian.guardianCounterUntil-nowSec)*10)/10).toFixed(1)+'秒｜'
+          : guardian.state==='DOWN' ? '🍃 番人転倒中｜反撃の機会を温存｜' : '🍃 空振り！反撃+8'+(guardian.guardianCounterFangClaimed?'（牙は獲得済み）':found.has('traces')?'／命中で牙+1（未帰還）':'（痕跡未調査：牙の追加なし）')+(hero.state==='JUMP'?'／空中タップで反撃':'')+' 残り'+(Math.ceil((guardian.guardianCounterUntil-nowSec)*10)/10).toFixed(1)+'秒｜'
+        : '';
+    return strikeCue+lead+'⚠ 番人HP '+Math.ceil(guardian.hp)+'/'+guardian.maxHp+
       '｜倒すまで帰還不可｜未帰還の牙 '+unbanked+'個';
   }
 
   function updateForestExploreHint() {
     const hint=document.getElementById('forestExploreHint');
     if(rpg.phase==='camp') {
+      updateGuardianDodgeControls(null,ginji,performance.now()/1000);
       hint.classList.add('hidden');
       document.getElementById('forestShrineChoice').classList.add('hidden');
       document.getElementById('forestGateChoice').classList.add('hidden');
@@ -2869,13 +3090,13 @@
     }
     hint.classList.remove('hidden');
     const near=window.CrownlessForestDiscoveries.near(ginji,state.forestFinds);
-    // Reading tracks extends the stone-gate vibration beyond tap range.
+    // Reading tracks extends the shrine breeze and gate creak beyond tap range.
     // It reveals neither the hidden route nor the site name, and never
     // changes the normal interaction distance or ordinary walkable nav.
     const cue=window.CrownlessForestDiscoveries.cueNear(ginji,state.forestFinds);
-    // A distant gate signal should not consume the separate confirmation
+    // Each earned distant sign must not consume the separate confirmation
     // earned by walking into actual inspection range. Both are once per run.
-    const cuePulseKey=cue?.id==='hollow' && !near ? 'hollow:far' : cue?.id;
+    const cuePulseKey=cue && !near && (cue.id==='hollow'||cue.id==='shrine') ? cue.id+':far' : cue?.id;
     if (rpg.phase==='return' && cue && !state.forestCuePulsed.has(cuePulseKey) &&
         document.getElementById('rpgPanel').classList.contains('hidden') &&
         document.getElementById('forestShrineChoice').classList.contains('hidden') &&
@@ -2884,7 +3105,19 @@
       // A distant clue earned by reading tracks has a distinct two-beat
       // pulse. Ordinary nearby clues keep the single short pulse; neither
       // pattern reveals a route or automatically investigates the site.
-      sfx.haptic(cue.id==='hollow' && !near ? [28,45,28] : 34);
+      // The cool shrine has its own gentle two-beat feel. Tracks stay a
+      // single tap and the distant stone gate keeps its earned heavier cue.
+      // No site identity, hidden route, or interaction range is revealed.
+      const pulsePattern=cue.id==='hollow' && !near ? [28,45,28] :
+        cue.id==='shrine' && !near ? [12,80,18] :
+        cue.id==='shrine' ? [18,65,36] : 34;
+      sfx.haptic(pulsePattern);
+      // Browser/phone haptics may be unavailable. The *earned* far cue must
+      // still be perceptible without revealing a site name, route or position.
+      if (!near && (cue.id==='hollow'||cue.id==='shrine')) {
+        spawnPopup(cue.id==='hollow' ? '遠くで、何かが軋む音がした' : '頬を冷たい風がかすめた',
+          ginji.x,ginji.z,ginji.y+48,'#d9f99d');
+      }
     }
     if (near?.id!=='shrine') document.getElementById('forestShrineChoice').classList.add('hidden');
     if (near?.id!=='hollow') document.getElementById('forestGateChoice').classList.add('hidden');
@@ -2893,20 +3126,29 @@
     const guardian=rpg.phase==='fight'
       ? state.fighters.find(f=>f.team===1 && f.name==='苔祠の番人' && f.state!=='DEAD')
       : null;
+    updateGuardianDodgeControls(guardian,ginji,performance.now()/1000);
     const label=guardian
-      ? forestGuardianHint(guardian,state.forestFinds,rpg.unbanked,performance.now()/1000)
+      ? forestGuardianHint(guardian,state.forestFinds,rpg.unbanked,performance.now()/1000,ginji)
       : near
       ? near.id==='hollow' && !state.forestFinds.has('traces')
         ? '🌿 茨の奥で硬い音がする。足元のかすかな筋を辿ろう'
         : near.id==='hollow' && !rpg.crafted
           ? '🌿 茨の奥で何かが軋む。気になる地点を直接タップ'
           : near.id==='shrine' && ginji.hp>=ginji.maxHp
-          ? '🍃 苔の間から冷たい風が流れる。素材を探すか、傷ついてから癒やすか。気になる地点を直接タップ'
+          ? '🍃 冷たい風。牙を拾うか、回復の機会を残すか。タップで調査'
           : near.id==='shrine'
-          ? '🍃 苔の間から冷たい風が流れる。素材か癒やしか、一度だけ選べる。気になる地点を直接タップ'
+          ? '🍃 冷たい風。牙か回復か、一度だけ選べる。タップで調査'
           : '🍃 '+(near.id==='traces'?'湿った土に細い筋がある':'茨の向こうで何かが軋む')+'。気になる地点を直接タップ'
+      : state.forestFinds.has('traces') && !state.forestFinds.has('shrine') && !state.forestFinds.has('hollow')
+        ? '足跡は二手に分かれ、途切れた。どちらを追う？（調査負傷 -3）'
+      : rpg.phase==='return' && state.forestFinds.has('hollow-scout') && !state.forestFinds.has('shrine')
+        // Keep the remaining sensory lead visible even after earning the
+        // gate-first tactical reward; do not reveal a site name or route.
+        ? '苔の湿りが残る。奥の危険には先手猶予 +0.6秒。周囲を探そう'
+      : state.forestFinds.has('traces') && !state.forestFinds.has('shrine')
+        ? '踏み跡の先には、まだ苔の湿りが残っている。周囲を探してみよう'
       : state.forestFinds.has('traces') && !state.forestFinds.has('hollow')
-        ? '足跡は右奥へ続いている。安全な足場を発見（危険な調査の負傷 -3）。'+(rpg.crafted?'新しい剣で奥を調べよう':'奥の茨を調べてみよう')
+        ? '踏み跡の先では、まだ茨が軋んでいる。周囲を探してみよう'
       : rpg.phase==='return'
         ? '🌲 未帰還の牙 '+rpg.unbanked+'個。探索を続けるか、生還して確定'
         : '🌲 森の音や足元の違和感を探そう。気になる地点は直接タップ';
@@ -2917,19 +3159,27 @@
   // Never name a location before the player has inspected it.
   function forestReturnTeaser(found,crafted=false) {
     if (!found.has('traces')) return '湿った土にまだ読めない筋がある。';
+    // Before either branch is investigated, leave the order to the player.
+    // Sensory signs match the earned fork marks; neither site is named.
+    if (!found.has('shrine') && !found.has('hollow'))
+      return '二手に分かれた踏み跡には、苔の湿りと折れた茨が残る。どちらを先に追う？';
     if (!found.has('shrine')) return '苔の間から冷たい風が流れている。';
     if (!found.has('hollow')) return crafted
       ? '茨の奥から硬い音が響く。鍛えた剣を手に、何があるか確かめよう。'
-      : '茨の奥から硬い音が響く。今の装備では奥へ踏み込めない。手前を調べる余地はありそうだ。牙を持ち帰って鍛冶に備えよう。';
+      : '茨の奥から硬い音が響く。剣がなくても手前の茨なら探れそうだ。近づいて確かめよう。';
     return '';
   }
 
-  // A clue actually read in the last expedition can motivate the next trip.
-  // Do not advertise an unknown place or promise its solution before inspection.
-  function forestRevisitAction(found,crafted) {
-    return crafted && found.has('traces') && !found.has('hollow')
-      ? '🌲 足跡の先を確かめに再遠征'
-      : '🗺 もう一度、森へ遠征';
+  // The camp invitation must preserve the player's earned fork, regardless
+  // of which site was visited first or whether a sword has been forged.
+  // Clues are not navigation, and neither unvisited site is named.
+  function forestRevisitAction(found) {
+    if (!found.has('traces')) return '🗺 もう一度、森へ遠征';
+    if (!found.has('shrine') && !found.has('hollow'))
+      return '🌲 二手の踏み跡を確かめに再遠征';
+    if (!found.has('shrine')) return '🍃 苔の湿りを確かめに再遠征';
+    if (!found.has('hollow')) return '🌿 茨の軋みを確かめに再遠征';
+    return '🗺 もう一度、森へ遠征';
   }
 
   function showRpgPanel() {
@@ -2952,7 +3202,7 @@
     document.getElementById('rpgForge').classList.toggle('hidden', !camp || rpg.crafted);
     const depart=document.getElementById('rpgDepart');
     depart.classList.toggle('hidden', !camp);
-    depart.textContent=forestRevisitAction(state.forestFinds,rpg.crafted);
+    depart.textContent=forestRevisitAction(state.forestFinds);
     document.getElementById('rpgBackToMap').classList.toggle('hidden', !camp || new URLSearchParams(location.search).get('from') !== 'discovered-wood');
 
     document.getElementById('rpgBank').textContent =
@@ -3084,6 +3334,7 @@
         // Preserve the player's earned strike window if an ally downs the
         // guardian before a normal player hit can connect.
         window.CrownlessForestDiscoveries.pauseGuardianOpening(f,dt,nowSec);
+        window.CrownlessForestDiscoveries.pauseGuardianCounter(f,ginji,dt,nowSec);
         input = sampleEnemyAI(f, nowSec);
       }
       updateFighter(f, input, dt);
