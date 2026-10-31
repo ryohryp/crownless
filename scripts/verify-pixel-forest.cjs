@@ -1704,9 +1704,18 @@ async function main() {
             assert.equal(postponed.found.includes('hollow'),false,
               'postponement must leave the one-time gate available');
             await barehandPage.setViewportSize({width:390,height:844});
+            // Wait for the scene's resize handler and input layers to settle
+            // before calculating a real touchscreen coordinate again.
+            await barehandPage.waitForTimeout(250);
             await tapSite(barehandPage,'hollow');
-            assert.equal(await barehandPage.locator('#forestGateChoice').isVisible(),true,
-              'the postponed gate can be investigated again');
+            const reopenedVisible=await barehandPage.locator('#forestGateChoice').isVisible();
+            const reopenedState=await read(barehandPage);
+            assert.equal(reopenedVisible,true,
+              'the postponed gate can be investigated again: '+JSON.stringify({
+                phase:reopenedState.phase,player:reopenedState.player,
+                found:reopenedState.found,
+                gesture:await barehandPage.evaluate(()=>window.CrownlessGestureReadout?.())
+              }));
             await barehandPage.setViewportSize({width:360,height:420});
             const reopenedSheet=barehandPage.locator('#forestGateChoice > div');
             assert.equal(await reopenedSheet.evaluate(node=>node.scrollTop),0,
