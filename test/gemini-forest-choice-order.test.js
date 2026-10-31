@@ -1,6 +1,8 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
+const fs = require('node:fs');
+const vm = require('node:vm');
 const D = require('../src/gemini-forest-discoveries.js');
 const R = require('../src/gemini-rpg-loop.js');
 
@@ -14,7 +16,7 @@ test('gate-first cautious scouting earns a later opening; shrine-first cannot ea
   const careful = D.uncover(gate,gateFirst,'return',100,140,false,'cautious');
   assert.equal(careful.ok,true);
   assert.equal(careful.material,1);
-  assert.equal(careful.damage,6);
+  assert.equal(careful.damage,6,'gate-first keeps its original wound cost');
   assert.equal(gateFirst.has('hollow-scout'),true);
   assert.equal(D.guardianOpeningSeconds(gateFirst),2.4);
   assert.equal(gateFirst.has('shrine'),false,'the detour cannot auto-discover the shrine');
@@ -27,7 +29,7 @@ test('gate-first cautious scouting earns a later opening; shrine-first cannot ea
   const late = D.uncover(gate,shrineFirst,'return',100,140,false,'cautious');
   assert.equal(late.ok,true,'the late gate still offers its one-fang salvage');
   assert.equal(late.material,1);
-  assert.equal(late.damage,6);
+  assert.equal(late.damage,4,'shrine-first moss knowledge saves 2 HP on careful salvage');
   assert.equal(shrineFirst.has('hollow-scout'),false,
     'an already visited shrine cannot grant a phantom future guardian bonus');
   assert.equal(D.guardianOpeningSeconds(shrineFirst),1.8,
@@ -51,4 +53,202 @@ test('shrine-first late salvage remains provisional, one-time and lost on defeat
   assert.equal(R.loseExpedition(run),true);
   assert.equal(run.unbanked,0);
   assert.equal(run.banked,0);
+});
+
+test('late track discovery feedback never promises a retroactive shrine injury reduction', () => {
+  const html = fs.readFileSync('gemini-feel-lab.html', 'utf8');
+  const start = html.indexOf("      spawnPopup(discovery.spot.id==='shrine' && discovery.damage?");
+  const suffix = ",f.x,f.z,f.y+48,'#fde68a');";
+  const end = html.indexOf(suffix, start);
+  assert(start >= 0 && end > start, 'evaluate the live discovery popup expression');
+  const popup = html.slice(start, end + suffix.length);
+  const messageFor = ids => {
+    const messages = [];
+    vm.runInNewContext(popup, {
+      discovery: {spot: {id: 'traces'}, material: 1, damage: 0},
+      state: {forestFinds: new Set(['traces', ...ids])},
+      spawnPopup: message => messages.push(message),
+      f: {x: 800, z: 365, y: 0}
+    });
+    assert.equal(messages.length, 1);
+    return messages[0];
+  };
+  const early = messageFor([]);
+  assert.match(early, /牙 \+1（未帰還）/);
+  assert.match(early, /この先の危険な調査で負傷 -3/);
+  assert.doesNotMatch(early, /祠|石門|右|左/,
+    'an unvisited site must remain undisclosed');
+  const late = messageFor(['shrine']);
+  assert.match(late, /牙 \+1（未帰還）/);
+  assert.match(late, /済んだ調査には効かない/);
+  assert.match(late, /まだ茨の軋みを追える/,
+    'shrine-first readers get a sensory lead to the still-unexplored gate');
+  assert.doesNotMatch(late, /祠|石門|右|左|負傷 -3|3軽減/,
+    'do not reveal the gate location or retroactively change shrine injury');
+  const found = new Set(['shrine']);
+  const gate = {x:910,z:235};
+  assert.equal(D.uncover(gate,found,'return',140,140,false,'cautious').reason,'trail',
+    'the gate remains blocked until the player actually reads the tracks');
+  const tracks = D.uncover({x:800,z:365},found,'return',140,140);
+  assert.equal(tracks.ok,true);
+  assert.equal(tracks.material,1);
+  const afterClue = D.uncover(gate,found,'return',140,140,false,'cautious');
+  assert.equal(afterClue.ok,true,
+    'late track reading makes the gate choice available without auto-discovery');
+  assert.equal(afterClue.material,1);
+  assert.equal(found.has('hollow-scout'),false,
+    'shrine-first exploration never earns a retroactive guardian opening');
+});
+
+test('shrine-first moss seam changes a real gate choice, not forceful loot or the guardian', () => {
+  for (const [crafted,tempered,ordinary,afterShrine] of [
+    [false,false,6,4], [true,false,3,1], [true,true,0,0]
+  ]) {
+    assert.equal(D.gateSalvageDamage('cautious',tempered,crafted,false),ordinary);
+    assert.equal(D.gateSalvageDamage('cautious',tempered,crafted,true),afterShrine);
+    const found=new Set(['traces','shrine']);
+    if(afterShrine>0){
+      assert.equal(D.uncover(gate,found,'return',afterShrine,140,crafted,'cautious',tempered).reason,'weak',
+        'the moss seam cannot permit a lethal salvage');
+      assert.equal(found.has('hollow'),false,'a rejected choice never consumes the gate');
+    }
+    const reward=D.uncover(gate,found,'return',afterShrine+1,140,crafted,'cautious',tempered);
+    assert.equal(reward.ok,true);
+    assert.equal(reward.damage,afterShrine);
+    assert.equal(reward.material,1,'safer salvage never increases the unbanked reward');
+    assert.equal(found.has('hollow-scout'),false,
+      'shrine-first exploration never creates a retroactive guardian bonus');
+    assert.equal(D.uncover(gate,found,'return',140,140,crafted,'cautious',tempered).ok,false,
+      'the reward remains one-time');
+  }
+  assert.equal(D.gateSalvageDamage('material',false,true,true),8,
+    'shrine knowledge does not make forceful two-fang salvage safer');
+  assert.equal(D.gateSalvageDamage('material',true,true,true),4);
+});
+
+test('gate salvage feedback acknowledges only an earned shrine-first wound reduction', () => {
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const start=html.indexOf("      spawnPopup(discovery.spot.id==='shrine' && discovery.damage?");
+  const suffix=",f.x,f.z,f.y+48,'#fde68a');";
+  const end=html.indexOf(suffix,start);
+  assert(start>=0 && end>start,'evaluate the actual in-game reward popup');
+  const popup=html.slice(start,end+suffix.length);
+  const feedback=(ids,damage,crafted=false,tempered=false) => {
+    const messages=[];
+    vm.runInNewContext(popup,{
+      discovery:{spot:{id:'hollow'},material:1,damage},
+      state:{forestFinds:new Set(ids)},
+      shrineChoice:'cautious',
+      rpg:{crafted,tempered},
+      spawnPopup:message=>messages.push(message),
+      f:{x:910,z:235,y:0}
+    });
+    assert.equal(messages.length,1);
+    return messages[0];
+  };
+  const shrineFirst=feedback(['traces','shrine'],4);
+  assert.match(shrineFirst,/苔の筋をたどり負傷 -2/);
+  assert.match(shrineFirst,/牙 \+1（未帰還）／HP -4/);
+  assert.doesNotMatch(shrineFirst,/先手猶予|石門の先|隠し道/);
+  const gateFirst=feedback(['traces'],6);
+  assert.doesNotMatch(gateFirst,/苔の筋をたどり負傷 -2/);
+  assert.match(gateFirst,/牙 \+1（未帰還）／HP -6/);
+  const tempered=feedback(['traces','shrine'],0,true,true);
+  assert.match(tempered,/無傷で牙 \+1（未帰還）/);
+  assert.doesNotMatch(tempered,/負傷 -2|HP -0/,
+    'a wound-free blade must not claim a phantom injury reduction');
+});
+
+
+test('reading tracks first improves one shrine herb choice without creating free materials', () => {
+  const shrine={x:660,z:230,state:'IDLE'};
+  for(const [ids,hp,expected] of [
+    [[],60,35], [['traces'],60,40], [['traces'],103,37], [['traces'],120,20]
+  ]){
+    const found=new Set(ids);
+    const outcome=D.uncover(shrine,found,'return',hp,140,false,'heal');
+    assert.equal(outcome.ok,true);
+    assert.equal(outcome.heal,expected,'recovery is capped by actual missing HP');
+    assert.equal(outcome.material,0,'herbs must not mint provisional or banked fangs');
+    assert.equal(outcome.damage,0);
+    assert.equal(D.uncover(shrine,found,'return',hp,140,false,'heal').ok,false,
+      'a shrine herb choice cannot be farmed twice');
+  }
+  const full=new Set(['traces']);
+  assert.equal(D.uncover(shrine,full,'return',140,140,false,'heal').reason,'full');
+  assert.equal(full.has('shrine'),false,'rejecting a full-HP heal preserves the choice');
+  const salvage=D.uncover(shrine,full,'return',140,140,false,'material');
+  assert.equal(salvage.material,1);
+  assert.equal(salvage.heal,0,'the material branch cannot also claim herbs');
+
+  const run=R.create();
+  assert.equal(R.clearWave(run),true);
+  assert.equal(R.claimMaterial(run),true,'tracks provide one unsecured fang');
+  const herbs=D.uncover(shrine,new Set(['traces']),'return',50,140,false,'heal');
+  assert.equal(herbs.material,0);
+  assert.equal(run.unbanked,1,'healing cannot create extra loot');
+  assert.equal(R.returnAlive(run,50+herbs.heal),true);
+  assert.equal(run.banked,1,'only an actual safe return banks the track fang');
+
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const start=html.indexOf('      // Tracks reveal a better herb patch');
+  const end=html.indexOf('      // Show what each material route',start);
+  assert(start>=0 && end>start,'test the live phone shrine-heal label expression');
+  const expression=html.slice(start,end);
+  const label=(ids,missing)=>{
+    const heal={textContent:''};
+    vm.runInNewContext(expression,{state:{forestFinds:new Set(ids)},missing,heal});
+    return heal.textContent;
+  };
+  assert.match(label([],80),/HP \+35・素材なし/);
+  assert.match(label(['traces'],80),/HP \+40・足跡の手がかりで回復 \+5・素材なし/);
+  assert.match(label(['traces'],37),/HP \+37・足跡の手がかりで回復 \+2・素材なし/);
+  assert.match(label(['traces'],20),/HP \+20・素材なし/);
+  assert.doesNotMatch(label(['traces'],20),/回復 \+5/);
+  assert.equal(label(['traces'],0),'傷がないため回復不可');
+});
+
+test('gate-first careful scouting lowers later shrine deep-search injury without removing its fight', () => {
+  const shrine={x:660,z:230,state:'IDLE'};
+  const gate={x:910,z:235,state:'IDLE'};
+  const tracks={x:800,z:365,state:'IDLE'};
+  for(const [crafted,tempered,normal,scouted] of [
+    [false,false,9,8], [true,false,3,2], [true,true,1,1]
+  ]) {
+    const direct=new Set(['traces']);
+    assert.equal(D.shrineRiskDamage(direct,crafted,tempered),normal);
+    const found=new Set();
+    assert.equal(D.uncover(tracks,found,'return',140,140).ok,true);
+    const scout=D.uncover(gate,found,'return',140,140,crafted,'cautious',tempered);
+    assert.equal(scout.ok,true);
+    assert.equal(scout.material,1,'the scouting detour never mints extra fangs');
+    assert.equal(found.has('hollow-scout'),true);
+    assert.equal(D.shrineRiskDamage(found,crafted,tempered),scouted,
+      'the earned gate clue reduces only future shrine search risk, with a 1 HP floor');
+    assert.equal(D.uncover(shrine,found,'return',scouted,140,crafted,'risk',tempered).reason,'weak',
+      'the deep search must never become lethal or consume a site on rejection');
+    assert.equal(found.has('shrine'),false);
+    const risk=D.uncover(shrine,found,'return',scouted+1,140,crafted,'risk',tempered);
+    assert.equal(risk.ok,true);
+    assert.equal(risk.damage,scouted);
+    assert.equal(risk.material,2,'the bonus never grants banked loot or skips the guardian');
+    assert.equal(risk.heal,0);
+    assert.equal(D.uncover(shrine,found,'return',140,140,crafted,'risk',tempered).ok,false,
+      'the deep reward remains one-time');
+  }
+  assert.equal(D.shrineRiskDamage(new Set(['hollow-scout']),true),6,
+    'an invalid scouting flag without tracks cannot create a shortcut');
+  const forced=new Set(['traces']);
+  assert.equal(D.uncover(gate,forced,'return',140,140,true,'material').ok,true);
+  assert.equal(D.shrineRiskDamage(forced,true),3,
+    'forceful two-fang salvage does not earn the scouting injury reduction');
+  const herbs=new Set(['traces']);
+  assert.equal(D.uncover(gate,herbs,'return',120,140,true,'heal').ok,true);
+  assert.equal(D.shrineRiskDamage(herbs,true),3,
+    'choosing healing does not also earn a deep-search discount');
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  assert.match(html,/state\.forestFinds\.has\('hollow-scout'\) && !rpg\.tempered\?'／石門の見切りで負傷 -1'/,
+    'the live phone button previews the extra injury reduction only when effective');
+  assert.match(html,/CrownlessForestDiscoveries\.shrineRiskDamage\(state\.forestFinds,rpg\.crafted,rpg\.tempered\)/,
+    'the actual preview and applied damage share the same rule');
 });

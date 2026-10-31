@@ -340,7 +340,7 @@ test('reading tracks first makes the shrine deep search safer without making the
   assert.ok(html.includes('CrownlessForestDiscoveries.shrineRiskDamage(state.forestFinds,rpg.crafted,rpg.tempered)'),
     'the visible HP cost must come from the same rule as the reward');
   assert.match(html,/足跡を読んで負傷 -3/,'the benefit must be visible before committing');
-  assert.ok(html.includes('獣の痕跡！牙 +1／危険な調査で受ける傷を3軽減'),
+  assert.ok(html.includes('獣の痕跡！牙 +1（未帰還）／この先の危険な調査で負傷 -3'),
     'finding tracks must explain the future damage reduction without implying immediate HP loss');
   assert.doesNotMatch(html,/獣の痕跡！牙 \+1／(?:苔むす祠|茨の石門|苔祠の番人)/,
     'finding tracks must not reveal an uninspected location or enemy');
@@ -399,8 +399,10 @@ test('unforged explorers can choose costly one-fang salvage or healing, but not 
   assert.match(html,/if \(site\?\.id==='hollow' && state\.forestFinds\.has\('traces'\)\) \{/);
   assert.match(html,/salvage\.disabled=!rpg\.crafted \|\| ginji\.hp<salvageCost\+1/);
   assert.match(html,/cautious\.disabled=ginji\.hp<cautiousCost\+1/);
-  assert.match(html,/gateSalvageDamage\('cautious',rpg\.tempered,rpg\.crafted\)/,
-    'phone previews barehand injury from the same rule as the reward');
+  assert.match(html,/gateSalvageDamage\('cautious',rpg\.tempered,rpg\.crafted,state\.forestFinds\.has\('shrine'\)\)/,
+    'phone previews shrine-first and barehand injury from the same rule as the reward');
+  assert.match(html,/祠で覚えた苔の筋で負傷 -2/,
+    'the player sees the shrine-first trade-off on the real choice button');
   assert.match(html,/const cautiousVerb=rpg\.crafted\?'慎重に牙を拾う':'素手で慎重に牙を拾う'/,
     'unforged explorers still see a distinct barehand option on the choice button');
   assert.match(html,/rpg\.crafted\?'／牙 \+2は見送った':'／牙 \+1は見送った'/,
@@ -794,7 +796,7 @@ test('a deliberate shrine tap opens touch-sized material and healing actions',()
 
 test('unavailable deep shrine search still previews its cost, reward and guardian',()=>{
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
-  const expression=html.match(/risk\.textContent=([\s\S]*?);\s*heal\.textContent=/)?.[1];
+  const expression=html.match(/risk\.textContent=([\s\S]*?);\s*\/\/ Tracks reveal a better herb patch/)?.[1];
   assert.ok(expression,'the actual risk button label expression must exist');
   assert.doesNotMatch(expression,/番人|苔祠/,
     'the pre-choice hint must warn of a fight without spoiling the guardian identity');
@@ -1405,7 +1407,7 @@ test('tempered smith sword makes forceful gate salvage safer without granting ex
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   assert.match(html,/gateSalvageDamage\('material',rpg\.tempered\)/,
     'phone preview must derive the actual equipment-dependent wound');
-  assert.match(html,/gateSalvageDamage\('cautious',rpg\.tempered,rpg\.crafted\)/,
+  assert.match(html,/gateSalvageDamage\('cautious',rpg\.tempered,rpg\.crafted,state\.forestFinds\.has\('shrine'\)\)/,
     'careful salvage preview must use the same tempered rule as the reward');
   assert.match(html,/cautiousCost===0\?'負傷なし'/,
     'zero-risk choice must be legible instead of advertising HP -0');

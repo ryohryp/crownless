@@ -700,6 +700,11 @@ async function main() {
           await tapSite(page,'shrine');
           const sheet=page.locator('#forestShrineChoice');
           assert(await sheet.isVisible(),'an unscouted shrine must remain inspectable');
+          const unscoutedMissing=beforeDetour.player.maxHp-beforeDetour.player.hp;
+          if(unscoutedMissing>0) assert.match(
+            await page.locator('#forestShrineHeal').innerText(),
+            new RegExp('HP \\+'+Math.min(35,unscoutedMissing)),
+            'unscouted phone herbs retain their original 35 HP cap');
           const stakes=await page.locator('#forestShrineStakes').innerText();
           assert.match(stakes,/足元の筋は未調査。今は引き返して探す手もある。/,
             'the actual phone choice suggests a reversible investigation');
@@ -764,6 +769,15 @@ async function main() {
             /足元の筋は未調査/,'the old warning clears after actual investigation');
           assert.match(await page.locator('#forestShrineRisk').innerText(),
             /足跡を読んで負傷 -3/,'reading tracks changes the real risk');
+          const scoutedShrine=await read(page);
+          const scoutedMissing=scoutedShrine.player.maxHp-scoutedShrine.player.hp;
+          if(scoutedMissing>0){
+            const scoutedHeal=await page.locator('#forestShrineHeal').innerText();
+            assert.match(scoutedHeal,new RegExp('HP \\+'+Math.min(40,scoutedMissing)),
+              'the real 360px shrine choice previews earned recovery up to 40 HP');
+            if(scoutedMissing>35) assert.match(scoutedHeal,/足跡の手がかりで回復/,
+              'a real extra recovery must be explained on the touch choice');
+          }
           await page.locator('#forestShrineCancel').click();
           assert(!(await read(page)).found.includes('shrine'),
             'reopening and declining must still preserve the one-time choice');
@@ -900,8 +914,8 @@ async function main() {
             'unforged explorers cannot take the thorn-blocked two-fang reward');
           const barehandChoice=page.locator('#forestGateCautious');
           assert.equal(await barehandChoice.isEnabled(),true,
-            'without a sword the player may risk six HP for one unsecured fang');
-          assert.match(await barehandChoice.innerText(),/素手で慎重に牙を拾う.*HP -6.*未帰還素材 \+1/,
+            'after visiting the shrine, the player may risk four HP for one unsecured fang');
+          assert.match(await barehandChoice.innerText(),/素手で慎重に牙を拾う.*HP -4.*未帰還素材 \+1.*祠で覚えた苔の筋で負傷 -2/,
             'the phone must preview the real barehand wound and reward');
           const barehandBounds=await barehandChoice.boundingBox();
           assert(barehandBounds && barehandBounds.width>=44 && barehandBounds.height>=44,
@@ -1009,9 +1023,9 @@ async function main() {
           await tapSite(page,'hollow');
           const gateMaterial=page.locator('#forestGateMaterial');
           const gateCautious=page.locator('#forestGateCautious');
-          assert.equal(await gateCautious.isEnabled(),hollowBefore.player.hp>=4,
+          assert.equal(await gateCautious.isEnabled(),hollowBefore.player.hp>=2,
             'cautious salvage must be nonlethal and available before the costly route');
-          assert.match(await gateCautious.innerText(),/HP -3.*未帰還素材 \+1/,
+          assert.match(await gateCautious.innerText(),/HP -1.*未帰還素材 \+1.*祠で覚えた苔の筋で負傷 -2/,
             'the real phone panel must explain the one-fang safer alternative');
           assert.equal(await gateMaterial.isEnabled(),hollowBefore.player.hp>=9,
             'material salvage must require at least one surviving HP');

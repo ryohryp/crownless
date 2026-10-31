@@ -2077,13 +2077,15 @@
       const heal=document.getElementById('forestGateHeal');
       const salvage=document.getElementById('forestGateMaterial');
       const salvageCost=window.CrownlessForestDiscoveries.gateSalvageDamage('material',rpg.tempered);
-      const cautiousCost=window.CrownlessForestDiscoveries.gateSalvageDamage('cautious',rpg.tempered,rpg.crafted);
+      const cautiousCost=window.CrownlessForestDiscoveries.gateSalvageDamage('cautious',rpg.tempered,rpg.crafted,state.forestFinds.has('shrine'));
       const cautiousWound=cautiousCost===0?'負傷なし':'HP -'+cautiousCost;
       const cautious=document.getElementById('forestGateCautious');
       const cautiousVerb=rpg.crafted?'慎重に牙を拾う':'素手で慎重に牙を拾う';
       // Put the earned tactical payoff on the actual choice button, not only
       // in the long phone stakes paragraph. Never promise it after shrine-first.
-      const cautiousPayoff=state.forestFinds.has('shrine')?'':'・先手猶予 +0.6秒';
+      const cautiousPayoff=state.forestFinds.has('shrine')
+        ? (cautiousCost>0?'・祠で覚えた苔の筋で負傷 -2':'')
+        : '・先手猶予 +0.6秒';
       cautious.disabled=ginji.hp<cautiousCost+1;
       cautious.textContent=cautious.disabled
         ? cautiousVerb+'（'+cautiousWound+'・未帰還素材 +1／HP '+(cautiousCost+1)+'以上必要）'
@@ -2123,8 +2125,13 @@
         risk.disabled?'奥まで探る（HP -'+riskCost+'・未帰還素材 +2／追加戦闘・撃退まで帰還不可｜HP '+(riskCost+1)+'以上必要）':
         '奥まで探る（HP -'+riskCost+' →残り'+Math.floor(ginji.hp-riskCost)+'・未帰還素材 +2'+(rpg.tempered?'／研ぎ直した剣で負傷 -2':rpg.crafted?'／鍛冶剣で軽減':'')+
         (state.forestFinds.has('traces')?'／足跡を読んで負傷 -3・接近する物音を早く察知':'')+
+        (state.forestFinds.has('hollow-scout') && !rpg.tempered?'／石門の見切りで負傷 -1':'')+
         (rpg.phase==='return'?'／奥に気配・追加戦闘あり・撃退まで帰還不可':'')+'）';
-      heal.textContent=missing ? '傷を癒やす（HP +'+Math.min(35,missing)+'・素材なし）' : '傷がないため回復不可';
+      // Tracks reveal a better herb patch, but only advertise the HP actually restored.
+      const shrineHealAmount=Math.min(state.forestFinds.has('traces')?40:35,missing);
+      const shrineHealBonus=shrineHealAmount-Math.min(35,missing);
+      heal.textContent=missing ? '傷を癒やす（HP +'+shrineHealAmount+
+        (shrineHealBonus>0?'・足跡の手がかりで回復 +'+shrineHealBonus:'')+'・素材なし）' : '傷がないため回復不可';
       // Show what each material route would mean for the next smithing goal.
       // A promising extra fang matters only if the adventurer returns alive.
       const forgeChoice=forestShrineCraftHint(rpg,rpgRules);
@@ -2207,10 +2214,10 @@
     }
     if(discovery.material) {
       for(let i=0;i<discovery.material;i++) if (!rpgRules.claimMaterial(rpg)) return false;
-      spawnPopup(discovery.spot.id==='shrine' && discovery.damage?'祠の奥で牙 +2（未帰還）／HP -'+discovery.damage:
-        discovery.spot.id==='hollow'?(shrineChoice==='cautious' && discovery.damage===0?'研ぎ直した剣で慎重に茨を払い、無傷で牙 +'+discovery.material+'（未帰還）・薬草は見送った':(rpg.tempered && shrineChoice==='material'?'研ぎ直した剣で茨を払った！ ':!rpg.crafted?'素手で茨をかき分けて':'石門の茨を払って')+'牙 +'+discovery.material+'（未帰還）／HP -'+discovery.damage+'・薬草は見送った'):
+      spawnPopup(discovery.spot.id==='shrine' && discovery.damage?(state.forestFinds.has('traces') && state.forestFinds.has('hollow-scout') && !rpg.tempered?'石門で覚えた茨の揺れを読み、負傷 -1。 ':'')+'祠の奥で牙 +2（未帰還）／HP -'+discovery.damage:
+        discovery.spot.id==='hollow'?(shrineChoice==='cautious' && discovery.damage===0?'研ぎ直した剣で慎重に茨を払い、無傷で牙 +'+discovery.material+'（未帰還）・薬草は見送った':(shrineChoice==='cautious' && state.forestFinds.has('shrine')?'祠で覚えた苔の筋をたどり負傷 -2。 ':'')+(rpg.tempered && shrineChoice==='material'?'研ぎ直した剣で茨を払った！ ':!rpg.crafted?'素手で茨をかき分けて':'石門の茨を払って')+'牙 +'+discovery.material+'（未帰還）／HP -'+discovery.damage+'・薬草は見送った'):
         discovery.spot.id==='shrine'?'祠の隙間で牙 +1（未帰還）／この遠征の癒やしは使い切った':
-        '獣の痕跡！牙 +1／危険な調査で受ける傷を3軽減',f.x,f.z,f.y+48,'#fde68a');
+        (state.forestFinds.has('shrine') ? '獣の痕跡！牙 +1（未帰還）／済んだ調査には効かない。まだ茨の軋みを追える' : '獣の痕跡！牙 +1（未帰還）／この先の危険な調査で負傷 -3'),f.x,f.z,f.y+48,'#fde68a');
     }
     if(discovery.damage) f.hp=Math.max(1,f.hp-discovery.damage);
     if(discovery.heal) {

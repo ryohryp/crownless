@@ -24,10 +24,16 @@
   // The forged sword still unlocks the two-fang salvage; sharpening makes
   // careful salvage wound-free, but never grants extra materials.
   const GATE_BAREHAND_DAMAGE=6;
-  function gateSalvageDamage(choice,tempered=false,crafted=true){
-    return choice==='cautious' ? (!crafted ? GATE_BAREHAND_DAMAGE :
-      tempered ? 0 : GATE_CAUTIOUS_DAMAGE) :
-      tempered ? 4 : GATE_SALVAGE_DAMAGE;
+  function gateSalvageDamage(choice,tempered=false,crafted=true,shrineFirst=false){
+    if(choice==='cautious'){
+      const base=!crafted ? GATE_BAREHAND_DAMAGE :
+        tempered ? 0 : GATE_CAUTIOUS_DAMAGE;
+      // Shrine-first explorers recognize the soft moss seam in the thorns.
+      // This saves HP on careful salvage, but cannot grant the gate-first
+      // guardian opening or make a wound-free tempered sword even stronger.
+      return Math.max(0,base-(shrineFirst?2:0));
+    }
+    return tempered ? 4 : GATE_SALVAGE_DAMAGE;
   }
   function near(player,found){
     if(!player) return null;
@@ -338,7 +344,10 @@
   // A tempered smith-made blade also helps clear the shrine's thorned gap.
   // Scouted footing and sharpening reduce wounds, never the guardian fight.
   function shrineRiskDamage(found,crafted,tempered=false){
-    return (crafted?6:12)-(found.has('traces')?3:0)-(crafted && tempered?2:0);
+    const base=(crafted?6:12)-(found.has('traces')?3:0)-(crafted && tempered?2:0);
+    // Cautious gate scouting reveals a safer approach to the later deep search.
+    // Never remove the last HP of risk: the extra guardian still must be faced.
+    return found.has('traces') && found.has('hollow-scout') ? Math.max(1,base-1) : base;
   }
   function uncover(player,found,phase,hp,maxHp,crafted=false,shrineChoice='auto',tempered=false){
     if(!available(phase)) return {ok:false};
@@ -358,7 +367,7 @@
       return {ok:false,reason:'choice',spot};
     if(spot.kind==='cache' && shrineChoice==='heal' && hp>=maxHp)
       return {ok:false,reason:'full',spot};
-    const gateDamage=gateSalvageDamage(shrineChoice,crafted && tempered,crafted);
+    const gateDamage=gateSalvageDamage(shrineChoice,crafted && tempered,crafted,found.has('shrine'));
     if(spot.kind==='cache' && shrineChoice!=='heal' && hp<gateDamage+1)
       return {ok:false,reason:'weak',spot};
     // The shrine offers a deliberate trade-off; a full-HP heal must not waste it.
@@ -384,13 +393,15 @@
     // Forceful salvage earns one more fang instead; herbs preserve HP.
     if(spot.kind==='cache' && shrineChoice==='cautious' && !found.has('shrine'))
       found.add('hollow-scout');
+    // Reading tracks first reveals a richer herb patch at the shrine: a modest
+    // non-combat payoff for scouting, without minting loot or bypassing danger.
     const gateHeal=spot.kind==='cache' && shrineChoice==='heal';
     const gateSalvage=spot.kind==='cache' && !gateHeal;
     const gateCautious=spot.kind==='cache' && shrineChoice==='cautious';
     return {ok:true,spot,material:risky?2:scavenge?1:spot.kind==='cache'&&!gateHeal?(gateCautious?1:2):spot.kind==='material'?1:0,
       damage:risky?riskDamage:gateSalvage?gateDamage:0,
       heal:gateHeal?Math.min(45,Math.max(0,maxHp-hp)):
-        spot.kind==='healing' && !scavenge?Math.min(35,Math.max(0,maxHp-hp)):0};
+        spot.kind==='healing' && !scavenge?Math.min(found.has('traces')?40:35,Math.max(0,maxHp-hp)):0};
   }
   return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,GATE_BAREHAND_DAMAGE,gateSalvageDamage,near,cueNear,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,pauseGuardianCounter,guardianScoutStrikeBonus,guardianScoutAttackCueActive,guardianReadyForOpening,guardianBehindWarning,companionYieldsGuardianOpening,companionYieldsGuardianRecovery,companionYieldsGuardianFootsteps,guardianTargetsExplorer,guardianStrikeTell,guardianKeepsTellOnHit,guardianDodgeCueActive,guardianCounterStrikeBonus,claimGuardianCounter,claimGuardianCounterFang,shrineRiskDamage,uncover};
 });
