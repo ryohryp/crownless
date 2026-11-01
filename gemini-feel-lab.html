@@ -3327,15 +3327,17 @@
   });
   document.getElementById('rpgForge').addEventListener('click', () => {
     if (!rpgRules.forge(rpg)) return;
-    saveActionProgress();
-    sfx.play('heavy');
+    // Crafting remains visible in this session if storage fails, but never
+    // celebrate a forged item as secured until the current save succeeds.
+    const saved=saveActionProgress();
+    if (saved) sfx.play('heavy');
     updateRpgStatus();
     showRpgPanel();
   });
   document.getElementById('rpgTemper').addEventListener('click', () => {
     if (!rpgRules.temper(rpg)) return;
-    saveActionProgress();
-    sfx.play('heavy');
+    const saved=saveActionProgress();
+    if (saved) sfx.play('heavy');
     updateRpgStatus();
     showRpgPanel();
   });
