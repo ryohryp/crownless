@@ -69,6 +69,7 @@ test('the live post-track HUD asks for observation, not a prescribed gate route'
   const label = vm.runInNewContext(html.slice(start, end) + '\nlabel', {
     guardian: null,
     near: null,
+    cue: null,
     state: { forestFinds: new Set(['traces']) },
     rpg: { crafted: false, phase: 'return', unbanked: 2 }
   });
@@ -83,12 +84,18 @@ test('the field HUD keeps the unvisited fork visible after either first discover
   const start = html.indexOf('    const label=guardian' + String.fromCharCode(10));
   const end = html.indexOf('    if(hint.textContent!==label)', start);
   assert(start >= 0 && end > start, 'evaluate the live HUD, not a duplicate hint rule');
-  const labelFor = ids => vm.runInNewContext(html.slice(start, end) + String.fromCharCode(10) + 'label', {
+  const labelFor = (ids, cue = null) => vm.runInNewContext(html.slice(start, end) + String.fromCharCode(10) + 'label', {
     guardian: null,
     near: null,
+    cue,
     state: { forestFinds: new Set(ids) },
     rpg: { crafted: false, phase: 'return', unbanked: 2 }
   });
+  const breeze = labelFor(['traces', 'hollow', 'hollow-scout'], { id: 'shrine' });
+  assert.match(breeze, /冷たい風が頬をかすめる/,
+    'earned distant shrine air stays visible after the one-shot popup');
+  assert.doesNotMatch(breeze, /苔むす祠|石門|祠|右|左|道順/,
+    'distant air must not reveal a destination or route');
   const both = labelFor(['traces']);
   assert.match(both, /二手に分かれ/, 'both branches remain a player choice');
   assert(both.length<=40, 'fork HUD stays compact over a 360px phone scene');
