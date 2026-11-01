@@ -1957,11 +1957,34 @@ async function main() {
             await tapSite(scoutPage,'hollow');
             assert.equal((await read(scoutPage)).unbanked,afterScoutOnly.unbanked,
               'the observed gate cannot be farmed');
+            // The zero-loot option must pay off in the NEXT real decision:
+            // a safer shrine approach and an actionable guardian opening.
+            // Keep all movement, choices and combat as real browser input.
+            await walkTo(scoutPage,660,230);
+            await tapSite(scoutPage,'shrine');
+            const scoutShrineChoice=await scoutPage.locator('#forestShrineRisk').innerText();
+            assert.match(scoutShrineChoice,/HP -8/,
+              'barehand tracks + gate observation reduces the shrine wound from 9 to 8 HP');
+            const beforeScoutShrine=await read(scoutPage);
+            await scoutPage.locator('#forestShrineRisk').click();
+            const scoutShrineRisk=await read(scoutPage);
+            assert.equal(scoutShrineRisk.phase,'fight',
+              'no-loot observation does not skip the optional guardian');
+            assert.equal(scoutShrineRisk.player.hp,beforeScoutShrine.player.hp-8,
+              'the earned scouting clue saves exactly one HP at the shrine');
+            assert.equal(scoutShrineRisk.unbanked,beforeScoutShrine.unbanked+2,
+              'the shrine reward stays provisional until a living return');
+            assert.equal(scoutShrineRisk.enemies.find(e=>e.name==='苔祠の番人')?.scoutOpeningSeconds,2.4,
+              'the no-loot observation grants the same real 2.4s guardian opening');
+            const scoutOnlyGuardian=await clearWave(scoutPage);
+            assert.equal(scoutOnlyGuardian.after.phase,'return',
+              'the no-loot branch must return to exploration after guardian victory');
             await scoutPage.locator('#rpgOpenResults').click();
             await scoutPage.locator('#rpgReturn').click();
             const scoutOnlyReturn=await read(scoutPage);
-            assert.equal(scoutOnlyReturn.banked,afterScoutOnly.unbanked,
-              'only legitimate provisional materials are banked on living return');
+            assert.equal(scoutOnlyReturn.phase,'camp');
+            assert.equal(scoutOnlyReturn.banked,scoutOnlyGuardian.after.unbanked,
+              'only the real combat and shrine rewards are banked on living return');
             assert.equal(scoutOnlyReturn.unbanked,0);
             await scoutPage.reload({waitUntil:'domcontentloaded'});
             await scoutPage.waitForFunction(()=>window.CrownlessForestReadout?.().assetsReady,
@@ -1969,9 +1992,16 @@ async function main() {
             const scoutOnlyRestored=await read(scoutPage);
             assert.equal(scoutOnlyRestored.banked,scoutOnlyReturn.banked);
             assert.equal(scoutOnlyRestored.unbanked,0);
+            await departSavedCamp(scoutPage);
+            const scoutRevisit=await read(scoutPage);
+            assert.equal(scoutRevisit.banked,scoutOnlyReturn.banked,
+              're-departing cannot erase or duplicate the first safely banked loot');
+            assert.equal(scoutRevisit.found.includes('hollow-scout'),false,
+              'the next expedition must earn its own scouting clue');
             assert.deepEqual(scoutErrors,[],'scout-only touch path has no browser errors');
             report.barehandScoutOnly={before:beforeScoutOnly,after:afterScoutOnly,
-              returned:scoutOnlyReturn,restored:scoutOnlyRestored};
+              shrineRisk:scoutShrineRisk,guardian:scoutOnlyGuardian,
+              returned:scoutOnlyReturn,restored:scoutOnlyRestored,revisit:scoutRevisit};
           } finally { await scoutOnlyContext.close(); }
 
           report.loop={first,shrineBeforeForge,locked,gateHerbsBeforeForge:{before:beforeSwordlessHerbs,after:afterSwordlessHerbs},returned,forged,second,shrineAfterForge,forgedDodge,unlocked,banked,restored,
