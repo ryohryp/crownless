@@ -1854,6 +1854,62 @@ async function main() {
               'the swordless salvage reward survives reload');
             assert.equal(barehandRestored.unbanked,0,
               'reload never duplicates provisional fangs');
+            // Preserve the real-touch no-loot route on an untempered starter.
+            // On a tempered sword it is intentionally hidden as a dominated
+            // choice; here it remains useful when HP is scarce.
+            await barehandPage.locator('#rpgDepart').click();
+            await clearWave(barehandPage);
+            await walkTo(barehandPage,800,365);
+            await tapSite(barehandPage,'traces');
+            await walkTo(barehandPage,910,235);
+            const beforeScoutOnly=await read(barehandPage);
+            assert.equal(beforeScoutOnly.crafted,false,
+              'the second swordless expedition still has no forged sword');
+            await tapSite(barehandPage,'hollow');
+            const scoutOnlyButton=barehandPage.locator('#forestGateScout');
+            assert.equal(await scoutOnlyButton.isEnabled(),true,
+              'the non-dominated scout-only action stays usable without a sword');
+            assert.equal(await scoutOnlyButton.isVisible(),true);
+            const barehandScoutBounds=await scoutOnlyButton.boundingBox();
+            assert(barehandScoutBounds && barehandScoutBounds.width>=44 &&
+              barehandScoutBounds.height>=44 &&
+              barehandScoutBounds.y>=0 &&
+              barehandScoutBounds.y+barehandScoutBounds.height<=844,
+              'swordless scout-only choice is touch-reachable at 390px');
+            await barehandPage.screenshot({
+              path:path.join(output,'pixel-forest-barehand-scout-only-390.png')
+            });
+            await barehandPage.touchscreen.tap(
+              barehandScoutBounds.x+barehandScoutBounds.width/2,
+              barehandScoutBounds.y+barehandScoutBounds.height/2);
+            const afterScoutOnly=await read(barehandPage);
+            assert(afterScoutOnly.found.includes('hollow-scout') &&
+              afterScoutOnly.found.includes('hollow'),
+              'the real scout-only tap earns the clue and consumes the gate');
+            assert.equal(afterScoutOnly.player.hp,beforeScoutOnly.player.hp,
+              'scouting without salvage causes no wound');
+            assert.equal(afterScoutOnly.unbanked,beforeScoutOnly.unbanked,
+              'scouting without salvage mints no fang');
+            assert.equal(afterScoutOnly.banked,beforeScoutOnly.banked,
+              'scouting never banks provisional materials');
+            await tapSite(barehandPage,'hollow');
+            assert.equal((await read(barehandPage)).unbanked,afterScoutOnly.unbanked,
+              'the observed gate cannot be farmed again');
+            await barehandPage.locator('#rpgOpenResults').click();
+            await barehandPage.locator('#rpgReturn').click();
+            const scoutOnlyReturn=await read(barehandPage);
+            assert.equal(scoutOnlyReturn.banked,
+              barehandRestored.banked+afterScoutOnly.unbanked,
+              'only legitimate provisional materials are banked on living return');
+            assert.equal(scoutOnlyReturn.unbanked,0);
+            await barehandPage.reload({waitUntil:'domcontentloaded'});
+            await barehandPage.waitForFunction(()=>window.CrownlessForestReadout?.().assetsReady,
+              null,{timeout:20000});
+            const scoutOnlyRestored=await read(barehandPage);
+            assert.equal(scoutOnlyRestored.banked,scoutOnlyReturn.banked);
+            assert.equal(scoutOnlyRestored.unbanked,0);
+            report.barehandScoutOnly={before:beforeScoutOnly,after:afterScoutOnly,
+              returned:scoutOnlyReturn,restored:scoutOnlyRestored};
             assert.deepEqual(barehandErrors,[],'swordless touch path has no browser errors');
             report.barehandGate={before:beforeBarehand,after:afterBarehand,
               returned:barehandReturn,restored:barehandRestored};
