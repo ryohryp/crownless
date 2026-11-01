@@ -132,6 +132,8 @@ test('phone gate choice itself shows the earned scouting payoff only when usable
   assert.equal(gateFirst.disabled,false);
   assert.match(gateFirst.textContent,/未帰還素材 \+1・先手猶予 \+0\.6秒/,
     'the benefit must be visible on the tappable choice, not buried in a paragraph');
+  assert.match(gateFirst.textContent,/後の深い調査で負傷 -1/,
+    'the choice previews the earned later injury reduction without naming the undiscovered site');
   assert.doesNotMatch(gateFirst.textContent,/祠|番人|右|左/,
     'the gate must not spoil the unvisited threat or its direction');
   assert.match(render(['traces'],90,true).textContent,/先手猶予 \+0\.6秒/,
