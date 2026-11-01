@@ -331,6 +331,6 @@ test('phone gate offers an explicit scout-only tradeoff without revealing a hidd
   assert.match(html,/観察は牙を持ち帰れない/);
   assert.match(html,/scout\.classList\.toggle\('hidden',scout\.disabled\)/,
     'both obsolete and dominated observations must disappear from the phone sheet');
-  assert.doesNotMatch(html.match(/scout\.textContent=scout\.disabled[\s\S]*?;\n/)[0],/隠し道|祠の位置|石門の奥/,
+  assert.doesNotMatch(html.match(/scout\.textContent=state\.forestFinds\.has\('shrine'\)[\s\S]*?;\n/)[0],/隠し道|祠の位置|石門の奥/,
     'the choice must not reveal an unvisited destination');
 });
