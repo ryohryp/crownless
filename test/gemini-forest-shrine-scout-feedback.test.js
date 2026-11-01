@@ -74,3 +74,44 @@ test('the actual landed scouting strike popup distinguishes earned gate-first +1
   assert.doesNotMatch(feedback(1.8), /石門の観察が効いた/,
     'tracks-only scouting must not claim a gate-first reward');
 });
+
+test('earned cold-air clue strengthens on approach without naming or revealing the shrine', () => {
+  const html = fs.readFileSync('gemini-feel-lab.html', 'utf8');
+  const start = html.indexOf(": rpg.phase==='return' && cue?.id==='shrine' && !near");
+  const end = html.indexOf(": state.forestFinds.has('traces')", start);
+  assert(start >= 0 && end > start, 'test the live exploration HUD branch');
+  const expression = html.slice(start + 1, end).trim() + ' : null';
+
+  function hint(distance, foundIds, phase = 'return') {
+    const found = new Set(foundIds);
+    const ginji = {x:660 + distance, z:230};
+    const near = D.near(ginji, found);
+    const cue = D.cueNear(ginji, found);
+    return {
+      near, cue,
+      label: vm.runInNewContext(expression, {rpg:{phase}, cue, near, ginji})
+    };
+  }
+
+  const scouted = ['traces','hollow','hollow-scout'];
+  const far = hint(120, scouted);
+  assert.equal(far.cue?.id, 'shrine');
+  assert.equal(far.near, null, 'the far cue must not enable early inspection');
+  assert.match(far.label, /冷たい風が頬をかすめる/);
+  const closer = hint(80, scouted);
+  assert.equal(closer.near, null);
+  assert.match(closer.label, /冷たい風が強くなる/);
+  for (const label of [far.label, closer.label]) {
+    assert.doesNotMatch(label, /祠|右|左|北|南|隠し道|タップ/);
+  }
+  assert.equal(hint(120, ['traces']).label, null,
+    'without gate scouting the 135-unit early breeze is not earned');
+  assert.match(hint(80, ['traces']).label, /冷たい風が強くなる/,
+    'ordinary track readers still notice the nearer breeze');
+  assert.equal(hint(40, scouted).label, null,
+    'within the normal interaction radius the existing near-site HUD wins');
+  assert.equal(hint(80, scouted, 'fight').label, null,
+    'a distant clue must not override combat objectives');
+  assert.equal(hint(80, ['traces','shrine']).label, null,
+    'an already discovered site must not advertise a new clue');
+});
