@@ -68,9 +68,9 @@ test('the actual landed scouting strike popup distinguishes earned gate-first +1
     assert.equal(messages.length, 1);
     return messages[0];
   }
-  assert.match(feedback(2.4), /石門の観察が効いた！先手 \\+12/,
+  assert.match(feedback(2.4), /石門の観察が効いた！先手 \+12/,
     'a lethal first strike must still produce its earned popup even if the guardian HUD disappears');
-  assert.match(feedback(1.8), /先手成功！\\+12/);
+  assert.match(feedback(1.8), /先手成功！\+12/);
   assert.doesNotMatch(feedback(1.8), /石門の観察が効いた/,
     'tracks-only scouting must not claim a gate-first reward');
 });
