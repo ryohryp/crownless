@@ -203,7 +203,7 @@ test('earned shrine breeze remains a local, non-directional HUD clue after the p
     'the HUD must not give away an unvisited destination or path');
   assert.doesNotMatch(hint(early,['traces','hollow']),/冷たい風が頬をかすめる/,
     'forceful salvage does not grant the early breeze');
-  assert.match(hint({x:730,z:260},['traces']),/冷たい風が頬をかすめる/,
+  assert.match(hint({x:730,z:260},['traces']),/冷たい風が強くなる/,
     'ordinary track reading still earns a closer sensory clue');
   assert.doesNotMatch(hint(early,scouted,'fight'),/冷たい風が頬をかすめる/,
     'a nearby fight must not be distracted by exploration hints');
