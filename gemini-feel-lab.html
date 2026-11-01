@@ -3246,7 +3246,13 @@
     const keepExploring=document.getElementById('rpgKeepExploring');
     keepExploring.classList.toggle('hidden', !result);
     keepExploring.textContent=unexploredCue?'🌲 気配を追って調べる':'🌲 森の探索を続ける';
-    document.getElementById('rpgReturn').classList.toggle('hidden', !result);
+    const returnButton=document.getElementById('rpgReturn');
+    returnButton.classList.toggle('hidden', !result);
+    // Make the actual safe-return payoff visible on the thumb-reachable action.
+    // The bag is still provisional until the player explicitly returns alive.
+    if (result) returnButton.textContent=rpg.unbanked>0
+      ? '🏕 牙'+rpg.unbanked+'個を倉庫へ持ち帰る'
+      : '🏕 無事に帰還する（素材なし）';
     const pushDeeper=document.getElementById('rpgPush');
     pushDeeper.classList.toggle('hidden', !result);
     // The next wave is a different commitment from inspecting this cleared forest.
@@ -3303,7 +3309,11 @@
     if(rpg.phase==='return') document.getElementById('rpgPanel').classList.add('hidden');
   });
   document.getElementById('rpgReturn').addEventListener('click', () => {
+    const securedFangs=rpg.unbanked;
     if (!rpgRules.returnAlive(rpg, ginji && ginji.hp)) return;
+    // Reward the actual banking moment, not collecting provisional loot.
+    // Silent/unsupported devices still show the updated warehouse count.
+    if (securedFangs>0) { sfx.play('coin'); sfx.haptic([18,45,24]); }
     saveActionProgress();
     updateRpgStatus();
     showRpgPanel();
