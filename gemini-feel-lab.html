@@ -2082,14 +2082,20 @@
       const cautiousWound=cautiousCost===0?'負傷なし':'HP -'+cautiousCost;
       const cautious=document.getElementById('forestGateCautious');
       const scout=document.getElementById('forestGateScout');
-      scout.disabled=state.forestFinds.has('shrine');
+      // With a tempered sword, cautious salvage is wound-free and grants the
+      // same scouting benefit plus one fang. Do not offer a strictly worse
+      // zero-loot observation as another apparent decision.
+      const scoutOutclassed=rpg.crafted && rpg.tempered && cautiousCost===0;
+      scout.disabled=state.forestFinds.has('shrine') || scoutOutclassed;
       // A route-order bonus that can no longer apply is not a dead-end phone choice.
       scout.classList.toggle('hidden',scout.disabled);
       document.getElementById('forestGateTitle').textContent=scout.disabled
         ? '🌿 茨の石門：薬草か素材か、一度だけ'
         : '🌿 茨の石門：薬草・素材・観察から一度だけ';
-      scout.textContent=scout.disabled
+      scout.textContent=state.forestFinds.has('shrine')
         ? '茨の動きを観察（調査済みの危険には効果なし）'
+        : scoutOutclassed
+        ? '茨の動きを観察（無傷の回収なら牙も得られる）'
         : '茨の動きを観察（負傷なし・素材なし・先手猶予 +0.6秒）';
       const cautiousVerb=rpg.crafted?'慎重に牙を拾う':'素手で慎重に牙を拾う';
       // Put the earned tactical payoff on the actual choice button, not only
@@ -2116,7 +2122,9 @@
         (rpg.tempered?'研ぎ直した剣で負傷軽減。':'')+
         // Button labels already show HP costs, fang counts and recovery. Keep
         // the 360px decision sheet focused on stakes and the unique scouting payoff.
-        (!state.forestFinds.has('shrine') ? '観察か慎重な回収なら先手の猶予 +0.6秒（強引な回収・薬草なら効果なし）。観察は牙を持ち帰れない。' : '')+
+        (!state.forestFinds.has('shrine') ? (rpg.crafted && rpg.tempered
+          ? '慎重な回収なら先手の猶予 +0.6秒（強引な回収・薬草なら効果なし）。'
+          : '観察か慎重な回収なら先手の猶予 +0.6秒（強引な回収・薬草なら効果なし）。観察は牙を持ち帰れない。') : '')+
         '一度だけ選べる。素材は生還時だけ倉庫に残り、敗北すると失う。';
       // Restore the layout box before resetting scroll: scrollTop writes to a
       // display:none sheet can be ignored by the browser.
