@@ -722,7 +722,8 @@
     });
 
     state.fighters.push(ginji, sasuke);
-    spawnEnemyWave(1);
+    // Saved camp has no active battle until the player deliberately departs.
+    if (rpg.phase !== 'camp') spawnEnemyWave(1);
 
     // No found finished weapon: the stronger sword is crafted by the smith after a safe return.
     spawnItem('stone', 480, 290, 50);
@@ -3442,6 +3443,9 @@
     applyCombatInputMode();
     initStage();
     updateRpgStatus();
+    // A saved living return must reopen the smith / next-expedition choices.
+    // In an interrupted fight the usual combat screen remains visible.
+    showRpgPanel();
     requestAnimationFrame(gameLoop);
   };
 })();
