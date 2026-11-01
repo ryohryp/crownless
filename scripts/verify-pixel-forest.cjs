@@ -904,8 +904,18 @@ async function main() {
           assert.match(await returnButton.innerText(),new RegExp('牙'+afterTracks.unbanked+'）'),
             'the return choice updates even when the clue hint takes priority');
           await page.waitForFunction(()=>document.getElementById('forestExploreHint')?.textContent?.includes('足跡は二手に分かれ、途切れた'));
-          assert.ok((await page.locator('#forestExploreHint').innerText()).includes('どちらを追う？（調査負傷 -3）'),
-            'discovering tracks should immediately reveal the safer next choice');
+          const forkHint=await page.locator('#forestExploreHint').innerText();
+          assert.match(forkHint,/どちらを追う？（深い調査の負傷を3軽減）/,
+            'the earned tracks clue must describe a reduction, not misstate the actual HP cost');
+          assert.doesNotMatch(forkHint,/祠|石門|右|左|隠し道/,
+            'the fork clue must not name undiscovered sites or reveal their routes');
+          const deepSearchCosts=await page.evaluate(()=>{
+            const rule=window.CrownlessForestDiscoveries.shrineRiskDamage;
+            return [rule(new Set(),false),rule(new Set(['traces']),false),
+              rule(new Set(),true),rule(new Set(['traces']),true)];
+          });
+          assert.deepEqual(deepSearchCosts,[12,9,6,3],
+            'the phone hint must match the actual three-point reduction with or without a sword');
           // Capture the actual phone canvas with the earned fork in view;
           // this is visual evidence, not a claim that the signs are readable.
           await page.screenshot({path:path.join(output,'pixel-forest-fork-390.png')});
