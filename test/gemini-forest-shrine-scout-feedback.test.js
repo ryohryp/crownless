@@ -186,18 +186,20 @@ test('gate choices preview the earned shrine-deep wound reduction only when effe
     const actual = labels(['traces'], crafted, false, cost);
     for (const label of [actual.scout,actual.cautious]) {
       assert.match(label,/先手猶予 \+0\.6秒/);
-      assert.match(label,/祠の奥を探ると負傷 -1/,
+      assert.match(label,/後の深い調査で負傷 -1/,
         'gate-first scouting must preview its real later deep-search payoff');
+      assert.doesNotMatch(label,/祠|番人|右|左/,
+        'a gate-first preview must not reveal an unvisited site or route');
     }
   }
   const tempered = labels(['traces'], true, true, 0);
-  assert.doesNotMatch(tempered.scout + tempered.cautious,/祠の奥を探ると負傷 -1/,
+  assert.doesNotMatch(tempered.scout + tempered.cautious,/後の深い調査で負傷 -1/,
     'the 1 HP risk floor makes a tempered sword scouting discount ineffective');
   assert.match(tempered.cautious,/先手猶予 \+0\.6秒/);
   const shrineFirst = labels(['traces','shrine'],true,false,1);
-  assert.doesNotMatch(shrineFirst.scout + shrineFirst.cautious,/祠の奥を探ると負傷 -1/,
+  assert.doesNotMatch(shrineFirst.scout + shrineFirst.cautious,/後の深い調査で負傷 -1/,
     'no retroactive scouting discount after the shrine was investigated');
   assert.match(shrineFirst.cautious,/苔の筋で負傷 -2/);
-  assert.match(html,/id="forestGateScout"[^>]*>茨の動きを観察（負傷なし・素材なし・先手猶予 \+0\.6秒・祠の奥を探ると負傷 -1）<\/button>/,
+  assert.match(html,/id="forestGateScout"[^>]*>茨の動きを観察（負傷なし・素材なし・先手猶予 \+0\.6秒・後の深い調査で負傷 -1）<\/button>/,
     'initial markup must agree with the live gate decision');
 });
