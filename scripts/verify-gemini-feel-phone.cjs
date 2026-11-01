@@ -8,6 +8,9 @@ const path = require('node:path');
 const rpgRules = require('../src/gemini-rpg-loop.js');
 
 async function touchSavedCampDeparture(page) {
+  const camp=await page.evaluate(()=>window.CrownlessForestReadout());
+  assert.equal(camp.phase,'camp','a restored camp must wait for deliberate departure');
+  assert.equal(camp.enemies.length,0,'a restored camp must not spawn an unseen fight');
   assert.equal(await page.locator('#rpgPanel').isVisible(),true,
     'a saved living return must reopen the camp sheet');
   const depart=page.locator('#rpgDepart');
@@ -20,7 +23,12 @@ async function touchSavedCampDeparture(page) {
     box.y+box.height<=page.viewportSize().height,
     'the re-expedition action must fit the phone viewport');
   await page.touchscreen.tap(box.x+box.width/2,box.y+box.height/2);
-  assert.equal((await page.evaluate(()=>window.CrownlessForestReadout())).phase,'fight');
+  const next=await page.evaluate(()=>window.CrownlessForestReadout());
+  assert.equal(next.phase,'fight');
+  assert(next.enemies.some(enemy=>enemy.hp>0 && enemy.state!=='DEAD'),
+    'real touch departure must start a live enemy encounter, not just change phase');
+  assert.equal(next.banked,camp.banked,'re-expedition must preserve previously secured materials');
+  assert.equal(next.unbanked,0,'a new fight must start with an empty provisional bag');
   assert.equal(await page.locator('#rpgPanel').isVisible(),false,
     'the camp sheet must close after an explicit departure');
 }
