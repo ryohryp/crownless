@@ -131,7 +131,7 @@ test('safe return previews the unsecured haul and celebrates only actual banking
   const start = html.indexOf("  document.getElementById('rpgReturn').addEventListener('click', () => {");
   const end = html.indexOf("  document.getElementById('rpgPush').addEventListener", start);
   assert(start >= 0 && end > start, 'exercise the actual return click handler');
-  const invoke = (loot, hp) => {
+  const invoke = (loot, hp, saveSucceeds = true) => {
     const run = R.create();
     for (let i = 0; i < loot; i++) R.claimMaterial(run);
     R.clearWave(run);
@@ -144,7 +144,7 @@ test('safe return previews the unsecured haul and celebrates only actual banking
       rpgRules: R, rpg: run, ginji: { hp },
       sfx: { play: type => events.push('sound:' + type),
         haptic: pattern => events.push('haptic:' + Array.from(pattern).join(',')) },
-      saveActionProgress: () => events.push('save'),
+      saveActionProgress: () => { events.push('save'); return saveSucceeds; },
       updateRpgStatus: () => events.push('status'),
       showRpgPanel: () => events.push('panel')
     });
@@ -156,13 +156,17 @@ test('safe return previews the unsecured haul and celebrates only actual banking
   assert.equal(successful.run.banked, 2);
   assert.equal(successful.run.unbanked, 0);
   assert.equal(successful.run.phase, 'camp');
-  assert.deepEqual(successful.events, ['sound:coin', 'haptic:18,45,24', 'save', 'status', 'panel']);
+  assert.deepEqual(successful.events, ['save', 'sound:coin', 'haptic:18,45,24', 'status', 'panel']);
   assert.equal(P.decode(P.encode(successful.run)).banked, 2,
     'celebration must not change the current secure-save contract');
   successful.onReturn();
   assert.equal(successful.events.length, 5, 'repeated taps cannot bank or celebrate twice');
   assert.deepEqual(invoke(0, 80).events, ['save', 'status', 'panel'],
     'a no-loot return is valid but has no loot fanfare');
+  const unsaved = invoke(2, 80, false);
+  assert.equal(unsaved.run.banked, 2, 'the session still shows returned loot');
+  assert.deepEqual(unsaved.events, ['save', 'status', 'panel'],
+    'a failed save must not play a false loot-secured sound or vibration');
   const defeated = invoke(2, 0);
   assert.equal(defeated.run.banked, 0);
   assert.equal(defeated.run.unbanked, 2);
