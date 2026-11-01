@@ -1,0 +1,80 @@
+{
+  "native_frame_size": [
+    64,
+    96
+  ],
+  "frame_count": 8,
+  "native_atlas_size": [
+    512,
+    96
+  ],
+  "visible_color_count": 25,
+  "palette_colors": 26,
+  "alpha_mode": "binary",
+  "distinct_frame_sha256": [
+    "f4d038e279729c6499cf54e77b242c9e02f97d300268036d405deb7012095e66",
+    "7f2c8d4980d58be115d615e7bb5c0bc8dcb1b02d7317831e32c43b66e4624b21",
+    "5bc30194807ce4c627a1a429dd22fc199c08fdd9cbd4cb35cc3d312a1fdff15e",
+    "55466da6f967c2a0f5430cc65ee7a8fa4cf99aa915a68075d144458f71f27c67",
+    "e7dbbcf623e459b205802698e5b23956145370917985789a2ab73f404d2cf8be",
+    "aebad30e5c0b5e570561d7a996cfd3ad4f7a32476c1e9792b5db0fff3e0aadad",
+    "7e7d64b3a17ece1e34cfbf67fcc0d1e72c51ac57de7837276b2df1e19780db69",
+    "f7151c12a65efd6ff115698f85b551e5e4ecc198167e140adc89df45b94b61f3"
+  ],
+  "upper_body_changed_pixels_opposing_phase": [
+    627,
+    549,
+    249,
+    635
+  ],
+  "frame_bboxes": [
+    [
+      6,
+      8,
+      61,
+      88
+    ],
+    [
+      7,
+      10,
+      61,
+      88
+    ],
+    [
+      8,
+      9,
+      61,
+      86
+    ],
+    [
+      10,
+      7,
+      61,
+      88
+    ],
+    [
+      10,
+      8,
+      60,
+      88
+    ],
+    [
+      9,
+      10,
+      59,
+      88
+    ],
+    [
+      8,
+      9,
+      59,
+      86
+    ],
+    [
+      6,
+      7,
+      59,
+      88
+    ]
+  ]
+}
