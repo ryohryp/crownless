@@ -75,6 +75,40 @@ test('reading tracks extends only the hidden gate vibration, never touch range o
     'normal contextual hints still use the original interaction radius');
 });
 
+test('earned gate scouting brings a shrine breeze sooner, without revealing or reaching the site',()=>{
+  const gate={x:910,z:235,state:'IDLE'};
+  const approach={x:790,z:230};
+  const tooFar={x:800,z:230};
+  const unscouted=new Set(['traces']);
+  const forceful=D.uncover(gate,unscouted,'return',140,140,true,'material');
+  assert.equal(forceful.ok,true);
+  assert.equal(unscouted.has('hollow-scout'),false);
+  assert.equal(D.cueNear(approach,unscouted),null,
+    'tracks alone still need a closer approach to hear the shrine breeze');
+
+  const scouted=new Set(['traces']);
+  const observed=D.uncover(gate,scouted,'return',140,140,false,'scout');
+  assert.equal(observed.ok,true);
+  assert.equal(observed.material,0,'the farther breeze does not mint a fang');
+  assert.equal(scouted.has('hollow-scout'),true);
+  assert.equal(D.near(approach,scouted),null,
+    'an earned distant cue must not change the 54-unit interaction radius');
+  assert.equal(D.cueNear(approach,scouted)?.id,'shrine',
+    'the observer recognizes cold air before an ordinary tracked explorer');
+  assert.equal(D.cueNear(tooFar,scouted),null,
+    'even the earned breeze is bounded and cannot disclose a remote site');
+  assert.equal(D.uncover(approach,scouted,'return',140,140,false,'material').ok,false,
+    'a distant cue cannot investigate or collect the hidden shrine');
+  assert.equal(scouted.has('shrine'),false);
+  scouted.add('shrine');
+  assert.equal(D.cueNear(approach,scouted),null,
+    'an already discovered shrine cannot repeatedly broadcast its clue');
+
+  const invalid=new Set(['hollow-scout','hollow']);
+  assert.equal(D.cueNear(approach,invalid),null,
+    'the gate flag alone without earned tracks must not reveal a distant clue');
+});
+
 test('earned far gate cue is perceivable without haptics, once only, and reveals no route',()=>{
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   const hintStart=html.indexOf('  function updateForestExploreHint()');
