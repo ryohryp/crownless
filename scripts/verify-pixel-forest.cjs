@@ -1402,11 +1402,9 @@ async function main() {
             guardian:{hpAfter:temperedGuardian.after.player.hp,
               scoutedFirstHit:temperedGuardian.scoutedFirstHit},
             returned:temperedShrineReturn,restored:temperedShrineRestored};
-          // Real 390px gate-first comparison: deliberately inspect the thorn
-          // lead before choosing the optional shrine fight. The same tempered
-          // sword is used as in the shrine-first run above, but the gate's
-          // no-loot observation is chosen; no test-only
-          // teleport, reward injection, or save edits are permitted.
+          // Real 390px gate-first comparison with the same tempered sword:
+          // cautious salvage is now the meaningful no-wound choice. The
+          // no-loot observation is strictly worse and intentionally hidden.
           assert.equal(temperedShrineRestored.phase,'fight');
           await clearWave(page);
           await walkTo(page,800,365);
@@ -1418,47 +1416,42 @@ async function main() {
             'both fork destinations remain unclaimed before the detour');
           await tapSite(page,'hollow');
           const gateScoutButton=page.locator('#forestGateScout');
-          assert.equal(await gateScoutButton.isEnabled(),true,
-            'before shrine discovery, a swordless zero-wound scouting alternative is available');
-          assert.equal(await gateScoutButton.isVisible(),true,
-            'the pre-shrine observation remains a visible player choice');
-          assert.match(await page.locator('#forestGateTitle').innerText(),/薬草・素材・観察から一度だけ/,
-            'the pre-shrine heading still advertises observation');
-          assert.match(await gateScoutButton.innerText(),/負傷なし.*素材なし.*先手猶予 \+0\.6秒/,
-            'the actual phone choice states its no-loot tradeoff');
-          const scoutBounds=await gateScoutButton.boundingBox();
-          assert(scoutBounds && scoutBounds.width>=44 && scoutBounds.height>=44 &&
-            scoutBounds.y>=0 && scoutBounds.y+scoutBounds.height<=page.viewportSize().height,
-            'the scout-only choice must be thumb-sized and visible at 390px');
+          assert.equal(await gateScoutButton.isVisible(),false,
+            'tempered cautious salvage earns the same opening plus one fang without injury');
+          assert.match(await page.locator('#forestGateTitle').innerText(),/薬草か素材か、一度だけ/,
+            'the tempered heading must not advertise a dominated observation');
+          const gateCautiousButton=page.locator('#forestGateCautious');
+          assert.equal(await gateCautiousButton.isEnabled(),true);
+          assert.match(await gateCautiousButton.innerText(),/負傷なし.*未帰還素材 \+1.*先手猶予 \+0\.6秒/,
+            'tempered cautious salvage retains its no-wound fang and tactical payoff');
+          const cautiousBounds=await gateCautiousButton.boundingBox();
+          assert(cautiousBounds && cautiousBounds.width>=44 && cautiousBounds.height>=44 &&
+            cautiousBounds.y>=0 && cautiousBounds.y+cautiousBounds.height<=page.viewportSize().height,
+            'the meaningful tempered choice stays thumb-sized on 390px');
           const gateFirstPreview=await page.locator('#forestGateStakes').innerText();
-          assert(gateFirstPreview.includes('先手の猶予 +0.6秒'),
-            '390px gate-first choice must disclose its earned later reaction advantage before the tap');
-          assert(gateFirstPreview.includes('強引な回収・薬草なら効果なし'),
-            '390px phone must distinguish cautious scouting from forceful loot and healing');
-          assert.doesNotMatch(gateFirstPreview,/苔祠|番人|右|左/,
-            'the preview must not spoil the unseen destination or its guardian');
-          // Commit to the no-loot option with a genuine 390px touchscreen tap.
-          // The cautious one-fang route is exercised earlier; this run proves
-          // observation alone can prepare a guardian fight without free loot.
-          await page.screenshot({path:path.join(output,'pixel-forest-gate-observe-choice-390.png')});
-          await page.touchscreen.tap(scoutBounds.x+scoutBounds.width/2,
-            scoutBounds.y+scoutBounds.height/2);
+          assert(gateFirstPreview.includes('慎重な回収なら先手の猶予 +0.6秒'),
+            'the phone describes the remaining tactical choice');
+          assert.doesNotMatch(gateFirstPreview,/観察か慎重な回収|観察は牙を持ち帰れない|苔祠|番人|右|左/,
+            'the preview must not advertise the dominated option or spoil the hidden destination');
+          await page.screenshot({path:path.join(output,'pixel-forest-gate-tempered-cautious-390.png')});
+          await page.touchscreen.tap(cautiousBounds.x+cautiousBounds.width/2,
+            cautiousBounds.y+cautiousBounds.height/2);
           const gateFirstAfter=await read(page);
           assert(gateFirstAfter.found.includes('hollow'),
-            'a real observation tap must consume the gate');
+            'a real tempered cautious tap must consume the gate');
           assert(gateFirstAfter.found.includes('hollow-scout'),
-            'observing without salvage must earn the later guardian opening');
+            'tempered cautious salvage must earn the later guardian opening');
           assert.equal(gateFirstAfter.player.hp,gateFirstBefore.player.hp,
-            'observation must cost no HP even when loot is forgone');
-          assert.equal(gateFirstAfter.unbanked,gateFirstBefore.unbanked,
-            'observation must not award a provisional fang');
+            'tempered cautious salvage must cost no HP');
+          assert.equal(gateFirstAfter.unbanked,gateFirstBefore.unbanked+1,
+            'tempered cautious salvage earns exactly one provisional fang');
           assert.equal(gateFirstAfter.banked,gateFirstBefore.banked,
-            'observation must not bank any material');
+            'cautious salvage must not bank material before a living return');
           await tapSite(page,'hollow');
-          assert.equal((await read(page)).unbanked,gateFirstBefore.unbanked,
-            'the consumed observation cannot be repeated to farm loot');
+          assert.equal((await read(page)).unbanked,gateFirstAfter.unbanked,
+            'the consumed gate cannot be repeated to farm loot');
           assert.equal(await page.locator('#forestGateChoice').isVisible(),false,
-            'observing spends the one-time gate decision');
+            'cautious salvage spends the one-time gate decision');
           await walkTo(page,660,230);
           await tapSite(page,'shrine');
           const gateFirstStakes=await page.locator('#forestShrineStakes').innerText();
@@ -1478,12 +1471,12 @@ async function main() {
             'the shrine reward remains unsecured until survival');
           const gateFirstGuardian=await clearWave(page,{preferScoutedOpening:true});
           assert.equal(gateFirstGuardian.openingObserved,true,
-            'observation-only gate-first detour must open a real player-actionable warning; trace='+
+            'tempered cautious gate-first detour must open a real player-actionable warning; trace='+
             JSON.stringify(gateFirstGuardian.scoutTrace));
           assert.equal(gateFirstGuardian.scoutAttackCueSeen,true,
             'the earned 2.4s opening must visibly highlight a reachable phone attack button');
           assert.equal(gateFirstGuardian.scoutedFirstHit,true,
-            'observation-only gate-first detour must land the earned +12 strike, not just lengthen an unused timer; trace='+
+            'tempered cautious gate-first detour must land the earned +12 strike; trace='+
             JSON.stringify(gateFirstGuardian.scoutTrace));
           assert.equal(gateFirstGuardian.gateFirstFeedbackSeen,true,
             'landed gate-first strike must show its earned consequence on the live 390px HUD');
@@ -1510,7 +1503,7 @@ async function main() {
             returned:gateFirstReturn,restored:gateFirstRestored,
             scoutedFirstHit:gateFirstGuardian.scoutedFirstHit,
             gateFirstFeedbackSeen:gateFirstGuardian.gateFirstFeedbackSeen,
-            note:'The gate-first route chose observation (0 HP, 0 fangs) by real 390px touch before guardian victory and living return; CI is not a human fun verdict.'
+            note:'The tempered gate-first route chose cautious salvage (0 HP, +1 provisional fang) by real 390px touch before guardian victory and living return; CI is not a human fun verdict.'
           };
           // Herb-first is the other real decision at the fork. Earn a wound
           // from the ordinary opening wave (never inject HP), then spend the
