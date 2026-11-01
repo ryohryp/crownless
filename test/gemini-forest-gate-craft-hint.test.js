@@ -53,13 +53,13 @@ test('stone-gate choice previews the earned later opening without spoiling an un
   const end=html.indexOf(';',start);
   assert(start>=0 && end>start,'evaluate the live gate decision sheet');
   const assignment=html.slice(start,end+1);
-  const render=(ids,cautiousDisabled=false)=>{
+  const render=(ids,cautiousDisabled=false,tempered=false)=>{
     const node={textContent:''};
     vm.runInNewContext(assignment,{
       document:{getElementById:()=>node},
       state:{forestFinds:new Set(ids)},
       ginji:{hp:90,maxHp:140},
-      rpg:{crafted:false,tempered:false,unbanked:4},
+      rpg:{crafted:tempered,tempered,unbanked:4},
       rpgRules:{},
       cautious:{disabled:cautiousDisabled},
       cautiousCost:6,cautiousWound:'HP -6',salvageCost:8,
@@ -93,6 +93,11 @@ test('stone-gate choice previews the earned later opening without spoiling an un
     'low-HP explorers still have the no-wound, no-loot observation choice');
   assert.match(render(['traces'],false),/先手の猶予 \+0\.6秒/,
     'a usable cautious salvage choice retains its earned scouting preview');
+  const temperedPreview=render(['traces'],false,true);
+  assert.match(temperedPreview,/慎重な回収なら先手の猶予 \+0\.6秒/,
+    'tempered players still see the meaningful zero-wound one-fang tactical choice');
+  assert.doesNotMatch(temperedPreview,/観察か慎重な回収|観察は牙を持ち帰れない/,
+    'do not advertise the strictly worse no-loot route when a tempered blade is ready');
   assert.equal(D.guardianOpeningSeconds(new Set(['traces'])),1.8);
   assert.equal(D.guardianOpeningSeconds(new Set(['traces','hollow'])),1.8,
     'healing at the gate cannot silently grant the salvage scouting bonus');
