@@ -88,10 +88,11 @@ test('the field HUD keeps the unvisited fork visible after either first discover
     guardian: null,
     near: null,
     cue,
+    ginji: { x: 790, z: 230 },
     state: { forestFinds: new Set(ids) },
     rpg: { crafted: false, phase: 'return', unbanked: 2 }
   });
-  const breeze = labelFor(['traces', 'hollow', 'hollow-scout'], { id: 'shrine' });
+  const breeze = labelFor(['traces', 'hollow', 'hollow-scout'], { id: 'shrine', x: 660, z: 230 });
   assert.match(breeze, /冷たい風が頬をかすめる/,
     'earned distant shrine air stays visible after the one-shot popup');
   assert.doesNotMatch(breeze, /苔むす祠|石門|祠|右|左|道順/,
