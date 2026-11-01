@@ -74,6 +74,7 @@ test('the live post-track HUD asks for observation, not a prescribed gate route'
     rpg: { crafted: false, phase: 'return', unbanked: 2 }
   });
   assert.match(label, /二手に分かれ/);
+  assert.match(label, /牙2個未帰還/, 'the fork decision must show unsecured loot at stake');
   assert.match(label, /深い調査の負傷を3軽減/, 'earned footing bonus remains legible without suggesting immediate HP loss');
   assert.doesNotMatch(label, /石門|祠|右|左|茨を調べ|新しい剣/,
     'the HUD must not preselect the destination or spoil either branch');
@@ -84,13 +85,13 @@ test('the field HUD keeps the unvisited fork visible after either first discover
   const start = html.indexOf('    const label=guardian' + String.fromCharCode(10));
   const end = html.indexOf('    if(hint.textContent!==label)', start);
   assert(start >= 0 && end > start, 'evaluate the live HUD, not a duplicate hint rule');
-  const labelFor = (ids, cue = null) => vm.runInNewContext(html.slice(start, end) + String.fromCharCode(10) + 'label', {
+  const labelFor = (ids, cue = null, unbanked = 2) => vm.runInNewContext(html.slice(start, end) + String.fromCharCode(10) + 'label', {
     guardian: null,
     near: null,
     cue,
     ginji: { x: 790, z: 230 },
     state: { forestFinds: new Set(ids) },
-    rpg: { crafted: false, phase: 'return', unbanked: 2 }
+    rpg: { crafted: false, phase: 'return', unbanked }
   });
   const breeze = labelFor(['traces', 'hollow', 'hollow-scout'], { id: 'shrine', x: 660, z: 230 });
   assert.match(breeze, /冷たい風が頬をかすめる/,
@@ -99,6 +100,8 @@ test('the field HUD keeps the unvisited fork visible after either first discover
     'distant air must not reveal a destination or route');
   const both = labelFor(['traces']);
   assert.match(both, /二手に分かれ/, 'both branches remain a player choice');
+  assert.match(both, /牙2個未帰還/, 'a live bag makes the fork a return-or-risk decision');
+  assert.doesNotMatch(labelFor(['traces'], null, 0), /未帰還/, 'an empty bag cannot imply loot at risk');
   assert(both.length<=40, 'fork HUD stays compact over a 360px phone scene');
   assert.doesNotMatch(both, /石門|祠|苔|茨|右|左/, 'fork HUD asks players to notice environmental signs themselves');
   const moss = labelFor(['traces', 'hollow']);

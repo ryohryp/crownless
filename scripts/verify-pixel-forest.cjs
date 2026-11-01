@@ -903,10 +903,12 @@ async function main() {
             'inspecting an already-pulsed clue must not trigger another proximity pulse');
           assert.match(await returnButton.innerText(),new RegExp('牙'+afterTracks.unbanked+'）'),
             'the return choice updates even when the clue hint takes priority');
-          await page.waitForFunction(()=>document.getElementById('forestExploreHint')?.textContent?.includes('足跡は二手に分かれ、途切れた'));
+          await page.waitForFunction(()=>document.getElementById('forestExploreHint')?.textContent?.includes('足跡が二手に分かれた'));
           const forkHint=await page.locator('#forestExploreHint').innerText();
           assert.match(forkHint,/どちらを追う？（深い調査の負傷を3軽減）/,
             'the earned tracks clue must describe a reduction, not misstate the actual HP cost');
+          if (afterTracks.unbanked>0) assert.match(forkHint,new RegExp('牙'+afterTracks.unbanked+'個未帰還'),
+            'the actual phone fork must keep the carried fang risk visible');
           assert.doesNotMatch(forkHint,/祠|石門|右|左|隠し道/,
             'the fork clue must not name undiscovered sites or reveal their routes');
           const deepSearchCosts=await page.evaluate(()=>{

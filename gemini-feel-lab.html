@@ -3191,7 +3191,8 @@
           : '🌿 枝が軋む音がする。音が強まる場所を探そう')+
           (rpg.unbanked>0?'｜牙'+rpg.unbanked+'個は未帰還':'')
       : state.forestFinds.has('traces') && !state.forestFinds.has('shrine') && !state.forestFinds.has('hollow')
-        ? '足跡は二手に分かれ、途切れた。どちらを追う？（深い調査の負傷を3軽減）'
+        ? '足跡が二手に分かれた。どちらを追う？（深い調査の負傷を3軽減）'+
+          (rpg.unbanked>0?'｜牙'+rpg.unbanked+'個未帰還':'')
       : rpg.phase==='return' && state.forestFinds.has('hollow-scout') && !state.forestFinds.has('shrine')
         // Keep the remaining sensory lead visible even after earning the
         // gate-first tactical reward; do not reveal a site name or route.
