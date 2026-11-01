@@ -371,6 +371,43 @@ async function clearWave(page,{attackOnlyGuardian=false,preferScoutedOpening=fal
   let previousHp=before.player.hp;
   const damageEvents=[];
   const scoutTrace = [];
+  // The +12 cue can last only a single animation frame before a fast
+  // tempered strike. Capture the actual DOM class transition independently
+  // of the slower 95ms input/telemetry polling loop.
+  await page.evaluate(() => {
+    window.__forestScoutCueObserver?.disconnect();
+    const observed={seen:false,valid:false,last:null};
+    window.__forestScoutCueObservation=observed;
+    const button=document.getElementById('btnPunch');
+    const hint=document.getElementById('gestureHint');
+    const area=document.getElementById('gestureActionArea');
+    const inside=(rect)=>rect && rect.width>=44 && rect.height>=44 &&
+      rect.left>=0 && rect.top>=0 &&
+      rect.right<=innerWidth+1 && rect.bottom<=innerHeight+1;
+    const sample=()=>{
+      const gestureMode=!area.classList.contains('hidden');
+      const cue=gestureMode?hint:button;
+      if(!cue.classList.contains('guardian-scout-cue')) return;
+      const state=window.CrownlessForestReadout();
+      const guardian=state.enemies.find(e=>e.name==='苔祠の番人');
+      const expected=gestureMode
+        ? /先手の好機！右側をタップで\+12/
+        : /先手の好機！右下の攻撃で\+12/;
+      const text=hint.textContent||'';
+      const valid=Boolean(guardian?.scoutOpeningActive && !guardian.scoutStrikeClaimed &&
+        expected.test(text) && inside(cue.getBoundingClientRect()) &&
+        inside((gestureMode?area:button).getBoundingClientRect()));
+      observed.seen=true;
+      observed.valid ||= valid;
+      observed.last={valid,mode:gestureMode?'gesture':'buttons',text,
+        opening:guardian?.scoutOpeningActive,claimed:guardian?.scoutStrikeClaimed};
+    };
+    const observer=new MutationObserver(sample);
+    observer.observe(button,{attributes:true,attributeFilter:['class']});
+    observer.observe(hint,{attributes:true,attributeFilter:['class']});
+    window.__forestScoutCueObserver=observer;
+    sample();
+  });
   try {
     while (Date.now() - start < 75000) {
       // Read the real phone HUD in the same frame as the combat state.
@@ -427,10 +464,16 @@ async function clearWave(page,{attackOnlyGuardian=false,preferScoutedOpening=fal
           counterClaimed:Boolean(guardian?.guardianCounterClaimed)});
       }
       previousHp=s.player.hp;
-      if (s.phase === 'return') return { seconds: Math.round((Date.now()-start)/100)/10,
-        minimumHp, hpLost:before.player.hp-minimumHp, scoutedFirstHit, openingObserved,
-        scoutAttackCueSeen,gateFirstFeedbackSeen,attackOnlyGuardian, guardianTellSeen, guardianCounterClaimed,
-        damageEvents,scoutTrace, after:s };
+      if (s.phase === 'return') {
+        const observed=await page.evaluate(()=>window.__forestScoutCueObservation);
+        assert(!observed.seen || observed.valid,
+          'the transient +12 cue must be readable and touch-reachable: '+JSON.stringify(observed.last));
+        return { seconds: Math.round((Date.now()-start)/100)/10,
+          minimumHp, hpLost:before.player.hp-minimumHp, scoutedFirstHit, openingObserved,
+          scoutAttackCueSeen:scoutAttackCueSeen||observed.valid,
+          gateFirstFeedbackSeen,attackOnlyGuardian, guardianTellSeen, guardianCounterClaimed,
+          damageEvents,scoutTrace, after:s };
+      }
       assert(s.phase === 'fight' && s.player.hp > 0,
         'real-input combat ended in defeat: ' + JSON.stringify(s));
       assert(Array.isArray(s.enemies), 'read-only probe must expose enemy positions');
@@ -465,7 +508,13 @@ async function clearWave(page,{attackOnlyGuardian=false,preferScoutedOpening=fal
       await page.waitForTimeout(95);
     }
     throw new Error('real-input combat exceeded 75s: ' + JSON.stringify(await read(page)));
-  } finally { await keys(page,held,[]); }
+  } finally {
+    await keys(page,held,[]);
+    await page.evaluate(()=>{
+      window.__forestScoutCueObserver?.disconnect();
+      window.__forestScoutCueObserver=null;
+    });
+  }
 }
 
 async function tapSite(page, id) {
