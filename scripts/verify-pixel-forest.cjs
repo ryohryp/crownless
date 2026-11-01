@@ -1432,7 +1432,7 @@ async function main() {
           // Real 390px gate-first comparison with the same tempered sword:
           // cautious salvage is now the meaningful no-wound choice. The
           // no-loot observation is strictly worse and intentionally hidden.
-          assert.equal(temperedShrineRestored.phase,'fight');
+          await departSavedCamp(page);
           await clearWave(page);
           await walkTo(page,800,365);
           await tapSite(page,'traces');
@@ -1536,6 +1536,7 @@ async function main() {
           // from the ordinary opening wave (never inject HP), then spend the
           // gate on healing before taking the shrine's optional guardian risk.
           // This must NOT award the salvage-only extra 0.6s warning.
+          await departSavedCamp(page);
           const herbFightStart=await read(page);
           assert.equal(herbFightStart.phase,'fight');
           const woundKeys=new Set();
@@ -1629,8 +1630,7 @@ async function main() {
           // provisional fangs at an HP cost, but must NOT grant the cautious
           // gate's extra 0.6-second warning. Revisit from a real saved camp;
           // never inject health, loot, position or discovery flags.
-          assert.equal(herbRestored.phase,'fight',
-            'the forceful comparison starts as a genuine new expedition');
+          await departSavedCamp(page);
           await clearWave(page);
           await walkTo(page,800,365);
           await tapSite(page,'traces');
@@ -1698,6 +1698,10 @@ async function main() {
           assert.equal(forcefulRestored.banked,forcefulReturned.banked,
             'the forceful haul survives save/reload without duplication');
           assert.equal(forcefulRestored.unbanked,0);
+          assert.equal(forcefulRestored.phase,'camp',
+            'the final living return remains a player-controlled camp after reload');
+          assert.equal(await page.locator('#rpgDepart').isVisible(),true,
+            'the final save keeps the next expedition reachable');
           assert.equal(await page.evaluate(()=>localStorage.getItem('crownless-expedition-v1-demo')),
             saveBefore,'the unrelated location save remains untouched');
           report.forcefulGateFirstBrowser={
