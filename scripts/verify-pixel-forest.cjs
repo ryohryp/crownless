@@ -201,6 +201,13 @@ async function retreatAfterCounter(page,touch) {
 // an actual jump at the strike moment, and a landed +8 counter. Never write
 // actor positions, combat flags or HP from the test.
 async function jumpCounterGuardian(page) {
+  // The ally can accidentally defeat the guardian before the player attempts
+  // the real jump/counter. Use the existing 2P toggle, not injected combat state,
+  // so this comparison measures the player's actual touch input.
+  const allyToggle=page.locator('#btnToggleAI');
+  assert.match(await allyToggle.innerText(),/同行AI/);
+  await allyToggle.click();
+  assert.match(await allyToggle.innerText(),/2P手動/);
   const held=new Set();
   const started=Date.now();
   let stage='first-hit',jumpSeen=false,dodgeSeen=false,phoneCueSeen=false,attackLockedCueSeen=false,airCounterCueSeen=false;
@@ -282,7 +289,8 @@ async function jumpCounterGuardian(page) {
         tell:Math.round(Math.max(0,enemy.guardianTellUntil-s.nowSec)*100)/100,
         counter:Math.round(Math.max(0,enemy.guardianCounterUntil-s.nowSec)*100)/100,
         claimed:enemy.guardianCounterClaimed});
-      if(stage==='tell' && enemy.guardianTellUntil-s.nowSec<0.5 &&
+      if((stage==='tell' || stage==='jump' && !jumpSeen) &&
+          enemy.guardianTellUntil-s.nowSec<0.5 &&
           enemy.guardianTellUntil-s.nowSec>0.1 &&
           ['IDLE','WALK','RUN'].includes(s.player.state)) {
         // Capture the exact visible control when the real swipe is issued;
@@ -307,7 +315,10 @@ async function jumpCounterGuardian(page) {
     throw new Error('jump→evade→landed counter not reached: '+
       JSON.stringify({stage,jumpSeen,dodgeSeen,trace,state:await read(page)}));
   } finally {
-    try { await keys(page,held,[]); } finally { await touch.detach(); }
+    try { await keys(page,held,[]); } finally {
+      await touch.detach();
+      await allyToggle.click();
+    }
   }
 }
 
