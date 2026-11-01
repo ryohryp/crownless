@@ -26,7 +26,14 @@ async function departSavedCamp(page) {
     box.y+box.height<=page.viewportSize().height,
     'saved-camp departure must be reachable within the phone viewport');
   await page.touchscreen.tap(box.x+box.width/2,box.y+box.height/2);
-  assert.equal((await read(page)).phase,'fight','touching departure must start a new fight');
+  const next=await read(page);
+  assert.equal(next.phase,'fight','touching departure must start a new fight');
+  assert(next.enemies.some(enemy=>enemy.hp>0 && enemy.state!=='DEAD'),
+    're-expedition must spawn a living enemy, not just switch the phase');
+  assert.equal(next.banked,restored.banked,
+    're-expedition must preserve the materials already brought home');
+  assert.equal(next.unbanked,0,
+    'a new expedition cannot inherit unsecured loot from the last one');
   assert.equal(await page.locator('#rpgPanel').isVisible(),false,
     'the camp sheet must close for real exploration');
 }
