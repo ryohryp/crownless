@@ -51,3 +51,25 @@ Anchor `docs/assets/adventurer-a-approved-anchor-v1.png`, Canon and game runtime
   consistency **before** creating in-betweens.
 - **No merge, runtime asset replacement, Canon revision or walk-animation
   approval.**
+
+## Native walk-frame review (no generator retries)
+
+Open `docs/visual/adventurer-a-walk-review.html` through a local static server.
+The old rejected walk GIF is no longer the default comparison. The page shows
+the current 128×192 idle study, and imports a **local** Pixelorama horizontal
+PNG atlas of four authored key poses (512×192) or eight finished frames
+(1024×192). Imports stay in browser memory; no candidate is adopted or sent
+to a service.
+
+The reviewer steps frames, plays at 4–12 fps, and optionally overlays the
+idle pixels as an onion-skin comparison. Deterministic checks flag non-native
+sizes, incorrect frame counts, partial alpha, more than 64 colors, blank cels
+and repeated frames. These checks **cannot** decide whether the legs truly
+exchange contact or whether the animation looks natural: the reviewer must
+inspect planted soles, torso/arm counter-motion, and identity/phone-size
+readability. A technical pass is explicitly **not** an art approval.
+
+No four-frame contact atlas exists yet. Do not fill the slots by duplicating
+the idle or by reusing either rejected puppet candidate. Author the opposed
+contact key poses independently in Pixelorama, check both before adding
+in-betweens, and keep this PR Draft until real visual review passes.
