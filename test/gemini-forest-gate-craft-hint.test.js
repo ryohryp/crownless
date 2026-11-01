@@ -151,7 +151,7 @@ test('earned gate scouting stays visible after the choice without naming an unvi
   assert(start>=0 && end>start,'evaluate the actual persistent forest exploration hint');
   const render=(ids,phase='return')=>vm.runInNewContext(
     html.slice(start,end)+'\nlabel',
-    {guardian:null,near:null,state:{forestFinds:new Set(ids)},
+    {guardian:null,near:null,cue:null,state:{forestFinds:new Set(ids)},
       rpg:{phase,unbanked:3},ginji:{},forestGuardianHint:()=>''}
   );
   const earned=render(['traces','hollow','hollow-scout']);
