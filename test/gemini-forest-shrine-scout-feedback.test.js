@@ -115,3 +115,42 @@ test('earned cold-air clue strengthens on approach without naming or revealing t
   assert.equal(hint(80, ['traces','shrine']).label, null,
     'an already discovered site must not advertise a new clue');
 });
+
+test('earned distant thorn creak stays readable until the player reaches the gate', () => {
+  const html = fs.readFileSync('gemini-feel-lab.html', 'utf8');
+  const start = html.indexOf('    const label=guardian' + String.fromCharCode(10));
+  const end = html.indexOf('    if(hint.textContent!==label)', start);
+  assert(start >= 0 && end > start, 'exercise the actual live HUD expression');
+  const source = html.slice(start, end) + String.fromCharCode(10) + 'label';
+  function observe(x, z, ids, phase = 'return') {
+    const found = new Set(ids);
+    const ginji = {x, z, hp:100, maxHp:140};
+    const near = D.near(ginji, found);
+    const cue = D.cueNear(ginji, found);
+    const label = vm.runInNewContext(source, {
+      guardian:null, near, cue, ginji,
+      state:{forestFinds:found},
+      rpg:{phase, crafted:false, unbanked:1}
+    });
+    return {near, cue, label, found};
+  }
+
+  const distant = observe(850, 270, ['traces']);
+  assert.equal(distant.near, null, 'a sound cue cannot enable distant inspection');
+  assert.equal(distant.cue?.id, 'hollow', 'reading tracks earns the far gate sound');
+  assert.match(distant.label, /枝が軋む音がする。音が強まる場所を探そう/);
+  assert.doesNotMatch(distant.label, /石門|祠|右|左|北|南|隠し道|タップ/,
+    'the persistent sound must not name the gate, disclose a route or offer early tapping');
+  assert.equal(distant.found.has('hollow'), false, 'the clue never auto-discovers the gate');
+
+  assert.doesNotMatch(observe(850, 270, []).label, /枝が軋む音がする/,
+    'without reading tracks the early clue is not earned');
+  assert.doesNotMatch(observe(850, 270, ['traces', 'hollow']).label, /枝が軋む音がする/,
+    'an already inspected gate no longer advertises a mystery');
+  const atGate = observe(910, 235, ['traces']);
+  assert.equal(atGate.near?.id, 'hollow');
+  assert.doesNotMatch(atGate.label, /枝が軋む音がする/,
+    'inside normal interaction range the tap-to-investigate prompt wins');
+  assert.doesNotMatch(observe(850, 270, ['traces'], 'fight').label, /枝が軋む音がする/,
+    'distant exploration clues never override combat');
+});
