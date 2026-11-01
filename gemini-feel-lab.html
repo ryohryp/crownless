@@ -192,7 +192,7 @@
           <p id="forestGateStakes" class="mb-2 text-xs text-amber-100" role="status"></p>
           <div class="flex flex-col gap-2">
             <button id="forestGateCautious" type="button" class="min-h-11 rounded-lg bg-amber-800 px-3 text-sm font-bold disabled:opacity-50">慎重に牙を拾う（HP -3・未帰還素材 +1・回復なし）</button>
-            <button id="forestGateScout" type="button" class="min-h-11 rounded-lg bg-sky-800 px-3 text-sm font-bold disabled:opacity-50">茨の動きを観察（負傷なし・素材なし・先手猶予 +0.6秒・祠の奥を探ると負傷 -1）</button>
+            <button id="forestGateScout" type="button" class="min-h-11 rounded-lg bg-sky-800 px-3 text-sm font-bold disabled:opacity-50">茨の動きを観察（負傷なし・素材なし・先手猶予 +0.6秒・後の深い調査で負傷 -1）</button>
             <button id="forestGateMaterial" type="button" class="min-h-11 rounded-lg bg-amber-700 px-3 text-sm font-bold">牙を拾う（HP -8・未帰還素材 +2・回復なし）</button>
             <button id="forestGateHeal" type="button" class="min-h-11 rounded-lg bg-emerald-700 px-3 text-sm font-bold disabled:opacity-50">薬草で癒やす（最大 HP +45・素材なし）</button>
             <button id="forestGateCancel" type="button" class="min-h-11 rounded-lg border border-emerald-300 px-3 text-sm">今は調べない</button>
@@ -2097,13 +2097,13 @@
         ? '茨の動きを観察（調査済みの危険には効果なし）'
         : scoutOutclassed
         ? '茨の動きを観察（無傷の回収なら牙も得られる）'
-        : '茨の動きを観察（負傷なし・素材なし・先手猶予 +0.6秒・祠の奥を探ると負傷 -1）';
+        : '茨の動きを観察（負傷なし・素材なし・先手猶予 +0.6秒・後の深い調査で負傷 -1）';
       const cautiousVerb=rpg.crafted?'慎重に牙を拾う':'素手で慎重に牙を拾う';
       // Put the earned tactical payoff on the actual choice button, not only
       // in the long phone stakes paragraph. Never promise it after shrine-first.
       const cautiousPayoff=state.forestFinds.has('shrine')
         ? (cautiousCost>0?'・祠で覚えた苔の筋で負傷 -2':'')
-        : '・先手猶予 +0.6秒'+(!rpg.tempered?'・祠の奥を探ると負傷 -1':'');
+        : '・先手猶予 +0.6秒'+(!rpg.tempered?'・後の深い調査で負傷 -1':'');
       cautious.disabled=ginji.hp<cautiousCost+1;
       cautious.textContent=cautious.disabled
         ? cautiousVerb+'（'+cautiousWound+'・未帰還素材 +1／HP '+(cautiousCost+1)+'以上必要）'
