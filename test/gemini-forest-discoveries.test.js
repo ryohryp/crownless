@@ -1134,6 +1134,28 @@ test('earned guardian opening warning is visible, expires, and never leaks to un
     'normal exploration must not display a guardian warning');
 });
 
+test('scouted guardian warning does not promise an immediate strike while the explorer is incapacitated',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const source=html.match(/function forestGuardianHint\([^)]*\) \{[\s\S]*?\n  \}/)?.[0];
+  assert.ok(source,'test the live guardian HUD formatter');
+  const hint=Function('window','return ('+source+')')({
+    CrownlessForestDiscoveries:{guardianBehindWarning:()=>false,guardianDodgeCueActive:()=>false}
+  });
+  const guardian={name:'苔祠の番人',hp:180,maxHp:180,scoutOpeningEndsAt:101.8,
+    scoutOpeningSeconds:1.8,scoutStrikeClaimed:false,guardianCounterUntil:0,guardianTellUntil:0};
+  const found=new Set(['traces']);
+  const ready=hint(guardian,found,2,100,{id:1,state:'IDLE'});
+  assert.match(ready,/攻撃\+12か回避/,'a ready explorer retains the earned tactical choice');
+  for(const state of ['HURT','DOWN','GRAB']){
+    const waiting=hint(guardian,found,2,100,{id:1,state});
+    assert.match(waiting,/体勢を立て直そう/,state+' must communicate recovery before another strike');
+    assert.doesNotMatch(waiting,/攻撃\+12か回避/,state+' cannot promise an immediate attack');
+    assert.match(waiting,/未帰還の牙 2個/,'survival stakes remain visible while recovering');
+  }
+  assert.doesNotMatch(hint(guardian,found,2,102,{id:1,state:'HURT'}),/先読み|体勢を立て直そう/,
+    'an expired opening cannot keep a stale scouting instruction');
+});
+
 test('reading tracks rewards one landed early guardian hit, never a miss or later strike',()=>{
   const guardian={name:'苔祠の番人',scoutOpeningSeconds:1.8,nextStrikeAt:0};
   assert.equal(D.guardianScoutStrikeBonus(guardian,100),0,'no bonus before approach');
