@@ -3182,10 +3182,12 @@
         ? (Math.hypot(ginji.x-cue.x,ginji.z-cue.z)<90
           ? '🍃 冷たい風が強くなる。もう少し周囲を探そう'
           : '🍃 冷たい風が頬をかすめる。気配が強まる場所を探そう')
-      // Keep the earned distant thorn creak visible even if the one-shot
-      // vibration/popup was missed. Never show the gate name or its direction.
+      // Let the thorn creak grow louder on approach without a marker,
+      // direction or early inspection; a missed pulse still leaves a clue.
       : rpg.phase==='return' && cue?.id==='hollow' && !near
-        ? '🌿 枝が軋む音がする。音が強まる場所を探そう'
+        ? (Math.hypot(ginji.x-cue.x,ginji.z-cue.z)<72
+          ? '🌿 枝の軋みが強くなる。もう少し周囲を探そう'
+          : '🌿 枝が軋む音がする。音が強まる場所を探そう')
       : state.forestFinds.has('traces') && !state.forestFinds.has('shrine') && !state.forestFinds.has('hollow')
         ? '足跡は二手に分かれ、途切れた。どちらを追う？（調査負傷 -3）'
       : rpg.phase==='return' && state.forestFinds.has('hollow-scout') && !state.forestFinds.has('shrine')
