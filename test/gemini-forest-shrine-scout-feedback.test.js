@@ -48,3 +48,29 @@ test('earned gate scouting is acknowledged after shrine deep search only when it
   assert.doesNotMatch(tempered.message,/負傷 -1|石門で覚えた/,
     'do not claim an ineffective scouting discount for a tempered blade');
 });
+
+
+test('the actual landed scouting strike popup distinguishes earned gate-first +12 from tracks-only +12', () => {
+  const html = fs.readFileSync('gemini-feel-lab.html', 'utf8');
+  const start = html.indexOf('        if (scoutBonus) {\\n'.replace('\\n', '\n'));
+  const end = html.indexOf('        spawnSpark(', start);
+  assert(start >= 0 && end > start, 'inspect the live landed-hit feedback, not a copied message');
+  const landedHit = html.slice(start, end);
+  function feedback(openingSeconds) {
+    const target = {scoutOpeningSeconds:openingSeconds, x:0, z:0, y:0};
+    const messages = [];
+    vm.runInNewContext(landedHit, {
+      scoutBonus:12, target,
+      performance:{now:()=>1000},
+      spawnPopup:(message)=>messages.push(message)
+    });
+    assert.equal(target.scoutStrikeClaimed, true);
+    assert.equal(messages.length, 1);
+    return messages[0];
+  }
+  assert.match(feedback(2.4), /石門の観察が効いた！先手 \\+12/,
+    'a lethal first strike must still produce its earned popup even if the guardian HUD disappears');
+  assert.match(feedback(1.8), /先手成功！\\+12/);
+  assert.doesNotMatch(feedback(1.8), /石門の観察が効いた/,
+    'tracks-only scouting must not claim a gate-first reward');
+});
