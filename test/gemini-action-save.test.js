@@ -26,6 +26,8 @@ test('only genuinely returned materials and smith equipment survive a reload', (
   assert.equal(P.restore(resumed, P.decode(savedAfterReturn)), true);
   assert.equal(resumed.banked, 3);
   assert.equal(resumed.crafted, false);
+  assert.equal(resumed.phase, 'camp');
+  assert.equal(R.depart(resumed), true, 'saved camp can deliberately begin the next fight');
   assert.equal(resumed.phase, 'fight');
   assert.equal(resumed.unbanked, 0);
   R.loseExpedition(resumed);
@@ -40,6 +42,29 @@ test('only genuinely returned materials and smith equipment survive a reload', (
   assert.equal(future.unbanked, 0);
 });
 
+test('saved camp restores only secured loot and offers a real next departure', () => {
+  const s = R.create();
+  R.claimMaterial(s);
+  R.clearWave(s);
+  assert.equal(R.returnAlive(s, 70), true);
+  const raw = P.encode(s);
+  assert.equal(JSON.parse(raw).camp, true);
+  const restored = R.create();
+  assert.equal(P.restore(restored, P.decode(raw)), true);
+  assert.equal(restored.phase, 'camp');
+  assert.equal(restored.banked, 1);
+  assert.equal(restored.unbanked, 0);
+  assert.equal(R.depart(restored), true);
+  assert.equal(restored.phase, 'fight');
+  assert.equal(restored.unbanked, 0);
+  R.claimMaterial(restored);
+  const interrupted = R.create();
+  assert.equal(P.restore(interrupted, P.decode(P.encode(restored))), true);
+  assert.equal(interrupted.phase, 'fight');
+  assert.equal(interrupted.unbanked, 0, 'interrupted expedition loot cannot be restored');
+  assert.equal(interrupted.banked, 1);
+});
+
 test('new storage is empty but corrupted/versioned data is rejected rather than rewritten', () => {
   assert.deepEqual(P.decode(null), { version: 1, banked: 0, crafted: false, tempered: false });
   for (const raw of [
@@ -50,7 +75,8 @@ test('new storage is empty but corrupted/versioned data is rejected rather than 
     '{"version":1,"banked":1,"crafted":"yes"}',
     '{"version":1,"banked":0,"crafted":false,"tempered":true}',
     '{"version":1,"banked":0,"crafted":true,"tempered":"yes"}',
-    '"hello"', '0', 'null', 'a'.repeat(2001),
+    '"hello"', '0', 'null',
+    '{"version":1,"banked":0,"crafted":false,"camp":"yes"}', 'a'.repeat(2001),
   ]) assert.equal(P.decode(raw), null, 'unsafe save: ' + raw.slice(0, 50));
   assert.throws(() => P.encode({ banked: NaN, crafted: false }), /invalid/);
   assert.throws(() => P.encode({ banked: 5, crafted: null }), /invalid/);
@@ -79,5 +105,6 @@ test('tempered sword persists after safe return, while current v1 saves still lo
   assert.equal(fresh.tempered, true);
   assert.equal(fresh.banked, 0);
   assert.equal(fresh.unbanked, 0);
-  assert.equal(fresh.phase, 'fight');
+  assert.equal(fresh.phase, 'camp');
+  assert.equal(R.depart(fresh), true);
 });
