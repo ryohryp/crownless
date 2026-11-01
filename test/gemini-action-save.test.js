@@ -172,3 +172,59 @@ test('safe return previews the unsecured haul and celebrates only actual banking
   assert.equal(defeated.run.unbanked, 2);
   assert.deepEqual(defeated.events, [], 'failed return cannot celebrate or save a provisional bag');
 });
+
+test('smithing sound confirms saved gear, not an unsaved in-session change', () => {
+  const html = fs.readFileSync('gemini-feel-lab.html', 'utf8');
+  const start = html.indexOf("  document.getElementById('rpgForge').addEventListener('click', () => {");
+  const end = html.indexOf("  document.getElementById('rpgBackToMap').addEventListener", start);
+  assert(start >= 0 && end > start, 'exercise both real smithing click handlers');
+  const handlers = html.slice(start, end);
+  const invoke = (kind, saveSucceeds) => {
+    const run = R.create();
+    run.phase = 'camp';
+    run.banked = kind === 'forge' ? R.COST : R.TEMPER_COST;
+    run.crafted = kind === 'temper';
+    const events = [];
+    const clicks = {};
+    vm.runInNewContext(handlers, {
+      document: { getElementById: id => ({
+        addEventListener: (name, fn) => {
+          assert.equal(name, 'click');
+          clicks[id] = fn;
+        }
+      }) },
+      rpgRules: R, rpg: run,
+      saveActionProgress: () => { events.push('save'); return saveSucceeds; },
+      sfx: { play: sound => events.push('sound:' + sound) },
+      updateRpgStatus: () => events.push('status'),
+      showRpgPanel: () => events.push('panel')
+    });
+    const click = clicks[kind === 'forge' ? 'rpgForge' : 'rpgTemper'];
+    assert.equal(typeof click, 'function');
+    click();
+    return { run, events, click };
+  };
+  for (const kind of ['forge', 'temper']) {
+    const saved = invoke(kind, true);
+    assert.deepEqual(saved.events, ['save', 'sound:heavy', 'status', 'panel'],
+      kind + ' must play the earned smithing sound only after a successful save');
+    assert.equal(saved.run.banked, 0);
+    assert.equal(saved.run.crafted, true);
+    assert.equal(saved.run.tempered, kind === 'temper');
+    const restored = R.create();
+    assert.equal(P.restore(restored, P.decode(P.encode(saved.run))), true);
+    assert.equal(restored.crafted, true);
+    assert.equal(restored.tempered, kind === 'temper');
+    saved.click();
+    assert.equal(saved.events.length, 4, 'repeat tap must not save or celebrate twice');
+
+    const failed = invoke(kind, false);
+    assert.deepEqual(failed.events, ['save', 'status', 'panel'],
+      kind + ' must not claim a persisted result when storage fails');
+    assert.equal(failed.run.crafted, true,
+      'the existing in-session crafting outcome remains visible with the save warning');
+    assert.equal(failed.run.tempered, kind === 'temper');
+    failed.click();
+    assert.equal(failed.events.length, 3, 'repeat tap must not mask a failed save');
+  }
+});
