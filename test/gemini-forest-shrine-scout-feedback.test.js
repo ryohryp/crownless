@@ -135,22 +135,29 @@ test('earned distant thorn creak stays readable until the player reaches the gat
     return {near, cue, label, found};
   }
 
-  const distant = observe(850, 270, ['traces']);
+  const distant = observe(830, 270, ['traces']);
   assert.equal(distant.near, null, 'a sound cue cannot enable distant inspection');
   assert.equal(distant.cue?.id, 'hollow', 'reading tracks earns the far gate sound');
   assert.match(distant.label, /枝が軋む音がする。音が強まる場所を探そう/);
-  assert.doesNotMatch(distant.label, /石門|祠|右|左|北|南|隠し道|タップ/,
-    'the persistent sound must not name the gate, disclose a route or offer early tapping');
-  assert.equal(distant.found.has('hollow'), false, 'the clue never auto-discovers the gate');
+  const closer = observe(850, 270, ['traces']);
+  assert.equal(closer.near, null, 'stronger sound must not enable early inspection');
+  assert.equal(closer.cue?.id, 'hollow');
+  assert.match(closer.label, /枝の軋みが強くなる。もう少し周囲を探そう/,
+    'the sound grows stronger as the player searches nearby');
+  for (const clue of [distant, closer]) {
+    assert.doesNotMatch(clue.label, /石門|祠|右|左|北|南|隠し道|タップ/,
+      'the sound must not name the gate, disclose a route or offer early tapping');
+    assert.equal(clue.found.has('hollow'), false, 'the clue never auto-discovers the gate');
+  }
 
   assert.doesNotMatch(observe(850, 270, []).label, /枝が軋む音がする/,
     'without reading tracks the early clue is not earned');
-  assert.doesNotMatch(observe(850, 270, ['traces', 'hollow']).label, /枝が軋む音がする/,
+  assert.doesNotMatch(observe(850, 270, ['traces', 'hollow']).label, /枝.*軋/,
     'an already inspected gate no longer advertises a mystery');
   const atGate = observe(910, 235, ['traces']);
   assert.equal(atGate.near?.id, 'hollow');
   assert.doesNotMatch(atGate.label, /枝が軋む音がする/,
     'inside normal interaction range the tap-to-investigate prompt wins');
-  assert.doesNotMatch(observe(850, 270, ['traces'], 'fight').label, /枝が軋む音がする/,
+  assert.doesNotMatch(observe(850, 270, ['traces'], 'fight').label, /枝.*軋/,
     'distant exploration clues never override combat');
 });
