@@ -7,6 +7,25 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const rpgRules = require('../src/gemini-rpg-loop.js');
 
+async function touchSavedCampDeparture(page) {
+  assert.equal(await page.locator('#rpgPanel').isVisible(),true,
+    'a saved living return must reopen the camp sheet');
+  const depart=page.locator('#rpgDepart');
+  assert.equal(await depart.isVisible(),true,
+    'a saved camp must offer a real re-expedition action');
+  await depart.scrollIntoViewIfNeeded();
+  const box=await depart.boundingBox();
+  assert(box && box.width>=44 && box.height>=44 && box.x>=0 && box.y>=0 &&
+    box.x+box.width<=page.viewportSize().width &&
+    box.y+box.height<=page.viewportSize().height,
+    'the re-expedition action must fit the phone viewport');
+  await page.touchscreen.tap(box.x+box.width/2,box.y+box.height/2);
+  assert.equal((await page.evaluate(()=>window.CrownlessForestReadout())).phase,'fight');
+  assert.equal(await page.locator('#rpgPanel').isVisible(),false,
+    'the camp sheet must close after an explicit departure');
+}
+
+
 function listen(server) {
   return new Promise((resolve, reject) => {
     let out = '';
@@ -259,8 +278,9 @@ async function main() {
         await page.reload({ waitUntil: 'domcontentloaded' });
         await page.waitForFunction(() => document.querySelector('#rpgStatusBadge')?.textContent.includes('倉庫 3'));
         assert.match(await page.locator('#rpgStatusBadge').innerText(), /未帰還 0.*倉庫 3.*初期装備/);
-        assert.equal(await page.locator('#rpgPanel').isVisible(), false,
-          'resuming must start a fresh expedition with no popup blocking combat');
+        assert.equal((await page.evaluate(()=>window.CrownlessForestReadout())).phase,'camp',
+          'a saved living return must resume at camp rather than auto-fighting');
+        await touchSavedCampDeparture(page);
         await page.evaluate(() => {
           const r = window.CrownlessRpgLoop.create();
           r.phase = 'camp';
@@ -271,6 +291,8 @@ async function main() {
         await page.reload({ waitUntil: 'domcontentloaded' });
         await page.waitForFunction(() => document.querySelector('#rpgStatusBadge')?.textContent.includes('風裂きの剣'));
         assert.match(await page.locator('#rpgStatusBadge').innerText(), /未帰還 0.*倉庫 0.*風裂きの剣/);
+        assert.equal((await page.evaluate(()=>window.CrownlessForestReadout())).phase,'camp',
+          'saved crafted gear must keep the camp decision available');
         // The returned-fang upgrade must change actual fighter attack on reload,
         // not just a label or an isolated rules test. Use a valid camp save fixture.
         await page.evaluate(() => {
@@ -291,7 +313,7 @@ async function main() {
         assert.equal(tempered.unbanked,0,'reloading never restores unreturned fangs');
         assert.equal(tempered.player.punchPower,19,'tempered sword raises actual punch damage');
         assert.equal(tempered.player.kickPower,21,'tempered sword raises actual kick damage');
-        assert.equal(tempered.phase,'fight','saved upgrade resumes a fresh expedition');
+        assert.equal(tempered.phase,'camp','saved upgrade resumes at camp until the next departure');
         assert.equal(await page.evaluate(
           () => localStorage.getItem('crownless-expedition-v1-demo')), saveBefore,
           'lab visits and saved smith equipment must never mutate the actual RPG save');
@@ -330,6 +352,7 @@ async function main() {
         await page.waitForFunction(() => window.CrownlessForestReadout?.().player);
         assert.equal((await page.evaluate(() => window.CrownlessForestReadout())).crafted,
           width === 390,'390px must load the forged sword; 360px uses starter gear');
+        if (width === 390) await touchSavedCampDeparture(page);
         await page.keyboard.down('d');
         try {
           await page.waitForFunction(() => {
