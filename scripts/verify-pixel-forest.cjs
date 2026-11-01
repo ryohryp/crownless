@@ -1424,9 +1424,9 @@ async function main() {
           assert.equal(await gateCautiousButton.isEnabled(),true);
           assert.match(await gateCautiousButton.innerText(),/負傷なし.*未帰還素材 \+1.*先手猶予 \+0\.6秒/,
             'tempered cautious salvage retains its no-wound fang and tactical payoff');
-          const cautiousBounds=await gateCautiousButton.boundingBox();
-          assert(cautiousBounds && cautiousBounds.width>=44 && cautiousBounds.height>=44 &&
-            cautiousBounds.y>=0 && cautiousBounds.y+cautiousBounds.height<=page.viewportSize().height,
+          const gateFirstCautiousBounds=await gateCautiousButton.boundingBox();
+          assert(gateFirstCautiousBounds && gateFirstCautiousBounds.width>=44 && gateFirstCautiousBounds.height>=44 &&
+            gateFirstCautiousBounds.y>=0 && gateFirstCautiousBounds.y+gateFirstCautiousBounds.height<=page.viewportSize().height,
             'the meaningful tempered choice stays thumb-sized on 390px');
           const gateFirstPreview=await page.locator('#forestGateStakes').innerText();
           assert(gateFirstPreview.includes('慎重な回収なら先手の猶予 +0.6秒'),
@@ -1434,8 +1434,8 @@ async function main() {
           assert.doesNotMatch(gateFirstPreview,/観察か慎重な回収|観察は牙を持ち帰れない|苔祠|番人|右|左/,
             'the preview must not advertise the dominated option or spoil the hidden destination');
           await page.screenshot({path:path.join(output,'pixel-forest-gate-tempered-cautious-390.png')});
-          await page.touchscreen.tap(cautiousBounds.x+cautiousBounds.width/2,
-            cautiousBounds.y+cautiousBounds.height/2);
+          await page.touchscreen.tap(gateFirstCautiousBounds.x+gateFirstCautiousBounds.width/2,
+            gateFirstCautiousBounds.y+gateFirstCautiousBounds.height/2);
           const gateFirstAfter=await read(page);
           assert(gateFirstAfter.found.includes('hollow'),
             'a real tempered cautious tap must consume the gate');
