@@ -317,7 +317,9 @@ test('no-loot scouting preserves the last HP and trades the gate fang for a futu
 test('phone gate offers an explicit scout-only tradeoff without revealing a hidden route', () => {
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   assert.match(html,/id="forestGateScout"[^>]*min-h-11/);
-  assert.match(html,/scout\.disabled=state\.forestFinds\.has\('shrine'\)/);
+  assert.match(html,/const scoutOutclassed=rpg\.crafted && rpg\.tempered && cautiousCost===0/,
+    'a tempered sword makes wound-free cautious salvage strictly better than no-loot scouting');
+  assert.match(html,/scout\.disabled=state\.forestFinds\.has\('shrine'\) \|\| scoutOutclassed/);
   assert.match(html,/scout\.classList\.toggle\('hidden',scout\.disabled\)/,
     'the already-useless scout action must not crowd the shrine-first phone sheet');
   assert.match(html,/id="forestGateTitle"/,
@@ -327,6 +329,8 @@ test('phone gate offers an explicit scout-only tradeoff without revealing a hidd
   assert.match(html,/discovery\.spot\.id==='hollow' && shrineChoice==='scout'/,
     'the zero-material choice still needs visible outcome feedback');
   assert.match(html,/観察は牙を持ち帰れない/);
+  assert.match(html,/scout\.classList\.toggle\('hidden',scout\.disabled\)/,
+    'both obsolete and dominated observations must disappear from the phone sheet');
   assert.doesNotMatch(html.match(/scout\.textContent=scout\.disabled[\s\S]*?;\n/)[0],/隠し道|祠の位置|石門の奥/,
     'the choice must not reveal an unvisited destination');
 });
