@@ -3,6 +3,8 @@ const test = require('node:test');
 const assert = require('node:assert/strict');
 const P = require('../src/gemini-action-save.js');
 const R = require('../src/gemini-rpg-loop.js');
+const fs = require('node:fs');
+const vm = require('node:vm');
 
 test('action-lab progress has its own per-mode save key, never production key', () => {
   assert.equal(P.key('demo'), 'crownless-action-forest-v1-demo');
@@ -107,4 +109,62 @@ test('tempered sword persists after safe return, while current v1 saves still lo
   assert.equal(fresh.unbanked, 0);
   assert.equal(fresh.phase, 'camp');
   assert.equal(R.depart(fresh), true);
+});
+
+test('safe return previews the unsecured haul and celebrates only actual banking', () => {
+  const html = fs.readFileSync('gemini-feel-lab.html', 'utf8');
+  const labelStart = html.indexOf("    const returnButton=document.getElementById('rpgReturn');");
+  const labelEnd = html.indexOf('    const pushDeeper=', labelStart);
+  assert(labelStart >= 0 && labelEnd > labelStart, 'inspect the live return-button formatter');
+  const buttonLabel = (unbanked, result = true) => {
+    const button = { textContent: '', classList: { toggle: () => {} } };
+    vm.runInNewContext(html.slice(labelStart, labelEnd), {
+      document: { getElementById: () => button },
+      result, rpg: { unbanked }
+    });
+    return button.textContent;
+  };
+  assert.match(buttonLabel(3), /牙3個を倉庫へ持ち帰る/);
+  assert.match(buttonLabel(0), /素材なし/);
+  assert.equal(buttonLabel(3, false), '', 'no return action while in camp or combat');
+
+  const start = html.indexOf("  document.getElementById('rpgReturn').addEventListener('click', () => {");
+  const end = html.indexOf("  document.getElementById('rpgPush').addEventListener", start);
+  assert(start >= 0 && end > start, 'exercise the actual return click handler');
+  const invoke = (loot, hp) => {
+    const run = R.create();
+    for (let i = 0; i < loot; i++) R.claimMaterial(run);
+    R.clearWave(run);
+    const events = [];
+    let onReturn;
+    vm.runInNewContext(html.slice(start, end), {
+      document: { getElementById: () => ({
+        addEventListener: (_name, fn) => { onReturn = fn; }
+      }) },
+      rpgRules: R, rpg: run, ginji: { hp },
+      sfx: { play: type => events.push('sound:' + type),
+        haptic: pattern => events.push('haptic:' + Array.from(pattern).join(',')) },
+      saveActionProgress: () => events.push('save'),
+      updateRpgStatus: () => events.push('status'),
+      showRpgPanel: () => events.push('panel')
+    });
+    assert.equal(typeof onReturn, 'function');
+    onReturn();
+    return { run, events, onReturn };
+  };
+  const successful = invoke(2, 80);
+  assert.equal(successful.run.banked, 2);
+  assert.equal(successful.run.unbanked, 0);
+  assert.equal(successful.run.phase, 'camp');
+  assert.deepEqual(successful.events, ['sound:coin', 'haptic:18,45,24', 'save', 'status', 'panel']);
+  assert.equal(P.decode(P.encode(successful.run)).banked, 2,
+    'celebration must not change the current secure-save contract');
+  successful.onReturn();
+  assert.equal(successful.events.length, 5, 'repeated taps cannot bank or celebrate twice');
+  assert.deepEqual(invoke(0, 80).events, ['save', 'status', 'panel'],
+    'a no-loot return is valid but has no loot fanfare');
+  const defeated = invoke(2, 0);
+  assert.equal(defeated.run.banked, 0);
+  assert.equal(defeated.run.unbanked, 2);
+  assert.deepEqual(defeated.events, [], 'failed return cannot celebrate or save a provisional bag');
 });
