@@ -161,3 +161,43 @@ test('earned distant thorn creak stays readable until the player reaches the gat
   assert.doesNotMatch(observe(850, 270, ['traces'], 'fight').label, /枝.*軋/,
     'distant exploration clues never override combat');
 });
+
+
+test('gate choices preview the earned shrine-deep wound reduction only when effective', () => {
+  const html = fs.readFileSync('gemini-feel-lab.html', 'utf8');
+  const scoutStart = html.indexOf("      scout.textContent=state.forestFinds.has('shrine')");
+  const scoutEnd = html.indexOf('      const cautiousVerb=', scoutStart);
+  const cautiousStart = html.indexOf("      const cautiousPayoff=state.forestFinds.has('shrine')");
+  const cautiousEnd = html.indexOf('      cautious.disabled=', cautiousStart);
+  assert(scoutStart >= 0 && scoutEnd > scoutStart && cautiousStart >= 0 &&
+    cautiousEnd > cautiousStart, 'exercise live gate choice labels');
+  const liveLabels = html.slice(scoutStart, scoutEnd) + '\n' +
+    html.slice(cautiousStart, cautiousEnd) +
+    '\n({scout:scout.textContent,cautious:cautiousPayoff})';
+
+  function labels(foundIds, crafted, tempered, cautiousCost) {
+    return vm.runInNewContext(liveLabels, {
+      scout:{}, state:{forestFinds:new Set(foundIds)},
+      scoutOutclassed:crafted && tempered, cautiousCost,
+      rpg:{crafted,tempered}
+    });
+  }
+  for (const [crafted,cost] of [[false,6],[true,3]]) {
+    const actual = labels(['traces'], crafted, false, cost);
+    for (const label of [actual.scout,actual.cautious]) {
+      assert.match(label,/先手猶予 \+0\\.6秒/);
+      assert.match(label,/祠の奥を探ると負傷 -1/,
+        'gate-first scouting must preview its real later deep-search payoff');
+    }
+  }
+  const tempered = labels(['traces'], true, true, 0);
+  assert.doesNotMatch(tempered.scout + tempered.cautious,/祠の奥を探ると負傷 -1/,
+    'the 1 HP risk floor makes a tempered sword scouting discount ineffective');
+  assert.match(tempered.cautious,/先手猶予 \+0\\.6秒/);
+  const shrineFirst = labels(['traces','shrine'],true,false,1);
+  assert.doesNotMatch(shrineFirst.scout + shrineFirst.cautious,/祠の奥を探ると負傷 -1/,
+    'no retroactive scouting discount after the shrine was investigated');
+  assert.match(shrineFirst.cautious,/苔の筋で負傷 -2/);
+  assert.match(html,/id="forestGateScout"[^>]*>茨の動きを観察（負傷なし・素材なし・先手猶予 \+0\\.6秒・祠の奥を探ると負傷 -1）<\\/button>/,
+    'initial markup must agree with the live gate decision');
+});
