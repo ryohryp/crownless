@@ -74,7 +74,7 @@ test('the live post-track HUD asks for observation, not a prescribed gate route'
     rpg: { crafted: false, phase: 'return', unbanked: 2 }
   });
   assert.match(label, /二手に分かれ/);
-  assert.match(label, /負傷 -3/, 'earned footing bonus remains legible');
+  assert.match(label, /深い調査の負傷を3軽減/, 'earned footing bonus remains legible without suggesting immediate HP loss');
   assert.doesNotMatch(label, /石門|祠|右|左|茨を調べ|新しい剣/,
     'the HUD must not preselect the destination or spoil either branch');
 });
