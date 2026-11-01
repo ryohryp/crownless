@@ -181,6 +181,40 @@ test('scouted distant shrine breeze is visible without haptics, but never discov
   assert.equal(popups.length,1,'without tracks there is no distant shrine hint');
 });
 
+test('earned shrine breeze remains a local, non-directional HUD clue after the popup',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const start=html.indexOf('    const label=guardian',html.indexOf('  function updateForestExploreHint()'));
+  const end=html.indexOf(';\n    if(hint.textContent!==label)',start);
+  assert(start>=0 && end>start,'evaluate the live phone HUD expression');
+  const label=new Function('guardian','near','cue','state','rpg','ginji','forestGuardianHint',
+    html.slice(start,end)+'; return label;');
+  const hint=(point,ids,phase='return')=>{
+    const found=new Set(ids);
+    return label(null,D.near(point,found),D.cueNear(point,found),
+      {forestFinds:found},{phase,unbanked:2,crafted:false},
+      {...point,hp:100,maxHp:140},()=>{throw new Error('unexpected guardian');});
+  };
+  const early={x:790,z:230}; // 130 units from shrine: only gate scouting earns this range
+  const scouted=['traces','hollow','hollow-scout'];
+  assert.equal(D.near(early,new Set(scouted)),null,'wind is not a touch target');
+  assert.match(hint(early,scouted),/冷たい風が頬をかすめる/);
+  assert.match(hint(early,scouted),/気配が強まる場所を探そう/);
+  assert.doesNotMatch(hint(early,scouted),/祠|右|左|隠し道|座標/,
+    'the HUD must not give away an unvisited destination or path');
+  assert.doesNotMatch(hint(early,['traces','hollow']),/冷たい風が頬をかすめる/,
+    'forceful salvage does not grant the early breeze');
+  assert.match(hint({x:730,z:260},['traces']),/冷たい風が頬をかすめる/,
+    'ordinary track reading still earns a closer sensory clue');
+  assert.doesNotMatch(hint(early,scouted,'fight'),/冷たい風が頬をかすめる/,
+    'a nearby fight must not be distracted by exploration hints');
+  assert.match(hint({x:660,z:230},scouted),/タップで調査/,
+    'close range must keep the deliberate site interaction');
+  assert.doesNotMatch(hint(early,[...scouted,'shrine']),/冷たい風が頬をかすめる/,
+    'an already explored site must not advertise a new clue');
+  assert.equal(D.uncover(early,new Set(scouted),'return',100,140,false,'material').ok,false,
+    'the distant HUD must never collect loot or discover the site');
+});
+
 test('approaching the traces and tapping earns exactly one unbanked material, not a banked weapon',()=>{
   const visited=new Set(),run=R.create();
   const player={x:800,z:365};
