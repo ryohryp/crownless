@@ -3311,10 +3311,10 @@
   document.getElementById('rpgReturn').addEventListener('click', () => {
     const securedFangs=rpg.unbanked;
     if (!rpgRules.returnAlive(rpg, ginji && ginji.hp)) return;
-    // Reward the actual banking moment, not collecting provisional loot.
-    // Silent/unsupported devices still show the updated warehouse count.
-    if (securedFangs>0) { sfx.play('coin'); sfx.haptic([18,45,24]); }
-    saveActionProgress();
+    // Celebrate only after the returned haul is actually saved. A failed
+    // write still shows the existing save warning, not a false success cue.
+    const saved=saveActionProgress();
+    if (securedFangs>0 && saved) { sfx.play('coin'); sfx.haptic([18,45,24]); }
     updateRpgStatus();
     showRpgPanel();
   });
