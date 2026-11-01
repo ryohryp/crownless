@@ -1230,6 +1230,13 @@ async function main() {
             'the phone explains why the tempered blade reduces risk');
           assert.doesNotMatch(temperedStakes,/慎重に牙 \+1（|強引に牙 \+2（/,
             'the compact stakes do not repeat costs already visible on the two touch buttons');
+          const temperedScout=page.locator('#forestGateScout');
+          assert.equal(await temperedScout.isVisible(),false,
+            'tempered cautious salvage grants the same scout opening plus a fang without injury; hide dominated no-loot choice');
+          assert.match(await page.locator('#forestGateTitle').innerText(),/薬草か素材か、一度だけ/,
+            'the 390px tempered choice heading must not advertise a hidden scout button');
+          assert.doesNotMatch(temperedStakes,/観察か慎重な回収|観察は牙を持ち帰れない/,
+            'the phone stakes must not advertise an unavailable dominated action');
           const temperedCautious=page.locator('#forestGateCautious');
           assert(await temperedCautious.isEnabled(),
             'tempered cautious salvage remains available at the real phone decision');
