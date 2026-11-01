@@ -10,6 +10,28 @@ const root = path.resolve(__dirname, '..');
 const output = path.join(root, '.qa/browser');
 const read = page => page.evaluate(() => window.CrownlessForestReadout());
 
+// Verify the actual saved-camp phone entry, then start the next expedition by touch.
+async function departSavedCamp(page) {
+  const restored=await read(page);
+  assert.equal(restored.phase,'camp','a safe return must resume at camp after reload');
+  assert.equal(restored.unbanked,0,'reloading cannot duplicate provisional loot');
+  assert.equal(await page.locator('#rpgPanel').isVisible(),true,
+    'saved camp must reopen the smith and departure sheet');
+  const depart=page.locator('#rpgDepart');
+  assert.equal(await depart.isVisible(),true,'saved camp must expose re-expedition');
+  await depart.scrollIntoViewIfNeeded();
+  const box=await depart.boundingBox();
+  assert(box && box.width>=44 && box.height>=44 && box.x>=0 && box.y>=0 &&
+    box.x+box.width<=page.viewportSize().width &&
+    box.y+box.height<=page.viewportSize().height,
+    'saved-camp departure must be reachable within the phone viewport');
+  await page.touchscreen.tap(box.x+box.width/2,box.y+box.height/2);
+  assert.equal((await read(page)).phase,'fight','touching departure must start a new fight');
+  assert.equal(await page.locator('#rpgPanel').isVisible(),false,
+    'the camp sheet must close for real exploration');
+}
+
+
 function listen(server) {
   return new Promise((resolve, reject) => {
     let out = '';
@@ -1061,8 +1083,9 @@ async function main() {
           // rule-unit success. Reload deliberately begins a fresh fight while
           // retaining banked materials and the forged sword. Earn an injury
           // through real input, then trade the gate's two fangs for its herbs.
-          assert.equal(restored.phase,'fight',
-            'reloading a saved camp starts a fresh expedition with no unsecured loot');
+          assert.equal(restored.phase,'camp',
+            'reloading a saved camp keeps the next expedition as an explicit choice');
+          await departSavedCamp(page);
           await clearWave(page);
           await walkTo(page,800,365);
           await tapSite(page,'traces');
@@ -1133,8 +1156,9 @@ async function main() {
           // Complete the newly added cautious route with genuine phone touches:
           // no state injection, no free banked material, and no duplicate pickup.
           const afterHealingReload=await read(page);
-          assert.equal(afterHealingReload.phase,'fight',
-            'the current save restarts combat without restoring unsecured loot');
+          assert.equal(afterHealingReload.phase,'camp',
+            'the saved healing return must offer a deliberate next expedition');
+          await departSavedCamp(page);
           await clearWave(page);
           await walkTo(page,800,365);
           await tapSite(page,'traces');
@@ -1212,8 +1236,9 @@ async function main() {
           // Prove the smith upgrade changes a *later* expedition, not only
           // a static rule preview. Reach the same gate with the saved sword,
           // deliberately choose the risky +2 route and bring the loot home.
-          assert.equal(cautiousRestored.phase,'fight',
-            'a tempered camp reload starts a new expedition with no unsecured loot');
+          assert.equal(cautiousRestored.phase,'camp',
+            'a tempered camp reload keeps the next departure player-controlled');
+          await departSavedCamp(page);
           await clearWave(page);
           await walkTo(page,800,365);
           await tapSite(page,'traces');
@@ -1288,8 +1313,9 @@ async function main() {
           // Revisit once more with the same saved tempered sword, this time
           // taking the *safe* one-fang choice by a real phone touch. This
           // distinguishes its outcome from the already-tested risky +2 route.
-          assert.equal(temperedRestored.phase,'fight',
+          assert.equal(temperedRestored.phase,'camp',
             'the previous living return can launch another genuine expedition');
+          await departSavedCamp(page);
           await clearWave(page);
           await walkTo(page,800,365);
           await tapSite(page,'traces');
@@ -1335,6 +1361,7 @@ async function main() {
           assert.equal(safeRestored.unbanked,0);
           assert.equal(await page.evaluate(()=>localStorage.getItem('crownless-expedition-v1-demo')),
             saveBefore,'the separate location-game save stays untouched');
+          await departSavedCamp(page);
           // A later expedition must also prove the tempered sword's *shrine*
           // payoff in the real 390px scene, not just the isolated damage rule.
           // Travel and fight normally; never inject HP, position, loot or saves.
