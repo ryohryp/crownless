@@ -59,16 +59,18 @@
         screenY>=ground-108 && screenY<=ground+22;
     })||null;
   }
-  // Reading tracks sharpens distant sounds and cool air near both fork leads.
-  // This is only a sensory cue: interaction remains at RANGE,
-  // and no route, label, or walkability is revealed early.
+  // Tracks reveal distant signs at both forks. A deliberate gate scout
+  // lets the explorer recognize the shrine's cold breeze slightly sooner.
+  // This remains a non-directional sensory cue, not a tap range, path or reveal.
   function cueNear(player,found){
     if(!player) return null;
-    return spots.find(spot=>
-      !found.has(spot.id) &&
-      Math.hypot(player.x-spot.x,player.z-spot.z) <
-        ((spot.id==='hollow'||spot.id==='shrine') && found.has('traces') ? 90 : RANGE)
-    )||null;
+    return spots.find(spot=>{
+      const range=spot.id==='shrine' && found.has('traces') && found.has('hollow-scout')
+        ? 135 : (spot.id==='hollow'||spot.id==='shrine') && found.has('traces')
+        ? 90 : RANGE;
+      return !found.has(spot.id) &&
+        Math.hypot(player.x-spot.x,player.z-spot.z)<range;
+    })||null;
   }
   function available(phase){
     return phase==='fight'||phase==='return';
