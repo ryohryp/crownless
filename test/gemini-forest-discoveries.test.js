@@ -188,10 +188,10 @@ test('earned shrine breeze remains a local, non-directional HUD clue after the p
   assert(start>=0 && end>start,'evaluate the live phone HUD expression');
   const label=new Function('guardian','near','cue','state','rpg','ginji','forestGuardianHint',
     html.slice(start,end)+'; return label;');
-  const hint=(point,ids,phase='return')=>{
+  const hint=(point,ids,phase='return',unbanked=2)=>{
     const found=new Set(ids);
     return label(null,D.near(point,found),D.cueNear(point,found),
-      {forestFinds:found},{phase,unbanked:2,crafted:false},
+      {forestFinds:found},{phase,unbanked,crafted:false},
       {...point,hp:100,maxHp:140},()=>{throw new Error('unexpected guardian');});
   };
   const early={x:790,z:230}; // 130 units from shrine: only gate scouting earns this range
@@ -199,6 +199,12 @@ test('earned shrine breeze remains a local, non-directional HUD clue after the p
   assert.equal(D.near(early,new Set(scouted)),null,'wind is not a touch target');
   assert.match(hint(early,scouted),/冷たい風が頬をかすめる/);
   assert.match(hint(early,scouted),/気配が強まる場所を探そう/);
+  assert.match(hint(early,scouted),/牙2個は未帰還/,
+    'following a distant breeze must not hide the risk to carried loot');
+  assert.doesNotMatch(hint(early,scouted,'return',0),/未帰還/,
+    'an empty bag must not be advertised as carrying a reward');
+  assert.match(hint({x:850,z:260},['traces']),/牙2個は未帰還/,
+    'the thorn creak must keep the same provisional-loot warning');
   assert.doesNotMatch(hint(early,scouted),/祠|右|左|隠し道|座標/,
     'the HUD must not give away an unvisited destination or path');
   assert.doesNotMatch(hint(early,['traces','hollow']),/冷たい風が頬をかすめる/,
