@@ -3098,7 +3098,9 @@
           : '👁 先手成功｜'
         : guardian.state==='DOWN'
           ? '👁 番人転倒中｜先手の機会を温存｜'
-          : '👁 足跡の先読み 残り'+(Math.ceil((guardian.scoutOpeningEndsAt-nowSec)*10)/10).toFixed(1)+'秒：攻撃+12か回避｜'
+          : '👁 足跡の先読み 残り'+(Math.ceil((guardian.scoutOpeningEndsAt-nowSec)*10)/10).toFixed(1)+'秒：'+
+             (hero && ['HURT','DOWN','GRAB'].includes(hero.state)
+               ? '体勢を立て直そう｜' : '攻撃+12か回避｜')
       : behind ? '👂 背後に足音。振り向けば先手の機会｜' : '';
     const strikeCue=window.CrownlessForestDiscoveries.guardianDodgeCueActive(guardian,hero,nowSec)
       ? '⚠ 番人が踏み込む！跳ぶか離れよう｜'
