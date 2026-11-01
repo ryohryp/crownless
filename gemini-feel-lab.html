@@ -3176,11 +3176,12 @@
           : near.id==='shrine'
           ? '🍃 冷たい風。牙か回復か、一度だけ選べる。タップで調査'
           : '🍃 '+(near.id==='traces'?'湿った土に細い筋がある':'茨の向こうで何かが軋む')+'。気になる地点を直接タップ'
-      // The earned cold-air cue should remain readable while the explorer
-      // is actually in its range, not vanish after a one-shot popup. It
-      // gives no direction, site identity or early interaction.
+      // Let the explorer notice that the cold air strengthens on approach.
+      // The cue stays non-directional: no map marker, site name, or early tap.
       : rpg.phase==='return' && cue?.id==='shrine' && !near
-        ? '🍃 冷たい風が頬をかすめる。気配が強まる場所を探そう'
+        ? (Math.hypot(ginji.x-cue.x,ginji.z-cue.z)<90
+          ? '🍃 冷たい風が強くなる。もう少し周囲を探そう'
+          : '🍃 冷たい風が頬をかすめる。気配が強まる場所を探そう')
       : state.forestFinds.has('traces') && !state.forestFinds.has('shrine') && !state.forestFinds.has('hollow')
         ? '足跡は二手に分かれ、途切れた。どちらを追う？（調査負傷 -3）'
       : rpg.phase==='return' && state.forestFinds.has('hollow-scout') && !state.forestFinds.has('shrine')
