@@ -381,9 +381,10 @@ async function clearWave(page,{attackOnlyGuardian=false,preferScoutedOpening=fal
     const button=document.getElementById('btnPunch');
     const hint=document.getElementById('gestureHint');
     const area=document.getElementById('gestureActionArea');
-    const inside=(rect)=>rect && rect.width>=44 && rect.height>=44 &&
+    const visible=(rect)=>rect && rect.width>0 && rect.height>0 &&
       rect.left>=0 && rect.top>=0 &&
       rect.right<=innerWidth+1 && rect.bottom<=innerHeight+1;
+    const reachable=(rect)=>visible(rect) && rect.width>=44 && rect.height>=44;
     const sample=()=>{
       const gestureMode=!area.classList.contains('hidden');
       const cue=gestureMode?hint:button;
@@ -395,8 +396,8 @@ async function clearWave(page,{attackOnlyGuardian=false,preferScoutedOpening=fal
         : /先手の好機！右下の攻撃で\+12/;
       const text=hint.textContent||'';
       const valid=Boolean(guardian?.scoutOpeningActive && !guardian.scoutStrikeClaimed &&
-        expected.test(text) && inside(cue.getBoundingClientRect()) &&
-        inside((gestureMode?area:button).getBoundingClientRect()));
+        expected.test(text) && visible(cue.getBoundingClientRect()) &&
+        reachable((gestureMode?area:button).getBoundingClientRect()));
       observed.seen=true;
       observed.valid ||= valid;
       observed.last={valid,mode:gestureMode?'gesture':'buttons',text,
