@@ -3147,19 +3147,27 @@
     const cue=window.CrownlessForestDiscoveries.cueNear(ginji,state.forestFinds);
     // Each earned distant sign must not consume the separate confirmation
     // earned by walking into actual inspection range. Both are once per run.
-    const cuePulseKey=cue && !near && (cue.id==='hollow'||cue.id==='shrine'||cue.id==='traces') ? cue.id+':far' : cue?.id;
+    // A second, closer scent is earned only by moving toward the tracks.
+    // It is sensory feedback, never an inspection or navigation unlock.
+    const strongScent=cue?.id==='traces' && !near &&
+      Math.hypot(ginji.x-cue.x,ginji.z-cue.z)<72;
+    const cuePulseKey=cue && !near && (cue.id==='hollow'||cue.id==='shrine'||cue.id==='traces')
+      ? cue.id+(strongScent?':strong':':far') : cue?.id;
     if (rpg.phase==='return' && cue && !state.forestCuePulsed.has(cuePulseKey) &&
         document.getElementById('rpgPanel').classList.contains('hidden') &&
         document.getElementById('forestShrineChoice').classList.contains('hidden') &&
         document.getElementById('forestGateChoice').classList.contains('hidden')) {
       state.forestCuePulsed.add(cuePulseKey);
+      // Entering the stronger scent first must not trigger a weaker cue on retreat.
+      if (strongScent) state.forestCuePulsed.add('traces:far');
       // A distant clue earned by reading tracks has a distinct two-beat
       // pulse. Ordinary nearby clues keep the single short pulse; neither
       // pattern reveals a route or automatically investigates the site.
       // The cool shrine has its own gentle two-beat feel. Tracks stay a
       // single tap and the distant stone gate keeps its earned heavier cue.
       // No site identity, hidden route, or interaction range is revealed.
-      const pulsePattern=cue.id==='traces' && !near ? [16,70,16] :
+      const pulsePattern=strongScent ? [22,55,22] :
+        cue.id==='traces' && !near ? [16,70,16] :
         cue.id==='hollow' && !near ? [28,45,28] :
         cue.id==='shrine' && !near ? [12,80,18] :
         cue.id==='shrine' ? [18,65,36] : 34;
@@ -3168,7 +3176,8 @@
       // still be perceptible without revealing a site name, route or position.
       if (!near && (cue.id==='hollow'||cue.id==='shrine'||cue.id==='traces')) {
         spawnPopup(cue.id==='hollow' ? '遠くで、何かが軋む音がした' :
-          cue.id==='shrine' ? '頬を冷たい風がかすめた' : '湿った土の匂いがした',
+          cue.id==='shrine' ? '頬を冷たい風がかすめた' :
+            strongScent ? '湿った土の匂いが濃くなった' : '湿った土の匂いがした',
           ginji.x,ginji.z,ginji.y+48,'#d9f99d');
       }
     }

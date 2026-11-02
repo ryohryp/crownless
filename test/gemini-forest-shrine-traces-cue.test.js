@@ -49,7 +49,7 @@ test('actual phone HUD and popup announce the earned scent once without spoiling
   const end=html.indexOf("    if (near?.id!=='shrine')",start);
   assert(fn>=0 && start>fn && end>start,'execute the live cue block');
   const tick=new Function('window','ginji','state','rpg','document','sfx','spawnPopup',html.slice(start,end));
-  const hero={x:740,z:330,y:0,state:'IDLE'};
+  const hero={x:720,z:330,y:0,state:'IDLE'};
   const found=new Set(['shrine']);
   const state={forestFinds:found,forestCuePulsed:new Set()};
   const popups=[],haptics=[];
@@ -67,6 +67,14 @@ test('actual phone HUD and popup announce the earned scent once without spoiling
   assert.deepEqual([...found],['shrine'],'cue never discovers or collects');
   run();
   assert.equal(popups.length,1,'staying in range does not spam the cue');
+  hero.x=740;hero.z=330;
+  run();
+  assert.equal(popups.length,2,'walking closer earns one stronger sensory cue');
+  assert.equal(popups[1][0],'湿った土の匂いが濃くなった');
+  assert.deepEqual(haptics[1],[22,55,22],'closer scent has a distinct gentle pulse');
+  assert.equal(state.forestCuePulsed.has('traces:strong'),true);
+  run();
+  assert.equal(popups.length,2,'remaining in the stronger band cannot spam');
   hero.x=800;hero.z=365;
   run();
   assert.equal(state.forestCuePulsed.has('traces'),true,
