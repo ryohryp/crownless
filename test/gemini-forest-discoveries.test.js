@@ -306,7 +306,7 @@ test('deep shrine search cannot grant unguarded loot before the initial wave is 
     'the phone action must be disabled during the initial wave');
   assert.match(html,/魔物を倒してから／奥に気配がある/,
     'the unavailable option explains when and why it becomes available');
-  assert.ok(html.includes("奥に気配がある｜HP -'+riskCost+'・未帰還素材 +2／追加戦闘"),
+  assert.ok(html.includes("奥に気配がある｜HP -'+riskCost+'・未帰還素材 +'+riskLoot+'／追加戦闘"),
     'even before clearing enemies, the disabled risky route must preview its equipment-dependent HP cost and two provisional materials');
 });
 

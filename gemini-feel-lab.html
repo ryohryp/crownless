@@ -2140,10 +2140,11 @@
       heal.disabled=missing===0;
       const risk=document.getElementById('forestShrineRisk');
       const riskCost=window.CrownlessForestDiscoveries.shrineRiskDamage(state.forestFinds,rpg.crafted,rpg.tempered);
+      const riskLoot=window.CrownlessForestDiscoveries.shrineRiskMaterials(state.forestFinds);
       risk.disabled=ginji.hp<riskCost+1 || rpg.phase!=='return';
-      risk.textContent=rpg.phase!=='return'?'奥まで探る（魔物を倒してから／奥に気配がある｜HP -'+riskCost+'・未帰還素材 +2／追加戦闘）':
-        risk.disabled?'奥まで探る（HP -'+riskCost+'・未帰還素材 +2／追加戦闘・撃退まで帰還不可｜HP '+(riskCost+1)+'以上必要）':
-        '奥まで探る（HP -'+riskCost+' →残り'+Math.floor(ginji.hp-riskCost)+'・未帰還素材 +2'+(rpg.tempered?'／研ぎ直した剣で負傷 -2':rpg.crafted?'／鍛冶剣で軽減':'')+
+      risk.textContent=rpg.phase!=='return'?'奥まで探る（魔物を倒してから／奥に気配がある｜HP -'+riskCost+'・未帰還素材 +'+riskLoot+'／追加戦闘）':
+        risk.disabled?'奥まで探る（HP -'+riskCost+'・未帰還素材 +'+riskLoot+'／追加戦闘・撃退まで帰還不可｜HP '+(riskCost+1)+'以上必要）':
+        '奥まで探る（HP -'+riskCost+' →残り'+Math.floor(ginji.hp-riskCost)+'・未帰還素材 +'+riskLoot+(rpg.tempered?'／研ぎ直した剣で負傷 -2':rpg.crafted?'／鍛冶剣で軽減':'')+
         (state.forestFinds.has('traces')?'／足跡を読んで負傷 -3・接近する物音を早く察知':'')+
         (state.forestFinds.has('hollow-scout') && !rpg.tempered?'／石門の見切りで負傷 -1':'')+
         (rpg.phase==='return'?'／奥に気配・追加戦闘あり・撃退まで帰還不可':'')+'）';
@@ -2234,7 +2235,7 @@
     }
     if(discovery.material) {
       for(let i=0;i<discovery.material;i++) if (!rpgRules.claimMaterial(rpg)) return false;
-      spawnPopup(discovery.spot.id==='shrine' && discovery.damage?(state.forestFinds.has('traces') && state.forestFinds.has('hollow-scout') && !rpg.tempered?'石門で覚えた茨の揺れを読み、負傷 -1。 ':'')+'祠の奥で牙 +2（未帰還）／HP -'+discovery.damage:
+      spawnPopup(discovery.spot.id==='shrine' && discovery.damage?(state.forestFinds.has('traces') && state.forestFinds.has('hollow-scout') && !rpg.tempered?'石門で覚えた茨の揺れを読み、負傷 -1。 ':'')+'祠の奥で牙 +'+discovery.material+'（未帰還）／HP -'+discovery.damage:
         discovery.spot.id==='hollow'?(shrineChoice==='cautious' && discovery.damage===0?'研ぎ直した剣で慎重に茨を払い、無傷で牙 +'+discovery.material+'（未帰還）・薬草は見送った':(shrineChoice==='cautious' && state.forestFinds.has('shrine')?'祠で覚えた苔の筋をたどり負傷 -2。 ':'')+(rpg.tempered && shrineChoice==='material'?'研ぎ直した剣で茨を払った！ ':!rpg.crafted?'素手で茨をかき分けて':'石門の茨を払って')+'牙 +'+discovery.material+'（未帰還）／HP -'+discovery.damage+'・薬草は見送った'):
         discovery.spot.id==='shrine'?'祠の隙間で牙 +1（未帰還）／この遠征の癒やしは使い切った':
         (state.forestFinds.has('shrine') ? '獣の痕跡！牙 +1（未帰還）／済んだ調査には効かない。まだ茨の軋みを追える' : '獣の痕跡！牙 +1（未帰還）／この先の危険な調査で負傷 -3'),f.x,f.z,f.y+48,'#fde68a');

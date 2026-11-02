@@ -20,7 +20,7 @@ test('earned gate scouting is acknowledged after shrine deep search only when it
       crafted, 'risk', tempered
     );
     assert.equal(discovery.ok, true);
-    assert.equal(discovery.material, 2, 'the deeper reward remains provisional');
+    assert.equal(discovery.material, found.has('hollow-scout') ? 3 : 2, 'the deeper reward remains provisional');
     const messages = [];
     vm.runInNewContext(popup, {
       discovery, state:{forestFinds:found}, rpg:{crafted,tempered},
@@ -39,12 +39,12 @@ test('earned gate scouting is acknowledged after shrine deep search only when it
   const scouted = inspect(['traces','hollow','hollow-scout'],true,false);
   assert.equal(scouted.damage,2);
   assert.match(scouted.message,/石門で覚えた茨の揺れを読み、負傷 -1/);
-  assert.match(scouted.message,/祠の奥で牙 \+2（未帰還）／HP -2/);
+  assert.match(scouted.message,/祠の奥で牙 \+3（未帰還）／HP -2/);
   assert.doesNotMatch(scouted.message,/右|左|隠し道|帰還済み/);
 
   const tempered = inspect(['traces','hollow','hollow-scout'],true,true);
   assert.equal(tempered.damage,1, 'the 1 HP floor remains');
-  assert.match(tempered.message,/祠の奥で牙 \+2（未帰還）／HP -1/);
+  assert.match(tempered.message,/祠の奥で牙 \+3（未帰還）／HP -1/);
   assert.doesNotMatch(tempered.message,/負傷 -1|石門で覚えた/,
     'do not claim an ineffective scouting discount for a tempered blade');
 });

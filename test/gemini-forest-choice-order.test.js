@@ -231,7 +231,7 @@ test('gate-first careful scouting lowers later shrine deep-search injury without
     const risk=D.uncover(shrine,found,'return',scouted+1,140,crafted,'risk',tempered);
     assert.equal(risk.ok,true);
     assert.equal(risk.damage,scouted);
-    assert.equal(risk.material,2,'the bonus never grants banked loot or skips the guardian');
+    assert.equal(risk.material,3,'gate-first scouting adds one unsecured fang, not a free guardian bypass');
     assert.equal(risk.heal,0);
     assert.equal(D.uncover(shrine,found,'return',140,140,crafted,'risk',tempered).ok,false,
       'the deep reward remains one-time');
@@ -333,4 +333,35 @@ test('phone gate offers an explicit scout-only tradeoff without revealing a hidd
     'both obsolete and dominated observations must disappear from the phone sheet');
   assert.doesNotMatch(html.match(/scout\.textContent=state\.forestFinds\.has\('shrine'\)[\s\S]*?;\n/)[0],/隠し道|祠の位置|石門の奥/,
     'the choice must not reveal an unvisited destination');
+});
+
+test('gate-first deep-search bonus is earned only after a guardian fight and living return', () => {
+  const found=new Set();
+  const run=R.create();
+  assert.equal(R.clearWave(run),true);
+  assert.equal(D.uncover(tracks,found,run.phase,140,140).ok,true);
+  const scout=D.uncover(gate,found,run.phase,140,140,false,'scout');
+  assert.equal(scout.ok,true);
+  assert.equal(scout.material,0,'the scouting detour sacrifices the gate fang');
+  assert.equal(D.shrineRiskMaterials(found),3);
+  const risk=D.uncover(shrine,found,run.phase,140,140,false,'risk');
+  assert.equal(risk.ok,true);
+  assert.equal(risk.material,3,'the extra fang requires both deliberate scouting and deep search');
+  assert.equal(D.uncover(shrine,found,run.phase,140,140,false,'risk').ok,false,
+    'the bonus cannot be farmed by repeat taps');
+  for(let i=0;i<risk.material;i++) assert.equal(R.claimMaterial(run),true);
+  assert.equal(run.banked,0,'the extra fang is not banked on discovery');
+  assert.equal(R.pushDeeper(run),true,'deep search requires the guardian wave');
+  assert.equal(R.returnAlive(run,100),false,'the player cannot bank the bonus before winning');
+  assert.equal(R.clearWave(run),true);
+  assert.equal(R.returnAlive(run,100),true);
+  assert.equal(run.banked,3);
+  const ordinary=new Set(['traces']);
+  assert.equal(D.shrineRiskMaterials(ordinary),2);
+  assert.equal(D.uncover(shrine,ordinary,'return',140,140,false,'risk').material,2,
+    'ordinary tracks without gate-first scouting retain the original two-fang risk');
+  const lost=R.create();
+  for(let i=0;i<3;i++) R.claimMaterial(lost);
+  assert.equal(R.loseExpedition(lost),true);
+  assert.equal(lost.banked,0,'defeat loses even the earned bonus');
 });

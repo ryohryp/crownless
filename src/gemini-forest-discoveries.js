@@ -351,6 +351,12 @@
     // Never remove the last HP of risk: the extra guardian still must be faced.
     return found.has('traces') && found.has('hollow-scout') ? Math.max(1,base-1) : base;
   }
+  // The gate-first observation earns a third *provisional* fang only by
+  // risking the shrine's deeper search and its mandatory guardian fight.
+  // Neither a forceful gate haul nor a shrine-first visit earns this payoff.
+  function shrineRiskMaterials(found){
+    return found.has('traces') && found.has('hollow-scout') ? 3 : 2;
+  }
   function uncover(player,found,phase,hp,maxHp,crafted=false,shrineChoice='auto',tempered=false){
     if(!available(phase)) return {ok:false};
     if(!canInspect(player,phase)) return {ok:false,reason:'busy'};
@@ -405,10 +411,10 @@
     const gateScout=spot.kind==='cache' && shrineChoice==='scout';
     const gateSalvage=spot.kind==='cache' && !gateHeal && !gateScout;
     const gateCautious=spot.kind==='cache' && shrineChoice==='cautious';
-    return {ok:true,spot,material:risky?2:scavenge?1:spot.kind==='cache'&&!gateHeal&&!gateScout?(gateCautious?1:2):spot.kind==='material'?1:0,
+    return {ok:true,spot,material:risky?shrineRiskMaterials(found):scavenge?1:spot.kind==='cache'&&!gateHeal&&!gateScout?(gateCautious?1:2):spot.kind==='material'?1:0,
       damage:risky?riskDamage:gateSalvage?gateDamage:0,
       heal:gateHeal?Math.min(45,Math.max(0,maxHp-hp)):
         spot.kind==='healing' && !scavenge?Math.min(found.has('traces')?40:35,Math.max(0,maxHp-hp)):0};
   }
-  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,GATE_BAREHAND_DAMAGE,gateSalvageDamage,near,cueNear,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,pauseGuardianCounter,guardianScoutStrikeBonus,guardianScoutAttackCueActive,guardianReadyForOpening,guardianBehindWarning,companionYieldsGuardianOpening,companionYieldsGuardianRecovery,companionYieldsGuardianFootsteps,guardianTargetsExplorer,guardianStrikeTell,guardianKeepsTellOnHit,guardianDodgeCueActive,guardianCounterStrikeBonus,claimGuardianCounter,claimGuardianCounterFang,shrineRiskDamage,uncover};
+  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,GATE_BAREHAND_DAMAGE,gateSalvageDamage,near,cueNear,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,pauseGuardianCounter,guardianScoutStrikeBonus,guardianScoutAttackCueActive,guardianReadyForOpening,guardianBehindWarning,companionYieldsGuardianOpening,companionYieldsGuardianRecovery,companionYieldsGuardianFootsteps,guardianTargetsExplorer,guardianStrikeTell,guardianKeepsTellOnHit,guardianDodgeCueActive,guardianCounterStrikeBonus,claimGuardianCounter,claimGuardianCounterFang,shrineRiskDamage,shrineRiskMaterials,uncover};
 });
