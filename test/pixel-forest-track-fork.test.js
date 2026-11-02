@@ -75,7 +75,8 @@ test('the live post-track HUD asks for observation, not a prescribed gate route'
   });
   assert.match(label, /二手に分かれ/);
   assert.match(label, /牙2個未帰還/, 'the fork decision must show unsecured loot at stake');
-  assert.match(label, /深い調査の負傷を3軽減/, 'earned footing bonus remains legible without suggesting immediate HP loss');
+  assert.match(label, /足場を見切った。苔の湿りか茨の軋みか/, 'earned footing remains a sensory clue without spoiling the exact shrine injury cost');
+  assert.doesNotMatch(label, /負傷を3軽減|HP -\d/, 'the surprise stays hidden until the actual choice');
   assert.doesNotMatch(label, /石門|祠|右|左|茨を調べ|新しい剣/,
     'the HUD must not preselect the destination or spoil either branch');
 });
