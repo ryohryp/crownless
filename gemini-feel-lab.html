@@ -3287,7 +3287,7 @@
     // The next wave is a different commitment from inspecting this cleared forest.
     // Show the actual HP and unsecured bag before the player accepts that risk.
     if (result && ginji) pushDeeper.textContent='⚔ 次の敵に挑む（HP '+Math.max(0,Math.ceil(ginji.hp))+'/'+ginji.maxHp+
-      '・未帰還の牙 '+rpg.unbanked+'個）';
+      '・未帰還の牙 '+rpg.unbanked+'個'+(rpg.unbanked>0?'／敗北で喪失':'')+'）';
     document.getElementById('rpgForge').classList.toggle('hidden', !camp || rpg.crafted);
     const depart=document.getElementById('rpgDepart');
     depart.classList.toggle('hidden', !camp);

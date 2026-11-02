@@ -244,3 +244,29 @@ test('smithing sound confirms saved gear, not an unsaved in-session change', () 
     assert.equal(failed.events.length, 3, 'repeat tap must not mask a failed save');
   }
 });
+
+
+test('next-wave phone button shows the actual unsecured loss at the moment of choice', () => {
+  const html = fs.readFileSync('gemini-feel-lab.html', 'utf8');
+  const start = html.indexOf("    const pushDeeper=document.getElementById('rpgPush');");
+  const end = html.indexOf("    document.getElementById('rpgForge').classList.toggle", start);
+  assert(start >= 0 && end > start, 'exercise the live next-wave action label');
+  const live = html.slice(start, end);
+  const render = (hp, unbanked, result = true) => {
+    const button = { textContent: '', classList: { toggle: () => {} } };
+    vm.runInNewContext(live, {
+      document: { getElementById: id => {
+        assert.equal(id, 'rpgPush');
+        return button;
+      } },
+      result, ginji: { hp, maxHp: 140 }, rpg: { unbanked }
+    });
+    return button.textContent;
+  };
+  assert.match(render(73.4, 2), /HP 74\/140・未帰還の牙 2個／敗北で喪失/,
+    'the risk action itself must state the concrete provisional loss');
+  assert.match(render(140, 0), /HP 140\/140・未帰還の牙 0個/);
+  assert.doesNotMatch(render(140, 0), /敗北で喪失/,
+    'an empty bag must not falsely claim there are materials to lose');
+  assert.equal(render(140, 3, false), '', 'the next-wave action is absent outside the result phase');
+});
