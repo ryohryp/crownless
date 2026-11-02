@@ -3194,7 +3194,7 @@
           : '🌿 枝が軋む音がする。音が強まる場所を探そう')+
           (rpg.unbanked>0?'｜牙'+rpg.unbanked+'個は未帰還':'')
       : state.forestFinds.has('traces') && !state.forestFinds.has('shrine') && !state.forestFinds.has('hollow')
-        ? '足跡が二手に分かれた。足場を見切った。苔の湿りか茨の軋みか？'+
+        ? '足跡が二手に分かれた。足場を見切った。どちらを追う？'+
           (rpg.unbanked>0?'｜牙'+rpg.unbanked+'個未帰還':'')
       : rpg.phase==='return' && state.forestFinds.has('hollow-scout') && !state.forestFinds.has('shrine')
         // Keep the remaining sensory lead visible even after earning the

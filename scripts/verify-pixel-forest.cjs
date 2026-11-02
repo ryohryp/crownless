@@ -962,8 +962,8 @@ async function main() {
             'the return choice updates even when the clue hint takes priority');
           await page.waitForFunction(()=>document.getElementById('forestExploreHint')?.textContent?.includes('足跡が二手に分かれた'));
           const forkHint=await page.locator('#forestExploreHint').innerText();
-          assert.match(forkHint,/足場を見切った。苔の湿りか茨の軋みか/,
-            'the earned tracks clue invites observation without spoiling the exact HP cost');
+          assert.match(forkHint,/足場を見切った。どちらを追う/,
+            'the earned tracks clue invites player observation without naming either branch or exact HP cost');
           assert.doesNotMatch(forkHint,/負傷を3軽減|HP -\d/,
             'the phone fork must reserve exact injury costs for the actual shrine choice');
           if (afterTracks.unbanked>0) assert.match(forkHint,new RegExp('牙'+afterTracks.unbanked+'個未帰還'),

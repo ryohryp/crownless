@@ -409,8 +409,8 @@ test('reading tracks first makes the shrine deep search safer without making the
       'skipping tracks is still a viable route');
   }
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
-  assert.ok(html.includes('足跡が二手に分かれた。どちらを追う？（深い調査の負傷を3軽減）'),
-    'the discovered tracks should explain their benefit without naming the hidden shrine');
+  assert.ok(html.includes('足跡が二手に分かれた。足場を見切った。どちらを追う？'),
+    'the discovered tracks should acknowledge learned footing without spoiling the shrine choice');
   assert.ok(html.includes('CrownlessForestDiscoveries.shrineRiskDamage(state.forestFinds,rpg.crafted,rpg.tempered)'),
     'the visible HP cost must come from the same rule as the reward');
   assert.match(html,/足跡を読んで負傷 -3/,'the benefit must be visible before committing');
