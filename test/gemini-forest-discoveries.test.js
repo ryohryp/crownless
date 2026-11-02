@@ -34,15 +34,20 @@ test('reading tracks extends only the hidden gate vibration, never touch range o
   assert.match(html,/state\.forestCuePulsed\.has\(cuePulseKey\)/);
   const pulseKeySource=html.match(/const cuePulseKey=([^;]+);/)?.[1];
   assert.ok(pulseKeySource,'the earned far cue and the inspectable gate need separate pulse keys');
-  const pulseKey=Function('cue','near','return ('+pulseKeySource+');');
+  const readPulseKey=Function('cue','near','strongScent','return ('+pulseKeySource+');');
+  const pulseKey=(cue,near,strongScent=false)=>readPulseKey(cue,near,strongScent);
   assert.equal(pulseKey({id:'hollow'},null),'hollow:far');
   assert.equal(pulseKey({id:'shrine'},null),'shrine:far');
+  assert.equal(pulseKey({id:'traces'},null,true),'traces:strong');
   assert.equal(pulseKey({id:'hollow'},{id:'hollow'}),'hollow');
   assert.equal(pulseKey({id:'shrine'},{id:'shrine'}),'shrine');
   assert.equal(pulseKey(null,null),undefined);
   const pulseSource=html.match(/const pulsePattern=([\s\S]*?);/)?.[1];
   assert.ok(pulseSource,'the actual phone cue must distinguish shrine from tracks and gate');
-  const pulse=Function('cue','near','return ('+pulseSource+');');
+  const readPulse=Function('cue','near','strongScent','return ('+pulseSource+');');
+  const pulse=(cue,near,strongScent=false)=>readPulse(cue,near,strongScent);
+  assert.deepEqual(pulse({id:'traces'},null,true),[22,55,22],
+    'stronger earned scent has its own soft approach cue');
   assert.deepEqual(pulse({id:'shrine'},null),[12,80,18],
     'distant shrine breeze has its own quiet two-beat cue');
   assert.deepEqual(pulse({id:'shrine'},{id:'shrine'}),[18,65,36],
@@ -1458,7 +1463,7 @@ test('post-combat discovery pulse is once per unexamined clue and never navigati
     'revisiting on a new expedition can earn fresh sensory cues');
   assert.match(html,/rpg\.phase==='return' && cue && !state\.forestCuePulsed\.has\(cuePulseKey\)/,
     'only undiscovered sites after combat can pulse');
-  assert.match(html,/state\.forestCuePulsed\.add\(cuePulseKey\);[\s\S]*?const pulsePattern=cue\.id==='traces' && !near \? \[16,70,16\] :[\s\S]*?cue\.id==='hollow' && !near \? \[28,45,28\] :[\s\S]*?cue\.id==='shrine' \? \[18,65,36\] : 34;[\s\S]*?sfx\.haptic\(pulsePattern\)/,
+  assert.match(html,/state\.forestCuePulsed\.add\(cuePulseKey\);[\s\S]*?const pulsePattern=strongScent \? \[22,55,22\] :[\s\S]*?cue\.id==='traces' && !near \? \[16,70,16\] :[\s\S]*?cue\.id==='hollow' && !near \? \[28,45,28\] :[\s\S]*?cue\.id==='shrine' \? \[18,65,36\] : 34;[\s\S]*?sfx\.haptic\(pulsePattern\)/,
     'mark each site once, keeping the earned distant gate cue and the shrine tactile signature distinct');
   assert.match(html,/document\.getElementById\('rpgPanel'\)\.classList\.contains\('hidden'\)/,
     'do not interrupt the return decision sheet');
