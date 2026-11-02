@@ -116,17 +116,33 @@ test('safe return previews the unsecured haul and celebrates only actual banking
   const labelStart = html.indexOf("    const returnButton=document.getElementById('rpgReturn');");
   const labelEnd = html.indexOf('    const pushDeeper=', labelStart);
   assert(labelStart >= 0 && labelEnd > labelStart, 'inspect the live return-button formatter');
-  const buttonLabel = (unbanked, result = true) => {
+  const buttonLabel = (unbanked, result = true, banked = 0, crafted = false) => {
     const button = { textContent: '', classList: { toggle: () => {} } };
     vm.runInNewContext(html.slice(labelStart, labelEnd), {
       document: { getElementById: () => button },
-      result, rpg: { unbanked }
+      result, rpg: { unbanked, banked, crafted }, rpgRules: R
     });
     return button.textContent;
   };
-  assert.match(buttonLabel(3), /牙3個を倉庫へ持ち帰る/);
+  assert.match(buttonLabel(3), /牙3個を持ち帰る.*剣を作れる/,
+    'a living return with the missing fangs unlocks a concrete smithing goal');
+  assert.match(buttonLabel(2, true, 1), /牙2個を持ち帰る.*剣を作れる/,
+    'already banked fangs count toward the threshold without being duplicated');
+  assert.match(buttonLabel(2), /牙2個を倉庫へ持ち帰る/);
+  assert.doesNotMatch(buttonLabel(2), /剣を作れる/,
+    'an incomplete haul must not promise forging');
+  assert.doesNotMatch(buttonLabel(2, true, 3), /剣を作れる/,
+    'the cue must not claim a newly earned craft when the bank already suffices');
+  assert.doesNotMatch(buttonLabel(3, true, 0, true), /剣を作れる/,
+    'an already crafted sword cannot be crafted twice');
   assert.match(buttonLabel(0), /素材なし/);
   assert.equal(buttonLabel(3, false), '', 'no return action while in camp or combat');
+  const ready = R.create();
+  for (let i = 0; i < R.COST; i++) R.claimMaterial(ready);
+  assert.equal(R.clearWave(ready), true);
+  assert.equal(R.forge(ready), false, 'unbanked materials never craft in the field');
+  assert.equal(R.returnAlive(ready, 50), true);
+  assert.equal(R.forge(ready), true, 'only an actual living return unlocks forging');
 
   const start = html.indexOf("  document.getElementById('rpgReturn').addEventListener('click', () => {");
   const end = html.indexOf("  document.getElementById('rpgPush').addEventListener", start);

@@ -3263,9 +3263,18 @@
     returnButton.classList.toggle('hidden', !result);
     // Make the actual safe-return payoff visible on the thumb-reachable action.
     // The bag is still provisional until the player explicitly returns alive.
-    if (result) returnButton.textContent=rpg.unbanked>0
-      ? '🏕 牙'+rpg.unbanked+'個を倉庫へ持ち帰る'
-      : '🏕 無事に帰還する（素材なし）';
+    if (result) {
+      // The return decision becomes meaningful when this unsecured haul
+      // crosses the first smithing threshold. Do not claim that crafting
+      // already happened or advertise a reward that can be lost in combat.
+      const forgeOnReturn=!rpg.crafted && rpg.unbanked>0 &&
+        rpg.banked<rpgRules.COST && rpg.banked+rpg.unbanked>=rpgRules.COST;
+      returnButton.textContent=rpg.unbanked>0
+        ? forgeOnReturn
+          ? '🏕 牙'+rpg.unbanked+'個を持ち帰る（剣を作れる）'
+          : '🏕 牙'+rpg.unbanked+'個を倉庫へ持ち帰る'
+        : '🏕 無事に帰還する（素材なし）';
+    }
     const pushDeeper=document.getElementById('rpgPush');
     pushDeeper.classList.toggle('hidden', !result);
     // The next wave is a different commitment from inspecting this cleared forest.
