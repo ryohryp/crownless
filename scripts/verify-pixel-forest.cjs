@@ -910,7 +910,33 @@ async function main() {
           // outside the original 54-unit inspection radius.
           const strongPulseBefore=await page.evaluate(()=>
             window.__forestHapticPatterns.filter(p=>Array.isArray(p) && p.join(',')==='22,55,22').length);
-          await walkTo(page,770,340);
+          // walkTo() stops 18 units short of its target, which can leave
+          // the hero outside this narrow 54–72-unit band. Approach in real
+          // input ticks and stop at the observed distance instead.
+          const heldScentKeys=new Set();
+          let enteredStrongBand=false;
+          let lastScentDistance=Infinity;
+          try {
+            const deadline=Date.now()+7000;
+            while(Date.now()<deadline) {
+              const position=await read(page);
+              lastScentDistance=Math.hypot(position.player.x-800,position.player.z-365);
+              if(lastScentDistance>54 && lastScentDistance<72) {
+                enteredStrongBand=true;
+                break;
+              }
+              assert(lastScentDistance>=54,
+                'real movement crossed the inspection boundary before the strong scent: '+lastScentDistance);
+              const dx=800-position.player.x,dz=365-position.player.z;
+              const wanted=[];
+              if(Math.abs(dx)>4) wanted.push(dx>0?'d':'a');
+              if(Math.abs(dz)>4) wanted.push(dz>0?'s':'w');
+              await keys(page,heldScentKeys,wanted);
+              await page.waitForTimeout(25);
+            }
+          } finally { await keys(page,heldScentKeys,[]); }
+          assert(enteredStrongBand,
+            'real movement did not enter the stronger scent band: '+lastScentDistance);
           await page.waitForFunction(()=>
             document.getElementById('forestExploreHint')?.textContent?.includes('湿った土の匂いが強まる'),
             null,{timeout:5000});
