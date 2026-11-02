@@ -168,6 +168,8 @@ test('safe return previews the unsecured haul and celebrates only actual banking
     onReturn();
     return { run, events, onReturn };
   };
+  assert.match(html.slice(start, end), /lastCampSaveSucceeded=saved;/,
+    'the live return handler must record persistence status for the camp title');
   const successful = invoke(2, 80);
   assert.equal(successful.run.banked, 2);
   assert.equal(successful.run.unbanked, 0);
@@ -195,6 +197,8 @@ test('smithing sound confirms saved gear, not an unsaved in-session change', () 
   const end = html.indexOf("  document.getElementById('rpgBackToMap').addEventListener", start);
   assert(start >= 0 && end > start, 'exercise both real smithing click handlers');
   const handlers = html.slice(start, end);
+  assert.equal((handlers.match(/lastCampSaveSucceeded=saved;/g) || []).length, 2,
+    'forge and temper must also report their real persistence result');
   const invoke = (kind, saveSucceeds) => {
     const run = R.create();
     run.phase = 'camp';
@@ -289,7 +293,7 @@ test('restored camp never falsely claims a new living return', () => {
   const end = html.indexOf('    // Tie the decision to the actual next craft', start);
   assert(start >= 0 && end > start, 'evaluate the live camp title formatter');
   const live = html.slice(start, end);
-  const title = (phase, lastOutcome) => {
+  const title = (phase, lastOutcome, lastCampSaveSucceeded = null) => {
     const node = { textContent: '' };
     vm.runInNewContext(live, {
       document: { getElementById: id => {
@@ -297,13 +301,20 @@ test('restored camp never falsely claims a new living return', () => {
         return node;
       } },
       result: phase === 'return',
-      rpg: { lastOutcome }
+      rpg: { lastOutcome }, lastCampSaveSucceeded
     });
     return node.textContent;
   };
   assert.equal(title(restored.phase, restored.lastOutcome), 'キャンプで再開',
     'a restored camp must not invent a safe return');
-  assert.equal(title('camp', 'returned'), '無事に生還！',
+  assert.equal(title('camp', 'returned', false), '⚠ 保存できない（成果はこの画面限り）',
+    'failed persistence must not present a durable victory');
+  assert.equal(title('camp', 'crafted', false), '⚠ 保存できない（成果はこの画面限り）',
+    'unsaved smithing must not look permanently secured');
+  assert.equal(title('camp', 'tempered', false), '⚠ 保存できない（成果はこの画面限り）');
+  assert.equal(title('camp', 'defeated', false), '敗北。素材を失った……',
+    'defeat is not a save celebration');
+  assert.equal(title('camp', 'returned', true), '無事に生還！',
     'a living return in the current session retains its earned celebration');
   assert.equal(title('camp', 'defeated'), '敗北。素材を失った……',
     'an actual defeat still reports the loss');

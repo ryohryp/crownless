@@ -586,6 +586,9 @@
   let actionKey = null;
   let actionPreviousRaw = null;
   let actionSaveBlocked = false;
+  // A living return or smithing action can succeed in-session even if persistence fails.
+  // Do not celebrate that result as durable in the camp title.
+  let lastCampSaveSucceeded = null;
   function actionSaveError(message) {
     actionSaveBlocked = true;
     const warning = document.getElementById('rpgSaveWarning');
@@ -3326,8 +3329,11 @@
     temper.disabled=rpg.banked<rpgRules.TEMPER_COST;
     temper.textContent='⚒ 牙 '+rpgRules.TEMPER_COST+'個で剣を研ぎ直す（攻撃+4）';
     temper.classList.toggle('opacity-40',temper.disabled);
+    const unsavedCampOutcome=lastCampSaveSucceeded===false &&
+      ['returned','crafted','tempered'].includes(rpg.lastOutcome);
     document.getElementById('rpgTitle').textContent = result ? '敵を退けた！ 帰還する？' :
-      (rpg.lastOutcome === 'defeated' ? '敗北。素材を失った……' :
+      (unsavedCampOutcome ? '⚠ 保存できない（成果はこの画面限り）' :
+       rpg.lastOutcome === 'defeated' ? '敗北。素材を失った……' :
        rpg.lastOutcome === 'crafted' ? '鍛冶師の剣が完成！' :
        rpg.lastOutcome === 'tempered' ? '風裂きの剣を研ぎ直した！' :
        rpg.lastOutcome === 'returned' ? '無事に生還！' : 'キャンプで再開');
@@ -3364,6 +3370,7 @@
     // Celebrate only after the returned haul is actually saved. A failed
     // write still shows the existing save warning, not a false success cue.
     const saved=saveActionProgress();
+    lastCampSaveSucceeded=saved;
     if (securedFangs>0 && saved) { sfx.play('coin'); sfx.haptic([18,45,24]); }
     updateRpgStatus();
     showRpgPanel();
@@ -3380,6 +3387,7 @@
     // Crafting remains visible in this session if storage fails, but never
     // celebrate a forged item as secured until the current save succeeds.
     const saved=saveActionProgress();
+    lastCampSaveSucceeded=saved;
     if (saved) sfx.play('heavy');
     updateRpgStatus();
     showRpgPanel();
@@ -3387,6 +3395,7 @@
   document.getElementById('rpgTemper').addEventListener('click', () => {
     if (!rpgRules.temper(rpg)) return;
     const saved=saveActionProgress();
+    lastCampSaveSucceeded=saved;
     if (saved) sfx.play('heavy');
     updateRpgStatus();
     showRpgPanel();

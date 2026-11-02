@@ -33,10 +33,12 @@ function showPanel(state) {
     '; return showRpgPanel; })()',
     { document, rpg, ginji: { hp: state.hp ?? 140, maxHp: 140 },
       state: { forestFinds: new Set(state.forestFinds || []) },
-      rpgRules: { COST: 3, TEMPER_COST: 5 }, location: { search: '' }, URLSearchParams },
+      rpgRules: { COST: 3, TEMPER_COST: 5 }, location: { search: '' }, URLSearchParams,
+      lastCampSaveSucceeded: state.lastCampSaveSucceeded ?? null },
     { timeout: 1000 });
   run();
-  return { info: elements.get('rpgInfo').textContent,
+  return { title: elements.get('rpgTitle').textContent,
+    info: elements.get('rpgInfo').textContent,
     keepExploring: elements.get('rpgKeepExploring').textContent,
     pushDeeper: elements.get('rpgPush').textContent,
     forgeDisabled: elements.get('rpgForge').disabled,
@@ -56,6 +58,20 @@ test('camp shows actual remaining fangs rather than falsely promising a sword', 
   const ready = showPanel({ banked: 3 });
   assert.match(ready.info, /倉庫の牙3個で風裂きの剣を製作できる/);
   assert.equal(ready.forgeDisabled, false);
+});
+
+test('camp title distinguishes an in-session return from durable saved loot', () => {
+  assert.equal(showPanel({ lastOutcome: 'returned', lastCampSaveSucceeded: true }).title,
+    '無事に生還！');
+  assert.equal(showPanel({ lastOutcome: 'returned', lastCampSaveSucceeded: false }).title,
+    '⚠ 保存できない（成果はこの画面限り）');
+  assert.equal(showPanel({ lastOutcome: 'crafted', lastCampSaveSucceeded: false }).title,
+    '⚠ 保存できない（成果はこの画面限り）');
+  assert.equal(showPanel({ lastOutcome: 'tempered', lastCampSaveSucceeded: false }).title,
+    '⚠ 保存できない（成果はこの画面限り）');
+  assert.equal(showPanel({ lastOutcome: '' }).title, 'キャンプで再開');
+  assert.equal(showPanel({ lastOutcome: 'defeated', lastCampSaveSucceeded: false }).title,
+    '敗北。素材を失った……');
 });
 
 test('crafted, defeated and return decisions retain their distinct messages', () => {
