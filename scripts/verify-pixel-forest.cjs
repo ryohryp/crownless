@@ -1561,6 +1561,9 @@ async function main() {
             'cautious salvage spends the one-time gate decision');
           await walkTo(page,660,230);
           await tapSite(page,'shrine');
+          const gateFirstRiskPreview=await page.locator('#forestShrineRisk').innerText();
+          assert.match(gateFirstRiskPreview,/未帰還素材 \+3.*追加戦闘/,
+            '390px gate-first choice previews the earned third fang and mandatory guardian');
           const gateFirstStakes=await page.locator('#forestShrineStakes').innerText();
           assert.match(gateFirstStakes,/石門の茨の手がかりで先手の猶予 \+0\.6秒/,
             'the phone choice explains the earned gate-first tactical advantage');
@@ -1574,8 +1577,8 @@ async function main() {
             'the tactical advantage cannot bypass the optional guardian');
           assert.equal(gateFirstRisk.enemies.find(e=>e.name==='苔祠の番人')?.scoutOpeningSeconds,2.4,
             'real gate-first encounter earns 2.4s rather than shrine-first 1.8s');
-          assert.equal(gateFirstRisk.unbanked,beforeGateFirstRisk.unbanked+2,
-            'the shrine reward remains unsecured until survival');
+          assert.equal(gateFirstRisk.unbanked,beforeGateFirstRisk.unbanked+3,
+            'earned gate-first deep search grants three unsecured fangs, not banked loot');
           const gateFirstGuardian=await clearWave(page,{preferScoutedOpening:true});
           assert.equal(gateFirstGuardian.openingObserved,true,
             'tempered cautious gate-first detour must open a real player-actionable warning; trace='+
@@ -2036,8 +2039,8 @@ async function main() {
             await walkTo(scoutPage,660,230);
             await tapSite(scoutPage,'shrine');
             const scoutShrineChoice=await scoutPage.locator('#forestShrineRisk').innerText();
-            assert.match(scoutShrineChoice,/HP -8/,
-              'barehand tracks + gate observation reduces the shrine wound from 9 to 8 HP');
+            assert.match(scoutShrineChoice,/HP -8.*未帰還素材 \+3/,
+              'barehand gate scouting previews both the safer wound and third provisional fang');
             const beforeScoutShrine=await read(scoutPage);
             await scoutPage.locator('#forestShrineRisk').click();
             const scoutShrineRisk=await read(scoutPage);
@@ -2045,8 +2048,8 @@ async function main() {
               'no-loot observation does not skip the optional guardian');
             assert.equal(scoutShrineRisk.player.hp,beforeScoutShrine.player.hp-8,
               'the earned scouting clue saves exactly one HP at the shrine');
-            assert.equal(scoutShrineRisk.unbanked,beforeScoutShrine.unbanked+2,
-              'the shrine reward stays provisional until a living return');
+            assert.equal(scoutShrineRisk.unbanked,beforeScoutShrine.unbanked+3,
+              'the no-loot scouting detour earns a third provisional shrine fang');
             assert.equal(scoutShrineRisk.enemies.find(e=>e.name==='苔祠の番人')?.scoutOpeningSeconds,2.4,
               'the no-loot observation grants the same real 2.4s guardian opening');
             const scoutOnlyGuardian=await clearWave(scoutPage);
