@@ -3309,7 +3309,8 @@
     document.getElementById('rpgTitle').textContent = result ? '敵を退けた！ 帰還する？' :
       (rpg.lastOutcome === 'defeated' ? '敗北。素材を失った……' :
        rpg.lastOutcome === 'crafted' ? '鍛冶師の剣が完成！' :
-       rpg.lastOutcome === 'tempered' ? '風裂きの剣を研ぎ直した！' : '無事に生還！');
+       rpg.lastOutcome === 'tempered' ? '風裂きの剣を研ぎ直した！' :
+       rpg.lastOutcome === 'returned' ? '無事に生還！' : 'キャンプで再開');
     // Tie the decision to the actual next craft, not just a generic risk warning.
     const safeTotal=rpg.banked+rpg.unbanked;
     const temperProspect=rpg.crafted
