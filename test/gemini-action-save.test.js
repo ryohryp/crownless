@@ -289,7 +289,7 @@ test('restored camp never falsely claims a new living return', () => {
   assert.equal(restored.lastOutcome, '');
 
   const html = fs.readFileSync('gemini-feel-lab.html', 'utf8');
-  const start = html.indexOf("    document.getElementById('rpgTitle').textContent =");
+  const start = html.indexOf('    const unsavedCampOutcome=');
   const end = html.indexOf('    // Tie the decision to the actual next craft', start);
   assert(start >= 0 && end > start, 'evaluate the live camp title formatter');
   const live = html.slice(start, end);
