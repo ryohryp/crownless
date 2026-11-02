@@ -1065,8 +1065,8 @@ async function main() {
           assert.equal(afterSwordlessHerbs.unbanked,beforeSwordlessHerbs.unbanked,
             'herbs must not bypass the sword requirement to award fangs');
           assert.equal(afterSwordlessHerbs.player.hp,
-            Math.min(beforeSwordlessHerbs.player.maxHp,beforeSwordlessHerbs.player.hp+45),
-            'real swordless herb touch must heal at most 45 HP');
+            Math.min(beforeSwordlessHerbs.player.maxHp,beforeSwordlessHerbs.player.hp+55),
+            'real shrine-first swordless herb touch must heal at most 55 HP');
           assert.equal(await unarmedGate.isVisible(),false,
             'the choice sheet closes after using the herbs');
           await tapSite(page,'hollow');
