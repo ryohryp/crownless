@@ -112,6 +112,12 @@ test('the field HUD keeps the unvisited fork visible after either first discover
     'gate-first scouting must not bury the remaining sensory clue');
   assert.match(scoutedMoss, /先手猶予 \+0\.6秒/,
     'the earned tactical payoff remains visible without naming the next site');
+  assert.match(scoutedMoss, /探索か帰還か.*牙2個未帰還/,
+    'after gate scouting, the player can weigh the unbanked bag against further risk');
+  assert.doesNotMatch(labelFor(['traces', 'hollow', 'hollow-scout'], null, 0), /未帰還/,
+    'an empty bag cannot suggest unsecured fangs');
+  assert(labelFor(['traces', 'hollow', 'hollow-scout'], null, 12).length<=40,
+    'the scouted risk/return cue remains compact for 360px phones');
   assert.doesNotMatch(scoutedMoss, /石門|祠|右|左|道順/,
     'scouting does not grant navigation or reveal an uninspected location');
   const thorns = labelFor(['traces', 'shrine']);

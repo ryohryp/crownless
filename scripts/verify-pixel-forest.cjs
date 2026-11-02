@@ -1554,6 +1554,12 @@ async function main() {
             'tempered cautious salvage earns exactly one provisional fang');
           assert.equal(gateFirstAfter.banked,gateFirstBefore.banked,
             'cautious salvage must not bank material before a living return');
+          await page.waitForFunction(()=>document.getElementById('forestExploreHint')?.textContent?.includes('探索か帰還か'));
+          const gateFirstHint=await page.locator('#forestExploreHint').innerText();
+          assert.match(gateFirstHint,new RegExp('牙'+gateFirstAfter.unbanked+'個未帰還'),
+            'real 390px gate-first HUD must show the unsecured bag before the deeper search');
+          assert.doesNotMatch(gateFirstHint,/苔むす祠|石門|右|左|道順/,
+            'the risk/return cue must not reveal an uninspected destination or route');
           await tapSite(page,'hollow');
           assert.equal((await read(page)).unbanked,gateFirstAfter.unbanked,
             'the consumed gate cannot be repeated to farm loot');
