@@ -3269,10 +3269,17 @@
       // already happened or advertise a reward that can be lost in combat.
       const forgeOnReturn=!rpg.crafted && rpg.unbanked>0 &&
         rpg.banked<rpgRules.COST && rpg.banked+rpg.unbanked>=rpgRules.COST;
+      // A forged sword has a different next-trip payoff. Only the living
+      // return can turn provisional fangs into a spendable sharpening cost.
+      const temperOnReturn=rpg.crafted && !rpg.tempered && rpg.unbanked>0 &&
+        rpg.banked<rpgRules.TEMPER_COST &&
+        rpg.banked+rpg.unbanked>=rpgRules.TEMPER_COST;
       returnButton.textContent=rpg.unbanked>0
         ? forgeOnReturn
           ? '🏕 牙'+rpg.unbanked+'個を持ち帰る（剣を作れる）'
-          : '🏕 牙'+rpg.unbanked+'個を倉庫へ持ち帰る'
+          : temperOnReturn
+            ? '🏕 牙'+rpg.unbanked+'個を持ち帰る（剣を研ぎ直せる）'
+            : '🏕 牙'+rpg.unbanked+'個を倉庫へ持ち帰る'
         : '🏕 無事に帰還する（素材なし）';
     }
     const pushDeeper=document.getElementById('rpgPush');
