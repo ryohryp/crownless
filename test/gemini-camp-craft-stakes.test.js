@@ -74,9 +74,18 @@ test('crafted, defeated and return decisions retain their distinct messages', ()
   assert.doesNotMatch(risk.info, /湿った土|獣の痕跡/,
     'the return decision must not spoil a scent that has not been earned');
   assert.match(risk.keepExploring, /気配を追って調べる/);
-  assert.match(risk.pushDeeper, /次の敵に挑む（HP 140\/140・未帰還の牙 2個／敗北で喪失）/);
+  assert.match(risk.pushDeeper, /次の陣・敵3体に挑む（HP 140\/140・未帰還の牙 2個／敗北で喪失）/);
+  // The next wave always spawns three enemies; show the real commitment without
+  // spoiling the later-wave ambush. Empty bags must not claim loot loss.
+  const html = fs.readFileSync('gemini-feel-lab.html', 'utf8');
+  assert.match(html, /function spawnEnemyWave\(waveNum, count=3, shrineGuardian=false\)/,
+    'the next-wave preview must agree with the actual default enemy count');
+  const emptyBag = showPanel({ phase: 'return', unbanked: 0 });
+  assert.match(emptyBag.pushDeeper, /次の陣・敵3体に挑む/);
+  assert.doesNotMatch(emptyBag.pushDeeper, /敗北で喪失/,
+    'an empty bag must not imply that unsecured materials can be lost');
   const wounded = showPanel({ phase: 'return', hp: 21, unbanked: 3 });
-  assert.match(wounded.pushDeeper, /次の敵に挑む（HP 21\/140・未帰還の牙 3個／敗北で喪失）/,
+  assert.match(wounded.pushDeeper, /次の陣・敵3体に挑む（HP 21\/140・未帰還の牙 3個／敗北で喪失）/,
     'the next-wave button must preview the current health and loot at risk');
   assert.match(wounded.keepExploring, /気配を追って調べる/,
     'inspecting this forest must remain a separate action from starting another wave');

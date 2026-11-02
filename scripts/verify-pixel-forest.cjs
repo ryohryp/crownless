@@ -1005,6 +1005,8 @@ async function main() {
             new RegExp('HP '+Math.ceil(first.after.player.hp)+'/'+first.after.player.maxHp+
               '・未帰還の牙 '+first.after.unbanked+'個'),
             'the real phone next-wave button must preview current HP and unsecured materials');
+          assert.match(await page.locator('#rpgPush').innerText(),/次の陣・敵3体に挑む/,
+            'the 390px real return button must preview the three-enemy next wave');
           assert.match(await page.locator('#rpgPush').innerText(),/敗北で喪失/,
             'the next-wave touch action must explicitly warn that the carried haul can be lost');
           const returnBounds=await page.locator('#rpgPanel > div').boundingBox();
