@@ -270,3 +270,44 @@ test('next-wave phone button shows the actual unsecured loss at the moment of ch
     'an empty bag must not falsely claim there are materials to lose');
   assert.equal(render(140, 3, false), '', 'the next-wave action is absent outside the result phase');
 });
+
+
+test('restored camp never falsely claims a new living return', () => {
+  // The compact save stores secured gear/loot and camp status, not the last
+  // expedition outcome. In particular, a reload cannot infer a victory.
+  const previous = R.create();
+  previous.phase = 'camp';
+  previous.banked = 2;
+  previous.lastOutcome = 'defeated';
+  const restored = R.create();
+  assert.equal(P.restore(restored, P.decode(P.encode(previous))), true);
+  assert.equal(restored.phase, 'camp');
+  assert.equal(restored.lastOutcome, '');
+
+  const html = fs.readFileSync('gemini-feel-lab.html', 'utf8');
+  const start = html.indexOf("    document.getElementById('rpgTitle').textContent =");
+  const end = html.indexOf('    // Tie the decision to the actual next craft', start);
+  assert(start >= 0 && end > start, 'evaluate the live camp title formatter');
+  const live = html.slice(start, end);
+  const title = (phase, lastOutcome) => {
+    const node = { textContent: '' };
+    vm.runInNewContext(live, {
+      document: { getElementById: id => {
+        assert.equal(id, 'rpgTitle');
+        return node;
+      } },
+      result: phase === 'return',
+      rpg: { lastOutcome }
+    });
+    return node.textContent;
+  };
+  assert.equal(title(restored.phase, restored.lastOutcome), 'キャンプで再開',
+    'a restored camp must not invent a safe return');
+  assert.equal(title('camp', 'returned'), '無事に生還！',
+    'a living return in the current session retains its earned celebration');
+  assert.equal(title('camp', 'defeated'), '敗北。素材を失った……',
+    'an actual defeat still reports the loss');
+  assert.equal(title('camp', 'crafted'), '鍛冶師の剣が完成！');
+  assert.equal(title('camp', 'tempered'), '風裂きの剣を研ぎ直した！');
+  assert.equal(title('return', 'victory'), '敵を退けた！ 帰還する？');
+});
