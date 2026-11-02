@@ -325,6 +325,37 @@ async function main() {
         assert.equal(await page.evaluate(
           () => localStorage.getItem('crownless-expedition-v1-demo')), saveBefore,
           'lab visits and saved smith equipment must never mutate the actual RPG save');
+        // A conflicting save after reload must not turn an in-memory craft
+        // into a falsely banked reward. Exercise the real 360/390px camp UI.
+        await page.evaluate(() => {
+          const r=window.CrownlessRpgLoop.create();
+          r.phase='camp';
+          r.banked=window.CrownlessRpgLoop.COST;
+          localStorage.setItem('crownless-action-forest-v1-demo',window.CrownlessActionSave.encode(r));
+        });
+        await page.reload({ waitUntil:'domcontentloaded' });
+        await page.waitForFunction(() => window.CrownlessForestReadout?.().phase==='camp');
+        const competingSave=await page.evaluate(() => {
+          const r=window.CrownlessRpgLoop.create();
+          r.phase='camp';
+          r.banked=2;
+          const raw=window.CrownlessActionSave.encode(r);
+          localStorage.setItem('crownless-action-forest-v1-demo',raw);
+          return raw;
+        });
+        await page.locator('#rpgForge').click();
+        assert.match(await page.locator('#rpgStatusBadge').innerText(), /⚠ 未保存/,
+          'the phone HUD must not silently call an unsaved weapon durable');
+        assert.match(await page.locator('#rpgBank').innerText(), /未保存の成果あり/,
+          'the camp inventory must flag its unsaved in-memory state');
+        assert.match(await page.locator('#rpgTitle').innerText(), /保存できない/);
+        assert.equal(await page.locator('#rpgSaveWarning').isVisible(),true);
+        assert.equal(await page.evaluate(
+          () => localStorage.getItem('crownless-action-forest-v1-demo')),competingSave,
+          'a conflicting save must never be overwritten by smithing');
+        await page.screenshot({
+          path:path.resolve(__dirname,'../.qa/browser/unsaved-camp-'+width+'.png'),
+        });
         // Bad records are diagnosed rather than rewritten or called saved.
         await page.evaluate(() => localStorage.setItem('crownless-action-forest-v1-demo', '{"version":999}'));
         await page.reload({ waitUntil: 'domcontentloaded' });
