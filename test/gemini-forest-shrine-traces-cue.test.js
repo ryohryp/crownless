@@ -23,6 +23,25 @@ test('shrine-first damp-soil scent is an earned cue, not an early track discover
     'repeat taps cannot farm the material');
 });
 
+test('shrine-first scent has strict 90-unit cue and 54-unit inspection boundaries',()=>{
+  const found=new Set(['shrine']);
+  const at=distance=>({x:800-distance,z:365,state:'IDLE'});
+  assert.equal(D.cueNear(at(90),found),null,
+    'the early scent must not leak beyond its earned 90-unit radius');
+  assert.equal(D.cueNear(at(89.9),found)?.id,'traces',
+    'the scent begins inside 90 units after deliberate shrine inspection');
+  assert.equal(D.near(at(72),found),null,
+    'stronger scent is still not a touch action or automatic discovery');
+  assert.equal(D.near(at(54),found),null,
+    'the original 54-unit inspection boundary stays strict');
+  assert.equal(D.near(at(53.9),found)?.id,'traces',
+    'only approaching within 54 units offers the real inspection');
+  assert.equal(D.uncover(at(72),found,'return',100,140).ok,false,
+    'a strong scent cannot mint provisional loot from outside tap range');
+  assert.deepEqual([...found],['shrine'],
+    'walking through either scent band does not mutate discovery state');
+});
+
 test('actual phone HUD and popup announce the earned scent once without spoiling tracks',()=>{
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   const fn=html.indexOf('  function updateForestExploreHint()');
