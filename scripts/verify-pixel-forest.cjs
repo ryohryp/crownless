@@ -886,6 +886,11 @@ async function main() {
             'the shrine must be earned before the distant tracks cue');
           const scentPulseBefore=await page.evaluate(()=>
             window.__forestHapticPatterns.filter(p=>Array.isArray(p) && p.join(',')==='16,70,16').length);
+          // The real walk toward the far scent can briefly cross the strong
+          // band and retreat before stopping. Snapshot both pulses before
+          // walking, not after the first HUD assertion.
+          const strongPulseBefore=await page.evaluate(()=>
+            window.__forestHapticPatterns.filter(p=>Array.isArray(p) && p.join(',')==='22,55,22').length);
           await walkTo(page,745,335);
           await page.waitForFunction(()=>
             document.getElementById('forestExploreHint')?.textContent?.includes('湿った土の匂い'),
@@ -908,8 +913,6 @@ async function main() {
           // Follow the earned scent with real movement, not injected coordinates.
           // The closer 72-unit band must strengthen the clue while remaining
           // outside the original 54-unit inspection radius.
-          const strongPulseBefore=await page.evaluate(()=>
-            window.__forestHapticPatterns.filter(p=>Array.isArray(p) && p.join(',')==='22,55,22').length);
           // walkTo() stops 18 units short of its target, which can leave
           // the hero outside this narrow 54–72-unit band. Approach in real
           // input ticks and stop at the observed distance instead.
