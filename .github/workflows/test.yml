@@ -67,6 +67,8 @@ jobs:
         run: node scripts/verify-hero-still.cjs
       - name: Adventurer A native pixel walk review phone smoke
         run: node scripts/verify-adventurer-walk-review.cjs
+      - name: Adventurer A native pixel editor phone smoke
+        run: node scripts/verify-adventurer-native-editor.cjs
       - name: Published Pages payload normal forest entry
         run: node scripts/verify-pages-forest.cjs
       - name: Visual candidate temporary placement smoke
