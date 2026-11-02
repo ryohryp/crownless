@@ -34,17 +34,20 @@ test('earned gate scouting is acknowledged after shrine deep search only when it
   const ordinary = inspect(['traces'],true,false);
   assert.equal(ordinary.damage,3);
   assert.match(ordinary.message,/祠の奥で牙 \+2（未帰還）／HP -3/);
+  assert.doesNotMatch(ordinary.message,/追加の牙を見抜いた/,'ordinary route cannot claim a scouting discovery');
   assert.doesNotMatch(ordinary.message,/石門で覚えた|負傷 -1/);
 
   const scouted = inspect(['traces','hollow','hollow-scout'],true,false);
   assert.equal(scouted.damage,2);
   assert.match(scouted.message,/石門で覚えた茨の揺れを読み、負傷 -1/);
   assert.match(scouted.message,/祠の奥で牙 \+3（未帰還）／HP -2/);
+  assert.match(scouted.message,/石門の茨の手がかりで追加の牙を見抜いた/,'extra provisional fang has an earned narrative consequence');
   assert.doesNotMatch(scouted.message,/右|左|隠し道|帰還済み/);
 
   const tempered = inspect(['traces','hollow','hollow-scout'],true,true);
   assert.equal(tempered.damage,1, 'the 1 HP floor remains');
   assert.match(tempered.message,/祠の奥で牙 \+3（未帰還）／HP -1/);
+  assert.match(tempered.message,/石門の茨の手がかりで追加の牙を見抜いた/,'wound floor does not erase the extra earned fang');
   assert.doesNotMatch(tempered.message,/負傷 -1|石門で覚えた/,
     'do not claim an ineffective scouting discount for a tempered blade');
 });
