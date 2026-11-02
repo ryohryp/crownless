@@ -63,7 +63,12 @@ test('actual phone HUD and popup announce the earned scent once without spoiling
   const read=(phase='return',bag=2)=>label(null,D.near(hero,found),D.cueNear(hero,found),
     state,{phase,unbanked:bag,crafted:false},{...hero,hp:100,maxHp:140},
     ()=>{throw new Error('unexpected guardian');});
-  assert.match(read(),/湿った土の匂い.*足元の違和感を探そう/);
+  hero.x=720;hero.z=330;
+  assert.match(read(),/湿った土の匂いがする。足元の違和感を探そう/,
+    'the first scent is subtle and does not reveal a destination');
+  hero.x=740;hero.z=330;
+  assert.match(read(),/湿った土の匂いが強まる。足元をよく探そう/,
+    'the scent grows stronger as the player walks closer without a marker');
   assert.match(read(),/牙2個は未帰還/,'sensing does not hide safe-return stakes');
   assert.doesNotMatch(read('return',0),/未帰還/,'empty bags have no false warning');
   assert.doesNotMatch(read(),/獣の痕跡|隠し道|右|左|座標/,
