@@ -1978,6 +1978,8 @@ async function main() {
             assert.equal(barehandReturn.phase,'camp');
             assert.equal(barehandReturn.banked,afterBarehand.unbanked,
               'living return must bank the exact provisional bag, including barehand loot');
+            assert.equal(await barehandPage.locator('#rpgTitle').innerText(),'無事に生還！',
+              'the real living return should celebrate before the save is reloaded');
             await barehandPage.reload({waitUntil:'domcontentloaded'});
             await barehandPage.waitForFunction(()=>window.CrownlessForestReadout?.().assetsReady,
               null,{timeout:20000});
@@ -1986,6 +1988,15 @@ async function main() {
               'the swordless salvage reward survives reload');
             assert.equal(barehandRestored.unbanked,0,
               'reload never duplicates provisional fangs');
+            assert.equal(await barehandPage.locator('#rpgTitle').innerText(),'キャンプで再開',
+              'saved camp must not claim a new living return after reload');
+            const restoredTitle=await barehandPage.locator('#rpgTitle').boundingBox();
+            assert(restoredTitle && restoredTitle.y>=0 &&
+              restoredTitle.y+restoredTitle.height<=844,
+              'saved-camp outcome title stays visible on a 390px phone');
+            await barehandPage.screenshot({
+              path:path.join(output,'pixel-forest-restored-camp-390.png')
+            });
             // A saved camp entered from the discovered forest must also let
             // the player leave the lab for the map, not only re-depart.
             const mapReturn=barehandPage.locator('#rpgBackToMap');
