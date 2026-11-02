@@ -72,9 +72,9 @@ test('crafted, defeated and return decisions retain their distinct messages', ()
   assert.match(risk.info, /敗北すると今回の牙2個を失う/);
   assert.match(risk.info, /湿った土にまだ読めない筋がある/);
   assert.match(risk.keepExploring, /気配を追って調べる/);
-  assert.match(risk.pushDeeper, /次の敵に挑む（HP 140\/140・未帰還の牙 2個）/);
+  assert.match(risk.pushDeeper, /次の敵に挑む（HP 140\/140・未帰還の牙 2個／敗北で喪失）/);
   const wounded = showPanel({ phase: 'return', hp: 21, unbanked: 3 });
-  assert.match(wounded.pushDeeper, /次の敵に挑む（HP 21\/140・未帰還の牙 3個）/,
+  assert.match(wounded.pushDeeper, /次の敵に挑む（HP 21\/140・未帰還の牙 3個／敗北で喪失）/,
     'the next-wave button must preview the current health and loot at risk');
   assert.match(wounded.keepExploring, /気配を追って調べる/,
     'inspecting this forest must remain a separate action from starting another wave');
