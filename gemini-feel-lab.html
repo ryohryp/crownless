@@ -2256,8 +2256,13 @@
       // Show the actual earned herb benefit and the material trade-off, not a phantom +5.
       const shrineHerbBonus=discovery.spot.id==='shrine' && state.forestFinds.has('traces')
         ? Math.max(0,discovery.heal-35) : 0;
+      // Show the effective moss-herb payoff after shrine-first gate healing.
+      // Do not claim +10 if the missing HP allows only a smaller bonus.
+      const gateHerbBonus=discovery.spot.id==='hollow' && state.forestFinds.has('shrine')
+        ? Math.max(0,discovery.heal-45) : 0;
       spawnPopup((discovery.spot.id==='hollow'?'石門の薬草':'古い祠で傷を癒やした')+' HP +'+discovery.heal+
         (shrineHerbBonus>0?'／足跡で回復 +'+shrineHerbBonus:'')+
+        (gateHerbBonus>0?'／苔の手がかりで回復 +'+gateHerbBonus:'')+
         (discovery.spot.id==='hollow'?(rpg.crafted?'／牙 +2は見送った':'／牙 +1は見送った'):'／牙は見送った'),
         f.x,f.z,f.y+48,'#86efac');
     }

@@ -292,7 +292,7 @@ test('gate-first careful scouting lowers later shrine deep-search injury without
 });
 
 
-test('shrine herb outcome shows only effective track bonus and lost fang choice', () => {
+test('shrine and gate herb outcomes show only effective clue bonuses and lost fang choice', () => {
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   const start=html.indexOf('      // Show the actual earned herb benefit');
   const suffix="f.x,f.z,f.y+48,'#86efac');";
@@ -318,6 +318,15 @@ test('shrine herb outcome shows only effective track bonus and lost fang choice'
   assert.match(messageFor('shrine',['traces'],20),/HP \+20／牙は見送った/);
   assert.doesNotMatch(messageFor('shrine',['traces'],20),/足跡で回復/);
   assert.match(messageFor('hollow',['traces'],45,true),/HP \+45／牙 \+2は見送った/);
+  assert.match(messageFor('hollow',['traces','shrine'],55,false),
+    /HP \+55／苔の手がかりで回復 \+10／牙 \+1は見送った/);
+  assert.match(messageFor('hollow',['traces','shrine'],50,true),
+    /HP \+50／苔の手がかりで回復 \+5／牙 \+2は見送った/);
+  assert.match(messageFor('hollow',['traces','shrine'],10,true),/HP \+10／牙 \+2は見送った/);
+  assert.doesNotMatch(messageFor('hollow',['traces','shrine'],10,true),/苔の手がかりで回復/,
+    'a small HP deficit cannot claim an unused moss bonus');
+  assert.doesNotMatch(messageFor('hollow',['traces'],45,true),/苔の手がかりで回復/,
+    'gate-first herbs must not claim shrine knowledge');
   assert.doesNotMatch(messageFor('hollow',['traces'],45,true),/足跡で回復|牙は見送った/);
 });
 
