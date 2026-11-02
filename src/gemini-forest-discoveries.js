@@ -65,7 +65,10 @@
   function cueNear(player,found){
     if(!player) return null;
     return spots.find(spot=>{
-      const range=spot.id==='shrine' && found.has('traces') && found.has('hollow-scout')
+      // Shrine-first explorers can smell damp soil before they find the tracks.
+      // This never changes the 54-unit inspection radius or reveals a route.
+      const range=spot.id==='traces' && found.has('shrine') ? 90 :
+        spot.id==='shrine' && found.has('traces') && found.has('hollow-scout')
         ? 135 : (spot.id==='hollow'||spot.id==='shrine') && found.has('traces')
         ? 90 : RANGE;
       return !found.has(spot.id) &&
