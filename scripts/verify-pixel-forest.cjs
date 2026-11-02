@@ -905,6 +905,35 @@ async function main() {
           assert.doesNotMatch(scentHint,/獣の痕跡|隠し道|右|左|座標/,
             'the scent must not spoil the undiscovered site or hidden navigation');
           await page.screenshot({path:path.join(output,'pixel-forest-shrine-first-scent-430.png')});
+          // Follow the earned scent with real movement, not injected coordinates.
+          // The closer 72-unit band must strengthen the clue while remaining
+          // outside the original 54-unit inspection radius.
+          const strongPulseBefore=await page.evaluate(()=>
+            window.__forestHapticPatterns.filter(p=>Array.isArray(p) && p.join(',')==='22,55,22').length);
+          await walkTo(page,770,340);
+          await page.waitForFunction(()=>
+            document.getElementById('forestExploreHint')?.textContent?.includes('湿った土の匂いが強まる'),
+            null,{timeout:5000});
+          const strongerScent=await read(page);
+          const strongerDistance=Math.hypot(strongerScent.player.x-800,strongerScent.player.z-365);
+          assert(strongerDistance>54 && strongerDistance<72,
+            'stronger scent must remain a clue, not an inspection: '+strongerDistance);
+          assert(!strongerScent.found.includes('traces') &&
+            strongerScent.unbanked===shrineFirst.unbanked,
+            'the closer scent cannot reveal a site or collect an extra fang');
+          assert.equal(await page.evaluate(()=>
+            window.__forestHapticPatterns.filter(p=>Array.isArray(p) && p.join(',')==='22,55,22').length),
+            strongPulseBefore+1,'approaching earns exactly one stronger phone pulse');
+          const strongerHint=await page.locator('#forestExploreHint').innerText();
+          assert.match(strongerHint,/湿った土の匂いが強まる.*足元/,
+            'the stronger scent remains a non-directional investigation hint');
+          assert.doesNotMatch(strongerHint,/獣の痕跡|隠し道|右|左|座標/,
+            'the stronger cue must not expose a hidden destination or route');
+          await page.waitForTimeout(200);
+          assert.equal(await page.evaluate(()=>
+            window.__forestHapticPatterns.filter(p=>Array.isArray(p) && p.join(',')==='22,55,22').length),
+            strongPulseBefore+1,'standing in the stronger band cannot spam haptics');
+          await page.screenshot({path:path.join(output,'pixel-forest-shrine-first-strong-scent-430.png')});
           await walkTo(page,800,365);
           await tapSite(page,'traces');
           const investigated=await read(page);
