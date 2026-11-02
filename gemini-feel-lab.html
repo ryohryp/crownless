@@ -3195,7 +3195,9 @@
       // A shrine-first return trip earns an early scent of animal tracks.
       // It is not a direction, route marker, or early inspection action.
       : rpg.phase==='return' && cue?.id==='traces' && !near
-        ? '🍃 湿った土の匂いがする。足元の違和感を探そう'+
+        ? (Math.hypot(ginji.x-cue.x,ginji.z-cue.z)<72
+          ? '🍃 湿った土の匂いが強まる。足元をよく探そう'
+          : '🍃 湿った土の匂いがする。足元の違和感を探そう')+
           (rpg.unbanked>0?'｜牙'+rpg.unbanked+'個は未帰還':'')
       // Let the explorer notice that the cold air strengthens on approach.
       // The cue stays non-directional: no map marker, site name, or early tap.
