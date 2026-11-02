@@ -1984,6 +1984,23 @@ async function main() {
               'the swordless salvage reward survives reload');
             assert.equal(barehandRestored.unbanked,0,
               'reload never duplicates provisional fangs');
+            // A saved camp entered from the discovered forest must also let
+            // the player leave the lab for the map, not only re-depart.
+            const mapReturn=barehandPage.locator('#rpgBackToMap');
+            assert.equal(await mapReturn.isVisible(),true,
+              'reloaded camp must restore its return-to-map action');
+            await mapReturn.scrollIntoViewIfNeeded();
+            const mapBounds=await mapReturn.boundingBox();
+            assert(mapBounds && mapBounds.width>=44 && mapBounds.height>=44 &&
+              mapBounds.x>=0 && mapBounds.y>=0 &&
+              mapBounds.x+mapBounds.width<=390 &&
+              mapBounds.y+mapBounds.height<=844,
+              'saved-camp map exit must be touch-reachable on a 390px phone');
+            await barehandPage.touchscreen.tap(
+              mapBounds.x+mapBounds.width/2,mapBounds.y+mapBounds.height/2);
+            await barehandPage.waitForURL('**/expedition.html');
+            assert.equal(new URL(barehandPage.url()).pathname.endsWith('/expedition.html'),true,
+              'real map-exit touch must return to the discovered-forest map');
             assert.deepEqual(barehandErrors,[],'swordless touch path has no browser errors');
             report.barehandGate={before:beforeBarehand,after:afterBarehand,
               returned:barehandReturn,restored:barehandRestored};
