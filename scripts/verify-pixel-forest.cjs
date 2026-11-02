@@ -873,6 +873,54 @@ async function main() {
             'reopening and declining must still preserve the one-time choice');
           report.unscoutedShrineDetour={width,tracksInspected:true,shrineUnspent:true};
         }
+        if(width===430) {
+          // Real phone movement: after a shrine-first detour, an early scent
+          // grows on approach without revealing or auto-inspecting the tracks.
+          await clearWave(page);
+          await walkTo(page,660,230);
+          await tapSite(page,'shrine');
+          assert.equal(await page.locator('#forestShrineMaterial').isEnabled(),true);
+          await page.locator('#forestShrineMaterial').click();
+          const shrineFirst=await read(page);
+          assert(shrineFirst.found.includes('shrine') && !shrineFirst.found.includes('traces'),
+            'the shrine must be earned before the distant tracks cue');
+          const scentPulseBefore=await page.evaluate(()=>
+            window.__forestHapticPatterns.filter(p=>Array.isArray(p) && p.join(',')==='16,70,16').length);
+          await walkTo(page,745,335);
+          await page.waitForFunction(()=>
+            document.getElementById('forestExploreHint')?.textContent?.includes('湿った土の匂い'),
+            null,{timeout:5000});
+          const scent=await read(page);
+          const scentDistance=Math.hypot(scent.player.x-800,scent.player.z-365);
+          assert(scentDistance>54 && scentDistance<90,
+            'scent must precede the normal 54-unit touch range: '+scentDistance);
+          assert(!scent.found.includes('traces') && scent.unbanked===shrineFirst.unbanked,
+            'a distant scent cannot reveal the tracks or mint loot');
+          assert.equal(await page.evaluate(()=>
+            window.__forestHapticPatterns.filter(p=>Array.isArray(p) && p.join(',')==='16,70,16').length),
+            scentPulseBefore+1,'the earned distant scent gives one gentle phone pulse');
+          const scentHint=await page.locator('#forestExploreHint').innerText();
+          assert.match(scentHint,/湿った土の匂い.*足元/,
+            'the real phone HUD invites investigation without showing a direction');
+          assert.doesNotMatch(scentHint,/獣の痕跡|隠し道|右|左|座標/,
+            'the scent must not spoil the undiscovered site or hidden navigation');
+          await page.screenshot({path:path.join(output,'pixel-forest-shrine-first-scent-430.png')});
+          await walkTo(page,800,365);
+          await tapSite(page,'traces');
+          const investigated=await read(page);
+          assert(investigated.found.includes('traces') &&
+            investigated.unbanked===shrineFirst.unbanked+1,
+            'only deliberate close inspection earns one provisional fang');
+          await page.locator('#rpgOpenResults').click();
+          await page.locator('#rpgReturn').click();
+          const scentReturned=await read(page);
+          assert.equal(scentReturned.phase,'camp');
+          assert.equal(scentReturned.unbanked,0);
+          assert.equal(scentReturned.banked,shrineFirst.banked+investigated.unbanked,
+            'the real shrine-first cue cannot bypass living return or duplicate loot');
+          report.shrineFirstScent={distance:scentDistance,returnBanked:scentReturned.banked,
+            note:'430px real movement, touch, scent and safe return; not a human fun verdict.'};
+        }
         if(width===390) {
           const first=await clearWave(page);
           assert(first.after.unbanked>=3,'three actual enemies provide crafting materials');
