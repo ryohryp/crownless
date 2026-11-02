@@ -3147,7 +3147,7 @@
     const cue=window.CrownlessForestDiscoveries.cueNear(ginji,state.forestFinds);
     // Each earned distant sign must not consume the separate confirmation
     // earned by walking into actual inspection range. Both are once per run.
-    const cuePulseKey=cue && !near && (cue.id==='hollow'||cue.id==='shrine') ? cue.id+':far' : cue?.id;
+    const cuePulseKey=cue && !near && (cue.id==='hollow'||cue.id==='shrine'||cue.id==='traces') ? cue.id+':far' : cue?.id;
     if (rpg.phase==='return' && cue && !state.forestCuePulsed.has(cuePulseKey) &&
         document.getElementById('rpgPanel').classList.contains('hidden') &&
         document.getElementById('forestShrineChoice').classList.contains('hidden') &&
@@ -3159,14 +3159,16 @@
       // The cool shrine has its own gentle two-beat feel. Tracks stay a
       // single tap and the distant stone gate keeps its earned heavier cue.
       // No site identity, hidden route, or interaction range is revealed.
-      const pulsePattern=cue.id==='hollow' && !near ? [28,45,28] :
+      const pulsePattern=cue.id==='traces' && !near ? [16,70,16] :
+        cue.id==='hollow' && !near ? [28,45,28] :
         cue.id==='shrine' && !near ? [12,80,18] :
         cue.id==='shrine' ? [18,65,36] : 34;
       sfx.haptic(pulsePattern);
       // Browser/phone haptics may be unavailable. The *earned* far cue must
       // still be perceptible without revealing a site name, route or position.
-      if (!near && (cue.id==='hollow'||cue.id==='shrine')) {
-        spawnPopup(cue.id==='hollow' ? '遠くで、何かが軋む音がした' : '頬を冷たい風がかすめた',
+      if (!near && (cue.id==='hollow'||cue.id==='shrine'||cue.id==='traces')) {
+        spawnPopup(cue.id==='hollow' ? '遠くで、何かが軋む音がした' :
+          cue.id==='shrine' ? '頬を冷たい風がかすめた' : '湿った土の匂いがした',
           ginji.x,ginji.z,ginji.y+48,'#d9f99d');
       }
     }
@@ -3190,6 +3192,11 @@
           : near.id==='shrine'
           ? '🍃 冷たい風。牙か回復か、一度だけ選べる。タップで調査'
           : '🍃 '+(near.id==='traces'?'湿った土に細い筋がある':'茨の向こうで何かが軋む')+'。気になる地点を直接タップ'
+      // A shrine-first return trip earns an early scent of animal tracks.
+      // It is not a direction, route marker, or early inspection action.
+      : rpg.phase==='return' && cue?.id==='traces' && !near
+        ? '🍃 湿った土の匂いがする。足元の違和感を探そう'+
+          (rpg.unbanked>0?'｜牙'+rpg.unbanked+'個は未帰還':'')
       // Let the explorer notice that the cold air strengthens on approach.
       // The cue stays non-directional: no map marker, site name, or early tap.
       : rpg.phase==='return' && cue?.id==='shrine' && !near
