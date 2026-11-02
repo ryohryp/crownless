@@ -1271,7 +1271,11 @@ test('victory return panel hints at remaining discoveries without spoiling them 
   const shrineRead=teaser(new Set(['traces','shrine']));
   const gateRead=teaser(new Set(['traces','hollow']));
   const equippedRead=teaser(new Set(['traces','shrine']),true);
-  assert.match(unread,/湿った土/);
+  assert.match(unread,/まだ確かめていない気配/);
+  assert.doesNotMatch(unread,/湿った土|獣の痕跡|足跡/,
+    'victory must not pretend an uninspected clue was already sensed');
+  assert.equal(teaser(new Set(['shrine'])),unread,
+    'the result panel must not leak the 90-unit shrine-first scent from afar');
   assert.match(tracksRead,/二手に分かれ/,
     'with both branches unexplored, the result panel must invite a choice, not prescribe the shrine');
   assert.match(tracksRead,/苔の湿りと折れた茨/,

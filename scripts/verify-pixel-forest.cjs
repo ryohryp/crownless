@@ -937,8 +937,10 @@ async function main() {
             'the first victory gives a concrete reason to bank materials');
           assert.match(returnDecision,new RegExp('敗北すると今回の牙'+first.after.unbanked+'個を失う'),
             'the alternative must name the actual unsecured loss');
-          assert.match(returnDecision,/湿った土にまだ読めない筋がある。/,
-            'victory must offer a sensory cue for an unexamined discovery');
+          assert.match(returnDecision,/森の奥に、まだ確かめていない気配がある。/,
+            'victory invites exploration without giving away an unearned scent');
+          assert.doesNotMatch(returnDecision,/湿った土|獣の痕跡/,
+            'real phone return panel must not spoil the track scent before inspection');
           assert.match(await page.locator('#rpgKeepExploring').innerText(),/気配を追って調べる/,
             'the existing continue button should invite investigation without naming the location');
           assert.match(await page.locator('#rpgPush').innerText(),

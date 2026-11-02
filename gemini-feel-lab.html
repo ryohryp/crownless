@@ -3243,7 +3243,9 @@
   // Victory offers a real choice: bank the bag or investigate an unclaimed cue.
   // Never name a location before the player has inspected it.
   function forestReturnTeaser(found,crafted=false) {
-    if (!found.has('traces')) return '湿った土にまだ読めない筋がある。';
+    // Victory should invite curiosity, not claim the hero smelled soil before
+    // reaching the earned shrine-first scent radius or inspecting the tracks.
+    if (!found.has('traces')) return '森の奥に、まだ確かめていない気配がある。';
     // Before either branch is investigated, leave the order to the player.
     // Sensory signs match the earned fork marks; neither site is named.
     if (!found.has('shrine') && !found.has('hollow'))

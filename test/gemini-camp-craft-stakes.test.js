@@ -70,7 +70,9 @@ test('crafted, defeated and return decisions retain their distinct messages', ()
   assert.match(risk.info, /今帰れば牙2個を確保/);
   assert.match(risk.info, /今帰れば鍛冶剣を作れる/);
   assert.match(risk.info, /敗北すると今回の牙2個を失う/);
-  assert.match(risk.info, /湿った土にまだ読めない筋がある/);
+  assert.match(risk.info, /森の奥に、まだ確かめていない気配がある/);
+  assert.doesNotMatch(risk.info, /湿った土|獣の痕跡/,
+    'the return decision must not spoil a scent that has not been earned');
   assert.match(risk.keepExploring, /気配を追って調べる/);
   assert.match(risk.pushDeeper, /次の敵に挑む（HP 140\/140・未帰還の牙 2個／敗北で喪失）/);
   const wounded = showPanel({ phase: 'return', hp: 21, unbanked: 3 });
