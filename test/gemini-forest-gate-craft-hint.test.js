@@ -198,6 +198,6 @@ test('safe-return action names the next earned smithing payoff without banking p
     'do not promise a second sharpening to an already tempered sword');
   assert.equal(render({crafted:true,banked:1,unbanked:0}),'🏕 無事に帰還する（素材なし）',
     'an empty provisional bag cannot imply a material reward');
-  assert.match(html,/if \(!rpgRules\\.returnAlive\(rpg, ginji && ginji\\.hp\)\) return;/,
+  assert.match(html,/if \(!rpgRules\.returnAlive\(rpg, ginji && ginji\.hp\)\) return;/,
     'the actual return action still requires a living return');
 });
