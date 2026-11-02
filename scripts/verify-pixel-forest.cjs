@@ -1574,7 +1574,7 @@ async function main() {
           await walkTo(page,660,230);
           await tapSite(page,'shrine');
           const gateFirstRiskPreview=await page.locator('#forestShrineRisk').innerText();
-          assert.match(gateFirstRiskPreview,/未帰還素材 \+3.*追加戦闘/,
+          assert.match(gateFirstRiskPreview,/未帰還素材 \+2以上.*追加戦闘/,
             '390px gate-first choice previews the earned third fang and mandatory guardian');
           const gateFirstStakes=await page.locator('#forestShrineStakes').innerText();
           assert.match(gateFirstStakes,/石門の茨の手がかりで先手の猶予 \+0\.6秒/,
@@ -2051,7 +2051,7 @@ async function main() {
             await walkTo(scoutPage,660,230);
             await tapSite(scoutPage,'shrine');
             const scoutShrineChoice=await scoutPage.locator('#forestShrineRisk').innerText();
-            assert.match(scoutShrineChoice,/HP -8.*未帰還素材 \+3/,
+            assert.match(scoutShrineChoice,/HP -8.*未帰還素材 \+2以上/,
               'barehand gate scouting previews both the safer wound and third provisional fang');
             const beforeScoutShrine=await read(scoutPage);
             await scoutPage.locator('#forestShrineRisk').click();

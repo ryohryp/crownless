@@ -306,7 +306,7 @@ test('deep shrine search cannot grant unguarded loot before the initial wave is 
     'the phone action must be disabled during the initial wave');
   assert.match(html,/魔物を倒してから／奥に気配がある/,
     'the unavailable option explains when and why it becomes available');
-  assert.ok(html.includes("奥に気配がある｜HP -'+riskCost+'・未帰還素材 +'+riskLoot+'／追加戦闘"),
+  assert.ok(html.includes("奥に気配がある｜HP -'+riskCost+'・未帰還素材 +'+riskLootPreview+'／追加戦闘"),
     'even before clearing enemies, the disabled risky route must preview its equipment-dependent HP cost and two provisional materials');
 });
 
@@ -874,7 +874,9 @@ test('unavailable deep shrine search still previews its cost, reward and guardia
   assert.ok(expression,'the actual risk button label expression must exist');
   assert.doesNotMatch(expression,/番人|苔祠/,
     'the pre-choice hint must warn of a fight without spoiling the guardian identity');
-  const label=Function('risk','rpg','riskCost','riskLoot','ginji','state','return ('+expression+');');
+  const label=Function('risk','rpg','riskCost','riskLootPreview','ginji','state','return ('+expression+');');
+  assert.match(html,/const riskLootPreview=riskLoot>2\?'2以上':String\(riskLoot\)/,
+    'only the bonus fang is kept as a discovery, not the guaranteed minimum');
   const state={forestFinds:new Set()};
   const weak=label({disabled:true},{phase:'return',crafted:false},12,2,{hp:12},state);
   assert.match(weak,/HP -12.*未帰還素材 \+2.*追加戦闘・撃退まで帰還不可.*HP 13以上必要/,
@@ -885,9 +887,9 @@ test('unavailable deep shrine search still previews its cost, reward and guardia
   const ready=label({disabled:false},{phase:'return',crafted:false},12,2,{hp:14},state);
   assert.match(ready,/HP -12.*→残り2.*未帰還素材 \+2.*追加戦闘あり・撃退まで帰還不可/,
     'an eligible player still sees the exact remaining HP and reward');
-  const scouted=label({disabled:false},{phase:'return',crafted:false},8,3,{hp:14},state);
-  assert.match(scouted,/HP -8.*未帰還素材 \+3.*追加戦闘あり・撃退まで帰還不可/,
-    'earned gate-first scouting must preview the real third provisional fang');
+  const scouted=label({disabled:false},{phase:'return',crafted:false},8,'2以上',{hp:14},state);
+  assert.match(scouted,/HP -8.*未帰還素材 \+2以上.*追加戦闘あり・撃退まで帰還不可/,
+    'earned gate-first scouting hints at extra loot without disclosing the third fang before discovery');
 });
 
 test('shrine decision is a full-stage modal and suspends live combat until resolved',()=>{
