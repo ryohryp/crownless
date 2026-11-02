@@ -2114,8 +2114,11 @@
         : '牙を拾う（HP -'+salvageCost+' →残り'+Math.floor(ginji.hp-salvageCost)+'・未帰還素材 +2）';
       const missing=Math.max(0,ginji.maxHp-ginji.hp);
       heal.disabled=missing===0;
+      const gateHealAmount=Math.min(state.forestFinds.has('shrine')?55:45,missing);
+      const gateHealBonus=gateHealAmount-Math.min(45,missing);
       heal.textContent=missing
-        ? '薬草で癒やす（HP +'+Math.min(45,missing)+'・素材なし）'
+        ? '薬草で癒やす（HP +'+gateHealAmount+
+          (gateHealBonus>0?'・苔の手がかりで回復 +'+gateHealBonus:'')+'・素材なし）'
         : '傷がないため回復不可';
       document.getElementById('forestGateStakes').textContent=
         '現在 HP '+Math.floor(ginji.hp)+'/'+ginji.maxHp+'、未帰還の牙 '+rpg.unbanked+

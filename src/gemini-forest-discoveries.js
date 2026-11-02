@@ -407,13 +407,15 @@
       found.add('hollow-scout');
     // Reading tracks first reveals a richer herb patch at the shrine: a modest
     // non-combat payoff for scouting, without minting loot or bypassing danger.
+    // Visiting the cool shrine first teaches where the gate's richer moss herbs grow.
+    // This is a healing-only alternative to gate-first scouting and extra fangs.
     const gateHeal=spot.kind==='cache' && shrineChoice==='heal';
     const gateScout=spot.kind==='cache' && shrineChoice==='scout';
     const gateSalvage=spot.kind==='cache' && !gateHeal && !gateScout;
     const gateCautious=spot.kind==='cache' && shrineChoice==='cautious';
     return {ok:true,spot,material:risky?shrineRiskMaterials(found):scavenge?1:spot.kind==='cache'&&!gateHeal&&!gateScout?(gateCautious?1:2):spot.kind==='material'?1:0,
       damage:risky?riskDamage:gateSalvage?gateDamage:0,
-      heal:gateHeal?Math.min(45,Math.max(0,maxHp-hp)):
+      heal:gateHeal?Math.min(found.has('shrine')?55:45,Math.max(0,maxHp-hp)):
         spot.kind==='healing' && !scavenge?Math.min(found.has('traces')?40:35,Math.max(0,maxHp-hp)):0};
   }
   return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,GATE_BAREHAND_DAMAGE,gateSalvageDamage,near,cueNear,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,pauseGuardianCounter,guardianScoutStrikeBonus,guardianScoutAttackCueActive,guardianReadyForOpening,guardianBehindWarning,companionYieldsGuardianOpening,companionYieldsGuardianRecovery,companionYieldsGuardianFootsteps,guardianTargetsExplorer,guardianStrikeTell,guardianKeepsTellOnHit,guardianDodgeCueActive,guardianCounterStrikeBonus,claimGuardianCounter,claimGuardianCounterFang,shrineRiskDamage,shrineRiskMaterials,uncover};

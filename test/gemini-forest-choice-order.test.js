@@ -126,6 +126,44 @@ test('shrine-first moss seam changes a real gate choice, not forceful loot or th
   assert.equal(D.gateSalvageDamage('material',true,true,true),4);
 });
 
+
+test('shrine-first moss knowledge improves gate herbs, without loot, overheal or repeat farming', () => {
+  for (const [ids,hp,expected] of [
+    [['traces'],60,45], [['traces','shrine'],60,55],
+    [['traces','shrine'],90,50], [['traces','shrine'],130,10]
+  ]) {
+    const found=new Set(ids);
+    const outcome=D.uncover(gate,found,'return',hp,140,false,'heal');
+    assert.equal(outcome.ok,true);
+    assert.equal(outcome.heal,expected,'recovery is capped by missing HP');
+    assert.equal(outcome.material,0,'healing cannot mint provisional fangs');
+    assert.equal(outcome.damage,0);
+    assert.equal(found.has('hollow-scout'),false,'healing does not earn gate-first scouting');
+    assert.equal(D.uncover(gate,found,'return',hp,140,false,'cautious').ok,false,
+      'the gate choice is one-time, not an herb-and-fang exploit');
+  }
+  const full=new Set(['traces','shrine']);
+  assert.equal(D.uncover(gate,full,'return',140,140,false,'heal').reason,'full');
+  assert.equal(full.has('hollow'),false,'a useless heal does not consume the gate');
+
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const start=html.indexOf('      const gateHealAmount=');
+  const end=html.indexOf("      document.getElementById('forestGateStakes')",start);
+  assert(start>=0 && end>start,'evaluate the live gate healing button');
+  const live=html.slice(start,end);
+  const label=(ids,missing)=>{
+    const heal={textContent:''};
+    vm.runInNewContext(live,{state:{forestFinds:new Set(ids)},missing,heal});
+    return heal.textContent;
+  };
+  assert.match(label(['traces'],80),/HP \+45・素材なし/);
+  assert.match(label(['traces','shrine'],80),/HP \+55・苔の手がかりで回復 \+10・素材なし/);
+  assert.match(label(['traces','shrine'],50),/HP \+50・苔の手がかりで回復 \+5・素材なし/);
+  assert.match(label(['traces','shrine'],10),/HP \+10・素材なし/);
+  assert.doesNotMatch(label(['traces','shrine'],10),/回復 \+10/);
+  assert.equal(label(['traces','shrine'],0),'傷がないため回復不可');
+});
+
 test('gate salvage feedback acknowledges only an earned shrine-first wound reduction', () => {
   const html=fs.readFileSync('gemini-feel-lab.html','utf8');
   const start=html.indexOf("      spawnPopup(discovery.spot.id==='shrine' && discovery.damage?");

@@ -1214,14 +1214,18 @@ async function main() {
             gateBounds.y+gateBounds.height<=page.viewportSize().height,
             'the healing-or-material choice remains touch-reachable on a 390px phone');
           await page.screenshot({path:path.join(output,'pixel-forest-gate-healing-choice-390.png')});
+          const expectedGateHerbs=Math.min(55,beforeGateHeal.player.maxHp-beforeGateHeal.player.hp);
+          assert.match(await page.locator('#forestGateHeal').innerText(),
+            new RegExp('HP \\+'+expectedGateHerbs),
+            'shrine-first gate herbs preview the actual HP recovery');
           await page.locator('#forestGateHeal').click();
           const afterGateHeal=await read(page);
           assert(afterGateHeal.found.includes('hollow'),'using the herbs consumes the gate for this expedition');
           assert.equal(afterGateHeal.unbanked,beforeGateHeal.unbanked,
             'healing never grants the alternative provisional material');
           assert(Math.abs(afterGateHeal.player.hp-
-            Math.min(beforeGateHeal.player.maxHp,beforeGateHeal.player.hp+45))<0.01,
-            'real touch heals up to 45 HP, never beyond max HP');
+            Math.min(beforeGateHeal.player.maxHp,beforeGateHeal.player.hp+55))<0.01,
+            'shrine-first moss knowledge heals up to 55 HP, never beyond max HP');
           await tapSite(page,'hollow');
           assert.equal((await read(page)).unbanked,beforeGateHeal.unbanked,
             'the used gate cannot be tapped again to claim its alternative reward');
