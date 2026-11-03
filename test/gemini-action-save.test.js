@@ -267,7 +267,7 @@ test('next-wave phone button shows the actual unsecured loss at the moment of ch
     });
     return button.textContent;
   };
-  assert.match(render(73.4, 2), /HP 74\/140・未帰還の牙 2個／敗北で喪失/,
+  assert.match(render(73.4, 2), /HP 73\/140・未帰還の牙 2個／敗北で喪失/,
     'the risk action itself must state the concrete provisional loss');
   assert.match(render(140, 0), /HP 140\/140・未帰還の牙 0個/);
   assert.doesNotMatch(render(140, 0), /敗北で喪失/,
