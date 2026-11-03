@@ -467,12 +467,17 @@ async function main() {
           'nearby shrine must show a sensory cue on the canvas');
         assert(beforeShrine.hint.length<=40,
           'nearby shrine clue must not cover the 360px phone scene');
-        assert.match(beforeShrine.hint,/冷たい風.*タップで調査/,
-          'the real phone shows a sensory clue and requires a deliberate tap');
-        assert.match(beforeShrine.hint,
-          beforeShrine.player.hp>=beforeShrine.player.maxHp
-            ? /牙を拾うか、回復の機会を残すか/ : /牙か回復か、一度だけ選べる/,
-          'real phone hint must invite an intentional trade-off');
+        if (beforeShrine.phase === 'fight') {
+          assert.match(beforeShrine.hint,/戦闘中。敵を倒して探索へ戻ろう/,
+            'combat must not reveal an undiscovered shrine or offer exploration choices');
+        } else {
+          assert.match(beforeShrine.hint,/冷たい風.*タップで調査/,
+            'the real phone shows a sensory clue and requires a deliberate tap');
+          assert.match(beforeShrine.hint,
+            beforeShrine.player.hp>=beforeShrine.player.maxHp
+              ? /牙を拾うか、回復の機会を残すか/ : /牙か回復か、一度だけ選べる/,
+            'real phone hint must invite an intentional trade-off');
+        }
         const readForestShrine=()=>page.evaluate(()=>window.CrownlessForestReadout());
         // The actor can collect a healing dango between the HUD snapshot
         // and the actual tap. Assert against HP at the decision point, not
