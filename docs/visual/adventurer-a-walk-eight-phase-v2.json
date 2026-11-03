@@ -1,0 +1,329 @@
+{
+  "schema_version": 1,
+  "status": "review_candidate_not_approved",
+  "parent": "docs/visual/adventurer-a-walk-eight-phase-v1.json",
+  "scope": "geometry-only revision; same 8-frame timing, upper-body/arm poses retained in chat GIF, not a costume/art approval",
+  "native_size": [
+    128,
+    192
+  ],
+  "display_gif_size": [
+    384,
+    576
+  ],
+  "facing": "right, oblique three-quarter",
+  "fixed_segment_length_px": 36,
+  "ground_y": 175,
+  "ankle_ground_y": 170,
+  "torso_shift_px_y": -12,
+  "frame_duration_ms": [
+    120,
+    130,
+    120,
+    130,
+    120,
+    130,
+    120,
+    130
+  ],
+  "near_color": "orange",
+  "far_color": "blue",
+  "frames": [
+    {
+      "frame": 1,
+      "phase": "Contact A",
+      "body_bob_px": 0,
+      "near": {
+        "hip": [
+          57,
+          102
+        ],
+        "ankle": [
+          79,
+          170
+        ],
+        "knee": [
+          72.147,
+          134.658
+        ],
+        "knee_flexion_deg": 13.9
+      },
+      "far": {
+        "hip": [
+          66,
+          102
+        ],
+        "ankle": [
+          51,
+          170
+        ],
+        "knee": [
+          67.437,
+          137.971
+        ],
+        "knee_flexion_deg": 29.5
+      }
+    },
+    {
+      "frame": 2,
+      "phase": "Down A",
+      "body_bob_px": 2,
+      "near": {
+        "hip": [
+          57,
+          104
+        ],
+        "ankle": [
+          72,
+          170
+        ],
+        "knee": [
+          76.473,
+          134.279
+        ],
+        "knee_flexion_deg": 39.9
+      },
+      "far": {
+        "hip": [
+          66,
+          104
+        ],
+        "ankle": [
+          54,
+          167
+        ],
+        "knee": [
+          76.074,
+          138.562
+        ],
+        "knee_flexion_deg": 54.1
+      }
+    },
+    {
+      "frame": 3,
+      "phase": "Passing A",
+      "body_bob_px": -1,
+      "near": {
+        "hip": [
+          57,
+          101
+        ],
+        "ankle": [
+          63,
+          170
+        ],
+        "knee": [
+          69.799,
+          134.648
+        ],
+        "knee_flexion_deg": 31.7
+      },
+      "far": {
+        "hip": [
+          66,
+          101
+        ],
+        "ankle": [
+          65,
+          163
+        ],
+        "knee": [
+          83.794,
+          132.295
+        ],
+        "knee_flexion_deg": 61.1
+      }
+    },
+    {
+      "frame": 4,
+      "phase": "Up A",
+      "body_bob_px": -2,
+      "near": {
+        "hip": [
+          57,
+          100
+        ],
+        "ankle": [
+          55,
+          170
+        ],
+        "knee": [
+          64.363,
+          135.239
+        ],
+        "knee_flexion_deg": 26.9
+      },
+      "far": {
+        "hip": [
+          66,
+          100
+        ],
+        "ankle": [
+          76,
+          167
+        ],
+        "knee": [
+          83.063,
+          131.7
+        ],
+        "knee_flexion_deg": 39.6
+      }
+    },
+    {
+      "frame": 5,
+      "phase": "Contact B",
+      "body_bob_px": 0,
+      "near": {
+        "hip": [
+          57,
+          102
+        ],
+        "ankle": [
+          50,
+          170
+        ],
+        "knee": [
+          64.743,
+          137.157
+        ],
+        "knee_flexion_deg": 36.6
+      },
+      "far": {
+        "hip": [
+          66,
+          102
+        ],
+        "ankle": [
+          80,
+          170
+        ],
+        "knee": [
+          82.343,
+          134.076
+        ],
+        "knee_flexion_deg": 30.7
+      }
+    },
+    {
+      "frame": 6,
+      "phase": "Down B",
+      "body_bob_px": 2,
+      "near": {
+        "hip": [
+          57,
+          104
+        ],
+        "ankle": [
+          53,
+          167
+        ],
+        "knee": [
+          72.278,
+          136.597
+        ],
+        "knee_flexion_deg": 57.5
+      },
+      "far": {
+        "hip": [
+          66,
+          104
+        ],
+        "ankle": [
+          74,
+          170
+        ],
+        "knee": [
+          83.72,
+          135.337
+        ],
+        "knee_flexion_deg": 45.2
+      }
+    },
+    {
+      "frame": 7,
+      "phase": "Passing B",
+      "body_bob_px": -1,
+      "near": {
+        "hip": [
+          57,
+          101
+        ],
+        "ankle": [
+          64,
+          163
+        ],
+        "knee": [
+          78.352,
+          129.984
+        ],
+        "knee_flexion_deg": 59.9
+      },
+      "far": {
+        "hip": [
+          66,
+          101
+        ],
+        "ankle": [
+          65,
+          170
+        ],
+        "knee": [
+          75.77,
+          135.649
+        ],
+        "knee_flexion_deg": 33.2
+      }
+    },
+    {
+      "frame": 8,
+      "phase": "Up B",
+      "body_bob_px": -2,
+      "near": {
+        "hip": [
+          57,
+          100
+        ],
+        "ankle": [
+          75,
+          167
+        ],
+        "knee": [
+          75.301,
+          131.001
+        ],
+        "knee_flexion_deg": 31
+      },
+      "far": {
+        "hip": [
+          66,
+          100
+        ],
+        "ankle": [
+          56,
+          170
+        ],
+        "knee": [
+          67.714,
+          135.959
+        ],
+        "knee_flexion_deg": 21.7
+      }
+    }
+  ],
+  "qa": {
+    "contact_swap": true,
+    "distinct_frames": 8,
+    "binary_alpha": true,
+    "ground_clipping": true,
+    "gif_8_frames": true,
+    "gif_loop_0": true,
+    "gif_cycle_ms": 1000,
+    "old_mean_knee_flexion_deg": 82.7,
+    "new_mean_knee_flexion_deg": 38.3,
+    "old_max_knee_flexion_deg": 110.6,
+    "new_max_knee_flexion_deg": 61.1,
+    "motion_human_approved": false,
+    "canon_runtime_unchanged": true
+  },
+  "provenance_note": "Preview GIF was built in the ChatGPT working container by editing original v1 upper-body pixels and redrawing legs under fixed-length IK. This repository JSON stores geometry and checks only; the edited GIF and its v1 source GIF are not committed. Do not claim a fully reproducible pixel asset from this file alone."
+}
