@@ -64,6 +64,10 @@
   // This remains a non-directional sensory cue, not a tap range, path or reveal.
   function cueNear(player,found){
     if(!player) return null;
+    // A site within actual inspection reach takes precedence over a distant
+    // scent from another site. Never let a remote cue obscure a nearby choice.
+    const inspectable=near(player,found);
+    if(inspectable) return inspectable;
     return spots.find(spot=>{
       // Shrine-first explorers can smell damp soil before they find the tracks.
       // This never changes the 54-unit inspection radius or reveals a route.
