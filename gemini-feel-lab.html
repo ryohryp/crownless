@@ -3195,7 +3195,7 @@
     updateGuardianDodgeControls(guardian,ginji,performance.now()/1000);
     const label=guardian
       ? forestGuardianHint(guardian,state.forestFinds,rpg.unbanked,performance.now()/1000,ginji)
-      : near
+      : rpg.phase==='return' && near
       ? near.id==='hollow' && !state.forestFinds.has('traces')
         ? '🌿 茨の奥で硬い音がする。足元のかすかな筋を辿ろう'
         : near.id==='hollow' && !rpg.crafted
