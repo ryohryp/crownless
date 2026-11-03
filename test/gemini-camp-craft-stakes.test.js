@@ -162,3 +162,16 @@ test('shrine material-or-healing choice previews the real next smithing mileston
   assert.doesNotMatch(done, /研ぎ直しまで牙あと|研ぎ直し素材は揃っている/,
     'do not promise a second temper after the one-time upgrade');
 });
+
+
+test('next-wave choice never rounds fractional remaining HP up', () => {
+  // Damage can leave fractional HP. Risk preview must not promise an extra point.
+  const injured = showPanel({ phase: 'return', hp: 12.5, unbanked: 3 });
+  assert.match(injured.pushDeeper,
+    /次の陣・敵3体に挑む（HP 12\/140・未帰還の牙 3個／敗北で喪失）/);
+  assert.doesNotMatch(injured.pushDeeper, /HP 13\/140/,
+    'do not overstate survivability when choosing another fight');
+  assert.match(showPanel({ phase: 'return', hp: 21, unbanked: 0 }).pushDeeper,
+    /HP 21\/140・未帰還の牙 0個/,
+    'integer HP and empty-bag preview remain unchanged');
+});
