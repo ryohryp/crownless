@@ -3239,7 +3239,9 @@
       : state.forestFinds.has('traces') && !state.forestFinds.has('hollow')
         ? '踏み跡の先では、まだ茨が軋んでいる。周囲を探してみよう'
       : rpg.phase==='return'
-        ? '🌲 未帰還の牙 '+rpg.unbanked+'個。探索を続けるか、生還して確定'
+        ? (rpg.unbanked>0
+          ? '🌲 未帰還の牙 '+rpg.unbanked+'個。探索を続けるか、生還して確定'
+          : '🌲 周囲を確かめるか、キャンプへ戻ろう')
         : '🌲 森の音や足元の違和感を探そう。気になる地点は直接タップ';
     if(hint.textContent!==label) hint.textContent=label;
   }
