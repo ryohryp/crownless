@@ -58,6 +58,10 @@ test('actual phone HUD and popup announce the earned scent once without spoiling
     {haptic:p=>haptics.push(p)},(...args)=>popups.push(args));
   run('fight');
   assert.equal(popups.length,0,'no far discovery popup during combat');
+  assert.equal(state.forestCuePulsed.size,0,
+    'combat must not silently consume the later exploration cue');
+  assert.deepEqual([...found],['shrine'],
+    'combat cannot auto-discover the nearby tracks');
   run();
   assert.equal(popups.length,1,'a phone without haptics still receives visible feedback');
   assert.equal(popups[0][0],'湿った土の匂いがした');
