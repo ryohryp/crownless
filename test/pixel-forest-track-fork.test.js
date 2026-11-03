@@ -130,3 +130,20 @@ test('the field HUD keeps the unvisited fork visible after either first discover
   assert.match(labelFor(['traces', 'shrine', 'hollow']), /未帰還の牙 2個/,
     'after both inspections, the ordinary safe-return stakes resume');
 });
+
+
+test('completed forest discoveries never resurrect fork directions or unsecured loot', () => {
+  const html = fs.readFileSync('gemini-feel-lab.html', 'utf8');
+  const start = html.indexOf('    const label=guardian' + String.fromCharCode(10));
+  const end = html.indexOf('    if(hint.textContent!==label)', start);
+  assert(start >= 0 && end > start, 'read the current HUD expression');
+  const label = vm.runInNewContext(html.slice(start, end) + '\nlabel', {
+    guardian: null, near: null, cue: null,
+    state: { forestFinds: new Set(['traces', 'shrine', 'hollow']) },
+    rpg: { crafted: false, phase: 'return', unbanked: 0 }
+  });
+  assert.doesNotMatch(label, /二手に分かれ|苔の湿り|茨が軋んで/,
+    'a completed fork must not prompt another search');
+  assert.doesNotMatch(label, /未帰還|石門|祠|右|左/,
+    'an empty bag and fully inspected sites cannot imply risk or reveal a route');
+});
