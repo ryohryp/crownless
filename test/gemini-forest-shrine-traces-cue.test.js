@@ -106,3 +106,31 @@ test('actual phone HUD and popup announce the earned scent once without spoiling
   assert.doesNotMatch(read(),/湿った土の匂い/,
     'once inspected, the distant scent is no longer advertised');
 });
+
+
+test('strong scent remains a one-time discovery cue after retreating and returning',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const fn=html.indexOf('  function updateForestExploreHint()');
+  const start=html.indexOf('    const near=window.CrownlessForestDiscoveries.near(ginji,state.forestFinds);',fn);
+  const end=html.indexOf("    if (near?.id!=='shrine')",start);
+  assert(fn>=0 && start>fn && end>start,'exercise the live scent logic');
+  const tick=new Function('window','ginji','state','rpg','document','sfx','spawnPopup',html.slice(start,end));
+  const hero={x:740,z:330,y:0,state:'IDLE'};
+  const found=new Set(['shrine']);
+  const state={forestFinds:found,forestCuePulsed:new Set()};
+  const messages=[];
+  const doc={getElementById:()=>({classList:{contains:()=>true}})};
+  const run=()=>tick({CrownlessForestDiscoveries:D},hero,state,{phase:'return'},doc,
+    {haptic:()=>{}},message=>messages.push(message));
+  run();
+  assert.deepEqual(messages,['湿った土の匂いが濃くなった']);
+  hero.x=700;hero.z=330;
+  run();
+  hero.x=720;hero.z=330;
+  run();
+  hero.x=740;hero.z=330;
+  run();
+  assert.deepEqual(messages,['湿った土の匂いが濃くなった'],
+    'retreating and re-entering must not repeat either the weaker or stronger cue');
+  assert.deepEqual([...found],['shrine'],'scent alone must not discover tracks');
+});
