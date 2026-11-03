@@ -3195,6 +3195,9 @@
     updateGuardianDodgeControls(guardian,ginji,performance.now()/1000);
     const label=guardian
       ? forestGuardianHint(guardian,state.forestFinds,rpg.unbanked,performance.now()/1000,ginji)
+      // A defeated/missing guardian can briefly leave phase=fight; never
+      // fall through to exploration clues before the return transition.
+      : rpg.phase==='fight' ? '⚔ 戦闘中。敵を倒して探索へ戻ろう'
       : rpg.phase==='return' && near
       ? near.id==='hollow' && !state.forestFinds.has('traces')
         ? '🌿 茨の奥で硬い音がする。足元のかすかな筋を辿ろう'
