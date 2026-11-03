@@ -1584,3 +1584,19 @@ test('gate-first first strike keeps its earned meaning in the live guardian HUD'
   assert.match(pending,/攻撃\+12か回避/,'before landing, preserve the actual choice');
   assert.doesNotMatch(pending,/石門の観察が効いた/,'never announce a hit early');
 });
+
+
+test('a distant sensory cue never becomes a free discovery or changes the return stake',()=>{
+  const found=new Set(['traces','hollow-scout']);
+  const player={x:730,z:260}; // inside the earned shrine breeze, outside inspection range
+  assert.equal(D.near(player,found),null,'a breeze is not a tappable discovery');
+  assert.equal(D.cueNear(player,found)?.id,'shrine','the detour earns only a sensory hint');
+  const run=R.create();
+  const before=run.unbanked;
+  assert.equal(D.uncover(player,found,'return',80,140,false,'material').ok,false,
+    'an out-of-range tap cannot claim a shrine reward');
+  assert.equal(found.has('shrine'),false,'a cue cannot mark the shrine discovered');
+  assert.equal(run.unbanked,before,'a cue cannot bank or mint material');
+  assert.equal(D.near({x:660,z:230},found)?.id,'shrine',
+    'walking to the actual site still enables deliberate inspection');
+});
