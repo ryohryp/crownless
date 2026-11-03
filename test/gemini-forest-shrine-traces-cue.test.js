@@ -142,3 +142,19 @@ test('strong scent remains a one-time discovery cue after retreating and returni
     'retreating and re-entering must not repeat either the weaker or stronger cue');
   assert.deepEqual([...found],['shrine'],'scent alone must not discover tracks');
 });
+
+test('diagonal scent proximity uses radial distance, never a square shortcut',()=>{
+  const found=new Set(['shrine']);
+  const point=(offset)=>({x:800-offset,z:365-offset,state:'IDLE'});
+  assert.equal(D.cueNear(point(64),found),null,
+    'two offsets below 90 individually must not reveal a clue outside the radial 90-unit range');
+  assert.equal(D.cueNear(point(63),found)?.id,'traces',
+    'the diagonal cue is available once the actual radial distance falls below 90');
+  assert.equal(D.near(point(39),found),null,
+    'diagonal distance above 54 must not permit inspection');
+  assert.equal(D.near(point(38),found)?.id,'traces',
+    'the existing radial inspection boundary still applies diagonally');
+  assert.equal(D.uncover(point(39),found,'return',100,140).ok,false,
+    'diagonal cue proximity alone cannot award a provisional fang');
+  assert.deepEqual([...found],['shrine']);
+});
