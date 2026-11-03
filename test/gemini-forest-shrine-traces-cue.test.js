@@ -106,6 +106,10 @@ test('actual phone HUD and popup announce the earned scent once without spoiling
     'no site identity, hidden path, or navigation is given away');
   assert.doesNotMatch(read('fight'),/湿った土の匂い/,
     'active combat has priority over exploration scents');
+  hero.x=800;hero.z=365;
+  assert.doesNotMatch(read('fight'),/湿った土|気になる地点|タップで調査/,
+    'combat must not expose an inspectable discovery even at touch range');
+  hero.x=740;hero.z=330;
   found.add('traces');
   assert.doesNotMatch(read(),/湿った土の匂い/,
     'once inspected, the distant scent is no longer advertised');
