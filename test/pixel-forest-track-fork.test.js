@@ -147,3 +147,17 @@ test('completed forest discoveries never resurrect fork directions or unsecured 
   assert.doesNotMatch(label, /未帰還|石門|祠|右|左/,
     'an empty bag and fully inspected sites cannot imply risk or reveal a route');
 });
+
+
+test('guardian transition never falls through to undiscovered forest clues', () => {
+  const html = fs.readFileSync('gemini-feel-lab.html', 'utf8');
+  const start = html.indexOf('    const label=guardian' + String.fromCharCode(10));
+  const end = html.indexOf('    if(hint.textContent!==label)', start);
+  assert(start >= 0 && end > start, 'read live forest HUD expression');
+  const label = vm.runInNewContext(html.slice(start, end) + '\nlabel', {
+    guardian: null, rpg: { phase: 'fight', unbanked: 1, crafted: false },
+    near: null, cue: null, state: { forestFinds: new Set(['traces']) }
+  });
+  assert.match(label, /戦闘中/);
+  assert.doesNotMatch(label, /苔の湿り|茨|気になる地点|未帰還/);
+});
