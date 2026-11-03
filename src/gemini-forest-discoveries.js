@@ -68,16 +68,20 @@
     // scent from another site. Never let a remote cue obscure a nearby choice.
     const inspectable=near(player,found);
     if(inspectable) return inspectable;
-    return spots.find(spot=>{
+    // When several distant signs overlap, favor the closest one rather than
+    // whichever site happens to appear first in the catalogue. This gives a
+    // more useful sensory lead without revealing a direction or a path.
+    return spots.filter(spot=>!found.has(spot.id)).map(spot=>{
       // Shrine-first explorers can smell damp soil before they find the tracks.
       // This never changes the 54-unit inspection radius or reveals a route.
       const range=spot.id==='traces' && found.has('shrine') ? 90 :
         spot.id==='shrine' && found.has('traces') && found.has('hollow-scout')
         ? 135 : (spot.id==='hollow'||spot.id==='shrine') && found.has('traces')
         ? 90 : RANGE;
-      return !found.has(spot.id) &&
-        Math.hypot(player.x-spot.x,player.z-spot.z)<range;
-    })||null;
+      const distance=Math.hypot(player.x-spot.x,player.z-spot.z);
+      return {spot,distance,range};
+    }).filter(cue=>cue.distance<cue.range)
+      .sort((a,b)=>a.distance-b.distance)[0]?.spot||null;
   }
   function available(phase){
     return phase==='fight'||phase==='return';
