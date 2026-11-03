@@ -5,6 +5,17 @@ const fs=require('node:fs');
 const D=require('../src/gemini-forest-discoveries.js');
 const R=require('../src/gemini-rpg-loop.js');
 
+
+test('an inspectable forest site is the active cue, without revealing another site',()=>{
+  for(const spot of D.spots){
+    const found=new Set();
+    const player={x:spot.x,z:spot.z};
+    assert.equal(D.near(player,found)?.id,spot.id);
+    assert.equal(D.cueNear(player,found)?.id,spot.id);
+    assert.equal(found.size,0,'a sensory cue must not record a discovery');
+  }
+});
+
 test('three distinct forest landmarks are placed in the actually walkable action world',()=>{
   assert.equal(D.spots.length,3);
   assert.deepEqual(D.spots.map(s=>s.id),['traces','shrine','hollow']);
