@@ -1002,7 +1002,7 @@ async function main() {
           assert.match(await page.locator('#rpgKeepExploring').innerText(),/気配を追って調べる/,
             'the existing continue button should invite investigation without naming the location');
           assert.match(await page.locator('#rpgPush').innerText(),
-            new RegExp('HP '+Math.ceil(first.after.player.hp)+'/'+first.after.player.maxHp+
+            new RegExp('HP '+Math.floor(first.after.player.hp)+'/'+first.after.player.maxHp+
               '・未帰還の牙 '+first.after.unbanked+'個'),
             'the real phone next-wave button must preview current HP and unsecured materials');
           assert.match(await page.locator('#rpgPush').innerText(),/次の陣・敵3体に挑む/,
