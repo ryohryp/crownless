@@ -26,3 +26,19 @@ test('a sensory lead never reveals or consumes a site, and its fang banks only a
   assert.equal(run.unbanked, 0);
   assert.equal(found.has('hollow'), false, 'a hint cannot silently mark the gate discovered');
 });
+
+test('a nonliving return cannot bank provisional fangs or reopen a departed run', () => {
+  const run = R.create();
+  assert.equal(R.claimMaterial(run), true);
+  assert.equal(R.clearWave(run), true);
+  assert.equal(R.returnAlive(run, 0), false, 'zero HP is not a living return');
+  assert.equal(R.returnAlive(run, -1), false, 'negative HP is not a living return');
+  assert.equal(run.phase, 'return', 'a rejected return must not enter camp');
+  assert.equal(run.banked, 0, 'a rejected return must not secure loot');
+  assert.equal(run.unbanked, 1, 'provisional loot remains at risk');
+  assert.equal(R.depart(run), false, 'cannot depart again before reaching camp');
+  assert.equal(R.loseExpedition(run), true);
+  assert.equal(run.phase, 'camp');
+  assert.equal(run.banked, 0);
+  assert.equal(run.unbanked, 0, 'defeat clears only provisional loot');
+});
