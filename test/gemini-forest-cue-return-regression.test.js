@@ -87,3 +87,12 @@ test('a returned haul becomes a forged tool for the next expedition, not a free 
   assert.equal(run.crafted, true, 'defeat loses provisional loot, not crafted gear');
   assert.equal(run.unbanked, 0);
 });
+
+test('shrine-first scouting reveals a distant track scent without granting inspection', () => {
+  const position = {x:800,z:460}; // 95 units from tracks, outside normal 54-unit reach.
+  const shrineFirst = new Set(['shrine']);
+  assert.equal(D.cueNear(position, shrineFirst)?.id, 'traces');
+  assert.equal(D.near(position, shrineFirst), null, 'the distant lead is not a discovery');
+  assert.equal(shrineFirst.has('traces'), false);
+  assert.equal(D.cueNear(position, new Set()), null, 'without shrine knowledge the lead stays hidden');
+});
