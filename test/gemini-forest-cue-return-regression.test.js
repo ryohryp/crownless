@@ -106,3 +106,13 @@ test('shrine-first scent stops at the 100-unit boundary without revealing tracks
   assert.equal(D.cueNear(atBoundary, found), null);
   assert.equal(found.has('traces'), false);
 });
+
+
+test('track readers sense the thorn gate at 95 units without discovering or inspecting it', () => {
+  const found = new Set(['traces']);
+  const position = {x:910,z:330}; // 95 units from the gate, beyond 54-unit inspection.
+  assert.equal(D.cueNear(position, found)?.id, 'hollow');
+  assert.equal(D.near(position, found), null);
+  assert.equal(found.has('hollow'), false);
+  assert.equal(D.cueNear(position, new Set()), null);
+});
