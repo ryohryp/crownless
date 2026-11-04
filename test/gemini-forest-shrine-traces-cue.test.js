@@ -23,13 +23,13 @@ test('shrine-first damp-soil scent is an earned cue, not an early track discover
     'repeat taps cannot farm the material');
 });
 
-test('shrine-first scent has strict 90-unit cue and 54-unit inspection boundaries',()=>{
+test('shrine-first scent has strict 100-unit cue and 54-unit inspection boundaries',()=>{
   const found=new Set(['shrine']);
   const at=distance=>({x:800-distance,z:365,state:'IDLE'});
-  assert.equal(D.cueNear(at(90),found),null,
-    'the early scent must not leak beyond its earned 90-unit radius');
-  assert.equal(D.cueNear(at(89.9),found)?.id,'traces',
-    'the scent begins inside 90 units after deliberate shrine inspection');
+  assert.equal(D.cueNear(at(100),found),null,
+    'the early scent must not leak beyond its earned 100-unit radius');
+  assert.equal(D.cueNear(at(99.9),found)?.id,'traces',
+    'the scent begins inside 100 units after deliberate shrine inspection');
   assert.equal(D.near(at(72),found),null,
     'stronger scent is still not a touch action or automatic discovery');
   assert.equal(D.near(at(54),found),null,
@@ -146,10 +146,10 @@ test('strong scent remains a one-time discovery cue after retreating and returni
 test('diagonal scent proximity uses radial distance, never a square shortcut',()=>{
   const found=new Set(['shrine']);
   const point=(offset)=>({x:800-offset,z:365-offset,state:'IDLE'});
-  assert.equal(D.cueNear(point(64),found),null,
-    'two offsets below 90 individually must not reveal a clue outside the radial 90-unit range');
-  assert.equal(D.cueNear(point(63),found)?.id,'traces',
-    'the diagonal cue is available once the actual radial distance falls below 90');
+  assert.equal(D.cueNear(point(71),found),null,
+    'two offsets below 100 individually must not reveal a clue outside the radial 100-unit range');
+  assert.equal(D.cueNear(point(70),found)?.id,'traces',
+    'the diagonal cue is available once the actual radial distance falls below 100');
   assert.equal(D.near(point(39),found),null,
     'diagonal distance above 54 must not permit inspection');
   assert.equal(D.near(point(38),found)?.id,'traces',
