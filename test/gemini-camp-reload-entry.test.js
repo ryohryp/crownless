@@ -28,7 +28,7 @@ test('saved camp reload restores the actual RPG entry after stage initialization
       assert.equal(id, 'rpgPanel');
       return {classList: {toggle: (name, hidden) => toggles.push([name, hidden])}};
     }};
-    new Function('document', 'rpg', html.slice(panelStart, panelEnd) + '\nshowRpgPanel();')(
+    new Function('document', 'rpg', html.slice(panelStart, panelEnd) + '\n}\nshowRpgPanel();')(
       document, {phase});
     return toggles;
   };
