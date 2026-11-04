@@ -1,0 +1,295 @@
+{
+  "schema_version": 1,
+  "status": "motion_control_candidate_unapproved",
+  "source": "Validated A/B contact source (build_contact_v2.py) with authored inbetweens; not recovered original approved mannequin",
+  "purpose": "8 temporal motion-only guides, not a character sprite",
+  "size": [
+    128,
+    192
+  ],
+  "direction": "right-facing oblique 3/4",
+  "ground_y": 175,
+  "ankle_ground_y": 170,
+  "bone_length_px": 36,
+  "hips": {
+    "near": [
+      57,
+      114
+    ],
+    "far": [
+      66,
+      114
+    ]
+  },
+  "shoulders": {
+    "near": [
+      54,
+      78
+    ],
+    "far": [
+      68,
+      76
+    ]
+  },
+  "color_legend": {
+    "near": "orange",
+    "far": "blue"
+  },
+  "fps": 8,
+  "frame_duration_ms": [
+    120,
+    130,
+    120,
+    130,
+    120,
+    130,
+    120,
+    130
+  ],
+  "ik_note": "Translate hip and shoulder vertically by body_bob_px, solve each 2-segment leg at fixed 36px bone length, knee bends toward +x; lift non-supporting foot when ankle.y <170",
+  "frames": [
+    {
+      "index": 0,
+      "phase": "Contact A",
+      "body_bob_px": 0,
+      "near_ankle": [
+        80,
+        170
+      ],
+      "far_ankle": [
+        48,
+        170
+      ],
+      "near_elbow": [
+        48,
+        99
+      ],
+      "near_wrist": [
+        39,
+        112
+      ],
+      "far_elbow": [
+        79,
+        95
+      ],
+      "far_wrist": [
+        88,
+        106
+      ]
+    },
+    {
+      "index": 1,
+      "phase": "Down A",
+      "body_bob_px": 2,
+      "near_ankle": [
+        72,
+        170
+      ],
+      "far_ankle": [
+        54,
+        164
+      ],
+      "near_elbow": [
+        50,
+        101
+      ],
+      "near_wrist": [
+        45,
+        111
+      ],
+      "far_elbow": [
+        76,
+        97
+      ],
+      "far_wrist": [
+        82,
+        107
+      ]
+    },
+    {
+      "index": 2,
+      "phase": "Passing A",
+      "body_bob_px": -1,
+      "near_ankle": [
+        63,
+        170
+      ],
+      "far_ankle": [
+        65,
+        154
+      ],
+      "near_elbow": [
+        57,
+        99
+      ],
+      "near_wrist": [
+        57,
+        108
+      ],
+      "far_elbow": [
+        69,
+        99
+      ],
+      "far_wrist": [
+        69,
+        109
+      ]
+    },
+    {
+      "index": 3,
+      "phase": "Up A",
+      "body_bob_px": -2,
+      "near_ankle": [
+        54,
+        170
+      ],
+      "far_ankle": [
+        76,
+        161
+      ],
+      "near_elbow": [
+        65,
+        97
+      ],
+      "near_wrist": [
+        70,
+        107
+      ],
+      "far_elbow": [
+        62,
+        100
+      ],
+      "far_wrist": [
+        56,
+        111
+      ]
+    },
+    {
+      "index": 4,
+      "phase": "Contact B",
+      "body_bob_px": 0,
+      "near_ankle": [
+        47,
+        170
+      ],
+      "far_ankle": [
+        82,
+        170
+      ],
+      "near_elbow": [
+        68,
+        96
+      ],
+      "near_wrist": [
+        82,
+        106
+      ],
+      "far_elbow": [
+        57,
+        99
+      ],
+      "far_wrist": [
+        46,
+        112
+      ]
+    },
+    {
+      "index": 5,
+      "phase": "Down B",
+      "body_bob_px": 2,
+      "near_ankle": [
+        53,
+        164
+      ],
+      "far_ankle": [
+        74,
+        170
+      ],
+      "near_elbow": [
+        68,
+        97
+      ],
+      "near_wrist": [
+        76,
+        107
+      ],
+      "far_elbow": [
+        59,
+        100
+      ],
+      "far_wrist": [
+        52,
+        111
+      ]
+    },
+    {
+      "index": 6,
+      "phase": "Passing B",
+      "body_bob_px": -1,
+      "near_ankle": [
+        64,
+        154
+      ],
+      "far_ankle": [
+        65,
+        170
+      ],
+      "near_elbow": [
+        63,
+        99
+      ],
+      "near_wrist": [
+        64,
+        109
+      ],
+      "far_elbow": [
+        64,
+        99
+      ],
+      "far_wrist": [
+        65,
+        108
+      ]
+    },
+    {
+      "index": 7,
+      "phase": "Up B",
+      "body_bob_px": -2,
+      "near_ankle": [
+        75,
+        161
+      ],
+      "far_ankle": [
+        56,
+        170
+      ],
+      "near_elbow": [
+        52,
+        101
+      ],
+      "near_wrist": [
+        50,
+        111
+      ],
+      "far_elbow": [
+        74,
+        97
+      ],
+      "far_wrist": [
+        79,
+        107
+      ]
+    }
+  ],
+  "qa": {
+    "contact_A_B_preserved": true,
+    "eight_unique_frames": true,
+    "loop_infinite": true,
+    "loop_duration_ms": 1000,
+    "both_legs_fixed_lengths": true,
+    "ground_contact_switches": true,
+    "per_pixel_art_approved": false,
+    "motion_human_approved": false,
+    "runtime_adopted": false
+  }
+}

@@ -1,0 +1,86 @@
+# Adventurer A — 3D Depth ControlNet pilot (review only)
+
+**State:** true 3D per-surface depth controls A and B generated, visually inspected and tested. GPU character generation with Depth ControlNet **not run**. Keep Draft PR #1060, approved identity, visual Canon and game assets intact.
+
+## Depth generator
+
+Source: scripts/adventurer-a-walk/export_depth_controls.py
+
+It reuses original prepare_pose_3d.py meshes and the fixed orthographic camera, and rasterizes visible triangles using a CPU z-buffer (not an OpenPose joint-depth approximation).
+
+Output from a new, empty destination directory: pose-a-depth.png, pose-b-depth.png, pose-a-silhouette.png, pose-b-silhouette.png, two surface-ID QA PNGs, depth-review-sheet.png and depth-manifest.json. In the color-coded QA image, orange is the near leg and cyan is the far leg; never feed that color image into Depth ControlNet.
+
+Background depth 0, foreground near surfaces brighter. Constant depth clip [-0.35,1.30] and identical camera for A/B. Local test: 25,666 differing depth pixels, two correctly reversed actual 3D leg-contact poses, 512x512 output.
+
+Depth control identity is now **decoded 512x512 L-mode pixel SHA-256**, not the encoded PNG file hash, because PNG compression/encoder versions differ on Windows. Pixel verification still fails closed for a genuine rendering change.
+- A expected decoded pixel SHA-256: 3ab036afe74a7d5d87b44779fe3d33af7bc218d10e37d0e424c85d6827fafa7c
+- B expected decoded pixel SHA-256: d68a874f4c0889a0ec6a564ef58068f0f262c98adce8da8c32ee3bf19c3fccbb
+
+Original container PNG **file** SHA-256 (not used for cross-platform acceptance):
+- A: f4f9c7d53853c26f5427a1c97941181aa40253fb2453dfff168815b04afe6ce9
+- B: 5c5ef52952e286997d9ac856204c3e6ff1d66a0f1a082b6156a89664f69f7f4c
+
+Windows owner 2026-10-31 reported a fully verified model install and fresh 3D depth A/B output, `changed_depth_pixels=25666`, in `I:\02_AI\ComfyUI-Crownless\depth-contact-47513f610c644778b22a92c0c6321b1d`. The recorded PNG **file** hashes differed from the original reference. This does not establish whether the decoded pixels also differ; use the stricter pixel hash check and do not weaken it to accept arbitrary output.
+
+The setup stopped only at **MCP allowlist selection**: `No MCP workflow allowlist selected`. Do not download the model or regenerate the depth images again. Identify the existing folder containing `adventurer-a-near-contact.json` and supply `-McpWorkflowDir` and `-DepthDir` directly to the existing `register_depth_mcp.ps1`. Example:
+
+```powershell
+$existingMcpWorkflow = Get-ChildItem -Path 'I:\02_AI\ComfyUI-Crownless', 'I:\04_develop', "$env:APPDATA" -Recurse -File -Filter 'adventurer-a-near-contact.json' -ErrorAction SilentlyContinue | Select-Object -First 1 -ExpandProperty FullName
+if (-not $existingMcpWorkflow) { throw 'Find the existing ComfyUI Local MCP allowlist JSON manually; do not guess the path.' }
+$allowlist = Split-Path -Parent $existingMcpWorkflow
+$depthDir = 'I:\02_AI\ComfyUI-Crownless\depth-contact-47513f610c644778b22a92c0c6321b1d'
+powershell -NoProfile -STA -ExecutionPolicy Bypass -File '.\scripts\adventurer-a-walk\register_depth_mcp.ps1' -McpWorkflowDir $allowlist -DepthDir $depthDir
+```
+
+Run this only after bringing the PR checkout to the updated **pixel-hash verification** commit. Check `git status --short` before updating the checkout. If registration reports a pixel mismatch, inspect the actual decoded pixels rather than accepting the PNG file hashes, and STOP without GPU generation.
+
+Reproduce using a separate Python environment with numpy, trimesh, Pillow. From Crownless repo root run:
+
+    python scripts/adventurer-a-walk/export_depth_controls.py .qa/candidates/adventurer-a-depth-v1
+
+The output directory must not contain existing files.
+
+## Verified model requirement
+
+Official ComfyUI tutorial recommends SD1.5 fp16 Depth ControlNet:
+
+https://huggingface.co/comfyanonymous/ControlNet-v1-1_fp16_safetensors/blob/main/control_v11f1p_sd15_depth_fp16.safetensors
+
+File: control_v11f1p_sd15_depth_fp16.safetensors
+Provider-declared SHA-256: 1c4a79aa52fb63f607cb9ff479ea5aa1923b6ceb21267bd14b69bd05d7b617be
+
+The upstream model family lllyasviel/control_v11f1p_sd15_depth lists OpenRAIL; review license for production use. Place the official checked file at the already working ComfyUI/models/controlnet directory; never overwrite an existing model. This experiment does NOT download/install it and does not require Klein.
+
+## Recommended single-command Windows preparation
+
+The existing scripts remain the source of truth; `prepare_depth_poc.ps1` only orchestrates them. From an up-to-date **`feat/adventurer-a-comfy-poc` checkout**, in Windows PowerShell:
+
+```powershell
+powershell -NoProfile -STA -ExecutionPolicy Bypass -File scripts/adventurer-a-walk/prepare_depth_poc.ps1
+```
+
+It checks Python 3D dependencies **before** transferring the large model, downloads the free official ~723MB Depth ControlNet model into a uniquely named temporary file only if missing, verifies the pinned provider SHA-256, and moves it into `ComfyUI/models/controlnet` without replacing any existing file. It then generates new A/B depth images and invokes the **existing safe registration helper**. It prompts for the owner-PC's actual MCP allowlist JSON; it never attempts to expose port 8188, queue a job, overwrite v1/v2, or adopt game assets.
+
+If the existing TheRock Python lacks `numpy`, `trimesh` or `Pillow`, the script stops **before downloading**; use `-DepthPython 'FULL_PATH_TO_SEPARATE_PYTHON_WITH_3D_PACKAGES'`, or provide `-DepthDir 'FOLDER_CONTAINING_PREVIOUS_DEPTH_IMAGES'`. Do not pip-install into the known-good ROCm environment just to make this helper run. An already-valid model is reused and checked; a mismatched existing model is never overwritten. A failed/interrupted download leaves no installed checkpoint.
+
+This PowerShell setup script has **not** been run or validated end-to-end on the owner's Windows PC from ChatGPT. Only report setup success when the user-PC command returns success and ComfyUI Local lists both `adventurer-a-3d-depth-a/b`.
+
+## Windows-side registration
+
+Use scripts/adventurer-a-walk/register_depth_mcp.ps1 once on the PC owner checkout after model installation and depth image preparation:
+
+    powershell -NoProfile -STA -ExecutionPolicy Bypass -File scripts/adventurer-a-walk/register_depth_mcp.ps1
+
+It requests the actual existing ComfyUI Local MCP allowlist by selecting the older adventurer-a-near-contact.json and the depth image folder by selecting pose-a-depth.png. Or pass -McpWorkflowDir and -DepthDir. The Python installer verifies model SHA, approved anchor, exact A/B image SHA, and all original four pinned model hashes; preflights all existing targets before writing.
+
+New names:
+- adventurer-a-3d-depth-a
+- adventurer-a-3d-depth-b
+
+Existing v1/v2/3D OpenPose workflows and game assets must not be overwritten. Keep ComfyUI bound only to 127.0.0.1:8188.
+
+## One-shot GPU gate
+
+Check ComfyUI Local list_workflows and queue_status. If both new names appear, run A once, use get_result then get_image. Examine near leg truly ahead, both boot soles grounded, correct toes, intact knees/clothing, approved Adventurer A identity and camera. Run B only if A passes and compare actual leg reversal. If A fails, stop; no eight-frame expansion or automatic asset adoption.
+
+Local independent verification: four 3D depth/occlusion tests and four registration unit tests passed. These do not establish owner-PC GPU runtime, character quality or animation approval.

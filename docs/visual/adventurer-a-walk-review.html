@@ -1,0 +1,175 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>冒険者A — Pixelorama歩行アニメレビュー</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; background: #eee7d9; color: #292520; font: 15px/1.55 system-ui, sans-serif; }
+    main { max-width: 850px; margin: auto; padding: 20px 16px 40px; }
+    h1 { margin: 0 0 6px; font-size: 1.4rem; }
+    h2 { margin: 0 0 10px; font-size: 1rem; }
+    p { margin: 6px 0 14px; }
+    .note { padding: 10px 12px; border-left: 4px solid #937b57; background: #fff9ec; }
+    .stage { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 16px 0; }
+    figure { margin: 0; min-width: 0; }
+    figcaption { margin: 8px 0 0; font-weight: 700; }
+    .view { min-height: 315px; padding: 12px 4px; display: grid; place-items: center;
+      background-color: #a49c8e; background-image: linear-gradient(45deg,#b8b1a5 25%,transparent 25%),linear-gradient(-45deg,#b8b1a5 25%,transparent 25%),linear-gradient(45deg,transparent 75%,#b8b1a5 75%),linear-gradient(-45deg,transparent 75%,#b8b1a5 75%);
+      background-size: 20px 20px; background-position: 0 0,0 10px,10px -10px,-10px 0; }
+    .view img, .view canvas { display: block; width: min(100%, 256px); height: auto; image-rendering: pixelated; }
+    .canvas-wrap { position: relative; width: min(100%, 256px); aspect-ratio: 2/3; }
+    .canvas-wrap canvas, .canvas-wrap img { position: absolute; inset: 0; width: 100%; height: 100%; }
+    #ghost { opacity: .36; pointer-events: none; display: none; }
+    .placeholder { color: #27221b; background: #f8f0e0dd; padding: 14px; width: 85%; text-align: center; }
+    .panel { padding: 14px; margin-top: 14px; background: #fffaf0; border: 1px solid #d4c6b0; border-radius: 8px; }
+    .controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    button, select, input[type=file] { font: inherit; }
+    button { padding: 7px 12px; border-radius: 6px; border: 1px solid #87745b; background: #f7eedf; color: #292520; cursor: pointer; }
+    button:disabled { opacity: .45; cursor: not-allowed; }
+    label { display: inline-flex; align-items: center; gap: 6px; }
+    input[type=file] { max-width: 100%; }
+    #status { margin: 10px 0 0; white-space: pre-line; overflow-wrap: anywhere; }
+    .warning { color: #8d2c20; }
+    .checks { display: grid; gap: 10px; margin: 8px 0; }
+    .checks label { align-items: flex-start; }
+    .checks input { margin-top: 5px; }
+    small { display: block; margin-top: 14px; color: #5c5143; }
+    @media (max-width: 460px) { .view { min-height: 240px; padding: 7px 3px; } .stage { gap: 8px; } .panel { padding: 11px; } }
+  </style>
+</head>
+<body><main>
+  <h1>冒険者A — 歩行アニメの作画レビュー</h1>
+  <p class="note">承認された立ち姿の<strong>見た目</strong>を基準に、Pixeloramaの4キーポーズ／8コマを比較する未承認候補用ツール。古い却下済みアニメは使用しません。ゲームやVisual Canonには反映されません。</p>
+  <div class="stage">
+    <figure>
+      <div class="view"><img src="../assets/candidates/adventurer-a-local-poc/adventurer-a-idle-native-128-v1.png" alt="128×192の立ち姿ピクセル候補"></div>
+      <figcaption>立ち姿 — 参考候補</figcaption>
+      <small>128×192 / 24色。見た目の評価済み、ピクセル自体とアニメは未承認。</small>
+    </figure>
+    <figure>
+      <div class="view">
+        <div id="placeholder" class="placeholder">4コマまたは8コマのPNGを読み込むと表示します。</div>
+        <div id="canvas-wrap" class="canvas-wrap" hidden>
+          <canvas id="frame" width="128" height="192" aria-label="アニメーション候補の現在フレーム"></canvas>
+          <img id="ghost" src="../assets/candidates/adventurer-a-local-poc/adventurer-a-idle-native-128-v1.png" alt="立ち姿との比較用オニオンスキン">
+        </div>
+      </div>
+      <figcaption>歩行ポーズ — 未承認</figcaption>
+      <small id="frame-number">まだ読み込まれていません。</small>
+    </figure>
+  </div>
+  <section class="panel" aria-labelledby="load-title">
+    <h2 id="load-title">1. Pixeloramaから出力したネイティブPNGを確認</h2>
+    <p>128×192の4コマ（512×192）または8コマ（1024×192）を横一列に配置したPNGを選んでね。画像のアップロードや外部通信はしません。</p>
+    <input id="atlas" type="file" accept="image/png" aria-label="Pixeloramaスプライトシートを選択">
+    <p id="status" role="status">未読込。立ち姿を複製しただけのコマは歩行アニメとは扱いません。</p>
+    <div class="controls" style="margin-top:12px">
+      <button id="prev" type="button" disabled>◀ 前</button>
+      <button id="play" type="button" disabled>▶ 再生</button>
+      <button id="next" type="button" disabled>次 ▶</button>
+      <label>速度 <select id="fps"><option value="4">4 fps</option><option value="6">6 fps</option><option value="8" selected>8 fps</option><option value="12">12 fps</option></select></label>
+      <label><input id="onion" type="checkbox">立ち姿を重ねる</label>
+    </div>
+  </section>
+  <section class="panel" aria-labelledby="review-title">
+    <h2 id="review-title">2. 人間による動作レビュー（自動承認しない）</h2>
+    <div class="checks">
+      <label><input type="checkbox">反対側の接地ポーズで、左右の足の前後関係が実際に入れ替わる</label>
+      <label><input type="checkbox">足裏が接地時に同じ高さにあり、地面を滑らない</label>
+      <label><input type="checkbox">肩・腕・腰・上着が脚に合わせて自然に動く</label>
+      <label><input type="checkbox">髪、顔、剣、衣装の同一性と、スマホ実寸での読みやすさを維持する</label>
+    </div>
+    <small>自動チェックはキャンバス寸法・コマ数・色数・透過・空白／重複コマのみ。足の動きや作画品質を機械的に合格とは判定しません。</small>
+  </section>
+</main>
+<script src="../../scripts/adventurer-a-walk/pixel-atlas-review.js"></script>
+<script>
+(() => {
+  'use strict';
+  const $ = id => document.getElementById(id);
+  const canvas = $('frame');
+  const context = canvas.getContext('2d');
+  let sheet = null;
+  let count = 0;
+  let index = 0;
+  let timer = null;
+  const descriptions = {
+    INVALID_IMAGE_DATA: '画像データを読み取れません',
+    INVALID_NATIVE_SIZE: '128×192のネイティブコマが横一列に並んでいません',
+    INVALID_FRAME_COUNT: '4コマまたは8コマではありません',
+    PARTIAL_ALPHA: '半透明ピクセルがあります',
+    TOO_MANY_COLORS: '64色を超えています',
+    EMPTY_FRAME: '空白のコマがあります',
+    REPEATED_FRAME: '同一内容のコマがあります'
+  };
+  function stop() {
+    if (timer !== null) clearInterval(timer);
+    timer = null;
+    $('play').textContent = '▶ 再生';
+  }
+  function showFrame() {
+    if (!sheet || !count) return;
+    context.clearRect(0, 0, 128, 192);
+    context.imageSmoothingEnabled = false;
+    context.drawImage(sheet, index * 128, 0, 128, 192, 0, 0, 128, 192);
+    $('frame-number').textContent = 'フレーム ' + (index + 1) + ' / ' + count + '（128×192 ネイティブ）';
+  }
+  function advance(delta) { index = (index + delta + count) % count; showFrame(); }
+  function play() {
+    if (timer !== null) { stop(); return; }
+    if (count < 4) return;
+    timer = setInterval(() => advance(1), 1000 / Number($('fps').value));
+    $('play').textContent = '■ 停止';
+  }
+  $('prev').addEventListener('click', () => { stop(); advance(-1); });
+  $('next').addEventListener('click', () => { stop(); advance(1); });
+  $('play').addEventListener('click', play);
+  $('fps').addEventListener('change', () => { if (timer !== null) { stop(); play(); } });
+  $('onion').addEventListener('change', () => { $('ghost').style.display = $('onion').checked ? 'block' : 'none'; });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) stop(); });
+  $('atlas').addEventListener('change', async event => {
+    stop();
+    sheet = null; count = 0; index = 0;
+    $('play').disabled = $('prev').disabled = $('next').disabled = true;
+    $('canvas-wrap').hidden = true;
+    $('placeholder').hidden = false;
+    $('frame-number').textContent = 'まだ読み込まれていません。';
+    document.querySelectorAll('.checks input').forEach(input => { input.checked = false; });
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (file.type !== 'image/png') { $('status').textContent = 'PNG形式のみ読み込めます。'; return; }
+    let bitmap;
+    try { bitmap = await createImageBitmap(file); }
+    catch { $('status').textContent = 'PNGを開けませんでした。'; return; }
+    try {
+      const staging = document.createElement('canvas');
+      staging.width = bitmap.width;
+      staging.height = bitmap.height;
+      const ctx = staging.getContext('2d', {willReadFrequently: true});
+      ctx.drawImage(bitmap, 0, 0);
+      const pixels = ctx.getImageData(0, 0, staging.width, staging.height).data;
+      const report = CrownlessPixelAtlasReview.inspectAtlas(pixels, bitmap.width, bitmap.height);
+      if (report.problems.includes('INVALID_NATIVE_SIZE')) {
+        $('status').textContent = '読込不可: ' + descriptions.INVALID_NATIVE_SIZE + '（実際 ' + bitmap.width + '×' + bitmap.height + '）';
+        return;
+      }
+      sheet = staging;
+      count = report.frames;
+      $('canvas-wrap').hidden = false;
+      $('placeholder').hidden = true;
+      $('prev').disabled = $('next').disabled = false;
+      $('play').disabled = report.problems.length > 0;
+      const summary = bitmap.width + '×' + bitmap.height + ' / ' + report.frames + 'コマ / ' + report.colors + '色 / 相異なるコマ ' + report.uniqueFrames;
+      $('status').textContent = report.problems.length
+        ? '要修正（未承認）: ' + summary + '\n' + report.problems.map(code => '・' + descriptions[code]).join('\n')
+        : '技術チェック通過（作画は未承認）: ' + summary + '\n足の交互接地・上半身・同一性は下の項目で目視確認してね。';
+      $('status').classList.toggle('warning', report.problems.length > 0);
+      showFrame();
+    } finally { bitmap.close(); }
+  });
+})();
+</script>
+</body>
+</html>

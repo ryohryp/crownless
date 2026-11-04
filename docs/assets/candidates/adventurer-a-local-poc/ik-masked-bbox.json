@@ -1,0 +1,161 @@
+{
+  "status": "diagnostic_only_not_art_or_gait_approval",
+  "threshold": 28,
+  "limitations": "Background/outline threshold only; does not identify feet, torso, contact, crossing, or identity.",
+  "frames": [
+    {
+      "bbox_inclusive": [
+        188,
+        120,
+        335,
+        423
+      ],
+      "lowest_six_rows_x_span": [
+        193,
+        335
+      ],
+      "corner_rgb": [
+        129,
+        128,
+        128
+      ],
+      "frame": 0,
+      "sha256": "006a22075330ee01dec7388fb60afcc44c3e0b326fd7bec293f02bf9a69df6dc"
+    },
+    {
+      "bbox_inclusive": [
+        188,
+        120,
+        328,
+        424
+      ],
+      "lowest_six_rows_x_span": [
+        263,
+        303
+      ],
+      "corner_rgb": [
+        129,
+        128,
+        128
+      ],
+      "frame": 1,
+      "sha256": "56a40e98fed66f9556ff6f2ec0316c8f0f5b9159eb6634b7715271d69e8713e9"
+    },
+    {
+      "bbox_inclusive": [
+        185,
+        120,
+        328,
+        431
+      ],
+      "lowest_six_rows_x_span": [
+        226,
+        274
+      ],
+      "corner_rgb": [
+        129,
+        129,
+        128
+      ],
+      "frame": 2,
+      "sha256": "0635586661ccb70b04596a4a2ecfbc692646537a1a403aced275c6b63e15837b"
+    },
+    {
+      "bbox_inclusive": [
+        172,
+        120,
+        333,
+        423
+      ],
+      "lowest_six_rows_x_span": [
+        199,
+        239
+      ],
+      "corner_rgb": [
+        129,
+        129,
+        128
+      ],
+      "frame": 3,
+      "sha256": "52926af233814da3ee16bade155c80f7feb38c93ff17cc60ad49d8f555aa258d"
+    },
+    {
+      "bbox_inclusive": [
+        173,
+        120,
+        359,
+        423
+      ],
+      "lowest_six_rows_x_span": [
+        175,
+        359
+      ],
+      "corner_rgb": [
+        129,
+        128,
+        128
+      ],
+      "frame": 4,
+      "sha256": "0ba0a7b1ee769190c27a50fcb6773772c2fe1e95b167c97b2bc84d8c2fcdb8d0"
+    },
+    {
+      "bbox_inclusive": [
+        186,
+        120,
+        328,
+        425
+      ],
+      "lowest_six_rows_x_span": [
+        202,
+        326
+      ],
+      "corner_rgb": [
+        129,
+        129,
+        128
+      ],
+      "frame": 5,
+      "sha256": "959c8e9f0ebfbfdeca97e4dcfecb676c4948ee064f41260901914d78c0e88d26"
+    },
+    {
+      "bbox_inclusive": [
+        186,
+        120,
+        329,
+        426
+      ],
+      "lowest_six_rows_x_span": [
+        257,
+        302
+      ],
+      "corner_rgb": [
+        129,
+        128,
+        128
+      ],
+      "frame": 6,
+      "sha256": "aeff86e8109280d6a333cd1d7a68cd43ba9922402dd8b81e63a3bbcf148b5aa1"
+    },
+    {
+      "bbox_inclusive": [
+        188,
+        120,
+        328,
+        423
+      ],
+      "lowest_six_rows_x_span": [
+        220,
+        259
+      ],
+      "corner_rgb": [
+        129,
+        128,
+        128
+      ],
+      "frame": 7,
+      "sha256": "fc50e19ddf9859df419419990e8d35fa5b62dfb54415c4ba52d6eb926a3cee66"
+    }
+  ],
+  "bottom_row_range": 8,
+  "top_row_range": 0
+}
