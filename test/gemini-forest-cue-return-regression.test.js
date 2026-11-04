@@ -33,6 +33,8 @@ test('a nonliving return cannot bank provisional fangs or reopen a departed run'
   assert.equal(R.clearWave(run), true);
   assert.equal(R.returnAlive(run, 0), false, 'zero HP is not a living return');
   assert.equal(R.returnAlive(run, -1), false, 'negative HP is not a living return');
+  assert.equal(R.returnAlive(run, Infinity), false, 'infinite HP cannot secure loot');
+  assert.equal(R.returnAlive(run, NaN), false, 'invalid HP cannot secure loot');
   assert.equal(run.phase, 'return', 'a rejected return must not enter camp');
   assert.equal(run.banked, 0, 'a rejected return must not secure loot');
   assert.equal(run.unbanked, 1, 'provisional loot remains at risk');
