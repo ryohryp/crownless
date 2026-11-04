@@ -42,3 +42,14 @@ test('a nonliving return cannot bank provisional fangs or reopen a departed run'
   assert.equal(run.banked, 0);
   assert.equal(run.unbanked, 0, 'defeat clears only provisional loot');
 });
+
+test('a shrine-first explorer senses tracks earlier but still must approach to discover them', () => {
+  const found = new Set(['shrine']);
+  const distant = {x:800,z:440}; // 75 units from tracks: cue-only, not inspectable.
+  assert.equal(D.cueNear(distant, found)?.id, 'traces');
+  assert.equal(D.near(distant, found), null);
+  assert.equal(found.has('traces'), false);
+  const close = {x:800,z:400}; // 35 units: deliberate inspection becomes possible.
+  assert.equal(D.near(close, found)?.id, 'traces');
+  assert.equal(found.has('traces'), false, 'proximity alone must not auto-discover tracks');
+});
