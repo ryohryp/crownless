@@ -39,3 +39,29 @@ test('saved camp reload restores the actual RPG entry after stage initialization
   assert.deepEqual(visibleFor('fight'), [['hidden', true]],
     'active combat must not overlay the RPG panel');
 });
+
+test('camp reload exposes the actual re-expedition button, not just its parent panel (#1064)', () => {
+  const html = fs.readFileSync('gemini-feel-lab.html', 'utf8');
+  assert.match(html, /id="rpgDepart"/, 'the re-expedition button exists');
+  const start = html.indexOf("    const depart=document.getElementById('rpgDepart');");
+  const end = html.indexOf('\n', html.indexOf("    depart.classList.toggle('hidden', !camp);", start));
+  assert.ok(start >= 0 && end > start, 'live camp-dependent depart visibility exists');
+  const visibleFor = phase => {
+    let hidden;
+    const document = {getElementById: id => {
+      assert.equal(id, 'rpgDepart');
+      return {classList: {toggle: (name, value) => {
+        assert.equal(name, 'hidden');
+        hidden = value;
+      }}};
+    }};
+    new Function('document', 'camp', html.slice(start, end))(
+      document, phase === 'camp');
+    return !hidden;
+  };
+  assert.equal(visibleFor('camp'), true, 'saved camp exposes re-expedition');
+  assert.equal(visibleFor('return'), false, 'return requires banking first');
+  assert.equal(visibleFor('fight'), false, 'combat cannot start another expedition');
+  assert.match(html, /getElementById\('rpgDepart'\)\.addEventListener\('click',\s*\(\)\s*=>\s*\{\s*if\s*\(!rpgRules\.depart\(rpg\)\)\s*return;/,
+    'visible button remains wired to the actual depart rule');
+});
