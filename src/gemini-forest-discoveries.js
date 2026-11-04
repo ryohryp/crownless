@@ -77,7 +77,7 @@
       const range=spot.id==='traces' && found.has('shrine') ? 100 :
         spot.id==='shrine' && found.has('traces') && found.has('hollow-scout')
         ? 135 : (spot.id==='hollow'||spot.id==='shrine') && found.has('traces')
-        ? 90 : RANGE;
+        ? 100 : RANGE;
       const distance=Math.hypot(player.x-spot.x,player.z-spot.z);
       return {spot,distance,range};
     }).filter(cue=>cue.distance<cue.range)
