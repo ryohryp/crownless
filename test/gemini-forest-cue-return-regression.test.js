@@ -96,3 +96,13 @@ test('shrine-first scouting reveals a distant track scent without granting inspe
   assert.equal(shrineFirst.has('traces'), false);
   assert.equal(D.cueNear(position, new Set()), null, 'without shrine knowledge the lead stays hidden');
 });
+
+test('shrine-first scent stops at the 100-unit boundary without revealing tracks', () => {
+  const found = new Set(['shrine']);
+  const justInside = {x:800,z:464.9}; // 99.9 units from tracks.
+  const atBoundary = {x:800,z:465}; // exactly 100 units: no cue.
+  assert.equal(D.cueNear(justInside, found)?.id, 'traces');
+  assert.equal(D.near(justInside, found), null);
+  assert.equal(D.cueNear(atBoundary, found), null);
+  assert.equal(found.has('traces'), false);
+});
