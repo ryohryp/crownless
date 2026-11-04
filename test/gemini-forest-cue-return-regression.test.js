@@ -53,3 +53,16 @@ test('a shrine-first explorer senses tracks earlier but still must approach to d
   assert.equal(D.near(close, found)?.id, 'traces');
   assert.equal(found.has('traces'), false, 'proximity alone must not auto-discover tracks');
 });
+
+test('an inspectable discovery outranks a distant sensory lead without auto-revealing it', () => {
+  // The shrine is already found, so the tracks can be sensed from 90 units.
+  // Near the tracks, the player must still choose inspection explicitly.
+  const found = new Set(['shrine']);
+  const player = {x:800,z:400};
+  assert.equal(D.near(player, found)?.id, 'traces');
+  assert.equal(D.cueNear(player, found)?.id, 'traces');
+  assert.equal(found.has('traces'), false);
+  found.add('traces');
+  assert.notEqual(D.cueNear(player, found)?.id, 'traces',
+    'a completed discovery must not be offered as a new lead');
+});
