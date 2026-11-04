@@ -66,3 +66,22 @@ test('an inspectable discovery outranks a distant sensory lead without auto-reve
   assert.notEqual(D.cueNear(player, found)?.id, 'traces',
     'a completed discovery must not be offered as a new lead');
 });
+
+test('a returned haul becomes a forged tool for the next expedition, not a free drop', () => {
+  const run = R.create();
+  // Gathering in a cleared forest remains provisional until a living return.
+  for (let i = 0; i < R.COST; i++) assert.equal(R.claimMaterial(run), true);
+  assert.equal(R.forge(run), false, 'no crafting before returning to camp');
+  assert.equal(R.clearWave(run), true);
+  assert.equal(R.returnAlive(run, 1), true);
+  assert.equal(run.banked, R.COST);
+  assert.equal(R.forge(run), true);
+  assert.equal(run.crafted, true);
+  assert.equal(run.banked, 0, 'crafting spends the secured materials');
+  assert.equal(R.depart(run), true);
+  assert.equal(run.crafted, true, 'the crafted tool changes the next expedition');
+  assert.equal(R.claimMaterial(run), true);
+  assert.equal(R.loseExpedition(run), true);
+  assert.equal(run.crafted, true, 'defeat loses provisional loot, not crafted gear');
+  assert.equal(run.unbanked, 0);
+});
