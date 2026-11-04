@@ -11,10 +11,10 @@ test('saved camp reload restores the actual RPG entry after stage initialization
   const calls = [];
   const window = {};
   new Function('window', 'applyCombatInputMode', 'initStage', 'updateRpgStatus',
-    'showRpgPanel', 'requestAnimationFrame', html.slice(onloadStart, onloadEnd + 5))(
+    'showRpgPanel', 'requestAnimationFrame', 'gameLoop', html.slice(onloadStart, onloadEnd + 5))(
     window, () => calls.push('input'), () => calls.push('stage'),
     () => calls.push('status'), () => calls.push('panel'),
-    () => calls.push('frame'));
+    () => calls.push('frame'), () => {});
   window.onload();
   assert.deepEqual(calls, ['input', 'stage', 'status', 'panel', 'frame'],
     'the saved phase must be restored before reopening the camp panel and scheduling frames');
