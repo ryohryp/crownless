@@ -1321,9 +1321,9 @@ test('victory return panel hints at remaining discoveries without spoiling them 
   const resultPanel=html.slice(html.indexOf('function showRpgPanel() {'),
     html.indexOf("document.getElementById('rpgOpenResults').addEventListener"));
   assert.match(resultPanel,/const unexploredCue=result\?forestReturnTeaser\(state\.forestFinds,rpg\.crafted\):'';/);
-  assert.match(resultPanel,/keepExploring\\.textContent=\\(unexploredCue\\?'🌲 気配を追って調べる':'🌲 森の探索を続ける'\\)\\+unsecuredRisk;/,
+  assert.match(resultPanel,/keepExploring\.textContent=\(unexploredCue\?'🌲 気配を追って調べる':'🌲 森の探索を続ける'\)\+unsecuredRisk;/,
     'the existing explore action should invite investigation without revealing the clue');
-  assert.match(resultPanel,/const unsecuredRisk=rpg\\.unbanked>0\\?/,
+  assert.match(resultPanel,/const unsecuredRisk=rpg\.unbanked>0\?/,
     'the optional investigation must disclose unsecured materials on its button');
   assert.match(resultPanel,/const safeTotal=rpg\.banked\+rpg\.unbanked;/);
   assert.match(resultPanel,/rpgRules\.COST-safeTotal/,
