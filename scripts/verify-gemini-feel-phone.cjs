@@ -640,7 +640,7 @@ async function main() {
         await context.close();
       }
     }
-    console.log('Gemini-feel fantasy baseline: 360px/390px, real hit + shop + companion toggle + isolated return/forge reload PASS');
+    console.log('Gemini-feel fantasy baseline: 360px/390px/430px, real hit + shop + companion toggle + isolated return/forge reload PASS');
   } finally {
     if (browser) await browser.close();
     server.kill();
