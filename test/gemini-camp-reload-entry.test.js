@@ -65,3 +65,19 @@ test('camp reload exposes the actual re-expedition button, not just its parent p
   assert.match(html, /getElementById\('rpgDepart'\)\.addEventListener\('click',\s*\(\)\s*=>\s*\{\s*if\s*\(!rpgRules\.depart\(rpg\)\)\s*return;/,
     'visible button remains wired to the actual depart rule');
 });
+
+test('forest clue follow-up names the unsecured material risk on the actual choice (#1064)', () => {
+  const html = fs.readFileSync('gemini-feel-lab.html', 'utf8');
+  const start = html.indexOf('    const unsecuredRisk=');
+  const end = html.indexOf('\n', html.indexOf('    keepExploring.textContent=', start));
+  assert.ok(start > 0 && end > start, 'live exploration choice risk label exists');
+  const label = (unbanked, clue) => {
+    const keepExploring = {textContent: ''};
+    new Function('rpg', 'unexploredCue', 'keepExploring', html.slice(start, end))(
+      {unbanked}, clue, keepExploring);
+    return keepExploring.textContent;
+  };
+  assert.match(label(3, 'hint'), /気配を追って調べる.*未帰還の牙3個・敗北で喪失/);
+  assert.match(label(2, ''), /森の探索を続ける.*未帰還の牙2個・敗北で喪失/);
+  assert.doesNotMatch(label(0, 'hint'), /敗北で喪失/, 'no loot means no false loss warning');
+});
