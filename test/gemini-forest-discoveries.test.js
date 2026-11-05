@@ -1337,7 +1337,7 @@ test('camp remembers both earned fork leads in either inspection order without p
   const helper=html.match(/function forestRevisitAction\(found\) \{[\s\S]*?\n  \}/);
   assert.ok(helper,'the camp action must derive from current expedition findings');
   const revisit=require('node:vm').runInNewContext('('+helper[0]+')');
-  const ordinary='🗺 もう一度、森へ遠征';
+  const ordinary='🌲 発見した場所を再訪しに遠征';
   assert.equal(revisit(new Set()),ordinary,'unread tracks cannot create an earned clue');
   assert.equal(revisit(new Set(['hollow'])),ordinary,'unread tracks cannot advertise a fork');
   const fork=revisit(new Set(['traces']));
