@@ -3371,7 +3371,7 @@
            ? '鍛冶師が仕立てた風裂きの剣を装備。'+temperProspect+'次の遠征では攻撃が強まる。'+(state.forestFinds.has('shrine') && state.forestFinds.has('hollow') ? '発見済みの場所で鍛冶用の素材を探そう。持ち帰れるのは生還した分だけ。' : '森で気になった場所をもう一度確かめよう。')
            : rpg.banked>=rpgRules.COST
              ? '倉庫の牙'+rpg.banked+'個で風裂きの剣を製作できる。'
-             : '鍛冶剣まで牙あと'+(rpgRules.COST-rpg.banked)+'個。次の遠征で素材を持ち帰ろう。');
+             : '鍛冶剣まで牙あと'+(rpgRules.COST-rpg.banked)+'個。'+(state.forestFinds.has('shrine') && state.forestFinds.has('hollow') ? '発見済みの場所を再訪し、素材を集めて生還しよう。' : '次の遠征で素材を持ち帰ろう。'));
   }
 
   document.getElementById('rpgOpenResults').addEventListener('click',showRpgPanel);
