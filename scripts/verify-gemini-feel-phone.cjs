@@ -23,6 +23,12 @@ async function touchSavedCampDeparture(page) {
     path:path.resolve(__dirname,'../.qa/browser/restored-camp-'+width+'.png'),
   });
   const box=await depart.boundingBox();
+  const campViewport=await page.evaluate(() => ({
+    scrollWidth:document.documentElement.scrollWidth,
+    viewportWidth:window.innerWidth,
+  }));
+  assert(campViewport.scrollWidth<=campViewport.viewportWidth+1,
+    'restored camp must not cause horizontal phone overflow: '+JSON.stringify(campViewport));
   assert(box && box.width>=44 && box.height>=44 && box.x>=0 && box.y>=0 &&
     box.x+box.width<=page.viewportSize().width &&
     box.y+box.height<=page.viewportSize().height,
