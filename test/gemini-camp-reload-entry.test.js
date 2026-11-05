@@ -119,3 +119,35 @@ test('camp re-expedition click starts a fresh battle without replaying a bank ac
   assert.equal(state.kabukiBurstTimer, 0);
   assert.equal(rpg.banked, 3, 'departing does not spend safely banked materials');
 });
+
+test('re-expedition rejects a blocked departure without resetting battle or stored loot (#1064)', () => {
+  const html = fs.readFileSync('gemini-feel-lab.html', 'utf8');
+  const start = html.indexOf("  document.getElementById('rpgDepart').addEventListener('click', () => {");
+  const end = html.indexOf("\n  });", start);
+  assert.ok(start >= 0 && end > start, 'real departure handler exists');
+  let click;
+  const document = {getElementById: id => {
+    assert.equal(id, 'rpgDepart');
+    return {addEventListener: (type, handler) => {
+      assert.equal(type, 'click');
+      click = handler;
+    }};
+  }};
+  const rpg = {phase: 'return', banked: 5, unbanked: 2};
+  const state = {waveCount: 7, tokenManager: {existing: true}, kabukiBurstTimer: 9};
+  const before = JSON.stringify({rpg, state});
+  const rpgRules = {depart: run => {
+    assert.equal(run, rpg);
+    return false;
+  }};
+  new Function('document', 'rpgRules', 'rpg', 'state', 'BattleTokenManager',
+    'initStage', 'updateRpgStatus', 'showRpgPanel',
+    html.slice(start, end + 5))(
+    document, rpgRules, rpg, state, class BattleTokenManager {},
+    () => assert.fail('blocked departure must not reset the stage'),
+    () => assert.fail('blocked departure must not refresh the status'),
+    () => assert.fail('blocked departure must not alter the panel'));
+  click();
+  assert.equal(JSON.stringify({rpg, state}), before,
+    'failed departure preserves unbanked and banked materials and battle state');
+});
