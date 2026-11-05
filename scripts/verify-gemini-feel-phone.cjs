@@ -62,7 +62,7 @@ async function main() {
     browser = await chromium.launch({ headless: true });
     await fs.mkdir(path.resolve(__dirname, '../.qa/browser'), { recursive: true });
 
-    for (const width of [360, 390]) {
+    for (const width of [360, 390, 430]) {
       const context = await browser.newContext({
         viewport: { width, height: width === 360 ? 800 : 844 },
         isMobile: true, hasTouch: true, deviceScaleFactor: 1,
