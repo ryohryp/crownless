@@ -81,3 +81,41 @@ test('forest clue follow-up names the unsecured material risk on the actual choi
   assert.match(label(2, ''), /森の探索を続ける.*未帰還の牙2個・敗北で喪失/);
   assert.doesNotMatch(label(0, 'hint'), /敗北で喪失/, 'no loot means no false loss warning');
 });
+
+test('camp re-expedition click starts a fresh battle without replaying a bank action (#1064)', () => {
+  const html = fs.readFileSync('gemini-feel-lab.html', 'utf8');
+  const start = html.indexOf("  document.getElementById('rpgDepart').addEventListener('click', () => {");
+  const end = html.indexOf("\n  });", start);
+  assert.ok(start >= 0 && end > start, 'real re-expedition click handler exists');
+  let departClick;
+  const document = {getElementById: id => {
+    assert.equal(id, 'rpgDepart');
+    return {addEventListener: (event, handler) => {
+      assert.equal(event, 'click');
+      departClick = handler;
+    }};
+  }};
+  const calls = [];
+  const state = {waveCount: 7, tokenManager: null, kabukiBurstTimer: 10};
+  const rpg = {phase: 'camp', banked: 3, unbanked: 0};
+  const rpgRules = {depart: run => {
+    assert.equal(run, rpg);
+    calls.push('depart');
+    return true;
+  }};
+  class BattleTokenManager {
+    constructor(count) { this.count = count; }
+  }
+  new Function('document', 'rpgRules', 'rpg', 'state', 'BattleTokenManager',
+    'initStage', 'updateRpgStatus', 'showRpgPanel',
+    html.slice(start, end + 5))(
+    document, rpgRules, rpg, state, BattleTokenManager,
+    () => calls.push('stage'), () => calls.push('status'), () => calls.push('panel'));
+  assert.equal(typeof departClick, 'function');
+  departClick();
+  assert.deepEqual(calls, ['depart', 'stage', 'status', 'panel']);
+  assert.equal(state.waveCount, 1, 'next expedition starts at the first wave');
+  assert.equal(state.tokenManager.count, 2);
+  assert.equal(state.kabukiBurstTimer, 0);
+  assert.equal(rpg.banked, 3, 'departing does not spend safely banked materials');
+});
