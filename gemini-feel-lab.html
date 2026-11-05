@@ -3290,7 +3290,10 @@
     const unexploredCue=result?forestReturnTeaser(state.forestFinds,rpg.crafted):'';
     const keepExploring=document.getElementById('rpgKeepExploring');
     keepExploring.classList.toggle('hidden', !result);
-    keepExploring.textContent=unexploredCue?'🌲 気配を追って調べる':'🌲 森の探索を続ける';
+    // The nearby clue is optional, but continuing risks everything not yet banked.
+    // Keep that stake on the actual decision button rather than only in a status badge.
+    const unsecuredRisk=rpg.unbanked>0?'（未帰還の牙'+rpg.unbanked+'個・敗北で喪失）':'';
+    keepExploring.textContent=(unexploredCue?'🌲 気配を追って調べる':'🌲 森の探索を続ける')+unsecuredRisk;
     const returnButton=document.getElementById('rpgReturn');
     returnButton.classList.toggle('hidden', !result);
     // Make the actual safe-return payoff visible on the thumb-reachable action.
