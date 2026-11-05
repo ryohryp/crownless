@@ -79,7 +79,7 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: crownless-camp-reload-phone
-          path: .qa/browser/**/restored-camp-*.png
+          path: .qa/browser/restored-camp-*.png
           if-no-files-found: warn
           retention-days: 1
       - name: Upload failed or manually requested QA screenshots
