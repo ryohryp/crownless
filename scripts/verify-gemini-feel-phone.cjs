@@ -17,6 +17,11 @@ async function touchSavedCampDeparture(page) {
   assert.equal(await depart.isVisible(),true,
     'a saved camp must offer a real re-expedition action');
   await depart.scrollIntoViewIfNeeded();
+  // Preserve a visual proof of the restored camp before the real departure tap.
+  const width=page.viewportSize().width;
+  await page.screenshot({
+    path:path.resolve(__dirname,'../.qa/browser/restored-camp-'+width+'.png'),
+  });
   const box=await depart.boundingBox();
   assert(box && box.width>=44 && box.height>=44 && box.x>=0 && box.y>=0 &&
     box.x+box.width<=page.viewportSize().width &&
