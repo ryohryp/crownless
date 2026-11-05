@@ -3278,7 +3278,8 @@
       return '🌲 二手の踏み跡を確かめに再遠征';
     if (!found.has('shrine')) return '🍃 苔の湿りを確かめに再遠征';
     if (!found.has('hollow')) return '🌿 茨の軋みを確かめに再遠征';
-    return '🗺 もう一度、森へ遠征';
+    // Both landmarks were deliberately found: offer a revisit, not a fake new clue.
+    return '🌲 発見した場所を再訪しに遠征';
   }
 
   function showRpgPanel() {
