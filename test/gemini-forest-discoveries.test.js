@@ -1355,7 +1355,7 @@ test('camp remembers both earned fork leads in either inspection order without p
     'inspecting the thorn side first preserves the unvisited moss side');
   assert.doesNotMatch(gateFirst,/祠|石門|隠し道|開通|切り開ける|右|左/,
     'the still-unvisited shrine and secret routes remain concealed');
-  assert.equal(revisit(new Set(['traces','shrine','hollow'])),'🌲 発見した場所を再訪しに遠征',
+  assert.equal(revisit(new Set(['traces','shrine','hollow'])),'🌲 発見した場所で素材を探しに再遠征',
     'when both branches have been inspected, offer a revisit without inventing a new clue');
   assert.match(html,/depart\.textContent=forestRevisitAction\(state\.forestFinds\)/,
     'the actual camp button must use the earned clue, not the forged-gear state');
