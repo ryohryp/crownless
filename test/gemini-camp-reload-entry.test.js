@@ -151,3 +151,40 @@ test('re-expedition rejects a blocked departure without resetting battle or stor
   assert.equal(JSON.stringify({rpg, state}), before,
     'failed departure preserves unbanked and banked materials and battle state');
 });
+
+
+test('rapid double-tap on re-expedition cannot reset the next battle twice (#1064)', () => {
+  const html = fs.readFileSync('gemini-feel-lab.html', 'utf8');
+  const start = html.indexOf("  document.getElementById('rpgDepart').addEventListener('click', () => {");
+  const end = html.indexOf("\\n  });", start);
+  assert.ok(start >= 0 && end > start, 'live departure handler exists');
+  let click;
+  const document = {getElementById: id => {
+    assert.equal(id, 'rpgDepart');
+    return {addEventListener: (type, handler) => {
+      assert.equal(type, 'click');
+      click = handler;
+    }};
+  }};
+  const rpg = {phase: 'camp', banked: 4, unbanked: 0};
+  const state = {waveCount: 8, tokenManager: null, kabukiBurstTimer: 5};
+  let stages = 0;
+  const rpgRules = {depart: run => {
+    if (run.phase !== 'camp') return false;
+    run.phase = 'fight';
+    return true;
+  }};
+  class BattleTokenManager { constructor(count) { this.count = count; } }
+  new Function('document', 'rpgRules', 'rpg', 'state', 'BattleTokenManager',
+    'initStage', 'updateRpgStatus', 'showRpgPanel', html.slice(start, end + 5))(
+    document, rpgRules, rpg, state, BattleTokenManager,
+    () => { stages++; }, () => {}, () => {});
+  assert.equal(typeof click, 'function');
+  click();
+  const tokenManager = state.tokenManager;
+  click();
+  assert.equal(stages, 1, 'a second tap must not initialize another battle');
+  assert.equal(state.tokenManager, tokenManager, 'battle tokens remain from first departure');
+  assert.equal(rpg.phase, 'fight');
+  assert.equal(rpg.banked, 4, 'double-tap cannot consume stored materials');
+});
