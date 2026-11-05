@@ -156,7 +156,7 @@ test('re-expedition rejects a blocked departure without resetting battle or stor
 test('rapid double-tap on re-expedition cannot reset the next battle twice (#1064)', () => {
   const html = fs.readFileSync('gemini-feel-lab.html', 'utf8');
   const start = html.indexOf("  document.getElementById('rpgDepart').addEventListener('click', () => {");
-  const end = html.indexOf("\\n  });", start);
+  const end = html.indexOf("\n  });", start);
   assert.ok(start >= 0 && end > start, 'live departure handler exists');
   let click;
   const document = {getElementById: id => {
