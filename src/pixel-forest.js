@@ -149,6 +149,29 @@
       ctx.drawImage(floor,0,190);
       if(!bridge) bridge=stoneBridge(heightAt);
       ctx.drawImage(bridge,430,185,300,168);
+      // Distant ruined watchtower: a pixel-cluster landmark rather than a
+      // navigable object. Keep it behind the existing trees and route; no
+      // collision, hidden-route, or discovery state is inferred from this art.
+      ctx.save();
+      const rx=920, ry=105, cell=6;
+      const stone=['#535b4c','#666b56','#81816a','#a29b7b'];
+      const blocks=[
+        [0,5,8,15],[1,3,2,2],[5,2,2,3],[8,6,3,14],
+        [2,1,1,2],[6,0,1,2],[9,4,1,2],[3,8,4,8]
+      ];
+      for(const [bx,by,bw,bh] of blocks) {
+        ctx.fillStyle=stone[(bx+by)%stone.length];
+        ctx.fillRect(rx+bx*cell,ry+by*cell,bw*cell,bh*cell);
+      }
+      // Broken crenellations, a dark window and ivy keep the silhouette
+      // legible at phone scale without smooth strokes or glow effects.
+      ctx.fillStyle='#252f2a';
+      ctx.fillRect(rx+4*cell,ry+8*cell,2*cell,4*cell);
+      ctx.fillStyle='#465c3c';
+      for(const [x,y] of [[1,11],[2,12],[7,7],[8,9],[9,13]]) {
+        ctx.fillRect(rx+x*cell,ry+y*cell,cell,2*cell);
+      }
+      ctx.restore();
       for(const [name,x,z,h] of [
         ['oak',55,224,235],['pine',350,207,205],['oak',510,203,185],
         ['pine',760,208,225],['wall',140,208,53],['wall',805,208,46]
