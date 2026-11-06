@@ -28,3 +28,17 @@ body[data-combat-experiment] header button { min-height:32px; border-radius:4px;
 .forest-atmosphere-toggle[aria-pressed=false] { color:#dadac9; border-color:#687361; background:rgba(29,38,31,.9); }
 .forest-atmosphere-toggle[hidden] { display:none!important; }
 .forest-atmosphere-toggle:focus-visible { outline:3px solid #f5d898; outline-offset:2px; }
+
+/* Classic 16-bit exploration UI: crisp, square-edged forest overlays.
+ * Presentation-only: does not alter hit areas, movement, fog or save state. */
+body[data-combat-experiment] #forestExploreHint,
+body[data-combat-experiment] #rpgStatusBadge,
+body[data-combat-experiment] #weatherBadge {
+  border-radius: 0;
+  box-shadow: 2px 2px 0 rgba(13, 20, 14, .85);
+  text-shadow: 1px 1px 0 #10180f;
+}
+body[data-combat-experiment] .forest-atmosphere-toggle {
+  border-radius: 0;
+  box-shadow: 3px 3px 0 #111b13;
+}
