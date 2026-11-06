@@ -188,3 +188,21 @@ test('rapid double-tap on re-expedition cannot reset the next battle twice (#106
   assert.equal(rpg.phase, 'fight');
   assert.equal(rpg.banked, 4, 'double-tap cannot consume stored materials');
 });
+
+test('camp reload startup exposes departure without changing the saved material counts (#1064)', () => {
+  const html = fs.readFileSync('gemini-feel-lab.html', 'utf8');
+  const start = html.indexOf('  window.onload = () => {');
+  const end = html.indexOf('\n  };', start);
+  assert.ok(start >= 0 && end > start);
+  const saved = {phase: 'camp', banked: 5, unbanked: 0};
+  const before = JSON.stringify(saved);
+  let panelShown = false;
+  const window = {};
+  new Function('window', 'applyCombatInputMode', 'initStage', 'updateRpgStatus',
+    'showRpgPanel', 'requestAnimationFrame', 'gameLoop', html.slice(start, end + 5))(
+    window, () => {}, () => {}, () => {}, () => { panelShown = true; },
+    () => {}, () => {});
+  window.onload();
+  assert.equal(panelShown, true, 'reload opens the camp entry');
+  assert.equal(JSON.stringify(saved), before, 'startup does not bank or spend materials');
+});
