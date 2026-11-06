@@ -122,9 +122,14 @@
           b.fillStyle=['#8b8b75','#93907b','#84866f','#8e8c76'][Math.floor(rand()*4)];b.fill();
           // Reuse the ruin atlas's weathered stone grain, clipped into each
           // slab. The bridge shares the shrine's material without another PNG.
-          b.save();b.clip();b.globalAlpha=.32;
-          b.drawImage(atlas,985,818,34,25,from,z-Math.max(h1,h2),end-from,7+Math.abs(h1-h2));
-          b.restore();
+          // The bridge is baked before image assets may finish loading.
+          // An unloaded atlas throws on drawImage and would abort the forest
+          // render, so keep the stone silhouette usable on first paint.
+          if (ready(atlas)) {
+            b.save();b.clip();b.globalAlpha=.32;
+            b.drawImage(atlas,985,818,34,25,from,z-Math.max(h1,h2),end-from,7+Math.abs(h1-h2));
+            b.restore();
+          }
           // Occasional worn edges, rather than a bright bevel on every slab.
           if(rand()>.65) {
             b.strokeStyle='rgba(187,180,151,.3)';b.lineWidth=.5;
