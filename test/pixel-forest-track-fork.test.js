@@ -12,7 +12,7 @@ function trackMarks(found) {
   };
   const context = {
     window,
-    Image: class { constructor() { this.complete = false; this.naturalWidth = 0; } },
+    Image: class { constructor() { this.complete = false; this.naturalWidth = 0; } addEventListener() {} },
     document: { createElement() { return { getContext() { return ground; } }; } }
   };
   vm.runInNewContext(fs.readFileSync('src/pixel-forest.js', 'utf8'), context);
