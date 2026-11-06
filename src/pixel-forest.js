@@ -86,6 +86,9 @@
       if(wave%3===2) {ctx.fillStyle='rgba(25,31,43,.18)';ctx.fillRect(0,0,width,210);}
     }
     let bridge;
+    // The bridge may be baked before its stone atlas finishes loading.
+    // Rebuild once the atlas is ready so its texture appears without reload.
+    atlas.addEventListener('load', () => { bridge = undefined; }, {once: true});
     function stoneBridge(heightAt) {
       // One reusable surface, baked once. Smaller flush stones follow the
       // actual walkable curve; they are not stacked, bevelled cubes.
