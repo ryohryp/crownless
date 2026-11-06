@@ -50,11 +50,20 @@
       g.fillRect(x+2,y+2,2,3);
       g.fillRect(x+6,y+1,2,2);
     }
-    // Broad soft canopy shadows, kept behind actors for readable silhouettes.
-    for(const [x,y,r] of [[110,50,110],[390,110,85],[735,70,100],[990,180,75]]) {
-      const shadow=g.createRadialGradient(x,y,0,x,y,r);
-      shadow.addColorStop(0,'rgba(25,38,24,.32)');shadow.addColorStop(1,'rgba(25,38,24,0)');
-      g.fillStyle=shadow;g.fillRect(x-r,y-r,r*2,r*2);
+    // Clustered canopy shade: crisp 4px cells instead of blurred radial
+    // gradients. This is baked once, behind actors, and never affects collision.
+    // A deterministic checker threshold softens edges without smooth pixels.
+    for(const [cx,cy,r] of [[110,50,110],[390,110,85],[735,70,100],[990,180,75]]) {
+      const cell=4;
+      for(let y=Math.max(0,Math.floor((cy-r)/cell)*cell);y<Math.min(240,cy+r);y+=cell) {
+        for(let x=Math.max(0,Math.floor((cx-r)/cell)*cell);x<Math.min(1050,cx+r);x+=cell) {
+          const distance=Math.hypot((x+2-cx)/r,(y+2-cy)/r);
+          const stipple=((x/cell*17+y/cell*31)%11+11)%11/11;
+          if(distance>.94 || distance>.68 && stipple<.55) continue;
+          g.fillStyle=distance<.48?'rgba(25,38,24,.27)':'rgba(25,38,24,.15)';
+          g.fillRect(x,y,cell,cell);
+        }
+      }
     }
     function sprite(ctx, name, x, z, height, alpha = 1) {
       if (!ready(atlas)) return false;
