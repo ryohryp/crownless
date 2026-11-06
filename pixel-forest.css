@@ -42,3 +42,13 @@ body[data-combat-experiment] .forest-atmosphere-toggle {
   border-radius: 0;
   box-shadow: 3px 3px 0 #111b13;
 }
+
+/* Low-resolution dithered forest-panel texture: CSS pixels, not a new asset.
+ * Keep the clue text readable and the playfield/touch area unobstructed. */
+body[data-combat-experiment] #forestExploreHint {
+  background-color: rgba(27, 39, 29, .94);
+  background-image: repeating-linear-gradient(0deg, transparent 0 6px, rgba(145, 160, 113, .11) 6px 8px),
+    repeating-linear-gradient(90deg, transparent 0 6px, rgba(145, 160, 113, .08) 6px 8px);
+  border: 2px solid #9cac78;
+  box-shadow: inset 0 0 0 2px #263b2a, 3px 3px 0 #0d140e;
+}
