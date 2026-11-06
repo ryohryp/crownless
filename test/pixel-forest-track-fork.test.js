@@ -145,6 +145,11 @@ test('bridge is safe before atlas load and rebakes its stone grain after load', 
   assert(firstBridge, 'first bridge fallback is baked');
   assert.equal(drawCalls.some(args => args[0] === images[1]), false,
     'unloaded atlas is never passed to drawImage');
+  // Repeated frames before image load must reuse the fallback instead of
+  // allocating a new bridge surface on every animation frame.
+  scene.ground(screen, heightAt);
+  assert.equal(canvases.filter(canvas => canvas.width === 600).length, 1,
+    'pending atlas load keeps the same fallback bridge cache');
   images[1].complete = true;
   images[1].naturalWidth = 1536;
   images[1].listeners.load();
