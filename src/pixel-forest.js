@@ -35,6 +35,21 @@
       g.fillStyle=colors[Math.floor(random()*colors.length)];
       g.fillRect(x,y,2+Math.floor(random()*4),1+Math.floor(random()*2));
     }
+    // Sparse, hand-clustered 16-bit grass and fallen leaves break up the flat
+    // field without marking routes or changing any walkability/hit geometry.
+    // Keep the authored road clear so genuine discoveries stay legible.
+    for(let i=0;i<180;i++) {
+      const x=8+Math.floor(random()*1034), y=8+Math.floor(random()*224);
+      const pathY=108+Math.sin(x/155)*44;
+      if(Math.abs(y-pathY)<51) continue;
+      const leaf=random()>.76;
+      g.fillStyle=leaf?'#a18a59':'#304c32';
+      g.fillRect(x,y,2,4);
+      g.fillRect(x+4,y-2,2,6);
+      g.fillStyle=leaf?'#c0a16a':'#81905b';
+      g.fillRect(x+2,y+2,2,3);
+      g.fillRect(x+6,y+1,2,2);
+    }
     // Broad soft canopy shadows, kept behind actors for readable silhouettes.
     for(const [x,y,r] of [[110,50,110],[390,110,85],[735,70,100],[990,180,75]]) {
       const shadow=g.createRadialGradient(x,y,0,x,y,r);
