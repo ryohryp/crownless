@@ -69,3 +69,13 @@ body[data-combat-experiment] #weatherBadge {
 body[data-combat-experiment] #gameCanvas {
   image-rendering: pixelated;
 }
+
+/* A faint pixel-grid horizon in the empty stage letterbox makes scene edges
+ * read as deliberate 16-bit framing, without overlaying the playable canvas.
+ * Keep the canvas, coordinates, buttons and discovery hit areas untouched. */
+body[data-combat-experiment] #stageViewport {
+  background-color: #17251c;
+  background-image: linear-gradient(90deg, #203024 1px, transparent 1px),
+    linear-gradient(#203024 1px, transparent 1px);
+  background-size: 8px 8px;
+}
