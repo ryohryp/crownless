@@ -62,3 +62,10 @@ body[data-combat-experiment] #weatherBadge {
   border: 2px solid #85936c;
   box-shadow: inset 0 0 0 2px #263629, 3px 3px 0 #10170f;
 }
+
+/* Render the existing forest canvas with crisp pixel edges instead of browser
+ * interpolation. This is a reversible presentation experiment, not new art.
+ * Do not resize the canvas or change its pointer coordinates. */
+body[data-combat-experiment] #gameCanvas {
+  image-rendering: pixelated;
+}
