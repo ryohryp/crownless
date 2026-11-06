@@ -10,6 +10,35 @@ const root = path.resolve(__dirname, '..');
 const output = path.join(root, '.qa/browser');
 const read = page => page.evaluate(() => window.CrownlessForestReadout());
 
+// Verify the actual saved-camp phone entry, then start the next expedition by touch.
+async function departSavedCamp(page) {
+  const restored=await read(page);
+  assert.equal(restored.phase,'camp','a safe return must resume at camp after reload');
+  assert.equal(restored.unbanked,0,'reloading cannot duplicate provisional loot');
+  assert.equal(await page.locator('#rpgPanel').isVisible(),true,
+    'saved camp must reopen the smith and departure sheet');
+  const depart=page.locator('#rpgDepart');
+  assert.equal(await depart.isVisible(),true,'saved camp must expose re-expedition');
+  await depart.scrollIntoViewIfNeeded();
+  const box=await depart.boundingBox();
+  assert(box && box.width>=44 && box.height>=44 && box.x>=0 && box.y>=0 &&
+    box.x+box.width<=page.viewportSize().width &&
+    box.y+box.height<=page.viewportSize().height,
+    'saved-camp departure must be reachable within the phone viewport');
+  await page.touchscreen.tap(box.x+box.width/2,box.y+box.height/2);
+  const next=await read(page);
+  assert.equal(next.phase,'fight','touching departure must start a new fight');
+  assert(next.enemies.some(enemy=>enemy.hp>0 && enemy.state!=='DEAD'),
+    're-expedition must spawn a living enemy, not just switch the phase');
+  assert.equal(next.banked,restored.banked,
+    're-expedition must preserve the materials already brought home');
+  assert.equal(next.unbanked,0,
+    'a new expedition cannot inherit unsecured loot from the last one');
+  assert.equal(await page.locator('#rpgPanel').isVisible(),false,
+    'the camp sheet must close for real exploration');
+}
+
+
 function listen(server) {
   return new Promise((resolve, reject) => {
     let out = '';
@@ -179,6 +208,13 @@ async function retreatAfterCounter(page,touch) {
 // an actual jump at the strike moment, and a landed +8 counter. Never write
 // actor positions, combat flags or HP from the test.
 async function jumpCounterGuardian(page) {
+  // The ally can accidentally defeat the guardian before the player attempts
+  // the real jump/counter. Use the existing 2P toggle, not injected combat state,
+  // so this comparison measures the player's actual touch input.
+  const allyToggle=page.locator('#btnToggleAI');
+  assert.match(await allyToggle.innerText(),/同行AI/);
+  await allyToggle.click();
+  assert.match(await allyToggle.innerText(),/2P手動/);
   const held=new Set();
   const started=Date.now();
   let stage='first-hit',jumpSeen=false,dodgeSeen=false,phoneCueSeen=false,attackLockedCueSeen=false,airCounterCueSeen=false;
@@ -260,7 +296,8 @@ async function jumpCounterGuardian(page) {
         tell:Math.round(Math.max(0,enemy.guardianTellUntil-s.nowSec)*100)/100,
         counter:Math.round(Math.max(0,enemy.guardianCounterUntil-s.nowSec)*100)/100,
         claimed:enemy.guardianCounterClaimed});
-      if(stage==='tell' && enemy.guardianTellUntil-s.nowSec<0.5 &&
+      if((stage==='tell' || stage==='jump' && !jumpSeen) &&
+          enemy.guardianTellUntil-s.nowSec<0.5 &&
           enemy.guardianTellUntil-s.nowSec>0.1 &&
           ['IDLE','WALK','RUN'].includes(s.player.state)) {
         // Capture the exact visible control when the real swipe is issued;
@@ -285,7 +322,10 @@ async function jumpCounterGuardian(page) {
     throw new Error('jump→evade→landed counter not reached: '+
       JSON.stringify({stage,jumpSeen,dodgeSeen,trace,state:await read(page)}));
   } finally {
-    try { await keys(page,held,[]); } finally { await touch.detach(); }
+    try { await keys(page,held,[]); } finally {
+      await touch.detach();
+      await allyToggle.click();
+    }
   }
 }
 
@@ -331,6 +371,44 @@ async function clearWave(page,{attackOnlyGuardian=false,preferScoutedOpening=fal
   let previousHp=before.player.hp;
   const damageEvents=[];
   const scoutTrace = [];
+  // The +12 cue can last only a single animation frame before a fast
+  // tempered strike. Capture the actual DOM class transition independently
+  // of the slower 95ms input/telemetry polling loop.
+  await page.evaluate(() => {
+    window.__forestScoutCueObserver?.disconnect();
+    const observed={seen:false,valid:false,last:null};
+    window.__forestScoutCueObservation=observed;
+    const button=document.getElementById('btnPunch');
+    const hint=document.getElementById('gestureHint');
+    const area=document.getElementById('gestureActionArea');
+    const visible=(rect)=>rect && rect.width>0 && rect.height>0 &&
+      rect.left>=0 && rect.top>=0 &&
+      rect.right<=innerWidth+1 && rect.bottom<=innerHeight+1;
+    const reachable=(rect)=>visible(rect) && rect.width>=44 && rect.height>=44;
+    const sample=()=>{
+      const gestureMode=!area.classList.contains('hidden');
+      const cue=gestureMode?hint:button;
+      if(!cue.classList.contains('guardian-scout-cue')) return;
+      const state=window.CrownlessForestReadout();
+      const guardian=state.enemies.find(e=>e.name==='苔祠の番人');
+      const expected=gestureMode
+        ? /先手の好機！右側をタップで\+12/
+        : /先手の好機！右下の攻撃で\+12/;
+      const text=hint.textContent||'';
+      const valid=Boolean(guardian?.scoutOpeningActive && !guardian.scoutStrikeClaimed &&
+        expected.test(text) && visible(cue.getBoundingClientRect()) &&
+        reachable((gestureMode?area:button).getBoundingClientRect()));
+      observed.seen=true;
+      observed.valid ||= valid;
+      observed.last={valid,mode:gestureMode?'gesture':'buttons',text,
+        opening:guardian?.scoutOpeningActive,claimed:guardian?.scoutStrikeClaimed};
+    };
+    const observer=new MutationObserver(sample);
+    observer.observe(button,{attributes:true,attributeFilter:['class']});
+    observer.observe(hint,{attributes:true,attributeFilter:['class']});
+    window.__forestScoutCueObserver=observer;
+    sample();
+  });
   try {
     while (Date.now() - start < 75000) {
       // Read the real phone HUD in the same frame as the combat state.
@@ -387,10 +465,16 @@ async function clearWave(page,{attackOnlyGuardian=false,preferScoutedOpening=fal
           counterClaimed:Boolean(guardian?.guardianCounterClaimed)});
       }
       previousHp=s.player.hp;
-      if (s.phase === 'return') return { seconds: Math.round((Date.now()-start)/100)/10,
-        minimumHp, hpLost:before.player.hp-minimumHp, scoutedFirstHit, openingObserved,
-        scoutAttackCueSeen,gateFirstFeedbackSeen,attackOnlyGuardian, guardianTellSeen, guardianCounterClaimed,
-        damageEvents,scoutTrace, after:s };
+      if (s.phase === 'return') {
+        const observed=await page.evaluate(()=>window.__forestScoutCueObservation);
+        assert(!observed.seen || observed.valid,
+          'the transient +12 cue must be readable and touch-reachable: '+JSON.stringify(observed.last));
+        return { seconds: Math.round((Date.now()-start)/100)/10,
+          minimumHp, hpLost:before.player.hp-minimumHp, scoutedFirstHit, openingObserved,
+          scoutAttackCueSeen:scoutAttackCueSeen||observed.valid,
+          gateFirstFeedbackSeen,attackOnlyGuardian, guardianTellSeen, guardianCounterClaimed,
+          damageEvents,scoutTrace, after:s };
+      }
       assert(s.phase === 'fight' && s.player.hp > 0,
         'real-input combat ended in defeat: ' + JSON.stringify(s));
       assert(Array.isArray(s.enemies), 'read-only probe must expose enemy positions');
@@ -425,7 +509,13 @@ async function clearWave(page,{attackOnlyGuardian=false,preferScoutedOpening=fal
       await page.waitForTimeout(95);
     }
     throw new Error('real-input combat exceeded 75s: ' + JSON.stringify(await read(page)));
-  } finally { await keys(page,held,[]); }
+  } finally {
+    await keys(page,held,[]);
+    await page.evaluate(()=>{
+      window.__forestScoutCueObserver?.disconnect();
+      window.__forestScoutCueObserver=null;
+    });
+  }
 }
 
 async function tapSite(page, id) {
@@ -700,6 +790,11 @@ async function main() {
           await tapSite(page,'shrine');
           const sheet=page.locator('#forestShrineChoice');
           assert(await sheet.isVisible(),'an unscouted shrine must remain inspectable');
+          const unscoutedMissing=beforeDetour.player.maxHp-beforeDetour.player.hp;
+          if(unscoutedMissing>0) assert.match(
+            await page.locator('#forestShrineHeal').innerText(),
+            new RegExp('HP \\+'+Math.min(35,unscoutedMissing)),
+            'unscouted phone herbs retain their original 35 HP cap');
           const stakes=await page.locator('#forestShrineStakes').innerText();
           assert.match(stakes,/足元の筋は未調査。今は引き返して探す手もある。/,
             'the actual phone choice suggests a reversible investigation');
@@ -764,10 +859,125 @@ async function main() {
             /足元の筋は未調査/,'the old warning clears after actual investigation');
           assert.match(await page.locator('#forestShrineRisk').innerText(),
             /足跡を読んで負傷 -3/,'reading tracks changes the real risk');
+          const scoutedShrine=await read(page);
+          const scoutedMissing=scoutedShrine.player.maxHp-scoutedShrine.player.hp;
+          if(scoutedMissing>0){
+            const scoutedHeal=await page.locator('#forestShrineHeal').innerText();
+            assert.match(scoutedHeal,new RegExp('HP \\+'+Math.min(40,scoutedMissing)),
+              'the real 360px shrine choice previews earned recovery up to 40 HP');
+            if(scoutedMissing>35) assert.match(scoutedHeal,/足跡の手がかりで回復/,
+              'a real extra recovery must be explained on the touch choice');
+          }
           await page.locator('#forestShrineCancel').click();
           assert(!(await read(page)).found.includes('shrine'),
             'reopening and declining must still preserve the one-time choice');
           report.unscoutedShrineDetour={width,tracksInspected:true,shrineUnspent:true};
+        }
+        if(width===430) {
+          // Real phone movement: after a shrine-first detour, an early scent
+          // grows on approach without revealing or auto-inspecting the tracks.
+          await clearWave(page);
+          await walkTo(page,660,230);
+          await tapSite(page,'shrine');
+          assert.equal(await page.locator('#forestShrineMaterial').isEnabled(),true);
+          await page.locator('#forestShrineMaterial').click();
+          const shrineFirst=await read(page);
+          assert(shrineFirst.found.includes('shrine') && !shrineFirst.found.includes('traces'),
+            'the shrine must be earned before the distant tracks cue');
+          const scentPulseBefore=await page.evaluate(()=>
+            window.__forestHapticPatterns.filter(p=>Array.isArray(p) && p.join(',')==='16,70,16').length);
+          // The real walk toward the far scent can briefly cross the strong
+          // band and retreat before stopping. Snapshot both pulses before
+          // walking, not after the first HUD assertion.
+          const strongPulseBefore=await page.evaluate(()=>
+            window.__forestHapticPatterns.filter(p=>Array.isArray(p) && p.join(',')==='22,55,22').length);
+          await walkTo(page,745,335);
+          await page.waitForFunction(()=>
+            document.getElementById('forestExploreHint')?.textContent?.includes('湿った土の匂い'),
+            null,{timeout:5000});
+          const scent=await read(page);
+          const scentDistance=Math.hypot(scent.player.x-800,scent.player.z-365);
+          assert(scentDistance>54 && scentDistance<90,
+            'scent must precede the normal 54-unit touch range: '+scentDistance);
+          assert(!scent.found.includes('traces') && scent.unbanked===shrineFirst.unbanked,
+            'a distant scent cannot reveal the tracks or mint loot');
+          assert.equal(await page.evaluate(()=>
+            window.__forestHapticPatterns.filter(p=>Array.isArray(p) && p.join(',')==='16,70,16').length),
+            scentPulseBefore+1,'the earned distant scent gives one gentle phone pulse');
+          const scentHint=await page.locator('#forestExploreHint').innerText();
+          assert.match(scentHint,/湿った土の匂い.*足元/,
+            'the real phone HUD invites investigation without showing a direction');
+          assert.doesNotMatch(scentHint,/獣の痕跡|隠し道|右|左|座標/,
+            'the scent must not spoil the undiscovered site or hidden navigation');
+          await page.screenshot({path:path.join(output,'pixel-forest-shrine-first-scent-430.png')});
+          // Follow the earned scent with real movement, not injected coordinates.
+          // The closer 72-unit band must strengthen the clue while remaining
+          // outside the original 54-unit inspection radius.
+          // walkTo() stops 18 units short of its target, which can leave
+          // the hero outside this narrow 54–72-unit band. Approach in real
+          // input ticks and stop at the observed distance instead.
+          const heldScentKeys=new Set();
+          let enteredStrongBand=false;
+          let lastScentDistance=Infinity;
+          try {
+            const deadline=Date.now()+7000;
+            while(Date.now()<deadline) {
+              const position=await read(page);
+              lastScentDistance=Math.hypot(position.player.x-800,position.player.z-365);
+              if(lastScentDistance>54 && lastScentDistance<72) {
+                enteredStrongBand=true;
+                break;
+              }
+              assert(lastScentDistance>=54,
+                'real movement crossed the inspection boundary before the strong scent: '+lastScentDistance);
+              const dx=800-position.player.x,dz=365-position.player.z;
+              const wanted=[];
+              if(Math.abs(dx)>4) wanted.push(dx>0?'d':'a');
+              if(Math.abs(dz)>4) wanted.push(dz>0?'s':'w');
+              await keys(page,heldScentKeys,wanted);
+              await page.waitForTimeout(25);
+            }
+          } finally { await keys(page,heldScentKeys,[]); }
+          assert(enteredStrongBand,
+            'real movement did not enter the stronger scent band: '+lastScentDistance);
+          await page.waitForFunction(()=>
+            document.getElementById('forestExploreHint')?.textContent?.includes('湿った土の匂いが強まる'),
+            null,{timeout:5000});
+          const strongerScent=await read(page);
+          const strongerDistance=Math.hypot(strongerScent.player.x-800,strongerScent.player.z-365);
+          assert(strongerDistance>54 && strongerDistance<72,
+            'stronger scent must remain a clue, not an inspection: '+strongerDistance);
+          assert(!strongerScent.found.includes('traces') &&
+            strongerScent.unbanked===shrineFirst.unbanked,
+            'the closer scent cannot reveal a site or collect an extra fang');
+          assert.equal(await page.evaluate(()=>
+            window.__forestHapticPatterns.filter(p=>Array.isArray(p) && p.join(',')==='22,55,22').length),
+            strongPulseBefore+1,'approaching earns exactly one stronger phone pulse');
+          const strongerHint=await page.locator('#forestExploreHint').innerText();
+          assert.match(strongerHint,/湿った土の匂いが強まる.*足元/,
+            'the stronger scent remains a non-directional investigation hint');
+          assert.doesNotMatch(strongerHint,/獣の痕跡|隠し道|右|左|座標/,
+            'the stronger cue must not expose a hidden destination or route');
+          await page.waitForTimeout(200);
+          assert.equal(await page.evaluate(()=>
+            window.__forestHapticPatterns.filter(p=>Array.isArray(p) && p.join(',')==='22,55,22').length),
+            strongPulseBefore+1,'standing in the stronger band cannot spam haptics');
+          await page.screenshot({path:path.join(output,'pixel-forest-shrine-first-strong-scent-430.png')});
+          await walkTo(page,800,365);
+          await tapSite(page,'traces');
+          const investigated=await read(page);
+          assert(investigated.found.includes('traces') &&
+            investigated.unbanked===shrineFirst.unbanked+1,
+            'only deliberate close inspection earns one provisional fang');
+          await page.locator('#rpgOpenResults').click();
+          await page.locator('#rpgReturn').click();
+          const scentReturned=await read(page);
+          assert.equal(scentReturned.phase,'camp');
+          assert.equal(scentReturned.unbanked,0);
+          assert.equal(scentReturned.banked,shrineFirst.banked+investigated.unbanked,
+            'the real shrine-first cue cannot bypass living return or duplicate loot');
+          report.shrineFirstScent={distance:scentDistance,returnBanked:scentReturned.banked,
+            note:'430px real movement, touch, scent and safe return; not a human fun verdict.'};
         }
         if(width===390) {
           const first=await clearWave(page);
@@ -785,14 +995,20 @@ async function main() {
             'the first victory gives a concrete reason to bank materials');
           assert.match(returnDecision,new RegExp('敗北すると今回の牙'+first.after.unbanked+'個を失う'),
             'the alternative must name the actual unsecured loss');
-          assert.match(returnDecision,/湿った土にまだ読めない筋がある。/,
-            'victory must offer a sensory cue for an unexamined discovery');
+          assert.match(returnDecision,/森の奥に、まだ確かめていない気配がある。/,
+            'victory invites exploration without giving away an unearned scent');
+          assert.doesNotMatch(returnDecision,/湿った土|獣の痕跡/,
+            'real phone return panel must not spoil the track scent before inspection');
           assert.match(await page.locator('#rpgKeepExploring').innerText(),/気配を追って調べる/,
             'the existing continue button should invite investigation without naming the location');
           assert.match(await page.locator('#rpgPush').innerText(),
-            new RegExp('HP '+Math.ceil(first.after.player.hp)+'/'+first.after.player.maxHp+
+            new RegExp('HP '+Math.floor(first.after.player.hp)+'/'+first.after.player.maxHp+
               '・未帰還の牙 '+first.after.unbanked+'個'),
             'the real phone next-wave button must preview current HP and unsecured materials');
+          assert.match(await page.locator('#rpgPush').innerText(),/次の陣・敵3体に挑む/,
+            'the 390px real return button must preview the three-enemy next wave');
+          assert.match(await page.locator('#rpgPush').innerText(),/敗北で喪失/,
+            'the next-wave touch action must explicitly warn that the carried haul can be lost');
           const returnBounds=await page.locator('#rpgPanel > div').boundingBox();
           assert(returnBounds && returnBounds.y>=0 &&
             returnBounds.y+returnBounds.height<=page.viewportSize().height,
@@ -856,9 +1072,23 @@ async function main() {
             'inspecting an already-pulsed clue must not trigger another proximity pulse');
           assert.match(await returnButton.innerText(),new RegExp('牙'+afterTracks.unbanked+'）'),
             'the return choice updates even when the clue hint takes priority');
-          await page.waitForFunction(()=>document.getElementById('forestExploreHint')?.textContent?.includes('足跡は二手に分かれ、途切れた'));
-          assert.ok((await page.locator('#forestExploreHint').innerText()).includes('どちらを追う？（調査負傷 -3）'),
-            'discovering tracks should immediately reveal the safer next choice');
+          await page.waitForFunction(()=>document.getElementById('forestExploreHint')?.textContent?.includes('足跡が二手に分かれた'));
+          const forkHint=await page.locator('#forestExploreHint').innerText();
+          assert.match(forkHint,/足場を見切った。どちらを追う/,
+            'the earned tracks clue invites player observation without naming either branch or exact HP cost');
+          assert.doesNotMatch(forkHint,/負傷を3軽減|HP -\d/,
+            'the phone fork must reserve exact injury costs for the actual shrine choice');
+          if (afterTracks.unbanked>0) assert.match(forkHint,new RegExp('牙'+afterTracks.unbanked+'個未帰還'),
+            'the actual phone fork must keep the carried fang risk visible');
+          assert.doesNotMatch(forkHint,/祠|石門|右|左|隠し道/,
+            'the fork clue must not name undiscovered sites or reveal their routes');
+          const deepSearchCosts=await page.evaluate(()=>{
+            const rule=window.CrownlessForestDiscoveries.shrineRiskDamage;
+            return [rule(new Set(),false),rule(new Set(['traces']),false),
+              rule(new Set(),true),rule(new Set(['traces']),true)];
+          });
+          assert.deepEqual(deepSearchCosts,[12,9,6,3],
+            'the phone hint must match the actual three-point reduction with or without a sword');
           // Capture the actual phone canvas with the earned fork in view;
           // this is visual evidence, not a claim that the signs are readable.
           await page.screenshot({path:path.join(output,'pixel-forest-fork-390.png')});
@@ -898,10 +1128,16 @@ async function main() {
             'without a sword, inspecting the gate offers the reachable herbs instead of a dead end');
           assert.equal(await page.locator('#forestGateMaterial').isDisabled(),true,
             'unforged explorers cannot take the thorn-blocked two-fang reward');
+          assert.equal(await page.locator('#forestGateScout').isDisabled(),true,
+            'shrine-first observation cannot promise a retroactive guardian opening');
+          assert.equal(await page.locator('#forestGateScout').isVisible(),false,
+            'an obsolete scouting action must not crowd the shrine-first phone choice');
+          assert.match(await page.locator('#forestGateTitle').innerText(),/薬草か素材か、一度だけ/,
+            'the shrine-first heading must list only the available kinds of choice');
           const barehandChoice=page.locator('#forestGateCautious');
           assert.equal(await barehandChoice.isEnabled(),true,
-            'without a sword the player may risk six HP for one unsecured fang');
-          assert.match(await barehandChoice.innerText(),/素手で慎重に牙を拾う.*HP -6.*未帰還素材 \+1/,
+            'after visiting the shrine, the player may risk four HP for one unsecured fang');
+          assert.match(await barehandChoice.innerText(),/素手で慎重に牙を拾う.*HP -4.*未帰還素材 \+1.*祠で覚えた苔の筋で負傷 -2/,
             'the phone must preview the real barehand wound and reward');
           const barehandBounds=await barehandChoice.boundingBox();
           assert(barehandBounds && barehandBounds.width>=44 && barehandBounds.height>=44,
@@ -941,8 +1177,8 @@ async function main() {
           assert.equal(afterSwordlessHerbs.unbanked,beforeSwordlessHerbs.unbanked,
             'herbs must not bypass the sword requirement to award fangs');
           assert.equal(afterSwordlessHerbs.player.hp,
-            Math.min(beforeSwordlessHerbs.player.maxHp,beforeSwordlessHerbs.player.hp+45),
-            'real swordless herb touch must heal at most 45 HP');
+            Math.min(beforeSwordlessHerbs.player.maxHp,beforeSwordlessHerbs.player.hp+55),
+            'real shrine-first swordless herb touch must heal at most 55 HP');
           assert.equal(await unarmedGate.isVisible(),false,
             'the choice sheet closes after using the herbs');
           await tapSite(page,'hollow');
@@ -963,7 +1199,7 @@ async function main() {
           assert.equal(forged.crafted,true);
           assert.equal(forged.banked,returned.banked-3);
           const revisitLabel=await page.locator('#rpgDepart').innerText();
-          assert.match(revisitLabel,/もう一度、森へ遠征/,
+          assert.match(revisitLabel,/敵から鍛冶素材を集めに再遠征/,
             'after using the swordless gate herbs, camp must not promise an undiscovered destination');
           assert.doesNotMatch(revisitLabel,/足跡の先を確かめ|石門|隠し道|開通/,
             'the next-trip action must not treat an already inspected gate as an undiscovered secret');
@@ -1009,9 +1245,9 @@ async function main() {
           await tapSite(page,'hollow');
           const gateMaterial=page.locator('#forestGateMaterial');
           const gateCautious=page.locator('#forestGateCautious');
-          assert.equal(await gateCautious.isEnabled(),hollowBefore.player.hp>=4,
+          assert.equal(await gateCautious.isEnabled(),hollowBefore.player.hp>=2,
             'cautious salvage must be nonlethal and available before the costly route');
-          assert.match(await gateCautious.innerText(),/HP -3.*未帰還素材 \+1/,
+          assert.match(await gateCautious.innerText(),/HP -1.*未帰還素材 \+1.*祠で覚えた苔の筋で負傷 -2/,
             'the real phone panel must explain the one-fang safer alternative');
           assert.equal(await gateMaterial.isEnabled(),hollowBefore.player.hp>=9,
             'material salvage must require at least one surviving HP');
@@ -1041,8 +1277,9 @@ async function main() {
           // rule-unit success. Reload deliberately begins a fresh fight while
           // retaining banked materials and the forged sword. Earn an injury
           // through real input, then trade the gate's two fangs for its herbs.
-          assert.equal(restored.phase,'fight',
-            'reloading a saved camp starts a fresh expedition with no unsecured loot');
+          assert.equal(restored.phase,'camp',
+            'reloading a saved camp keeps the next expedition as an explicit choice');
+          await departSavedCamp(page);
           await clearWave(page);
           await walkTo(page,800,365);
           await tapSite(page,'traces');
@@ -1089,14 +1326,18 @@ async function main() {
             gateBounds.y+gateBounds.height<=page.viewportSize().height,
             'the healing-or-material choice remains touch-reachable on a 390px phone');
           await page.screenshot({path:path.join(output,'pixel-forest-gate-healing-choice-390.png')});
+          const expectedGateHerbs=Math.min(55,beforeGateHeal.player.maxHp-beforeGateHeal.player.hp);
+          assert.match(await page.locator('#forestGateHeal').innerText(),
+            new RegExp('HP \\+'+expectedGateHerbs),
+            'shrine-first gate herbs preview the actual HP recovery');
           await page.locator('#forestGateHeal').click();
           const afterGateHeal=await read(page);
           assert(afterGateHeal.found.includes('hollow'),'using the herbs consumes the gate for this expedition');
           assert.equal(afterGateHeal.unbanked,beforeGateHeal.unbanked,
             'healing never grants the alternative provisional material');
           assert(Math.abs(afterGateHeal.player.hp-
-            Math.min(beforeGateHeal.player.maxHp,beforeGateHeal.player.hp+45))<0.01,
-            'real touch heals up to 45 HP, never beyond max HP');
+            Math.min(beforeGateHeal.player.maxHp,beforeGateHeal.player.hp+55))<0.01,
+            'shrine-first moss knowledge heals up to 55 HP, never beyond max HP');
           await tapSite(page,'hollow');
           assert.equal((await read(page)).unbanked,beforeGateHeal.unbanked,
             'the used gate cannot be tapped again to claim its alternative reward');
@@ -1113,8 +1354,9 @@ async function main() {
           // Complete the newly added cautious route with genuine phone touches:
           // no state injection, no free banked material, and no duplicate pickup.
           const afterHealingReload=await read(page);
-          assert.equal(afterHealingReload.phase,'fight',
-            'the current save restarts combat without restoring unsecured loot');
+          assert.equal(afterHealingReload.phase,'camp',
+            'the saved healing return must offer a deliberate next expedition');
+          await departSavedCamp(page);
           await clearWave(page);
           await walkTo(page,800,365);
           await tapSite(page,'traces');
@@ -1192,8 +1434,9 @@ async function main() {
           // Prove the smith upgrade changes a *later* expedition, not only
           // a static rule preview. Reach the same gate with the saved sword,
           // deliberately choose the risky +2 route and bring the loot home.
-          assert.equal(cautiousRestored.phase,'fight',
-            'a tempered camp reload starts a new expedition with no unsecured loot');
+          assert.equal(cautiousRestored.phase,'camp',
+            'a tempered camp reload keeps the next departure player-controlled');
+          await departSavedCamp(page);
           await clearWave(page);
           await walkTo(page,800,365);
           await tapSite(page,'traces');
@@ -1210,6 +1453,13 @@ async function main() {
             'the phone explains why the tempered blade reduces risk');
           assert.doesNotMatch(temperedStakes,/慎重に牙 \+1（|強引に牙 \+2（/,
             'the compact stakes do not repeat costs already visible on the two touch buttons');
+          const temperedScout=page.locator('#forestGateScout');
+          assert.equal(await temperedScout.isVisible(),false,
+            'tempered cautious salvage grants the same scout opening plus a fang without injury; hide dominated no-loot choice');
+          assert.match(await page.locator('#forestGateTitle').innerText(),/薬草か素材か、一度だけ/,
+            'the 390px tempered choice heading must not advertise a hidden scout button');
+          assert.doesNotMatch(temperedStakes,/観察か慎重な回収|観察は牙を持ち帰れない/,
+            'the phone stakes must not advertise an unavailable dominated action');
           const temperedCautious=page.locator('#forestGateCautious');
           assert(await temperedCautious.isEnabled(),
             'tempered cautious salvage remains available at the real phone decision');
@@ -1261,8 +1511,9 @@ async function main() {
           // Revisit once more with the same saved tempered sword, this time
           // taking the *safe* one-fang choice by a real phone touch. This
           // distinguishes its outcome from the already-tested risky +2 route.
-          assert.equal(temperedRestored.phase,'fight',
+          assert.equal(temperedRestored.phase,'camp',
             'the previous living return can launch another genuine expedition');
+          await departSavedCamp(page);
           await clearWave(page);
           await walkTo(page,800,365);
           await tapSite(page,'traces');
@@ -1308,6 +1559,7 @@ async function main() {
           assert.equal(safeRestored.unbanked,0);
           assert.equal(await page.evaluate(()=>localStorage.getItem('crownless-expedition-v1-demo')),
             saveBefore,'the separate location-game save stays untouched');
+          await departSavedCamp(page);
           // A later expedition must also prove the tempered sword's *shrine*
           // payoff in the real 390px scene, not just the isolated damage rule.
           // Travel and fight normally; never inject HP, position, loot or saves.
@@ -1375,11 +1627,10 @@ async function main() {
             guardian:{hpAfter:temperedGuardian.after.player.hp,
               scoutedFirstHit:temperedGuardian.scoutedFirstHit},
             returned:temperedShrineReturn,restored:temperedShrineRestored};
-          // Real 390px gate-first comparison: deliberately inspect the thorn
-          // lead before choosing the optional shrine fight. The same tempered
-          // sword is used as in the shrine-first run above; no test-only
-          // teleport, reward injection, or save edits are permitted.
-          assert.equal(temperedShrineRestored.phase,'fight');
+          // Real 390px gate-first comparison with the same tempered sword:
+          // cautious salvage is now the meaningful no-wound choice. The
+          // no-loot observation is strictly worse and intentionally hidden.
+          await departSavedCamp(page);
           await clearWave(page);
           await walkTo(page,800,365);
           await tapSite(page,'traces');
@@ -1389,30 +1640,54 @@ async function main() {
             !gateFirstBefore.found.includes('shrine'),
             'both fork destinations remain unclaimed before the detour');
           await tapSite(page,'hollow');
+          const gateScoutButton=page.locator('#forestGateScout');
+          assert.equal(await gateScoutButton.isVisible(),false,
+            'tempered cautious salvage earns the same opening plus one fang without injury');
+          assert.match(await page.locator('#forestGateTitle').innerText(),/薬草か素材か、一度だけ/,
+            'the tempered heading must not advertise a dominated observation');
+          const gateCautiousButton=page.locator('#forestGateCautious');
+          assert.equal(await gateCautiousButton.isEnabled(),true);
+          assert.match(await gateCautiousButton.innerText(),/負傷なし.*未帰還素材 \+1.*先手猶予 \+0\.6秒/,
+            'tempered cautious salvage retains its no-wound fang and tactical payoff');
+          const gateFirstCautiousBounds=await gateCautiousButton.boundingBox();
+          assert(gateFirstCautiousBounds && gateFirstCautiousBounds.width>=44 && gateFirstCautiousBounds.height>=44 &&
+            gateFirstCautiousBounds.y>=0 && gateFirstCautiousBounds.y+gateFirstCautiousBounds.height<=page.viewportSize().height,
+            'the meaningful tempered choice stays thumb-sized on 390px');
           const gateFirstPreview=await page.locator('#forestGateStakes').innerText();
-          assert(gateFirstPreview.includes('先手の猶予 +0.6秒'),
-            '390px gate-first choice must disclose its earned later reaction advantage before the tap');
-          assert(gateFirstPreview.includes('強引な回収・薬草なら効果なし'),
-            '390px phone must distinguish cautious scouting from forceful loot and healing');
-          assert.doesNotMatch(gateFirstPreview,/苔祠|番人|右|左/,
-            'the preview must not spoil the unseen destination or its guardian');
-          const gateFirstCautious=page.locator('#forestGateCautious');
-          assert(await gateFirstCautious.isEnabled(),
-            'the tempered sword opens the nonlethal thorn investigation');
-          assert.match(await gateFirstCautious.innerText(),/負傷なし.*未帰還素材 \+1/,
-            'the player sees the cost and provisional reward before choosing');
-          await gateFirstCautious.click();
+          assert(gateFirstPreview.includes('慎重な回収なら先手の猶予 +0.6秒'),
+            'the phone describes the remaining tactical choice');
+          assert.doesNotMatch(gateFirstPreview,/観察か慎重な回収|観察は牙を持ち帰れない|苔祠|番人|右|左/,
+            'the preview must not advertise the dominated option or spoil the hidden destination');
+          await page.screenshot({path:path.join(output,'pixel-forest-gate-tempered-cautious-390.png')});
+          await page.touchscreen.tap(gateFirstCautiousBounds.x+gateFirstCautiousBounds.width/2,
+            gateFirstCautiousBounds.y+gateFirstCautiousBounds.height/2);
           const gateFirstAfter=await read(page);
           assert(gateFirstAfter.found.includes('hollow'),
-            'real phone touch, not a cue, discovers the thorn gate');
+            'a real tempered cautious tap must consume the gate');
           assert(gateFirstAfter.found.includes('hollow-scout'),
-            'only the actual thorn-salvage tap earns the guardian scouting advantage');
+            'tempered cautious salvage must earn the later guardian opening');
           assert.equal(gateFirstAfter.player.hp,gateFirstBefore.player.hp,
-            'the tempered cautious gate detour costs no HP');
+            'tempered cautious salvage must cost no HP');
           assert.equal(gateFirstAfter.unbanked,gateFirstBefore.unbanked+1,
-            'the gate gives one provisional fang, not free banked loot');
+            'tempered cautious salvage earns exactly one provisional fang');
+          assert.equal(gateFirstAfter.banked,gateFirstBefore.banked,
+            'cautious salvage must not bank material before a living return');
+          await page.waitForFunction(()=>document.getElementById('forestExploreHint')?.textContent?.includes('探索か帰還か'));
+          const gateFirstHint=await page.locator('#forestExploreHint').innerText();
+          assert.match(gateFirstHint,new RegExp('牙'+gateFirstAfter.unbanked+'個未帰還'),
+            'real 390px gate-first HUD must show the unsecured bag before the deeper search');
+          assert.doesNotMatch(gateFirstHint,/苔むす祠|石門|右|左|道順/,
+            'the risk/return cue must not reveal an uninspected destination or route');
+          await tapSite(page,'hollow');
+          assert.equal((await read(page)).unbanked,gateFirstAfter.unbanked,
+            'the consumed gate cannot be repeated to farm loot');
+          assert.equal(await page.locator('#forestGateChoice').isVisible(),false,
+            'cautious salvage spends the one-time gate decision');
           await walkTo(page,660,230);
           await tapSite(page,'shrine');
+          const gateFirstRiskPreview=await page.locator('#forestShrineRisk').innerText();
+          assert.match(gateFirstRiskPreview,/未帰還素材 \+2以上.*追加戦闘/,
+            '390px gate-first choice previews the earned third fang and mandatory guardian');
           const gateFirstStakes=await page.locator('#forestShrineStakes').innerText();
           assert.match(gateFirstStakes,/石門の茨の手がかりで先手の猶予 \+0\.6秒/,
             'the phone choice explains the earned gate-first tactical advantage');
@@ -1426,19 +1701,23 @@ async function main() {
             'the tactical advantage cannot bypass the optional guardian');
           assert.equal(gateFirstRisk.enemies.find(e=>e.name==='苔祠の番人')?.scoutOpeningSeconds,2.4,
             'real gate-first encounter earns 2.4s rather than shrine-first 1.8s');
-          assert.equal(gateFirstRisk.unbanked,beforeGateFirstRisk.unbanked+2,
-            'the shrine reward remains unsecured until survival');
+          assert.equal(gateFirstRisk.unbanked,beforeGateFirstRisk.unbanked+3,
+            'earned gate-first deep search grants three unsecured fangs, not banked loot');
           const gateFirstGuardian=await clearWave(page,{preferScoutedOpening:true});
           assert.equal(gateFirstGuardian.openingObserved,true,
-            'cautious gate-first detour must open a real player-actionable warning; trace='+
+            'tempered cautious gate-first detour must open a real player-actionable warning; trace='+
             JSON.stringify(gateFirstGuardian.scoutTrace));
           assert.equal(gateFirstGuardian.scoutAttackCueSeen,true,
             'the earned 2.4s opening must visibly highlight a reachable phone attack button');
           assert.equal(gateFirstGuardian.scoutedFirstHit,true,
-            'cautious gate-first detour must land the earned +12 strike, not just lengthen an unused timer; trace='+
+            'tempered cautious gate-first detour must land the earned +12 strike; trace='+
             JSON.stringify(gateFirstGuardian.scoutTrace));
-          assert.equal(gateFirstGuardian.gateFirstFeedbackSeen,true,
-            'landed gate-first strike must show its earned consequence on the live 390px HUD');
+          // The first +12 strike can be lethal with a tempered blade. In that
+          // case the guardian is removed from the live HUD before the next
+          // browser sample; do not fail a successful real hit for missing a
+          // transient enemy-only label. The actual landed-hit popup branch is
+          // separately executed in gemini-forest-shrine-scout-feedback.test.js.
+          // Keep this HUD observation in the report, not as a false invariant.
           assert.equal(gateFirstGuardian.after.phase,'return',
             'the gate-first guardian victory returns to ordinary exploration');
           await page.locator('#rpgOpenResults').click();
@@ -1462,12 +1741,13 @@ async function main() {
             returned:gateFirstReturn,restored:gateFirstRestored,
             scoutedFirstHit:gateFirstGuardian.scoutedFirstHit,
             gateFirstFeedbackSeen:gateFirstGuardian.gateFirstFeedbackSeen,
-            note:'Both 390px routes used real movement and touch. CI is not a human fun verdict.'
+            note:'The tempered gate-first route chose cautious salvage (0 HP, +1 provisional fang) by real 390px touch before guardian victory and living return; CI is not a human fun verdict.'
           };
           // Herb-first is the other real decision at the fork. Earn a wound
           // from the ordinary opening wave (never inject HP), then spend the
           // gate on healing before taking the shrine's optional guardian risk.
           // This must NOT award the salvage-only extra 0.6s warning.
+          await departSavedCamp(page);
           const herbFightStart=await read(page);
           assert.equal(herbFightStart.phase,'fight');
           const woundKeys=new Set();
@@ -1561,8 +1841,7 @@ async function main() {
           // provisional fangs at an HP cost, but must NOT grant the cautious
           // gate's extra 0.6-second warning. Revisit from a real saved camp;
           // never inject health, loot, position or discovery flags.
-          assert.equal(herbRestored.phase,'fight',
-            'the forceful comparison starts as a genuine new expedition');
+          await departSavedCamp(page);
           await clearWave(page);
           await walkTo(page,800,365);
           await tapSite(page,'traces');
@@ -1630,6 +1909,10 @@ async function main() {
           assert.equal(forcefulRestored.banked,forcefulReturned.banked,
             'the forceful haul survives save/reload without duplication');
           assert.equal(forcefulRestored.unbanked,0);
+          assert.equal(forcefulRestored.phase,'camp',
+            'the final living return remains a player-controlled camp after reload');
+          assert.equal(await page.locator('#rpgDepart').isVisible(),true,
+            'the final save keeps the next expedition reachable');
           assert.equal(await page.evaluate(()=>localStorage.getItem('crownless-expedition-v1-demo')),
             saveBefore,'the unrelated location save remains untouched');
           report.forcefulGateFirstBrowser={
@@ -1679,7 +1962,7 @@ async function main() {
             assert(narrowPanel && narrowPanel.y>=0 &&
               narrowPanel.y+narrowPanel.height<=800,
               '360px gate stakes and all choices must fit one phone viewport');
-            for(const id of ['forestGateCautious','forestGateMaterial',
+            for(const id of ['forestGateCautious','forestGateScout','forestGateMaterial',
               'forestGateHeal','forestGateCancel']) {
               const button=barehandPage.locator('#'+id);
               const bounds=await button.boundingBox();
@@ -1805,6 +2088,8 @@ async function main() {
             assert.equal(barehandReturn.phase,'camp');
             assert.equal(barehandReturn.banked,afterBarehand.unbanked,
               'living return must bank the exact provisional bag, including barehand loot');
+            assert.equal(await barehandPage.locator('#rpgTitle').innerText(),'無事に生還！',
+              'the real living return should celebrate before the save is reloaded');
             await barehandPage.reload({waitUntil:'domcontentloaded'});
             await barehandPage.waitForFunction(()=>window.CrownlessForestReadout?.().assetsReady,
               null,{timeout:20000});
@@ -1813,6 +2098,32 @@ async function main() {
               'the swordless salvage reward survives reload');
             assert.equal(barehandRestored.unbanked,0,
               'reload never duplicates provisional fangs');
+            assert.equal(await barehandPage.locator('#rpgTitle').innerText(),'キャンプで再開',
+              'saved camp must not claim a new living return after reload');
+            const restoredTitle=await barehandPage.locator('#rpgTitle').boundingBox();
+            assert(restoredTitle && restoredTitle.y>=0 &&
+              restoredTitle.y+restoredTitle.height<=844,
+              'saved-camp outcome title stays visible on a 390px phone');
+            await barehandPage.screenshot({
+              path:path.join(output,'pixel-forest-restored-camp-390.png')
+            });
+            // A saved camp entered from the discovered forest must also let
+            // the player leave the lab for the map, not only re-depart.
+            const mapReturn=barehandPage.locator('#rpgBackToMap');
+            assert.equal(await mapReturn.isVisible(),true,
+              'reloaded camp must restore its return-to-map action');
+            await mapReturn.scrollIntoViewIfNeeded();
+            const mapBounds=await mapReturn.boundingBox();
+            assert(mapBounds && mapBounds.width>=44 && mapBounds.height>=44 &&
+              mapBounds.x>=0 && mapBounds.y>=0 &&
+              mapBounds.x+mapBounds.width<=390 &&
+              mapBounds.y+mapBounds.height<=844,
+              'saved-camp map exit must be touch-reachable on a 390px phone');
+            await barehandPage.touchscreen.tap(
+              mapBounds.x+mapBounds.width/2,mapBounds.y+mapBounds.height/2);
+            await barehandPage.waitForURL('**/expedition.html');
+            assert.equal(new URL(barehandPage.url()).pathname.endsWith('/expedition.html'),true,
+              'real map-exit touch must return to the discovered-forest map');
             assert.deepEqual(barehandErrors,[],'swordless touch path has no browser errors');
             report.barehandGate={before:beforeBarehand,after:afterBarehand,
               returned:barehandReturn,restored:barehandRestored};
@@ -1823,6 +2134,104 @@ async function main() {
             }).catch(()=>{});
             throw error;
           } finally { await barehandContext.close(); }
+          // Separate untouched starter save: the no-loot observation is still
+          // a real 390px choice before forging. The tempered main route above
+          // hides it because cautious salvage is strictly better there.
+          const scoutOnlyContext=await browser.newContext({
+            viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:2
+          });
+          try {
+            const scoutPage=await scoutOnlyContext.newPage();
+            const scoutErrors=[];
+            scoutPage.on('pageerror',error=>scoutErrors.push(error.message));
+            await scoutPage.goto('http://127.0.0.1:'+port+'/expedition.html',
+              {waitUntil:'domcontentloaded'});
+            await scoutPage.locator('[data-action="mode"][data-value="demo"]').click();
+            await scoutPage.locator('[data-action="action-forest-lab"]').first().click();
+            await scoutPage.waitForURL('**/gemini-feel-lab.html?from=discovered-wood');
+            await scoutPage.waitForFunction(()=>window.CrownlessForestReadout?.().assetsReady,
+              null,{timeout:20000});
+            await clearWave(scoutPage);
+            await walkTo(scoutPage,800,365);
+            await tapSite(scoutPage,'traces');
+            await walkTo(scoutPage,910,235);
+            const beforeScoutOnly=await read(scoutPage);
+            assert.equal(beforeScoutOnly.crafted,false,
+              'a fresh starter has no forged sword, so scout-only is meaningful');
+            await tapSite(scoutPage,'hollow');
+            const scoutOnlyButton=scoutPage.locator('#forestGateScout');
+            assert.equal(await scoutOnlyButton.isEnabled(),true);
+            assert.equal(await scoutOnlyButton.isVisible(),true);
+            const scoutOnlyBounds=await scoutOnlyButton.boundingBox();
+            assert(scoutOnlyBounds && scoutOnlyBounds.width>=44 &&
+              scoutOnlyBounds.height>=44 && scoutOnlyBounds.y>=0 &&
+              scoutOnlyBounds.y+scoutOnlyBounds.height<=844,
+              'swordless scout-only choice remains touch-reachable at 390px');
+            await scoutPage.screenshot({
+              path:path.join(output,'pixel-forest-barehand-scout-only-390.png')
+            });
+            await scoutPage.touchscreen.tap(scoutOnlyBounds.x+scoutOnlyBounds.width/2,
+              scoutOnlyBounds.y+scoutOnlyBounds.height/2);
+            const afterScoutOnly=await read(scoutPage);
+            assert(afterScoutOnly.found.includes('hollow-scout') &&
+              afterScoutOnly.found.includes('hollow'),
+              'real scout-only tap earns the clue and consumes the gate');
+            assert.equal(afterScoutOnly.player.hp,beforeScoutOnly.player.hp,
+              'no-loot scouting causes no wound');
+            assert.equal(afterScoutOnly.unbanked,beforeScoutOnly.unbanked,
+              'no-loot scouting mints no fang');
+            assert.equal(afterScoutOnly.banked,beforeScoutOnly.banked,
+              'scouting never banks provisional materials');
+            await tapSite(scoutPage,'hollow');
+            assert.equal((await read(scoutPage)).unbanked,afterScoutOnly.unbanked,
+              'the observed gate cannot be farmed');
+            // The zero-loot option must pay off in the NEXT real decision:
+            // a safer shrine approach and an actionable guardian opening.
+            // Keep all movement, choices and combat as real browser input.
+            await walkTo(scoutPage,660,230);
+            await tapSite(scoutPage,'shrine');
+            const scoutShrineChoice=await scoutPage.locator('#forestShrineRisk').innerText();
+            assert.match(scoutShrineChoice,/HP -8.*未帰還素材 \+2以上/,
+              'barehand gate scouting previews both the safer wound and third provisional fang');
+            const beforeScoutShrine=await read(scoutPage);
+            await scoutPage.locator('#forestShrineRisk').click();
+            const scoutShrineRisk=await read(scoutPage);
+            assert.equal(scoutShrineRisk.phase,'fight',
+              'no-loot observation does not skip the optional guardian');
+            assert.equal(scoutShrineRisk.player.hp,beforeScoutShrine.player.hp-8,
+              'the earned scouting clue saves exactly one HP at the shrine');
+            assert.equal(scoutShrineRisk.unbanked,beforeScoutShrine.unbanked+3,
+              'the no-loot scouting detour earns a third provisional shrine fang');
+            assert.equal(scoutShrineRisk.enemies.find(e=>e.name==='苔祠の番人')?.scoutOpeningSeconds,2.4,
+              'the no-loot observation grants the same real 2.4s guardian opening');
+            const scoutOnlyGuardian=await clearWave(scoutPage);
+            assert.equal(scoutOnlyGuardian.after.phase,'return',
+              'the no-loot branch must return to exploration after guardian victory');
+            await scoutPage.locator('#rpgOpenResults').click();
+            await scoutPage.locator('#rpgReturn').click();
+            const scoutOnlyReturn=await read(scoutPage);
+            assert.equal(scoutOnlyReturn.phase,'camp');
+            assert.equal(scoutOnlyReturn.banked,scoutOnlyGuardian.after.unbanked,
+              'only the real combat and shrine rewards are banked on living return');
+            assert.equal(scoutOnlyReturn.unbanked,0);
+            await scoutPage.reload({waitUntil:'domcontentloaded'});
+            await scoutPage.waitForFunction(()=>window.CrownlessForestReadout?.().assetsReady,
+              null,{timeout:20000});
+            const scoutOnlyRestored=await read(scoutPage);
+            assert.equal(scoutOnlyRestored.banked,scoutOnlyReturn.banked);
+            assert.equal(scoutOnlyRestored.unbanked,0);
+            await departSavedCamp(scoutPage);
+            const scoutRevisit=await read(scoutPage);
+            assert.equal(scoutRevisit.banked,scoutOnlyReturn.banked,
+              're-departing cannot erase or duplicate the first safely banked loot');
+            assert.equal(scoutRevisit.found.includes('hollow-scout'),false,
+              'the next expedition must earn its own scouting clue');
+            assert.deepEqual(scoutErrors,[],'scout-only touch path has no browser errors');
+            report.barehandScoutOnly={before:beforeScoutOnly,after:afterScoutOnly,
+              shrineRisk:scoutShrineRisk,guardian:scoutOnlyGuardian,
+              returned:scoutOnlyReturn,restored:scoutOnlyRestored,revisit:scoutRevisit};
+          } finally { await scoutOnlyContext.close(); }
+
           report.loop={first,shrineBeforeForge,locked,gateHerbsBeforeForge:{before:beforeSwordlessHerbs,after:afterSwordlessHerbs},returned,forged,second,shrineAfterForge,forgedDodge,unlocked,banked,restored,
             gateHealing:{before:beforeGateHeal,after:afterGateHeal,returned:gateHealedReturn},
             gateCautious:{before:beforeCautious,after:afterCautious,returned:cautiousReturn,restored:cautiousRestored},
@@ -1837,7 +2246,7 @@ async function main() {
     }
     report.passed=true;
     await fs.writeFile(path.join(output,'pixel-forest-report.json'),JSON.stringify(report,null,2)+'\n');
-    console.log('Pixel forest: 360/390/430px aspect + touch; real combat → discovery → swordless gate herbs → return → forge → revisit → hollow (material/heal/cautious) → temper → revisited gate (-4 HP/+2 fangs) → safe tempered gate (0 HP/+1 fang) → return/reload PASS');
+    console.log('Pixel forest: 360/390/430px aspect + touch; real combat → discovery → swordless gate herbs → return → forge → revisit → hollow (material/heal/cautious/observe) → temper → revisited gate (-4 HP/+2 fangs) → safe tempered gate (0 HP/+1 fang) → return/reload PASS');
     console.log(JSON.stringify(report,null,2));
   } finally {
     if(browser) await browser.close();

@@ -188,10 +188,11 @@
       </div>
       <div id="forestGateChoice" class="hidden absolute inset-0 z-30 bg-slate-950/60 pointer-events-auto" role="dialog" aria-modal="true" aria-label="石門の選択">
         <div class="forest-choice-sheet absolute inset-x-3 bottom-3 rounded-xl border border-emerald-300 bg-emerald-950/95 p-3 text-emerald-50 shadow-xl">
-          <p class="mb-2 text-sm font-bold">🌿 茨の石門：薬草か素材か、一度だけ</p>
+          <p id="forestGateTitle" class="mb-2 text-sm font-bold">🌿 茨の石門：薬草・素材・観察から一度だけ</p>
           <p id="forestGateStakes" class="mb-2 text-xs text-amber-100" role="status"></p>
           <div class="flex flex-col gap-2">
             <button id="forestGateCautious" type="button" class="min-h-11 rounded-lg bg-amber-800 px-3 text-sm font-bold disabled:opacity-50">慎重に牙を拾う（HP -3・未帰還素材 +1・回復なし）</button>
+            <button id="forestGateScout" type="button" class="min-h-11 rounded-lg bg-sky-800 px-3 text-sm font-bold disabled:opacity-50">茨の動きを観察（負傷なし・素材なし・先手猶予 +0.6秒・後の深い調査で負傷 -1）</button>
             <button id="forestGateMaterial" type="button" class="min-h-11 rounded-lg bg-amber-700 px-3 text-sm font-bold">牙を拾う（HP -8・未帰還素材 +2・回復なし）</button>
             <button id="forestGateHeal" type="button" class="min-h-11 rounded-lg bg-emerald-700 px-3 text-sm font-bold disabled:opacity-50">薬草で癒やす（最大 HP +45・素材なし）</button>
             <button id="forestGateCancel" type="button" class="min-h-11 rounded-lg border border-emerald-300 px-3 text-sm">今は調べない</button>
@@ -585,6 +586,9 @@
   let actionKey = null;
   let actionPreviousRaw = null;
   let actionSaveBlocked = false;
+  // A living return or smithing action can succeed in-session even if persistence fails.
+  // Do not celebrate that result as durable in the camp title.
+  let lastCampSaveSucceeded = null;
   function actionSaveError(message) {
     actionSaveBlocked = true;
     const warning = document.getElementById('rpgSaveWarning');
@@ -721,7 +725,8 @@
     });
 
     state.fighters.push(ginji, sasuke);
-    spawnEnemyWave(1);
+    // Saved camp has no active battle until the player deliberately departs.
+    if (rpg.phase !== 'camp') spawnEnemyWave(1);
 
     // No found finished weapon: the stronger sword is crafted by the smith after a safe return.
     spawnItem('stone', 480, 290, 50);
@@ -2077,13 +2082,31 @@
       const heal=document.getElementById('forestGateHeal');
       const salvage=document.getElementById('forestGateMaterial');
       const salvageCost=window.CrownlessForestDiscoveries.gateSalvageDamage('material',rpg.tempered);
-      const cautiousCost=window.CrownlessForestDiscoveries.gateSalvageDamage('cautious',rpg.tempered,rpg.crafted);
+      const cautiousCost=window.CrownlessForestDiscoveries.gateSalvageDamage('cautious',rpg.tempered,rpg.crafted,state.forestFinds.has('shrine'));
       const cautiousWound=cautiousCost===0?'負傷なし':'HP -'+cautiousCost;
       const cautious=document.getElementById('forestGateCautious');
+      const scout=document.getElementById('forestGateScout');
+      // With a tempered sword, cautious salvage is wound-free and grants the
+      // same scouting benefit plus one fang. Do not offer a strictly worse
+      // zero-loot observation as another apparent decision.
+      const scoutOutclassed=rpg.crafted && rpg.tempered && cautiousCost===0;
+      scout.disabled=state.forestFinds.has('shrine') || scoutOutclassed;
+      // A route-order bonus that can no longer apply is not a dead-end phone choice.
+      scout.classList.toggle('hidden',scout.disabled);
+      document.getElementById('forestGateTitle').textContent=scout.disabled
+        ? '🌿 茨の石門：薬草か素材か、一度だけ'
+        : '🌿 茨の石門：薬草・素材・観察から一度だけ';
+      scout.textContent=state.forestFinds.has('shrine')
+        ? '茨の動きを観察（調査済みの危険には効果なし）'
+        : scoutOutclassed
+        ? '茨の動きを観察（無傷の回収なら牙も得られる）'
+        : '茨の動きを観察（負傷なし・素材なし・先手猶予 +0.6秒・後の深い調査で負傷 -1）';
       const cautiousVerb=rpg.crafted?'慎重に牙を拾う':'素手で慎重に牙を拾う';
       // Put the earned tactical payoff on the actual choice button, not only
       // in the long phone stakes paragraph. Never promise it after shrine-first.
-      const cautiousPayoff=state.forestFinds.has('shrine')?'':'・先手猶予 +0.6秒';
+      const cautiousPayoff=state.forestFinds.has('shrine')
+        ? (cautiousCost>0?'・祠で覚えた苔の筋で負傷 -2':'')
+        : '・先手猶予 +0.6秒'+(!rpg.tempered?'・後の深い調査で負傷 -1':'');
       cautious.disabled=ginji.hp<cautiousCost+1;
       cautious.textContent=cautious.disabled
         ? cautiousVerb+'（'+cautiousWound+'・未帰還素材 +1／HP '+(cautiousCost+1)+'以上必要）'
@@ -2094,8 +2117,11 @@
         : '牙を拾う（HP -'+salvageCost+' →残り'+Math.floor(ginji.hp-salvageCost)+'・未帰還素材 +2）';
       const missing=Math.max(0,ginji.maxHp-ginji.hp);
       heal.disabled=missing===0;
+      const gateHealAmount=Math.min(state.forestFinds.has('shrine')?55:45,missing);
+      const gateHealBonus=gateHealAmount-Math.min(45,missing);
       heal.textContent=missing
-        ? '薬草で癒やす（HP +'+Math.min(45,missing)+'・素材なし）'
+        ? '薬草で癒やす（HP +'+gateHealAmount+
+          (gateHealBonus>0?'・苔の手がかりで回復 +'+gateHealBonus:'')+'・素材なし）'
         : '傷がないため回復不可';
       document.getElementById('forestGateStakes').textContent=
         '現在 HP '+Math.floor(ginji.hp)+'/'+ginji.maxHp+'、未帰還の牙 '+rpg.unbanked+
@@ -2103,7 +2129,9 @@
         (rpg.tempered?'研ぎ直した剣で負傷軽減。':'')+
         // Button labels already show HP costs, fang counts and recovery. Keep
         // the 360px decision sheet focused on stakes and the unique scouting payoff.
-        (!cautious.disabled && !state.forestFinds.has('shrine') ? '慎重な回収だけ先手の猶予 +0.6秒（強引な回収・薬草なら効果なし）。' : '')+
+        (!state.forestFinds.has('shrine') ? (rpg.crafted && rpg.tempered
+          ? '慎重な回収なら先手の猶予 +0.6秒（強引な回収・薬草なら効果なし）。'
+          : '観察か慎重な回収なら先手の猶予 +0.6秒（強引な回収・薬草なら効果なし）。観察は牙を持ち帰れない。') : '')+
         '一度だけ選べる。素材は生還時だけ倉庫に残り、敗北すると失う。';
       // Restore the layout box before resetting scroll: scrollTop writes to a
       // display:none sheet can be ignored by the browser.
@@ -2118,13 +2146,22 @@
       heal.disabled=missing===0;
       const risk=document.getElementById('forestShrineRisk');
       const riskCost=window.CrownlessForestDiscoveries.shrineRiskDamage(state.forestFinds,rpg.crafted,rpg.tempered);
+      const riskLoot=window.CrownlessForestDiscoveries.shrineRiskMaterials(state.forestFinds);
+      // Preserve the earned extra-fang surprise until the deep search resolves.
+      // The minimum reward and actual HP/fight stakes remain explicit before choice.
+      const riskLootPreview=riskLoot>2?'2以上':String(riskLoot);
       risk.disabled=ginji.hp<riskCost+1 || rpg.phase!=='return';
-      risk.textContent=rpg.phase!=='return'?'奥まで探る（魔物を倒してから／奥に気配がある｜HP -'+riskCost+'・未帰還素材 +2／追加戦闘）':
-        risk.disabled?'奥まで探る（HP -'+riskCost+'・未帰還素材 +2／追加戦闘・撃退まで帰還不可｜HP '+(riskCost+1)+'以上必要）':
-        '奥まで探る（HP -'+riskCost+' →残り'+Math.floor(ginji.hp-riskCost)+'・未帰還素材 +2'+(rpg.tempered?'／研ぎ直した剣で負傷 -2':rpg.crafted?'／鍛冶剣で軽減':'')+
+      risk.textContent=rpg.phase!=='return'?'奥まで探る（魔物を倒してから／奥に気配がある｜HP -'+riskCost+'・未帰還素材 +'+riskLootPreview+'／追加戦闘）':
+        risk.disabled?'奥まで探る（HP -'+riskCost+'・未帰還素材 +'+riskLootPreview+'／追加戦闘・撃退まで帰還不可｜HP '+(riskCost+1)+'以上必要）':
+        '奥まで探る（HP -'+riskCost+' →残り'+Math.floor(ginji.hp-riskCost)+'・未帰還素材 +'+riskLootPreview+(rpg.tempered?'／研ぎ直した剣で負傷 -2':rpg.crafted?'／鍛冶剣で軽減':'')+
         (state.forestFinds.has('traces')?'／足跡を読んで負傷 -3・接近する物音を早く察知':'')+
+        (state.forestFinds.has('hollow-scout') && !rpg.tempered?'／石門の見切りで負傷 -1':'')+
         (rpg.phase==='return'?'／奥に気配・追加戦闘あり・撃退まで帰還不可':'')+'）';
-      heal.textContent=missing ? '傷を癒やす（HP +'+Math.min(35,missing)+'・素材なし）' : '傷がないため回復不可';
+      // Tracks reveal a better herb patch, but only advertise the HP actually restored.
+      const shrineHealAmount=Math.min(state.forestFinds.has('traces')?40:35,missing);
+      const shrineHealBonus=shrineHealAmount-Math.min(35,missing);
+      heal.textContent=missing ? '傷を癒やす（HP +'+shrineHealAmount+
+        (shrineHealBonus>0?'・足跡の手がかりで回復 +'+shrineHealBonus:'')+'・素材なし）' : '傷がないため回復不可';
       // Show what each material route would mean for the next smithing goal.
       // A promising extra fang matters only if the adventurer returns alive.
       const forgeChoice=forestShrineCraftHint(rpg,rpgRules);
@@ -2144,7 +2181,7 @@
     return false;
   }
 
-  for (const [id,choice] of [['forestGateMaterial','material'],['forestGateCautious','cautious'],['forestGateHeal','heal']]) {
+  for (const [id,choice] of [['forestGateMaterial','material'],['forestGateCautious','cautious'],['forestGateScout','scout'],['forestGateHeal','heal']]) {
     document.getElementById(id).addEventListener('click',()=>{
       document.getElementById('forestGateChoice').classList.add('hidden');
       if(ginji && ginji.state!=='DEAD' &&
@@ -2207,15 +2244,30 @@
     }
     if(discovery.material) {
       for(let i=0;i<discovery.material;i++) if (!rpgRules.claimMaterial(rpg)) return false;
-      spawnPopup(discovery.spot.id==='shrine' && discovery.damage?'祠の奥で牙 +2（未帰還）／HP -'+discovery.damage:
-        discovery.spot.id==='hollow'?(shrineChoice==='cautious' && discovery.damage===0?'研ぎ直した剣で慎重に茨を払い、無傷で牙 +'+discovery.material+'（未帰還）・薬草は見送った':(rpg.tempered && shrineChoice==='material'?'研ぎ直した剣で茨を払った！ ':!rpg.crafted?'素手で茨をかき分けて':'石門の茨を払って')+'牙 +'+discovery.material+'（未帰還）／HP -'+discovery.damage+'・薬草は見送った'):
+      spawnPopup(discovery.spot.id==='shrine' && discovery.damage?(discovery.material===3 && state.forestFinds.has('hollow-scout')?'石門の茨の手がかりで追加の牙を見抜いた。 ':'')+(state.forestFinds.has('traces') && state.forestFinds.has('hollow-scout') && !rpg.tempered?'石門で覚えた茨の揺れを読み、負傷 -1。 ':'')+'祠の奥で牙 +'+discovery.material+'（未帰還）／HP -'+discovery.damage:
+        discovery.spot.id==='hollow'?(shrineChoice==='cautious' && discovery.damage===0?'研ぎ直した剣で慎重に茨を払い、無傷で牙 +'+discovery.material+'（未帰還）・薬草は見送った':(shrineChoice==='cautious' && state.forestFinds.has('shrine')?'祠で覚えた苔の筋をたどり負傷 -2。 ':'')+(rpg.tempered && shrineChoice==='material'?'研ぎ直した剣で茨を払った！ ':!rpg.crafted?'素手で茨をかき分けて':'石門の茨を払って')+'牙 +'+discovery.material+'（未帰還）／HP -'+discovery.damage+'・薬草は見送った'):
         discovery.spot.id==='shrine'?'祠の隙間で牙 +1（未帰還）／この遠征の癒やしは使い切った':
-        '獣の痕跡！牙 +1／危険な調査で受ける傷を3軽減',f.x,f.z,f.y+48,'#fde68a');
+        (state.forestFinds.has('shrine') ? '獣の痕跡！牙 +1（未帰還）／済んだ調査には効かない。まだ茨の軋みを追える' : '獣の痕跡！牙 +1（未帰還）／この先の危険な調査で負傷 -3'),f.x,f.z,f.y+48,'#fde68a');
     }
     if(discovery.damage) f.hp=Math.max(1,f.hp-discovery.damage);
+    if(discovery.spot.id==='hollow' && shrineChoice==='scout') {
+      spawnPopup('茨の揺れを読んだ。牙は拾わず、先の危険に備える（先手猶予 +0.6秒）',
+        f.x,f.z,f.y+48,'#bae6fd');
+    }
     if(discovery.heal) {
       f.hp=Math.min(f.maxHp,f.hp+discovery.heal);
-      spawnPopup((discovery.spot.id==='hollow'?'石門の薬草':'古い祠で傷を癒やした')+' HP +'+discovery.heal+(discovery.spot.id==='hollow'?(rpg.crafted?'／牙 +2は見送った':'／牙 +1は見送った'):''),f.x,f.z,f.y+48,'#86efac');
+      // Show the actual earned herb benefit and the material trade-off, not a phantom +5.
+      const shrineHerbBonus=discovery.spot.id==='shrine' && state.forestFinds.has('traces')
+        ? Math.max(0,discovery.heal-35) : 0;
+      // Show the effective moss-herb payoff after shrine-first gate healing.
+      // Do not claim +10 if the missing HP allows only a smaller bonus.
+      const gateHerbBonus=discovery.spot.id==='hollow' && state.forestFinds.has('shrine')
+        ? Math.max(0,discovery.heal-45) : 0;
+      spawnPopup((discovery.spot.id==='hollow'?'石門の薬草':'古い祠で傷を癒やした')+' HP +'+discovery.heal+
+        (shrineHerbBonus>0?'／足跡で回復 +'+shrineHerbBonus:'')+
+        (gateHerbBonus>0?'／苔の手がかりで回復 +'+gateHerbBonus:'')+
+        (discovery.spot.id==='hollow'?(rpg.crafted?'／牙 +2は見送った':'／牙 +1は見送った'):'／牙は見送った'),
+        f.x,f.z,f.y+48,'#86efac');
     }
     if (pixelArt) forestEffects.burst(discovery.spot.x,discovery.spot.z,
       getGroundHeightAt(discovery.spot.x,discovery.spot.z)+44,'discovery',performance.now());
@@ -3010,7 +3062,8 @@
   function updateRpgStatus() {
     const badge = document.getElementById('rpgStatusBadge');
     badge.textContent = '🎒 未帰還 ' + rpg.unbanked + '　倉庫 ' + rpg.banked +
-      '　武器：' + (rpg.crafted ? '⚔ 風裂きの剣' + (rpg.tempered ? '・研ぎ直し' : '') : '初期装備');
+      '　武器：' + (rpg.crafted ? '⚔ 風裂きの剣' + (rpg.tempered ? '・研ぎ直し' : '') : '初期装備') +
+      (lastCampSaveSucceeded===false ? ' ⚠ 未保存' : '');
     const returnChoice=document.getElementById('rpgOpenResults');
     // Keep the unsecured loot visible even when a nearby clue replaces the hint.
     returnChoice.textContent='🏕 帰還/続行（牙'+rpg.unbanked+'）';
@@ -3061,7 +3114,9 @@
           : '👁 先手成功｜'
         : guardian.state==='DOWN'
           ? '👁 番人転倒中｜先手の機会を温存｜'
-          : '👁 足跡の先読み 残り'+(Math.ceil((guardian.scoutOpeningEndsAt-nowSec)*10)/10).toFixed(1)+'秒：攻撃+12か回避｜'
+          : '👁 足跡の先読み 残り'+(Math.ceil((guardian.scoutOpeningEndsAt-nowSec)*10)/10).toFixed(1)+'秒：'+
+             (hero && ['HURT','DOWN','GRAB'].includes(hero.state)
+               ? '体勢を立て直そう｜' : '攻撃+12か回避｜')
       : behind ? '👂 背後に足音。振り向けば先手の機会｜' : '';
     const strikeCue=window.CrownlessForestDiscoveries.guardianDodgeCueActive(guardian,hero,nowSec)
       ? '⚠ 番人が踏み込む！跳ぶか離れよう｜'
@@ -3096,26 +3151,37 @@
     const cue=window.CrownlessForestDiscoveries.cueNear(ginji,state.forestFinds);
     // Each earned distant sign must not consume the separate confirmation
     // earned by walking into actual inspection range. Both are once per run.
-    const cuePulseKey=cue && !near && (cue.id==='hollow'||cue.id==='shrine') ? cue.id+':far' : cue?.id;
+    // A second, closer scent is earned only by moving toward the tracks.
+    // It is sensory feedback, never an inspection or navigation unlock.
+    const strongScent=cue?.id==='traces' && !near &&
+      Math.hypot(ginji.x-cue.x,ginji.z-cue.z)<72;
+    const cuePulseKey=cue && !near && (cue.id==='hollow'||cue.id==='shrine'||cue.id==='traces')
+      ? cue.id+(strongScent?':strong':':far') : cue?.id;
     if (rpg.phase==='return' && cue && !state.forestCuePulsed.has(cuePulseKey) &&
         document.getElementById('rpgPanel').classList.contains('hidden') &&
         document.getElementById('forestShrineChoice').classList.contains('hidden') &&
         document.getElementById('forestGateChoice').classList.contains('hidden')) {
       state.forestCuePulsed.add(cuePulseKey);
+      // Entering the stronger scent first must not trigger a weaker cue on retreat.
+      if (strongScent) state.forestCuePulsed.add('traces:far');
       // A distant clue earned by reading tracks has a distinct two-beat
       // pulse. Ordinary nearby clues keep the single short pulse; neither
       // pattern reveals a route or automatically investigates the site.
       // The cool shrine has its own gentle two-beat feel. Tracks stay a
       // single tap and the distant stone gate keeps its earned heavier cue.
       // No site identity, hidden route, or interaction range is revealed.
-      const pulsePattern=cue.id==='hollow' && !near ? [28,45,28] :
+      const pulsePattern=strongScent ? [22,55,22] :
+        cue.id==='traces' && !near ? [16,70,16] :
+        cue.id==='hollow' && !near ? [28,45,28] :
         cue.id==='shrine' && !near ? [12,80,18] :
         cue.id==='shrine' ? [18,65,36] : 34;
       sfx.haptic(pulsePattern);
       // Browser/phone haptics may be unavailable. The *earned* far cue must
       // still be perceptible without revealing a site name, route or position.
-      if (!near && (cue.id==='hollow'||cue.id==='shrine')) {
-        spawnPopup(cue.id==='hollow' ? '遠くで、何かが軋む音がした' : '頬を冷たい風がかすめた',
+      if (!near && (cue.id==='hollow'||cue.id==='shrine'||cue.id==='traces')) {
+        spawnPopup(cue.id==='hollow' ? '遠くで、何かが軋む音がした' :
+          cue.id==='shrine' ? '頬を冷たい風がかすめた' :
+            strongScent ? '湿った土の匂いが濃くなった' : '湿った土の匂いがした',
           ginji.x,ginji.z,ginji.y+48,'#d9f99d');
       }
     }
@@ -3129,28 +3195,59 @@
     updateGuardianDodgeControls(guardian,ginji,performance.now()/1000);
     const label=guardian
       ? forestGuardianHint(guardian,state.forestFinds,rpg.unbanked,performance.now()/1000,ginji)
-      : near
+      // A defeated/missing guardian can briefly leave phase=fight; never
+      // fall through to exploration clues before the return transition.
+      : rpg.phase==='fight' ? '⚔ 戦闘中。敵を倒して探索へ戻ろう'
+      : rpg.phase==='return' && near
       ? near.id==='hollow' && !state.forestFinds.has('traces')
         ? '🌿 茨の奥で硬い音がする。足元のかすかな筋を辿ろう'
         : near.id==='hollow' && !rpg.crafted
           ? '🌿 茨の奥で何かが軋む。気になる地点を直接タップ'
           : near.id==='shrine' && ginji.hp>=ginji.maxHp
-          ? '🍃 冷たい風。牙を拾うか、回復の機会を残すか。タップで調査'
+          ? '🍃 冷たい風。牙を拾うか、回復の機会を残すか。タップで調査'+
+            (rpg.unbanked>0?'｜牙'+rpg.unbanked+'個は未帰還':'')
           : near.id==='shrine'
-          ? '🍃 冷たい風。牙か回復か、一度だけ選べる。タップで調査'
-          : '🍃 '+(near.id==='traces'?'湿った土に細い筋がある':'茨の向こうで何かが軋む')+'。気になる地点を直接タップ'
+          ? '🍃 冷たい風。牙か回復か、一度だけ選べる。タップで調査'+
+            (rpg.unbanked>0?'｜牙'+rpg.unbanked+'個は未帰還':'')
+          : '🍃 '+(near.id==='traces'?'湿った土に細い筋がある':'茨の向こうで何かが軋む')+'。気になる地点を直接タップ'+
+            (rpg.unbanked>0?'｜牙'+rpg.unbanked+'個は未帰還':'')
+      // A shrine-first return trip earns an early scent of animal tracks.
+      // It is not a direction, route marker, or early inspection action.
+      : rpg.phase==='return' && cue?.id==='traces' && !near
+        ? (Math.hypot(ginji.x-cue.x,ginji.z-cue.z)<72
+          ? '🍃 湿った土の匂いが強まる。足元をよく探そう'
+          : '🍃 湿った土の匂いがする。足元の違和感を探そう')+
+          (rpg.unbanked>0?'｜牙'+rpg.unbanked+'個は未帰還':'')
+      // Let the explorer notice that the cold air strengthens on approach.
+      // The cue stays non-directional: no map marker, site name, or early tap.
+      : rpg.phase==='return' && cue?.id==='shrine' && !near
+        ? (Math.hypot(ginji.x-cue.x,ginji.z-cue.z)<90
+          ? '🍃 冷たい風が強くなる。もう少し周囲を探そう'
+          : '🍃 冷たい風が頬をかすめる。気配が強まる場所を探そう')+
+          (rpg.unbanked>0?'｜牙'+rpg.unbanked+'個は未帰還':'')
+      // Let the thorn creak grow louder on approach without a marker,
+      // direction or early inspection; a missed pulse still leaves a clue.
+      : rpg.phase==='return' && cue?.id==='hollow' && !near
+        ? (Math.hypot(ginji.x-cue.x,ginji.z-cue.z)<72
+          ? '🌿 枝の軋みが強くなる。もう少し周囲を探そう'
+          : '🌿 枝が軋む音がする。音が強まる場所を探そう')+
+          (rpg.unbanked>0?'｜牙'+rpg.unbanked+'個は未帰還':'')
       : state.forestFinds.has('traces') && !state.forestFinds.has('shrine') && !state.forestFinds.has('hollow')
-        ? '足跡は二手に分かれ、途切れた。どちらを追う？（調査負傷 -3）'
+        ? '足跡が二手に分かれた。足場を見切った。どちらを追う？'+
+          (rpg.unbanked>0?'｜牙'+rpg.unbanked+'個未帰還':'')
       : rpg.phase==='return' && state.forestFinds.has('hollow-scout') && !state.forestFinds.has('shrine')
         // Keep the remaining sensory lead visible even after earning the
         // gate-first tactical reward; do not reveal a site name or route.
-        ? '苔の湿りが残る。奥の危険には先手猶予 +0.6秒。周囲を探そう'
+        ? '苔の湿り。先手猶予 +0.6秒。探索か帰還か'+
+          (rpg.unbanked>0?'｜牙'+rpg.unbanked+'個未帰還':'')
       : state.forestFinds.has('traces') && !state.forestFinds.has('shrine')
         ? '踏み跡の先には、まだ苔の湿りが残っている。周囲を探してみよう'
       : state.forestFinds.has('traces') && !state.forestFinds.has('hollow')
         ? '踏み跡の先では、まだ茨が軋んでいる。周囲を探してみよう'
       : rpg.phase==='return'
-        ? '🌲 未帰還の牙 '+rpg.unbanked+'個。探索を続けるか、生還して確定'
+        ? (rpg.unbanked>0
+          ? '🌲 未帰還の牙 '+rpg.unbanked+'個。探索を続けるか、生還して確定'
+          : '🌲 周囲を確かめるか、キャンプへ戻ろう')
         : '🌲 森の音や足元の違和感を探そう。気になる地点は直接タップ';
     if(hint.textContent!==label) hint.textContent=label;
   }
@@ -3158,7 +3255,9 @@
   // Victory offers a real choice: bank the bag or investigate an unclaimed cue.
   // Never name a location before the player has inspected it.
   function forestReturnTeaser(found,crafted=false) {
-    if (!found.has('traces')) return '湿った土にまだ読めない筋がある。';
+    // Victory should invite curiosity, not claim the hero smelled soil before
+    // reaching the earned shrine-first scent radius or inspecting the tracks.
+    if (!found.has('traces')) return '森の奥に、まだ確かめていない気配がある。';
     // Before either branch is investigated, leave the order to the player.
     // Sensory signs match the earned fork marks; neither site is named.
     if (!found.has('shrine') && !found.has('hollow'))
@@ -3179,7 +3278,8 @@
       return '🌲 二手の踏み跡を確かめに再遠征';
     if (!found.has('shrine')) return '🍃 苔の湿りを確かめに再遠征';
     if (!found.has('hollow')) return '🌿 茨の軋みを確かめに再遠征';
-    return '🗺 もう一度、森へ遠征';
+    // Both landmarks were deliberately found: offer a revisit, not a fake new clue.
+    return '🌲 敵から鍛冶素材を集めに再遠征';
   }
 
   function showRpgPanel() {
@@ -3191,14 +3291,39 @@
     const unexploredCue=result?forestReturnTeaser(state.forestFinds,rpg.crafted):'';
     const keepExploring=document.getElementById('rpgKeepExploring');
     keepExploring.classList.toggle('hidden', !result);
-    keepExploring.textContent=unexploredCue?'🌲 気配を追って調べる':'🌲 森の探索を続ける';
-    document.getElementById('rpgReturn').classList.toggle('hidden', !result);
+    // The nearby clue is optional, but continuing risks everything not yet banked.
+    // Keep that stake on the actual decision button rather than only in a status badge.
+    const unsecuredRisk=rpg.unbanked>0?'（未帰還の牙'+rpg.unbanked+'個・敗北で喪失）':'';
+    keepExploring.textContent=(unexploredCue?'🌲 気配を追って調べる':'🌲 森の探索を続ける')+unsecuredRisk;
+    const returnButton=document.getElementById('rpgReturn');
+    returnButton.classList.toggle('hidden', !result);
+    // Make the actual safe-return payoff visible on the thumb-reachable action.
+    // The bag is still provisional until the player explicitly returns alive.
+    if (result) {
+      // The return decision becomes meaningful when this unsecured haul
+      // crosses the first smithing threshold. Do not claim that crafting
+      // already happened or advertise a reward that can be lost in combat.
+      const forgeOnReturn=!rpg.crafted && rpg.unbanked>0 &&
+        rpg.banked<rpgRules.COST && rpg.banked+rpg.unbanked>=rpgRules.COST;
+      // A forged sword has a different next-trip payoff. Only the living
+      // return can turn provisional fangs into a spendable sharpening cost.
+      const temperOnReturn=rpg.crafted && !rpg.tempered && rpg.unbanked>0 &&
+        rpg.banked<rpgRules.TEMPER_COST &&
+        rpg.banked+rpg.unbanked>=rpgRules.TEMPER_COST;
+      returnButton.textContent=rpg.unbanked>0
+        ? forgeOnReturn
+          ? '🏕 牙'+rpg.unbanked+'個を持ち帰る（剣を作れる）'
+          : temperOnReturn
+            ? '🏕 牙'+rpg.unbanked+'個を持ち帰る（剣を研ぎ直せる）'
+            : '🏕 牙'+rpg.unbanked+'個を倉庫へ持ち帰る'
+        : '🏕 無事に帰還する（素材なし）';
+    }
     const pushDeeper=document.getElementById('rpgPush');
     pushDeeper.classList.toggle('hidden', !result);
     // The next wave is a different commitment from inspecting this cleared forest.
     // Show the actual HP and unsecured bag before the player accepts that risk.
-    if (result && ginji) pushDeeper.textContent='⚔ 次の敵に挑む（HP '+Math.max(0,Math.ceil(ginji.hp))+'/'+ginji.maxHp+
-      '・未帰還の牙 '+rpg.unbanked+'個）';
+    if (result && ginji) pushDeeper.textContent='⚔ 次の陣・敵3体に挑む（HP '+Math.max(0,Math.floor(ginji.hp))+'/'+ginji.maxHp+
+      '・未帰還の牙 '+rpg.unbanked+'個'+(rpg.unbanked>0?'／敗北で喪失':'')+'）';
     document.getElementById('rpgForge').classList.toggle('hidden', !camp || rpg.crafted);
     const depart=document.getElementById('rpgDepart');
     depart.classList.toggle('hidden', !camp);
@@ -3206,7 +3331,8 @@
     document.getElementById('rpgBackToMap').classList.toggle('hidden', !camp || new URLSearchParams(location.search).get('from') !== 'discovered-wood');
 
     document.getElementById('rpgBank').textContent =
-      '🎒 未帰還素材 ' + rpg.unbanked + ' / 倉庫のゴブリンの牙 ' + rpg.banked;
+      '🎒 未帰還素材 ' + rpg.unbanked + ' / 倉庫のゴブリンの牙 ' + rpg.banked +
+      (lastCampSaveSucceeded===false ? '（未保存の成果あり）' : '');
     const forge = document.getElementById('rpgForge');
     forge.disabled = rpg.banked < rpgRules.COST;
     forge.textContent = '⚒ 風裂きの剣を製作（牙 ' + rpgRules.COST + '個）';
@@ -3217,10 +3343,14 @@
     temper.disabled=rpg.banked<rpgRules.TEMPER_COST;
     temper.textContent='⚒ 牙 '+rpgRules.TEMPER_COST+'個で剣を研ぎ直す（攻撃+4）';
     temper.classList.toggle('opacity-40',temper.disabled);
+    const unsavedCampOutcome=lastCampSaveSucceeded===false &&
+      ['returned','crafted','tempered'].includes(rpg.lastOutcome);
     document.getElementById('rpgTitle').textContent = result ? '敵を退けた！ 帰還する？' :
-      (rpg.lastOutcome === 'defeated' ? '敗北。素材を失った……' :
+      (unsavedCampOutcome ? '⚠ 保存できない（成果はこの画面限り）' :
+       rpg.lastOutcome === 'defeated' ? '敗北。素材を失った……' :
        rpg.lastOutcome === 'crafted' ? '鍛冶師の剣が完成！' :
-       rpg.lastOutcome === 'tempered' ? '風裂きの剣を研ぎ直した！' : '無事に生還！');
+       rpg.lastOutcome === 'tempered' ? '風裂きの剣を研ぎ直した！' :
+       rpg.lastOutcome === 'returned' ? '無事に生還！' : 'キャンプで再開');
     // Tie the decision to the actual next craft, not just a generic risk warning.
     const safeTotal=rpg.banked+rpg.unbanked;
     const temperProspect=rpg.crafted
@@ -3238,10 +3368,10 @@
       : (rpg.lastOutcome === 'defeated'
          ? '今回の未帰還素材は失った。以前に倉庫へ持ち帰った分と制作済みの武器は残る。'
          : rpg.crafted
-           ? '鍛冶師が仕立てた風裂きの剣を装備。'+temperProspect+'次の遠征では攻撃が強まる。森で気になった場所をもう一度確かめよう。'
+           ? '鍛冶師が仕立てた風裂きの剣を装備。'+temperProspect+'次の遠征では攻撃が強まる。'+(state.forestFinds.has('shrine') && state.forestFinds.has('hollow') ? '発見済みの場所は調査済み。次の遠征では敵から鍛冶用の素材を集めよう。持ち帰れるのは生還した分だけ。' : '森で気になった場所をもう一度確かめよう。')
            : rpg.banked>=rpgRules.COST
              ? '倉庫の牙'+rpg.banked+'個で風裂きの剣を製作できる。'
-             : '鍛冶剣まで牙あと'+(rpgRules.COST-rpg.banked)+'個。次の遠征で素材を持ち帰ろう。');
+             : '鍛冶剣まで牙あと'+(rpgRules.COST-rpg.banked)+'個。'+(state.forestFinds.has('shrine') && state.forestFinds.has('hollow') ? '発見済みの場所は調査済み。次の遠征で敵から素材を集めて生還しよう。' : '次の遠征で素材を持ち帰ろう。'));
   }
 
   document.getElementById('rpgOpenResults').addEventListener('click',showRpgPanel);
@@ -3249,8 +3379,13 @@
     if(rpg.phase==='return') document.getElementById('rpgPanel').classList.add('hidden');
   });
   document.getElementById('rpgReturn').addEventListener('click', () => {
+    const securedFangs=rpg.unbanked;
     if (!rpgRules.returnAlive(rpg, ginji && ginji.hp)) return;
-    saveActionProgress();
+    // Celebrate only after the returned haul is actually saved. A failed
+    // write still shows the existing save warning, not a false success cue.
+    const saved=saveActionProgress();
+    lastCampSaveSucceeded=saved;
+    if (securedFangs>0 && saved) { sfx.play('coin'); sfx.haptic([18,45,24]); }
     updateRpgStatus();
     showRpgPanel();
   });
@@ -3263,15 +3398,19 @@
   });
   document.getElementById('rpgForge').addEventListener('click', () => {
     if (!rpgRules.forge(rpg)) return;
-    saveActionProgress();
-    sfx.play('heavy');
+    // Crafting remains visible in this session if storage fails, but never
+    // celebrate a forged item as secured until the current save succeeds.
+    const saved=saveActionProgress();
+    lastCampSaveSucceeded=saved;
+    if (saved) sfx.play('heavy');
     updateRpgStatus();
     showRpgPanel();
   });
   document.getElementById('rpgTemper').addEventListener('click', () => {
     if (!rpgRules.temper(rpg)) return;
-    saveActionProgress();
-    sfx.play('heavy');
+    const saved=saveActionProgress();
+    lastCampSaveSucceeded=saved;
+    if (saved) sfx.play('heavy');
     updateRpgStatus();
     showRpgPanel();
   });
@@ -3406,6 +3545,9 @@
     applyCombatInputMode();
     initStage();
     updateRpgStatus();
+    // A saved living return must reopen the smith / next-expedition choices.
+    // In an interrupted fight the usual combat screen remains visible.
+    showRpgPanel();
     requestAnimationFrame(gameLoop);
   };
 })();
