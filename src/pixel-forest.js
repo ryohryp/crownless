@@ -163,6 +163,17 @@
         ctx.fillStyle=stone[(bx+by)%stone.length];
         ctx.fillRect(rx+bx*cell,ry+by*cell,bw*cell,bh*cell);
       }
+      // Offset masonry seams and missing corner stones add a readable ruin
+      // texture at the same six-pixel grid as the silhouette. Keep all detail
+      // inside the existing distant landmark; it is not an interactable path.
+      ctx.fillStyle='#394438';
+      for(const [x,y,w] of [[1,6,3],[5,6,2],[1,10,2],[5,13,3],[1,17,3],[6,18,2],[9,9,1]]) {
+        ctx.fillRect(rx+x*cell,ry+y*cell,w*cell,Math.max(2,cell/3));
+      }
+      ctx.fillStyle='#b0a68a';
+      for(const [x,y] of [[2,5],[6,4],[1,9],[7,11],[3,15],[8,17]]) {
+        ctx.fillRect(rx+x*cell,ry+y*cell,cell,2);
+      }
       // Broken crenellations, a dark window and ivy keep the silhouette
       // legible at phone scale without smooth strokes or glow effects.
       ctx.fillStyle='#252f2a';
