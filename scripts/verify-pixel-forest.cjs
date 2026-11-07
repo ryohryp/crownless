@@ -1214,8 +1214,15 @@ async function main() {
           // Prove the smith upgrade changes a *later* expedition, not only
           // a static rule preview. Reach the same gate with the saved sword,
           // deliberately choose the risky +2 route and bring the loot home.
-          assert.equal(cautiousRestored.phase,'fight',
-            'a tempered camp reload starts a new expedition with no unsecured loot');
+          assert.equal(cautiousRestored.phase,'camp',
+            'a tempered camp reload preserves the safe-return camp without unsecured loot');
+          const departAfterTemper=page.locator('#rpgDepart');
+          await departAfterTemper.waitFor({state:'visible',timeout:10000});
+          await departAfterTemper.click();
+          assert.equal((await read(page)).phase,'fight',
+            'a real departure after the tempered camp reload starts the next expedition');
+          assert.equal((await read(page)).unbanked,0,
+            'the new expedition starts without restoring unsecured loot');
           await clearWave(page);
           await walkTo(page,800,365);
           await tapSite(page,'traces');
