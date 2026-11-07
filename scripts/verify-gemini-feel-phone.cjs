@@ -339,6 +339,13 @@ async function main() {
         await page.waitForFunction(() => window.CrownlessForestReadout?.().player);
         assert.equal((await page.evaluate(() => window.CrownlessForestReadout())).crafted,
           width === 390,'390px must load the forged sword; 360px uses starter gear');
+        // A forged sword is saved at camp; depart through the real UI before walking.
+        // Otherwise movement is intentionally blocked and the shrine never enters view.
+        if ((await page.evaluate(() => window.CrownlessForestReadout())).phase === 'camp') {
+          await page.locator('#rpgDepart').click();
+          assert.equal((await page.evaluate(() => window.CrownlessForestReadout())).phase,'fight',
+            'departing the restored camp must enable exploration movement');
+        }
         await page.keyboard.down('d');
         try {
           await page.waitForFunction(() => {
