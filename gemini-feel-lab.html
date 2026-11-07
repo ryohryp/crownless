@@ -3406,6 +3406,8 @@
     applyCombatInputMode();
     initStage();
     updateRpgStatus();
+    // A restored camp has no return-result button; reopen its departure UI.
+    if (rpg.phase === 'camp') showRpgPanel();
     requestAnimationFrame(gameLoop);
   };
 })();
