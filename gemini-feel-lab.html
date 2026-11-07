@@ -3188,7 +3188,7 @@
     const camp = rpg.phase === 'camp';
     panel.classList.toggle('hidden', !(result || camp));
 
-    const unexploredCue=result?forestReturnTeaser(state.forestFinds,rpg.crafted):'';
+    const unexploredCue=(result || camp)?forestReturnTeaser(state.forestFinds,rpg.crafted):'';
     const keepExploring=document.getElementById('rpgKeepExploring');
     keepExploring.classList.toggle('hidden', !result);
     keepExploring.textContent=unexploredCue?'🌲 気配を追って調べる':'🌲 森の探索を続ける';
@@ -3241,7 +3241,8 @@
            ? '鍛冶師が仕立てた風裂きの剣を装備。'+temperProspect+'次の遠征では攻撃が強まる。森で気になった場所をもう一度確かめよう。'
            : rpg.banked>=rpgRules.COST
              ? '倉庫の牙'+rpg.banked+'個で風裂きの剣を製作できる。'
-             : '鍛冶剣まで牙あと'+(rpgRules.COST-rpg.banked)+'個。次の遠征で素材を持ち帰ろう。');
+             : '鍛冶剣まで牙あと'+(rpgRules.COST-rpg.banked)+'個。次の遠征で素材を持ち帰ろう。')+
+        (camp && unexploredCue ? ' '+unexploredCue : '');
   }
 
   document.getElementById('rpgOpenResults').addEventListener('click',showRpgPanel);
