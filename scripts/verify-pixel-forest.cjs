@@ -325,6 +325,7 @@ async function clearWave(page,{attackOnlyGuardian=false,preferScoutedOpening=fal
   let scoutedFirstHit = false;
   let openingObserved = false;
   let scoutAttackCueSeen = false;
+  const scoutCueTrace = [];
   let gateFirstFeedbackSeen = false;
   let guardianTellSeen = false;
   let guardianCounterClaimed = false;
@@ -355,6 +356,15 @@ async function clearWave(page,{attackOnlyGuardian=false,preferScoutedOpening=fal
           }
         };
       });
+      if(preferScoutedOpening && scoutCueTrace.length<40 &&
+          s.enemies.some(e=>e.name==='苔祠の番人' && (e.scoutOpeningActive || e.scoutStrikeClaimed))) {
+        scoutCueTrace.push({ms:Date.now()-start,phase:s.phase,mode:attackCue.mode,
+          active:attackCue.active,text:attackCue.text.slice(0,100),
+          rect:attackCue.rect,cueRect:attackCue.cueRect,
+          guardian:s.enemies.filter(e=>e.name==='苔祠の番人').map(e=>({
+            opening:e.scoutOpeningActive,claimed:e.scoutStrikeClaimed,
+            seconds:e.scoutOpeningSeconds}))});
+      }
       if(attackCue.active) {
         assert(s.enemies.some(e => e.name==='苔祠の番人' &&
           e.scoutOpeningActive && !e.scoutStrikeClaimed),
@@ -390,7 +400,7 @@ async function clearWave(page,{attackOnlyGuardian=false,preferScoutedOpening=fal
       if (s.phase === 'return') return { seconds: Math.round((Date.now()-start)/100)/10,
         minimumHp, hpLost:before.player.hp-minimumHp, scoutedFirstHit, openingObserved,
         scoutAttackCueSeen,gateFirstFeedbackSeen,attackOnlyGuardian, guardianTellSeen, guardianCounterClaimed,
-        damageEvents,scoutTrace, after:s };
+        damageEvents,scoutTrace,scoutCueTrace, after:s };
       assert(s.phase === 'fight' && s.player.hp > 0,
         'real-input combat ended in defeat: ' + JSON.stringify(s));
       assert(Array.isArray(s.enemies), 'read-only probe must expose enemy positions');
@@ -1433,7 +1443,8 @@ async function main() {
             'cautious gate-first detour must open a real player-actionable warning; trace='+
             JSON.stringify(gateFirstGuardian.scoutTrace));
           assert.equal(gateFirstGuardian.scoutAttackCueSeen,true,
-            'the earned 2.4s opening must visibly highlight a reachable phone attack button');
+            'the earned 2.4s opening must visibly highlight a reachable phone attack button; cueTrace='+
+            JSON.stringify(gateFirstGuardian.scoutCueTrace));
           assert.equal(gateFirstGuardian.scoutedFirstHit,true,
             'cautious gate-first detour must land the earned +12 strike, not just lengthen an unused timer; trace='+
             JSON.stringify(gateFirstGuardian.scoutTrace));
