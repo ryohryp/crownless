@@ -1346,7 +1346,17 @@ async function main() {
             saveBefore,'the separate location-game save stays untouched');
           // A later expedition must also prove the tempered sword's *shrine*
           // payoff in the real 390px scene, not just the isolated damage rule.
-          // Travel and fight normally; never inject HP, position, loot or saves.
+          // A living return reloads into camp; depart with the actual phone UI
+          // before issuing combat input. Never inject HP, position, loot or saves.
+          assert.equal(safeRestored.phase,'camp',
+            'the safely banked salvage reloads into camp before the shrine revisit');
+          const departForShrine=page.locator('#rpgDepart');
+          await departForShrine.waitFor({state:'visible',timeout:10000});
+          await departForShrine.click();
+          assert.equal((await read(page)).phase,'fight',
+            'the real depart control starts the later tempered shrine expedition');
+          assert.equal((await read(page)).unbanked,0,
+            'the shrine revisit starts without duplicated unsecured loot');
           await clearWave(page);
           await walkTo(page,800,365);
           await tapSite(page,'traces');
