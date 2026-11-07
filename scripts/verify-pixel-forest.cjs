@@ -1128,8 +1128,15 @@ async function main() {
           // Complete the newly added cautious route with genuine phone touches:
           // no state injection, no free banked material, and no duplicate pickup.
           const afterHealingReload=await read(page);
-          assert.equal(afterHealingReload.phase,'fight',
-            'the current save restarts combat without restoring unsecured loot');
+          assert.equal(afterHealingReload.phase,'camp',
+            'safe-return reload restores camp, without restoring unsecured loot');
+          assert.equal(afterHealingReload.unbanked,0,
+            'the healed expedition must not restore provisional materials');
+          const departAfterHealing=page.locator('#rpgDepart');
+          await departAfterHealing.waitFor({state:'visible',timeout:10000});
+          await departAfterHealing.click();
+          assert.equal((await read(page)).phase,'fight',
+            'a real departure after healing-route reload starts the next expedition');
           await clearWave(page);
           await walkTo(page,800,365);
           await tapSite(page,'traces');
