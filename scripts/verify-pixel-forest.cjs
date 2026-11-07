@@ -1824,6 +1824,26 @@ async function main() {
               'the swordless salvage reward survives reload');
             assert.equal(barehandRestored.unbanked,0,
               'reload never duplicates provisional fangs');
+            // Regression for #1064: a saved camp must expose a real, tappable
+            // departure after reload, and that departure must start combat.
+            const depart=barehandPage.locator('#rpgDepart');
+            assert.equal(await depart.isVisible(),true,
+              'restored camp must show the departure button');
+            const departBounds=await depart.boundingBox();
+            assert(departBounds && departBounds.width>=44 && departBounds.height>=44 &&
+              departBounds.x>=0 && departBounds.x+departBounds.width<=390 &&
+              departBounds.y>=0 && departBounds.y+departBounds.height<=844,
+              'restored camp departure must fit the phone viewport');
+            await barehandPage.touchscreen.tap(
+              departBounds.x+departBounds.width/2,
+              departBounds.y+departBounds.height/2);
+            const departed=await read(barehandPage);
+            assert.equal(departed.phase,'fight',
+              'real touch after camp reload must begin a new expedition');
+            assert.equal(departed.banked,barehandRestored.banked,
+              're-departure must preserve already banked materials');
+            assert.equal(departed.unbanked,0,
+              're-departure must not duplicate the previous haul');
             assert.deepEqual(barehandErrors,[],'swordless touch path has no browser errors');
             report.barehandGate={before:beforeBarehand,after:afterBarehand,
               returned:barehandReturn,restored:barehandRestored};
