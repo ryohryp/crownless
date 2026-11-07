@@ -29,7 +29,7 @@
     try {
       const value = JSON.parse(raw);
       return valid(value) ? { version: VERSION, banked: value.banked, crafted: value.crafted,
-        tempered: value.tempered === true } : null;
+        tempered: value.tempered === true, camp: value.camp === true } : null;
     } catch { return null; }
   }
   function encode(state) {
