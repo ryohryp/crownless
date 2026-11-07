@@ -1523,6 +1523,11 @@ async function main() {
           // from the ordinary opening wave (never inject HP), then spend the
           // gate on healing before taking the shrine's optional guardian risk.
           // This must NOT award the salvage-only extra 0.6s warning.
+          // A successful return persists as camp; depart through the real UI.
+          const herbCamp=await read(page);
+          assert.equal(herbCamp.phase,'camp');
+          await page.locator('#rpgKeepExploring').waitFor({state:'visible'});
+          await page.locator('#rpgKeepExploring').click();
           const herbFightStart=await read(page);
           assert.equal(herbFightStart.phase,'fight');
           const woundKeys=new Set();
@@ -1616,8 +1621,12 @@ async function main() {
           // provisional fangs at an HP cost, but must NOT grant the cautious
           // gate's extra 0.6-second warning. Revisit from a real saved camp;
           // never inject health, loot, position or discovery flags.
-          assert.equal(herbRestored.phase,'fight',
-            'the forceful comparison starts as a genuine new expedition');
+          assert.equal(herbRestored.phase,'camp',
+            'the forceful comparison starts from the saved camp');
+          await page.locator('#rpgKeepExploring').waitFor({state:'visible'});
+          await page.locator('#rpgKeepExploring').click();
+          assert.equal((await read(page)).phase,'fight',
+            'the forceful comparison starts after a real departure');
           await clearWave(page);
           await walkTo(page,800,365);
           await tapSite(page,'traces');
