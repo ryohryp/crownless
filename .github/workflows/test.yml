@@ -66,6 +66,8 @@ jobs:
         run: node scripts/verify-gemini-feel-phone.cjs
       - name: Pixel forest real-input exploration and forge loop
         run: npm run playtest:pixel-forest
+      - name: Tactical visual-stage phone and desktop smoke
+        run: npm run playtest:tactical-stage
       - name: Approved protagonist walking and comparison phone smoke
         run: node scripts/verify-hero-still.cjs
       - name: Published Pages payload normal forest entry

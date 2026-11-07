@@ -1,0 +1,47 @@
+:root { color-scheme: dark; font-family: "Yu Mincho", "Hiragino Mincho ProN", Georgia, serif; }
+* { box-sizing: border-box; }
+html, body { margin: 0; width: 100%; height: 100%; overflow: hidden; background: #131717; }
+button, a { -webkit-tap-highlight-color: transparent; }
+.game-shell { display: flex; flex-direction: column; height: 100vh; height: 100dvh; min-height: 0; color: #efe6d1; background: #11191a; }
+.game-header { z-index: 3; flex: 0 0 auto; display: flex; justify-content: space-between; align-items: center; gap: .6rem; min-height: 56px; padding: 8px max(12px, env(safe-area-inset-right)) 8px max(12px, env(safe-area-inset-left)); background: #1c2322; border-bottom: 1px solid #817660; }
+.game-brand { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.game-brand strong { color: #d4c5a3; font-size: 16px; letter-spacing: .12em; }
+.game-brand span { color: #aaa99b; font-size: 10px; white-space: nowrap; }
+.game-status { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 3px 10px; color: #c8d0be; font-family: system-ui, sans-serif; font-size: 11px; text-align: right; }
+.stage-viewport { position: relative; flex: 1 1 auto; min-height: 0; overflow: hidden; background: #101616; touch-action: manipulation; }
+#stageCanvas { display: block; width: 100%; height: 100%; touch-action: manipulation; cursor: crosshair; outline-offset: -3px; }
+#stageCanvas:focus-visible { outline: 3px solid #dfc999; }
+.stage-location, .stage-hint { position: absolute; z-index: 1; pointer-events: none; background: #151c1be6; border: 1px solid #766b56; color: #e4d9bd; font-size: 12px; padding: 7px 10px; box-shadow: 0 2px 8px #0008; }
+.stage-location { top: 13px; left: 12px; }
+.stage-hint { bottom: 12px; right: 12px; color: #b9c4b6; }
+.stage-discovery { position: absolute; top: 19%; left: 50%; z-index: 2; transform: translateX(-50%); display: grid; gap: 5px; justify-items: center; width: min(90%, 410px); padding: 13px; background: #18221ef2; border: 2px solid #a99b79; box-shadow: 0 5px 25px #000c; text-align: center; }
+.stage-discovery[hidden] { display: none; }
+.stage-discovery span { color: #bcb39b; letter-spacing: .17em; font-family: Georgia, serif; font-size: 11px; }
+.stage-discovery strong { color: #f5e6c8; font-size: 19px; }
+.stage-loading { position: absolute; inset: 0; display: grid; place-items: center; color: #eee1c6; font-size: 14px; background: #11191a; z-index: 4; }
+.stage-loading[hidden] { display: none; }
+.command-deck { flex: 0 0 auto; padding: 10px max(12px, env(safe-area-inset-right)) max(8px, env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)); background: #1b2322; border-top: 1px solid #8c8065; box-shadow: 0 -5px 18px #0008; }
+.story-readout { display: flex; align-items: baseline; gap: 10px; min-height: 42px; }
+#phaseLabel { color: #e3d1a7; font-size: 13px; font-weight: bold; white-space: nowrap; }
+#message { margin: 0; color: #e0e5d6; line-height: 1.45; font-family: system-ui, sans-serif; font-size: 13px; }
+.commands { display: flex; gap: 9px; margin: 8px 0; }
+.commands button { min-height: 51px; flex: 1; border: 1px solid #958a73; border-radius: 5px; background: #3a4940; color: #f9f1d9; font-family: inherit; font-weight: bold; font-size: 15px; cursor: pointer; }
+.commands button.primary { background: #786b4c; border-color: #d4bc88; color: #fff4d7; }
+.commands button:active { filter: brightness(1.2); transform: translateY(1px); }
+.commands button:focus-visible { outline: 3px solid #dbc185; outline-offset: 2px; }
+.commands button:disabled { opacity: .45; cursor: wait; }
+.stage-meta { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-family: system-ui, sans-serif; font-size: 10px; color: #9da89f; }
+.stage-meta a { color: #ead5a3; white-space: nowrap; padding: 3px 0; }
+@media(max-width: 420px) {
+  .game-header { min-height: 54px; }
+  .game-brand strong { font-size: 14px; }
+  .game-status { font-size: 10px; }
+  .stage-location { font-size: 11px; }
+  .stage-hint { bottom: 8px; font-size: 10px; }
+  .story-readout { min-height: 47px; }
+  #message { font-size: 12px; }
+  .commands button { font-size: 13px; min-height: 52px; }
+  .stage-meta { font-size: 9px; }
+}
+@media(max-height: 650px) { .stage-hint { display: none; } .story-readout { min-height: 28px; } .command-deck { padding-top: 5px; } }
+@media(prefers-reduced-motion: reduce) { .commands button:active { transform: none; } }

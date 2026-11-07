@@ -11,6 +11,7 @@
     "playtest:browser:full": "node scripts/playtest-browser-jev.cjs --full",
     "playtest:smoke": "node scripts/playtest-browser-smoke.cjs && node scripts/verify-tower-bag-phone.cjs",
     "playtest:pixel-forest": "node scripts/verify-pixel-forest.cjs",
+    "playtest:tactical-stage": "node scripts/verify-tactical-stage.cjs",
     "asset:quality": "node scripts/asset-quality-gate.cjs"
   },
   "devDependencies": {
