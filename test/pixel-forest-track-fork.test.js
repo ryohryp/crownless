@@ -150,7 +150,16 @@ test('bridge is safe before atlas load and rebakes its stone grain after load', 
   scene.ground(screen, heightAt);
   assert.equal(canvases.filter(canvas => canvas.width === 600).length, 1,
     'pending atlas load keeps the same fallback bridge cache');
+  // A broken image can be complete with zero intrinsic width. It must not
+  // be treated as a loaded atlas or trigger an invalid canvas draw.
   images[1].complete = true;
+  images[1].naturalWidth = 0;
+  assert.doesNotThrow(() => scene.ground(screen, heightAt),
+    'broken atlas remains on the safe fallback');
+  assert.equal(canvases.filter(canvas => canvas.width === 600).length, 1,
+    'broken atlas does not rebake the fallback every frame');
+  assert.equal(drawCalls.some(args => args[0] === images[1]), false,
+    'broken atlas is never passed to drawImage');
   images[1].naturalWidth = 1536;
   images[1].listeners.load();
   assert.doesNotThrow(() => scene.ground(screen, heightAt));
