@@ -1,4 +1,4 @@
-/* Standalone 2.5D discovery-stage pilot. Presentation never writes production saves. */
+/* Standalone HD-2D inspired discovery-stage pilot. Never writes production saves. */
 (function () {
   'use strict';
   const Core = window.CrownlessTacticalStageCore;
@@ -17,12 +17,16 @@
   };
   const W = 1280, H = 720;
   const ASSETS = {
-    forest: 'assets/tactical-stage/northern-ridge.webp',
-    keep: 'assets/tactical-stage/ruined-keep.webp',
-    vault: 'assets/tactical-stage/old-vault.webp',
-    scout: 'assets/tactical-stage/scout.webp',
+    forest: 'assets/tactical-stage/northern-ridge-hd2d.webp',
+    keep: 'assets/tactical-stage/ruined-keep-hd2d.webp',
+    vault: 'assets/tactical-stage/old-vault-hd2d.webp',
+    scout: 'assets/tactical-stage/approved-hero.webp',
     guardian: 'assets/tactical-stage/guardian.webp',
   };
+  const fogCanvas = document.createElement('canvas');
+  fogCanvas.width = W; fogCanvas.height = H;
+  const fogCtx = fogCanvas.getContext('2d');
+  let fogVisitedCount = -1, fogDiscovered = false;
   const imgs = {};
   let state = Core.initial();
   let imagesReady = false, loadFailed = false;
@@ -144,34 +148,70 @@
   }
 
   function drawFog() {
-    const radius = 173;
-    const revealed = state.visited.map(i => Core.ROUTE[i]);
-    for (let y = 0; y < H; y += 32) for (let x = 0; x < W; x += 32) {
-      const midx = x + 16, midy = y + 16;
-      const seen = revealed.some(p => Math.hypot(midx-p.x, midy-p.y) < radius) ||
-        (state.discovered && midx > 780 && midy < 425);
-      ctx.fillStyle = seen ? 'rgba(9,16,22,.09)' : 'rgba(5,11,19,.82)';
-      ctx.fillRect(x, y, 33, 33);
+    if (fogVisitedCount !== state.visited.length || fogDiscovered !== state.discovered) {
+      // Cache the feathered mask. Only the discovered route changes it;
+      // repopulating this full-screen canvas every animation frame is costly.
+      fogCtx.clearRect(0, 0, W, H);
+      fogCtx.fillStyle = 'rgba(17,23,29,.61)';
+      fogCtx.fillRect(0, 0, W, H);
+      fogCtx.globalCompositeOperation = 'destination-out';
+      const revealed = state.visited.map(i => Core.ROUTE[i]);
+      if (state.discovered) revealed.push({x: 1080, y: 215});
+      revealed.forEach(p => {
+        const radius = 238;
+        const g = fogCtx.createRadialGradient(p.x, p.y, 55, p.x, p.y, radius);
+        g.addColorStop(0, 'rgba(0,0,0,.97)');
+        g.addColorStop(.45, 'rgba(0,0,0,.91)');
+        g.addColorStop(1, 'rgba(0,0,0,0)');
+        fogCtx.fillStyle = g;
+        fogCtx.fillRect(p.x-radius, p.y-radius, radius*2, radius*2);
+      });
+      fogCtx.globalCompositeOperation = 'source-over';
+      fogVisitedCount = state.visited.length;
+      fogDiscovered = state.discovered;
     }
+    ctx.drawImage(fogCanvas, 0, 0);
   }
 
   function ring(x, y, time, color = '#d9c18c') {
     const pulse = Math.sin(time / 380) * 4;
     ctx.strokeStyle = color;
-    ctx.lineWidth = 2;
+    ctx.lineWidth = 1.6;
+    ctx.shadowColor = '#ffe6a6'; ctx.shadowBlur = 9;
     ctx.beginPath();
-    ctx.moveTo(x, y-20-pulse); ctx.lineTo(x+37+pulse, y);
-    ctx.lineTo(x, y+20+pulse); ctx.lineTo(x-37-pulse, y);
+    ctx.moveTo(x, y-13-pulse); ctx.lineTo(x+25+pulse, y);
+    ctx.lineTo(x, y+13+pulse); ctx.lineTo(x-25-pulse, y);
     ctx.closePath(); ctx.stroke();
+    ctx.shadowBlur = 0;
   }
 
   function drawActor(image, x, y, height, bob = 0) {
     const width = image.naturalWidth * (height / image.naturalHeight);
-    ctx.fillStyle = 'rgba(5,9,8,.46)';
-    ctx.beginPath(); ctx.ellipse(x, y-2, 18, 6, 0, 0, Math.PI*2); ctx.fill();
+    ctx.fillStyle = 'rgba(4,8,9,.4)';
+    ctx.beginPath(); ctx.ellipse(x, y-2, width*.29, 5.5, 0, 0, Math.PI*2); ctx.fill();
+    ctx.shadowColor = 'rgba(4,9,10,.46)'; ctx.shadowBlur = 9; ctx.shadowOffsetY = 4;
     ctx.imageSmoothingEnabled = false;
     ctx.drawImage(image, x-width/2, y-height+bob, width, height);
+    ctx.shadowBlur = 0; ctx.shadowOffsetY = 0;
     ctx.imageSmoothingEnabled = true;
+  }
+
+  function drawAir(now, current) {
+    if (reducedMotion) return;
+    // Tiny screen-space motes catch the baked environment's oblique light.
+    ctx.save();
+    ctx.globalCompositeOperation = 'screen';
+    for (let i = 0; i < 26; i++) {
+      const seed = i*115.71;
+      const x = (seed*13 + Math.sin(now/5400+i)*34 + W*2) % W;
+      const y = (seed*7 + now*(.004+i%3*.001) + H*3) % H;
+      const inBeam = current === 'forest' ? (x > 250 && x < 750 && y < 420) :
+        current === 'keep' ? (x > 350 && x < 850 && y < 430) : (x > 680 && x < 1080 && y < 530);
+      if (!inBeam) continue;
+      ctx.fillStyle = `rgba(255,227,173,${.12+.11*Math.sin(i+now/1900)**2})`;
+      ctx.beginPath(); ctx.arc(x,y,(i%3+1)*.55,0,Math.PI*2); ctx.fill();
+    }
+    ctx.restore();
   }
 
   function paint(now) {
@@ -190,6 +230,7 @@
     ctx.scale(scale, scale);
     ctx.imageSmoothingEnabled = true;
     ctx.drawImage(imgs[current], 0, 0, W, H);
+    drawAir(now, current);
 
     if (current === 'forest') {
       drawFog();
@@ -197,11 +238,11 @@
         const next = Core.ROUTE[state.step + 1];
         ring(next.x, next.y, now);
       }
-      if (state.discovered) ring(1090, 240, now, '#d8bd8a');
-      drawActor(imgs.scout, view.x, view.y, 65, motion ? Math.sin(now/65)*2 : 0);
+      if (state.discovered) ring(1080, 215, now, '#d8bd8a');
+      drawActor(imgs.scout, view.x, view.y, 70, motion ? Math.sin(now/65)*2 : 0);
     } else if (current === 'keep') {
       ring(850, 430, now, state.combatTurn%2===0?'#c6a16f':'#9aafa4');
-      drawActor(imgs.scout, 520, 499, 65);
+      drawActor(imgs.scout, 520, 499, 94);
       if (state.phase === 'combat') {
         drawActor(imgs.guardian, 852, 432, 152, Math.sin(now/230)*2);
         ctx.fillStyle = '#252d2a'; ctx.fillRect(785, 267, 136, 12);
@@ -218,7 +259,7 @@
         }
       }
     } else {
-      drawActor(imgs.scout, 672, 424, 65);
+      drawActor(imgs.scout, 672, 424, 94);
       if (state.collected) {
         ctx.strokeStyle = '#ead5a0'; ctx.lineWidth = 2;
         for (let i=0; i<10; i++) {
