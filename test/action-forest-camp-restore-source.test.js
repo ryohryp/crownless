@@ -22,3 +22,17 @@ test('camp panel and departure action remain reachable', () => {
   assert.match(html, /getElementById\('rpgDepart'\)\.addEventListener\('click'/);
   assert.match(html, /if \(!rpgRules\.depart\(rpg\)\) return;/);
 });
+
+test('camp reload preserves an earned exploration teaser without exposing a hidden route', () => {
+  const panelStart = html.indexOf('  function showRpgPanel()');
+  const panelEnd = html.indexOf("  document.getElementById('rpgOpenResults')", panelStart);
+  assert.ok(panelStart >= 0 && panelEnd > panelStart);
+  const panel = html.slice(panelStart, panelEnd);
+  assert.match(panel, /const unexploredCue=\(result \|\| camp\)\?forestReturnTeaser\(state\.forestFinds,rpg\.crafted\):'';/);
+  assert.match(panel, /\(camp && unexploredCue \? ' '\+unexploredCue : ''\)/,
+    'the teaser must remain visible in camp info, not only in a hidden return action');
+  assert.match(panel, /depart\.textContent=forestRevisitAction\(state\.forestFinds\);/,
+    'departure is still a deliberate player action, not automatic discovery');
+  assert.doesNotMatch(panel, /(?:depart|unexploredCue)\.dataset\.(?:x|z|target)/,
+    'the teaser must not create a route marker for an undiscovered site');
+});
