@@ -1827,8 +1827,18 @@ async function main() {
             // Regression for #1064: a saved camp must expose a real, tappable
             // departure after reload, and that departure must start combat.
             const depart=barehandPage.locator('#rpgDepart');
-            assert.equal(await depart.isVisible(),true,
-              'restored camp must show the departure button');
+            // assetsReady can precede the window load handler that reopens
+            // the saved camp panel (external fonts/styles may still load).
+            // Wait for the actual visible UI, never toggle it from the test.
+            await depart.waitFor({state:'visible',timeout:10000}).catch(async error => {
+              const ui=await barehandPage.evaluate(()=>({
+                readyState:document.readyState,
+                phase:window.CrownlessForestReadout?.().phase,
+                panelHidden:document.getElementById('rpgPanel')?.classList.contains('hidden'),
+                departHidden:document.getElementById('rpgDepart')?.classList.contains('hidden')
+              }));
+              throw new Error('restored camp departure not visible: '+JSON.stringify(ui),{cause:error});
+            });
             const departBounds=await depart.boundingBox();
             assert(departBounds && departBounds.width>=44 && departBounds.height>=44 &&
               departBounds.x>=0 && departBounds.x+departBounds.width<=390 &&
