@@ -1197,7 +1197,8 @@ test('victory return panel hints at remaining discoveries without spoiling them 
   }
   const resultPanel=html.slice(html.indexOf('function showRpgPanel() {'),
     html.indexOf("document.getElementById('rpgOpenResults').addEventListener"));
-  assert.match(resultPanel,/const unexploredCue=result\?forestReturnTeaser\(state\.forestFinds,rpg\.crafted\):'';/);
+  assert.match(resultPanel,/const unexploredCue=\(result \|\| camp\)\?forestReturnTeaser\(state\.forestFinds,rpg\.crafted\):'';/,
+    'earned unexplored clues remain visible at camp after safe return and reload');
   assert.match(resultPanel,/keepExploring\.textContent=unexploredCue\?/,
     'the existing explore action should invite deliberate investigation');
   assert.match(resultPanel,/unexploredCue\?' '\+unexploredCue\+' 気になるなら森を調べよう。'/,
