@@ -1526,8 +1526,8 @@ async function main() {
           // A successful return persists as camp; depart through the real UI.
           const herbCamp=await read(page);
           assert.equal(herbCamp.phase,'camp');
-          await page.locator('#rpgKeepExploring').waitFor({state:'visible'});
-          await page.locator('#rpgKeepExploring').click();
+          await page.locator('#rpgDepart').waitFor({state:'visible'});
+          await page.locator('#rpgDepart').click();
           const herbFightStart=await read(page);
           assert.equal(herbFightStart.phase,'fight');
           const woundKeys=new Set();
@@ -1623,8 +1623,8 @@ async function main() {
           // never inject health, loot, position or discovery flags.
           assert.equal(herbRestored.phase,'camp',
             'the forceful comparison starts from the saved camp');
-          await page.locator('#rpgKeepExploring').waitFor({state:'visible'});
-          await page.locator('#rpgKeepExploring').click();
+          await page.locator('#rpgDepart').waitFor({state:'visible'});
+          await page.locator('#rpgDepart').click();
           assert.equal((await read(page)).phase,'fight',
             'the forceful comparison starts after a real departure');
           await clearWave(page);
