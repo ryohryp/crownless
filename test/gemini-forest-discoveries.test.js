@@ -1197,11 +1197,11 @@ test('victory return panel hints at remaining discoveries without spoiling them 
   }
   const resultPanel=html.slice(html.indexOf('function showRpgPanel() {'),
     html.indexOf("document.getElementById('rpgOpenResults').addEventListener"));
-  assert.match(resultPanel,/const unexploredCue=\(result \|\| camp\)\?forestReturnTeaser\(state\.forestFinds,rpg\.crafted\):'';/,
+  assert.match(resultPanel,/const unexploredCue=\(result \|\| \(camp && state\.forestFinds\.has\('traces'\)\)\)\?forestReturnTeaser\(state\.forestFinds,rpg\.crafted\):'';/,
     'earned unexplored clues remain visible at camp after safe return and reload');
   assert.match(resultPanel,/keepExploring\.textContent=unexploredCue\?/,
     'the existing explore action should invite deliberate investigation');
-  assert.match(resultPanel,/unexploredCue\?' '\+unexploredCue\+' 気になるなら森を調べよう。'/,
+  assert.match(resultPanel,/\(camp && unexploredCue \? ' '\+unexploredCue : ''\)/,
     'the player should see the unexplored cue alongside the safe-return stakes');
   assert.match(resultPanel,/const safeTotal=rpg\.banked\+rpg\.unbanked;/);
   assert.match(resultPanel,/rpgRules\.COST-safeTotal/,
