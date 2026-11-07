@@ -1425,7 +1425,15 @@ async function main() {
           // lead before choosing the optional shrine fight. The same tempered
           // sword is used as in the shrine-first run above; no test-only
           // teleport, reward injection, or save edits are permitted.
-          assert.equal(temperedShrineRestored.phase,'fight');
+          assert.equal(temperedShrineRestored.phase,'camp',
+            'the shrine return reloads into camp before the gate-first comparison');
+          const departForGateFirst=page.locator('#rpgDepart');
+          await departForGateFirst.waitFor({state:'visible',timeout:10000});
+          await departForGateFirst.click();
+          assert.equal((await read(page)).phase,'fight',
+            'the real depart button launches the gate-first comparison expedition');
+          assert.equal((await read(page)).unbanked,0,
+            'the new expedition starts without carrying provisional shrine loot');
           await clearWave(page);
           await walkTo(page,800,365);
           await tapSite(page,'traces');
