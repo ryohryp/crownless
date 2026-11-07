@@ -160,6 +160,14 @@ test('bridge is safe before atlas load and rebakes its stone grain after load', 
     'broken atlas does not rebake the fallback every frame');
   assert.equal(drawCalls.some(args => args[0] === images[1]), false,
     'broken atlas is never passed to drawImage');
+  // An incomplete image can also fire an error event without becoming
+  // drawable. The bridge must remain usable until a valid atlas arrives.
+  images[1].complete = false;
+  assert.doesNotThrow(() => scene.ground(screen, heightAt),
+    'failed atlas request keeps the fallback bridge drawable');
+  assert.equal(canvases.filter(canvas => canvas.width === 600).length, 1,
+    'failed atlas request must not churn the bridge cache');
+  images[1].complete = true;
   images[1].naturalWidth = 1536;
   images[1].listeners.load();
   assert.doesNotThrow(() => scene.ground(screen, heightAt));
