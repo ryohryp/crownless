@@ -28,7 +28,8 @@ test('camp reload preserves an earned exploration teaser without exposing a hidd
   const panelEnd = html.indexOf("  document.getElementById('rpgOpenResults')", panelStart);
   assert.ok(panelStart >= 0 && panelEnd > panelStart);
   const panel = html.slice(panelStart, panelEnd);
-  assert.match(panel, /const unexploredCue=\(result \|\| camp\)\?forestReturnTeaser\(state\.forestFinds,rpg\.crafted\):'';/);
+  assert.match(panel, /const unexploredCue=\(result \|\| \(camp && state\.forestFinds\.has\('traces'\)\)\)\?forestReturnTeaser\(state\.forestFinds,rpg\.crafted\):'';/,
+    'camp must not reveal an unearned trail clue before traces are discovered');
   assert.match(panel, /\(camp && unexploredCue \? ' '\+unexploredCue : ''\)/,
     'the teaser must remain visible in camp info, not only in a hidden return action');
   assert.match(panel, /depart\.textContent=forestRevisitAction\(state\.forestFinds\);/,
