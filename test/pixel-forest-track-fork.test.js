@@ -12,7 +12,7 @@ function trackMarks(found) {
   };
   const context = {
     window,
-    Image: class { constructor() { this.complete = false; this.naturalWidth = 0; } },
+    Image: class { constructor() { this.complete = false; this.naturalWidth = 0; } addEventListener() {} },
     document: { createElement() { return { getContext() { return ground; } }; } }
   };
   vm.runInNewContext(fs.readFileSync('src/pixel-forest.js', 'utf8'), context);
@@ -111,4 +111,72 @@ test('the field HUD keeps the unvisited fork visible after either first discover
   }
   assert.match(labelFor(['traces', 'shrine', 'hollow']), /未帰還の牙 2個/,
     'after both inspections, the ordinary safe-return stakes resume');
+});
+
+test('bridge is safe before atlas load and rebakes its stone grain after load', () => {
+  const images = [];
+  const canvases = [];
+  const drawCalls = [];
+  class FakeImage {
+    constructor() { this.complete = false; this.naturalWidth = 0; this.listeners = {}; images.push(this); }
+    addEventListener(type, callback) { this.listeners[type] = callback; }
+  }
+  function surface() {
+    const context = new Proxy({ drawImage(...args) { drawCalls.push(args); } }, {
+      get(target, key) {
+        if (key in target) return target[key];
+        if (key === 'createLinearGradient') return () => ({ addColorStop() {} });
+        return () => {};
+      }
+    });
+    const canvas = { width: 0, height: 0, getContext: () => context };
+    canvases.push(canvas);
+    return canvas;
+  }
+  const window = {};
+  vm.runInNewContext(fs.readFileSync('src/pixel-forest.js', 'utf8'), {
+    window, Image: FakeImage, document: { createElement: surface }
+  });
+  const scene = window.CrownlessPixelForest.create();
+  const screen = surface().getContext('2d');
+  const heightAt = () => 0;
+  assert.doesNotThrow(() => scene.ground(screen, heightAt), 'unloaded atlas must not abort first paint');
+  const firstBridge = canvases.find(canvas => canvas.width === 600);
+  assert(firstBridge, 'first bridge fallback is baked');
+  assert.equal(drawCalls.some(args => args[0] === images[1]), false,
+    'unloaded atlas is never passed to drawImage');
+  // Repeated frames before image load must reuse the fallback instead of
+  // allocating a new bridge surface on every animation frame.
+  scene.ground(screen, heightAt);
+  assert.equal(canvases.filter(canvas => canvas.width === 600).length, 1,
+    'pending atlas load keeps the same fallback bridge cache');
+  // A broken image can be complete with zero intrinsic width. It must not
+  // be treated as a loaded atlas or trigger an invalid canvas draw.
+  images[1].complete = true;
+  images[1].naturalWidth = 0;
+  assert.doesNotThrow(() => scene.ground(screen, heightAt),
+    'broken atlas remains on the safe fallback');
+  assert.equal(canvases.filter(canvas => canvas.width === 600).length, 1,
+    'broken atlas does not rebake the fallback every frame');
+  assert.equal(drawCalls.some(args => args[0] === images[1]), false,
+    'broken atlas is never passed to drawImage');
+  // An incomplete image can also fire an error event without becoming
+  // drawable. The bridge must remain usable until a valid atlas arrives.
+  images[1].complete = false;
+  assert.doesNotThrow(() => scene.ground(screen, heightAt),
+    'failed atlas request keeps the fallback bridge drawable');
+  assert.equal(canvases.filter(canvas => canvas.width === 600).length, 1,
+    'failed atlas request must not churn the bridge cache');
+  images[1].complete = true;
+  images[1].naturalWidth = 1536;
+  images[1].listeners.load();
+  assert.doesNotThrow(() => scene.ground(screen, heightAt));
+  const bridges = canvases.filter(canvas => canvas.width === 600);
+  assert.equal(bridges.length, 2, 'atlas load invalidates exactly one bridge cache');
+  assert.notEqual(bridges[0], bridges[1], 'the cached fallback must be replaced');
+  assert(drawCalls.some(args => args[0] === images[1]),
+    'rebaked bridge uses the now-loaded stone atlas');
+  scene.ground(screen, heightAt);
+  assert.equal(canvases.filter(canvas => canvas.width === 600).length, 2,
+    'subsequent frames reuse the textured bridge without rebaking');
 });

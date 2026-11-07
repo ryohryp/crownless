@@ -35,11 +35,35 @@
       g.fillStyle=colors[Math.floor(random()*colors.length)];
       g.fillRect(x,y,2+Math.floor(random()*4),1+Math.floor(random()*2));
     }
-    // Broad soft canopy shadows, kept behind actors for readable silhouettes.
-    for(const [x,y,r] of [[110,50,110],[390,110,85],[735,70,100],[990,180,75]]) {
-      const shadow=g.createRadialGradient(x,y,0,x,y,r);
-      shadow.addColorStop(0,'rgba(25,38,24,.32)');shadow.addColorStop(1,'rgba(25,38,24,0)');
-      g.fillStyle=shadow;g.fillRect(x-r,y-r,r*2,r*2);
+    // Sparse, hand-clustered 16-bit grass and fallen leaves break up the flat
+    // field without marking routes or changing any walkability/hit geometry.
+    // Keep the authored road clear so genuine discoveries stay legible.
+    for(let i=0;i<180;i++) {
+      const x=8+Math.floor(random()*1034), y=8+Math.floor(random()*224);
+      const pathY=108+Math.sin(x/155)*44;
+      if(Math.abs(y-pathY)<51) continue;
+      const leaf=random()>.76;
+      g.fillStyle=leaf?'#a18a59':'#304c32';
+      g.fillRect(x,y,2,4);
+      g.fillRect(x+4,y-2,2,6);
+      g.fillStyle=leaf?'#c0a16a':'#81905b';
+      g.fillRect(x+2,y+2,2,3);
+      g.fillRect(x+6,y+1,2,2);
+    }
+    // Clustered canopy shade: crisp 4px cells instead of blurred radial
+    // gradients. This is baked once, behind actors, and never affects collision.
+    // A deterministic checker threshold softens edges without smooth pixels.
+    for(const [cx,cy,r] of [[110,50,110],[390,110,85],[735,70,100],[990,180,75]]) {
+      const cell=4;
+      for(let y=Math.max(0,Math.floor((cy-r)/cell)*cell);y<Math.min(240,cy+r);y+=cell) {
+        for(let x=Math.max(0,Math.floor((cx-r)/cell)*cell);x<Math.min(1050,cx+r);x+=cell) {
+          const distance=Math.hypot((x+2-cx)/r,(y+2-cy)/r);
+          const stipple=((x/cell*17+y/cell*31)%11+11)%11/11;
+          if(distance>.94 || distance>.68 && stipple<.55) continue;
+          g.fillStyle=distance<.48?'rgba(25,38,24,.27)':'rgba(25,38,24,.15)';
+          g.fillRect(x,y,cell,cell);
+        }
+      }
     }
     function sprite(ctx, name, x, z, height, alpha = 1) {
       if (!ready(atlas)) return false;
@@ -62,6 +86,9 @@
       if(wave%3===2) {ctx.fillStyle='rgba(25,31,43,.18)';ctx.fillRect(0,0,width,210);}
     }
     let bridge;
+    // The bridge may be baked before its stone atlas finishes loading.
+    // Rebuild once the atlas is ready so its texture appears without reload.
+    atlas.addEventListener('load', () => { bridge = undefined; }, {once: true});
     function stoneBridge(heightAt) {
       // One reusable surface, baked once. Smaller flush stones follow the
       // actual walkable curve; they are not stacked, bevelled cubes.
@@ -98,9 +125,14 @@
           b.fillStyle=['#8b8b75','#93907b','#84866f','#8e8c76'][Math.floor(rand()*4)];b.fill();
           // Reuse the ruin atlas's weathered stone grain, clipped into each
           // slab. The bridge shares the shrine's material without another PNG.
-          b.save();b.clip();b.globalAlpha=.32;
-          b.drawImage(atlas,985,818,34,25,from,z-Math.max(h1,h2),end-from,7+Math.abs(h1-h2));
-          b.restore();
+          // The bridge is baked before image assets may finish loading.
+          // An unloaded atlas throws on drawImage and would abort the forest
+          // render, so keep the stone silhouette usable on first paint.
+          if (ready(atlas)) {
+            b.save();b.clip();b.globalAlpha=.32;
+            b.drawImage(atlas,985,818,34,25,from,z-Math.max(h1,h2),end-from,7+Math.abs(h1-h2));
+            b.restore();
+          }
           // Occasional worn edges, rather than a bright bevel on every slab.
           if(rand()>.65) {
             b.strokeStyle='rgba(187,180,151,.3)';b.lineWidth=.5;
@@ -125,6 +157,40 @@
       ctx.drawImage(floor,0,190);
       if(!bridge) bridge=stoneBridge(heightAt);
       ctx.drawImage(bridge,430,185,300,168);
+      // Distant ruined watchtower: a pixel-cluster landmark rather than a
+      // navigable object. Keep it behind the existing trees and route; no
+      // collision, hidden-route, or discovery state is inferred from this art.
+      ctx.save();
+      const rx=920, ry=105, cell=6;
+      const stone=['#535b4c','#666b56','#81816a','#a29b7b'];
+      const blocks=[
+        [0,5,8,15],[1,3,2,2],[5,2,2,3],[8,6,3,14],
+        [2,1,1,2],[6,0,1,2],[9,4,1,2],[3,8,4,8]
+      ];
+      for(const [bx,by,bw,bh] of blocks) {
+        ctx.fillStyle=stone[(bx+by)%stone.length];
+        ctx.fillRect(rx+bx*cell,ry+by*cell,bw*cell,bh*cell);
+      }
+      // Offset masonry seams and missing corner stones add a readable ruin
+      // texture at the same six-pixel grid as the silhouette. Keep all detail
+      // inside the existing distant landmark; it is not an interactable path.
+      ctx.fillStyle='#394438';
+      for(const [x,y,w] of [[1,6,3],[5,6,2],[1,10,2],[5,13,3],[1,17,3],[6,18,2],[9,9,1]]) {
+        ctx.fillRect(rx+x*cell,ry+y*cell,w*cell,Math.max(2,cell/3));
+      }
+      ctx.fillStyle='#b0a68a';
+      for(const [x,y] of [[2,5],[6,4],[1,9],[7,11],[3,15],[8,17]]) {
+        ctx.fillRect(rx+x*cell,ry+y*cell,cell,2);
+      }
+      // Broken crenellations, a dark window and ivy keep the silhouette
+      // legible at phone scale without smooth strokes or glow effects.
+      ctx.fillStyle='#252f2a';
+      ctx.fillRect(rx+4*cell,ry+8*cell,2*cell,4*cell);
+      ctx.fillStyle='#465c3c';
+      for(const [x,y] of [[1,11],[2,12],[7,7],[8,9],[9,13]]) {
+        ctx.fillRect(rx+x*cell,ry+y*cell,cell,2*cell);
+      }
+      ctx.restore();
       for(const [name,x,z,h] of [
         ['oak',55,224,235],['pine',350,207,205],['oak',510,203,185],
         ['pine',760,208,225],['wall',140,208,53],['wall',805,208,46]

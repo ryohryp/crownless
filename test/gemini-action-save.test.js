@@ -26,7 +26,7 @@ test('only genuinely returned materials and smith equipment survive a reload', (
   assert.equal(P.restore(resumed, P.decode(savedAfterReturn)), true);
   assert.equal(resumed.banked, 3);
   assert.equal(resumed.crafted, false);
-  assert.equal(resumed.phase, 'fight');
+  assert.equal(resumed.phase, 'camp');
   assert.equal(resumed.unbanked, 0);
   R.loseExpedition(resumed);
   assert.equal(resumed.banked, 3, 'a later defeat cannot erase a previous safe return');
@@ -41,7 +41,7 @@ test('only genuinely returned materials and smith equipment survive a reload', (
 });
 
 test('new storage is empty but corrupted/versioned data is rejected rather than rewritten', () => {
-  assert.deepEqual(P.decode(null), { version: 1, banked: 0, crafted: false, tempered: false });
+  assert.deepEqual(P.decode(null), { version: 1, banked: 0, crafted: false, tempered: false, camp: false });
   for (const raw of [
     '', '{}', 'invalid JSON', '[]', '{"version":2,"banked":3,"crafted":true}',
     '{"version":1,"banked":-1,"crafted":true}',
@@ -79,5 +79,21 @@ test('tempered sword persists after safe return, while current v1 saves still lo
   assert.equal(fresh.tempered, true);
   assert.equal(fresh.banked, 0);
   assert.equal(fresh.unbanked, 0);
-  assert.equal(fresh.phase, 'fight');
+  assert.equal(fresh.phase, 'camp');
+});
+
+test('saved camp restores departure while interrupted combat still starts fresh', () => {
+  const camp = R.create();
+  R.clearWave(camp);
+  R.returnAlive(camp, 10);
+  const saved = P.decode(P.encode(camp));
+  assert.equal(saved.camp, true);
+  const restored = R.create();
+  assert.equal(P.restore(restored, saved), true);
+  assert.equal(restored.phase, 'camp');
+  assert.equal(restored.unbanked, 0);
+  R.depart(restored);
+  assert.equal(restored.phase, 'fight');
+  assert.equal(P.restore(restored, P.decode(P.encode(restored))), true);
+  assert.equal(restored.phase, 'fight');
 });
