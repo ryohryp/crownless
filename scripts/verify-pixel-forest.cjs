@@ -1290,8 +1290,15 @@ async function main() {
           // Revisit once more with the same saved tempered sword, this time
           // taking the *safe* one-fang choice by a real phone touch. This
           // distinguishes its outcome from the already-tested risky +2 route.
-          assert.equal(temperedRestored.phase,'fight',
-            'the previous living return can launch another genuine expedition');
+          assert.equal(temperedRestored.phase,'camp',
+            'the previous living return reloads into camp before another expedition');
+          const departForSafeChoice=page.locator('#rpgDepart');
+          await departForSafeChoice.waitFor({state:'visible',timeout:10000});
+          await departForSafeChoice.click();
+          assert.equal((await read(page)).phase,'fight',
+            'the saved tempered sword can launch another expedition through the real depart button');
+          assert.equal((await read(page)).unbanked,0,
+            'the next expedition starts without duplicated unsecured loot');
           await clearWave(page);
           await walkTo(page,800,365);
           await tapSite(page,'traces');
