@@ -20,10 +20,11 @@
       record.banked >= 0 && record.banked <= MAX_BANKED &&
       typeof record.crafted === 'boolean' &&
       (record.tempered === undefined || typeof record.tempered === 'boolean') &&
-      (!record.tempered || record.crafted));
+      (!record.tempered || record.crafted) &&
+      (record.camp === undefined || typeof record.camp === 'boolean'));
   }
   function decode(raw) {
-    if (raw === null) return { version: VERSION, banked: 0, crafted: false, tempered: false };
+    if (raw === null) return { version: VERSION, banked: 0, crafted: false, tempered: false, camp: false };
     if (typeof raw !== 'string' || raw.length > 2000) return null;
     try {
       const value = JSON.parse(raw);
@@ -33,7 +34,8 @@
   }
   function encode(state) {
     const value = { version: VERSION, banked: state?.banked, crafted: state?.crafted,
-      tempered: state?.tempered ?? false };
+      tempered: state?.tempered ?? false,
+      ...(state?.phase === 'camp' ? { camp: true } : {}) };
     if (!valid(value)) throw new TypeError('invalid action-lab progress');
     return JSON.stringify(value);
   }
@@ -44,7 +46,7 @@
     state.tempered = record.tempered === true;
     // One fresh fight per page load. Interrupted, unreturned loot is not recoverable.
     state.unbanked = 0;
-    state.phase = 'fight';
+    state.phase = record.camp === true ? 'camp' : 'fight';
     return true;
   }
   return { VERSION, KEY_PREFIX, key, decode, encode, restore };
