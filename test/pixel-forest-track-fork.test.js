@@ -60,6 +60,11 @@ test('reading forest tracks reveals two broken visual leads, never an unearned d
     'the inspected moss lead leaves no stale splinter');
   assert.deepEqual(trackMarks(new Set(['traces', 'shrine', 'hollow'])), [],
     'once both leads are inspected, the fork stops advertising discoveries');
+  const scouted = new Set(['traces', 'hollow', 'hollow-scout']);
+  assert.deepEqual(trackMarks(scouted), mossOnly,
+    'earning a combat scouting advantage does not erase the unvisited moss lead');
+  assert.deepEqual([...scouted], ['traces', 'hollow', 'hollow-scout'],
+    'rendering the remaining clue never changes earned scouting or discovery state');
 });
 
 test('fork signs differ by environmental evidence, not destination labels or arrows', () => {
