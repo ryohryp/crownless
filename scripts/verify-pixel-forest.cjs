@@ -361,7 +361,7 @@ async function clearWave(page,{attackOnlyGuardian=false,preferScoutedOpening=fal
         scoutCueTrace.push({ms:Date.now()-start,phase:s.phase,mode:attackCue.mode,
           active:attackCue.active,text:attackCue.text.slice(0,100),
           rect:attackCue.rect,cueRect:attackCue.cueRect,
-          guardian:s.enemies.filter(e=>e.name==='苔祠の番人').map(e=>({
+          heroState:s.player?.state, guardian:s.enemies.filter(e=>e.name==='苔祠の番人').map(e=>({
             opening:e.scoutOpeningActive,claimed:e.scoutStrikeClaimed,
             seconds:e.scoutOpeningSeconds}))});
       }
