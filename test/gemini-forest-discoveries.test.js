@@ -637,7 +637,7 @@ test('undiscovered forest hints convey sensory cues without naming every hidden 
   assert.match(hint,/足跡は二手に分かれ、途切れた/,'discovered tracks invite a visual choice without giving a compass direction');
   assert.doesNotMatch(hint,/足跡は右奥へ続いている/,'the HUD must not give away the trail direction before the player follows it');
   const pixel=fs.readFileSync('src/pixel-forest.js','utf8');
-  assert.match(pixel,/function trail\(ctx,found\) \{\s*if\(!found.has\('traces'\)\) return;/,'the visible trail is earned by reading the tracks');
+  assert.match(pixel,/function trail\(ctx,found\) \{[\s\S]*?if\(!found.has\('traces'\) \|\| \(found.has\('shrine'\) && found.has\('hollow'\)\)\) return;/,'the visible trail appears after reading tracks and disappears once both leads are inspected');
   assert.match(html,/forestArt\.trail\(ctx,state\.forestFinds\)/,'the live pixel forest draws the earned trail in the world');
   assert.match(hint,/足元のかすかな筋を辿ろう/,'unread tracks are suggested without naming the gate');
   assert.match(hint,/茨の奥で何かが軋む/,'locked gate invites an actual inspection before revealing equipment requirements');
