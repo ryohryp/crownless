@@ -226,3 +226,39 @@ test('bridge is safe before atlas load and rebakes its stone grain after load', 
   assert.equal(canvases.filter(canvas => canvas.width === 600).length, 2,
     'subsequent frames reuse the textured bridge without rebaking');
 });
+
+test('restored camp reopens the real departure panel on page load', () => {
+  const html = fs.readFileSync('gemini-feel-lab.html', 'utf8');
+  const start = html.lastIndexOf('  window.onload = () => {');
+  const end = html.indexOf('\n  };', start);
+  assert(start >= 0 && end > start, 'find the live page-load initializer');
+  const events = [];
+  const window = {};
+  vm.runInNewContext(html.slice(start, end + 5), {
+    window,
+    rpg: { phase: 'camp' },
+    applyCombatInputMode: () => events.push('input'),
+    initStage: () => events.push('stage'),
+    updateRpgStatus: () => events.push('status'),
+    showRpgPanel: () => events.push('panel'),
+    requestAnimationFrame: () => events.push('frame'),
+    gameLoop: () => {}
+  });
+  window.onload();
+  assert.deepEqual(events, ['input', 'stage', 'status', 'panel', 'frame'],
+    'camp reload restores the departure entry before the first frame');
+  events.length = 0;
+  vm.runInNewContext(html.slice(start, end + 5), {
+    window,
+    rpg: { phase: 'fight' },
+    applyCombatInputMode: () => events.push('input'),
+    initStage: () => events.push('stage'),
+    updateRpgStatus: () => events.push('status'),
+    showRpgPanel: () => events.push('panel'),
+    requestAnimationFrame: () => events.push('frame'),
+    gameLoop: () => {}
+  });
+  window.onload();
+  assert.deepEqual(events, ['input', 'stage', 'status', 'frame'],
+    'ongoing fight must not be covered by the camp panel');
+});
