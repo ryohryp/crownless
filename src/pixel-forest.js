@@ -253,7 +253,7 @@
             const x=800+side*(10+i*10), z=350-i*9;
             ctx.fillStyle='#665b43';
             ctx.fillRect(x-3,z+2,7,2);
-            ctx.fillStyle='#b2a079';
+            ctx.fillStyle=side<0?'#b6bc8c':'#c5a07d';
             ctx.fillRect(x+1,z-1,2,4);
             continue;
           }
