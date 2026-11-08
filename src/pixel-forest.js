@@ -78,6 +78,12 @@
     }
     g.fillStyle='#343b35';g.fillRect(273,193,7,4);
     g.fillStyle='#727369';g.fillRect(275,194,3,2);
+    // A few boot scuffs stop at the extinguished fire: evidence of a past
+    // visitor, not a continuous trail or an implied walkable shortcut.
+    for (const [x,y] of [[293,204],[301,207],[309,204]]) {
+      g.fillStyle='#514f40';g.fillRect(x,y,5,2);
+      g.fillStyle='#8c8065';g.fillRect(x+1,y,3,1);
+    }
     // Clustered canopy shade: crisp 4px cells instead of blurred radial
     // gradients. This is baked once, behind actors, and never affects collision.
     // A deterministic checker threshold softens edges without smooth pixels.
