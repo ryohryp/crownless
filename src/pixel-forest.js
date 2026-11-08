@@ -235,7 +235,10 @@
       }
     }
     function trail(ctx,found) {
-      if(!found.has('traces')) return;
+      // The fork is an unresolved clue, not permanent route guidance. Once
+      // both leads are inspected, remove the footprints instead of hinting
+      // that an already-cleared discovery still needs investigation.
+      if(!found.has('traces') || (found.has('shrine') && found.has('hollow'))) return;
       // Reading the tracks reveals two broken leads, not a bright arrow
       // to the still-uninspected shrine or gate. Neither is navigation.
       for(const side of [-1,1]) {
