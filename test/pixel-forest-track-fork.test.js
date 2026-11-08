@@ -50,6 +50,14 @@ test('reading forest tracks reveals two broken visual leads, never an unearned d
     'inspecting the thorn-side gate leaves only the unresolved moss lead');
   assert.deepEqual(thornOnly, marks.slice(marks.length / 2),
     'inspecting the moss-side shrine leaves only the unresolved thorn lead');
+  assert.equal(mossOnly.filter(mark => mark.ink === '#b6bc8c').length, 1,
+    'the unresolved moss lead retains its snapped-twig splinter');
+  assert.equal(mossOnly.filter(mark => mark.ink === '#c5a07d').length, 0,
+    'the inspected thorn lead leaves no stale splinter');
+  assert.equal(thornOnly.filter(mark => mark.ink === '#c5a07d').length, 1,
+    'the unresolved thorn lead retains its snapped-twig splinter');
+  assert.equal(thornOnly.filter(mark => mark.ink === '#b6bc8c').length, 0,
+    'the inspected moss lead leaves no stale splinter');
   assert.deepEqual(trackMarks(new Set(['traces', 'shrine', 'hollow'])), [],
     'once both leads are inspected, the fork stops advertising discoveries');
 });
