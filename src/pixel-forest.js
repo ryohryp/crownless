@@ -242,6 +242,10 @@
       // Reading the tracks reveals two broken leads, not a bright arrow
       // to the still-uninspected shrine or gate. Neither is navigation.
       for(const side of [-1,1]) {
+        // Each resolved lead stops advertising itself; the other remains a
+        // clue until investigated. This never changes movement or navigation.
+        if(side<0 && found.has('shrine')) continue;
+        if(side>0 && found.has('hollow')) continue;
         for(let i=0;i<8;i++) {
           if(i===4) continue; // The explorer must look for the next sign.
           const x=800+side*(10+i*10),z=350-i*9;
