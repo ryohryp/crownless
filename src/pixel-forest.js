@@ -247,7 +247,16 @@
         if(side<0 && found.has('shrine')) continue;
         if(side>0 && found.has('hollow')) continue;
         for(let i=0;i<8;i++) {
-          if(i===4) continue; // The explorer must look for the next sign.
+          if(i===4) {
+            // A snapped twig marks where the trail goes cold. It is a clue,
+            // not a continuous route or a pointer through unwalkable ground.
+            const x=800+side*(10+i*10), z=350-i*9;
+            ctx.fillStyle='#665b43';
+            ctx.fillRect(x-3,z+2,7,2);
+            ctx.fillStyle='#b2a079';
+            ctx.fillRect(x+1,z-1,2,4);
+            continue;
+          }
           const x=800+side*(10+i*10),z=350-i*9;
           ctx.fillStyle=i>=5?'#aa9876':'#e0c99a';
           ctx.fillRect(x,z,6,4);
