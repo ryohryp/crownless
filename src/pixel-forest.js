@@ -35,6 +35,17 @@
       g.fillStyle=colors[Math.floor(random()*colors.length)];
       g.fillRect(x,y,2+Math.floor(random()*4),1+Math.floor(random()*2));
     }
+    // Broken stone edging follows only the already-authored road. Small gaps
+    // invite closer inspection without drawing arrows or suggesting a hidden
+    // shortcut through fog, walls or impassable terrain.
+    for(let x=42;x<1010;x+=46) {
+      const center=108+Math.sin(x/155)*44;
+      const side=(Math.floor(x/46)%2===0)?-1:1;
+      const y=Math.round(center+side*37);
+      g.fillStyle='#4d5340';g.fillRect(x,y,12,4);
+      g.fillStyle='#b0a184';g.fillRect(x+2,y,8,2);
+      if(x%3===0) {g.fillStyle='#707653';g.fillRect(x+13,y+2,4,2);}
+    }
     // Sparse, hand-clustered 16-bit grass and fallen leaves break up the flat
     // field without marking routes or changing any walkability/hit geometry.
     // Keep the authored road clear so genuine discoveries stay legible.
