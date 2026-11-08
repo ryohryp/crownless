@@ -64,6 +64,18 @@ test('fork signs differ by environmental evidence, not destination labels or arr
     'moss must be large enough to notice on a phone, not a 2px fleck');
   assert(thorns.some(({rect:[, , w]}) => w >= 8),
     'snapped thorns must remain distinct from moss at phone scale');
+  // Partial discoveries must not leave the already-inspected branch's
+  // distinctive sign behind as a false invitation to revisit it.
+  const afterShrine = trackMarks(new Set(['traces', 'shrine']));
+  assert.equal(afterShrine.filter(mark => mark.ink === '#a2c087').length, 0,
+    'inspected moss-side shrine stops advertising moss');
+  assert.equal(afterShrine.filter(mark => mark.ink === '#c78b67').length, 4,
+    'uninspected thorn-side gate keeps its clue');
+  const afterGate = trackMarks(new Set(['traces', 'hollow']));
+  assert.equal(afterGate.filter(mark => mark.ink === '#c78b67').length, 0,
+    'inspected thorn-side gate stops advertising thorns');
+  assert.equal(afterGate.filter(mark => mark.ink === '#a2c087').length, 4,
+    'uninspected moss-side shrine keeps its clue');
   assert.deepEqual(trackMarks(new Set()), [], 'unread tracks reveal neither branch sign');
 });
 
