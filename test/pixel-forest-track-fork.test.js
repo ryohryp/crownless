@@ -38,8 +38,14 @@ test('reading forest tracks reveals two broken visual leads, never an unearned d
   ), 'both leads end before either uninspected site; no route overlay');
   assert.deepEqual(trackMarks(found), marks, 'the clue is stable, not a flashing nav arrow');
   assert.deepEqual([...found], ['traces'], 'rendering cannot discover a site or claim loot');
-  assert.deepEqual(trackMarks(new Set(['traces', 'hollow'])), marks,
-    'site rewards and discoveries never rewrite the physical tracks');
+  const mossOnly = trackMarks(new Set(['traces', 'hollow']));
+  const thornOnly = trackMarks(new Set(['traces', 'shrine']));
+  assert.deepEqual(mossOnly, marks.slice(0, marks.length / 2),
+    'inspecting the thorn-side gate leaves only the unresolved moss lead');
+  assert.deepEqual(thornOnly, marks.slice(marks.length / 2),
+    'inspecting the moss-side shrine leaves only the unresolved thorn lead');
+  assert.deepEqual(trackMarks(new Set(['traces', 'shrine', 'hollow'])), [],
+    'once both leads are inspected, the fork stops advertising discoveries');
 });
 
 test('fork signs differ by environmental evidence, not destination labels or arrows', () => {
