@@ -77,6 +77,15 @@ test('fork signs differ by environmental evidence, not destination labels or arr
   assert.equal(afterGate.filter(mark => mark.ink === '#a2c087').length, 4,
     'uninspected moss-side shrine keeps its clue');
   assert.deepEqual(trackMarks(new Set()), [], 'unread tracks reveal neither branch sign');
+  // Repeated renders after either discovery must preserve the clue and state.
+  for (const ids of [['traces', 'shrine'], ['traces', 'hollow']]) {
+    const discovered = new Set(ids);
+    const first = trackMarks(discovered);
+    assert.deepEqual(trackMarks(discovered), first,
+      'partial discovery keeps a stable environmental clue across frames');
+    assert.deepEqual([...discovered], ids,
+      'drawing a remaining lead never awards a discovery or changes the save state');
+  }
 });
 
 test('the live post-track HUD asks for observation, not a prescribed gate route', () => {
