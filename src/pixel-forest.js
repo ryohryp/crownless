@@ -70,6 +70,14 @@
     }
     g.fillStyle='#393f32';g.fillRect(252,183,3,7);
     g.fillStyle='#b4a180';g.fillRect(253,183,2,2);
+    // A cold, disturbed fire ring makes the abandoned camp readable as a
+    // past choice, not a live campfire or an unearned navigation marker.
+    for (const [x,y] of [[267,190],[273,188],[279,190],[281,196],[275,200],[269,198]]) {
+      g.fillStyle='#47483c';g.fillRect(x,y,5,3);
+      g.fillStyle='#918b73';g.fillRect(x+1,y,2,1);
+    }
+    g.fillStyle='#343b35';g.fillRect(273,193,7,4);
+    g.fillStyle='#727369';g.fillRect(275,194,3,2);
     // Clustered canopy shade: crisp 4px cells instead of blurred radial
     // gradients. This is baked once, behind actors, and never affects collision.
     // A deterministic checker threshold softens edges without smooth pixels.
