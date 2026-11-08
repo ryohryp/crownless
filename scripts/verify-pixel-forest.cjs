@@ -412,10 +412,13 @@ async function clearWave(page,{attackOnlyGuardian=false,preferScoutedOpening=fal
       // A cautious gate detour only matters if the hero actually gets to use
       // the earned opening. Approach and face the guardian without holding an
       // attack that would lock the hero out of arming the one-shot warning.
-      // Once observed, attempt the strike; never wait indefinitely for a
-      // second warning if the first one expires or the player misses.
+      // Wait until the actual phone attack cue is visible before striking.
+      // Merely arming the timer is not enough: attacking immediately can
+      // consume the bonus before the player ever sees its affordance.
+      // If the window expires without a cue, resume ordinary combat.
       const waitForOpening=preferScoutedOpening && target?.name==='苔祠の番人' &&
-        target.scoutOpeningSeconds>0 && !target.scoutStrikeClaimed && !openingObserved;
+        target.scoutOpeningSeconds>0 && !target.scoutStrikeClaimed && !scoutAttackCueSeen &&
+        (!openingObserved || target.scoutOpeningActive);
       const grappleGuardian=!waitForOpening && !attackOnlyGuardian &&
         target?.name==='苔祠の番人' && !target.scoutOpeningActive &&
         Math.abs(target.x-s.player.x)<42 && Math.abs(target.z-s.player.z)<20;
