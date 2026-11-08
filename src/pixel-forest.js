@@ -61,6 +61,15 @@
       g.fillRect(x+2,y+2,2,3);
       g.fillRect(x+6,y+1,2,2);
     }
+    // Weathered camp remnants beside the established road give the player a
+    // small environmental story to notice without advertising a new route.
+    // These are scenery only: no collision, fog, discovery or reward changes.
+    for (const [x,y] of [[240,190],[248,194],[256,189]]) {
+      g.fillStyle='#514d3b';g.fillRect(x,y,8,3);
+      g.fillStyle='#9c8969';g.fillRect(x+2,y,4,1);
+    }
+    g.fillStyle='#393f32';g.fillRect(252,183,3,7);
+    g.fillStyle='#b4a180';g.fillRect(253,183,2,2);
     // Clustered canopy shade: crisp 4px cells instead of blurred radial
     // gradients. This is baked once, behind actors, and never affects collision.
     // A deterministic checker threshold softens edges without smooth pixels.
