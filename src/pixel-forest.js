@@ -258,7 +258,9 @@
             continue;
           }
           const x=800+side*(10+i*10),z=350-i*9;
-          ctx.fillStyle=i>=5?'#aa9876':'#e0c99a';
+          // Weathered prints pick up moss on the left and thorn-dust on the right.
+          // The clue stays within the existing broken trail, never a route marker.
+          ctx.fillStyle=i>=5?(side<0?'#9cad83':'#c19b7c'):'#e0c99a';
           ctx.fillRect(x,z,6,4);
           ctx.fillRect(x+side*5,z+6,4,3);
           // The fork must be readable on a phone: two small, contrasting
