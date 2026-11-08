@@ -33,8 +33,10 @@ test('reading forest tracks reveals two broken visual leads, never an unearned d
   assert.equal(marks.length, 40, 'two broken leads include a snapped twig on each side');
   assert.equal(marks.filter(mark => mark.ink === '#665b43').length, 2,
     'each unresolved lead has one snapped-twig marker');
-  assert.equal(marks.filter(mark => mark.ink === '#b2a079').length, 2,
-    'each snapped twig has a visible pale splinter');
+  assert.equal(marks.filter(mark => mark.ink === '#b6bc8c').length, 1,
+    'the moss-side twig has a pale greenish splinter');
+  assert.equal(marks.filter(mark => mark.ink === '#c5a07d').length, 1,
+    'the thorn-side twig has a dusty brown splinter');
   assert(marks.some(({rect:[x]}) => x < 750), 'one lead veers left');
   assert(marks.some(({rect:[x]}) => x > 850), 'another lead veers right');
   assert(marks.every(({rect:[x, z, w, h]}) =>
