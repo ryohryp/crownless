@@ -20,3 +20,17 @@ test('shrine and tracks together earn an earlier gate creak, not a shortcut or r
   assert.equal(D.cueNear(at(110),new Set(['traces','shrine','hollow'])),null,
     'an already discovered gate does not repeat its clue');
 });
+
+test('earned gate creak grows stronger only on approach, without early inspection',()=>{
+  const both=new Set(['traces','shrine']);
+  const at=distance=>({x:910-distance,z:235,state:'IDLE'});
+  assert.equal(D.gateCreakIntensifies(at(85),both),false);
+  assert.equal(D.gateCreakIntensifies(at(84.9),both),true);
+  assert.equal(D.gateCreakIntensifies(at(54),both),true);
+  assert.equal(D.gateCreakIntensifies(at(53),both),false);
+  assert.equal(D.gateCreakIntensifies(at(80),new Set(['traces'])),false);
+  assert.equal(D.gateCreakIntensifies(at(80),new Set(['shrine'])),false);
+  assert.equal(D.gateCreakIntensifies(at(80),new Set(['traces','shrine','hollow'])),false);
+  assert.equal(D.near(at(80),both),null);
+  assert.equal(D.uncover(at(80),both,'return',100,140,true,'cautious').ok,false);
+});
