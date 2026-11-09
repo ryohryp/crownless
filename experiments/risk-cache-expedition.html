@@ -8,7 +8,7 @@
 <script>
 'use strict';
 const key='crownless-risk-cache-prototype-v1';
-const fresh=()=>({hp:12,bank:0,bag:0,clue:false,phase:'start',visits:0,rope:false});
+const fresh=()=>({hp:12,bank:0,bag:0,clue:false,phase:'start',visits:0,rope:false,shrineUsed:false});
 let s;try{s=JSON.parse(localStorage.getItem(key))||fresh()}catch{s=fresh()}
 const $=id=>document.getElementById(id);
 function save(){try{localStorage.setItem(key,JSON.stringify(s))}catch{ /* session remains playable */ }}
@@ -20,12 +20,13 @@ $('stats').textContent='HP '+s.hp+'/12　持ち帰り前 '+s.bag+'　倉庫 '+s.
 const story=(icon,msg)=>{$('icon').textContent=icon;$('story').textContent=msg};
 switch(s.phase){
 case 'start':story('🌫️','獣道の奥から金属音。湿った足跡が二方向へ続く。\n安全に帰るか、危険を冒して確かめるか。');action('足跡を観察する（手掛かりを得る）',()=>{s.clue=true;go('fork')});action('音のする方へ直行する',()=>go('cache'),'danger');action('引き返して生還する',()=>go('camp'));break;
-case 'fork':story('🐾','足跡は落ち葉の下で途切れる。石の裏に爪痕。\n爪痕は罠の位置を教えている。');action('爪痕を頼りに隠し場所へ',()=>go('cache'));action('安全に帰る',()=>go('camp'));break;
+case 'fork':story('🐾','足跡は落ち葉の下で途切れる。石の裏に爪痕。\n爪痕は罠の位置を教えている。');action('爪痕を頼りに隠し場所へ',()=>go('cache'));if(!s.shrineUsed)action('苔むす祠を調べる（回復か採集を選ぶ）',()=>go('shrine'));action('安全に帰る',()=>go('camp'));break;
+case 'shrine':story('⛩️','祠の奥に澄んだ泉と古い供物台。泉で傷を癒やすか、供物台から素材を採るか。一度の遠征で選べるのは片方だけ。');action('泉で回復する（HP+4、最大12）',()=>{s.hp=Math.min(12,s.hp+4);s.shrineUsed=true;go('fork')});action('供物台から採集する（素材+2）',()=>{s.bag+=2;s.shrineUsed=true;go('fork')},'danger');break;
 case 'cache':story('🗝️',s.clue?'罠の留め金が見えた。慎重に開ければ傷は浅い。':'古い箱に獣の牙。罠の仕組みは見えない。');action('慎重に開ける（素材+1、HP-'+(s.clue?1:4)+'）',()=>{s.hp-=s.clue?1:4;s.bag+=1;go(s.hp>0?'escape':'lost')});action('強引に奪う（素材+3、HP-7）',()=>{s.hp-=7;s.bag+=3;go(s.hp>0?'escape':'lost')},'danger');action('触らずに撤退',()=>go('camp'));break;
 case 'escape':story('🐺','獣の唸り声が迫る。戦利品を抱えて走るか、荷物を捨てて安全を取るか。');action('崖下の光を追う（希少素材+2、HP-'+(s.rope?1:3)+'）',()=>{s.hp-=s.rope?1:3;if(s.hp>0){s.bag+=2;go('ridge')}else go('lost')},'danger');action('獣の予兆を読み、迎え撃つ',()=>go('ambush'));action('戦利品を守って走る（HP-2）',()=>{s.hp-=2;go(s.hp>0?'camp':'lost')},'danger');action('戦利品を捨てて逃げる',()=>{s.bag=0;go('camp')});break;
 case 'ambush':story('🐺','茂みが揺れ、獣が飛び出す直前だ。足跡から動きを予測できるか？');action('身を伏せてやり過ごす（'+(s.clue?'HP-1':'HP-4')+'）',()=>{s.hp-=s.clue?1:4;go(s.hp>0?'camp':'lost')});action('囮を投げて獣の巣を探る（素材+2、HP-4）',()=>{s.hp-=4;if(s.hp>0){s.bag+=2;go('camp')}else go('lost')},'danger');action('荷物を捨てて逃げる',()=>{s.bag=0;go('camp')});break;
 case 'ridge':story('✨','崖下に星鉄の欠片を見つけた。だが帰路は険しい。荷物を抱えて逃げ切るか？');action('崖を登って帰る（HP-'+(s.rope?1:3)+'）',()=>{s.hp-=s.rope?1:3;go(s.hp>0?'camp':'lost')},'danger');action('希少素材を捨てて安全な道へ（素材-2）',()=>{s.bag=Math.max(0,s.bag-2);go('camp')});break;
-case 'lost':s.bag=0;story('💀','力尽きた。未帰還の素材は失われた。倉庫の素材は無事だ。');action('キャンプから再挑戦',()=>{s.hp=12;s.clue=false;go('start')});break;
+case 'lost':s.bag=0;story('💀','力尽きた。未帰還の素材は失われた。倉庫の素材は無事だ。');action('キャンプから再挑戦',()=>{s.hp=12;s.clue=false;s.shrineUsed=false;go('start')});break;
 case 'camp':if(s.bag>0){s.bank+=s.bag;s.bag=0;s.visits++}story('🔥','無事にキャンプへ戻った。戦利品は倉庫へ確定した。\n素材3個で登攀縄を製作すると、次回から崖の往復が安全になる。');if(!s.rope&&s.bank>=3)action('素材3個で登攀縄を作る（次の遠征も有効）',()=>{s.bank-=3;s.rope=true});action('もう一度遠征する',()=>{s.hp=12;s.clue=false;go('start')});action('実験データをリセット',()=>{s=fresh();go('start')});break;
 default:s=fresh();go('start');return;
 }
