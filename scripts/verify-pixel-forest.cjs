@@ -986,7 +986,31 @@ async function main() {
             departBounds.y+departBounds.height<=page.viewportSize().height,
             'the earned next-trip action remains reachable on a 390px phone');
           await page.screenshot({path:path.join(output,'pixel-forest-forged.png')});
-          await page.locator('#rpgDepart').click();
+          // Regression #1064: a real reload must restore the camp's touch
+          // departure entry, not merely its persisted phase in a unit test.
+          const campBeforeReload=await read(page);
+          await page.reload({waitUntil:'domcontentloaded'});
+          await page.waitForFunction(() => window.CrownlessForestReadout?.().phase==='camp');
+          const restoredCamp=await read(page);
+          assert.equal(restoredCamp.banked,campBeforeReload.banked,
+            'reload cannot lose safely banked crafting materials');
+          assert.equal(restoredCamp.unbanked,0,
+            'reload cannot restore already banked materials as unsecured loot');
+          assert.equal(restoredCamp.crafted,true,
+            'the forged sword survives the current-version save reload');
+          const restoredDepart=page.locator('#rpgDepart');
+          assert.equal(await page.locator('#rpgPanel').isVisible(),true,
+            'restored camp opens the actual expedition panel');
+          const restoredBounds=await restoredDepart.boundingBox();
+          assert(restoredBounds && restoredBounds.width>=44 && restoredBounds.height>=44 &&
+            restoredBounds.y>=0 && restoredBounds.y+restoredBounds.height<=page.viewportSize().height,
+            'reloaded camp departure is visible and thumb-sized at 390px');
+          await page.screenshot({path:path.join(output,'pixel-forest-camp-reloaded-390.png')});
+          await page.touchscreen.tap(restoredBounds.x+restoredBounds.width/2,
+            restoredBounds.y+restoredBounds.height/2);
+          await page.waitForFunction(() => window.CrownlessForestReadout?.().phase==='fight');
+          assert.equal(await page.locator('#rpgPanel').isVisible(),false,
+            'touch departure returns to live combat rather than a covered panel');
           const second=await clearWave(page);
           assert.equal(await page.locator('#rpgPanel').isVisible(),false,'victory leaves forest playable');
           await walkTo(page,800,365);
