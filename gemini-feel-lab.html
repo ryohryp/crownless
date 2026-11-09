@@ -3292,7 +3292,7 @@
     const camp = rpg.phase === 'camp';
     panel.classList.toggle('hidden', !(result || camp));
 
-    const unexploredCue=result?forestReturnTeaser(state.forestFinds,rpg.crafted):'';
+    const unexploredCue=(result || (camp && state.forestFinds.has('traces')))?forestReturnTeaser(state.forestFinds,rpg.crafted):'';
     const keepExploring=document.getElementById('rpgKeepExploring');
     keepExploring.classList.toggle('hidden', !result);
     // The nearby clue is optional, but continuing risks everything not yet banked.
@@ -3354,7 +3354,9 @@
        rpg.lastOutcome === 'defeated' ? '敗北。素材を失った……' :
        rpg.lastOutcome === 'crafted' ? '鍛冶師の剣が完成！' :
        rpg.lastOutcome === 'tempered' ? '風裂きの剣を研ぎ直した！' :
-       rpg.lastOutcome === 'returned' ? '無事に生還！' : 'キャンプで再開');
+       rpg.lastOutcome === 'returned' ? '無事に生還！' :
+       camp && state.forestFinds.has('traces') && (!state.forestFinds.has('shrine') || !state.forestFinds.has('hollow'))
+         ? '森には、まだ確かめていない気配がある' : 'キャンプで再開');
     // Tie the decision to the actual next craft, not just a generic risk warning.
     const safeTotal=rpg.banked+rpg.unbanked;
     const temperProspect=rpg.crafted
@@ -3375,7 +3377,8 @@
            ? '鍛冶師が仕立てた風裂きの剣を装備。'+temperProspect+'次の遠征では攻撃が強まる。'+(state.forestFinds.has('shrine') && state.forestFinds.has('hollow') ? '発見済みの場所は調査済み。次の遠征では敵から鍛冶用の素材を集めよう。持ち帰れるのは生還した分だけ。' : '森で気になった場所をもう一度確かめよう。')
            : rpg.banked>=rpgRules.COST
              ? '倉庫の牙'+rpg.banked+'個で風裂きの剣を製作できる。'
-             : '鍛冶剣まで牙あと'+(rpgRules.COST-rpg.banked)+'個。'+(state.forestFinds.has('shrine') && state.forestFinds.has('hollow') ? '発見済みの場所は調査済み。次の遠征で敵から素材を集めて生還しよう。' : '次の遠征で素材を持ち帰ろう。'));
+             : '鍛冶剣まで牙あと'+(rpgRules.COST-rpg.banked)+'個。'+(state.forestFinds.has('shrine') && state.forestFinds.has('hollow') ? '発見済みの場所は調査済み。次の遠征で敵から素材を集めて生還しよう。' : '次の遠征で素材を持ち帰ろう。'))+
+        (camp && unexploredCue ? ' '+unexploredCue : '');
   }
 
   document.getElementById('rpgOpenResults').addEventListener('click',showRpgPanel);

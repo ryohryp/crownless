@@ -333,6 +333,8 @@ async function main() {
         assert.equal(tempered.player.punchPower,19,'tempered sword raises actual punch damage');
         assert.equal(tempered.player.kickPower,21,'tempered sword raises actual kick damage');
         assert.equal(tempered.phase,'camp','saved upgrade resumes at camp until the next departure');
+        assert.equal(await page.locator('#rpgDepart').isVisible(),true,
+          'tempered camp remains ready for another deliberate expedition');
         assert.equal(await page.evaluate(
           () => localStorage.getItem('crownless-expedition-v1-demo')), saveBefore,
           'lab visits and saved smith equipment must never mutate the actual RPG save');

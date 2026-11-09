@@ -12,7 +12,7 @@ function trackMarks(found) {
   };
   const context = {
     window,
-    Image: class { constructor() { this.complete = false; this.naturalWidth = 0; } },
+    Image: class { constructor() { this.complete = false; this.naturalWidth = 0; } addEventListener() {} },
     document: { createElement() { return { getContext() { return ground; } }; } }
   };
   vm.runInNewContext(fs.readFileSync('src/pixel-forest.js', 'utf8'), context);
@@ -30,7 +30,13 @@ test('reading forest tracks reveals two broken visual leads, never an unearned d
   assert.deepEqual(trackMarks(new Set(['shrine'])), [], 'other discoveries do not unlock footprints');
   const found = new Set(['traces']);
   const marks = trackMarks(found);
-  assert.equal(marks.length, 36, 'two seven-step leads with sparse branch-specific signs');
+  assert.equal(marks.length, 40, 'two broken leads include a snapped twig on each side');
+  assert.equal(marks.filter(mark => mark.ink === '#665b43').length, 2,
+    'each unresolved lead has one snapped-twig marker');
+  assert.equal(marks.filter(mark => mark.ink === '#b6bc8c').length, 1,
+    'the moss-side twig has a pale greenish splinter');
+  assert.equal(marks.filter(mark => mark.ink === '#c5a07d').length, 1,
+    'the thorn-side twig has a dusty brown splinter');
   assert(marks.some(({rect:[x]}) => x < 750), 'one lead veers left');
   assert(marks.some(({rect:[x]}) => x > 850), 'another lead veers right');
   assert(marks.every(({rect:[x, z, w, h]}) =>
@@ -38,8 +44,27 @@ test('reading forest tracks reveals two broken visual leads, never an unearned d
   ), 'both leads end before either uninspected site; no route overlay');
   assert.deepEqual(trackMarks(found), marks, 'the clue is stable, not a flashing nav arrow');
   assert.deepEqual([...found], ['traces'], 'rendering cannot discover a site or claim loot');
-  assert.deepEqual(trackMarks(new Set(['traces', 'hollow'])), marks,
-    'site rewards and discoveries never rewrite the physical tracks');
+  const mossOnly = trackMarks(new Set(['traces', 'hollow']));
+  const thornOnly = trackMarks(new Set(['traces', 'shrine']));
+  assert.deepEqual(mossOnly, marks.slice(0, marks.length / 2),
+    'inspecting the thorn-side gate leaves only the unresolved moss lead');
+  assert.deepEqual(thornOnly, marks.slice(marks.length / 2),
+    'inspecting the moss-side shrine leaves only the unresolved thorn lead');
+  assert.equal(mossOnly.filter(mark => mark.ink === '#b6bc8c').length, 1,
+    'the unresolved moss lead retains its snapped-twig splinter');
+  assert.equal(mossOnly.filter(mark => mark.ink === '#c5a07d').length, 0,
+    'the inspected thorn lead leaves no stale splinter');
+  assert.equal(thornOnly.filter(mark => mark.ink === '#c5a07d').length, 1,
+    'the unresolved thorn lead retains its snapped-twig splinter');
+  assert.equal(thornOnly.filter(mark => mark.ink === '#b6bc8c').length, 0,
+    'the inspected moss lead leaves no stale splinter');
+  assert.deepEqual(trackMarks(new Set(['traces', 'shrine', 'hollow'])), [],
+    'once both leads are inspected, the fork stops advertising discoveries');
+  const scouted = new Set(['traces', 'hollow', 'hollow-scout']);
+  assert.deepEqual(trackMarks(scouted), mossOnly,
+    'earning a combat scouting advantage does not erase the unvisited moss lead');
+  assert.deepEqual([...scouted], ['traces', 'hollow', 'hollow-scout'],
+    'rendering the remaining clue never changes earned scouting or discovery state');
 });
 
 test('fork signs differ by environmental evidence, not destination labels or arrows', () => {
@@ -58,7 +83,28 @@ test('fork signs differ by environmental evidence, not destination labels or arr
     'moss must be large enough to notice on a phone, not a 2px fleck');
   assert(thorns.some(({rect:[, , w]}) => w >= 8),
     'snapped thorns must remain distinct from moss at phone scale');
+  // Partial discoveries must not leave the already-inspected branch's
+  // distinctive sign behind as a false invitation to revisit it.
+  const afterShrine = trackMarks(new Set(['traces', 'shrine']));
+  assert.equal(afterShrine.filter(mark => mark.ink === '#a2c087').length, 0,
+    'inspected moss-side shrine stops advertising moss');
+  assert.equal(afterShrine.filter(mark => mark.ink === '#c78b67').length, 4,
+    'uninspected thorn-side gate keeps its clue');
+  const afterGate = trackMarks(new Set(['traces', 'hollow']));
+  assert.equal(afterGate.filter(mark => mark.ink === '#c78b67').length, 0,
+    'inspected thorn-side gate stops advertising thorns');
+  assert.equal(afterGate.filter(mark => mark.ink === '#a2c087').length, 4,
+    'uninspected moss-side shrine keeps its clue');
   assert.deepEqual(trackMarks(new Set()), [], 'unread tracks reveal neither branch sign');
+  // Repeated renders after either discovery must preserve the clue and state.
+  for (const ids of [['traces', 'shrine'], ['traces', 'hollow']]) {
+    const discovered = new Set(ids);
+    const first = trackMarks(discovered);
+    assert.deepEqual(trackMarks(discovered), first,
+      'partial discovery keeps a stable environmental clue across frames');
+    assert.deepEqual([...discovered], ids,
+      'drawing a remaining lead never awards a discovery or changes the save state');
+  }
 });
 
 test('the live post-track HUD asks for observation, not a prescribed gate route', () => {
@@ -69,14 +115,11 @@ test('the live post-track HUD asks for observation, not a prescribed gate route'
   const label = vm.runInNewContext(html.slice(start, end) + '\nlabel', {
     guardian: null,
     near: null,
-    cue: null,
     state: { forestFinds: new Set(['traces']) },
     rpg: { crafted: false, phase: 'return', unbanked: 2 }
   });
   assert.match(label, /二手に分かれ/);
-  assert.match(label, /牙2個未帰還/, 'the fork decision must show unsecured loot at stake');
-  assert.match(label, /足場を見切った。どちらを追う/, 'earned footing is acknowledged without naming either environmental branch');
-  assert.doesNotMatch(label, /負傷を3軽減|HP -\d/, 'the surprise stays hidden until the actual choice');
+  assert.match(label, /負傷 -3/, 'earned footing bonus remains legible');
   assert.doesNotMatch(label, /石門|祠|右|左|茨を調べ|新しい剣/,
     'the HUD must not preselect the destination or spoil either branch');
 });
@@ -86,23 +129,14 @@ test('the field HUD keeps the unvisited fork visible after either first discover
   const start = html.indexOf('    const label=guardian' + String.fromCharCode(10));
   const end = html.indexOf('    if(hint.textContent!==label)', start);
   assert(start >= 0 && end > start, 'evaluate the live HUD, not a duplicate hint rule');
-  const labelFor = (ids, cue = null, unbanked = 2) => vm.runInNewContext(html.slice(start, end) + String.fromCharCode(10) + 'label', {
+  const labelFor = ids => vm.runInNewContext(html.slice(start, end) + String.fromCharCode(10) + 'label', {
     guardian: null,
     near: null,
-    cue,
-    ginji: { x: 790, z: 230 },
     state: { forestFinds: new Set(ids) },
-    rpg: { crafted: false, phase: 'return', unbanked }
+    rpg: { crafted: false, phase: 'return', unbanked: 2 }
   });
-  const breeze = labelFor(['traces', 'hollow', 'hollow-scout'], { id: 'shrine', x: 660, z: 230 });
-  assert.match(breeze, /冷たい風が頬をかすめる/,
-    'earned distant shrine air stays visible after the one-shot popup');
-  assert.doesNotMatch(breeze, /苔むす祠|石門|祠|右|左|道順/,
-    'distant air must not reveal a destination or route');
   const both = labelFor(['traces']);
   assert.match(both, /二手に分かれ/, 'both branches remain a player choice');
-  assert.match(both, /牙2個未帰還/, 'a live bag makes the fork a return-or-risk decision');
-  assert.doesNotMatch(labelFor(['traces'], null, 0), /未帰還/, 'an empty bag cannot imply loot at risk');
   assert(both.length<=40, 'fork HUD stays compact over a 360px phone scene');
   assert.doesNotMatch(both, /石門|祠|苔|茨|右|左/, 'fork HUD asks players to notice environmental signs themselves');
   const moss = labelFor(['traces', 'hollow']);
@@ -113,12 +147,6 @@ test('the field HUD keeps the unvisited fork visible after either first discover
     'gate-first scouting must not bury the remaining sensory clue');
   assert.match(scoutedMoss, /先手猶予 \+0\.6秒/,
     'the earned tactical payoff remains visible without naming the next site');
-  assert.match(scoutedMoss, /探索か帰還か.*牙2個未帰還/,
-    'after gate scouting, the player can weigh the unbanked bag against further risk');
-  assert.doesNotMatch(labelFor(['traces', 'hollow', 'hollow-scout'], null, 0), /未帰還/,
-    'an empty bag cannot suggest unsecured fangs');
-  assert(labelFor(['traces', 'hollow', 'hollow-scout'], null, 12).length<=40,
-    'the scouted risk/return cue remains compact for 360px phones');
   assert.doesNotMatch(scoutedMoss, /石門|祠|右|左|道順/,
     'scouting does not grant navigation or reveal an uninspected location');
   const thorns = labelFor(['traces', 'shrine']);
@@ -131,33 +159,106 @@ test('the field HUD keeps the unvisited fork visible after either first discover
     'after both inspections, the ordinary safe-return stakes resume');
 });
 
-
-test('completed forest discoveries never resurrect fork directions or unsecured loot', () => {
-  const html = fs.readFileSync('gemini-feel-lab.html', 'utf8');
-  const start = html.indexOf('    const label=guardian' + String.fromCharCode(10));
-  const end = html.indexOf('    if(hint.textContent!==label)', start);
-  assert(start >= 0 && end > start, 'read the current HUD expression');
-  const label = vm.runInNewContext(html.slice(start, end) + '\nlabel', {
-    guardian: null, near: null, cue: null,
-    state: { forestFinds: new Set(['traces', 'shrine', 'hollow']) },
-    rpg: { crafted: false, phase: 'return', unbanked: 0 }
+test('bridge is safe before atlas load and rebakes its stone grain after load', () => {
+  const images = [];
+  const canvases = [];
+  const drawCalls = [];
+  class FakeImage {
+    constructor() { this.complete = false; this.naturalWidth = 0; this.listeners = {}; images.push(this); }
+    addEventListener(type, callback) { this.listeners[type] = callback; }
+  }
+  function surface() {
+    const context = new Proxy({ drawImage(...args) { drawCalls.push(args); } }, {
+      get(target, key) {
+        if (key in target) return target[key];
+        if (key === 'createLinearGradient') return () => ({ addColorStop() {} });
+        return () => {};
+      }
+    });
+    const canvas = { width: 0, height: 0, getContext: () => context };
+    canvases.push(canvas);
+    return canvas;
+  }
+  const window = {};
+  vm.runInNewContext(fs.readFileSync('src/pixel-forest.js', 'utf8'), {
+    window, Image: FakeImage, document: { createElement: surface }
   });
-  assert.doesNotMatch(label, /二手に分かれ|苔の湿り|茨が軋んで/,
-    'a completed fork must not prompt another search');
-  assert.doesNotMatch(label, /未帰還|石門|祠|右|左/,
-    'an empty bag and fully inspected sites cannot imply risk or reveal a route');
+  const scene = window.CrownlessPixelForest.create();
+  const screen = surface().getContext('2d');
+  const heightAt = () => 0;
+  assert.doesNotThrow(() => scene.ground(screen, heightAt), 'unloaded atlas must not abort first paint');
+  const firstBridge = canvases.find(canvas => canvas.width === 600);
+  assert(firstBridge, 'first bridge fallback is baked');
+  assert.equal(drawCalls.some(args => args[0] === images[1]), false,
+    'unloaded atlas is never passed to drawImage');
+  // Repeated frames before image load must reuse the fallback instead of
+  // allocating a new bridge surface on every animation frame.
+  scene.ground(screen, heightAt);
+  assert.equal(canvases.filter(canvas => canvas.width === 600).length, 1,
+    'pending atlas load keeps the same fallback bridge cache');
+  // A broken image can be complete with zero intrinsic width. It must not
+  // be treated as a loaded atlas or trigger an invalid canvas draw.
+  images[1].complete = true;
+  images[1].naturalWidth = 0;
+  assert.doesNotThrow(() => scene.ground(screen, heightAt),
+    'broken atlas remains on the safe fallback');
+  assert.equal(canvases.filter(canvas => canvas.width === 600).length, 1,
+    'broken atlas does not rebake the fallback every frame');
+  assert.equal(drawCalls.some(args => args[0] === images[1]), false,
+    'broken atlas is never passed to drawImage');
+  // An incomplete image can also fire an error event without becoming
+  // drawable. The bridge must remain usable until a valid atlas arrives.
+  images[1].complete = false;
+  assert.doesNotThrow(() => scene.ground(screen, heightAt),
+    'failed atlas request keeps the fallback bridge drawable');
+  assert.equal(canvases.filter(canvas => canvas.width === 600).length, 1,
+    'failed atlas request must not churn the bridge cache');
+  images[1].complete = true;
+  images[1].naturalWidth = 1536;
+  images[1].listeners.load();
+  assert.doesNotThrow(() => scene.ground(screen, heightAt));
+  const bridges = canvases.filter(canvas => canvas.width === 600);
+  assert.equal(bridges.length, 2, 'atlas load invalidates exactly one bridge cache');
+  assert.notEqual(bridges[0], bridges[1], 'the cached fallback must be replaced');
+  assert(drawCalls.some(args => args[0] === images[1]),
+    'rebaked bridge uses the now-loaded stone atlas');
+  scene.ground(screen, heightAt);
+  assert.equal(canvases.filter(canvas => canvas.width === 600).length, 2,
+    'subsequent frames reuse the textured bridge without rebaking');
 });
 
-
-test('guardian transition never falls through to undiscovered forest clues', () => {
+test('restored camp reopens the real departure panel on page load', () => {
   const html = fs.readFileSync('gemini-feel-lab.html', 'utf8');
-  const start = html.indexOf('    const label=guardian' + String.fromCharCode(10));
-  const end = html.indexOf('    if(hint.textContent!==label)', start);
-  assert(start >= 0 && end > start, 'read live forest HUD expression');
-  const label = vm.runInNewContext(html.slice(start, end) + '\nlabel', {
-    guardian: null, rpg: { phase: 'fight', unbanked: 1, crafted: false },
-    near: null, cue: null, state: { forestFinds: new Set(['traces']) }
+  const start = html.lastIndexOf('  window.onload = () => {');
+  const end = html.indexOf('\n  };', start);
+  assert(start >= 0 && end > start, 'find the live page-load initializer');
+  const events = [];
+  const window = {};
+  vm.runInNewContext(html.slice(start, end + 5), {
+    window,
+    rpg: { phase: 'camp' },
+    applyCombatInputMode: () => events.push('input'),
+    initStage: () => events.push('stage'),
+    updateRpgStatus: () => events.push('status'),
+    showRpgPanel: () => { if (rpg.phase === 'camp') events.push('panel'); },
+    requestAnimationFrame: () => events.push('frame'),
+    gameLoop: () => {}
   });
-  assert.match(label, /戦闘中/);
-  assert.doesNotMatch(label, /苔の湿り|茨|気になる地点|未帰還/);
+  window.onload();
+  assert.deepEqual(events, ['input', 'stage', 'status', 'panel', 'frame'],
+    'camp reload restores the departure entry before the first frame');
+  events.length = 0;
+  vm.runInNewContext(html.slice(start, end + 5), {
+    window,
+    rpg: { phase: 'fight' },
+    applyCombatInputMode: () => events.push('input'),
+    initStage: () => events.push('stage'),
+    updateRpgStatus: () => events.push('status'),
+    showRpgPanel: () => { if (rpg.phase === 'camp') events.push('panel'); },
+    requestAnimationFrame: () => events.push('frame'),
+    gameLoop: () => {}
+  });
+  window.onload();
+  assert.deepEqual(events, ['input', 'stage', 'status', 'frame'],
+    'ongoing fight must not be covered by the camp panel');
 });

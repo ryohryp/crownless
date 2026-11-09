@@ -1320,7 +1320,10 @@ test('victory return panel hints at remaining discoveries without spoiling them 
   }
   const resultPanel=html.slice(html.indexOf('function showRpgPanel() {'),
     html.indexOf("document.getElementById('rpgOpenResults').addEventListener"));
-  assert.match(resultPanel,/const unexploredCue=result\?forestReturnTeaser\(state\.forestFinds,rpg\.crafted\):'';/);
+  assert.match(resultPanel,/const unexploredCue=\(result \|\| \(camp && state\.forestFinds\.has\('traces'\)\)\)\?forestReturnTeaser\(state\.forestFinds,rpg\.crafted\):'';/,
+    'earned unexplored clues remain visible at camp after safe return and reload');
+  assert.match(resultPanel,/\(camp && unexploredCue \? ' '\+unexploredCue : ''\)/,
+    'earned camp clue remains visible without opening the return result');
   assert.match(resultPanel,/keepExploring\.textContent=\(unexploredCue\?'🌲 気配を追って調べる':'🌲 森の探索を続ける'\)\+unsecuredRisk;/,
     'the existing explore action should invite investigation without revealing the clue');
   assert.match(resultPanel,/const unsecuredRisk=rpg\.unbanked>0\?/,

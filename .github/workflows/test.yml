@@ -46,7 +46,8 @@ jobs:
         run: npm test
 
   mobile-browser:
-    runs-on: ubuntu-latest
+    # Playwright 1.56.1 cannot install Chromium on ubuntu26.04 (run #42511033831).
+    runs-on: ubuntu-24.04
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
