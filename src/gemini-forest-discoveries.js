@@ -87,6 +87,14 @@
     }).filter(cue=>cue.distance<cue.range)
       .sort((a,b)=>a.distance-b.distance)[0]?.spot||null;
   }
+  // After finding both clues, approaching the gate earns a second, closer
+  // sound cue. It is feedback only: inspection still requires RANGE.
+  function gateCreakIntensifies(player,found){
+    if(!player || !found?.has('traces') || !found.has('shrine') || found.has('hollow')) return false;
+    const gate=spots.find(spot=>spot.id==='hollow');
+    const distance=Math.hypot(player.x-gate.x,player.z-gate.z);
+    return distance>=RANGE && distance<85;
+  }
   function available(phase){
     return phase==='fight'||phase==='return';
   }
@@ -433,5 +441,5 @@
       heal:gateHeal?Math.min(found.has('shrine')?55:45,Math.max(0,maxHp-hp)):
         spot.kind==='healing' && !scavenge?Math.min(found.has('traces')?40:35,Math.max(0,maxHp-hp)):0};
   }
-  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,GATE_BAREHAND_DAMAGE,gateSalvageDamage,near,cueNear,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,pauseGuardianCounter,guardianScoutStrikeBonus,guardianScoutAttackCueActive,guardianReadyForOpening,guardianBehindWarning,companionYieldsGuardianOpening,companionYieldsGuardianRecovery,companionYieldsGuardianFootsteps,guardianTargetsExplorer,guardianStrikeTell,guardianKeepsTellOnHit,guardianDodgeCueActive,guardianCounterStrikeBonus,claimGuardianCounter,claimGuardianCounterFang,shrineRiskDamage,shrineRiskMaterials,uncover};
+  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,GATE_BAREHAND_DAMAGE,gateSalvageDamage,near,cueNear,gateCreakIntensifies,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,pauseGuardianCounter,guardianScoutStrikeBonus,guardianScoutAttackCueActive,guardianReadyForOpening,guardianBehindWarning,companionYieldsGuardianOpening,companionYieldsGuardianRecovery,companionYieldsGuardianFootsteps,guardianTargetsExplorer,guardianStrikeTell,guardianKeepsTellOnHit,guardianDodgeCueActive,guardianCounterStrikeBonus,claimGuardianCounter,claimGuardianCounterFang,shrineRiskDamage,shrineRiskMaterials,uncover};
 });
