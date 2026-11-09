@@ -325,6 +325,7 @@ async function clearWave(page,{attackOnlyGuardian=false,preferScoutedOpening=fal
   let scoutedFirstHit = false;
   let openingObserved = false;
   let scoutAttackCueSeen = false;
+  const scoutCueTrace = [];
   let gateFirstFeedbackSeen = false;
   let guardianTellSeen = false;
   let guardianCounterClaimed = false;
@@ -355,6 +356,15 @@ async function clearWave(page,{attackOnlyGuardian=false,preferScoutedOpening=fal
           }
         };
       });
+      if(preferScoutedOpening && scoutCueTrace.length<40 &&
+          s.enemies.some(e=>e.name==='苔祠の番人' && (e.scoutOpeningActive || e.scoutStrikeClaimed))) {
+        scoutCueTrace.push({ms:Date.now()-start,phase:s.phase,mode:attackCue.mode,
+          active:attackCue.active,text:attackCue.text.slice(0,100),
+          rect:attackCue.rect,cueRect:attackCue.cueRect,
+          heroState:s.player?.state, guardian:s.enemies.filter(e=>e.name==='苔祠の番人').map(e=>({
+            opening:e.scoutOpeningActive,claimed:e.scoutStrikeClaimed,
+            seconds:e.scoutOpeningSeconds}))});
+      }
       if(attackCue.active) {
         assert(s.enemies.some(e => e.name==='苔祠の番人' &&
           e.scoutOpeningActive && !e.scoutStrikeClaimed),
@@ -390,7 +400,7 @@ async function clearWave(page,{attackOnlyGuardian=false,preferScoutedOpening=fal
       if (s.phase === 'return') return { seconds: Math.round((Date.now()-start)/100)/10,
         minimumHp, hpLost:before.player.hp-minimumHp, scoutedFirstHit, openingObserved,
         scoutAttackCueSeen,gateFirstFeedbackSeen,attackOnlyGuardian, guardianTellSeen, guardianCounterClaimed,
-        damageEvents,scoutTrace, after:s };
+        damageEvents,scoutTrace,scoutCueTrace, after:s };
       assert(s.phase === 'fight' && s.player.hp > 0,
         'real-input combat ended in defeat: ' + JSON.stringify(s));
       assert(Array.isArray(s.enemies), 'read-only probe must expose enemy positions');
@@ -402,10 +412,13 @@ async function clearWave(page,{attackOnlyGuardian=false,preferScoutedOpening=fal
       // A cautious gate detour only matters if the hero actually gets to use
       // the earned opening. Approach and face the guardian without holding an
       // attack that would lock the hero out of arming the one-shot warning.
-      // Once observed, attempt the strike; never wait indefinitely for a
-      // second warning if the first one expires or the player misses.
+      // Wait until the actual phone attack cue is visible before striking.
+      // Merely arming the timer is not enough: attacking immediately can
+      // consume the bonus before the player ever sees its affordance.
+      // If the window expires without a cue, resume ordinary combat.
       const waitForOpening=preferScoutedOpening && target?.name==='苔祠の番人' &&
-        target.scoutOpeningSeconds>0 && !target.scoutStrikeClaimed && !openingObserved;
+        target.scoutOpeningSeconds>0 && !target.scoutStrikeClaimed && !scoutAttackCueSeen &&
+        (!openingObserved || target.scoutOpeningActive);
       const grappleGuardian=!waitForOpening && !attackOnlyGuardian &&
         target?.name==='苔祠の番人' && !target.scoutOpeningActive &&
         Math.abs(target.x-s.player.x)<42 && Math.abs(target.z-s.player.z)<20;
@@ -973,8 +986,45 @@ async function main() {
             departBounds.y+departBounds.height<=page.viewportSize().height,
             'the earned next-trip action remains reachable on a 390px phone');
           await page.screenshot({path:path.join(output,'pixel-forest-forged.png')});
-          await page.locator('#rpgDepart').click();
+          // Regression #1064: a real reload must restore the camp's touch
+          // departure entry, not merely its persisted phase in a unit test.
+          const campBeforeReload=await read(page);
+          await page.reload({waitUntil:'domcontentloaded'});
+          await page.waitForFunction(() => window.CrownlessForestReadout?.().phase==='camp');
+          const restoredCamp=await read(page);
+          assert.equal(restoredCamp.banked,campBeforeReload.banked,
+            'reload cannot lose safely banked crafting materials');
+          assert.equal(restoredCamp.unbanked,0,
+            'reload cannot restore already banked materials as unsecured loot');
+          assert.equal(restoredCamp.crafted,true,
+            'the forged sword survives the current-version save reload');
+          // `found` is scoped to the current expedition, not permanent camp
+          // progression. Reloading a camp starts the next trip with a fresh
+          // clue list; persistent materials and crafted equipment are checked
+          // above, while the next trip rediscovers traces below.
+          assert.deepEqual(restoredCamp.found,[],
+            'camp reload must not leak last expedition clues into the next trip');
+          const restoredDepart=page.locator('#rpgDepart');
+          assert.equal(await page.locator('#rpgPanel').isVisible(),true,
+            'restored camp opens the actual expedition panel');
+          const restoredBounds=await restoredDepart.boundingBox();
+          assert(restoredBounds && restoredBounds.width>=44 && restoredBounds.height>=44 &&
+            restoredBounds.y>=0 && restoredBounds.y+restoredBounds.height<=page.viewportSize().height,
+            'reloaded camp departure is visible and thumb-sized at 390px');
+          await page.screenshot({path:path.join(output,'pixel-forest-camp-reloaded-390.png')});
+          await page.touchscreen.tap(restoredBounds.x+restoredBounds.width/2,
+            restoredBounds.y+restoredBounds.height/2);
+          await page.waitForFunction(() => window.CrownlessForestReadout?.().phase==='fight');
+          assert.equal(await page.locator('#rpgPanel').isVisible(),false,
+            'touch departure returns to live combat rather than a covered panel');
           const second=await clearWave(page);
+          const secondTrip=await read(page);
+          assert.equal(secondTrip.banked,restoredCamp.banked,
+            'a second expedition must not silently spend or re-bank stored materials');
+          assert(secondTrip.unbanked>0,
+            'combat rewards from the second expedition remain at risk until a safe return');
+          assert.equal(secondTrip.crafted,true,
+            'the crafted sword stays equipped through reload and real-touch redeparture');
           assert.equal(await page.locator('#rpgPanel').isVisible(),false,'victory leaves forest playable');
           await walkTo(page,800,365);
           await tapSite(page,'traces');
@@ -1038,11 +1088,16 @@ async function main() {
           assert.equal(await page.evaluate(()=>localStorage.getItem('crownless-expedition-v1-demo')),saveBefore,
             'action loop must preserve the main location-game save');
           // The other gate choice must be genuinely playable, not merely a
-          // rule-unit success. Reload deliberately begins a fresh fight while
-          // retaining banked materials and the forged sword. Earn an injury
-          // through real input, then trade the gate's two fangs for its herbs.
-          assert.equal(restored.phase,'fight',
-            'reloading a saved camp starts a fresh expedition with no unsecured loot');
+          // rule-unit success. Reload restores the saved camp; the player must
+          // deliberately depart before fighting again. Banked materials and
+          // the forged sword persist, while unsecured loot remains empty.
+          assert.equal(restored.phase,'camp',
+            'reloading a saved camp must restore its return/departure choice');
+          const departAfterReload=page.locator('#rpgDepart');
+          await departAfterReload.waitFor({state:'visible',timeout:10000});
+          await departAfterReload.click();
+          assert.equal((await read(page)).phase,'fight',
+            'real departure after camp reload must resume exploration combat');
           await clearWave(page);
           await walkTo(page,800,365);
           await tapSite(page,'traces');
@@ -1113,8 +1168,15 @@ async function main() {
           // Complete the newly added cautious route with genuine phone touches:
           // no state injection, no free banked material, and no duplicate pickup.
           const afterHealingReload=await read(page);
-          assert.equal(afterHealingReload.phase,'fight',
-            'the current save restarts combat without restoring unsecured loot');
+          assert.equal(afterHealingReload.phase,'camp',
+            'safe-return reload restores camp, without restoring unsecured loot');
+          assert.equal(afterHealingReload.unbanked,0,
+            'the healed expedition must not restore provisional materials');
+          const departAfterHealing=page.locator('#rpgDepart');
+          await departAfterHealing.waitFor({state:'visible',timeout:10000});
+          await departAfterHealing.click();
+          assert.equal((await read(page)).phase,'fight',
+            'a real departure after healing-route reload starts the next expedition');
           await clearWave(page);
           await walkTo(page,800,365);
           await tapSite(page,'traces');
@@ -1192,8 +1254,15 @@ async function main() {
           // Prove the smith upgrade changes a *later* expedition, not only
           // a static rule preview. Reach the same gate with the saved sword,
           // deliberately choose the risky +2 route and bring the loot home.
-          assert.equal(cautiousRestored.phase,'fight',
-            'a tempered camp reload starts a new expedition with no unsecured loot');
+          assert.equal(cautiousRestored.phase,'camp',
+            'a tempered camp reload preserves the safe-return camp without unsecured loot');
+          const departAfterTemper=page.locator('#rpgDepart');
+          await departAfterTemper.waitFor({state:'visible',timeout:10000});
+          await departAfterTemper.click();
+          assert.equal((await read(page)).phase,'fight',
+            'a real departure after the tempered camp reload starts the next expedition');
+          assert.equal((await read(page)).unbanked,0,
+            'the new expedition starts without restoring unsecured loot');
           await clearWave(page);
           await walkTo(page,800,365);
           await tapSite(page,'traces');
@@ -1261,8 +1330,15 @@ async function main() {
           // Revisit once more with the same saved tempered sword, this time
           // taking the *safe* one-fang choice by a real phone touch. This
           // distinguishes its outcome from the already-tested risky +2 route.
-          assert.equal(temperedRestored.phase,'fight',
-            'the previous living return can launch another genuine expedition');
+          assert.equal(temperedRestored.phase,'camp',
+            'the previous living return reloads into camp before another expedition');
+          const departForSafeChoice=page.locator('#rpgDepart');
+          await departForSafeChoice.waitFor({state:'visible',timeout:10000});
+          await departForSafeChoice.click();
+          assert.equal((await read(page)).phase,'fight',
+            'the saved tempered sword can launch another expedition through the real depart button');
+          assert.equal((await read(page)).unbanked,0,
+            'the next expedition starts without duplicated unsecured loot');
           await clearWave(page);
           await walkTo(page,800,365);
           await tapSite(page,'traces');
@@ -1310,7 +1386,17 @@ async function main() {
             saveBefore,'the separate location-game save stays untouched');
           // A later expedition must also prove the tempered sword's *shrine*
           // payoff in the real 390px scene, not just the isolated damage rule.
-          // Travel and fight normally; never inject HP, position, loot or saves.
+          // A living return reloads into camp; depart with the actual phone UI
+          // before issuing combat input. Never inject HP, position, loot or saves.
+          assert.equal(safeRestored.phase,'camp',
+            'the safely banked salvage reloads into camp before the shrine revisit');
+          const departForShrine=page.locator('#rpgDepart');
+          await departForShrine.waitFor({state:'visible',timeout:10000});
+          await departForShrine.click();
+          assert.equal((await read(page)).phase,'fight',
+            'the real depart control starts the later tempered shrine expedition');
+          assert.equal((await read(page)).unbanked,0,
+            'the shrine revisit starts without duplicated unsecured loot');
           await clearWave(page);
           await walkTo(page,800,365);
           await tapSite(page,'traces');
@@ -1379,7 +1465,15 @@ async function main() {
           // lead before choosing the optional shrine fight. The same tempered
           // sword is used as in the shrine-first run above; no test-only
           // teleport, reward injection, or save edits are permitted.
-          assert.equal(temperedShrineRestored.phase,'fight');
+          assert.equal(temperedShrineRestored.phase,'camp',
+            'the shrine return reloads into camp before the gate-first comparison');
+          const departForGateFirst=page.locator('#rpgDepart');
+          await departForGateFirst.waitFor({state:'visible',timeout:10000});
+          await departForGateFirst.click();
+          assert.equal((await read(page)).phase,'fight',
+            'the real depart button launches the gate-first comparison expedition');
+          assert.equal((await read(page)).unbanked,0,
+            'the new expedition starts without carrying provisional shrine loot');
           await clearWave(page);
           await walkTo(page,800,365);
           await tapSite(page,'traces');
@@ -1433,7 +1527,8 @@ async function main() {
             'cautious gate-first detour must open a real player-actionable warning; trace='+
             JSON.stringify(gateFirstGuardian.scoutTrace));
           assert.equal(gateFirstGuardian.scoutAttackCueSeen,true,
-            'the earned 2.4s opening must visibly highlight a reachable phone attack button');
+            'the earned 2.4s opening must visibly highlight a reachable phone attack button; cueTrace='+
+            JSON.stringify(gateFirstGuardian.scoutCueTrace));
           assert.equal(gateFirstGuardian.scoutedFirstHit,true,
             'cautious gate-first detour must land the earned +12 strike, not just lengthen an unused timer; trace='+
             JSON.stringify(gateFirstGuardian.scoutTrace));
@@ -1468,6 +1563,11 @@ async function main() {
           // from the ordinary opening wave (never inject HP), then spend the
           // gate on healing before taking the shrine's optional guardian risk.
           // This must NOT award the salvage-only extra 0.6s warning.
+          // A successful return persists as camp; depart through the real UI.
+          const herbCamp=await read(page);
+          assert.equal(herbCamp.phase,'camp');
+          await page.locator('#rpgDepart').waitFor({state:'visible'});
+          await page.locator('#rpgDepart').click();
           const herbFightStart=await read(page);
           assert.equal(herbFightStart.phase,'fight');
           const woundKeys=new Set();
@@ -1561,8 +1661,12 @@ async function main() {
           // provisional fangs at an HP cost, but must NOT grant the cautious
           // gate's extra 0.6-second warning. Revisit from a real saved camp;
           // never inject health, loot, position or discovery flags.
-          assert.equal(herbRestored.phase,'fight',
-            'the forceful comparison starts as a genuine new expedition');
+          assert.equal(herbRestored.phase,'camp',
+            'the forceful comparison starts from the saved camp');
+          await page.locator('#rpgDepart').waitFor({state:'visible'});
+          await page.locator('#rpgDepart').click();
+          assert.equal((await read(page)).phase,'fight',
+            'the forceful comparison starts after a real departure');
           await clearWave(page);
           await walkTo(page,800,365);
           await tapSite(page,'traces');
@@ -1813,6 +1917,36 @@ async function main() {
               'the swordless salvage reward survives reload');
             assert.equal(barehandRestored.unbanked,0,
               'reload never duplicates provisional fangs');
+            // Regression for #1064: a saved camp must expose a real, tappable
+            // departure after reload, and that departure must start combat.
+            const depart=barehandPage.locator('#rpgDepart');
+            // assetsReady can precede the window load handler that reopens
+            // the saved camp panel (external fonts/styles may still load).
+            // Wait for the actual visible UI, never toggle it from the test.
+            await depart.waitFor({state:'visible',timeout:10000}).catch(async error => {
+              const ui=await barehandPage.evaluate(()=>({
+                readyState:document.readyState,
+                phase:window.CrownlessForestReadout?.().phase,
+                panelHidden:document.getElementById('rpgPanel')?.classList.contains('hidden'),
+                departHidden:document.getElementById('rpgDepart')?.classList.contains('hidden')
+              }));
+              throw new Error('restored camp departure not visible: '+JSON.stringify(ui),{cause:error});
+            });
+            const departBounds=await depart.boundingBox();
+            assert(departBounds && departBounds.width>=44 && departBounds.height>=44 &&
+              departBounds.x>=0 && departBounds.x+departBounds.width<=390 &&
+              departBounds.y>=0 && departBounds.y+departBounds.height<=844,
+              'restored camp departure must fit the phone viewport');
+            await barehandPage.touchscreen.tap(
+              departBounds.x+departBounds.width/2,
+              departBounds.y+departBounds.height/2);
+            const departed=await read(barehandPage);
+            assert.equal(departed.phase,'fight',
+              'real touch after camp reload must begin a new expedition');
+            assert.equal(departed.banked,barehandRestored.banked,
+              're-departure must preserve already banked materials');
+            assert.equal(departed.unbanked,0,
+              're-departure must not duplicate the previous haul');
             assert.deepEqual(barehandErrors,[],'swordless touch path has no browser errors');
             report.barehandGate={before:beforeBarehand,after:afterBarehand,
               returned:barehandReturn,restored:barehandRestored};

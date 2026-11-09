@@ -28,3 +28,54 @@ body[data-combat-experiment] header button { min-height:32px; border-radius:4px;
 .forest-atmosphere-toggle[aria-pressed=false] { color:#dadac9; border-color:#687361; background:rgba(29,38,31,.9); }
 .forest-atmosphere-toggle[hidden] { display:none!important; }
 .forest-atmosphere-toggle:focus-visible { outline:3px solid #f5d898; outline-offset:2px; }
+
+/* Classic 16-bit exploration UI: crisp, square-edged forest overlays.
+ * Presentation-only: does not alter hit areas, movement, fog or save state. */
+body[data-combat-experiment] #forestExploreHint,
+body[data-combat-experiment] #rpgStatusBadge,
+body[data-combat-experiment] #weatherBadge {
+  border-radius: 0;
+  box-shadow: 2px 2px 0 rgba(13, 20, 14, .85);
+  text-shadow: 1px 1px 0 #10180f;
+}
+body[data-combat-experiment] .forest-atmosphere-toggle {
+  border-radius: 0;
+  box-shadow: 3px 3px 0 #111b13;
+}
+
+/* Low-resolution dithered forest-panel texture: CSS pixels, not a new asset.
+ * Keep the clue text readable and the playfield/touch area unobstructed. */
+body[data-combat-experiment] #forestExploreHint {
+  background-color: rgba(27, 39, 29, .94);
+  background-image: repeating-linear-gradient(0deg, transparent 0 6px, rgba(145, 160, 113, .11) 6px 8px),
+    repeating-linear-gradient(90deg, transparent 0 6px, rgba(145, 160, 113, .08) 6px 8px);
+  border: 2px solid #9cac78;
+  box-shadow: inset 0 0 0 2px #263b2a, 3px 3px 0 #0d140e;
+}
+
+/* Pixel-panel treatment for expedition status and time-of-day badges.
+ * Keep their text legible over the forest without changing gameplay. */
+body[data-combat-experiment] #rpgStatusBadge,
+body[data-combat-experiment] #weatherBadge {
+  background-color: rgba(30, 40, 30, .95);
+  background-image: repeating-linear-gradient(90deg, transparent 0 6px, rgba(154, 171, 116, .09) 6px 8px);
+  border: 2px solid #85936c;
+  box-shadow: inset 0 0 0 2px #263629, 3px 3px 0 #10170f;
+}
+
+/* Render the existing forest canvas with crisp pixel edges instead of browser
+ * interpolation. This is a reversible presentation experiment, not new art.
+ * Do not resize the canvas or change its pointer coordinates. */
+body[data-combat-experiment] #gameCanvas {
+  image-rendering: pixelated;
+}
+
+/* A faint pixel-grid horizon in the empty stage letterbox makes scene edges
+ * read as deliberate 16-bit framing, without overlaying the playable canvas.
+ * Keep the canvas, coordinates, buttons and discovery hit areas untouched. */
+body[data-combat-experiment] #stageViewport {
+  background-color: #17251c;
+  background-image: linear-gradient(90deg, #203024 1px, transparent 1px),
+    linear-gradient(#203024 1px, transparent 1px);
+  background-size: 8px 8px;
+}

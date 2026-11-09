@@ -259,8 +259,14 @@ async function main() {
         await page.reload({ waitUntil: 'domcontentloaded' });
         await page.waitForFunction(() => document.querySelector('#rpgStatusBadge')?.textContent.includes('倉庫 3'));
         assert.match(await page.locator('#rpgStatusBadge').innerText(), /未帰還 0.*倉庫 3.*初期装備/);
+        assert.equal(await page.locator('#rpgPanel').isVisible(), true,
+          'a safely returned camp must remain accessible after reload');
+        assert.equal(await page.locator('#rpgDepart').isVisible(), true,
+          'the restored camp must offer another expedition');
+        await page.locator('#rpgDepart').click();
         assert.equal(await page.locator('#rpgPanel').isVisible(), false,
-          'resuming must start a fresh expedition with no popup blocking combat');
+          'departing must close the camp panel for combat');
+        assert.equal((await page.evaluate(() => window.CrownlessForestReadout())).phase, 'fight');
         await page.evaluate(() => {
           const r = window.CrownlessRpgLoop.create();
           r.phase = 'camp';
@@ -291,7 +297,10 @@ async function main() {
         assert.equal(tempered.unbanked,0,'reloading never restores unreturned fangs');
         assert.equal(tempered.player.punchPower,19,'tempered sword raises actual punch damage');
         assert.equal(tempered.player.kickPower,21,'tempered sword raises actual kick damage');
-        assert.equal(tempered.phase,'fight','saved upgrade resumes a fresh expedition');
+        assert.equal(tempered.phase,'camp','saved upgrade restores the camp before departure');
+        assert.equal(await page.locator('#rpgDepart').isVisible(),true);
+        await page.locator('#rpgDepart').click();
+        assert.equal((await page.evaluate(() => window.CrownlessForestReadout())).phase,'fight');
         assert.equal(await page.evaluate(
           () => localStorage.getItem('crownless-expedition-v1-demo')), saveBefore,
           'lab visits and saved smith equipment must never mutate the actual RPG save');
@@ -330,6 +339,13 @@ async function main() {
         await page.waitForFunction(() => window.CrownlessForestReadout?.().player);
         assert.equal((await page.evaluate(() => window.CrownlessForestReadout())).crafted,
           width === 390,'390px must load the forged sword; 360px uses starter gear');
+        // A forged sword is saved at camp; depart through the real UI before walking.
+        // Otherwise movement is intentionally blocked and the shrine never enters view.
+        if ((await page.evaluate(() => window.CrownlessForestReadout())).phase === 'camp') {
+          await page.locator('#rpgDepart').click();
+          assert.equal((await page.evaluate(() => window.CrownlessForestReadout())).phase,'fight',
+            'departing the restored camp must enable exploration movement');
+        }
         await page.keyboard.down('d');
         try {
           await page.waitForFunction(() => {
