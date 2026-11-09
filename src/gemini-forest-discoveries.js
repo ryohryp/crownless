@@ -77,7 +77,7 @@
       // After inspecting both the shrine and tracks, the gate's creak can be
       // heard a little sooner. This is only a sound: no direction, tap range,
       // walkability, hidden-path reveal or provisional loot is granted.
-      const range=spot.id==='hollow' && found.has('traces') && found.has('shrine') ? 115 :
+      const range=spot.id==='hollow' && found.has('traces') && found.has('shrine') ? 120 :
         spot.id==='traces' && found.has('shrine') ? 100 :
         spot.id==='shrine' && found.has('traces') && found.has('hollow-scout')
         ? 135 : (spot.id==='hollow'||spot.id==='shrine') && found.has('traces')
