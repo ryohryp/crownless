@@ -6,11 +6,11 @@ const D=require('../src/gemini-forest-discoveries.js');
 test('shrine and tracks together earn an earlier gate creak, not a shortcut or reward',()=>{
   const found=new Set(['traces','shrine']);
   const at=distance=>({x:910-distance,z:235,state:'IDLE'});
-  assert.equal(D.cueNear(at(120),found),null,'sound remains within its radial boundary');
-  assert.equal(D.cueNear(at(119.9),found)?.id,'hollow');
-  assert.equal(D.cueNear(at(110),new Set(['traces'])),null,
+  assert.equal(D.cueNear(at(135),found),null,'sound remains within its radial boundary');
+  assert.equal(D.cueNear(at(134.9),found)?.id,'hollow');
+  assert.equal(D.cueNear(at(125),new Set(['traces'])),null,
     'reading tracks alone does not grant the longer sound range');
-  assert.equal(D.cueNear(at(110),new Set(['shrine'])),null,
+  assert.equal(D.cueNear(at(125),new Set(['shrine'])),null,
     'finding the shrine alone does not grant the longer sound range');
   assert.equal(D.near(at(80),found),null,'sound never extends the 54-unit inspection range');
   assert.equal(D.uncover(at(80),found,'return',100,140,true,'cautious').ok,false,
