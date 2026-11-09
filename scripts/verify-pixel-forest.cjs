@@ -1018,6 +1018,13 @@ async function main() {
           assert.equal(await page.locator('#rpgPanel').isVisible(),false,
             'touch departure returns to live combat rather than a covered panel');
           const second=await clearWave(page);
+          const secondTrip=await read(page);
+          assert.equal(secondTrip.banked,restoredCamp.banked,
+            'a second expedition must not silently spend or re-bank stored materials');
+          assert(secondTrip.unbanked>0,
+            'combat rewards from the second expedition remain at risk until a safe return');
+          assert.equal(secondTrip.crafted,true,
+            'the crafted sword stays equipped through reload and real-touch redeparture');
           assert.equal(await page.locator('#rpgPanel').isVisible(),false,'victory leaves forest playable');
           await walkTo(page,800,365);
           await tapSite(page,'traces');
