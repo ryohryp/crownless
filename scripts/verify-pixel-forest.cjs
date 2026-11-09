@@ -998,6 +998,8 @@ async function main() {
             'reload cannot restore already banked materials as unsecured loot');
           assert.equal(restoredCamp.crafted,true,
             'the forged sword survives the current-version save reload');
+          assert.deepEqual(restoredCamp.found,campBeforeReload.found,
+            'camp reload must preserve exactly the clues the player discovered');
           const restoredDepart=page.locator('#rpgDepart');
           assert.equal(await page.locator('#rpgPanel').isVisible(),true,
             'restored camp opens the actual expedition panel');
