@@ -8,7 +8,7 @@
 <script>
 'use strict';
 const key='crownless-risk-cache-prototype-v1';
-const fresh=()=>({hp:12,bank:0,bag:0,clue:false,phase:'start',visits:0,rope:false,shrineUsed:false,bridgeUsed:false,signal:false,signalUsed:false,caveUsed:false,caveKnown:false});
+const fresh=()=>({hp:12,bank:0,bag:0,clue:false,phase:'start',visits:0,rope:false,shrineUsed:false,bridgeUsed:false,signal:false,signalUsed:false,caveUsed:false,caveKnown:false,caveEcho:false});
 let s;try{s=JSON.parse(localStorage.getItem(key))||fresh()}catch{s=fresh()}
 const $=id=>document.getElementById(id);
 function save(){try{localStorage.setItem(key,JSON.stringify(s))}catch{ /* session remains playable */ }}
@@ -24,15 +24,15 @@ case 'fork':story('🐾','足跡は落ち葉の下で途切れる。石の裏に
 case 'bridge':story('🌉',s.rope?'登攀縄で吊り橋を補強できる。橋の向こうに古い採集場がある。':'吊り橋の縄が切れかけている。渡れば傷を負うかもしれない。');action('橋を渡り採集する（素材+4、HP-'+(s.rope?1:5)+'）',()=>{s.hp-=s.rope?1:5;if(s.hp>0){s.bag+=4;s.bridgeUsed=true;s.signal=true;s.caveKnown=true;go('bridgeReturn')}else go('lost')},'danger');action('橋を渡らず引き返す',()=>go('fork'));break;
 case 'bridgeReturn':story('🌉','採集場の奥で橋が軋む。帰り道にも危険が残る。');action('採集品を抱えて戻る（HP-'+(s.rope?1:3)+'）',()=>{s.hp-=s.rope?1:3;go(s.hp>0?'fork':'lost')},'danger');action('採集品を置き、身軽に戻る（素材-4）',()=>{s.bag=Math.max(0,s.bag-4);go('fork')});break;
 case 'signal':story('🪨','前回の遠征で崩れた橋の先に光が残っている。石の隙間には古い補給箱。慎重に開けるか、危険な奥まで探るか。');action('手前の補給箱を回収（素材+2）',()=>{s.bag+=2;s.signalUsed=true;go('fork')});action('崖の奥まで探索（素材+5、HP-4）',()=>{s.hp-=4;if(s.hp>0){s.bag+=5;s.signalUsed=true;go('fork')}else go('lost')},'danger');action('今は戻る',()=>go('fork'));break;
-case 'cave':story('🕳️','谷底の洞窟で水音が二方向から響く。冷たい風が吹く左の坑道と、金属音がする右の坑道。どちらを先に調べる？');action('冷たい風を追う（安全な鉱石+2）',()=>{s.bag+=2;s.caveUsed=true;go('fork')});action('金属音の奥へ進む（落盤の危険）',()=>go('caveDepth'),'danger');action('入口へ戻る',()=>go('fork'));break;
-case 'caveDepth':story('⛏️','崩れかけた採掘跡。光る鉱脈が見えるが、足元の石が動き始めた。');action('支えを組み鉱脈を採る（素材+6、HP-'+(s.rope?2:6)+'）',()=>{s.hp-=s.rope?2:6;if(s.hp>0){s.bag+=6;s.caveUsed=true;go('fork')}else go('lost')},'danger');action('崩れる前に撤退する（素材なし）',()=>go('fork'));break;
+case 'cave':story('🕳️',s.caveEcho?'反響を聞き分けた。金属音の奥には落盤の前兆がある。支柱の位置も分かった。':'谷底の洞窟で水音が二方向から響く。冷たい風が吹く左の坑道と、金属音がする右の坑道。どちらを先に調べる？');if(!s.caveEcho)action('壁に石を打ち、反響を調べる（落盤の手掛かり）',()=>{s.caveEcho=true});action('冷たい風を追う（安全な鉱石+2）',()=>{s.bag+=2;s.caveUsed=true;go('fork')});action('金属音の奥へ進む（落盤の危険）',()=>go('caveDepth'),'danger');action('入口へ戻る',()=>go('fork'));break;
+case 'caveDepth':story('⛏️','崩れかけた採掘跡。光る鉱脈が見えるが、足元の石が動き始めた。');action('支えを組み鉱脈を採る（素材+6、HP-'+(s.rope?2:s.caveEcho?3:6)+'）',()=>{s.hp-=s.rope?2:s.caveEcho?3:6;if(s.hp>0){s.bag+=6;s.caveUsed=true;go('fork')}else go('lost')},'danger');action('崩れる前に撤退する（素材なし）',()=>go('fork'));break;
 case 'shrine':story('⛩️','祠の奥に澄んだ泉と古い供物台。泉で傷を癒やすか、供物台から素材を採るか。一度の遠征で選べるのは片方だけ。');action('泉で回復する（HP+4、最大12）',()=>{s.hp=Math.min(12,s.hp+4);s.shrineUsed=true;go('fork')});action('供物台から採集する（素材+2）',()=>{s.bag+=2;s.shrineUsed=true;go('fork')},'danger');break;
 case 'cache':story('🗝️',s.clue?'罠の留め金が見えた。慎重に開ければ傷は浅い。':'古い箱に獣の牙。罠の仕組みは見えない。');action('慎重に開ける（素材+1、HP-'+(s.clue?1:4)+'）',()=>{s.hp-=s.clue?1:4;s.bag+=1;go(s.hp>0?'escape':'lost')});action('強引に奪う（素材+3、HP-7）',()=>{s.hp-=7;s.bag+=3;go(s.hp>0?'escape':'lost')},'danger');action('触らずに撤退',()=>go('camp'));break;
 case 'escape':story('🐺','獣の唸り声が迫る。戦利品を抱えて走るか、荷物を捨てて安全を取るか。');action('崖下の光を追う（希少素材+2、HP-'+(s.rope?1:3)+'）',()=>{s.hp-=s.rope?1:3;if(s.hp>0){s.bag+=2;go('ridge')}else go('lost')},'danger');action('獣の予兆を読み、迎え撃つ',()=>go('ambush'));action('戦利品を守って走る（HP-2）',()=>{s.hp-=2;go(s.hp>0?'camp':'lost')},'danger');action('戦利品を捨てて逃げる',()=>{s.bag=0;go('camp')});break;
 case 'ambush':story('🐺','茂みが揺れ、獣が飛び出す直前だ。足跡から動きを予測できるか？');action('身を伏せてやり過ごす（'+(s.clue?'HP-1':'HP-4')+'）',()=>{s.hp-=s.clue?1:4;go(s.hp>0?'camp':'lost')});action('囮を投げて獣の巣を探る（素材+2、HP-4）',()=>{s.hp-=4;if(s.hp>0){s.bag+=2;go('camp')}else go('lost')},'danger');action('岩棚へ誘い込み、背後の鉱脈を採る（素材+3、HP-'+(s.rope?1:5)+'）',()=>{s.hp-=s.rope?1:5;if(s.hp>0){s.bag+=3;go('camp')}else go('lost')},'danger');action('荷物を捨てて逃げる',()=>{s.bag=0;go('camp')});break;
 case 'ridge':story('✨','崖下に星鉄の欠片を見つけた。だが帰路は険しい。荷物を抱えて逃げ切るか？');action('崖を登って帰る（HP-'+(s.rope?1:3)+'）',()=>{s.hp-=s.rope?1:3;go(s.hp>0?'camp':'lost')},'danger');action('希少素材を捨てて安全な道へ（素材-2）',()=>{s.bag=Math.max(0,s.bag-2);go('camp')});break;
-case 'lost':s.bag=0;story('💀','力尽きた。未帰還の素材は失われた。倉庫の素材は無事だ。');action('キャンプから再挑戦',()=>{s.hp=12;s.clue=false;s.shrineUsed=false;s.bridgeUsed=false;s.signalUsed=false;s.caveUsed=false;go('start')});break;
-case 'camp':if(s.bag>0){s.bank+=s.bag;s.bag=0;s.visits++}story('🔥','無事にキャンプへ戻った。戦利品は倉庫へ確定した。\n素材3個で登攀縄を製作すると、次回から崖の往復が安全になる。');if(!s.rope&&s.bank>=3)action('素材3個で登攀縄を作る（次の遠征も有効）',()=>{s.bank-=3;s.rope=true});action('もう一度遠征する',()=>{s.hp=12;s.clue=false;s.shrineUsed=false;s.bridgeUsed=false;s.caveUsed=false;go('start')});action('実験データをリセット',()=>{s=fresh();go('start')});break;
+case 'lost':s.bag=0;story('💀','力尽きた。未帰還の素材は失われた。倉庫の素材は無事だ。');action('キャンプから再挑戦',()=>{s.hp=12;s.clue=false;s.shrineUsed=false;s.bridgeUsed=false;s.signalUsed=false;s.caveUsed=false;s.caveEcho=false;go('start')});break;
+case 'camp':if(s.bag>0){s.bank+=s.bag;s.bag=0;s.visits++}story('🔥','無事にキャンプへ戻った。戦利品は倉庫へ確定した。\n素材3個で登攀縄を製作すると、次回から崖の往復が安全になる。');if(!s.rope&&s.bank>=3)action('素材3個で登攀縄を作る（次の遠征も有効）',()=>{s.bank-=3;s.rope=true});action('もう一度遠征する',()=>{s.hp=12;s.clue=false;s.shrineUsed=false;s.bridgeUsed=false;s.caveUsed=false;s.caveEcho=false;go('start')});action('実験データをリセット',()=>{s=fresh();go('start')});break;
 default:s=fresh();go('start');return;
 }
 save();
