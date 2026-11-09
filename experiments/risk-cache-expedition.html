@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Crownless | 危険な寄り道 実験</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#101b19;color:#f2eedb;font:16px system-ui}main{max-width:430px;margin:auto;min-height:100dvh;display:flex;flex-direction:column;padding:16px 16px max(20px,env(safe-area-inset-bottom))}h1{font-size:23px;margin:4px 0 10px}.scene{flex:1;border:2px solid #697f65;background:linear-gradient(#263b35,#182923);border-radius:14px;padding:18px;min-height:260px}.icon{font-size:68px;text-align:center;margin:20px}#story{line-height:1.8;white-space:pre-line}#stats{padding:12px 0;font-weight:700}#actions{display:grid;gap:9px}button{min-height:52px;border:1px solid #b8bc86;border-radius:10px;background:#365847;color:white;font:700 16px system-ui;text-align:left;padding:10px 14px}button:disabled{opacity:.4}button.danger{background:#704535}small{color:#c5cbb4}
+</style>
+<main><h1>🌲 Crownless：獣道の奥</h1><div id="stats" aria-live="polite"></div><section class="scene"><div class="icon" id="icon">🌫️</div><div id="story" role="status"></div></section><div id="actions"></div><small>短い実験ステージ。戦利品は生還時だけ倉庫へ。既存本編のセーブには影響しません。</small></main>
+<script>
+'use strict';
+const key='crownless-risk-cache-prototype-v1';
+const fresh=()=>({hp:12,bank:0,bag:0,clue:false,phase:'start',visits:0});
+let s;try{s=JSON.parse(localStorage.getItem(key))||fresh()}catch{s=fresh()}
+const $=id=>document.getElementById(id);
+function save(){try{localStorage.setItem(key,JSON.stringify(s))}catch{ /* session remains playable */ }}
+function go(phase){s.phase=phase;save();render()}
+function action(label,fn,kind=''){const b=document.createElement('button');b.textContent=label;b.className=kind;b.onclick=()=>{fn();save();render()};$('actions').append(b)}
+function render(){
+$('actions').replaceChildren();
+$('stats').textContent='HP '+s.hp+'/12　持ち帰り前 '+s.bag+'　倉庫 '+s.bank;
+const story=(icon,msg)=>{$('icon').textContent=icon;$('story').textContent=msg};
+switch(s.phase){
+case 'start':story('🌫️','獣道の奥から金属音。湿った足跡が二方向へ続く。\n安全に帰るか、危険を冒して確かめるか。');action('足跡を観察する（手掛かりを得る）',()=>{s.clue=true;go('fork')});action('音のする方へ直行する',()=>go('cache'),'danger');action('引き返して生還する',()=>go('camp'));break;
+case 'fork':story('🐾','足跡は落ち葉の下で途切れる。石の裏に爪痕。\n爪痕は罠の位置を教えている。');action('爪痕を頼りに隠し場所へ',()=>go('cache'));action('安全に帰る',()=>go('camp'));break;
+case 'cache':story('🗝️',s.clue?'罠の留め金が見えた。慎重に開ければ傷は浅い。':'古い箱に獣の牙。罠の仕組みは見えない。');action('慎重に開ける（素材+1、HP-'+(s.clue?1:4)+'）',()=>{s.hp-=s.clue?1:4;s.bag+=1;go(s.hp>0?'escape':'lost')});action('強引に奪う（素材+3、HP-7）',()=>{s.hp-=7;s.bag+=3;go(s.hp>0?'escape':'lost')},'danger');action('触らずに撤退',()=>go('camp'));break;
+case 'escape':story('🐺','獣の唸り声が迫る。戦利品を抱えて走るか、荷物を捨てて安全を取るか。');action('戦利品を守って走る（HP-2）',()=>{s.hp-=2;go(s.hp>0?'camp':'lost')},'danger');action('戦利品を捨てて逃げる',()=>{s.bag=0;go('camp')});break;
+case 'lost':s.bag=0;story('💀','力尽きた。未帰還の素材は失われた。倉庫の素材は無事だ。');action('キャンプから再挑戦',()=>{s.hp=12;s.clue=false;go('start')});break;
+case 'camp':s.bank+=s.bag;s.bag=0;s.visits++;story('🔥','無事にキャンプへ戻った。戦利品は倉庫へ確定した。\n再遠征では罠の場所をもう一度調べられる。');action('もう一度遠征する',()=>{s.hp=12;s.clue=false;go('start')});action('実験データをリセット',()=>{s=fresh();go('start')});break;
+default:s=fresh();go('start');return;
+}
+save();
+}
+render();
+</script></html>
