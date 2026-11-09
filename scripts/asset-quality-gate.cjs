@@ -5,8 +5,9 @@ const fs=require("node:fs");
 const fsp=require("node:fs/promises");
 const path=require("node:path");
 const crypto=require("node:crypto");
+const {validatePixelArtSpec,inspectPixelArt}=require("./pixel-art-gate.cjs");
 const ROOT=path.resolve(__dirname,"..");
-const VERSION="visual-gate-1";
+const VERSION="visual-gate-2";
 const CANON=["AGENTS.md","docs/visual-canon.md","docs/visual/GLOBAL_VISUAL_STYLE.md","docs/visual/CHARACTER_VISUAL_CANON.md","docs/visual/WORLD_DIRECTION.md"];
 const KINDS=new Set(["character","enemy","background","map","building","equipment","item","event"]);
 const FIX={
@@ -39,6 +40,7 @@ function validateManifest(m){
  if(!Array.isArray(m.references)||m.references.length>2||m.references.some(r=>typeof r!=="string"))throw Error("invalid_references");
  if(!Number.isInteger(m.attempt)||m.attempt<0||m.attempt>2)throw Error("retry_limit_exceeded");
  if(m.specPath!==undefined&&typeof m.specPath!=="string")throw Error("invalid_spec_path");
+ if(m.pixelArt!==undefined)validatePixelArtSpec(m.pixelArt);
  if(/api[_ -]?key|bearer |password|https?:\/\/|(?:latitude|longitude|緯度|経度)\s*[:=]|-?\d{2,3}\.\d{5,}\s*[,/]\s*-?\d{2,3}\.\d{5,}/i.test([m.subject,m.usage,m.generationPrompt].join(" ")))throw Error("private_metadata");
  return m;
 }
@@ -148,6 +150,11 @@ async function run(manifestPath,{stage="asset",force=false,dependencies={}}={}){
   const sharp=dependencies.sharp||require("sharp");
   const metadata=await sharp(candidate,{animated:false,failOn:"error"}).metadata();
   const problems=validateGeometry(metadata,m);
+  if(m.pixelArt&&!problems.length){
+   const {data,info}=await sharp(candidate,{animated:false,failOn:"error"}).ensureAlpha().raw().toBuffer({resolveWithObject:true});
+   report.pixelArt=inspectPixelArt(data,info.width,info.height,m.pixelArt);
+   problems.push(...report.pixelArt.problems);
+  }
   report.geometry={width:metadata.width,height:metadata.height,format:metadata.format,hasAlpha:metadata.hasAlpha,problems};
   if(problems.length)report.asset={status:"reject_candidate",issues:problems,deterministic:true};
   else{
