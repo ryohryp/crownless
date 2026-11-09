@@ -998,8 +998,12 @@ async function main() {
             'reload cannot restore already banked materials as unsecured loot');
           assert.equal(restoredCamp.crafted,true,
             'the forged sword survives the current-version save reload');
-          assert.deepEqual(restoredCamp.found,campBeforeReload.found,
-            'camp reload must preserve exactly the clues the player discovered');
+          // `found` is scoped to the current expedition, not permanent camp
+          // progression. Reloading a camp starts the next trip with a fresh
+          // clue list; persistent materials and crafted equipment are checked
+          // above, while the next trip rediscovers traces below.
+          assert.deepEqual(restoredCamp.found,[],
+            'camp reload must not leak last expedition clues into the next trip');
           const restoredDepart=page.locator('#rpgDepart');
           assert.equal(await page.locator('#rpgPanel').isVisible(),true,
             'restored camp opens the actual expedition panel');
