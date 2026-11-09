@@ -74,7 +74,11 @@
     return spots.filter(spot=>!found.has(spot.id)).map(spot=>{
       // Shrine-first explorers can smell damp soil before they find the tracks.
       // This never changes the 54-unit inspection radius or reveals a route.
-      const range=spot.id==='traces' && found.has('shrine') ? 100 :
+      // After inspecting both the shrine and tracks, the gate's creak can be
+      // heard a little sooner. This is only a sound: no direction, tap range,
+      // walkability, hidden-path reveal or provisional loot is granted.
+      const range=spot.id==='hollow' && found.has('traces') && found.has('shrine') ? 115 :
+        spot.id==='traces' && found.has('shrine') ? 100 :
         spot.id==='shrine' && found.has('traces') && found.has('hollow-scout')
         ? 135 : (spot.id==='hollow'||spot.id==='shrine') && found.has('traces')
         ? 100 : RANGE;
