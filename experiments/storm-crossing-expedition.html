@@ -28,7 +28,7 @@ for(let p=0;p<N;p++){let el=document.createElement('div');el.className='tile'+(p
 if(s.phase==='camp'){$('story').textContent='遠征で集めた鉱石を持ち帰り、絶縁靴を作れば雷雲の被害を減らせる。';act('遠征に出る',begin);if(!s.boots&&s.bank>=4)act('素材4で絶縁靴を作る',()=>{s.bank-=4;s.boots=true});act('実験データを初期化',()=>{s=initial()},'warn');return}
 if(s.phase==='lost'){$('story').textContent='雷雲に倒れた。持ち歩いていた素材は失った。倉庫は無事。';act('再挑戦',begin);return}
 const p=s.pos, storm=stormAt(s.turn);
-$('story').textContent='雷雲は中央の縦列を南北に巡る。南西・南東の岩陰では1手待って雷雲をやり過ごせる。中央の水没道には希少鉱石6個。避雷塔で素材2個を使えば次の3行動を安全にできる。接地中に中央へ到達すれば帯電結晶の安全回収か、HP4を賭けた雷核採掘（素材+8）かを選べる。東の鉱脈で素材2個を使うと雷雲を西列へ3行動誘導できる（西側は危険になる）。北東の遺跡には鉱石を隠し、次の遠征で回収できる。北西の石橋では足跡を調べて隠し鉱脈を発見でき、危険な採掘か安全な撤退を選べる。⚡は現在の危険地帯。';
+$('story').textContent='雷雲は中央の縦列を南北に巡る。南西・南東の岩陰では1手待って雷雲をやり過ごせる。中央の水没道には希少鉱石6個。避雷塔で素材2個を使えば次の3行動を安全にできる。接地中に中央へ到達すれば帯電結晶の安全回収か、HP4を賭けた雷核採掘（素材+8）かを選べる。東の鉱脈で素材2個を使うと雷雲を西列へ3行動誘導できる（西側は危険になる）。北東の遺跡には鉱石を隠し、次の遠征で回収できる。北西の石橋では足跡を調べて隠し鉱脈を発見でき、危険な採掘か安全な撤退を選べる。落雷直前の鉱脈で採集すると追加素材+4。ただし採集にも1行動かかり、落雷を受ける。⚡は現在の危険地帯。';
 if(p===0&&!s.traceFound)act('石橋の傷跡を調べる（隠し鉱脈を発見）',()=>{s.traceFound=true;s.turn++;hazard()});
 if(p===0&&s.traceFound&&!s.traceTaken)act('崩れた橋下で希少鉱石を採掘（HP-3 / 素材+7）',()=>{s.traceTaken=true;s.hp-=3;s.turn++;if(s.hp<=0){s.hp=0;s.bag=0;s.phase='lost';return}s.bag+=7;hazard()},'warn');
 if(p===2&&s.bag>0&&s.cache===0)act('遺跡に鉱石を隠す（次の遠征で回収）',()=>{s.cache=s.bag;s.bag=0;s.cacheRun=s.run;s.turn++;hazard()});
@@ -40,7 +40,7 @@ for(const q of neighbors(p))act('→ '+['北西','避雷塔','北東','西','中
 if(p===4&&s.turn<s.groundedUntil&&!s.coreTaken)act('雷核を掘り出す（HP-4 / 素材+8）',()=>{s.hp-=4;s.coreTaken=true;s.turn++;if(s.hp<=0){s.hp=0;s.bag=0;s.phase='lost';return}s.bag+=8;hazard()},'warn');
 if(p===4&&s.turn<s.groundedUntil&&!s.chargedTaken)act('帯電結晶を回収 +5（接地中限定）',()=>{s.bag+=5;s.chargedTaken=true;s.turn++;hazard()});
 const loot={0:2,2:3,3:2,4:6,5:4};
-if(loot[p]&&!s.taken.includes(p))act('鉱石を採集 +'+loot[p],()=>{s.bag+=loot[p];s.taken.push(p);s.turn++;hazard()});
+if(loot[p]&&!s.taken.includes(p)){const imminent=stormAt(s.turn+1)===p;act('鉱石を採集 +'+loot[p]+(imminent?'（落雷直前の鉱脈：追加+4）':''),()=>{s.bag+=loot[p]+(imminent?4:0);s.taken.push(p);s.turn++;hazard()},imminent?'warn':'')}
 if(p===7)act('渡し場から生還する',returnHome);
 if(exits.includes(p))act('岸沿いに撤退（素材を捨てる）',()=>{s.bag=0;s.phase='camp'},'warn');
 }
