@@ -1114,12 +1114,23 @@ async function main() {
           const shrineBeforeForge=await verifyTracksShrineRisk(page,false);
           assert.match(await returnButton.innerText(),new RegExp('牙'+shrineBeforeForge.provisionalAfter+'）'),
             'the shrine reward is reflected in the still-available return choice');
-          const gatePulsesBeforeReturn=await page.evaluate(() => window.__forestHapticPatterns.filter(p=>
-            p===34 || (Array.isArray(p) && (p.join(',')==='28,45,28' || p.join(',')==='32,40,32'))).length);
+          const gatePulseCounts=await page.evaluate(() => {
+            const patterns=window.__forestHapticPatterns;
+            return ['28,45,28','32,40,32'].map(key=>patterns.filter(p=>Array.isArray(p) && p.join(',')===key).length);
+          });
           await walkTo(page,910,235);
+          const gatePulseCountsAfter=await page.evaluate(() => {
+            const patterns=window.__forestHapticPatterns;
+            return ['28,45,28','32,40,32'].map(key=>patterns.filter(p=>Array.isArray(p) && p.join(',')===key).length);
+          });
+          assert.equal(gatePulseCountsAfter[0],gatePulseCounts[0],
+            'returning to the gate cannot repeat its distant vibration');
+          assert(gatePulseCountsAfter[1]>=gatePulseCounts[1] && gatePulseCountsAfter[1]<=gatePulseCounts[1]+1,
+            'the stronger close-gate creak may be earned once, never repeatedly');
+          await page.waitForTimeout(200);
           assert.equal(await page.evaluate(() => window.__forestHapticPatterns.filter(p=>
-            p===34 || (Array.isArray(p) && (p.join(',')==='28,45,28' || p.join(',')==='32,40,32'))).length),
-            gatePulsesBeforeReturn,'returning to the already-cued gate cannot repeat its gate vibration');
+            Array.isArray(p) && p.join(',')==='32,40,32').length),gatePulseCountsAfter[1],
+            'staying near the gate cannot repeat its stronger creak');
           const lockedBefore=await read(page);
           const gateHint=await page.locator('#forestExploreHint').innerText();
           assert.match(gateHint,/茨の奥で何かが軋む/,'the gate first offers a sensory clue');
