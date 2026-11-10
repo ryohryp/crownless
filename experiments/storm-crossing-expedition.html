@@ -8,7 +8,7 @@
 <script>
 'use strict';
 const KEY='crownless-storm-crossing-v1',N=9,exits=[0,1,2];
-const initial=()=>({phase:'camp',hp:10,bank:0,bag:0,pos:7,turn:0,seen:[7],taken:[],boots:false,compass:false,run:0,groundedUntil:0,chargedTaken:false,coreTaken:false,cache:0,cacheRun:-1,divertUntil:0,traceFound:false,traceTaken:false,shelterBuilt:false,shelterUsed:false,commission:false,commissionWins:0,flareStock:0,flareUsed:false,raiderDefeated:false,raiderAlert:false,raiderHp:6,raiderIntent:0,raiderGuard:false,raiderTrophies:0,raiderBlade:false,bridgeVaultOpen:false,bridgeVaultTaken:false,guardianDefeated:false,guardianHp:10,guardianTurn:0,guardianAlert:false,relic:false,relicShield:0,ruinsLiberated:false,ruinsRested:false,ruinsOffering:false,trailClue:false,trailCacheTaken:false,altarOpened:false,altarLooted:false,altarSigil:false});
+const initial=()=>({phase:'camp',hp:10,bank:0,bag:0,pos:7,turn:0,seen:[7],taken:[],boots:false,compass:false,run:0,groundedUntil:0,chargedTaken:false,coreTaken:false,cache:0,cacheRun:-1,divertUntil:0,traceFound:false,traceTaken:false,shelterBuilt:false,shelterUsed:false,commission:false,commissionWins:0,flareStock:0,flareUsed:false,raiderDefeated:false,raiderAlert:false,raiderHp:6,raiderIntent:0,raiderGuard:false,raiderTrophies:0,raiderBlade:false,bridgeVaultOpen:false,bridgeVaultTaken:false,guardianDefeated:false,guardianHp:10,guardianTurn:0,guardianAlert:false,relic:false,relicShield:0,ruinsLiberated:false,ruinsRested:false,ruinsOffering:false,trailClue:false,trailCacheTaken:false,altarOpened:false,altarLooted:false,altarSigil:false,hunterScouted:false,hunterTrap:false,hunterDefeated:false,hunterAlert:false,hunterHp:8,hunterTurn:0,hunterFang:false});
 let s;try{s=Object.assign(initial(),JSON.parse(localStorage.getItem(KEY))||{})}catch{s=initial()}
 const $=id=>document.getElementById(id);
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(s))}catch{}}
@@ -42,6 +42,27 @@ for(let p=0;p<N;p++){
 if(s.phase==='camp'){$('story').textContent='遠征で鉱石を持ち帰ろう。納品依頼は持ち帰った鉱石12個以上で達成。倉庫の鉱石は対象外、失敗しても依頼は残る。';if(!s.commission)act('鉱石12個の納品依頼を受ける（生還で報酬+6）',()=>{s.commission=true});act('遠征に出る',begin);if(!s.boots&&s.bank>=4)act('素材4で絶縁靴を作る',()=>{s.bank-=4;s.boots=true});if(!s.compass&&s.bank>=5)act('素材5で雷雲予測器を作る（次の行動の落雷地点を表示）',()=>{s.bank-=5;s.compass=true});if(!s.raiderBlade&&s.raiderTrophies>=1&&s.bank>=4)act('⚔️ 刀片1と鉱石4で略奪者の刃を鍛造（斬撃+2）',()=>{s.raiderTrophies--;s.bank-=4;s.raiderBlade=true});if(s.bank>=3&&s.flareStock<2)act('素材3で緊急帰還信号を作る（最大2個）',()=>{s.bank-=3;s.flareStock=(s.flareStock||0)+1});act('実験データを初期化',()=>{s=initial()},'warn');return}
 if(s.phase==='lost'){$('story').textContent='雷雲に倒れた。持ち歩いていた素材は失った。倉庫は無事。';act('再挑戦',begin);return}
 const p=s.pos, storm=stormAt(s.turn);
+if(p===3&&s.hunterAlert&&!s.hunterDefeated){
+ const intent=s.hunterTurn%3;
+ const clue=['獣が低く身を沈めた。次は飛びかかり（4ダメージ）。','獣が岩棚を回り込む。次は爪撃（2ダメージ）。','獣が息を整えている。今が攻撃の好機。'][intent];
+ $('story').textContent='🐺 岩棚の灰狼 HP '+s.hunterHp+'/8｜'+clue+(s.hunterTrap?' 罠で動きが鈍っている。':'');
+ function hunterMove(choice){
+  if(choice==='flee'){s.pos=6;s.hunterAlert=false;s.turn++;hazard();return}
+  const damage=intent===0?4:intent===1?2:0;
+  const hit=choice==='guard'?Math.max(0,damage-3):choice==='dodge'&&intent===0?0:damage;
+  const attack=choice==='strike'?(intent===2?5:2)+(s.raiderBlade?2:0)+(s.hunterTrap?1:0):choice==='dodge'&&intent===0?2:0;
+  s.hunterHp-=attack;s.hp-=hit;s.turn++;
+  if(s.hp<=0){s.hp=0;s.bag=0;s.phase='lost';return}
+  if(s.hunterHp<=0){s.hunterDefeated=true;s.hunterAlert=false;s.hunterFang=true;s.bag+=8}
+  else s.hunterTurn++;
+  hazard()
+ }
+ act('⚔️ 斬る（隙なら強打）',()=>hunterMove('strike'));
+ act('🛡️ 防御（被害-3）',()=>hunterMove('guard'));
+ act('💨 回避（飛びかかりに反撃）',()=>hunterMove('dodge'));
+ act('🏃 南西へ撤退',()=>hunterMove('flee'),'warn');
+ return
+}
 if(p===2&&s.guardianAlert&&!s.guardianDefeated){
  const stance=s.guardianTurn%3;
  const clues=['石像が雷槍を高く掲げた！ 次の攻撃は重い（4）。回避で背後を取れる。','石像が盾を正面に構えた。正面攻撃は弾かれる。側面へ回り込もう。','石像の胸の雷核が露出した！ 今なら大ダメージを与えられる。'];
@@ -106,6 +127,11 @@ if(p===2&&s.ruinsLiberated&&!s.ruinsOffering&&s.bag>=3)act('✨ 泉に鉱石3を
 if(p===2&&s.bag>0&&s.cache===0)act('遺跡に鉱石を隠す（次の遠征で回収）',()=>{s.cache=s.bag;s.bag=0;s.cacheRun=s.run;s.turn++;hazard()});
 if(p===2&&s.cache>0&&s.cacheRun<s.run)act('前回隠した鉱石を回収 +'+s.cache,()=>{s.bag+=s.cache;s.cache=0;s.turn++;hazard()});
 if(p===5&&s.bag>=2&&s.turn>=s.divertUntil)act('誘導杭を設置（素材-2 / 雷雲を西へ3行動）',()=>{s.bag-=2;s.divertUntil=s.turn+4;s.turn++;hazard()});
+if(p===3&&!s.hunterDefeated&&!s.hunterAlert){
+ if(!s.hunterScouted)act('🐾 岩棚の足跡を調べる（獣の縄張りを発見）',()=>{s.hunterScouted=true;s.turn++;hazard()});
+ if(s.hunterScouted&&!s.hunterTrap&&s.bag>=2)act('🪤 鉱石2で狼罠を作る（次の戦闘で攻撃+1）',()=>{s.bag-=2;s.hunterTrap=true;s.turn++;hazard()});
+ if(s.hunterScouted)act('🐺 灰狼の巣へ踏み込む（危険・戦利品+8）',()=>{s.hunterAlert=true;s.turn++;hazard()},'warn');
+}
 if(p===3&&!s.shelterBuilt&&s.bag>=4)act('岩棚に雨よけを築く（素材-4 / 次の遠征にも残る）',()=>{s.bag-=4;s.shelterBuilt=true;s.turn++;hazard()});
 if(p===3&&s.shelterBuilt&&!s.shelterUsed&&s.hp<10)act('雨よけで手当て（HP+3 / 1遠征1回）',()=>{s.shelterUsed=true;s.hp=Math.min(s.altarSigil?12:10,s.hp+3);s.turn++;hazard()});
 if(p===6&&!s.trailClue)act('🔎 岩陰の獣道を追う（道標の隠し荷を発見）',()=>{s.trailClue=true;s.turn++;hazard()});
