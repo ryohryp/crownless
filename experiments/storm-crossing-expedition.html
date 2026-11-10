@@ -127,7 +127,7 @@ if(p===2&&s.ruinsLiberated&&!s.ruinsOffering&&s.bag>=3)act('✨ 泉に鉱石3を
 if(p===2&&s.bag>0&&s.cache===0)act('遺跡に鉱石を隠す（次の遠征で回収）',()=>{s.cache=s.bag;s.bag=0;s.cacheRun=s.run;s.turn++;hazard()});
 if(p===2&&s.cache>0&&s.cacheRun<s.run)act('前回隠した鉱石を回収 +'+s.cache,()=>{s.bag+=s.cache;s.cache=0;s.turn++;hazard()});
 if(p===5&&s.bag>=2&&s.turn>=s.divertUntil)act('誘導杭を設置（素材-2 / 雷雲を西へ3行動）',()=>{s.bag-=2;s.divertUntil=s.turn+4;s.turn++;hazard()});
-if(p===3&&s.wolfHook&&!s.cliffTrailFound)act('🪝 鉤縄で崖の古い杭を調べる（石橋への隠し道を開通）',()=>{s.cliffTrailFound=true;s.turn++;hazard()});
+if(p===3&&s.wolfHook&&!s.cliffTrailFound)act('🪝 鉤縄で崖の古い杭を調べる（石橋への隠し道を開通）',()=>{s.cliffTrailFound=true;if(!s.seen.includes(0))s.seen.push(0);s.turn++;hazard()});
 if(p===0&&s.cliffTrailFound&&!s.cliffCacheTaken)act('💠 崖の隠し棚から希少鉱石を回収 +7',()=>{s.cliffCacheTaken=true;s.bag+=7;s.turn++;hazard()});
 if(p===3&&!s.hunterDefeated&&!s.hunterAlert){
  if(!s.hunterScouted)act('🐾 岩棚の足跡を調べる（獣の縄張りを発見）',()=>{s.hunterScouted=true;s.turn++;hazard()});
