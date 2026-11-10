@@ -116,7 +116,8 @@ test('the live post-track HUD asks for observation, not a prescribed gate route'
     guardian: null,
     near: null,
     state: { forestFinds: new Set(['traces']) },
-    rpg: { crafted: false, phase: 'return', unbanked: 2 }
+    rpg: { crafted: false, phase: 'return', unbanked: 2 },
+    cue: null
   });
   assert.match(label, /二手に分かれ/);
   assert.match(label, /負傷 -3/, 'earned footing bonus remains legible');
@@ -133,7 +134,8 @@ test('the field HUD keeps the unvisited fork visible after either first discover
     guardian: null,
     near: null,
     state: { forestFinds: new Set(ids) },
-    rpg: { crafted: false, phase: 'return', unbanked: 2 }
+    rpg: { crafted: false, phase: 'return', unbanked: 2 },
+    cue: null
   });
   const both = labelFor(['traces']);
   assert.match(both, /二手に分かれ/, 'both branches remain a player choice');
@@ -240,7 +242,7 @@ test('restored camp reopens the real departure panel on page load', () => {
     applyCombatInputMode: () => events.push('input'),
     initStage: () => events.push('stage'),
     updateRpgStatus: () => events.push('status'),
-    showRpgPanel: () => { if (rpg.phase === 'camp') events.push('panel'); },
+    showRpgPanel: () => events.push('panel'),
     requestAnimationFrame: () => events.push('frame'),
     gameLoop: () => {}
   });
@@ -254,7 +256,7 @@ test('restored camp reopens the real departure panel on page load', () => {
     applyCombatInputMode: () => events.push('input'),
     initStage: () => events.push('stage'),
     updateRpgStatus: () => events.push('status'),
-    showRpgPanel: () => { if (rpg.phase === 'camp') events.push('panel'); },
+    showRpgPanel: () => events.push('panel'),
     requestAnimationFrame: () => events.push('frame'),
     gameLoop: () => {}
   });

@@ -300,7 +300,8 @@ test('restored camp never falsely claims a new living return', () => {
         assert.equal(id, 'rpgTitle');
         return node;
       } },
-      result: phase === 'return',
+      result: phase === 'return', camp: phase === 'camp',
+      state: { forestFinds: new Set() },
       rpg: { lastOutcome }, lastCampSaveSucceeded
     });
     return node.textContent;

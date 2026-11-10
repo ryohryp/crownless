@@ -45,8 +45,8 @@ test('reading tracks extends only the hidden gate vibration, never touch range o
   assert.match(html,/state\.forestCuePulsed\.has\(cuePulseKey\)/);
   const pulseKeySource=html.match(/const cuePulseKey=([^;]+);/)?.[1];
   assert.ok(pulseKeySource,'the earned far cue and the inspectable gate need separate pulse keys');
-  const readPulseKey=Function('cue','near','strongScent','return ('+pulseKeySource+');');
-  const pulseKey=(cue,near,strongScent=false)=>readPulseKey(cue,near,strongScent);
+  const readPulseKey=Function('cue','near','strongScent','closeGateCreak','return ('+pulseKeySource+');');
+  const pulseKey=(cue,near,strongScent=false,closeGateCreak=false)=>readPulseKey(cue,near,strongScent,closeGateCreak);
   assert.equal(pulseKey({id:'hollow'},null),'hollow:far');
   assert.equal(pulseKey({id:'shrine'},null),'shrine:far');
   assert.equal(pulseKey({id:'traces'},null,true),'traces:strong');
@@ -55,8 +55,8 @@ test('reading tracks extends only the hidden gate vibration, never touch range o
   assert.equal(pulseKey(null,null),undefined);
   const pulseSource=html.match(/const pulsePattern=([\s\S]*?);/)?.[1];
   assert.ok(pulseSource,'the actual phone cue must distinguish shrine from tracks and gate');
-  const readPulse=Function('cue','near','strongScent','return ('+pulseSource+');');
-  const pulse=(cue,near,strongScent=false)=>readPulse(cue,near,strongScent);
+  const readPulse=Function('cue','near','strongScent','closeGateCreak','return ('+pulseSource+');');
+  const pulse=(cue,near,strongScent=false,closeGateCreak=false)=>readPulse(cue,near,strongScent,closeGateCreak);
   assert.deepEqual(pulse({id:'traces'},null,true),[22,55,22],
     'stronger earned scent has its own soft approach cue');
   assert.deepEqual(pulse({id:'shrine'},null),[12,80,18],
@@ -729,7 +729,7 @@ test('undiscovered forest hints convey sensory cues without naming every hidden 
   assert.match(hint,/足跡が二手に分かれた/,'discovered tracks invite a visual choice without giving a compass direction');
   assert.doesNotMatch(hint,/足跡は右奥へ続いている/,'the HUD must not give away the trail direction before the player follows it');
   const pixel=fs.readFileSync('src/pixel-forest.js','utf8');
-  assert.match(pixel,/function trail\(ctx,found\) \{\s*if\(!found.has\('traces'\)\) return;/,'the visible trail is earned by reading the tracks');
+  assert.match(pixel,/function trail\(ctx,found\) \{[\s\S]*?if\(!found.has\('traces'\) \|\| \(found.has\('shrine'\) && found.has\('hollow'\)\)\) return;/,'the visible trail is earned by reading the tracks');
   assert.match(html,/forestArt\.trail\(ctx,state\.forestFinds\)/,'the live pixel forest draws the earned trail in the world');
   assert.match(hint,/足元のかすかな筋を辿ろう/,'unread tracks are suggested without naming the gate');
   assert.match(hint,/茨の奥で何かが軋む/,'locked gate invites an actual inspection before revealing equipment requirements');
@@ -1481,7 +1481,7 @@ test('post-combat discovery pulse is once per unexamined clue and never navigati
     'revisiting on a new expedition can earn fresh sensory cues');
   assert.match(html,/rpg\.phase==='return' && cue && !state\.forestCuePulsed\.has\(cuePulseKey\)/,
     'only undiscovered sites after combat can pulse');
-  assert.match(html,/state\.forestCuePulsed\.add\(cuePulseKey\);[\s\S]*?const pulsePattern=strongScent \? \[22,55,22\] :[\s\S]*?cue\.id==='traces' && !near \? \[16,70,16\] :[\s\S]*?cue\.id==='hollow' && !near \? \[28,45,28\] :[\s\S]*?cue\.id==='shrine' \? \[18,65,36\] : 34;[\s\S]*?sfx\.haptic\(pulsePattern\)/,
+  assert.match(html,/state\.forestCuePulsed\.add\(cuePulseKey\);[\s\S]*?const pulsePattern=closeGateCreak \? \[32,40,32\] :[\s\S]*?strongScent \? \[22,55,22\] :[\s\S]*?cue\.id==='traces' && !near \? \[16,70,16\] :[\s\S]*?cue\.id==='hollow' && !near \? \[28,45,28\] :[\s\S]*?cue\.id==='shrine' \? \[18,65,36\] : 34;[\s\S]*?sfx\.haptic\(pulsePattern\)/,
     'mark each site once, keeping the earned distant gate cue and the shrine tactile signature distinct');
   assert.match(html,/document\.getElementById\('rpgPanel'\)\.classList\.contains\('hidden'\)/,
     'do not interrupt the return decision sheet');

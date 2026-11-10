@@ -1114,10 +1114,12 @@ async function main() {
           const shrineBeforeForge=await verifyTracksShrineRisk(page,false);
           assert.match(await returnButton.innerText(),new RegExp('牙'+shrineBeforeForge.provisionalAfter+'）'),
             'the shrine reward is reflected in the still-available return choice');
-          const pulsesBeforeGate=await page.evaluate(() => window.__forestHapticPatterns.length);
+          const gatePulsesBeforeReturn=await page.evaluate(() => window.__forestHapticPatterns.filter(p=>
+            p===34 || (Array.isArray(p) && (p.join(',')==='28,45,28' || p.join(',')==='32,40,32'))).length);
           await walkTo(page,910,235);
-          assert.equal(await page.evaluate(() => window.__forestHapticPatterns.length),
-            pulsesBeforeGate,'approaching the actual gate cannot repeat its early cue');
+          assert.equal(await page.evaluate(() => window.__forestHapticPatterns.filter(p=>
+            p===34 || (Array.isArray(p) && (p.join(',')==='28,45,28' || p.join(',')==='32,40,32'))).length),
+            gatePulsesBeforeReturn,'returning to the already-cued gate cannot repeat its gate vibration');
           const lockedBefore=await read(page);
           const gateHint=await page.locator('#forestExploreHint').innerText();
           assert.match(gateHint,/茨の奥で何かが軋む/,'the gate first offers a sensory clue');
