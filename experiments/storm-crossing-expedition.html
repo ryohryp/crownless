@@ -8,7 +8,7 @@
 <script>
 'use strict';
 const KEY='crownless-storm-crossing-v1',N=9,exits=[0,1,2];
-const initial=()=>({phase:'camp',hp:10,bank:0,bag:0,pos:7,turn:0,seen:[7],taken:[],boots:false,run:0,groundedUntil:0,chargedTaken:false,coreTaken:false});
+const initial=()=>({phase:'camp',hp:10,bank:0,bag:0,pos:7,turn:0,seen:[7],taken:[],boots:false,run:0,groundedUntil:0,chargedTaken:false,coreTaken:false,cache:0,cacheRun:-1});
 let s;try{s=Object.assign(initial(),JSON.parse(localStorage.getItem(KEY))||{})}catch{s=initial()}
 const $=id=>document.getElementById(id);
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(s))}catch{}}
@@ -22,13 +22,15 @@ function begin(){s.phase='field';s.hp=10;s.bag=0;s.pos=7;s.turn=0;s.seen=[7];s.t
 function returnHome(){s.bank+=s.bag;s.bag=0;s.phase='camp'}
 function render(){
 $('actions').replaceChildren();
-$('status').textContent='HP '+s.hp+'/10 · 持ち歩き '+s.bag+' · 倉庫 '+s.bank+' · 遠征 '+s.run+(s.boots?' · 絶縁靴':'')+(s.phase==='field'&&s.turn<s.groundedUntil?' · 避雷塔接地中':'');
+$('status').textContent='HP '+s.hp+'/10 · 持ち歩き '+s.bag+' · 倉庫 '+s.bank+' · 遠征 '+s.run+(s.boots?' · 絶縁靴':'')+(s.phase==='field'&&s.turn<s.groundedUntil?' · 避雷塔接地中':'')+(s.cache?' · 遺跡の保管鉱石 '+s.cache:'');
 const map=$('map');map.replaceChildren();
 for(let p=0;p<N;p++){let el=document.createElement('div');el.className='tile'+(p===s.pos&&s.phase==='field'?' here':'')+(s.phase==='field'&&stormAt(s.turn)===p?' storm':'')+(s.phase==='field'&&!s.seen.includes(p)?' unknown':'');const labels=['北西の石橋','避雷塔','北東の遺跡','西の岩棚','水没道','東の鉱脈','南西の避難岩','渡し場','南東の避難岩'];el.textContent=s.phase==='field'&&!s.seen.includes(p)?'？':labels[p];if(s.phase==='field'&&stormAt(s.turn)===p)el.textContent+=' ⚡';if(s.phase==='field'&&p===s.pos)el.textContent+=' 🧍';map.append(el)}
 if(s.phase==='camp'){$('story').textContent='遠征で集めた鉱石を持ち帰り、絶縁靴を作れば雷雲の被害を減らせる。';act('遠征に出る',begin);if(!s.boots&&s.bank>=4)act('素材4で絶縁靴を作る',()=>{s.bank-=4;s.boots=true});act('実験データを初期化',()=>{s=initial()},'warn');return}
 if(s.phase==='lost'){$('story').textContent='雷雲に倒れた。持ち歩いていた素材は失った。倉庫は無事。';act('再挑戦',begin);return}
 const p=s.pos, storm=stormAt(s.turn);
-$('story').textContent='雷雲は中央の縦列を南北に巡る。南西・南東の岩陰では1手待って雷雲をやり過ごせる。中央の水没道には希少鉱石6個。避雷塔で素材2個を使えば次の3行動を安全にできる。接地中に中央へ到達すれば帯電結晶の安全回収か、HP4を賭けた雷核採掘（素材+8）かを選べる。⚡は現在の危険地帯。';
+$('story').textContent='雷雲は中央の縦列を南北に巡る。南西・南東の岩陰では1手待って雷雲をやり過ごせる。中央の水没道には希少鉱石6個。避雷塔で素材2個を使えば次の3行動を安全にできる。接地中に中央へ到達すれば帯電結晶の安全回収か、HP4を賭けた雷核採掘（素材+8）かを選べる。北東の遺跡には鉱石を隠し、次の遠征で回収できる。⚡は現在の危険地帯。';
+if(p===2&&s.bag>0&&s.cache===0)act('遺跡に鉱石を隠す（次の遠征で回収）',()=>{s.cache=s.bag;s.bag=0;s.cacheRun=s.run;s.turn++;hazard()});
+if(p===2&&s.cache>0&&s.cacheRun<s.run)act('前回隠した鉱石を回収 +'+s.cache,()=>{s.bag+=s.cache;s.cache=0;s.turn++;hazard()});
 if(p===6||p===8)act('岩陰で雷雲を1手やり過ごす',waitTurn);
 if(p===1&&s.turn>=s.groundedUntil&&s.bag>=2)act('素材2で避雷塔を接地（次の3行動は雷雲停止）',()=>{s.bag-=2;s.groundedUntil=s.turn+4});
 for(const q of neighbors(p))act('→ '+['北西','避雷塔','北東','西','中央','鉱脈','南西','渡し場','南東'][q]+'へ',()=>step(q),stormAt(s.turn+1)===q?'warn':'');
