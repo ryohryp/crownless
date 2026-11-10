@@ -8,7 +8,7 @@
 <script>
 'use strict';
 const KEY='crownless-storm-crossing-v1',N=9,exits=[0,1,2];
-const initial=()=>({phase:'camp',hp:10,bank:0,bag:0,pos:7,turn:0,seen:[7],taken:[],boots:false,compass:false,run:0,groundedUntil:0,chargedTaken:false,coreTaken:false,cache:0,cacheRun:-1,divertUntil:0,traceFound:false,traceTaken:false,shelterBuilt:false,shelterUsed:false,commission:false,commissionWins:0,flareStock:0,flareUsed:false,raiderDefeated:false,raiderAlert:false,raiderHp:6,raiderIntent:0,raiderGuard:false,raiderTrophies:0,raiderBlade:false,bridgeVaultOpen:false,bridgeVaultTaken:false,guardianDefeated:false,guardianHp:10,guardianTurn:0,guardianAlert:false,relic:false,relicShield:0,ruinsLiberated:false,ruinsRested:false,ruinsOffering:false});
+const initial=()=>({phase:'camp',hp:10,bank:0,bag:0,pos:7,turn:0,seen:[7],taken:[],boots:false,compass:false,run:0,groundedUntil:0,chargedTaken:false,coreTaken:false,cache:0,cacheRun:-1,divertUntil:0,traceFound:false,traceTaken:false,shelterBuilt:false,shelterUsed:false,commission:false,commissionWins:0,flareStock:0,flareUsed:false,raiderDefeated:false,raiderAlert:false,raiderHp:6,raiderIntent:0,raiderGuard:false,raiderTrophies:0,raiderBlade:false,bridgeVaultOpen:false,bridgeVaultTaken:false,guardianDefeated:false,guardianHp:10,guardianTurn:0,guardianAlert:false,relic:false,relicShield:0,ruinsLiberated:false,ruinsRested:false,ruinsOffering:false,trailClue:false,trailCacheTaken:false});
 let s;try{s=Object.assign(initial(),JSON.parse(localStorage.getItem(KEY))||{})}catch{s=initial()}
 const $=id=>document.getElementById(id);
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(s))}catch{}}
@@ -17,8 +17,8 @@ function stormAt(t){return t<s.groundedUntil?-1:(t<s.divertUntil?[0,3,6]:[1,4,7]
 function neighbors(p){return [p-3,p+3,p%3? p-1:-1,p%3<2?p+1:-1].filter(v=>v>=0&&v<N)}
 function hazard(){if(stormAt(s.turn)===s.pos){if(s.relicShield>0){s.relicShield--;return}s.hp-=s.boots?1:3;if(s.hp<=0){s.hp=0;s.bag=0;s.phase='lost'}}}
 function waitTurn(){s.turn++;hazard()}
-function step(p){if(s.phase!=='field'||s.raiderAlert&&!s.raiderDefeated||s.guardianAlert&&!s.guardianDefeated||!neighbors(s.pos).includes(p))return;s.pos=p;s.turn++;if(!s.seen.includes(p))s.seen.push(p);hazard();if(s.phase==='field'&&p===5&&!s.raiderDefeated)s.raiderAlert=true;if(s.phase==='field'&&p===2&&s.bridgeVaultOpen&&!s.guardianDefeated)s.guardianAlert=true}
-function begin(){s.phase='field';s.hp=10;s.bag=0;s.pos=7;s.turn=0;s.seen=[7];s.taken=[];s.groundedUntil=0;s.divertUntil=0;s.chargedTaken=false;s.coreTaken=false;s.traceFound=false;s.traceTaken=false;s.shelterUsed=false;s.raiderDefeated=false;s.raiderAlert=false;s.raiderHp=6;s.raiderIntent=0;s.raiderGuard=false;s.flareUsed=false;s.bridgeVaultTaken=false;s.guardianDefeated=!!s.ruinsLiberated;s.ruinsRested=false;s.ruinsOffering=false;s.guardianHp=10;s.guardianTurn=0;s.guardianAlert=false;s.relicShield=s.relic?1:0;s.run++}
+function step(p){if(s.phase!=='field'||s.raiderAlert&&!s.raiderDefeated||s.guardianAlert&&!s.guardianDefeated||!neighbors(s.pos).includes(p))return;s.pos=p;s.turn++;for(const q of [p,...neighbors(p)])if(!s.seen.includes(q))s.seen.push(q);hazard();if(s.phase==='field'&&p===5&&!s.raiderDefeated)s.raiderAlert=true;if(s.phase==='field'&&p===2&&s.bridgeVaultOpen&&!s.guardianDefeated)s.guardianAlert=true}
+function begin(){s.phase='field';s.hp=10;s.bag=0;s.pos=7;s.turn=0;s.seen=[4,6,7,8];s.taken=[];s.trailClue=false;s.trailCacheTaken=false;s.groundedUntil=0;s.divertUntil=0;s.chargedTaken=false;s.coreTaken=false;s.traceFound=false;s.traceTaken=false;s.shelterUsed=false;s.raiderDefeated=false;s.raiderAlert=false;s.raiderHp=6;s.raiderIntent=0;s.raiderGuard=false;s.flareUsed=false;s.bridgeVaultTaken=false;s.guardianDefeated=!!s.ruinsLiberated;s.ruinsRested=false;s.ruinsOffering=false;s.guardianHp=10;s.guardianTurn=0;s.guardianAlert=false;s.relicShield=s.relic?1:0;s.run++}
 function returnHome(){const delivered=s.bag;const bonus=s.commission&&delivered>=12?6:0;s.bank+=delivered+bonus;if(bonus){s.commission=false;s.commissionWins=(s.commissionWins||0)+1}s.bag=0;s.phase='camp'}
 function render(){
 $('actions').replaceChildren();
@@ -27,7 +27,7 @@ const map=$('map');map.replaceChildren();
 const names=['崩れた石橋','雷の尖塔','忘却の遺跡','獣道の岩棚','沈んだ祭壇','盗賊の鉱脈','風よけの岩','帰還の渡し','古い道標'];
 const glyphs=['🌉','🗼','🏚️','🌲','🗿','⛏️','🪨','⛺','🪧'];
 for(let p=0;p<N;p++){
- const known=s.phase!=='field'||s.seen.includes(p),inCombat=s.raiderAlert&&!s.raiderDefeated||s.guardianAlert&&!s.guardianDefeated,reachable=s.phase==='field'&&!inCombat&&neighbors(s.pos).includes(p);
+ const known=s.phase!=='field'||s.seen.includes(p),inCombat=s.raiderAlert&&!s.raiderDefeated||s.guardianAlert&&!s.guardianDefeated,reachable=s.phase==='field'&&!inCombat&&s.seen.includes(p)&&neighbors(s.pos).includes(p);
  const el=document.createElement('div');
  el.className='tile'+(p===s.pos&&s.phase==='field'?' here':'')+(s.phase==='field'&&stormAt(s.turn)===p?' storm':'')+(!known?' unknown':'')+(reachable?' reachable':'');
  const symbol=document.createElement('span');symbol.className='glyph';symbol.textContent=!known?'🌫️':glyphs[p];
@@ -87,7 +87,7 @@ if(p===5&&s.raiderAlert&&!s.raiderDefeated){
  return
 }
 
-$('story').textContent=({0:s.bridgeVaultOpen&&!s.bridgeVaultTaken?'略奪者が落とした鍵が、石橋の地下扉にぴったり合う。': '橋の石に古い爪痕がある。下に何か隠されているかもしれない。',1:'雷を引き寄せる尖塔。接地できれば祭壇への道が開ける。',2:s.ruinsLiberated?'解放した遺跡に青い泉が湧いた。遠征ごとに一度、傷を癒せる。':s.bridgeVaultOpen?'鍵が震え、遺跡の石像が目覚めた。':'誰もいない遺跡。瓦礫の奥には荷物を隠せそうな空洞がある。',3:'風の抜ける岩棚。ここに雨よけを作れば次の遠征にも役立ちそうだ。',4:'水底で青い光が脈打つ。雷の中に希少な結晶が眠っている。',5:'鉱脈に不自然な足跡。何者かが潜んでいる。',6:'岩陰は安全だ。雷の通過を待てる。',7:'渡し場の灯が揺れている。ここまで帰れば戦利品を持ち帰れる。',8:'古い道標が風に鳴る。岩陰で一息つけそうだ。'})[p];
+$('story').textContent=({0:s.bridgeVaultOpen&&!s.bridgeVaultTaken?'略奪者が落とした鍵が、石橋の地下扉にぴったり合う。': '橋の石に古い爪痕がある。下に何か隠されているかもしれない。',1:'雷を引き寄せる尖塔。接地できれば祭壇への道が開ける。',2:s.ruinsLiberated?'解放した遺跡に青い泉が湧いた。遠征ごとに一度、傷を癒せる。':s.bridgeVaultOpen?'鍵が震え、遺跡の石像が目覚めた。':'誰もいない遺跡。瓦礫の奥には荷物を隠せそうな空洞がある。',3:'風の抜ける岩棚。ここに雨よけを作れば次の遠征にも役立ちそうだ。',4:'水底で青い光が脈打つ。雷の中に希少な結晶が眠っている。',5:'鉱脈に不自然な足跡。何者かが潜んでいる。',6:'岩陰は安全だ。雷の通過を待てる。',7:'渡し場の灯が揺れている。ここまで帰れば戦利品を持ち帰れる。',8:s.trailClue&&!s.trailCacheTaken?'道標の下に新しい土。獣道の痕跡がここへ続いている。':'古い道標が風に鳴る。岩陰で一息つけそうだ。'})[p];
 if(p===0&&s.bridgeVaultOpen&&!s.bridgeVaultTaken)act('🗝️ 略奪者の鍵で石橋の地下宝物庫を開く（秘鉱+9）',()=>{s.bridgeVaultTaken=true;s.bag+=9;s.turn++;hazard()});
 if(p===0&&!s.traceFound)act('石橋の傷跡を調べる（隠し鉱脈を発見）',()=>{s.traceFound=true;s.turn++;hazard()});
 if(p===0&&s.traceFound&&!s.traceTaken)act('崩れた橋下で希少鉱石を採掘（HP-3 / 素材+7）',()=>{s.traceTaken=true;s.hp-=3;s.turn++;if(s.hp<=0){s.hp=0;s.bag=0;s.phase='lost';return}s.bag+=7;hazard()},'warn');
@@ -98,6 +98,8 @@ if(p===2&&s.cache>0&&s.cacheRun<s.run)act('前回隠した鉱石を回収 +'+s.c
 if(p===5&&s.bag>=2&&s.turn>=s.divertUntil)act('誘導杭を設置（素材-2 / 雷雲を西へ3行動）',()=>{s.bag-=2;s.divertUntil=s.turn+4;s.turn++;hazard()});
 if(p===3&&!s.shelterBuilt&&s.bag>=4)act('岩棚に雨よけを築く（素材-4 / 次の遠征にも残る）',()=>{s.bag-=4;s.shelterBuilt=true;s.turn++;hazard()});
 if(p===3&&s.shelterBuilt&&!s.shelterUsed&&s.hp<10)act('雨よけで手当て（HP+3 / 1遠征1回）',()=>{s.shelterUsed=true;s.hp=Math.min(10,s.hp+3);s.turn++;hazard()});
+if(p===6&&!s.trailClue)act('🔎 岩陰の獣道を追う（道標の隠し荷を発見）',()=>{s.trailClue=true;s.turn++;hazard()});
+if(p===8&&s.trailClue&&!s.trailCacheTaken)act('🎒 道標の隠し荷を掘る（鉱石+5 / 1行動）',()=>{s.trailCacheTaken=true;s.bag+=5;s.turn++;hazard()});
 if(p===6||p===8)act('岩陰で雷雲を1手やり過ごす',waitTurn);
 if(p===1&&s.turn>=s.groundedUntil&&s.bag>=2)act('素材2で避雷塔を接地（次の3行動は雷雲停止）',()=>{s.bag-=2;s.groundedUntil=s.turn+4});
 // Movement uses the adjacent highlighted map tiles.
