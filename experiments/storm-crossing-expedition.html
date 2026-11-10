@@ -8,7 +8,7 @@
 <script>
 'use strict';
 const KEY='crownless-storm-crossing-v1',N=9,exits=[0,1,2];
-const initial=()=>({phase:'camp',hp:10,bank:0,bag:0,pos:7,turn:0,seen:[7],taken:[],boots:false,compass:false,run:0,groundedUntil:0,chargedTaken:false,coreTaken:false,cache:0,cacheRun:-1,divertUntil:0,traceFound:false,traceTaken:false,shelterBuilt:false,shelterUsed:false,commission:false,commissionWins:0,flareStock:0,flareUsed:false,raiderDefeated:false,raiderAlert:false,raiderHp:6,raiderIntent:0,raiderGuard:false,raiderTrophies:0,raiderBlade:false,bridgeVaultOpen:false,bridgeVaultTaken:false,guardianDefeated:false,guardianHp:10,guardianTurn:0,guardianAlert:false,relic:false,relicShield:0,ruinsLiberated:false,ruinsRested:false,ruinsOffering:false,trailClue:false,trailCacheTaken:false});
+const initial=()=>({phase:'camp',hp:10,bank:0,bag:0,pos:7,turn:0,seen:[7],taken:[],boots:false,compass:false,run:0,groundedUntil:0,chargedTaken:false,coreTaken:false,cache:0,cacheRun:-1,divertUntil:0,traceFound:false,traceTaken:false,shelterBuilt:false,shelterUsed:false,commission:false,commissionWins:0,flareStock:0,flareUsed:false,raiderDefeated:false,raiderAlert:false,raiderHp:6,raiderIntent:0,raiderGuard:false,raiderTrophies:0,raiderBlade:false,bridgeVaultOpen:false,bridgeVaultTaken:false,guardianDefeated:false,guardianHp:10,guardianTurn:0,guardianAlert:false,relic:false,relicShield:0,ruinsLiberated:false,ruinsRested:false,ruinsOffering:false,trailClue:false,trailCacheTaken:false,altarOpened:false,altarLooted:false,altarSigil:false});
 let s;try{s=Object.assign(initial(),JSON.parse(localStorage.getItem(KEY))||{})}catch{s=initial()}
 const $=id=>document.getElementById(id);
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(s))}catch{}}
@@ -18,11 +18,11 @@ function neighbors(p){return [p-3,p+3,p%3? p-1:-1,p%3<2?p+1:-1].filter(v=>v>=0&&
 function hazard(){if(stormAt(s.turn)===s.pos){if(s.relicShield>0){s.relicShield--;return}s.hp-=s.boots?1:3;if(s.hp<=0){s.hp=0;s.bag=0;s.phase='lost'}}}
 function waitTurn(){s.turn++;hazard()}
 function step(p){if(s.phase!=='field'||s.raiderAlert&&!s.raiderDefeated||s.guardianAlert&&!s.guardianDefeated||!neighbors(s.pos).includes(p))return;s.pos=p;s.turn++;for(const q of [p,...neighbors(p)])if(!s.seen.includes(q))s.seen.push(q);hazard();if(s.phase==='field'&&p===5&&!s.raiderDefeated)s.raiderAlert=true;if(s.phase==='field'&&p===2&&s.bridgeVaultOpen&&!s.guardianDefeated)s.guardianAlert=true}
-function begin(){s.phase='field';s.hp=10;s.bag=0;s.pos=7;s.turn=0;s.seen=[4,6,7,8];s.taken=[];s.trailClue=false;s.trailCacheTaken=false;s.groundedUntil=0;s.divertUntil=0;s.chargedTaken=false;s.coreTaken=false;s.traceFound=false;s.traceTaken=false;s.shelterUsed=false;s.raiderDefeated=false;s.raiderAlert=false;s.raiderHp=6;s.raiderIntent=0;s.raiderGuard=false;s.flareUsed=false;s.bridgeVaultTaken=false;s.guardianDefeated=!!s.ruinsLiberated;s.ruinsRested=false;s.ruinsOffering=false;s.guardianHp=10;s.guardianTurn=0;s.guardianAlert=false;s.relicShield=s.relic?1:0;s.run++}
+function begin(){s.phase='field';s.hp=s.altarSigil?12:10;s.bag=0;s.pos=7;s.turn=0;s.seen=[4,6,7,8];s.taken=[];s.trailClue=false;s.trailCacheTaken=false;s.altarOpened=false;s.altarLooted=false;s.groundedUntil=0;s.divertUntil=0;s.chargedTaken=false;s.coreTaken=false;s.traceFound=false;s.traceTaken=false;s.shelterUsed=false;s.raiderDefeated=false;s.raiderAlert=false;s.raiderHp=6;s.raiderIntent=0;s.raiderGuard=false;s.flareUsed=false;s.bridgeVaultTaken=false;s.guardianDefeated=!!s.ruinsLiberated;s.ruinsRested=false;s.ruinsOffering=false;s.guardianHp=10;s.guardianTurn=0;s.guardianAlert=false;s.relicShield=s.relic?1:0;s.run++}
 function returnHome(){const delivered=s.bag;const bonus=s.commission&&delivered>=12?6:0;s.bank+=delivered+bonus;if(bonus){s.commission=false;s.commissionWins=(s.commissionWins||0)+1}s.bag=0;s.phase='camp'}
 function render(){
 $('actions').replaceChildren();
-$('status').textContent='HP '+s.hp+'/10 · 持ち歩き '+s.bag+' · 倉庫 '+s.bank+' · 遠征 '+s.run+(s.boots?' · 絶縁靴':'')+(s.compass?' · 雷雲予測器':'')+(s.raiderBlade?' · 略奪者の刃':'')+(s.relic?' · 雷紋の護符':'')+(s.relicShield?' · 落雷防護1回':'')+(s.raiderTrophies?' · 刀片 '+s.raiderTrophies:'')+(s.bridgeVaultOpen?' · 石橋の地下宝物庫を発見':'')+(s.flareStock?' · 帰還信号 '+s.flareStock:'')+(s.phase==='field'&&s.turn<s.groundedUntil?' · 避雷塔接地中':'')+(s.phase==='field'&&s.turn<s.divertUntil?' · 雷雲誘導中':'')+(s.cache?' · 遺跡の保管鉱石 '+s.cache:'')+(s.commission?' · 納品依頼12個→報酬6個':'')+(s.commissionWins?' · 納品達成 '+s.commissionWins+'回':'');
+$('status').textContent='HP '+s.hp+'/'+(s.altarSigil?12:10)+' · 持ち歩き '+s.bag+' · 倉庫 '+s.bank+' · 遠征 '+s.run+(s.boots?' · 絶縁靴':'')+(s.compass?' · 雷雲予測器':'')+(s.raiderBlade?' · 略奪者の刃':'')+(s.relic?' · 雷紋の護符':'')+(s.relicShield?' · 落雷防護1回':'')+(s.raiderTrophies?' · 刀片 '+s.raiderTrophies:'')+(s.bridgeVaultOpen?' · 石橋の地下宝物庫を発見':'')+(s.flareStock?' · 帰還信号 '+s.flareStock:'')+(s.phase==='field'&&s.turn<s.groundedUntil?' · 避雷塔接地中':'')+(s.phase==='field'&&s.turn<s.divertUntil?' · 雷雲誘導中':'')+(s.cache?' · 遺跡の保管鉱石 '+s.cache:'')+(s.commission?' · 納品依頼12個→報酬6個':'')+(s.commissionWins?' · 納品達成 '+s.commissionWins+'回':'');
 const map=$('map');map.replaceChildren();
 const names=['崩れた石橋','雷の尖塔','忘却の遺跡','獣道の岩棚','沈んだ祭壇','盗賊の鉱脈','風よけの岩','帰還の渡し','古い道標'];
 const glyphs=['🌉','🗼','🏚️','🌲','🗿','⛏️','🪨','⛺','🪧'];
@@ -88,16 +88,26 @@ if(p===5&&s.raiderAlert&&!s.raiderDefeated){
 }
 
 $('story').textContent=({0:s.bridgeVaultOpen&&!s.bridgeVaultTaken?'略奪者が落とした鍵が、石橋の地下扉にぴったり合う。': '橋の石に古い爪痕がある。下に何か隠されているかもしれない。',1:'雷を引き寄せる尖塔。接地できれば祭壇への道が開ける。',2:s.ruinsLiberated?'解放した遺跡に青い泉が湧いた。遠征ごとに一度、傷を癒せる。':s.bridgeVaultOpen?'鍵が震え、遺跡の石像が目覚めた。':'誰もいない遺跡。瓦礫の奥には荷物を隠せそうな空洞がある。',3:'風の抜ける岩棚。ここに雨よけを作れば次の遠征にも役立ちそうだ。',4:'水底で青い光が脈打つ。雷の中に希少な結晶が眠っている。',5:'鉱脈に不自然な足跡。何者かが潜んでいる。',6:'岩陰は安全だ。雷の通過を待てる。',7:'渡し場の灯が揺れている。ここまで帰れば戦利品を持ち帰れる。',8:s.trailClue&&!s.trailCacheTaken?'道標の下に新しい土。獣道の痕跡がここへ続いている。':'古い道標が風に鳴る。岩陰で一息つけそうだ。'})[p];
+// Optional high-risk altar: two actions under the moving storm, with a persistent reward on safe return.
+if(p===4&&!s.altarOpened&&s.bag>=3)act('🔮 祭壇の封印を解く（素材-3 / 1行動）',()=>{
+ s.bag-=3;s.altarOpened=true;s.turn++;hazard()
+},'warn');
+if(p===4&&s.altarOpened&&!s.altarLooted)act('💎 祭壇の深部から雷の印章を奪う（HP-2 / 素材+12）',()=>{
+ s.hp-=2;s.turn++;
+ if(s.hp<=0){s.hp=0;s.bag=0;s.phase='lost';return}
+ s.altarLooted=true;s.bag+=12;hazard()
+},'warn');
+
 if(p===0&&s.bridgeVaultOpen&&!s.bridgeVaultTaken)act('🗝️ 略奪者の鍵で石橋の地下宝物庫を開く（秘鉱+9）',()=>{s.bridgeVaultTaken=true;s.bag+=9;s.turn++;hazard()});
 if(p===0&&!s.traceFound)act('石橋の傷跡を調べる（隠し鉱脈を発見）',()=>{s.traceFound=true;s.turn++;hazard()});
 if(p===0&&s.traceFound&&!s.traceTaken)act('崩れた橋下で希少鉱石を採掘（HP-3 / 素材+7）',()=>{s.traceTaken=true;s.hp-=3;s.turn++;if(s.hp<=0){s.hp=0;s.bag=0;s.phase='lost';return}s.bag+=7;hazard()},'warn');
-if(p===2&&s.ruinsLiberated&&!s.ruinsRested&&s.hp<10)act('💧 解放された泉で休む（HP+4 / 遠征1回）',()=>{s.hp=Math.min(10,s.hp+4);s.ruinsRested=true;s.turn++;hazard()});
+if(p===2&&s.ruinsLiberated&&!s.ruinsRested&&s.hp<10)act('💧 解放された泉で休む（HP+4 / 遠征1回）',()=>{s.hp=Math.min(s.altarSigil?12:10,s.hp+4);s.ruinsRested=true;s.turn++;hazard()});
 if(p===2&&s.ruinsLiberated&&!s.ruinsOffering&&s.bag>=3)act('✨ 泉に鉱石3を捧げて雷雲を2行動鎮める',()=>{s.bag-=3;s.ruinsOffering=true;s.groundedUntil=Math.max(s.groundedUntil,s.turn+3);s.turn++;hazard()});
 if(p===2&&s.bag>0&&s.cache===0)act('遺跡に鉱石を隠す（次の遠征で回収）',()=>{s.cache=s.bag;s.bag=0;s.cacheRun=s.run;s.turn++;hazard()});
 if(p===2&&s.cache>0&&s.cacheRun<s.run)act('前回隠した鉱石を回収 +'+s.cache,()=>{s.bag+=s.cache;s.cache=0;s.turn++;hazard()});
 if(p===5&&s.bag>=2&&s.turn>=s.divertUntil)act('誘導杭を設置（素材-2 / 雷雲を西へ3行動）',()=>{s.bag-=2;s.divertUntil=s.turn+4;s.turn++;hazard()});
 if(p===3&&!s.shelterBuilt&&s.bag>=4)act('岩棚に雨よけを築く（素材-4 / 次の遠征にも残る）',()=>{s.bag-=4;s.shelterBuilt=true;s.turn++;hazard()});
-if(p===3&&s.shelterBuilt&&!s.shelterUsed&&s.hp<10)act('雨よけで手当て（HP+3 / 1遠征1回）',()=>{s.shelterUsed=true;s.hp=Math.min(10,s.hp+3);s.turn++;hazard()});
+if(p===3&&s.shelterBuilt&&!s.shelterUsed&&s.hp<10)act('雨よけで手当て（HP+3 / 1遠征1回）',()=>{s.shelterUsed=true;s.hp=Math.min(s.altarSigil?12:10,s.hp+3);s.turn++;hazard()});
 if(p===6&&!s.trailClue)act('🔎 岩陰の獣道を追う（道標の隠し荷を発見）',()=>{s.trailClue=true;s.turn++;hazard()});
 if(p===8&&s.trailClue&&!s.trailCacheTaken)act('🎒 道標の隠し荷を掘る（鉱石+5 / 1行動）',()=>{s.trailCacheTaken=true;s.bag+=5;s.turn++;hazard()});
 if(p===6||p===8)act('岩陰で雷雲を1手やり過ごす',waitTurn);
@@ -107,7 +117,7 @@ if(p===4&&s.turn<s.groundedUntil&&!s.coreTaken)act('雷核を掘り出す（HP-4
 if(p===4&&s.turn<s.groundedUntil&&!s.chargedTaken)act('帯電結晶を回収 +5（接地中限定）',()=>{s.bag+=5;s.chargedTaken=true;s.turn++;hazard()});
 const loot={0:2,2:3,3:2,4:6,5:4};
 if(loot[p]&&!s.taken.includes(p)){const imminent=stormAt(s.turn+1)===p;act('鉱石を採集 +'+loot[p]+(imminent?'（落雷直前の鉱脈：追加+4）':''),()=>{s.bag+=loot[p]+(imminent?4:0);s.taken.push(p);s.turn++;hazard()},imminent?'warn':'')}
-if(p===7)act('渡し場から生還する',returnHome);
+if(p===7)act('渡し場から生還する',()=>{if(s.altarLooted)s.altarSigil=true;returnHome()});
 if(s.flareStock>0&&!s.flareUsed&&p!==7)act('緊急帰還信号を使う（持ち歩き素材の半分を確保）',()=>{s.flareStock--;s.flareUsed=true;s.bag=Math.floor(s.bag/2);returnHome()},'warn');
 if(exits.includes(p))act('岸沿いに撤退（素材を捨てる）',()=>{s.bag=0;s.phase='camp'},'warn');
 }
