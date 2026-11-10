@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Crownless | 雷雲の渡し</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#101a20;color:#f4efdf;font:16px system-ui}main{max-width:430px;margin:auto;height:100dvh;display:flex;flex-direction:column;padding:12px 12px max(14px,env(safe-area-inset-bottom));gap:8px}h1{font-size:21px;margin:0}#status{font-weight:bold;font-size:14px}#map{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;flex:1;min-height:0} .tile{border:1px solid #6e8687;border-radius:9px;background:#26383d;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:4px;font-size:14px}.here{outline:3px solid #f1c46c}.storm{background:#5d384b}.unknown{background:#1b292e;color:#b0bcb8}#story{min-height:48px;line-height:1.35;font-size:14px}#actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:35dvh;overflow-y:auto}button{min-height:49px;border:1px solid #b8bc86;border-radius:9px;background:#315b56;color:white;font:600 15px system-ui;padding:8px}button:disabled{opacity:.35}button.warn{background:#774d3e}small{font-size:12px;color:#b9c8c6}
+</style>
+<main><h1>⛈️ 雷雲の渡し</h1><div id="status"></div><div id="map" aria-label="探索マップ"></div><div id="story" role="status"></div><div id="actions"></div><small>実験ステージ。雷雲は行動ごとに移動。帰還して初めて素材を倉庫へ保管します。</small></main>
+<script>
+'use strict';
+const KEY='crownless-storm-crossing-v1',N=9,exits=[0,1,2];
+const initial=()=>({phase:'camp',hp:10,bank:0,bag:0,pos:7,turn:0,seen:[7],taken:[],boots:false,run:0});
+let s;try{s=Object.assign(initial(),JSON.parse(localStorage.getItem(KEY))||{})}catch{s=initial()}
+const $=id=>document.getElementById(id);
+function persist(){try{localStorage.setItem(KEY,JSON.stringify(s))}catch{}}
+function act(label,fn,kind=''){let b=document.createElement('button');b.textContent=label;b.className=kind;b.onclick=()=>{fn();persist();render()};$('actions').append(b)}
+function stormAt(t){return [1,4,7][t%3]}
+function neighbors(p){return [p-3,p+3,p%3? p-1:-1,p%3<2?p+1:-1].filter(v=>v>=0&&v<N)}
+function step(p){if(!neighbors(s.pos).includes(p))return;s.pos=p;s.turn++;if(!s.seen.includes(p))s.seen.push(p);if(stormAt(s.turn)===p){s.hp-=s.boots?1:3;if(s.hp<=0){s.hp=0;s.bag=0;s.phase='lost'}}}
+function begin(){s.phase='field';s.hp=10;s.bag=0;s.pos=7;s.turn=0;s.seen=[7];s.taken=[];s.run++}
+function returnHome(){s.bank+=s.bag;s.bag=0;s.phase='camp'}
+function render(){
+$('actions').replaceChildren();
+$('status').textContent='HP '+s.hp+'/10 · 持ち歩き '+s.bag+' · 倉庫 '+s.bank+' · 遠征 '+s.run+(s.boots?' · 絶縁靴':'');
+const map=$('map');map.replaceChildren();
+for(let p=0;p<N;p++){let el=document.createElement('div');el.className='tile'+(p===s.pos&&s.phase==='field'?' here':'')+(s.phase==='field'&&stormAt(s.turn)===p?' storm':'')+(s.phase==='field'&&!s.seen.includes(p)?' unknown':'');const labels=['北西の石橋','避雷塔','北東の遺跡','西の岩棚','水没道','東の鉱脈','南西の岸','渡し場','南東の岸'];el.textContent=s.phase==='field'&&!s.seen.includes(p)?'？':labels[p];if(s.phase==='field'&&stormAt(s.turn)===p)el.textContent+=' ⚡';if(s.phase==='field'&&p===s.pos)el.textContent+=' 🧍';map.append(el)}
+if(s.phase==='camp'){$('story').textContent='遠征で集めた鉱石を持ち帰り、絶縁靴を作れば雷雲の被害を減らせる。';act('遠征に出る',begin);if(!s.boots&&s.bank>=4)act('素材4で絶縁靴を作る',()=>{s.bank-=4;s.boots=true});act('実験データを初期化',()=>{s=initial()},'warn');return}
+if(s.phase==='lost'){$('story').textContent='雷雲に倒れた。持ち歩いていた素材は失った。倉庫は無事。';act('再挑戦',begin);return}
+const p=s.pos, storm=stormAt(s.turn);
+$('story').textContent='雷雲は中央の縦列を南北に巡る。⚡の位置は現在の危険地帯。移動後に雷雲が動くので、次の位置を予測しよう。';
+for(const q of neighbors(p))act('→ '+['北西','避雷塔','北東','西','中央','鉱脈','南西','渡し場','南東'][q]+'へ',()=>step(q),stormAt(s.turn+1)===q?'warn':'');
+const loot={0:2,2:3,3:2,5:4};
+if(loot[p]&&!s.taken.includes(p))act('鉱石を採集 +'+loot[p],()=>{s.bag+=loot[p];s.taken.push(p);s.turn++;if(stormAt(s.turn)===p){s.hp-=s.boots?1:3;if(s.hp<=0){s.hp=0;s.bag=0;s.phase='lost'}}});
+if(p===7)act('渡し場から生還する',returnHome);
+if(exits.includes(p))act('岸沿いに撤退（素材を捨てる）',()=>{s.bag=0;s.phase='camp'},'warn');
+}
+render();
+</script></html>
