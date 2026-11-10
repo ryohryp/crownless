@@ -2,9 +2,9 @@
 <html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Crownless | 雷雲の渡し</title>
 <style>
-*{box-sizing:border-box}body{margin:0;background:#101a20;color:#f4efdf;font:16px system-ui}main{max-width:430px;margin:auto;height:100dvh;display:flex;flex-direction:column;padding:12px 12px max(14px,env(safe-area-inset-bottom));gap:8px}h1{font-size:21px;margin:0}#status{font-weight:bold;font-size:14px}#map{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;flex:1;min-height:0} .tile{border:1px solid #6e8687;border-radius:9px;background:#26383d;display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:4px;font-size:14px}.here{outline:3px solid #f1c46c}.storm{background:#5d384b}.unknown{background:#1b292e;color:#b0bcb8}#story{min-height:48px;line-height:1.35;font-size:14px}#actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:35dvh;overflow-y:auto}button{min-height:49px;border:1px solid #b8bc86;border-radius:9px;background:#315b56;color:white;font:600 15px system-ui;padding:8px}button:disabled{opacity:.35}button.warn{background:#774d3e}small{font-size:12px;color:#b9c8c6}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% 20%,#293b45,#090e17 72%);color:#f4efdf;font:16px system-ui}main{max-width:430px;margin:auto;height:100dvh;display:flex;flex-direction:column;padding:12px 12px max(14px,env(safe-area-inset-bottom));gap:8px}h1{font-size:21px;margin:0}#status{font-weight:bold;font-size:14px}#map{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;flex:1;min-height:170px;max-height:49dvh;padding:8px;background:linear-gradient(145deg,#172e3a,#172027);border:2px solid #a18c60;border-radius:14px;box-shadow:0 10px 40px #0008}.tile{position:relative;overflow:hidden;border:2px solid #52685e;border-radius:9px;background:linear-gradient(145deg,#506254,#263c39 55%,#182d34);display:flex;align-items:center;justify-content:center;flex-direction:column;text-align:center;padding:5px;font-size:11px;gap:3px;color:#e5e3cc;min-width:0;min-height:0}.tile .glyph{font-size:clamp(22px,8vw,39px);filter:drop-shadow(0 4px 2px #0008)}.tile .name{font-size:11px;text-shadow:0 2px 3px #000}.tile.reachable{border-color:#d3bc77;cursor:pointer;box-shadow:inset 0 0 0 1px #e5d6a366}.tile.reachable:active{transform:scale(.96)}.tile.here{outline:3px solid #ffdb80;z-index:1;background:linear-gradient(145deg,#627c60,#345046)}.tile.storm{background:linear-gradient(135deg,#50365f,#9b5260,#3d345f);animation:stormPulse 1.5s infinite alternate}.tile.unknown{background:repeating-linear-gradient(135deg,#15252c,#15252c 8px,#1a3035 8px,#1a3035 16px);color:#8ca3a1}.tile.unknown .glyph{filter:blur(2px)}@keyframes stormPulse{to{filter:brightness(1.3)}}#story{min-height:56px;max-height:82px;overflow:auto;line-height:1.45;font-size:14px;padding:9px 12px;background:#17232bd9;border-left:3px solid #c9aa65;border-radius:4px}#actions{display:grid;grid-template-columns:1fr 1fr;gap:8px;max-height:23dvh;overflow-y:auto}button{min-height:49px;border:1px solid #b8bc86;border-radius:9px;background:#315b56;color:white;font:600 15px system-ui;padding:8px}button:disabled{opacity:.35}button.warn{background:#774d3e}small{font-size:12px;color:#b9c8c6}
 </style>
-<main><h1>⛈️ 雷雲の渡し</h1><div id="status"></div><div id="map" aria-label="探索マップ"></div><div id="story" role="status"></div><div id="actions"></div><small>実験ステージ。雷雲は行動ごとに移動。帰還して初めて素材を倉庫へ保管します。</small></main>
+<main><h1>⚔️ 雷鳴の辺境 <small>— 生きて帰れ —</small></h1><div id="status"></div><div id="map" aria-label="探索マップ"></div><div id="story" role="status"></div><div id="actions"></div><small>金色の縁のマスをタップして移動。危険を冒して秘宝を持ち帰ろう。</small></main>
 <script>
 'use strict';
 const KEY='crownless-storm-crossing-v1',N=9,exits=[0,1,2];
@@ -24,13 +24,27 @@ function render(){
 $('actions').replaceChildren();
 $('status').textContent='HP '+s.hp+'/10 · 持ち歩き '+s.bag+' · 倉庫 '+s.bank+' · 遠征 '+s.run+(s.boots?' · 絶縁靴':'')+(s.compass?' · 雷雲予測器':'')+(s.flareStock?' · 帰還信号 '+s.flareStock:'')+(s.phase==='field'&&s.turn<s.groundedUntil?' · 避雷塔接地中':'')+(s.phase==='field'&&s.turn<s.divertUntil?' · 雷雲誘導中':'')+(s.cache?' · 遺跡の保管鉱石 '+s.cache:'')+(s.commission?' · 納品依頼12個→報酬6個':'')+(s.commissionWins?' · 納品達成 '+s.commissionWins+'回':'');
 const map=$('map');map.replaceChildren();
-for(let p=0;p<N;p++){let el=document.createElement('div');el.className='tile'+(p===s.pos&&s.phase==='field'?' here':'')+(s.phase==='field'&&stormAt(s.turn)===p?' storm':'')+(s.phase==='field'&&!s.seen.includes(p)?' unknown':'');const labels=['北西の石橋','避雷塔','北東の遺跡','西の岩棚','水没道','東の鉱脈','南西の避難岩','渡し場','南東の避難岩'];el.textContent=s.phase==='field'&&!s.seen.includes(p)?'？':labels[p];if(s.phase==='field'&&stormAt(s.turn)===p)el.textContent+=' ⚡';if(s.phase==='field'&&s.compass&&stormAt(s.turn+1)===p)el.textContent+=' ⏭⚡';if(s.phase==='field'&&p===s.pos)el.textContent+=' 🧍';map.append(el)}
+const names=['崩れた石橋','雷の尖塔','忘却の遺跡','獣道の岩棚','沈んだ祭壇','盗賊の鉱脈','風よけの岩','帰還の渡し','古い道標'];
+const glyphs=['🌉','🗼','🏚️','🌲','🗿','⛏️','🪨','⛺','🪧'];
+for(let p=0;p<N;p++){
+ const known=s.phase!=='field'||s.seen.includes(p),reachable=s.phase==='field'&&neighbors(s.pos).includes(p);
+ const el=document.createElement('div');
+ el.className='tile'+(p===s.pos&&s.phase==='field'?' here':'')+(s.phase==='field'&&stormAt(s.turn)===p?' storm':'')+(!known?' unknown':'')+(reachable?' reachable':'');
+ const symbol=document.createElement('span');symbol.className='glyph';symbol.textContent=!known?'🌫️':glyphs[p];
+ const name=document.createElement('span');name.className='name';name.textContent=!known?'未踏の地':names[p];
+ el.append(symbol,name);
+ if(s.phase==='field'&&stormAt(s.turn)===p){const mark=document.createElement('span');mark.textContent='⚡';mark.style.cssText='position:absolute;right:3px;top:2px';el.append(mark)}
+ if(s.phase==='field'&&s.compass&&stormAt(s.turn+1)===p){const mark=document.createElement('span');mark.textContent='⏭⚡';mark.style.cssText='position:absolute;left:3px;top:2px';el.append(mark)}
+ if(s.phase==='field'&&p===s.pos){const mark=document.createElement('span');mark.textContent='🧍';mark.style.cssText='position:absolute;bottom:4px;right:3px;font-size:22px';el.append(mark)}
+ if(reachable){el.setAttribute('role','button');el.setAttribute('tabindex','0');el.setAttribute('aria-label',names[p]+'へ移動');const go=()=>{step(p);persist();render()};el.addEventListener('click',go);el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}})}
+ map.append(el)
+}
 if(s.phase==='camp'){$('story').textContent='遠征で鉱石を持ち帰ろう。納品依頼は持ち帰った鉱石12個以上で達成。倉庫の鉱石は対象外、失敗しても依頼は残る。';if(!s.commission)act('鉱石12個の納品依頼を受ける（生還で報酬+6）',()=>{s.commission=true});act('遠征に出る',begin);if(!s.boots&&s.bank>=4)act('素材4で絶縁靴を作る',()=>{s.bank-=4;s.boots=true});if(!s.compass&&s.bank>=5)act('素材5で雷雲予測器を作る（次の行動の落雷地点を表示）',()=>{s.bank-=5;s.compass=true});if(s.bank>=3&&s.flareStock<2)act('素材3で緊急帰還信号を作る（最大2個）',()=>{s.bank-=3;s.flareStock=(s.flareStock||0)+1});act('実験データを初期化',()=>{s=initial()},'warn');return}
 if(s.phase==='lost'){$('story').textContent='雷雲に倒れた。持ち歩いていた素材は失った。倉庫は無事。';act('再挑戦',begin);return}
 const p=s.pos, storm=stormAt(s.turn);
 if(p===5&&s.raiderAlert&&!s.raiderDefeated){$('story').textContent='東の鉱脈で伏兵の足音。攻撃の予兆が見える。身を隠してやり過ごすか、HPを賭けて反撃し鉱石を奪うか。';act('岩陰に隠れる（1行動 / HP-1）',()=>{s.hp-=1;s.turn++;s.raiderAlert=false;if(s.hp<=0){s.hp=0;s.bag=0;s.phase='lost';return}hazard()});act('伏兵を迎撃（HP-3 / 鉱石+6）',()=>{s.hp-=3;s.turn++;s.raiderDefeated=true;s.raiderAlert=false;if(s.hp<=0){s.hp=0;s.bag=0;s.phase='lost';return}s.bag+=6;hazard()},'warn');return}
 
-$('story').textContent='雷雲は中央の縦列を南北に巡る。南西・南東の岩陰では1手待って雷雲をやり過ごせる。中央の水没道には希少鉱石6個。避雷塔で素材2個を使えば次の3行動を安全にできる。接地中に中央へ到達すれば帯電結晶の安全回収か、HP4を賭けた雷核採掘（素材+8）かを選べる。東の鉱脈で素材2個を使うと雷雲を西列へ3行動誘導できる（西側は危険になる）。北東の遺跡には鉱石を隠し、次の遠征で回収できる。北西の石橋では足跡を調べて隠し鉱脈を発見できる。西の岩棚では素材4個で恒久的な雨よけを建設し、遠征ごとに一度HPを3回復できる。落雷直前の鉱脈で採集すると追加素材+4。ただし採集にも1行動かかり、落雷を受ける。⚡は現在の危険地帯。雷雲予測器を製作すると⏭⚡で次の行動の危険地帯が見える。';
+$('story').textContent=({0:'橋の石に古い爪痕がある。下に何か隠されているかもしれない。',1:'雷を引き寄せる尖塔。接地できれば祭壇への道が開ける。',2:'誰もいない遺跡。瓦礫の奥には荷物を隠せそうな空洞がある。',3:'風の抜ける岩棚。ここに雨よけを作れば次の遠征にも役立ちそうだ。',4:'水底で青い光が脈打つ。雷の中に希少な結晶が眠っている。',5:'鉱脈に不自然な足跡。何者かが潜んでいる。',6:'岩陰は安全だ。雷の通過を待てる。',7:'渡し場の灯が揺れている。ここまで帰れば戦利品を持ち帰れる。',8:'古い道標が風に鳴る。岩陰で一息つけそうだ。'})[p];
 if(p===0&&!s.traceFound)act('石橋の傷跡を調べる（隠し鉱脈を発見）',()=>{s.traceFound=true;s.turn++;hazard()});
 if(p===0&&s.traceFound&&!s.traceTaken)act('崩れた橋下で希少鉱石を採掘（HP-3 / 素材+7）',()=>{s.traceTaken=true;s.hp-=3;s.turn++;if(s.hp<=0){s.hp=0;s.bag=0;s.phase='lost';return}s.bag+=7;hazard()},'warn');
 if(p===2&&s.bag>0&&s.cache===0)act('遺跡に鉱石を隠す（次の遠征で回収）',()=>{s.cache=s.bag;s.bag=0;s.cacheRun=s.run;s.turn++;hazard()});
@@ -40,7 +54,7 @@ if(p===3&&!s.shelterBuilt&&s.bag>=4)act('岩棚に雨よけを築く（素材-4 
 if(p===3&&s.shelterBuilt&&!s.shelterUsed&&s.hp<10)act('雨よけで手当て（HP+3 / 1遠征1回）',()=>{s.shelterUsed=true;s.hp=Math.min(10,s.hp+3);s.turn++;hazard()});
 if(p===6||p===8)act('岩陰で雷雲を1手やり過ごす',waitTurn);
 if(p===1&&s.turn>=s.groundedUntil&&s.bag>=2)act('素材2で避雷塔を接地（次の3行動は雷雲停止）',()=>{s.bag-=2;s.groundedUntil=s.turn+4});
-for(const q of neighbors(p))act('→ '+['北西','避雷塔','北東','西','中央','鉱脈','南西','渡し場','南東'][q]+'へ',()=>step(q),stormAt(s.turn+1)===q?'warn':'');
+// Movement uses the adjacent highlighted map tiles.
 if(p===4&&s.turn<s.groundedUntil&&!s.coreTaken)act('雷核を掘り出す（HP-4 / 素材+8）',()=>{s.hp-=4;s.coreTaken=true;s.turn++;if(s.hp<=0){s.hp=0;s.bag=0;s.phase='lost';return}s.bag+=8;hazard()},'warn');
 if(p===4&&s.turn<s.groundedUntil&&!s.chargedTaken)act('帯電結晶を回収 +5（接地中限定）',()=>{s.bag+=5;s.chargedTaken=true;s.turn++;hazard()});
 const loot={0:2,2:3,3:2,4:6,5:4};
