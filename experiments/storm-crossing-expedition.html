@@ -16,7 +16,7 @@ function act(label,fn,kind=''){let b=document.createElement('button');b.textCont
 function stormAt(t){return t<s.groundedUntil?-1:(t<s.divertUntil?[0,3,6]:[1,4,7])[t%3]}
 function neighbors(p){return [p-3,p+3,p%3? p-1:-1,p%3<2?p+1:-1].filter(v=>v>=0&&v<N&&(!((p===0&&v===3)||(p===3&&v===0))||s.wolfHook&&s.cliffTrailFound))}
 function hazard(){if(stormAt(s.turn)===s.pos){if(s.relicShield>0){s.relicShield--;return}s.hp-=s.boots?1:3;if(s.hp<=0){s.hp=0;s.bag=0;s.phase='lost'}}}
-function chaseTick(){if(!s.stormBeacon||s.stormReward||s.stormChaseFailed)return;if(s.pos===stormAt(s.turn)){s.stormCharge++;if(s.stormCharge>=3){s.stormReward=true;s.bag+=14;s.stormBeacon=false}}else if(s.stormCharge>0){s.stormChaseFailed=true;s.stormBeacon=false}}
+function chaseTick(){if(!s.stormBeacon||s.stormReward||s.stormChaseFailed)return;if(s.pos===stormAt(s.turn)){s.stormCharge++;if(s.stormCharge>=3){s.stormReward=true;s.bag+=14;s.stormBeacon=false}}}
 function advance(){s.turn++;hazard();if(s.phase==='field')chaseTick()}
 function waitTurn(){advance()}
 function step(p){if(s.phase!=='field'||s.raiderAlert&&!s.raiderDefeated||s.guardianAlert&&!s.guardianDefeated||!neighbors(s.pos).includes(p))return;s.pos=p;advance();for(const q of [p,...neighbors(p)])if(!s.seen.includes(q))s.seen.push(q);hazard();if(s.phase==='field'&&p===5&&!s.raiderDefeated)s.raiderAlert=true;if(s.phase==='field'&&p===2&&s.bridgeVaultOpen&&!s.guardianDefeated)s.guardianAlert=true}
@@ -139,10 +139,10 @@ if(p===3&&!s.hunterDefeated&&!s.hunterAlert){
 if(p===3&&!s.shelterBuilt&&s.bag>=4)act('岩棚に雨よけを築く（素材-4 / 次の遠征にも残る）',()=>{s.bag-=4;s.shelterBuilt=true;s.turn++;hazard()});
 if(p===3&&s.shelterBuilt&&!s.shelterUsed&&s.hp<10)act('雨よけで手当て（HP+3 / 1遠征1回）',()=>{s.shelterUsed=true;s.hp=Math.min(s.altarSigil?12:10,s.hp+3);s.turn++;hazard()});
 // Storm-chaser challenge: deliberately follow the moving lightning for three consecutive turns.
-if(p===8&&!s.stormBeacon&&!s.stormReward&&!s.stormChaseFailed)act('⚡ 雷追いの試練を始める（連続3回の落雷地点を追う / 成功で秘鉱14）',()=>{s.stormBeacon=true;s.stormCharge=0;s.turn++;hazard()},'warn');
+if(p===8&&!s.stormBeacon&&!s.stormReward&&!s.stormChaseFailed)act('⚡ 雷追いの試練を始める（落雷地点を合計3回踏む / 成功で秘鉱14）',()=>{s.stormBeacon=true;s.stormCharge=0;s.turn++;hazard()},'warn');
 if(s.stormBeacon){
  const next=stormAt(s.turn+1),current=stormAt(s.turn);
- $('story').textContent='⚡ 雷追いの試練 '+s.stormCharge+'/3。雷雲の直撃地点を連続して踏め。次の落雷は '+(['北西','尖塔','遺跡','岩棚','祭壇','鉱脈','南西','渡し場','道標'][next]||'なし')+'。失敗すると今回の試練は終了。';
+ $('story').textContent='⚡ 雷追いの試練 '+s.stormCharge+'/3。雷雲の直撃地点を合計3回踏め。安全な道を経由しても記録は残る。次の落雷は '+(['北西','尖塔','遺跡','岩棚','祭壇','鉱脈','南西','渡し場','道標'][next]||'なし')+'。HPが尽きれば戦利品を失う。';
  if(current===p&&s.stormCharge===0)act('⚡ 雷を受けて試練を進める',()=>advance(),'warn');
  act('🏳️ 試練を諦める（戦利品は保持）',()=>{s.stormBeacon=false;s.stormChaseFailed=true});
 }
