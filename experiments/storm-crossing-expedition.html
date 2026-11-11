@@ -8,7 +8,7 @@
 <script>
 'use strict';
 const KEY='crownless-storm-crossing-v1',N=9,exits=[0,1,2];
-const initial=()=>({phase:'camp',hp:10,bank:0,bag:0,pos:7,turn:0,seen:[7],taken:[],boots:false,compass:false,run:0,groundedUntil:0,chargedTaken:false,coreTaken:false,cache:0,cacheRun:-1,divertUntil:0,decoyUntil:0,traceFound:false,traceTaken:false,shelterBuilt:false,shelterUsed:false,commission:false,commissionWins:0,flareStock:0,flareUsed:false,raiderDefeated:false,raiderAlert:false,raiderHp:6,raiderIntent:0,raiderGuard:false,raiderTrophies:0,raiderBlade:false,bridgeVaultOpen:false,bridgeVaultTaken:false,guardianDefeated:false,guardianHp:10,guardianTurn:0,guardianAlert:false,relic:false,relicShield:0,ruinsLiberated:false,ruinsRested:false,ruinsOffering:false,trailClue:false,trailCacheTaken:false,altarOpened:false,altarLooted:false,altarSigil:false,hunterScouted:false,hunterTrap:false,hunterDefeated:false,hunterAlert:false,hunterHp:8,hunterTurn:0,hunterFang:false,wolfFangs:0,wolfHook:false,cliffTrailFound:false,cliffCacheTaken:false,stormBeacon:false,stormCharge:0,stormReward:false,stormChaseFailed:false,scoutBoost:0,scoutFound:false,scoutEscorting:false,scoutHp:3,scoutRescued:false,scoutLost:false,scoutBandages:0,scoutCover:0,scoutCoverUsed:false,circuitStage:0,circuitDeadline:0,circuitWon:false,circuitFailed:false});
+const initial=()=>({phase:'camp',hp:10,bank:0,bag:0,pos:7,turn:0,seen:[7],taken:[],boots:false,compass:false,run:0,groundedUntil:0,chargedTaken:false,coreTaken:false,cache:0,cacheRun:-1,divertUntil:0,decoyUntil:0,traceFound:false,traceTaken:false,shelterBuilt:false,shelterUsed:false,commission:false,commissionWins:0,flareStock:0,flareUsed:false,raiderDefeated:false,raiderAlert:false,raiderHp:6,raiderIntent:0,raiderGuard:false,raiderTrophies:0,raiderBlade:false,bridgeVaultOpen:false,bridgeVaultTaken:false,guardianDefeated:false,guardianHp:10,guardianTurn:0,guardianAlert:false,relic:false,relicShield:0,ruinsLiberated:false,ruinsRested:false,ruinsOffering:false,trailClue:false,trailCacheTaken:false,altarOpened:false,altarLooted:false,altarSigil:false,hunterScouted:false,hunterTrap:false,hunterDefeated:false,hunterAlert:false,hunterHp:8,hunterTurn:0,hunterFang:false,wolfFangs:0,wolfHook:false,cliffTrailFound:false,cliffCacheTaken:false,stormBeacon:false,stormCharge:0,stormReward:false,stormChaseFailed:false,scoutBoost:0,scoutFound:false,scoutEscorting:false,scoutHp:3,scoutRescued:false,scoutLost:false,scoutBandages:0,scoutCover:0,scoutCoverUsed:false,circuitStage:0,circuitDeadline:0,circuitWon:false,circuitFailed:false,salvageStage:0,salvageFinished:false,salvageAbandoned:false});
 let s;try{s=Object.assign(initial(),JSON.parse(localStorage.getItem(KEY))||{})}catch{s=initial()}
 const $=id=>document.getElementById(id);
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(s))}catch{}}
@@ -131,6 +131,14 @@ if(p===0&&s.scoutFound&&!s.scoutEscorting&&!s.scoutLost&&!s.scoutRescued)act('�
 if(s.scoutEscorting){$('story').textContent='🧭 負傷した斥候 HP '+s.scoutHp+'/3。落雷地点を一緒に踏むと斥候も負傷。渡し場まで連れ帰れば鉱石10と包帯を獲得。'+(s.scoutCover?' 遮雷布が次の直撃を1回防ぐ。':'');if(!s.scoutCoverUsed&&s.bag>=2)act('🛡️ 鉱石2で遮雷布を張る（斥候への落雷を1回防ぐ）',()=>{s.bag-=2;s.scoutCover=1;s.scoutCoverUsed=true;s.turn++;hazard();scoutTick()});if(p===7)act('🏕️ 斥候を無事に送り届ける',returnHome);}
 if(s.scoutLost)$('story').textContent+=' 斥候は落雷で倒れ、救出は失敗した。';
 if(p===0&&s.bridgeVaultOpen&&!s.bridgeVaultTaken)act('🗝️ 略奪者の鍵で石橋の地下宝物庫を開く（秘鉱+9）',()=>{s.bridgeVaultTaken=true;s.bag+=9;s.turn++;hazard()});
+// Optional three-stage bridge salvage: each deeper layer is a conscious risk/reward choice.
+if(p===0&&s.traceFound&&!s.salvageFinished&&!s.salvageAbandoned){
+ const stage=s.salvageStage||0;
+ if(stage===0)act('⛏️ 崩れた橋の下を掘る（1行動 / 鉱石+2）',()=>{s.salvageStage=1;s.bag+=2;s.turn++;hazard()},'warn');
+ if(stage===1)act('⛏️ 支柱の奥へ進む（HP-1 / 鉱石+4）',()=>{s.hp--;s.turn++;if(s.hp<=0){s.hp=0;s.bag=0;s.phase='lost';return}s.salvageStage=2;s.bag+=4;hazard()},'warn');
+ if(stage===2)act('💎 崩落寸前の深部へ潜る（HP-3 / 希少鉱石+9）',()=>{s.hp-=3;s.turn++;if(s.hp<=0){s.hp=0;s.bag=0;s.phase='lost';return}s.salvageStage=3;s.salvageFinished=true;s.bag+=9;hazard()},'warn');
+ if(stage>0)act('🏃 採掘を切り上げる（獲得した鉱石を保持）',()=>{s.salvageAbandoned=true});
+}
 if(p===0&&!s.traceFound)act('石橋の傷跡を調べる（隠し鉱脈を発見）',()=>{s.traceFound=true;s.turn++;hazard()});
 if(p===0&&s.traceFound&&!s.traceTaken)act('崩れた橋下で希少鉱石を採掘（HP-3 / 素材+7）',()=>{s.traceTaken=true;s.hp-=3;s.turn++;if(s.hp<=0){s.hp=0;s.bag=0;s.phase='lost';return}s.bag+=7;hazard()},'warn');
 if(p===2&&s.ruinsLiberated&&!s.ruinsRested&&s.hp<10)act('💧 解放された泉で休む（HP+4 / 遠征1回）',()=>{s.hp=Math.min(s.altarSigil?12:10,s.hp+4);s.ruinsRested=true;s.turn++;hazard()});
