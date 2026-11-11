@@ -230,8 +230,8 @@
   }
 
   function prepareMineDelve(state, expedition, approach) {
-    if (!state || !expedition?.inputs || expedition.inputs.destinationId !== "village-forge:sealed-mine" || !["deep", "unstable"].includes(approach) || !Array.isArray(state.securedLoot)) return false;
-    const index = state.securedLoot.findIndex(item => item?.id === "watch-road-medicine");
+    if (!state || !expedition?.inputs || expedition.inputs.destinationId !== "village-forge:sealed-mine" || !["deep", "unstable", "shored"].includes(approach) || !Array.isArray(state.securedLoot)) return false;
+    const index = state.securedLoot.findIndex(item => item?.id === (approach === "shored" ? "village-forged-parts" : "watch-road-medicine"));
     if (index < 0) return false;
     state.securedLoot.splice(index, 1);
     expedition.inputs.villageMineDelve = approach;
@@ -240,15 +240,15 @@
   }
 
   function rewardMineDelve(report, expedition) {
-    if (!report || report.outcome !== "success" || expedition?.inputs?.destinationId !== "village-forge:sealed-mine" || !["deep", "unstable"].includes(expedition.inputs.villageMineDelve)) return false;
+    if (!report || report.outcome !== "success" || expedition?.inputs?.destinationId !== "village-forge:sealed-mine" || !["deep", "unstable", "shored"].includes(expedition.inputs.villageMineDelve)) return false;
     if (!Array.isArray(report.loot)) report.loot = [];
     if (report.loot.some(item => item?.id === "sealed-mine-star-ore")) return false;
     report.loot.push({ id: "sealed-mine-star-ore", name: "封鎖坑道の星鉄鉱", tags: ["rare-ore", "metal", "craft"] });
-    if (expedition.inputs.villageMineDelve === "unstable") {
+    if (["unstable", "shored"].includes(expedition.inputs.villageMineDelve)) {
       report.loot.push({ id: "sealed-mine-deep-crystal", name: "崩落層の深晶石", tags: ["rare-ore", "crystal", "craft"] });
     }
     if (!Array.isArray(report.log)) report.log = [];
-    report.log.push({ minute: 104, time: "", type: "mine-deep-delve", text: expedition.inputs.villageMineDelve === "unstable" ? "崩落寸前の坑道を強行突破し、星鉄鉱と深晶石を持ち帰った。" : "救護薬材を使って深層へ潜り、星鉄鉱を確保した。", causes: ["village-forge:sealed-mine", "sealed-mine-star-ore"] });
+    report.log.push({ minute: 104, time: "", type: "mine-deep-delve", text: expedition.inputs.villageMineDelve === "unstable" ? "崩落寸前の坑道を強行突破し、星鉄鉱と深晶石を持ち帰った。" : expedition.inputs.villageMineDelve === "shored" ? "鍛造部材で崩落層を支え、強行突破せずに星鉄鉱と深晶石を持ち帰った。" : "救護薬材を使って深層へ潜り、星鉄鉱を確保した。", causes: ["village-forge:sealed-mine", "sealed-mine-star-ore"] });
     return true;
   }
 
@@ -303,6 +303,7 @@
       fieldset.appendChild(legend);
       for (const [value, title, copy] of [
         ["safe", "安全な採掘路", "物資を温存して通常探索。"],
+        ["shored", "坑道を補強して深晶石を採る", "鍛冶場の鍛造部材1個を消費。強欲二連戦を避け、成功すれば星鉄鉱と深晶石を持ち帰る。"],
         ["deep", "星鉄の深層へ", "巡回街道の救護薬材1個を出発時に消費。生還すれば星鉄鉱を獲得。"],
         ["unstable", "崩落寸前の横坑を強行", "救護薬材1個を消費。強欲方針で必ず2戦に挑み、撤退判断も遅くなる。生還できれば星鉄鉱と深晶石を確保。"],
       ]) {
