@@ -499,7 +499,7 @@
       selectedMineApproach = "safe";
       if (next.activeExpedition) {
         let approach = selectedGrottoApproach;
-        if (approach === "mapped") {
+        if (approach === "mapped" && next.activeExpedition.inputs.destinationId === "village-forge:crystal-grotto") {
           const mapIndex = next.securedLoot.findIndex((item) => item.id === "village-scout-map");
           if (mapIndex < 0) approach = "lit";
           else next.securedLoot.splice(mapIndex, 1);
