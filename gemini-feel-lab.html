@@ -327,6 +327,7 @@
 <script src="src/gemini-hit-recovery.js"></script>
 <script src="src/gemini-forest-discoveries.js"></script>
 <script src="src/pixel-forest.js"></script>
+<script src="src/hd2d-bridge-scene.js"></script>
 <script src="src/pixel-forest-effects.js"></script>
 <script src="src/pixel-actors.js"></script>
 <script src="src/hero-still-review.js"></script>
@@ -2382,6 +2383,10 @@
   const ctx = canvas.getContext('2d');
   const forestArt = window.CrownlessPixelForest.create();
   const fxParams = new URLSearchParams(location.search);
+  // Quality gate only. The default and the existing classic/pixel comparison
+  // remain unchanged; ?art=bridge tests candidate art with real gameplay.
+  const bridgePreview = fxParams.get('art') === 'bridge';
+  const bridgeArt = window.CrownlessBridgeScene.create();
   const reducedMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   const forestEffects = window.CrownlessForestEffects.create({enabled: fxParams.get('fx') !== 'off' && !reducedMotion});
   const atmosphereButton = document.getElementById('btnForestAtmosphere');
@@ -2392,10 +2397,10 @@
   }
   atmosphereButton.addEventListener('click', () => { forestEffects.setEnabled(!forestEffects.enabled()); syncAtmosphereButton(); });
   const heroStillReview = window.CrownlessHeroStill.create();
-  let pixelArt = new URLSearchParams(location.search).get('art') !== 'classic';
+  let pixelArt = fxParams.get('art') !== 'classic';
   const artButton = document.getElementById('btnToggleArtPreview');
   function syncArtButton() {
-    artButton.textContent = pixelArt ? '景観: ピクセルの森' : '景観: 従来';
+    artButton.textContent = pixelArt ? (bridgePreview ? '景観: 石橋 HD-2D候補' : '景観: ピクセルの森') : '景観: 従来';
     artButton.setAttribute('aria-pressed',String(pixelArt));
   }
   syncArtButton();
@@ -2418,14 +2423,18 @@
 
   function renderScene() {
     const drawPixelArt=pixelArt && forestArt.ready();
+    const drawBridge=drawPixelArt && bridgePreview && bridgeArt.ready();
     ctx.setTransform(canvas.width/virtualW,0,0,canvas.height/VIRTUAL_H,0,0);
     ctx.clearRect(0, 0, virtualW, VIRTUAL_H);
 
     // 独自要素③：ウェーブに応じた時間帯・天候変化（夕暮れ → 宵闇 → 月夜月夜）
     const weatherPhase = (state.waveCount - 1) % 3;
     if (drawPixelArt) {
-      forestArt.background(ctx,virtualW,state.cameraX,state.waveCount);
-      forestEffects.background(ctx,virtualW,state.cameraX,performance.now());
+      if(drawBridge) bridgeArt.background(ctx,virtualW,state.cameraX,state.waveCount);
+      else {
+        forestArt.background(ctx,virtualW,state.cameraX,state.waveCount);
+        forestEffects.background(ctx,virtualW,state.cameraX,performance.now());
+      }
     }
     else {
     const skyGrad = ctx.createLinearGradient(0, 0, 0, 195);
@@ -2475,7 +2484,7 @@
     ctx.save();
     ctx.translate(-state.cameraX, 0);
     if (drawPixelArt) {
-      forestArt.ground(ctx,getGroundHeightAt);
+      if(!drawBridge) forestArt.ground(ctx,getGroundHeightAt);
       forestArt.trail(ctx,state.forestFinds);
     } else {
 
@@ -2626,7 +2635,8 @@
     }
 
     if(drawPixelArt) {
-      forestArt.foreground(ctx,state.cameraX,virtualW,performance.now(),ginji);
+      if(drawBridge) bridgeArt.foreground(ctx,state.cameraX,virtualW,performance.now(),ginji);
+      else forestArt.foreground(ctx,state.cameraX,virtualW,performance.now(),ginji);
       forestEffects.overlay(ctx,state.cameraX,virtualW,performance.now(),ginji,state.forestFinds,rpg.crafted);
     }
 
