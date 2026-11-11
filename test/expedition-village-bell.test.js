@@ -401,3 +401,25 @@ test("beacon requires forged mine, forge and safely banked crystal", () => {
   assert.equal(village.buildCrystalBeacon(current), null);
   assert.equal(current.destinations.some(item => item.villageCrystalBeacon), false);
 });
+
+test("grotto shadow detour forces risky policy and rewards only safe return", () => {
+  const mission = { inputs: { destinationId: "village-forge:crystal-grotto", policyId: "careful" } };
+  assert.equal(village.prepareGrottoDetour(mission, "lit"), false);
+  assert.equal(mission.inputs.policyId, "careful");
+  assert.equal(village.prepareGrottoDetour(mission, "shadow"), true);
+  assert.equal(mission.inputs.policyId, "greedy");
+  const failed = { outcome: "retreat", loot: [] };
+  assert.equal(village.rewardGrottoDetour(failed, mission), false);
+  assert.equal(failed.loot.length, 0);
+  const success = { outcome: "success", loot: [], log: [] };
+  assert.equal(village.rewardGrottoDetour(success, mission), true);
+  assert.equal(success.loot[0].id, "grotto-shadow-prism");
+  assert.equal(village.rewardGrottoDetour(success, mission), false);
+  assert.equal(success.loot.length, 1);
+});
+
+test("grotto reward cannot be earned on an unrelated expedition", () => {
+  const mission = { inputs: { destinationId: "village-forge:sealed-mine" } };
+  assert.equal(village.prepareGrottoDetour(mission, "shadow"), false);
+  assert.equal(village.rewardGrottoDetour({ outcome: "success", loot: [] }, mission), false);
+});
