@@ -100,6 +100,9 @@ if(p===5&&s.raiderAlert&&!s.raiderDefeated){
    let hit=move==='guard'?Math.max(0,damage-3):move==='dodge'?(intent===0?0:damage+1):damage;
    if(move==='strike'){s.raiderHp-=(intent===2?4:2)+(s.raiderBlade?2:0)+(s.thunderArmor&&intent===2?2:0)+(s.raiderStagger?3:0)}
    if(move==='dodge'&&intent===0){s.raiderHp-=1}
+   // Read the knife flurry: a precise parry creates an opening without spending ore.
+   if(move==='parry'&&intent===1){hit=0;s.raiderHp-=2}
+   s.raiderStagger=false;
    s.hp-=hit;s.turn++;
    if(s.hp<=0){s.hp=0;s.bag=0;s.phase='lost';return}
    if(s.raiderHp<=0){s.raiderDefeated=true;s.raiderAlert=false;s.bag+=6;s.raiderTrophies++;s.bridgeVaultOpen=true}
@@ -110,6 +113,7 @@ if(p===5&&s.raiderAlert&&!s.raiderDefeated){
  act('⚔️ 斬り込む（敵HP-'+(s.raiderBlade?'4 / 隙なら-6':'2 / 隙なら-4')+'）',()=>duel('strike'));
  act('🛡️ 盾を構える（被害-3）',()=>duel('guard'));
  act('💨 横へ回避（大振りを無効化・反撃）',()=>duel('dodge'));
+ if(intent===1)act('🗡️ 連撃を受け流す（被害0 / 反撃2）',()=>duel('parry'));
  act('🏃 退く（HP-1 / 鉱石は得られない）',()=>{s.hp--;s.turn++;s.raiderAlert=false;s.pos=8;if(s.hp<=0){s.hp=0;s.bag=0;s.phase='lost';return}if(!s.seen.includes(8))s.seen.push(8);hazard()},'warn');
  return
 }
