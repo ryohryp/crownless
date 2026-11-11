@@ -342,3 +342,30 @@ test("unstable shaft without returned medicine cannot change combat policy", () 
   assert.equal(mission.inputs.policyId, "cautious");
   assert.equal(village.rewardMineDelve(report(), mission), false);
 });
+
+test("shored mine consumes crafted supports instead of medicine and avoids greedy combat", () => {
+  const current = state();
+  current.securedLoot = [
+    { id: "village-forged-parts", sourceExpeditionId: "returned-village" },
+    { id: "watch-road-medicine", sourceExpeditionId: "returned-road" },
+  ];
+  const mission = { inputs: { destinationId: "village-forge:sealed-mine", policyId: "cautious" } };
+  assert.equal(village.prepareMineDelve(current, mission, "shored"), true);
+  assert.equal(mission.inputs.policyId, "cautious", "supports preserve the chosen combat policy");
+  assert.deepEqual(current.securedLoot.map(item => item.id), ["watch-road-medicine"]);
+  const won = report();
+  assert.equal(village.rewardMineDelve(won, mission), true);
+  assert.deepEqual(won.loot.map(item => item.id), ["sealed-mine-star-ore", "sealed-mine-deep-crystal"]);
+  assert.equal(village.rewardMineDelve(won, mission), false);
+  assert.equal(won.loot.length, 2);
+  assert.equal(village.rewardMineDelve(report("retreat"), mission), false);
+});
+
+test("shoring requires returned crafted parts and cannot spend unrelated materials", () => {
+  const current = state();
+  current.securedLoot = [{ id: "watch-road-medicine" }];
+  const mission = { inputs: { destinationId: "village-forge:sealed-mine", policyId: "standard" } };
+  assert.equal(village.prepareMineDelve(current, mission, "shored"), false);
+  assert.equal(current.securedLoot.length, 1);
+  assert.equal(mission.inputs.villageMineDelve, undefined);
+});
