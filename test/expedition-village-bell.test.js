@@ -234,3 +234,28 @@ test("restored roads give different material loot on success, not retreat, witho
   assert.equal(medicine.loot.length, 1);
   assert.equal(medicine.log.filter((item) => item.type === "restored-road-loot").length, 1);
 });
+
+test("clearing the watch road builds a persistent watchtower only after success", () => {
+  const current = state();
+  current.destinations[0].villageRestoration = "watchfire";
+  const road = village.unlockRestoredRoute(current, "watchfire");
+  const result = { ...report(), destinationId: road.id };
+  assert.equal(village.upgradeVillageFromRoad(current, { ...result, outcome: "retreat" }), null);
+  assert.equal(current.destinations[0].villageFacility, undefined);
+  village.upgradeVillageFromRoad(current, result);
+  assert.equal(current.destinations[0].villageFacility, "watchtower");
+  assert.ok(current.destinations[0].opportunityTags.includes("scouting"));
+  village.upgradeVillageFromRoad(current, result);
+  assert.equal(result.log.filter((item) => item.type === "village-facility").length, 1);
+  assert.equal(JSON.parse(JSON.stringify(current)).destinations[0].villageFacility, "watchtower");
+});
+
+test("ore road opens a forge, but unrelated roads cannot upgrade the village", () => {
+  const current = state();
+  current.destinations[0].villageRestoration = "storehouse";
+  const road = village.unlockRestoredRoute(current, "storehouse");
+  assert.equal(village.upgradeVillageFromRoad(current, { ...report(), destinationId: "unknown" }), null);
+  village.upgradeVillageFromRoad(current, { ...report(), destinationId: road.id });
+  assert.equal(current.destinations[0].villageFacility, "forge");
+  assert.ok(current.destinations[0].opportunityTags.includes("smithing"));
+});

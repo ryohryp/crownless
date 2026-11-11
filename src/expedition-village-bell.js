@@ -182,6 +182,28 @@
     return source;
   }
 
+  // Clearing the newly opened road builds a lasting village facility.
+  // Repeating a cleared road does not multiply the facility or its rewards.
+  function upgradeVillageFromRoad(state, report) {
+    if (!state || !report || report.outcome !== "success" || !Array.isArray(state.destinations)) return null;
+    const route = state.destinations.find((item) => item && item.id === report.destinationId && item.villageRestoredRoute);
+    const village = state.destinations.find((item) => item && item.id === DESTINATION_ID);
+    if (!route || !village || village.villageRestoration !== route.villageRestoredRoute) return null;
+    const facility = route.villageRestoredRoute === "watchfire" ? "watchtower" : "forge";
+    if (village.villageFacility === facility) return village;
+    village.villageFacility = facility;
+    village.opportunityTags = Array.from(new Set([...(village.opportunityTags || []),
+      facility === "watchtower" ? "scouting" : "smithing"]));
+    report.villageFacility = { id: facility, villageId: DESTINATION_ID };
+    if (!Array.isArray(report.log)) report.log = [];
+    report.log.push({ minute: 103, time: "", type: "village-facility",
+      text: facility === "watchtower"
+        ? "巡回街道を確保し、村に見張り台が建った。次の再訪では斥候の地図を持ち帰れる。"
+        : "鉱石運搬路を確保し、村の鍛冶場が稼働した。次の再訪では鍛造部材を持ち帰れる。",
+      causes: [DESTINATION_ID, route.id, facility] });
+    return village;
+  }
+
   function syncStoredReport(state, report) {
     if (!state || !report || !Array.isArray(state.completedReports)) return;
     const stored = state.completedReports.find((item) => item && item.expeditionId === report.expeditionId);
@@ -292,9 +314,13 @@
       const destination = state && Array.isArray(state.destinations)
         && state.destinations.find((item) => item && item.id === report.destinationId);
       if (report.outcome !== "success" || !destination || destination.id !== DESTINATION_ID || !destination.villageRestoration) return;
-      const supplies = destination.villageRestoration === "watchfire"
-        ? { id: "village-watchfire-herbs", name: "見張り火の薬草包み", tags: ["herbs", "supplies"] }
-        : { id: "village-storehouse-ore", name: "復興物資庫の鍛造材", tags: ["ore", "supplies"] };
+      const supplies = destination.villageFacility === "watchtower"
+        ? { id: "village-scout-map", name: "見張り台の斥候地図", tags: ["map", "scouting", "supplies"] }
+        : destination.villageFacility === "forge"
+          ? { id: "village-forged-parts", name: "鍛冶場の鍛造部材", tags: ["ore", "metal", "craft"] }
+          : destination.villageRestoration === "watchfire"
+            ? { id: "village-watchfire-herbs", name: "見張り火の薬草包み", tags: ["herbs", "supplies"] }
+            : { id: "village-storehouse-ore", name: "復興物資庫の鍛造材", tags: ["ore", "supplies"] };
       if (!Array.isArray(report.loot)) report.loot = [];
       if (report.loot.some((item) => item && item.id === supplies.id)) return;
       report.loot.push(supplies);
@@ -355,6 +381,7 @@
       const applied = baseApplyReport(state, report);
       unlockFollowup(applied, report);
       restoreVillage(applied, report);
+      upgradeVillageFromRoad(applied, report);
       syncStoredReport(applied, report);
       system.__villageBellRestoration = applied.destinations.find((item) => item.id === DESTINATION_ID)?.villageRestoration || null;
       return applied;
@@ -381,6 +408,7 @@
         }
         unlockFollowup(advanced.state, advanced.report);
         restoreVillage(advanced.state, advanced.report, expedition);
+        upgradeVillageFromRoad(advanced.state, advanced.report);
         syncStoredReport(advanced.state, advanced.report);
       }
       system.__villageBellRestoration = advanced.state?.destinations?.find((item) => item.id === DESTINATION_ID)?.villageRestoration || null;
@@ -441,6 +469,7 @@
     unlockFollowup,
     restoreVillage,
     unlockRestoredRoute,
+    upgradeVillageFromRoad,
     syncStoredReport,
     currentDestination,
     syncChoice,
