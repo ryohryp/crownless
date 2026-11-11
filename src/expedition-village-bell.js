@@ -36,6 +36,7 @@
   let selectedApproach = QUIET;
   let selectedPreparation = "scout";
   let requestForgePass = false;
+  let selectedMineApproach = "safe";
 
   function clone(value) {
     return value == null ? value : JSON.parse(JSON.stringify(value));
@@ -228,6 +229,25 @@
     return route;
   }
 
+  function prepareMineDelve(state, expedition, approach) {
+    if (!state || !expedition?.inputs || expedition.inputs.destinationId !== "village-forge:sealed-mine" || approach !== "deep" || !Array.isArray(state.securedLoot)) return false;
+    const index = state.securedLoot.findIndex(item => item?.id === "watch-road-medicine");
+    if (index < 0) return false;
+    state.securedLoot.splice(index, 1);
+    expedition.inputs.villageMineDelve = "deep";
+    return true;
+  }
+
+  function rewardMineDelve(report, expedition) {
+    if (!report || report.outcome !== "success" || expedition?.inputs?.destinationId !== "village-forge:sealed-mine" || expedition.inputs.villageMineDelve !== "deep") return false;
+    if (!Array.isArray(report.loot)) report.loot = [];
+    if (report.loot.some(item => item?.id === "sealed-mine-star-ore")) return false;
+    report.loot.push({ id: "sealed-mine-star-ore", name: "封鎖坑道の星鉄鉱", tags: ["rare-ore", "metal", "craft"] });
+    if (!Array.isArray(report.log)) report.log = [];
+    report.log.push({ minute: 104, time: "", type: "mine-deep-delve", text: "救護薬材を使って深層へ潜り、星鉄鉱を確保した。", causes: ["village-forge:sealed-mine", "sealed-mine-star-ore"] });
+    return true;
+  }
+
   function syncStoredReport(state, report) {
     if (!state || !report || !Array.isArray(state.completedReports)) return;
     const stored = state.completedReports.find((item) => item && item.expeditionId === report.expeditionId);
@@ -266,6 +286,36 @@
     const existing = form.querySelector("[data-expedition-village-choice]");
     const restored = root.CrownlessExpeditionSystem && root.CrownlessExpeditionSystem.__villageBellRestoration;
     const preparation = form.querySelector("[data-village-preparation]");
+    const mineChoice = form.querySelector("[data-village-mine-choice]");
+    if (currentDestination(form) === "village-forge:sealed-mine") {
+      if (existing) existing.remove();
+      if (preparation) preparation.remove();
+      if (mineChoice) return false;
+      const fieldset = document.createElement("fieldset");
+      fieldset.className = "expedition-choice expedition-choice--village";
+      fieldset.dataset.villageMineChoice = "true";
+      const legend = document.createElement("legend");
+      legend.textContent = "封鎖坑道：どこまで潜る？";
+      fieldset.appendChild(legend);
+      for (const [value, title, copy] of [
+        ["safe", "安全な採掘路", "物資を温存して通常探索。"],
+        ["deep", "星鉄の深層へ", "巡回街道の救護薬材1個を出発時に消費。生還すれば星鉄鉱を獲得。"],
+      ]) {
+        const label = document.createElement("label");
+        label.className = "expedition-choice__item";
+        const input = document.createElement("input");
+        input.type = "radio"; input.name = "village-mine-approach"; input.value = value;
+        input.checked = value === selectedMineApproach;
+        input.addEventListener("change", () => { if (input.checked) selectedMineApproach = value; });
+        const body = document.createElement("span");
+        const strong = document.createElement("strong"); strong.textContent = title;
+        const small = document.createElement("small"); small.textContent = copy;
+        body.append(strong, small); label.append(input, body); fieldset.append(label);
+      }
+      form.appendChild(fieldset);
+      return true;
+    }
+    if (mineChoice) mineChoice.remove();
     if (currentDestination(form) !== DESTINATION_ID) {
       selectedApproach = QUIET;
       if (existing) existing.remove();
@@ -342,6 +392,8 @@
         if (opened) next.activeExpedition.inputs.forgedMinePass = opened.id;
       }
       requestForgePass = false;
+      if (next.activeExpedition) prepareMineDelve(next, next.activeExpedition, selectedMineApproach);
+      selectedMineApproach = "safe";
       const inputs = next && next.activeExpedition && next.activeExpedition.inputs;
       if (inputs && inputs.destinationId === DESTINATION_ID) {
         const village = state && state.destinations && state.destinations.find((item) => item.id === DESTINATION_ID);
@@ -413,6 +465,7 @@
       }
       rewardRevisit(state, report);
       rewardRestoredRoad(state, report);
+      rewardMineDelve(report, expedition);
       return report;
     };
 
@@ -437,9 +490,10 @@
         decorateReport(advanced.report, expedition);
         rewardRevisit(state, advanced.report);
         rewardRestoredRoad(state, advanced.report);
+        rewardMineDelve(advanced.report, expedition);
         // advance() has already banked the base report; bank sidecar road loot once.
         if (advanced.report.outcome === "success" && Array.isArray(advanced.state.securedLoot)) {
-          const routeLoot = advanced.report.loot.find((item) => item && ["watch-road-medicine", "ore-trail-iron"].includes(item.id));
+          const routeLoot = advanced.report.loot.find((item) => item && ["watch-road-medicine", "ore-trail-iron", "sealed-mine-star-ore"].includes(item.id));
           if (routeLoot && !advanced.state.securedLoot.some((item) => item.id === routeLoot.id && item.sourceExpeditionId === advanced.report.expeditionId)) {
             advanced.state.securedLoot.push({ ...routeLoot, sourceExpeditionId: advanced.report.expeditionId });
           }
@@ -514,6 +568,8 @@
     unlockRestoredRoute,
     upgradeVillageFromRoad,
     forgeMinePass,
+    prepareMineDelve,
+    rewardMineDelve,
     syncStoredReport,
     currentDestination,
     syncChoice,

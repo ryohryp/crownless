@@ -288,3 +288,31 @@ test("forge pass cannot be crafted without facility or banked ore", () => {
   assert.equal(village.forgeMinePass(current), null);
   assert.equal(current.destinations.length, 1);
 });
+
+test("deep mine consumes returned medicine and grants star ore only on success", () => {
+  const current = state();
+  current.securedLoot = [{ id: "watch-road-medicine", sourceExpeditionId: "safe-return" }];
+  const mission = { inputs: { destinationId: "village-forge:sealed-mine" } };
+  assert.equal(village.prepareMineDelve(current, mission, "deep"), true);
+  assert.equal(current.securedLoot.length, 0);
+  const won = report();
+  assert.equal(village.rewardMineDelve(won, mission), true);
+  assert.equal(won.loot[0].id, "sealed-mine-star-ore");
+  assert.equal(village.rewardMineDelve(won, mission), false);
+  assert.equal(won.loot.length, 1);
+  const lost = report("retreat");
+  assert.equal(village.rewardMineDelve(lost, mission), false);
+  assert.equal(lost.loot, undefined);
+});
+
+test("safe mining and missing medicine cannot mint rare ore", () => {
+  const current = state();
+  current.securedLoot = [];
+  const mission = { inputs: { destinationId: "village-forge:sealed-mine" } };
+  assert.equal(village.prepareMineDelve(current, mission, "deep"), false);
+  assert.equal(village.rewardMineDelve(report(), mission), false);
+  current.securedLoot.push({ id: "watch-road-medicine" });
+  assert.equal(village.prepareMineDelve(current, mission, "safe"), false);
+  assert.equal(current.securedLoot.length, 1);
+  assert.equal(village.rewardMineDelve(report(), mission), false);
+});
