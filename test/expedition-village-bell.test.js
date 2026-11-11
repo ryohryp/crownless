@@ -259,3 +259,32 @@ test("ore road opens a forge, but unrelated roads cannot upgrade the village", (
   assert.equal(current.destinations[0].villageFacility, "forge");
   assert.ok(current.destinations[0].opportunityTags.includes("smithing"));
 });
+
+test("forge consumes one safely returned iron and opens a persistent mine", () => {
+  const current = state();
+  current.destinations[0].villageRestoration = "storehouse";
+  current.destinations[0].villageFacility = "forge";
+  current.securedLoot = [
+    { id: "ore-trail-iron", sourceExpeditionId: "safe-1" },
+    { id: "ore-trail-iron", sourceExpeditionId: "safe-2" },
+  ];
+  const opened = village.forgeMinePass(current);
+  assert.equal(opened.id, "village-forge:sealed-mine");
+  assert.equal(current.securedLoot.length, 1);
+  assert.ok(current.discoveredDestinationIds.includes(opened.id));
+  assert.equal(village.forgeMinePass(current).id, opened.id);
+  assert.equal(current.securedLoot.length, 1, "repeat craft cannot consume again");
+  const engine = require("../src/expedition-system.js");
+  const restored = engine.normalizeState(JSON.parse(JSON.stringify(current)));
+  assert.ok(restored.destinations.some((item) => item.id === opened.id));
+});
+
+test("forge pass cannot be crafted without facility or banked ore", () => {
+  const current = state();
+  current.securedLoot = [{ id: "ore-trail-iron" }];
+  assert.equal(village.forgeMinePass(current), null);
+  current.destinations[0].villageFacility = "forge";
+  current.securedLoot = [];
+  assert.equal(village.forgeMinePass(current), null);
+  assert.equal(current.destinations.length, 1);
+});
