@@ -230,28 +230,34 @@
       return next;
     };
 
+    function rewardRevisit(state, report) {
+      const destination = state && Array.isArray(state.destinations)
+        && state.destinations.find((item) => item && item.id === report.destinationId);
+      if (report.outcome !== "success" || !destination || destination.id !== DESTINATION_ID || !destination.villageRestoration) return;
+      const supplies = destination.villageRestoration === "watchfire"
+        ? { id: "village-watchfire-herbs", name: "見張り火の薬草包み", tags: ["herbs", "supplies"] }
+        : { id: "village-storehouse-ore", name: "復興物資庫の鍛造材", tags: ["ore", "supplies"] };
+      if (!Array.isArray(report.loot)) report.loot = [];
+      if (report.loot.some((item) => item && item.id === supplies.id)) return;
+      report.loot.push(supplies);
+      if (!Array.isArray(report.log)) report.log = [];
+      report.log.push({
+        minute: 101, time: "", type: "village-supplies",
+        text: `復興した村から${supplies.name}を受け取った。帰還して倉庫に持ち帰る。`,
+        causes: [destination.id, supplies.id],
+      });
+    }
+
     const baseResolve = system.resolveExpedition.bind(system);
     system.resolveExpedition = function resolveWithVillageChoice(expedition, state) {
       const report = decorateReport(baseResolve(expedition, state), expedition);
-      const destination = state && Array.isArray(state.destinations)
-        && state.destinations.find((item) => item && item.id === report.destinationId);
-      if (report.outcome === "success" && destination && destination.id === DESTINATION_ID && destination.villageRestoration) {
-        const stage = destination.villageRestoration;
-        const supplies = stage === "watchfire"
-          ? { id: "village-watchfire-herbs", name: "見張り火の薬草包み", tags: ["herbs", "supplies"] }
-          : { id: "village-storehouse-ore", name: "復興物資庫の鍛造材", tags: ["ore", "supplies"] };
-        report.loot.push(supplies);
-        report.log.push({
-          minute: 101, time: "", type: "village-supplies",
-          text: `復興した村から${supplies.name}を受け取った。帰還して倉庫に持ち帰る。`,
-          causes: [destination.id, supplies.id],
-        });
-      }
+      rewardRevisit(state, report);
       return report;
     };
 
     const baseApplyReport = system.applyReport.bind(system);
     system.applyReport = function applyReportWithVillageChoice(state, report) {
+      rewardRevisit(state, report);
       const applied = baseApplyReport(state, report);
       unlockFollowup(applied, report);
       restoreVillage(applied, report);
@@ -265,6 +271,11 @@
       const advanced = baseAdvance(state, nowMs);
       if (advanced && advanced.report && expedition) {
         decorateReport(advanced.report, expedition);
+        rewardRevisit(state, advanced.report);
+        if (advanced.report.outcome === "success" && advanced.report.destinationId === DESTINATION_ID && advanced.report.loot.some((item) => item && item.id.startsWith("village-"))) {
+          const bonus = advanced.report.loot.find((item) => item && item.id.startsWith("village-"));
+          if (!advanced.state.securedLoot.some((item) => item.sourceExpeditionId === advanced.report.expeditionId && item.id === bonus.id)) advanced.state.securedLoot.push({ ...bonus, sourceExpeditionId: advanced.report.expeditionId });
+        }
         unlockFollowup(advanced.state, advanced.report);
         restoreVillage(advanced.state, advanced.report, expedition);
         syncStoredReport(advanced.state, advanced.report);
