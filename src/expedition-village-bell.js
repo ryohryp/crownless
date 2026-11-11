@@ -253,6 +253,7 @@
     system.dispatchExpedition = function dispatchWithVillageChoice(state, input, nowMs) {
       const requested = selectedApproach;
       const next = baseDispatch(state, input, nowMs);
+      system.__villageBellRestoration = next.destinations.find((item) => item.id === DESTINATION_ID)?.villageRestoration || null;
       const inputs = next && next.activeExpedition && next.activeExpedition.inputs;
       if (inputs && inputs.destinationId === DESTINATION_ID) {
         const village = state && state.destinations && state.destinations.find((item) => item.id === DESTINATION_ID);
@@ -309,6 +310,7 @@
       unlockFollowup(applied, report);
       restoreVillage(applied, report);
       syncStoredReport(applied, report);
+      system.__villageBellRestoration = applied.destinations.find((item) => item.id === DESTINATION_ID)?.villageRestoration || null;
       return applied;
     };
 
@@ -327,6 +329,7 @@
         restoreVillage(advanced.state, advanced.report, expedition);
         syncStoredReport(advanced.state, advanced.report);
       }
+      system.__villageBellRestoration = advanced.state?.destinations?.find((item) => item.id === DESTINATION_ID)?.villageRestoration || null;
       return advanced;
     };
 
