@@ -306,6 +306,26 @@
       });
     }
 
+    // Restored roads have different reasons to return: rescue supplies or mining ore.
+    // Loot is attached before the base engine banks the successful report.
+    function rewardRestoredRoad(state, report) {
+      if (!report || report.outcome !== "success" || !Array.isArray(state && state.destinations)) return;
+      const route = state.destinations.find((item) => item && item.id === report.destinationId && item.villageRestoredRoute);
+      if (!route) return;
+      const item = route.villageRestoredRoute === "watchfire"
+        ? { id: "watch-road-medicine", name: "巡回街道の救護薬材", tags: ["herbs", "medicine", "supplies"] }
+        : { id: "ore-trail-iron", name: "鉱石運搬路の良質鉄鉱", tags: ["ore", "metal", "craft"] };
+      if (!Array.isArray(report.loot)) report.loot = [];
+      if (report.loot.some((loot) => loot && loot.id === item.id)) return;
+      report.loot.push(item);
+      if (!Array.isArray(report.log)) report.log = [];
+      report.log.push({
+        minute: 102, time: "", type: "restored-road-loot",
+        text: `${route.name}を踏破し、${item.name}を確保した。生還すれば拠点で利用できる。`,
+        causes: [route.id, item.id],
+      });
+    }
+
     const baseResolve = system.resolveExpedition.bind(system);
     system.resolveExpedition = function resolveWithVillageChoice(expedition, state) {
       const preparation = expedition && expedition.inputs && expedition.inputs.villagePreparation;
@@ -324,12 +344,14 @@
         report.log.unshift({ minute: 0, time: "", type: "village-preparation", text: preparation === "scout" ? "村の見張り隊が盗賊の動きを教えてくれた。" : "復興した村の物資庫で応急手当を整えた。", causes: ["village-preparation-" + preparation] });
       }
       rewardRevisit(state, report);
+      rewardRestoredRoad(state, report);
       return report;
     };
 
     const baseApplyReport = system.applyReport.bind(system);
     system.applyReport = function applyReportWithVillageChoice(state, report) {
       rewardRevisit(state, report);
+      rewardRestoredRoad(state, report);
       const applied = baseApplyReport(state, report);
       unlockFollowup(applied, report);
       restoreVillage(applied, report);
@@ -345,6 +367,14 @@
       if (advanced && advanced.report && expedition) {
         decorateReport(advanced.report, expedition);
         rewardRevisit(state, advanced.report);
+        rewardRestoredRoad(state, advanced.report);
+        // advance() has already banked the base report; bank sidecar road loot once.
+        if (advanced.report.outcome === "success" && Array.isArray(advanced.state.securedLoot)) {
+          const routeLoot = advanced.report.loot.find((item) => item && ["watch-road-medicine", "ore-trail-iron"].includes(item.id));
+          if (routeLoot && !advanced.state.securedLoot.some((item) => item.id === routeLoot.id && item.sourceExpeditionId === advanced.report.expeditionId)) {
+            advanced.state.securedLoot.push({ ...routeLoot, sourceExpeditionId: advanced.report.expeditionId });
+          }
+        }
         if (advanced.report.outcome === "success" && advanced.report.destinationId === DESTINATION_ID && advanced.report.loot.some((item) => item && item.id.startsWith("village-"))) {
           const bonus = advanced.report.loot.find((item) => item && item.id.startsWith("village-"));
           if (!advanced.state.securedLoot.some((item) => item.sourceExpeditionId === advanced.report.expeditionId && item.id === bonus.id)) advanced.state.securedLoot.push({ ...bonus, sourceExpeditionId: advanced.report.expeditionId });

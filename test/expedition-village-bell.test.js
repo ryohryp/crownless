@@ -210,3 +210,27 @@ test("failed follow-up does not reveal restored route", () => {
   assert.equal(village.restoreVillage(current, failed), null);
   assert.equal(current.destinations.some((item) => item.villageRestoredRoute), false);
 });
+
+test("restored roads give different material loot on success, not retreat, without duplicates", () => {
+  const current = state();
+  village.unlockRestoredRoute(current, "watchfire");
+  village.unlockRestoredRoute(current, "storehouse");
+  const system = {
+    dispatchExpedition: (s) => s,
+    resolveExpedition: (exp) => ({ expeditionId: exp.id, destinationId: exp.inputs.destinationId, outcome: exp.outcome, loot: [], log: [] }),
+    applyReport: (s) => s,
+    advance: (s) => ({ state: s, report: null }),
+    normalizeState: (s) => s,
+  };
+  village.installSystemHooks({ CrownlessExpeditionSystem: system });
+  const run = (id, outcome = "success") => system.resolveExpedition({ id: "exp", inputs: { destinationId: id }, outcome }, current);
+  const medicine = run("village-restored:watch-road");
+  const ore = run("village-restored:ore-trail");
+  assert.equal(medicine.loot[0].id, "watch-road-medicine");
+  assert.equal(ore.loot[0].id, "ore-trail-iron");
+  assert.deepEqual(run("village-restored:ore-trail", "retreat").loot, []);
+  system.applyReport(current, medicine);
+  system.applyReport(current, medicine);
+  assert.equal(medicine.loot.length, 1);
+  assert.equal(medicine.log.filter((item) => item.type === "restored-road-loot").length, 1);
+});
