@@ -328,6 +328,7 @@
 <script src="src/gemini-forest-discoveries.js"></script>
 <script src="src/pixel-forest.js"></script>
 <script src="src/hd2d-bridge-scene.js"></script>
+<script src="src/hd2d-bridge-depth.js"></script>
 <script src="src/pixel-forest-effects.js"></script>
 <script src="src/pixel-actors.js"></script>
 <script src="src/hero-still-review.js"></script>
@@ -2049,7 +2050,10 @@
 
   function tryTapForestSite(clientX,clientY,allowNearby) {
     if (!ginji || !window.CrownlessForestDiscoveries.available(rpg.phase)) return false;
-    const site=window.CrownlessForestDiscoveries.spotAtTap(
+    const site=depthPreview && pixelArt && depthArt.ready()
+      ? depthArt.hitTestSite({x:clientX,y:clientY},canvas.getBoundingClientRect(),virtualW,
+        state.cameraX,getGroundHeightAt,window.CrownlessForestDiscoveries.spots)
+      : window.CrownlessForestDiscoveries.spotAtTap(
       {x:clientX,y:clientY},canvas.getBoundingClientRect(),{width:virtualW,height:VIRTUAL_H},
       state.cameraX,getGroundHeightAt);
     // Only taps on a visible clue investigate it; ordinary attacks do not
@@ -2387,6 +2391,8 @@
   // remain unchanged; ?art=bridge tests candidate art with real gameplay.
   const bridgePreview = fxParams.get('art') === 'bridge';
   const bridgeArt = window.CrownlessBridgeScene.create();
+  const depthPreview = fxParams.get('art') === 'depth';
+  const depthArt = window.CrownlessBridgeDepth.create();
   const reducedMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   const forestEffects = window.CrownlessForestEffects.create({enabled: fxParams.get('fx') !== 'off' && !reducedMotion});
   const atmosphereButton = document.getElementById('btnForestAtmosphere');
@@ -2400,7 +2406,7 @@
   let pixelArt = fxParams.get('art') !== 'classic';
   const artButton = document.getElementById('btnToggleArtPreview');
   function syncArtButton() {
-    artButton.textContent = pixelArt ? (bridgePreview ? '景観: 石橋 HD-2D候補' : '景観: ピクセルの森') : '景観: 従来';
+    artButton.textContent = pixelArt ? (depthPreview ? '景観: 奥行き石橋・比較版' : bridgePreview ? '景観: 石橋 HD-2D候補' : '景観: ピクセルの森') : '景観: 従来';
     artButton.setAttribute('aria-pressed',String(pixelArt));
   }
   syncArtButton();
@@ -2424,13 +2430,15 @@
   function renderScene() {
     const drawPixelArt=pixelArt && forestArt.ready();
     const drawBridge=drawPixelArt && bridgePreview && bridgeArt.ready();
+    const drawDepth=drawPixelArt && depthPreview && depthArt.ready();
     ctx.setTransform(canvas.width/virtualW,0,0,canvas.height/VIRTUAL_H,0,0);
     ctx.clearRect(0, 0, virtualW, VIRTUAL_H);
 
     // 独自要素③：ウェーブに応じた時間帯・天候変化（夕暮れ → 宵闇 → 月夜月夜）
     const weatherPhase = (state.waveCount - 1) % 3;
     if (drawPixelArt) {
-      if(drawBridge) bridgeArt.background(ctx,virtualW,state.cameraX,state.waveCount);
+      if(drawDepth) depthArt.background(ctx,virtualW,state.cameraX,state.waveCount);
+      else if(drawBridge) bridgeArt.background(ctx,virtualW,state.cameraX,state.waveCount);
       else {
         forestArt.background(ctx,virtualW,state.cameraX,state.waveCount);
         forestEffects.background(ctx,virtualW,state.cameraX,performance.now());
@@ -2484,8 +2492,11 @@
     ctx.save();
     ctx.translate(-state.cameraX, 0);
     if (drawPixelArt) {
-      if(!drawBridge) forestArt.ground(ctx,getGroundHeightAt);
-      forestArt.trail(ctx,state.forestFinds);
+      if(drawDepth) depthArt.ground(ctx,state.cameraX,virtualW,getGroundHeightAt);
+      else {
+        if(!drawBridge) forestArt.ground(ctx,getGroundHeightAt);
+        forestArt.trail(ctx,state.forestFinds);
+      }
     } else {
 
     // Ancient forest and abandoned stone outposts (visual swap only).
@@ -2594,7 +2605,7 @@
     }
 
     // 旅人の足元Z軸（奥行き）ガイドライン
-    if (ginji && ginji.state !== 'DEAD') {
+    if (ginji && ginji.state !== 'DEAD' && !drawDepth) {
       const kGround = getGroundHeightAt(ginji.x, ginji.z);
       const lineY = ginji.z - kGround;
       ctx.strokeStyle = state.kabukiBurstTimer > 0 ? 'rgba(244, 63, 94, 0.55)' : 'rgba(56, 189, 248, 0.32)';
@@ -2620,24 +2631,38 @@
     // Zソート描画
     const drawList = [];
     if(drawPixelArt) for(const spot of window.CrownlessForestDiscoveries.spots) drawList.push({z:spot.z,type:'site',obj:spot});
+    if(drawDepth) for(const scenery of depthArt.nearScenery) drawList.push({z:scenery.z,type:'scenery',obj:scenery});
     for (const it of state.items) drawList.push({ z: it.z, type: 'item', obj: it });
     for (const f of state.fighters) drawList.push({ z: f.z, type: 'fighter', obj: f });
     drawList.sort((a, b) => a.z - b.z);
 
     for (const entry of drawList) {
+      if(entry.type==='scenery') {
+        depthArt.scenery(ctx,state.cameraX,virtualW,getGroundHeightAt,entry.obj);
+        continue;
+      }
+      const obj=entry.obj;
+      const drawEntry=()=>{
       if(entry.type==='site') {
-        const spot=entry.obj;
+        const spot=obj;
         forestArt.site(ctx,{...spot,z:spot.z-getGroundHeightAt(spot.x,spot.z)},state.forestFinds.has(spot.id),
           rpg.crafted,state.forestFinds.has('traces'),ginji&&Math.hypot(ginji.x-spot.x,ginji.z-spot.z)<110,performance.now());
       }
-      else if (entry.type === 'item') drawItem(entry.obj);
-      else drawFighter(entry.obj);
+      else if (entry.type === 'item') drawItem(obj);
+      else drawFighter(obj);
+      };
+      if(drawDepth) {
+        const height=getGroundHeightAt(obj.x,obj.z);
+        if(entry.type==='fighter') depthArt.shadow(ctx,obj.x,obj.z,height,state.cameraX,virtualW,obj.y-height);
+        depthArt.entity(ctx,obj.x,obj.z,height,state.cameraX,virtualW,drawEntry);
+      } else drawEntry();
     }
 
     if(drawPixelArt) {
-      if(drawBridge) bridgeArt.foreground(ctx,state.cameraX,virtualW,performance.now(),ginji);
+      if(drawDepth) depthArt.foreground(ctx,state.cameraX,virtualW,performance.now());
+      else if(drawBridge) bridgeArt.foreground(ctx,state.cameraX,virtualW,performance.now(),ginji);
       else forestArt.foreground(ctx,state.cameraX,virtualW,performance.now(),ginji);
-      forestEffects.overlay(ctx,state.cameraX,virtualW,performance.now(),ginji,state.forestFinds,rpg.crafted);
+      if(!drawDepth) forestEffects.overlay(ctx,state.cameraX,virtualW,performance.now(),ginji,state.forestFinds,rpg.crafted);
     }
 
     // 双剣クロス斬撃エフェクト
@@ -2741,7 +2766,8 @@
     const groundH = getGroundHeightAt(f.x, f.z);
     const zAlignedWithHero = ginji && f.team === 1 && Math.abs(f.z - ginji.z) <= 24;
 
-    ctx.fillStyle = zAlignedWithHero ? 'rgba(52, 211, 153, 0.55)' : 'rgba(0,0,0,0.42)';
+    ctx.fillStyle = depthPreview && pixelArt ? 'rgba(0,0,0,.12)' :
+      zAlignedWithHero ? 'rgba(52, 211, 153, 0.55)' : 'rgba(0,0,0,0.42)';
     ctx.beginPath();
     ctx.ellipse(f.x, f.z - groundH, 16, 6, 0, 0, Math.PI * 2);
     ctx.fill();
