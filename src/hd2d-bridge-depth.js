@@ -39,6 +39,19 @@
       if(line){ctx.strokeStyle=line;ctx.lineWidth=.8;ctx.stroke();}
     }
     function face(ctx,cam,w,vertices,fill,line){poly(ctx,vertices.map(v=>pt(v[0],v[1],v[2],cam,w)),fill,line);}
+    function texturedFace(ctx,cam,w,vertices,uv,fill){
+      const ps=vertices.map(v=>pt(v[0],v[1],v[2],cam,w));
+      if(!ready()){poly(ctx,ps,fill);return;}
+      const minX=Math.min(...ps.map(p=>p.x)),minY=Math.min(...ps.map(p=>p.y));
+      const maxX=Math.max(...ps.map(p=>p.x)),maxY=Math.max(...ps.map(p=>p.y));
+      ctx.save();ctx.beginPath();ctx.moveTo(ps[0].x,ps[0].y);
+      for(let i=1;i<ps.length;i++)ctx.lineTo(ps[i].x,ps[i].y);
+      ctx.closePath();ctx.clip();
+      ctx.drawImage(distant,uv[0],uv[1],uv[2],uv[3],minX,minY,
+        Math.max(1,maxX-minX),Math.max(1,maxY-minY));
+      ctx.fillStyle='rgba(71,69,57,.12)';ctx.fillRect(minX,minY,maxX-minX,maxY-minY);
+      ctx.restore();
+    }
     function background(ctx,w,cam,wave){
       const sky=ctx.createLinearGradient(0,0,0,420);
       sky.addColorStop(0,'#d9bbaa');sky.addColorStop(.5,'#9b9990');sky.addColorStop(1,'#343f40');
@@ -73,21 +86,18 @@
       // Physically projected stone slabs converge in the distance. A proper
       // floor/contact geometry replaces the static painted bridge surface.
       for(const [left,right] of [[0,430],[730,1050]]){
+        // Use real weathered masonry from the original illustration rather
+        // than flat-color checker tiles. Only 10 perspective strips are drawn.
         for(let z=210;z<410;z+=20){
-          for(let x=left;x<right;x+=36){const e=Math.min(x+36,right);
-            const choice=(Math.floor(x/36)+Math.floor(z/20)*3)%5;
-            face(ctx,cam,w,[[x,z,0],[e,z,0],[e,z+20,0],[x,z+20,0]],
-              ['#74705e','#827a65','#696e61','#92846c','#777563'][choice],
-              'rgba(37,40,37,.27)');
-          }
+          const row=Math.floor((z-210)/20);
+          texturedFace(ctx,cam,w,[[left,z,0],[right,z,0],[right,z+20,0],[left,z+20,0]],
+            [270+(row%3)*11,357+row*7,800,24], '#827b68');
         }
       }
       // Shore strips retain the old collision lanes before/after bridge.
       for(const [start,end] of [[210,235],[345,410]]){
-        for(let x=430;x<730;x+=30){
-          face(ctx,cam,w,[[x,start,0],[x+30,start,0],[x+30,end,0],[x,end,0]],
-            (Math.floor(x/30)%2)?'#65675b':'#77705d','#4c514a');
-        }
+        texturedFace(ctx,cam,w,[[430,start,0],[730,start,0],[730,end,0],[430,end,0]],
+          [360,start===210?341:398,730,72],'#68685d');
       }
       // Elevated bridge face with two deep openings beneath the deck.
       for(let x=430;x<730;x+=15){
@@ -107,12 +117,8 @@
       for(let z=235;z<345;z+=11){
         const row=Math.floor((z-235)/11);
         for(let x=430;x<730;x+=25){const a=heightAt(x,290),b=heightAt(x+25,290);
-          const variation=(Math.floor(x/25)*7+row*11)%5;
-          face(ctx,cam,w,[[x,z,a],[x+25,z,b],[x+25,z+11,b],[x,z+11,a]],
-            ['#aaa086','#b7a88c','#918f7e','#aba088','#a49b83'][variation],
-            'rgba(66,64,55,.49)');
-          if(variation===1){const p=pt(x+12,z+6,heightAt(x+12,290)+.5,cam,w);
-            ctx.fillStyle='rgba(58,78,48,.44)';ctx.fillRect(p.x,p.y,4,2);}
+          texturedFace(ctx,cam,w,[[x,z,a],[x+25,z,b],[x+25,z+11,b],[x,z+11,a]],
+            [240+(x-430)/300*825,369+row*7,69,14], '#a29b83');
         }
       }
       // The rear rail sits behind people; the front rail is drawn separately
