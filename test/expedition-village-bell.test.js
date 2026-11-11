@@ -96,3 +96,34 @@ test("unknown bridge loads the village bell sidecar", () => {
   assert.match(bridge, /CrownlessExpeditionVillageBell/);
   assert.match(bridge, /src\/expedition-village-bell\.js/);
 });
+test("successful follow-up return rebuilds the village and changes revisit opportunities", () => {
+  const current = state();
+  const first = report();
+  village.decorateReport(first, expedition(village.RING));
+  const lead = village.unlockFollowup(current, first);
+  const followup = { inputs: { destinationId: lead.id } };
+  const returned = report();
+  const changed = village.restoreVillage(current, returned, followup);
+  assert.equal(changed.name, "見張り火の灯る村");
+  assert.ok(changed.opportunityTags.includes("safe-camp"));
+  assert.ok(!changed.dangerTags.includes("bandit"));
+  assert.equal(returned.villageRestoration.stage, "watchfire");
+  village.restoreVillage(current, returned, followup);
+  assert.equal(returned.log.filter((entry) => entry.type === "village-restoration").length, 1);
+  assert.deepEqual(JSON.parse(JSON.stringify(current)).destinations[0], changed);
+});
+
+test("cellar follow-up restores workshop; retreat never rebuilds village", () => {
+  const current = state();
+  const first = report();
+  village.decorateReport(first, expedition(village.QUIET));
+  const lead = village.unlockFollowup(current, first);
+  const followup = { inputs: { destinationId: lead.id } };
+  assert.equal(village.restoreVillage(current, report("retreat"), followup), null);
+  assert.equal(current.destinations[0].villageRestoration, undefined);
+  const changed = village.restoreVillage(current, report(), followup);
+  assert.equal(changed.name, "物資庫を取り戻した村");
+  assert.ok(changed.opportunityTags.includes("workshop"));
+  assert.ok(!changed.dangerTags.includes("collapse"));
+  assert.equal(village.restoreVillage(current, report(), { inputs: { destinationId: "unrelated" } }), null);
+});
