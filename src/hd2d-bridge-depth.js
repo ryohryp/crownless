@@ -86,13 +86,11 @@
       // Physically projected stone slabs converge in the distance. A proper
       // floor/contact geometry replaces the static painted bridge surface.
       for(const [left,right] of [[0,430],[730,1050]]){
-        // Use real weathered masonry from the original illustration rather
-        // than flat-color checker tiles. Only 10 perspective strips are drawn.
-        for(let z=210;z<410;z+=20){
-          const row=Math.floor((z-210)/20);
-          texturedFace(ctx,cam,w,[[left,z,0],[right,z,0],[right,z+20,0],[left,z+20,0]],
-            [270+(row%3)*11,357+row*7,800,24], '#827b68');
-        }
+        // A single continuous masonry surface avoids the telltale staircase
+        // texture-repeat pattern of tiled strips. Edges still converge with
+        // perspective because each floor has its own projected quadrilateral.
+        texturedFace(ctx,cam,w,[[left,210,0],[right,210,0],[right,410,0],[left,410,0]],
+          [270,352,800,91], '#827b68');
       }
       // Shore strips retain the old collision lanes before/after bridge.
       for(const [start,end] of [[210,235],[345,410]]){
@@ -118,7 +116,7 @@
         const row=Math.floor((z-235)/11);
         for(let x=430;x<730;x+=25){const a=heightAt(x,290),b=heightAt(x+25,290);
           texturedFace(ctx,cam,w,[[x,z,a],[x+25,z,b],[x+25,z+11,b],[x,z+11,a]],
-            [240+(x-430)/300*825,369+row*7,69,14], '#a29b83');
+            [240+(x-430)/300*825,350+row*2.4,69,10], '#a29b83');
         }
       }
       // The rear rail sits behind people; the front rail is drawn separately
