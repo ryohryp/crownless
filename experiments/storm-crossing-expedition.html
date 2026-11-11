@@ -8,14 +8,14 @@
 <script>
 'use strict';
 const KEY='crownless-storm-crossing-v1',N=9,exits=[0,1,2];
-const initial=()=>({phase:'camp',hp:10,bank:0,bag:0,pos:7,turn:0,seen:[7],taken:[],boots:false,compass:false,run:0,groundedUntil:0,chargedTaken:false,coreTaken:false,cache:0,cacheRun:-1,divertUntil:0,decoyUntil:0,traceFound:false,traceTaken:false,shelterBuilt:false,shelterUsed:false,commission:false,commissionWins:0,flareStock:0,flareUsed:false,raiderDefeated:false,raiderAlert:false,raiderHp:6,raiderIntent:0,raiderGuard:false,raiderTrophies:0,raiderBlade:false,bridgeVaultOpen:false,bridgeVaultTaken:false,guardianDefeated:false,guardianHp:10,guardianTurn:0,guardianAlert:false,relic:false,relicShield:0,ruinsLiberated:false,ruinsRested:false,ruinsOffering:false,trailClue:false,trailCacheTaken:false,altarOpened:false,altarLooted:false,altarSigil:false,hunterScouted:false,hunterTrap:false,hunterDefeated:false,hunterAlert:false,hunterHp:8,hunterTurn:0,hunterFang:false,wolfFangs:0,wolfHook:false,cliffTrailFound:false,cliffCacheTaken:false,stormBeacon:false,stormCharge:0,stormReward:false,stormChaseFailed:false,scoutBoost:0,scoutFound:false,scoutEscorting:false,scoutHp:3,scoutRescued:false,scoutLost:false,scoutBandages:0,scoutCover:0,scoutCoverUsed:false,circuitStage:0,circuitDeadline:0,circuitWon:false,circuitFailed:false,salvageStage:0,salvageFinished:false,salvageAbandoned:false,sluiceUntil:0,sluiceUsed:false,scoutSignalUsed:false});
+const initial=()=>({phase:'camp',hp:10,bank:0,bag:0,pos:7,turn:0,seen:[7],taken:[],boots:false,compass:false,run:0,groundedUntil:0,chargedTaken:false,coreTaken:false,cache:0,cacheRun:-1,divertUntil:0,decoyUntil:0,traceFound:false,traceTaken:false,shelterBuilt:false,shelterUsed:false,commission:false,commissionWins:0,flareStock:0,flareUsed:false,raiderDefeated:false,raiderAlert:false,raiderHp:6,raiderIntent:0,raiderGuard:false,raiderTrophies:0,raiderBlade:false,bridgeVaultOpen:false,bridgeVaultTaken:false,guardianDefeated:false,guardianHp:10,guardianTurn:0,guardianAlert:false,relic:false,relicShield:0,ruinsLiberated:false,ruinsRested:false,ruinsOffering:false,trailClue:false,trailCacheTaken:false,altarOpened:false,altarLooted:false,altarSigil:false,hunterScouted:false,hunterTrap:false,hunterDefeated:false,hunterAlert:false,hunterHp:8,hunterTurn:0,hunterFang:false,wolfFangs:0,wolfHook:false,cliffTrailFound:false,cliffCacheTaken:false,stormBeacon:false,stormCharge:0,stormReward:false,stormChaseFailed:false,scoutBoost:0,scoutFound:false,scoutEscorting:false,scoutHp:3,scoutRescued:false,scoutLost:false,scoutBandages:0,scoutCover:0,scoutCoverUsed:false,circuitStage:0,circuitDeadline:0,circuitWon:false,circuitFailed:false,salvageStage:0,salvageFinished:false,salvageAbandoned:false,sluiceUntil:0,sluiceUsed:false,scoutSignalUsed:false,thunderArmor:false});
 let s;try{s=Object.assign(initial(),JSON.parse(localStorage.getItem(KEY))||{})}catch{s=initial()}
 const $=id=>document.getElementById(id);
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(s))}catch{}}
 function act(label,fn,kind=''){let b=document.createElement('button');b.textContent=label;b.className=kind;b.onclick=()=>{fn();persist();render()};$('actions').append(b)}
 function stormAt(t){return t<s.groundedUntil?-1:(t<s.decoyUntil?8:(t<s.sluiceUntil?[2,5,8]:t<s.divertUntil?[0,3,6]:[1,4,7])[t%3])}
 function neighbors(p){return [p-3,p+3,p%3? p-1:-1,p%3<2?p+1:-1].filter(v=>v>=0&&v<N&&(!((p===0&&v===3)||(p===3&&v===0))||s.wolfHook&&s.cliffTrailFound))}
-function hazard(){if(stormAt(s.turn)===s.pos){if(s.relicShield>0){s.relicShield--;return}s.hp-=s.boots?1:3;if(s.hp<=0){s.hp=0;s.bag=0;s.phase='lost'}}}
+function hazard(){if(stormAt(s.turn)===s.pos){if(s.relicShield>0){s.relicShield--;return}s.hp-=Math.max(0,(s.boots?1:3)-(s.thunderArmor?1:0));if(s.hp<=0){s.hp=0;s.bag=0;s.phase='lost'}}}
 function chaseTick(){if(!s.stormBeacon||s.stormReward||s.stormChaseFailed)return;if(s.pos===stormAt(s.turn)){s.stormCharge++;if(s.stormCharge>=3){s.stormReward=true;s.bag+=14;s.stormBeacon=false}}}
 function advance(){s.turn++;hazard();if(s.phase==='field')chaseTick()}
 function scoutTick(){if(!s.scoutEscorting||s.phase!=='field')return;if(stormAt(s.turn)===s.pos){if(s.scoutCover>0){s.scoutCover--;return}s.scoutHp--;if(s.scoutHp<=0){s.scoutHp=0;s.scoutEscorting=false;s.scoutLost=true}}}
@@ -26,7 +26,7 @@ function begin(){s.phase='field';s.hp=(s.altarSigil?12:10)+((s.scoutBoost||0)>0?
 function returnHome(){if(s.scoutEscorting&&s.scoutHp>0){s.scoutRescued=true;s.scoutEscorting=false;s.scoutBandages++;s.bag+=10}const delivered=s.bag;const bonus=s.commission&&delivered>=12?6:0;s.bank+=delivered+bonus;if(bonus){s.commission=false;s.commissionWins=(s.commissionWins||0)+1}s.bag=0;s.phase='camp'}
 function render(){
 $('actions').replaceChildren();
-$('status').textContent='HP '+s.hp+'/'+(s.altarSigil?12:10)+' · 持ち歩き '+s.bag+' · 倉庫 '+s.bank+' · 遠征 '+s.run+(s.boots?' · 絶縁靴':'')+(s.compass?' · 雷雲予測器':'')+(s.raiderBlade?' · 略奪者の刃':'')+(s.wolfHook?' · 断崖鉤縄':'')+(s.wolfFangs?' · 狼牙 '+s.wolfFangs:'')+(s.relic?' · 雷紋の護符':'')+(s.relicShield?' · 落雷防護1回':'')+(s.raiderTrophies?' · 刀片 '+s.raiderTrophies:'')+(s.bridgeVaultOpen?' · 石橋の地下宝物庫を発見':'')+(s.flareStock?' · 帰還信号 '+s.flareStock:'')+(s.phase==='field'&&s.turn<s.groundedUntil?' · 避雷塔接地中':'')+(s.phase==='field'&&s.turn<s.divertUntil?' · 雷雲誘導中':'')+(s.cache?' · 遺跡の保管鉱石 '+s.cache:'')+(s.commission?' · 納品依頼12個→報酬6個':'')+(s.commissionWins?' · 納品達成 '+s.commissionWins+'回':'');
+$('status').textContent='HP '+s.hp+'/'+(s.altarSigil?12:10)+' · 持ち歩き '+s.bag+' · 倉庫 '+s.bank+' · 遠征 '+s.run+(s.boots?' · 絶縁靴':'')+(s.compass?' · 雷雲予測器':'')+(s.raiderBlade?' · 略奪者の刃':'')+(s.wolfHook?' · 断崖鉤縄':'')+(s.thunderArmor?' · 雷断ちの護甲':'')+(s.wolfFangs?' · 狼牙 '+s.wolfFangs:'')+(s.relic?' · 雷紋の護符':'')+(s.relicShield?' · 落雷防護1回':'')+(s.raiderTrophies?' · 刀片 '+s.raiderTrophies:'')+(s.bridgeVaultOpen?' · 石橋の地下宝物庫を発見':'')+(s.flareStock?' · 帰還信号 '+s.flareStock:'')+(s.phase==='field'&&s.turn<s.groundedUntil?' · 避雷塔接地中':'')+(s.phase==='field'&&s.turn<s.divertUntil?' · 雷雲誘導中':'')+(s.cache?' · 遺跡の保管鉱石 '+s.cache:'')+(s.commission?' · 納品依頼12個→報酬6個':'')+(s.commissionWins?' · 納品達成 '+s.commissionWins+'回':'');
 const map=$('map');map.replaceChildren();
 const names=['崩れた石橋','雷の尖塔','忘却の遺跡','獣道の岩棚','沈んだ祭壇','盗賊の鉱脈','風よけの岩','帰還の渡し','古い道標'];
 const glyphs=['🌉','🗼','🏚️','🌲','🗿','⛏️','🪨','⛺','🪧'];
@@ -43,7 +43,7 @@ for(let p=0;p<N;p++){
  if(reachable){el.setAttribute('role','button');el.setAttribute('tabindex','0');el.setAttribute('aria-label',names[p]+'へ移動');const go=()=>{step(p);persist();render()};el.addEventListener('click',go);el.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();go()}})}
  map.append(el)
 }
-if(s.phase==='camp'){$('story').textContent='遠征で鉱石を持ち帰ろう。納品依頼は持ち帰った鉱石12個以上で達成。倉庫の鉱石は対象外、失敗しても依頼は残る。';if(s.scoutRescued)$('story').textContent+=' 救出した斥候が野営地で包帯を作り、次の遠征では尖塔から狼煙で雷雲を鎮めてくれる。';if(s.scoutBandages>0)act('🩹 斥候の包帯で次の遠征HP+4（残り'+s.scoutBandages+'）',()=>{s.scoutBandages--;s.scoutBoost=(s.scoutBoost||0)+1});if(!s.commission)act('鉱石12個の納品依頼を受ける（生還で報酬+6）',()=>{s.commission=true});act('遠征に出る',begin);if(!s.boots&&s.bank>=4)act('素材4で絶縁靴を作る',()=>{s.bank-=4;s.boots=true});if(!s.compass&&s.bank>=5)act('素材5で雷雲予測器を作る（次の行動の落雷地点を表示）',()=>{s.bank-=5;s.compass=true});if(!s.raiderBlade&&s.raiderTrophies>=1&&s.bank>=4)act('⚔️ 刀片1と鉱石4で略奪者の刃を鍛造（斬撃+2）',()=>{s.raiderTrophies--;s.bank-=4;s.raiderBlade=true});if(!s.wolfHook&&s.wolfFangs>=1&&s.bank>=4)act('🪝 狼牙1と鉱石4で断崖鉤縄を鍛造（岩棚から石橋への隠し道を開く）',()=>{s.wolfFangs--;s.bank-=4;s.wolfHook=true});if(s.bank>=3&&s.flareStock<2)act('素材3で緊急帰還信号を作る（最大2個）',()=>{s.bank-=3;s.flareStock=(s.flareStock||0)+1});act('実験データを初期化',()=>{s=initial()},'warn');return}
+if(s.phase==='camp'){$('story').textContent='遠征で鉱石を持ち帰ろう。納品依頼は持ち帰った鉱石12個以上で達成。倉庫の鉱石は対象外、失敗しても依頼は残る。';if(s.scoutRescued)$('story').textContent+=' 救出した斥候が野営地で包帯を作り、次の遠征では尖塔から狼煙で雷雲を鎮めてくれる。';if(s.scoutBandages>0)act('🩹 斥候の包帯で次の遠征HP+4（残り'+s.scoutBandages+'）',()=>{s.scoutBandages--;s.scoutBoost=(s.scoutBoost||0)+1});if(!s.commission)act('鉱石12個の納品依頼を受ける（生還で報酬+6）',()=>{s.commission=true});act('遠征に出る',begin);if(!s.boots&&s.bank>=4)act('素材4で絶縁靴を作る',()=>{s.bank-=4;s.boots=true});if(!s.compass&&s.bank>=5)act('素材5で雷雲予測器を作る（次の行動の落雷地点を表示）',()=>{s.bank-=5;s.compass=true});if(!s.raiderBlade&&s.raiderTrophies>=1&&s.bank>=4)act('⚔️ 刀片1と鉱石4で略奪者の刃を鍛造（斬撃+2）',()=>{s.raiderTrophies--;s.bank-=4;s.raiderBlade=true});if(s.altarSigil&&!s.thunderArmor&&s.wolfFangs>=1&&s.bank>=12)act('⚡ 狼牙1と鉱石12で雷断ちの護甲を鍛造（落雷-1 / 敵の隙への斬撃+2）',()=>{s.wolfFangs--;s.bank-=12;s.thunderArmor=true});if(!s.wolfHook&&s.wolfFangs>=1&&s.bank>=4)act('🪝 狼牙1と鉱石4で断崖鉤縄を鍛造（岩棚から石橋への隠し道を開く）',()=>{s.wolfFangs--;s.bank-=4;s.wolfHook=true});if(s.bank>=3&&s.flareStock<2)act('素材3で緊急帰還信号を作る（最大2個）',()=>{s.bank-=3;s.flareStock=(s.flareStock||0)+1});act('実験データを初期化',()=>{s=initial()},'warn');return}
 if(s.phase==='lost'){$('story').textContent='雷雲に倒れた。持ち歩いていた素材は失った。倉庫は無事。';act('再挑戦',begin);return}
 const p=s.pos, storm=stormAt(s.turn);
 if(s.circuitStage){$('story').textContent='⚡ 雷の回路 '+(s.circuitStage===1?'第二の印：中央祭壇へ':s.circuitStage===2?'第三の印：南西の岩陰へ':'最終の印：帰還の渡しへ')+'。残り '+Math.max(0,s.circuitDeadline-s.turn)+' 行動。時間切れでも戦利品は失わない。';}
@@ -55,7 +55,7 @@ if(p===3&&s.hunterAlert&&!s.hunterDefeated){
   if(choice==='flee'){s.pos=6;s.hunterAlert=false;s.turn++;hazard();return}
   const damage=intent===0?4:intent===1?2:0;
   const hit=choice==='guard'?Math.max(0,damage-3):choice==='dodge'&&intent===0?0:damage;
-  const attack=choice==='strike'?(intent===2?5:2)+(s.raiderBlade?2:0)+(s.hunterTrap?1:0):choice==='dodge'&&intent===0?2:0;
+  const attack=choice==='strike'?(intent===2?5:2)+(s.raiderBlade?2:0)+(s.thunderArmor&&intent===2?2:0)+(s.hunterTrap?1:0):choice==='dodge'&&intent===0?2:0;
   s.hunterHp-=attack;s.hp-=hit;s.turn++;
   if(s.hp<=0){s.hp=0;s.bag=0;s.phase='lost';return}
   if(s.hunterHp<=0){s.hunterDefeated=true;s.hunterAlert=false;s.hunterFang=true;s.wolfFangs++;s.bag+=8}
@@ -77,7 +77,7 @@ if(p===2&&s.guardianAlert&&!s.guardianDefeated){
    const damage=stance===0?4:stance===1?2:0;
    let hit=choice==='guard'?Math.max(0,damage-3):choice==='dodge'?(stance===0?0:damage):damage;
    let attack=choice==='strike'?(stance===1?0:stance===2?5:2):choice==='dodge'&&stance===0?2:0;
-   if(attack&&s.raiderBlade)attack+=2;
+   if(attack&&s.raiderBlade)attack+=2;if(attack&&s.thunderArmor&&stance===2)attack+=2;
    s.guardianHp-=attack;s.hp-=hit;s.turn++;
    if(s.hp<=0){s.hp=0;s.bag=0;s.phase='lost';return}
    if(s.guardianHp<=0){s.guardianDefeated=true;s.ruinsLiberated=true;s.guardianAlert=false;s.relic=true;s.relicShield=1;s.bag+=5}
@@ -98,7 +98,7 @@ if(p===5&&s.raiderAlert&&!s.raiderDefeated){
  function duel(move){
    const damage=intent===0?4:intent===1?2:0;
    let hit=move==='guard'?Math.max(0,damage-3):move==='dodge'?(intent===0?0:damage+1):damage;
-   if(move==='strike'){s.raiderHp-=(intent===2?4:2)+(s.raiderBlade?2:0)}
+   if(move==='strike'){s.raiderHp-=(intent===2?4:2)+(s.raiderBlade?2:0)+(s.thunderArmor&&intent===2?2:0)}
    if(move==='dodge'&&intent===0){s.raiderHp-=1}
    s.hp-=hit;s.turn++;
    if(s.hp<=0){s.hp=0;s.bag=0;s.phase='lost';return}
