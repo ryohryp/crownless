@@ -35,6 +35,7 @@
   });
   let selectedApproach = QUIET;
   let selectedPreparation = "scout";
+  let requestForgePass = false;
 
   function clone(value) {
     return value == null ? value : JSON.parse(JSON.stringify(value));
@@ -204,6 +205,29 @@
     return village;
   }
 
+  // Spend one banked ore to forge a pass into a new, repeatable mine.
+  function forgeMinePass(state) {
+    const village = state && Array.isArray(state.destinations)
+      && state.destinations.find((item) => item && item.id === DESTINATION_ID);
+    if (!village || village.villageFacility !== "forge" || !Array.isArray(state.securedLoot)) return null;
+    const id = "village-forge:sealed-mine";
+    const existing = state.destinations.find((item) => item && item.id === id);
+    if (existing) return existing;
+    const index = state.securedLoot.findIndex((item) => item && item.id === "ore-trail-iron");
+    if (index < 0) return null;
+    const route = {
+      id, name: "鍛造楔で開いた封鎖坑道", family: "cave",
+      dangerTags: ["dark", "collapse", "unknown"],
+      opportunityTags: ["rare-ore", "relic", "salvage"],
+      durationMs: 420000, villageForgedPass: true,
+    };
+    state.securedLoot.splice(index, 1);
+    state.destinations.push(route);
+    if (!Array.isArray(state.discoveredDestinationIds)) state.discoveredDestinationIds = [];
+    if (!state.discoveredDestinationIds.includes(id)) state.discoveredDestinationIds.push(id);
+    return route;
+  }
+
   function syncStoredReport(state, report) {
     if (!state || !report || !Array.isArray(state.completedReports)) return;
     const stored = state.completedReports.find((item) => item && item.expeditionId === report.expeditionId);
@@ -269,6 +293,18 @@
         const small = document.createElement("small"); small.textContent = copy;
         body.append(strong, small); label.append(input, body); fieldset.append(label);
       }
+      if (root.CrownlessExpeditionSystem.__villageBellFacility === "forge") {
+        const craft = document.createElement("label");
+        craft.className = "expedition-choice__item";
+        const input = document.createElement("input");
+        input.type = "checkbox"; input.name = "village-forge-pass";
+        input.checked = requestForgePass;
+        input.addEventListener("change", () => { requestForgePass = input.checked; });
+        const description = document.createElement("span");
+        description.textContent = "良質鉄鉱1個を鍛造楔に加工し、封鎖坑道を開く";
+        craft.append(input, description);
+        fieldset.append(craft);
+      }
       form.appendChild(fieldset);
       return true;
     }
@@ -300,6 +336,12 @@
       const requested = selectedApproach;
       const next = baseDispatch(state, input, nowMs);
       system.__villageBellRestoration = next.destinations.find((item) => item.id === DESTINATION_ID)?.villageRestoration || null;
+      system.__villageBellFacility = next.destinations.find((item) => item.id === DESTINATION_ID)?.villageFacility || null;
+      if (requestForgePass && next.activeExpedition && next.activeExpedition.inputs.destinationId === DESTINATION_ID) {
+        const opened = forgeMinePass(next);
+        if (opened) next.activeExpedition.inputs.forgedMinePass = opened.id;
+      }
+      requestForgePass = false;
       const inputs = next && next.activeExpedition && next.activeExpedition.inputs;
       if (inputs && inputs.destinationId === DESTINATION_ID) {
         const village = state && state.destinations && state.destinations.find((item) => item.id === DESTINATION_ID);
@@ -421,6 +463,7 @@
     system.normalizeState = function normalizeWithVillageRestoration(input) {
       const next = baseNormalize(input);
       system.__villageBellRestoration = next.destinations.find((item) => item.id === DESTINATION_ID)?.villageRestoration || null;
+      system.__villageBellFacility = next.destinations.find((item) => item.id === DESTINATION_ID)?.villageFacility || null;
       return next;
     };
     return true;
@@ -470,6 +513,7 @@
     restoreVillage,
     unlockRestoredRoute,
     upgradeVillageFromRoad,
+    forgeMinePass,
     syncStoredReport,
     currentDestination,
     syncChoice,
