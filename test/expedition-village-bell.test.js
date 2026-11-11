@@ -423,3 +423,31 @@ test("grotto reward cannot be earned on an unrelated expedition", () => {
   assert.equal(village.prepareGrottoDetour(mission, "shadow"), false);
   assert.equal(village.rewardGrottoDetour({ outcome: "success", loot: [] }, mission), false);
 });
+
+test("scout map can be spent to reach shadow grotto without forced greedy combat", () => {
+  const current = state();
+  current.securedLoot = [{ id: "village-scout-map", sourceExpeditionId: "watchtower-return" }];
+  const mission = { inputs: { destinationId: "village-forge:crystal-grotto", policyId: "cautious" } };
+  assert.equal(village.prepareGrottoDetour(mission, "mapped", current), true);
+  assert.equal(mission.inputs.policyId, "standard");
+  assert.equal(mission.inputs.villageGrottoDetour, "mapped");
+  assert.equal(current.securedLoot.length, 0);
+  const won = { outcome: "success", loot: [], log: [] };
+  assert.equal(village.rewardGrottoDetour(won, mission), true);
+  assert.equal(won.loot[0].id, "grotto-shadow-prism");
+  assert.equal(village.rewardGrottoDetour(won, mission), false);
+  assert.equal(village.rewardGrottoDetour({ outcome: "retreat", loot: [] }, mission), false);
+});
+
+test("mapped grotto rejects missing map and unrelated destinations without spending loot", () => {
+  const current = state();
+  current.securedLoot = [{ id: "watch-road-medicine" }];
+  const mission = { inputs: { destinationId: "village-forge:crystal-grotto", policyId: "cautious" } };
+  assert.equal(village.prepareGrottoDetour(mission, "mapped", current), false);
+  assert.equal(mission.inputs.policyId, "cautious");
+  assert.equal(mission.inputs.villageGrottoDetour, undefined);
+  current.securedLoot.push({ id: "village-scout-map" });
+  mission.inputs.destinationId = "village-forge:sealed-mine";
+  assert.equal(village.prepareGrottoDetour(mission, "mapped", current), false);
+  assert.equal(current.securedLoot.length, 2);
+});
