@@ -316,3 +316,29 @@ test("safe mining and missing medicine cannot mint rare ore", () => {
   assert.equal(current.securedLoot.length, 1);
   assert.equal(village.rewardMineDelve(report(), mission), false);
 });
+
+test("unstable shaft spends medicine, forces greedy combat and awards two rare materials on success", () => {
+  const current = state();
+  current.securedLoot = [{ id: "watch-road-medicine", sourceExpeditionId: "returned" }];
+  const mission = { inputs: { destinationId: "village-forge:sealed-mine", policyId: "cautious" } };
+  assert.equal(village.prepareMineDelve(current, mission, "unstable"), true);
+  assert.equal(current.securedLoot.length, 0);
+  assert.equal(mission.inputs.policyId, "greedy");
+  const won = report();
+  assert.equal(village.rewardMineDelve(won, mission), true);
+  assert.deepEqual(won.loot.map(item => item.id), ["sealed-mine-star-ore", "sealed-mine-deep-crystal"]);
+  assert.equal(village.rewardMineDelve(won, mission), false);
+  assert.equal(won.loot.length, 2);
+  const lost = report("retreat");
+  assert.equal(village.rewardMineDelve(lost, mission), false);
+  assert.equal(lost.loot, undefined);
+});
+
+test("unstable shaft without returned medicine cannot change combat policy", () => {
+  const current = state();
+  current.securedLoot = [];
+  const mission = { inputs: { destinationId: "village-forge:sealed-mine", policyId: "cautious" } };
+  assert.equal(village.prepareMineDelve(current, mission, "unstable"), false);
+  assert.equal(mission.inputs.policyId, "cautious");
+  assert.equal(village.rewardMineDelve(report(), mission), false);
+});
