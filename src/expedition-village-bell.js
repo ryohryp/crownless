@@ -126,6 +126,37 @@
     return destination;
   }
 
+  // A successful return from a discovered lead permanently changes the original village.
+  // The world change is stored on the existing destination, not a parallel timer or save.
+  function restoreVillage(state, report, expedition) {
+    const destinationId = expedition && expedition.inputs && expedition.inputs.destinationId;
+    const lead = state && Array.isArray(state.destinations)
+      && state.destinations.find((item) => item && item.id === destinationId && item.villageLead);
+    if (!lead || !report || report.outcome !== "success") return null;
+    const source = state.destinations.find((item) => item && item.id === lead.villageLead.sourceDestinationId);
+    if (!source || source.id !== DESTINATION_ID) return null;
+    const stage = lead.villageLead.approachId === RING ? "watchfire" : "storehouse";
+    if (source.villageRestoration === stage) return source;
+    source.villageRestoration = stage;
+    source.name = stage === "watchfire" ? "見張り火の灯る村" : "物資庫を取り戻した村";
+    source.opportunityTags = Array.from(new Set([
+      ...(Array.isArray(source.opportunityTags) ? source.opportunityTags : []),
+      ...(stage === "watchfire" ? ["survivor", "contact", "safe-camp"] : ["salvage", "supplies", "workshop"]),
+    ]));
+    source.dangerTags = (Array.isArray(source.dangerTags) ? source.dangerTags : [])
+      .filter((tag) => tag !== (stage === "watchfire" ? "bandit" : "collapse"));
+    report.villageRestoration = { stage, destinationId: source.id, name: source.name };
+    if (!Array.isArray(report.log)) report.log = [];
+    report.log.push({
+      minute: 75, time: "", type: "village-restoration",
+      text: stage === "watchfire"
+        ? "救出した人々が見張り火を灯した。再訪した村には仲間と安全な野営地がある。"
+        : "地下蔵の物資で村の物資庫と作業場が復旧した。再訪時には補給を期待できる。",
+      causes: [source.id, destinationId],
+    });
+    return source;
+  }
+
   function syncStoredReport(state, report) {
     if (!state || !report || !Array.isArray(state.completedReports)) return;
     const stored = state.completedReports.find((item) => item && item.expeditionId === report.expeditionId);
@@ -208,6 +239,7 @@
     system.applyReport = function applyReportWithVillageChoice(state, report) {
       const applied = baseApplyReport(state, report);
       unlockFollowup(applied, report);
+      restoreVillage(applied, report, state && state.activeExpedition);
       syncStoredReport(applied, report);
       return applied;
     };
@@ -219,6 +251,7 @@
       if (advanced && advanced.report && expedition) {
         decorateReport(advanced.report, expedition);
         unlockFollowup(advanced.state, advanced.report);
+        restoreVillage(advanced.state, advanced.report, expedition);
         syncStoredReport(advanced.state, advanced.report);
       }
       return advanced;
@@ -269,6 +302,7 @@
     canResolve,
     decorateReport,
     unlockFollowup,
+    restoreVillage,
     syncStoredReport,
     currentDestination,
     syncChoice,
