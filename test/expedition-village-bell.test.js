@@ -96,3 +96,54 @@ test("unknown bridge loads the village bell sidecar", () => {
   assert.match(bridge, /CrownlessExpeditionVillageBell/);
   assert.match(bridge, /src\/expedition-village-bell\.js/);
 });
+test("successful follow-up return rebuilds the village and changes revisit opportunities", () => {
+  const current = state();
+  const first = report();
+  village.decorateReport(first, expedition(village.RING));
+  const lead = village.unlockFollowup(current, first);
+  const followup = { inputs: { destinationId: lead.id } };
+  const returned = report();
+  const changed = village.restoreVillage(current, returned, followup);
+  assert.equal(changed.name, "見張り火の灯る村");
+  assert.ok(changed.opportunityTags.includes("safe-camp"));
+  assert.ok(!changed.dangerTags.includes("bandit"));
+  assert.equal(returned.villageRestoration.stage, "watchfire");
+  village.restoreVillage(current, returned, followup);
+  assert.equal(returned.log.filter((entry) => entry.type === "village-restoration").length, 1);
+  assert.deepEqual(JSON.parse(JSON.stringify(current)).destinations[0], changed);
+});
+
+test("cellar follow-up restores workshop; retreat never rebuilds village", () => {
+  const current = state();
+  const first = report();
+  village.decorateReport(first, expedition(village.QUIET));
+  const lead = village.unlockFollowup(current, first);
+  const followup = { inputs: { destinationId: lead.id } };
+  assert.equal(village.restoreVillage(current, report("retreat"), followup), null);
+  assert.equal(current.destinations[0].villageRestoration, undefined);
+  const changed = village.restoreVillage(current, report(), followup);
+  assert.equal(changed.name, "物資庫を取り戻した村");
+  assert.ok(changed.opportunityTags.includes("workshop"));
+  assert.ok(!changed.dangerTags.includes("collapse"));
+  assert.equal(village.restoreVillage(current, report(), { inputs: { destinationId: "unrelated" } }), null);
+});
+
+test("restored village revisits bank supplies through automatic advance without duplication", () => {
+  const engine = require("../src/expedition-system.js");
+  const system = { ...engine };
+  village.installSystemHooks({ CrownlessExpeditionSystem: system });
+  const current = engine.initialState();
+  const source = current.destinations.find((item) => item.id === village.DESTINATION_ID);
+  source.villageRestoration = "storehouse";
+  const input = { destinationId: village.DESTINATION_ID, companionIds: ["mira"], equipmentIds: [], policyId: "standard", durationMs: 0, seed: 123 };
+  const dispatched = system.dispatchExpedition(current, input, 1000);
+  const result = system.advance(dispatched, 1001);
+  assert.equal(result.status, "completed");
+  if (result.report.outcome === "success") {
+    assert.equal(result.report.loot.filter((item) => item.id === "village-storehouse-ore").length, 1);
+    assert.equal(result.state.securedLoot.filter((item) => item.id === "village-storehouse-ore").length, 1);
+    assert.equal(system.applyReport(result.state, result.report).securedLoot.filter((item) => item.id === "village-storehouse-ore").length, 1);
+  } else {
+    assert.equal(result.state.securedLoot.filter((item) => item.id === "village-storehouse-ore").length, 0);
+  }
+});
