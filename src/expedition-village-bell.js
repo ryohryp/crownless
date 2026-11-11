@@ -270,14 +270,14 @@
   // An optional dark detour turns the grotto into a risk/reward decision.
   function prepareGrottoDetour(expedition, approach) {
     if (!expedition?.inputs || expedition.inputs.destinationId !== "village-forge:crystal-grotto") return false;
-    if (approach !== "shadow") return false;
-    expedition.inputs.villageGrottoDetour = "shadow";
-    expedition.inputs.policyId = "greedy";
+    if (!["shadow", "mapped"].includes(approach)) return false;
+    expedition.inputs.villageGrottoDetour = approach;
+    expedition.inputs.policyId = approach === "mapped" ? "standard" : "greedy";
     return true;
   }
 
   function rewardGrottoDetour(report, expedition) {
-    if (!report || report.outcome !== "success" || expedition?.inputs?.destinationId !== "village-forge:crystal-grotto" || expedition.inputs.villageGrottoDetour !== "shadow") return false;
+    if (!report || report.outcome !== "success" || expedition?.inputs?.destinationId !== "village-forge:crystal-grotto" || !["shadow", "mapped"].includes(expedition.inputs.villageGrottoDetour)) return false;
     if (!Array.isArray(report.loot)) report.loot = [];
     if (report.loot.some(item => item?.id === "grotto-shadow-prism")) return false;
     report.loot.push({ id: "grotto-shadow-prism", name: "暗がりの影晶プリズム", tags: ["crystal", "rare-ore", "craft"] });
@@ -355,6 +355,7 @@
       for (const [value, title, copy] of [
         ["lit", "導光灯の道を進む", "安全寄りの通常探索。素材を持ち帰ることを優先する。"],
         ["shadow", "光の届かない横穴へ", "強欲方針で二連戦。生還できれば希少な影晶プリズムを持ち帰る。"],
+        ["mapped", "斥候地図で横穴を攻略", "見張り台の斥候地図を1枚消費。強欲方針を避けて影晶プリズムを狙う。"],
       ]) {
         const label = document.createElement("label");
         label.className = "expedition-choice__item";
@@ -496,7 +497,15 @@
       requestCrystalBeacon = false;
       if (next.activeExpedition) prepareMineDelve(next, next.activeExpedition, selectedMineApproach);
       selectedMineApproach = "safe";
-      if (next.activeExpedition) prepareGrottoDetour(next.activeExpedition, selectedGrottoApproach);
+      if (next.activeExpedition) {
+        let approach = selectedGrottoApproach;
+        if (approach === "mapped") {
+          const mapIndex = next.securedLoot.findIndex((item) => item.id === "village-scout-map");
+          if (mapIndex < 0) approach = "lit";
+          else next.securedLoot.splice(mapIndex, 1);
+        }
+        prepareGrottoDetour(next.activeExpedition, approach);
+      }
       selectedGrottoApproach = "lit";
       const inputs = next && next.activeExpedition && next.activeExpedition.inputs;
       if (inputs && inputs.destinationId === DESTINATION_ID) {
