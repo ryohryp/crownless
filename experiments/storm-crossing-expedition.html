@@ -20,7 +20,7 @@ function chaseTick(){if(!s.stormBeacon||s.stormReward||s.stormChaseFailed)return
 function advance(){s.turn++;hazard();if(s.phase==='field')chaseTick()}
 function scoutTick(){if(!s.scoutEscorting||s.phase!=='field')return;if(stormAt(s.turn)===s.pos){if(s.scoutCover>0){s.scoutCover--;return}s.scoutHp--;if(s.scoutHp<=0){s.scoutHp=0;s.scoutEscorting=false;s.scoutLost=true}}}
 function waitTurn(){advance()}
-function circuitTick(){if(s.phase!=='field'||!s.circuitStage)return;if(s.turn>s.circuitDeadline){s.circuitStage=0;s.circuitFailed=true;return}if(s.circuitStage===1&&s.pos===4){s.circuitStage=2}else if(s.circuitStage===2&&s.pos===7){s.circuitStage=0;s.circuitWon=true;s.bag+=11}}
+function circuitTick(){if(s.phase!=='field'||!s.circuitStage)return;if(s.turn>s.circuitDeadline){s.circuitStage=0;s.circuitFailed=true;return}if(s.circuitStage===1&&s.pos===4){s.circuitStage=2}else if(s.circuitStage===2&&s.pos===6){s.circuitStage=3}else if(s.circuitStage===3&&s.pos===7){s.circuitStage=0;s.circuitWon=true;s.bag+=11}}
 function step(p){if(s.phase!=='field'||s.raiderAlert&&!s.raiderDefeated||s.guardianAlert&&!s.guardianDefeated||!neighbors(s.pos).includes(p))return;s.pos=p;advance();scoutTick();circuitTick();for(const q of [p,...neighbors(p)])if(!s.seen.includes(q))s.seen.push(q);if(s.phase==='field'&&p===5&&!s.raiderDefeated)s.raiderAlert=true;if(s.phase==='field'&&p===2&&s.bridgeVaultOpen&&!s.guardianDefeated)s.guardianAlert=true}
 function begin(){s.phase='field';s.hp=(s.altarSigil?12:10)+((s.scoutBoost||0)>0?4:0);if(s.scoutBoost>0)s.scoutBoost--;s.bag=0;s.pos=7;s.turn=0;s.seen=[4,6,7,8];s.taken=[];s.trailClue=false;s.trailCacheTaken=false;s.cliffTrailFound=false;s.cliffCacheTaken=false;s.stormBeacon=false;s.stormCharge=0;s.stormReward=false;s.stormChaseFailed=false;s.altarOpened=false;s.altarLooted=false;s.groundedUntil=0;s.divertUntil=0;s.chargedTaken=false;s.coreTaken=false;s.traceFound=false;s.traceTaken=false;s.shelterUsed=false;s.raiderDefeated=false;s.raiderAlert=false;s.raiderHp=6;s.raiderIntent=0;s.raiderGuard=false;s.flareUsed=false;s.bridgeVaultTaken=false;s.guardianDefeated=!!s.ruinsLiberated;s.ruinsRested=false;s.ruinsOffering=false;s.guardianHp=10;s.guardianTurn=0;s.guardianAlert=false;s.relicShield=s.relic?1:0;s.scoutFound=false;s.scoutEscorting=false;s.scoutHp=3;s.scoutLost=false;s.scoutCover=0;s.scoutCoverUsed=false;s.circuitStage=0;s.circuitDeadline=0;s.circuitWon=false;s.circuitFailed=false;s.run++}
 function returnHome(){if(s.scoutEscorting&&s.scoutHp>0){s.scoutRescued=true;s.scoutEscorting=false;s.scoutBandages++;s.bag+=10}const delivered=s.bag;const bonus=s.commission&&delivered>=12?6:0;s.bank+=delivered+bonus;if(bonus){s.commission=false;s.commissionWins=(s.commissionWins||0)+1}s.bag=0;s.phase='camp'}
@@ -46,7 +46,7 @@ for(let p=0;p<N;p++){
 if(s.phase==='camp'){$('story').textContent='遠征で鉱石を持ち帰ろう。納品依頼は持ち帰った鉱石12個以上で達成。倉庫の鉱石は対象外、失敗しても依頼は残る。';if(s.scoutRescued)$('story').textContent+=' 救出した斥候が野営地で包帯を作ってくれる。';if(s.scoutBandages>0)act('🩹 斥候の包帯で次の遠征HP+4（残り'+s.scoutBandages+'）',()=>{s.scoutBandages--;s.scoutBoost=(s.scoutBoost||0)+1});if(!s.commission)act('鉱石12個の納品依頼を受ける（生還で報酬+6）',()=>{s.commission=true});act('遠征に出る',begin);if(!s.boots&&s.bank>=4)act('素材4で絶縁靴を作る',()=>{s.bank-=4;s.boots=true});if(!s.compass&&s.bank>=5)act('素材5で雷雲予測器を作る（次の行動の落雷地点を表示）',()=>{s.bank-=5;s.compass=true});if(!s.raiderBlade&&s.raiderTrophies>=1&&s.bank>=4)act('⚔️ 刀片1と鉱石4で略奪者の刃を鍛造（斬撃+2）',()=>{s.raiderTrophies--;s.bank-=4;s.raiderBlade=true});if(!s.wolfHook&&s.wolfFangs>=1&&s.bank>=4)act('🪝 狼牙1と鉱石4で断崖鉤縄を鍛造（岩棚から石橋への隠し道を開く）',()=>{s.wolfFangs--;s.bank-=4;s.wolfHook=true});if(s.bank>=3&&s.flareStock<2)act('素材3で緊急帰還信号を作る（最大2個）',()=>{s.bank-=3;s.flareStock=(s.flareStock||0)+1});act('実験データを初期化',()=>{s=initial()},'warn');return}
 if(s.phase==='lost'){$('story').textContent='雷雲に倒れた。持ち歩いていた素材は失った。倉庫は無事。';act('再挑戦',begin);return}
 const p=s.pos, storm=stormAt(s.turn);
-if(s.circuitStage){$('story').textContent='⚡ 雷の回路 '+(s.circuitStage===1?'第二の印：中央祭壇へ':'最終の印：帰還の渡しへ')+'。残り '+Math.max(0,s.circuitDeadline-s.turn)+' 行動。時間切れでも戦利品は失わない。';}
+if(s.circuitStage){$('story').textContent='⚡ 雷の回路 '+(s.circuitStage===1?'第二の印：中央祭壇へ':s.circuitStage===2?'第三の印：南西の岩陰へ':'最終の印：帰還の渡しへ')+'。残り '+Math.max(0,s.circuitDeadline-s.turn)+' 行動。時間切れでも戦利品は失わない。';}
 if(p===3&&s.hunterAlert&&!s.hunterDefeated){
  const intent=s.hunterTurn%3;
  const clue=['獣が低く身を沈めた。次は飛びかかり（4ダメージ）。','獣が岩棚を回り込む。次は爪撃（2ダメージ）。','獣が息を整えている。今が攻撃の好機。'][intent];
@@ -124,7 +124,7 @@ if(p===4&&s.altarOpened&&!s.altarLooted)act('💎 祭壇の深部から雷の印
  s.altarLooted=true;s.bag+=12;hazard()
 },'warn');
 
-if(p===1&&!s.circuitStage&&!s.circuitWon&&!s.circuitFailed)act('⚡ 雷の回路を起動（7行動以内に祭壇→渡し場 / 秘鉱+11）',()=>{s.circuitStage=1;s.circuitDeadline=s.turn+7;s.turn++;hazard()},'warn');
+if(p===1&&!s.circuitStage&&!s.circuitWon&&!s.circuitFailed)act('⚡ 雷の回路を起動（7行動以内に祭壇→岩陰→渡し場 / 秘鉱+11）',()=>{s.circuitStage=1;s.circuitDeadline=s.turn+7;s.turn++;hazard()},'warn');
 if(s.circuitStage)act('🏳️ 雷の回路を中断する',()=>{s.circuitStage=0;s.circuitFailed=true});
 if(p===0&&!s.scoutFound&&!s.scoutRescued&&!s.scoutLost)act('🧭 崩れた橋で救難信号を調べる（負傷した斥候を発見）',()=>{s.scoutFound=true;s.turn++;hazard()});
 if(p===0&&s.scoutFound&&!s.scoutEscorting&&!s.scoutLost&&!s.scoutRescued)act('🤝 斥候を連れて渡し場へ戻る（HP3 / 落雷で負傷）',()=>{s.scoutEscorting=true;s.turn++;hazard()},'warn');
@@ -165,7 +165,7 @@ if(p===4&&s.turn<s.groundedUntil&&!s.coreTaken)act('雷核を掘り出す（HP-4
 if(p===4&&s.turn<s.groundedUntil&&!s.chargedTaken)act('帯電結晶を回収 +5（接地中限定）',()=>{s.bag+=5;s.chargedTaken=true;s.turn++;hazard()});
 const loot={0:2,2:3,3:2,4:6,5:4};
 if(loot[p]&&!s.taken.includes(p)){const imminent=stormAt(s.turn+1)===p;act('鉱石を採集 +'+loot[p]+(imminent?'（落雷直前の鉱脈：追加+4）':''),()=>{s.bag+=loot[p]+(imminent?4:0);s.taken.push(p);s.turn++;hazard()},imminent?'warn':'')}
-if(p===7&&s.circuitStage===2)act('⚡ 回路の最終印を刻む（秘鉱+11）',()=>{circuitTick()});
+if(p===7&&s.circuitStage===3)act('⚡ 回路の最終印を刻む（秘鉱+11）',()=>{circuitTick()});
 if(p===7)act('渡し場から生還する',()=>{if(s.altarLooted)s.altarSigil=true;returnHome()});
 if(s.flareStock>0&&!s.flareUsed&&p!==7)act('緊急帰還信号を使う（持ち歩き素材の半分を確保）',()=>{s.flareStock--;s.flareUsed=true;s.bag=Math.floor(s.bag/2);returnHome()},'warn');
 if(exits.includes(p))act('岸沿いに撤退（素材を捨てる）',()=>{s.bag=0;s.phase='camp'},'warn');
