@@ -147,3 +147,28 @@ test("restored village revisits bank supplies through automatic advance without 
     assert.equal(result.state.securedLoot.filter((item) => item.id === "village-storehouse-ore").length, 0);
   }
 });
+
+test("restored village preparation changes actual combat without permanent free equipment", () => {
+  const engine = require("../src/expedition-system.js");
+  const system = { ...engine };
+  village.installSystemHooks({ CrownlessExpeditionSystem: system });
+  const current = engine.initialState();
+  const source = current.destinations.find((item) => item.id === village.DESTINATION_ID);
+  source.villageRestoration = "watchfire";
+  const base = {
+    id: "exp-village-prepare", seed: 123, startedAt: 1000,
+    inputs: { destinationId: village.DESTINATION_ID, companionIds: ["mira"], equipmentIds: [], policyId: "standard", villagePreparation: "scout" },
+  };
+  const unprepared = engine.resolveExpedition(base, current);
+  const prepared = system.resolveExpedition(base, current);
+  assert.equal(prepared.villagePreparation, "scout");
+  assert.ok(prepared.log.some((entry) => entry.type === "village-preparation"));
+  assert.ok(prepared.combats.some((combat) => combat.rounds.some((round) => round.events.includes("ambush"))));
+  assert.ok(!unprepared.combats.some((combat) => combat.rounds.some((round) => round.events.includes("ambush"))));
+  assert.equal(current.equipment.some((item) => item.id.startsWith("village-preparation-")), false);
+  const supply = system.resolveExpedition({ ...base, inputs: { ...base.inputs, villagePreparation: "supplies" } }, current);
+  assert.equal(supply.villagePreparation, "supplies");
+  assert.ok(supply.log.some((entry) => /応急手当/.test(entry.text)));
+  const noRestoration = engine.initialState();
+  assert.equal(system.resolveExpedition(base, noRestoration).villagePreparation, undefined);
+});
