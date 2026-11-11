@@ -34,9 +34,11 @@
     }),
   });
   let selectedApproach = QUIET;
+  let requestCrystalBeacon = false;
   let selectedPreparation = "scout";
   let requestForgePass = false;
   let selectedMineApproach = "safe";
+  let selectedGrottoApproach = "lit";
 
   function clone(value) {
     return value == null ? value : JSON.parse(JSON.stringify(value));
@@ -229,6 +231,32 @@
     return route;
   }
 
+  // Deep crystal is a one-time construction resource, not a finished weapon drop.
+  // The beacon turns a previous mining success into a repeatable exploration route.
+  function buildCrystalBeacon(state) {
+    const village = state && Array.isArray(state.destinations)
+      && state.destinations.find(item => item && item.id === DESTINATION_ID);
+    if (!village || village.villageFacility !== "forge" || !Array.isArray(state.securedLoot)) return null;
+    const id = "village-forge:crystal-grotto";
+    const existing = state.destinations.find(item => item && item.id === id);
+    if (existing) return existing;
+    if (!state.destinations.some(item => item && item.id === "village-forge:sealed-mine")) return null;
+    const index = state.securedLoot.findIndex(item => item && item.id === "sealed-mine-deep-crystal");
+    if (index < 0) return null;
+    const destination = {
+      id, name: "深晶石の灯る隠し洞窟", family: "cave",
+      dangerTags: ["dark", "unknown", "guardian"],
+      opportunityTags: ["relic", "hidden-path", "crystal"],
+      durationMs: 540000, villageCrystalBeacon: true,
+    };
+    state.securedLoot.splice(index, 1);
+    state.destinations.push(destination);
+    if (!Array.isArray(state.discoveredDestinationIds)) state.discoveredDestinationIds = [];
+    if (!state.discoveredDestinationIds.includes(id)) state.discoveredDestinationIds.push(id);
+    village.villageCrystalBeacon = true;
+    return destination;
+  }
+
   function prepareMineDelve(state, expedition, approach) {
     if (!state || !expedition?.inputs || expedition.inputs.destinationId !== "village-forge:sealed-mine" || !["deep", "unstable", "shored"].includes(approach) || !Array.isArray(state.securedLoot)) return false;
     const index = state.securedLoot.findIndex(item => item?.id === (approach === "shored" ? "village-forged-parts" : "watch-road-medicine"));
@@ -236,6 +264,27 @@
     state.securedLoot.splice(index, 1);
     expedition.inputs.villageMineDelve = approach;
     if (approach === "unstable") expedition.inputs.policyId = "greedy"; // Two encounters, lower retreat threshold.
+    return true;
+  }
+
+  // An optional dark detour turns the grotto into a risk/reward decision.
+  function prepareGrottoDetour(expedition, approach) {
+    if (!expedition?.inputs || expedition.inputs.destinationId !== "village-forge:crystal-grotto") return false;
+    if (approach !== "shadow") return false;
+    expedition.inputs.villageGrottoDetour = "shadow";
+    expedition.inputs.policyId = "greedy";
+    return true;
+  }
+
+  function rewardGrottoDetour(report, expedition) {
+    if (!report || report.outcome !== "success" || expedition?.inputs?.destinationId !== "village-forge:crystal-grotto" || expedition.inputs.villageGrottoDetour !== "shadow") return false;
+    if (!Array.isArray(report.loot)) report.loot = [];
+    if (report.loot.some(item => item?.id === "grotto-shadow-prism")) return false;
+    report.loot.push({ id: "grotto-shadow-prism", name: "暗がりの影晶プリズム", tags: ["crystal", "rare-ore", "craft"] });
+    if (!Array.isArray(report.log)) report.log = [];
+    report.log.push({ minute: 105, time: "", type: "grotto-shadow-detour",
+      text: "導光灯の届かない横穴を突破し、影晶プリズムを持ち帰った。",
+      causes: ["village-forge:crystal-grotto", "grotto-shadow-prism"] });
     return true;
   }
 
@@ -291,6 +340,38 @@
     const restored = root.CrownlessExpeditionSystem && root.CrownlessExpeditionSystem.__villageBellRestoration;
     const preparation = form.querySelector("[data-village-preparation]");
     const mineChoice = form.querySelector("[data-village-mine-choice]");
+    if (currentDestination(form) === "village-forge:crystal-grotto") {
+      if (existing) existing.remove();
+      if (preparation) preparation.remove();
+      if (mineChoice) mineChoice.remove();
+      const old = form.querySelector("[data-village-grotto-choice]");
+      if (old) return false;
+      const fieldset = document.createElement("fieldset");
+      fieldset.className = "expedition-choice expedition-choice--village";
+      fieldset.dataset.villageGrottoChoice = "true";
+      const legend = document.createElement("legend");
+      legend.textContent = "隠し洞窟：光を頼るか、暗がりへ進むか";
+      fieldset.appendChild(legend);
+      for (const [value, title, copy] of [
+        ["lit", "導光灯の道を進む", "安全寄りの通常探索。素材を持ち帰ることを優先する。"],
+        ["shadow", "光の届かない横穴へ", "強欲方針で二連戦。生還できれば希少な影晶プリズムを持ち帰る。"],
+      ]) {
+        const label = document.createElement("label");
+        label.className = "expedition-choice__item";
+        const input = document.createElement("input");
+        input.type = "radio"; input.name = "village-grotto-approach"; input.value = value;
+        input.checked = value === selectedGrottoApproach;
+        input.addEventListener("change", () => { if (input.checked) selectedGrottoApproach = value; });
+        const body = document.createElement("span");
+        const strong = document.createElement("strong"); strong.textContent = title;
+        const small = document.createElement("small"); small.textContent = copy;
+        body.append(strong, small); label.append(input, body); fieldset.append(label);
+      }
+      form.appendChild(fieldset);
+      return true;
+    }
+    const grottoChoice = form.querySelector("[data-village-grotto-choice]");
+    if (grottoChoice) grottoChoice.remove();
     if (currentDestination(form) === "village-forge:sealed-mine") {
       if (existing) existing.remove();
       if (preparation) preparation.remove();
@@ -350,6 +431,16 @@
         body.append(strong, small); label.append(input, body); fieldset.append(label);
       }
       if (root.CrownlessExpeditionSystem.__villageBellFacility === "forge") {
+        const beacon = document.createElement("label");
+        beacon.className = "expedition-choice__item";
+        const beaconInput = document.createElement("input");
+        beaconInput.type = "checkbox"; beaconInput.name = "village-crystal-beacon";
+        beaconInput.checked = requestCrystalBeacon;
+        beaconInput.addEventListener("change", () => { requestCrystalBeacon = beaconInput.checked; });
+        const beaconDescription = document.createElement("span");
+        beaconDescription.textContent = "深晶石1個で導光灯を建設し、隠し洞窟への再訪路を開く";
+        beacon.append(beaconInput, beaconDescription);
+        fieldset.append(beacon);
         const craft = document.createElement("label");
         craft.className = "expedition-choice__item";
         const input = document.createElement("input");
@@ -398,8 +489,15 @@
         if (opened) next.activeExpedition.inputs.forgedMinePass = opened.id;
       }
       requestForgePass = false;
+      if (requestCrystalBeacon && next.activeExpedition && next.activeExpedition.inputs.destinationId === DESTINATION_ID) {
+        const opened = buildCrystalBeacon(next);
+        if (opened) next.activeExpedition.inputs.crystalBeaconBuilt = opened.id;
+      }
+      requestCrystalBeacon = false;
       if (next.activeExpedition) prepareMineDelve(next, next.activeExpedition, selectedMineApproach);
       selectedMineApproach = "safe";
+      if (next.activeExpedition) prepareGrottoDetour(next.activeExpedition, selectedGrottoApproach);
+      selectedGrottoApproach = "lit";
       const inputs = next && next.activeExpedition && next.activeExpedition.inputs;
       if (inputs && inputs.destinationId === DESTINATION_ID) {
         const village = state && state.destinations && state.destinations.find((item) => item.id === DESTINATION_ID);
@@ -472,6 +570,7 @@
       rewardRevisit(state, report);
       rewardRestoredRoad(state, report);
       rewardMineDelve(report, expedition);
+      rewardGrottoDetour(report, expedition);
       return report;
     };
 
@@ -497,9 +596,10 @@
         rewardRevisit(state, advanced.report);
         rewardRestoredRoad(state, advanced.report);
         rewardMineDelve(advanced.report, expedition);
+        rewardGrottoDetour(advanced.report, expedition);
         // advance() has already banked the base report; bank sidecar road loot once.
         if (advanced.report.outcome === "success" && Array.isArray(advanced.state.securedLoot)) {
-          for (const routeLoot of advanced.report.loot.filter((item) => item && ["watch-road-medicine", "ore-trail-iron", "sealed-mine-star-ore", "sealed-mine-deep-crystal"].includes(item.id))) {
+          for (const routeLoot of advanced.report.loot.filter((item) => item && ["watch-road-medicine", "ore-trail-iron", "sealed-mine-star-ore", "sealed-mine-deep-crystal", "grotto-shadow-prism"].includes(item.id))) {
             if (!advanced.state.securedLoot.some((item) => item.id === routeLoot.id && item.sourceExpeditionId === advanced.report.expeditionId)) {
               advanced.state.securedLoot.push({ ...routeLoot, sourceExpeditionId: advanced.report.expeditionId });
             }
@@ -575,8 +675,11 @@
     unlockRestoredRoute,
     upgradeVillageFromRoad,
     forgeMinePass,
+    buildCrystalBeacon,
     prepareMineDelve,
     rewardMineDelve,
+    prepareGrottoDetour,
+    rewardGrottoDetour,
     syncStoredReport,
     currentDestination,
     syncChoice,

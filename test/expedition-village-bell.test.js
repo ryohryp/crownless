@@ -163,8 +163,8 @@ test("restored village preparation changes actual combat without permanent free 
   const prepared = system.resolveExpedition(base, current);
   assert.equal(prepared.villagePreparation, "scout");
   assert.ok(prepared.log.some((entry) => entry.type === "village-preparation"));
-  assert.ok(prepared.combats.some((combat) => combat.rounds.some((round) => round.events.includes("ambush"))));
-  assert.ok(!unprepared.combats.some((combat) => combat.rounds.some((round) => round.events.includes("ambush"))));
+  assert.ok(prepared.combat.encounters.some((combat) => combat.rounds.some((round) => round.events.includes("ambush"))));
+  assert.ok(!unprepared.combat.encounters.some((combat) => combat.rounds.some((round) => round.events.includes("ambush"))));
   assert.equal(current.equipment.some((item) => item.id.startsWith("village-preparation-")), false);
   const supply = system.resolveExpedition({ ...base, inputs: { ...base.inputs, villagePreparation: "supplies" } }, current);
   assert.equal(supply.villagePreparation, "supplies");
@@ -368,4 +368,58 @@ test("shoring requires returned crafted parts and cannot spend unrelated materia
   assert.equal(village.prepareMineDelve(current, mission, "shored"), false);
   assert.equal(current.securedLoot.length, 1);
   assert.equal(mission.inputs.villageMineDelve, undefined);
+});
+
+test("deep crystal builds a persistent beacon route and cannot double spend", () => {
+  const current = state();
+  current.destinations[0].villageFacility = "forge";
+  current.destinations.push({ id: "village-forge:sealed-mine" });
+  current.securedLoot = [
+    { id: "sealed-mine-deep-crystal", sourceExpeditionId: "safe-1" },
+    { id: "sealed-mine-deep-crystal", sourceExpeditionId: "safe-2" },
+  ];
+  const grotto = village.buildCrystalBeacon(current);
+  assert.equal(grotto.id, "village-forge:crystal-grotto");
+  assert.equal(current.securedLoot.length, 1);
+  assert.ok(current.discoveredDestinationIds.includes(grotto.id));
+  assert.equal(current.destinations[0].villageCrystalBeacon, true);
+  assert.equal(village.buildCrystalBeacon(current), grotto);
+  assert.equal(current.securedLoot.length, 1);
+  const engine = require("../src/expedition-system.js");
+  const reloaded = engine.normalizeState(JSON.parse(JSON.stringify(current)));
+  assert.ok(reloaded.destinations.some(item => item.id === grotto.id));
+});
+
+test("beacon requires forged mine, forge and safely banked crystal", () => {
+  const current = state();
+  current.securedLoot = [{ id: "sealed-mine-deep-crystal" }];
+  assert.equal(village.buildCrystalBeacon(current), null);
+  current.destinations[0].villageFacility = "forge";
+  assert.equal(village.buildCrystalBeacon(current), null);
+  current.destinations.push({ id: "village-forge:sealed-mine" });
+  current.securedLoot = [{ id: "sealed-mine-star-ore" }];
+  assert.equal(village.buildCrystalBeacon(current), null);
+  assert.equal(current.destinations.some(item => item.villageCrystalBeacon), false);
+});
+
+test("grotto shadow detour forces risky policy and rewards only safe return", () => {
+  const mission = { inputs: { destinationId: "village-forge:crystal-grotto", policyId: "careful" } };
+  assert.equal(village.prepareGrottoDetour(mission, "lit"), false);
+  assert.equal(mission.inputs.policyId, "careful");
+  assert.equal(village.prepareGrottoDetour(mission, "shadow"), true);
+  assert.equal(mission.inputs.policyId, "greedy");
+  const failed = { outcome: "retreat", loot: [] };
+  assert.equal(village.rewardGrottoDetour(failed, mission), false);
+  assert.equal(failed.loot.length, 0);
+  const success = { outcome: "success", loot: [], log: [] };
+  assert.equal(village.rewardGrottoDetour(success, mission), true);
+  assert.equal(success.loot[0].id, "grotto-shadow-prism");
+  assert.equal(village.rewardGrottoDetour(success, mission), false);
+  assert.equal(success.loot.length, 1);
+});
+
+test("grotto reward cannot be earned on an unrelated expedition", () => {
+  const mission = { inputs: { destinationId: "village-forge:sealed-mine" } };
+  assert.equal(village.prepareGrottoDetour(mission, "shadow"), false);
+  assert.equal(village.rewardGrottoDetour({ outcome: "success", loot: [] }, mission), false);
 });
