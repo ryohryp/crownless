@@ -8,7 +8,7 @@
 <script>
 'use strict';
 const KEY='crownless-storm-crossing-v1',N=9,exits=[0,1,2];
-const initial=()=>({phase:'camp',hp:10,bank:0,bag:0,pos:7,turn:0,seen:[7],taken:[],boots:false,compass:false,run:0,groundedUntil:0,chargedTaken:false,coreTaken:false,cache:0,cacheRun:-1,divertUntil:0,decoyUntil:0,traceFound:false,traceTaken:false,shelterBuilt:false,shelterUsed:false,commission:false,commissionWins:0,flareStock:0,flareUsed:false,raiderDefeated:false,raiderAlert:false,raiderHp:6,raiderIntent:0,raiderGuard:false,raiderTrophies:0,raiderBlade:false,bridgeVaultOpen:false,bridgeVaultTaken:false,guardianDefeated:false,guardianHp:10,guardianTurn:0,guardianAlert:false,relic:false,relicShield:0,ruinsLiberated:false,ruinsRested:false,ruinsOffering:false,trailClue:false,trailCacheTaken:false,altarOpened:false,altarLooted:false,altarSigil:false,hunterScouted:false,hunterTrap:false,hunterDefeated:false,hunterAlert:false,hunterHp:8,hunterTurn:0,hunterFang:false,wolfFangs:0,wolfHook:false,cliffTrailFound:false,cliffCacheTaken:false,stormBeacon:false,stormCharge:0,stormReward:false,stormChaseFailed:false,scoutBoost:0,scoutFound:false,scoutEscorting:false,scoutHp:3,scoutRescued:false,scoutLost:false,scoutBandages:0,scoutCover:0,scoutCoverUsed:false,circuitStage:0,circuitDeadline:0,circuitWon:false,circuitFailed:false,salvageStage:0,salvageFinished:false,salvageAbandoned:false,sluiceUntil:0,sluiceUsed:false,scoutSignalUsed:false,thunderArmor:false});
+const initial=()=>({phase:'camp',hp:10,bank:0,bag:0,pos:7,turn:0,seen:[7],taken:[],boots:false,compass:false,run:0,groundedUntil:0,chargedTaken:false,coreTaken:false,cache:0,cacheRun:-1,divertUntil:0,decoyUntil:0,traceFound:false,traceTaken:false,shelterBuilt:false,shelterUsed:false,commission:false,commissionWins:0,flareStock:0,flareUsed:false,raiderDefeated:false,raiderAlert:false,raiderHp:6,raiderIntent:0,raiderGuard:false,raiderStagger:false,raiderTrophies:0,raiderBlade:false,bridgeVaultOpen:false,bridgeVaultTaken:false,guardianDefeated:false,guardianHp:10,guardianTurn:0,guardianAlert:false,relic:false,relicShield:0,ruinsLiberated:false,ruinsRested:false,ruinsOffering:false,trailClue:false,trailCacheTaken:false,altarOpened:false,altarLooted:false,altarSigil:false,hunterScouted:false,hunterTrap:false,hunterDefeated:false,hunterAlert:false,hunterHp:8,hunterTurn:0,hunterFang:false,wolfFangs:0,wolfHook:false,cliffTrailFound:false,cliffCacheTaken:false,stormBeacon:false,stormCharge:0,stormReward:false,stormChaseFailed:false,scoutBoost:0,scoutFound:false,scoutEscorting:false,scoutHp:3,scoutRescued:false,scoutLost:false,scoutBandages:0,scoutCover:0,scoutCoverUsed:false,circuitStage:0,circuitDeadline:0,circuitWon:false,circuitFailed:false,salvageStage:0,salvageFinished:false,salvageAbandoned:false,sluiceUntil:0,sluiceUsed:false,scoutSignalUsed:false,thunderArmor:false});
 let s;try{s=Object.assign(initial(),JSON.parse(localStorage.getItem(KEY))||{})}catch{s=initial()}
 const $=id=>document.getElementById(id);
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(s))}catch{}}
@@ -22,7 +22,7 @@ function scoutTick(){if(!s.scoutEscorting||s.phase!=='field')return;if(stormAt(s
 function waitTurn(){advance()}
 function circuitTick(){if(s.phase!=='field'||!s.circuitStage)return;if(s.turn>s.circuitDeadline){s.circuitStage=0;s.circuitFailed=true;return}if(s.circuitStage===1&&s.pos===4){s.circuitStage=2}else if(s.circuitStage===2&&s.pos===6){s.circuitStage=3}else if(s.circuitStage===3&&s.pos===7){s.circuitStage=0;s.circuitWon=true;s.bag+=11}}
 function step(p){if(s.phase!=='field'||s.raiderAlert&&!s.raiderDefeated||s.guardianAlert&&!s.guardianDefeated||!neighbors(s.pos).includes(p))return;s.pos=p;advance();scoutTick();circuitTick();for(const q of [p,...neighbors(p)])if(!s.seen.includes(q))s.seen.push(q);if(s.phase==='field'&&p===5&&!s.raiderDefeated)s.raiderAlert=true;if(s.phase==='field'&&p===2&&s.bridgeVaultOpen&&!s.guardianDefeated)s.guardianAlert=true}
-function begin(){s.phase='field';s.hp=(s.altarSigil?12:10)+((s.scoutBoost||0)>0?4:0);if(s.scoutBoost>0)s.scoutBoost--;s.bag=0;s.pos=7;s.turn=0;s.seen=[4,6,7,8];s.taken=[];s.trailClue=false;s.trailCacheTaken=false;s.cliffTrailFound=false;s.cliffCacheTaken=false;s.stormBeacon=false;s.stormCharge=0;s.stormReward=false;s.stormChaseFailed=false;s.altarOpened=false;s.altarLooted=false;s.groundedUntil=0;s.divertUntil=0;s.chargedTaken=false;s.coreTaken=false;s.traceFound=false;s.traceTaken=false;s.shelterUsed=false;s.raiderDefeated=false;s.raiderAlert=false;s.raiderHp=6;s.raiderIntent=0;s.raiderGuard=false;s.flareUsed=false;s.bridgeVaultTaken=false;s.guardianDefeated=!!s.ruinsLiberated;s.ruinsRested=false;s.ruinsOffering=false;s.guardianHp=10;s.guardianTurn=0;s.guardianAlert=false;s.relicShield=s.relic?1:0;s.scoutFound=false;s.scoutEscorting=false;s.scoutHp=3;s.scoutLost=false;s.scoutCover=0;s.scoutCoverUsed=false;s.circuitStage=0;s.circuitDeadline=0;s.circuitWon=false;s.circuitFailed=false;s.sluiceUntil=0;s.sluiceUsed=false;s.scoutSignalUsed=false;s.run++}
+function begin(){s.phase='field';s.hp=(s.altarSigil?12:10)+((s.scoutBoost||0)>0?4:0);if(s.scoutBoost>0)s.scoutBoost--;s.bag=0;s.pos=7;s.turn=0;s.seen=[4,6,7,8];s.taken=[];s.trailClue=false;s.trailCacheTaken=false;s.cliffTrailFound=false;s.cliffCacheTaken=false;s.stormBeacon=false;s.stormCharge=0;s.stormReward=false;s.stormChaseFailed=false;s.altarOpened=false;s.altarLooted=false;s.groundedUntil=0;s.divertUntil=0;s.chargedTaken=false;s.coreTaken=false;s.traceFound=false;s.traceTaken=false;s.shelterUsed=false;s.raiderDefeated=false;s.raiderAlert=false;s.raiderHp=6;s.raiderIntent=0;s.raiderGuard=false;s.raiderStagger=false;s.flareUsed=false;s.bridgeVaultTaken=false;s.guardianDefeated=!!s.ruinsLiberated;s.ruinsRested=false;s.ruinsOffering=false;s.guardianHp=10;s.guardianTurn=0;s.guardianAlert=false;s.relicShield=s.relic?1:0;s.scoutFound=false;s.scoutEscorting=false;s.scoutHp=3;s.scoutLost=false;s.scoutCover=0;s.scoutCoverUsed=false;s.circuitStage=0;s.circuitDeadline=0;s.circuitWon=false;s.circuitFailed=false;s.sluiceUntil=0;s.sluiceUsed=false;s.scoutSignalUsed=false;s.run++}
 function returnHome(){if(s.scoutEscorting&&s.scoutHp>0){s.scoutRescued=true;s.scoutEscorting=false;s.scoutBandages++;s.bag+=10}const delivered=s.bag;const bonus=s.commission&&delivered>=12?6:0;s.bank+=delivered+bonus;if(bonus){s.commission=false;s.commissionWins=(s.commissionWins||0)+1}s.bag=0;s.phase='camp'}
 function render(){
 $('actions').replaceChildren();
@@ -78,7 +78,7 @@ if(p===2&&s.guardianAlert&&!s.guardianDefeated){
    let hit=choice==='guard'?Math.max(0,damage-3):choice==='dodge'?(stance===0?0:damage):damage;
    let attack=choice==='strike'?(stance===1?0:stance===2?5:2):choice==='dodge'&&stance===0?2:0;
    if(attack&&s.raiderBlade)attack+=2;if(attack&&s.thunderArmor&&stance===2)attack+=2;
-   s.guardianHp-=attack;s.hp-=hit;s.turn++;
+   s.guardianHp-=attack;s.raiderStagger=false;s.hp-=hit;s.turn++;
    if(s.hp<=0){s.hp=0;s.bag=0;s.phase='lost';return}
    if(s.guardianHp<=0){s.guardianDefeated=true;s.ruinsLiberated=true;s.guardianAlert=false;s.relic=true;s.relicShield=1;s.bag+=5}
    else s.guardianTurn++;
@@ -96,9 +96,9 @@ if(p===5&&s.raiderAlert&&!s.raiderDefeated){
  const intent=s.raiderIntent%3;
  $('story').textContent='⚔️ 鉱脈の略奪者 HP '+s.raiderHp+'/6｜'+intents[intent]+'。敵の動きを読んで戦おう。';
  function duel(move){
-   const damage=intent===0?4:intent===1?2:0;
+   const damage=s.raiderStagger?0:intent===0?4:intent===1?2:0;
    let hit=move==='guard'?Math.max(0,damage-3):move==='dodge'?(intent===0?0:damage+1):damage;
-   if(move==='strike'){s.raiderHp-=(intent===2?4:2)+(s.raiderBlade?2:0)+(s.thunderArmor&&intent===2?2:0)}
+   if(move==='strike'){s.raiderHp-=(intent===2?4:2)+(s.raiderBlade?2:0)+(s.thunderArmor&&intent===2?2:0)+(s.raiderStagger?3:0)}
    if(move==='dodge'&&intent===0){s.raiderHp-=1}
    s.hp-=hit;s.turn++;
    if(s.hp<=0){s.hp=0;s.bag=0;s.phase='lost';return}
@@ -106,6 +106,7 @@ if(p===5&&s.raiderAlert&&!s.raiderDefeated){
    else{s.raiderIntent++}
    hazard()
  }
+ if(s.bag>=2&&!s.raiderStagger)act('🪨 鉱石2を投げて敵をよろめかせる（次の攻撃+3 / 敵の反撃なし）',()=>{s.bag-=2;s.raiderStagger=true;s.turn++;hazard()},'warn');
  act('⚔️ 斬り込む（敵HP-'+(s.raiderBlade?'4 / 隙なら-6':'2 / 隙なら-4')+'）',()=>duel('strike'));
  act('🛡️ 盾を構える（被害-3）',()=>duel('guard'));
  act('💨 横へ回避（大振りを無効化・反撃）',()=>duel('dodge'));
