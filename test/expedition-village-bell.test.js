@@ -369,3 +369,35 @@ test("shoring requires returned crafted parts and cannot spend unrelated materia
   assert.equal(current.securedLoot.length, 1);
   assert.equal(mission.inputs.villageMineDelve, undefined);
 });
+
+test("deep crystal builds a persistent beacon route and cannot double spend", () => {
+  const current = state();
+  current.destinations[0].villageFacility = "forge";
+  current.destinations.push({ id: "village-forge:sealed-mine" });
+  current.securedLoot = [
+    { id: "sealed-mine-deep-crystal", sourceExpeditionId: "safe-1" },
+    { id: "sealed-mine-deep-crystal", sourceExpeditionId: "safe-2" },
+  ];
+  const grotto = village.buildCrystalBeacon(current);
+  assert.equal(grotto.id, "village-forge:crystal-grotto");
+  assert.equal(current.securedLoot.length, 1);
+  assert.ok(current.discoveredDestinationIds.includes(grotto.id));
+  assert.equal(current.destinations[0].villageCrystalBeacon, true);
+  assert.equal(village.buildCrystalBeacon(current), grotto);
+  assert.equal(current.securedLoot.length, 1);
+  const engine = require("../src/expedition-system.js");
+  const reloaded = engine.normalizeState(JSON.parse(JSON.stringify(current)));
+  assert.ok(reloaded.destinations.some(item => item.id === grotto.id));
+});
+
+test("beacon requires forged mine, forge and safely banked crystal", () => {
+  const current = state();
+  current.securedLoot = [{ id: "sealed-mine-deep-crystal" }];
+  assert.equal(village.buildCrystalBeacon(current), null);
+  current.destinations[0].villageFacility = "forge";
+  assert.equal(village.buildCrystalBeacon(current), null);
+  current.destinations.push({ id: "village-forge:sealed-mine" });
+  current.securedLoot = [{ id: "sealed-mine-star-ore" }];
+  assert.equal(village.buildCrystalBeacon(current), null);
+  assert.equal(current.destinations.some(item => item.villageCrystalBeacon), false);
+});
