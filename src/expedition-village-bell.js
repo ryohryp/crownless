@@ -268,9 +268,14 @@
   }
 
   // An optional dark detour turns the grotto into a risk/reward decision.
-  function prepareGrottoDetour(expedition, approach) {
+  function prepareGrottoDetour(expedition, approach, state) {
     if (!expedition?.inputs || expedition.inputs.destinationId !== "village-forge:crystal-grotto") return false;
     if (!["shadow", "mapped"].includes(approach)) return false;
+    if (approach === "mapped") {
+      const index = state?.securedLoot?.findIndex(item => item.id === "village-scout-map") ?? -1;
+      if (index < 0) return false;
+      state.securedLoot.splice(index, 1);
+    }
     expedition.inputs.villageGrottoDetour = approach;
     expedition.inputs.policyId = approach === "mapped" ? "standard" : "greedy";
     return true;
@@ -497,15 +502,7 @@
       requestCrystalBeacon = false;
       if (next.activeExpedition) prepareMineDelve(next, next.activeExpedition, selectedMineApproach);
       selectedMineApproach = "safe";
-      if (next.activeExpedition) {
-        let approach = selectedGrottoApproach;
-        if (approach === "mapped" && next.activeExpedition.inputs.destinationId === "village-forge:crystal-grotto") {
-          const mapIndex = next.securedLoot.findIndex((item) => item.id === "village-scout-map");
-          if (mapIndex < 0) approach = "lit";
-          else next.securedLoot.splice(mapIndex, 1);
-        }
-        prepareGrottoDetour(next.activeExpedition, approach);
-      }
+      if (next.activeExpedition) prepareGrottoDetour(next.activeExpedition, selectedGrottoApproach, next);
       selectedGrottoApproach = "lit";
       const inputs = next && next.activeExpedition && next.activeExpedition.inputs;
       if (inputs && inputs.destinationId === DESTINATION_ID) {
