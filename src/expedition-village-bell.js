@@ -641,6 +641,7 @@
     const baseNormalize = system.normalizeState.bind(system);
     system.normalizeState = function normalizeWithVillageRestoration(input) {
       const next = baseNormalize(input);
+      system.__villageGrottoTrace = Boolean(next.destinations.find(item => item.id === "village-forge:crystal-grotto")?.villageGrottoTrace);
       system.__villageBellRestoration = next.destinations.find((item) => item.id === DESTINATION_ID)?.villageRestoration || null;
       system.__villageBellFacility = next.destinations.find((item) => item.id === DESTINATION_ID)?.villageFacility || null;
       return next;
