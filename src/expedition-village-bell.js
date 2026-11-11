@@ -267,10 +267,20 @@
     return true;
   }
 
+  // The lit route must be explored first: its wall markings reveal the hidden side passage.
+  function revealGrottoTrace(state, report) {
+    if (!state || !report || report.outcome !== "success" || report.destinationId !== "village-forge:crystal-grotto") return false;
+    const grotto = state.destinations?.find(item => item.id === "village-forge:crystal-grotto");
+    if (!grotto || grotto.villageGrottoTrace || report.villageGrottoDetour === "shadow") return false;
+    grotto.villageGrottoTrace = true;
+    report.log?.push({ minute: 103, time: "", type: "grotto-trace", text: "導光灯の奥で壁の刻印を発見。次の遠征から暗がりの横穴へ進める。", causes: ["grotto-trace"] });
+    return true;
+  }
+
   // An optional dark detour turns the grotto into a risk/reward decision.
-  function prepareGrottoDetour(expedition, approach) {
+  function prepareGrottoDetour(expedition, approach, state) {
     if (!expedition?.inputs || expedition.inputs.destinationId !== "village-forge:crystal-grotto") return false;
-    if (approach !== "shadow") return false;
+    if (approach !== "shadow" || !state?.destinations?.some(item => item.id === "village-forge:crystal-grotto" && item.villageGrottoTrace)) return false;
     expedition.inputs.villageGrottoDetour = "shadow";
     expedition.inputs.policyId = "greedy";
     return true;
@@ -361,6 +371,7 @@
         const input = document.createElement("input");
         input.type = "radio"; input.name = "village-grotto-approach"; input.value = value;
         input.checked = value === selectedGrottoApproach;
+        if (value === "shadow" && !root.CrownlessExpeditionSystem?.__villageGrottoTrace) { input.disabled = true; selectedGrottoApproach = "lit"; input.checked = false; }
         input.addEventListener("change", () => { if (input.checked) selectedGrottoApproach = value; });
         const body = document.createElement("span");
         const strong = document.createElement("strong"); strong.textContent = title;
@@ -483,6 +494,7 @@
       const requested = selectedApproach;
       const next = baseDispatch(state, input, nowMs);
       system.__villageBellRestoration = next.destinations.find((item) => item.id === DESTINATION_ID)?.villageRestoration || null;
+      system.__villageGrottoTrace = Boolean(next.destinations.find(item => item.id === "village-forge:crystal-grotto")?.villageGrottoTrace);
       system.__villageBellFacility = next.destinations.find((item) => item.id === DESTINATION_ID)?.villageFacility || null;
       if (requestForgePass && next.activeExpedition && next.activeExpedition.inputs.destinationId === DESTINATION_ID) {
         const opened = forgeMinePass(next);
@@ -496,7 +508,7 @@
       requestCrystalBeacon = false;
       if (next.activeExpedition) prepareMineDelve(next, next.activeExpedition, selectedMineApproach);
       selectedMineApproach = "safe";
-      if (next.activeExpedition) prepareGrottoDetour(next.activeExpedition, selectedGrottoApproach);
+      if (next.activeExpedition) prepareGrottoDetour(next.activeExpedition, selectedGrottoApproach, next);
       selectedGrottoApproach = "lit";
       const inputs = next && next.activeExpedition && next.activeExpedition.inputs;
       if (inputs && inputs.destinationId === DESTINATION_ID) {
@@ -571,6 +583,7 @@
       rewardRestoredRoad(state, report);
       rewardMineDelve(report, expedition);
       rewardGrottoDetour(report, expedition);
+      report.villageGrottoDetour = expedition?.inputs?.villageGrottoDetour;
       return report;
     };
 
@@ -579,6 +592,8 @@
       rewardRevisit(state, report);
       rewardRestoredRoad(state, report);
       const applied = baseApplyReport(state, report);
+      revealGrottoTrace(applied, report);
+      system.__villageGrottoTrace = Boolean(applied.destinations.find(item => item.id === "village-forge:crystal-grotto")?.villageGrottoTrace);
       unlockFollowup(applied, report);
       restoreVillage(applied, report);
       upgradeVillageFromRoad(applied, report);
@@ -597,6 +612,8 @@
         rewardRestoredRoad(state, advanced.report);
         rewardMineDelve(advanced.report, expedition);
         rewardGrottoDetour(advanced.report, expedition);
+        advanced.report.villageGrottoDetour = expedition.inputs?.villageGrottoDetour;
+        revealGrottoTrace(advanced.state, advanced.report);
         // advance() has already banked the base report; bank sidecar road loot once.
         if (advanced.report.outcome === "success" && Array.isArray(advanced.state.securedLoot)) {
           for (const routeLoot of advanced.report.loot.filter((item) => item && ["watch-road-medicine", "ore-trail-iron", "sealed-mine-star-ore", "sealed-mine-deep-crystal", "grotto-shadow-prism"].includes(item.id))) {
@@ -614,6 +631,7 @@
         upgradeVillageFromRoad(advanced.state, advanced.report);
         syncStoredReport(advanced.state, advanced.report);
       }
+      system.__villageGrottoTrace = Boolean(advanced.state?.destinations?.find(item => item.id === "village-forge:crystal-grotto")?.villageGrottoTrace);
       system.__villageBellRestoration = advanced.state?.destinations?.find((item) => item.id === DESTINATION_ID)?.villageRestoration || null;
       return advanced;
     };
@@ -679,6 +697,7 @@
     prepareMineDelve,
     rewardMineDelve,
     prepareGrottoDetour,
+    revealGrottoTrace,
     rewardGrottoDetour,
     syncStoredReport,
     currentDestination,
