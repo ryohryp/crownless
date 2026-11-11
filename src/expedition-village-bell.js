@@ -129,7 +129,7 @@
   // A successful return from a discovered lead permanently changes the original village.
   // The world change is stored on the existing destination, not a parallel timer or save.
   function restoreVillage(state, report, expedition) {
-    const destinationId = expedition && expedition.inputs && expedition.inputs.destinationId;
+    const destinationId = (expedition && expedition.inputs && expedition.inputs.destinationId) || (report && report.destinationId);
     const lead = state && Array.isArray(state.destinations)
       && state.destinations.find((item) => item && item.id === destinationId && item.villageLead);
     if (!lead || !report || report.outcome !== "success") return null;
@@ -232,14 +232,29 @@
 
     const baseResolve = system.resolveExpedition.bind(system);
     system.resolveExpedition = function resolveWithVillageChoice(expedition, state) {
-      return decorateReport(baseResolve(expedition, state), expedition);
+      const report = decorateReport(baseResolve(expedition, state), expedition);
+      const destination = state && Array.isArray(state.destinations)
+        && state.destinations.find((item) => item && item.id === report.destinationId);
+      if (report.outcome === "success" && destination && destination.id === DESTINATION_ID && destination.villageRestoration) {
+        const stage = destination.villageRestoration;
+        const supplies = stage === "watchfire"
+          ? { id: "village-watchfire-herbs", name: "見張り火の薬草包み", tags: ["herbs", "supplies"] }
+          : { id: "village-storehouse-ore", name: "復興物資庫の鍛造材", tags: ["ore", "supplies"] };
+        report.loot.push(supplies);
+        report.log.push({
+          minute: 101, time: "", type: "village-supplies",
+          text: `復興した村から${supplies.name}を受け取った。帰還して倉庫に持ち帰る。`,
+          causes: [destination.id, supplies.id],
+        });
+      }
+      return report;
     };
 
     const baseApplyReport = system.applyReport.bind(system);
     system.applyReport = function applyReportWithVillageChoice(state, report) {
       const applied = baseApplyReport(state, report);
       unlockFollowup(applied, report);
-      restoreVillage(applied, report, state && state.activeExpedition);
+      restoreVillage(applied, report);
       syncStoredReport(applied, report);
       return applied;
     };
