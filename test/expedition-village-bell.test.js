@@ -163,8 +163,8 @@ test("restored village preparation changes actual combat without permanent free 
   const prepared = system.resolveExpedition(base, current);
   assert.equal(prepared.villagePreparation, "scout");
   assert.ok(prepared.log.some((entry) => entry.type === "village-preparation"));
-  assert.ok(prepared.combats.some((combat) => combat.rounds.some((round) => round.events.includes("ambush"))));
-  assert.ok(!unprepared.combats.some((combat) => combat.rounds.some((round) => round.events.includes("ambush"))));
+  assert.ok(prepared.combat.encounters.some((combat) => combat.rounds.some((round) => round.events.includes("ambush"))));
+  assert.ok(!unprepared.combat.encounters.some((combat) => combat.rounds.some((round) => round.events.includes("ambush"))));
   assert.equal(current.equipment.some((item) => item.id.startsWith("village-preparation-")), false);
   const supply = system.resolveExpedition({ ...base, inputs: { ...base.inputs, villagePreparation: "supplies" } }, current);
   assert.equal(supply.villagePreparation, "supplies");
