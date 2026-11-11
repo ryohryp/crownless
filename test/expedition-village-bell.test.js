@@ -406,7 +406,8 @@ test("grotto shadow detour forces risky policy and rewards only safe return", ()
   const mission = { inputs: { destinationId: "village-forge:crystal-grotto", policyId: "careful" } };
   assert.equal(village.prepareGrottoDetour(mission, "lit"), false);
   assert.equal(mission.inputs.policyId, "careful");
-  assert.equal(village.prepareGrottoDetour(mission, "shadow"), true);
+  const grottoState = { destinations: [{ id: "village-forge:crystal-grotto", villageGrottoTrace: true }] };
+  assert.equal(village.prepareGrottoDetour(mission, "shadow", grottoState), true);
   assert.equal(mission.inputs.policyId, "greedy");
   const failed = { outcome: "retreat", loot: [] };
   assert.equal(village.rewardGrottoDetour(failed, mission), false);
@@ -422,4 +423,23 @@ test("grotto reward cannot be earned on an unrelated expedition", () => {
   const mission = { inputs: { destinationId: "village-forge:sealed-mine" } };
   assert.equal(village.prepareGrottoDetour(mission, "shadow"), false);
   assert.equal(village.rewardGrottoDetour({ outcome: "success", loot: [] }, mission), false);
+});
+
+
+test("grotto lit expedition reveals a persistent trace before shadow detour is allowed", () => {
+  const engine = require("../src/expedition-system.js");
+  const current = engine.initialState();
+  current.destinations.push({ id: "village-forge:crystal-grotto", name: "隠し洞窟", family: "cave", dangerTags: ["dark"], opportunityTags: ["crystal"], durationMs: 540000 });
+  const mission = { inputs: { destinationId: "village-forge:crystal-grotto", policyId: "careful" } };
+  assert.equal(village.prepareGrottoDetour(mission, "shadow", current), false);
+  assert.equal(mission.inputs.policyId, "careful");
+  const failed = { outcome: "retreat", destinationId: "village-forge:crystal-grotto", log: [] };
+  assert.equal(village.revealGrottoTrace(current, failed), false);
+  const success = { outcome: "success", destinationId: "village-forge:crystal-grotto", log: [] };
+  assert.equal(village.revealGrottoTrace(current, success), true);
+  assert.ok(success.log.some(entry => entry.type === "grotto-trace"));
+  assert.equal(village.revealGrottoTrace(current, success), false);
+  const reloaded = engine.normalizeState(JSON.parse(JSON.stringify(current)));
+  assert.equal(village.prepareGrottoDetour(mission, "shadow", reloaded), true);
+  assert.equal(mission.inputs.policyId, "greedy");
 });
