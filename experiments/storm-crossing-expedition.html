@@ -13,7 +13,7 @@ let s;try{s=Object.assign(initial(),JSON.parse(localStorage.getItem(KEY))||{})}c
 const $=id=>document.getElementById(id);
 function persist(){try{localStorage.setItem(KEY,JSON.stringify(s))}catch{}}
 function act(label,fn,kind=''){let b=document.createElement('button');b.textContent=label;b.className=kind;b.onclick=()=>{fn();persist();render()};$('actions').append(b)}
-function stormAt(t){return t<s.groundedUntil?-1:(t<s.decoyUntil?6:(t<s.divertUntil?[0,3,6]:[1,4,7])[t%3])}
+function stormAt(t){return t<s.groundedUntil?-1:(t<s.decoyUntil?8:(t<s.divertUntil?[0,3,6]:[1,4,7])[t%3])}
 function neighbors(p){return [p-3,p+3,p%3? p-1:-1,p%3<2?p+1:-1].filter(v=>v>=0&&v<N&&(!((p===0&&v===3)||(p===3&&v===0))||s.wolfHook&&s.cliffTrailFound))}
 function hazard(){if(stormAt(s.turn)===s.pos){if(s.relicShield>0){s.relicShield--;return}s.hp-=s.boots?1:3;if(s.hp<=0){s.hp=0;s.bag=0;s.phase='lost'}}}
 function chaseTick(){if(!s.stormBeacon||s.stormReward||s.stormChaseFailed)return;if(s.pos===stormAt(s.turn)){s.stormCharge++;if(s.stormCharge>=3){s.stormReward=true;s.bag+=14;s.stormBeacon=false}}}
@@ -158,7 +158,7 @@ if(s.stormBeacon){
 if(s.stormReward&&p===8)act('⚡ 雷追いの記録を確認（秘鉱14獲得済み）',()=>{});
 if(p===6&&!s.trailClue)act('🔎 岩陰の獣道を追う（道標の隠し荷を発見）',()=>{s.trailClue=true;s.turn++;hazard()});
 if(p===8&&s.trailClue&&!s.trailCacheTaken)act('🎒 道標の隠し荷を掘る（鉱石+5 / 1行動）',()=>{s.trailCacheTaken=true;s.bag+=5;s.turn++;hazard()});
-if(p===6&&s.bag>=1&&s.turn>=s.decoyUntil)act('⚡ 雷の囮石を置く（鉱石-1 / 岩陰へ2手誘導）',()=>{s.bag--;s.decoyUntil=s.turn+3;s.turn++;hazard()},'warn');
+if(p===6&&s.bag>=1&&s.turn>=s.decoyUntil)act('⚡ 雷の囮石を置く（鉱石-1 / 道標へ2手誘導）',()=>{s.bag--;s.decoyUntil=s.turn+3;s.turn++;hazard()},'warn');
 if(p===6||p===8)act('岩陰で雷雲を1手やり過ごす',waitTurn);
 if(p===1&&s.turn>=s.groundedUntil&&s.bag>=2)act('素材2で避雷塔を接地（次の3行動は雷雲停止）',()=>{s.bag-=2;s.groundedUntil=s.turn+4});
 // Movement uses the adjacent highlighted map tiles.
