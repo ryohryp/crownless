@@ -368,6 +368,13 @@
         decorateReport(advanced.report, expedition);
         rewardRevisit(state, advanced.report);
         rewardRestoredRoad(state, advanced.report);
+        // advance() has already banked the base report; bank sidecar road loot once.
+        if (advanced.report.outcome === "success" && Array.isArray(advanced.state.securedLoot)) {
+          const routeLoot = advanced.report.loot.find((item) => item && ["watch-road-medicine", "ore-trail-iron"].includes(item.id));
+          if (routeLoot && !advanced.state.securedLoot.some((item) => item.id === routeLoot.id && item.sourceExpeditionId === advanced.report.expeditionId)) {
+            advanced.state.securedLoot.push({ ...routeLoot, sourceExpeditionId: advanced.report.expeditionId });
+          }
+        }
         if (advanced.report.outcome === "success" && advanced.report.destinationId === DESTINATION_ID && advanced.report.loot.some((item) => item && item.id.startsWith("village-"))) {
           const bonus = advanced.report.loot.find((item) => item && item.id.startsWith("village-"));
           if (!advanced.state.securedLoot.some((item) => item.sourceExpeditionId === advanced.report.expeditionId && item.id === bonus.id)) advanced.state.securedLoot.push({ ...bonus, sourceExpeditionId: advanced.report.expeditionId });
