@@ -127,3 +127,23 @@ test("cellar follow-up restores workshop; retreat never rebuilds village", () =>
   assert.ok(!changed.dangerTags.includes("collapse"));
   assert.equal(village.restoreVillage(current, report(), { inputs: { destinationId: "unrelated" } }), null);
 });
+
+test("restored village revisits bank supplies through automatic advance without duplication", () => {
+  const engine = require("../src/expedition-system.js");
+  const system = { ...engine };
+  village.installSystemHooks({ CrownlessExpeditionSystem: system });
+  const current = engine.initialState();
+  const source = current.destinations.find((item) => item.id === village.DESTINATION_ID);
+  source.villageRestoration = "storehouse";
+  const input = { destinationId: village.DESTINATION_ID, companionIds: ["mira"], equipmentIds: [], policyId: "standard", durationMs: 0, seed: 123 };
+  const dispatched = system.dispatchExpedition(current, input, 1000);
+  const result = system.advance(dispatched, 1001);
+  assert.equal(result.status, "completed");
+  if (result.report.outcome === "success") {
+    assert.equal(result.report.loot.filter((item) => item.id === "village-storehouse-ore").length, 1);
+    assert.equal(result.state.securedLoot.filter((item) => item.id === "village-storehouse-ore").length, 1);
+    assert.equal(system.applyReport(result.state, result.report).securedLoot.filter((item) => item.id === "village-storehouse-ore").length, 1);
+  } else {
+    assert.equal(result.state.securedLoot.filter((item) => item.id === "village-storehouse-ore").length, 0);
+  }
+});
