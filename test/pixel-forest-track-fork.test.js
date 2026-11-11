@@ -235,7 +235,7 @@ test('restored camp reopens the real departure panel on page load', () => {
   const end = html.indexOf('\n  };', start);
   assert(start >= 0 && end > start, 'find the live page-load initializer');
   const events = [];
-  const window = {};
+  const window = { __phase: 'camp' };
   vm.runInNewContext(html.slice(start, end + 5), {
     window,
     rpg: { phase: 'camp' },
