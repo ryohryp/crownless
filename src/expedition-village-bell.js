@@ -34,6 +34,7 @@
     }),
   });
   let selectedApproach = QUIET;
+  let selectedPreparation = "scout";
 
   function clone(value) {
     return value == null ? value : JSON.parse(JSON.stringify(value));
@@ -193,11 +194,39 @@
     const form = document && document.querySelector ? document.querySelector("form.expedition-prepare") : null;
     if (!form) return false;
     const existing = form.querySelector("[data-expedition-village-choice]");
+    const restored = root.CrownlessExpeditionSystem && root.CrownlessExpeditionSystem.__villageBellRestoration;
+    const preparation = form.querySelector("[data-village-preparation]");
     if (currentDestination(form) !== DESTINATION_ID) {
       selectedApproach = QUIET;
       if (existing) existing.remove();
-      return Boolean(existing);
+      if (preparation) preparation.remove();
+      return Boolean(existing || preparation);
     }
+    if (restored) {
+      if (existing) existing.remove();
+      if (preparation) return false;
+      const fieldset = document.createElement("fieldset");
+      fieldset.className = "expedition-choice expedition-choice--village";
+      fieldset.dataset.villagePreparation = "true";
+      const legend = document.createElement("legend");
+      legend.textContent = "復興した村で遠征の準備";
+      fieldset.appendChild(legend);
+      for (const [value, title, copy] of [["scout", "見張り隊に偵察を頼む", "盗賊の奇襲に備えて先手を取る。"], ["supplies", "物資庫で応急手当を整える", "戦闘中に負傷を回復する。"]]) {
+        const label = document.createElement("label");
+        label.className = "expedition-choice__item";
+        const input = document.createElement("input");
+        input.type = "radio"; input.name = "village-preparation"; input.value = value;
+        input.checked = value === selectedPreparation;
+        input.addEventListener("change", () => { if (input.checked) selectedPreparation = value; });
+        const body = document.createElement("span");
+        const strong = document.createElement("strong"); strong.textContent = title;
+        const small = document.createElement("small"); small.textContent = copy;
+        body.append(strong, small); label.append(input, body); fieldset.append(label);
+      }
+      form.appendChild(fieldset);
+      return true;
+    }
+    if (preparation) preparation.remove();
     if (existing) return false;
 
     selectedApproach = QUIET;
@@ -224,8 +253,13 @@
     system.dispatchExpedition = function dispatchWithVillageChoice(state, input, nowMs) {
       const requested = selectedApproach;
       const next = baseDispatch(state, input, nowMs);
+      system.__villageBellRestoration = next.destinations.find((item) => item.id === DESTINATION_ID)?.villageRestoration || null;
       const inputs = next && next.activeExpedition && next.activeExpedition.inputs;
-      if (inputs && inputs.destinationId === DESTINATION_ID) inputs.villageApproach = normalizeApproach(requested);
+      if (inputs && inputs.destinationId === DESTINATION_ID) {
+        const village = state && state.destinations && state.destinations.find((item) => item.id === DESTINATION_ID);
+        if (village && village.villageRestoration) inputs.villagePreparation = selectedPreparation;
+        else inputs.villageApproach = normalizeApproach(requested);
+      }
       selectedApproach = QUIET;
       return next;
     };
@@ -250,7 +284,21 @@
 
     const baseResolve = system.resolveExpedition.bind(system);
     system.resolveExpedition = function resolveWithVillageChoice(expedition, state) {
-      const report = decorateReport(baseResolve(expedition, state), expedition);
+      const preparation = expedition && expedition.inputs && expedition.inputs.villagePreparation;
+      const village = state && state.destinations && state.destinations.find((item) => item.id === DESTINATION_ID);
+      let preparedState = state;
+      let preparedExpedition = expedition;
+      if (village && village.villageRestoration && expedition.inputs.destinationId === DESTINATION_ID && ["scout", "supplies"].includes(preparation)) {
+        const tag = preparation === "scout" ? "conceal" : "heal";
+        const gearId = "village-preparation-" + preparation;
+        preparedState = { ...state, equipment: [...state.equipment, { id: gearId, name: "村の支援", tags: [tag] }] };
+        preparedExpedition = { ...expedition, inputs: { ...expedition.inputs, equipmentIds: [...expedition.inputs.equipmentIds, gearId] } };
+      }
+      const report = decorateReport(baseResolve(preparedExpedition, preparedState), expedition);
+      if (preparedExpedition !== expedition) {
+        report.villagePreparation = preparation;
+        report.log.unshift({ minute: 0, time: "", type: "village-preparation", text: preparation === "scout" ? "村の見張り隊が盗賊の動きを教えてくれた。" : "復興した村の物資庫で応急手当を整えた。", causes: ["village-preparation-" + preparation] });
+      }
       rewardRevisit(state, report);
       return report;
     };
@@ -262,6 +310,7 @@
       unlockFollowup(applied, report);
       restoreVillage(applied, report);
       syncStoredReport(applied, report);
+      system.__villageBellRestoration = applied.destinations.find((item) => item.id === DESTINATION_ID)?.villageRestoration || null;
       return applied;
     };
 
@@ -280,10 +329,18 @@
         restoreVillage(advanced.state, advanced.report, expedition);
         syncStoredReport(advanced.state, advanced.report);
       }
+      system.__villageBellRestoration = advanced.state?.destinations?.find((item) => item.id === DESTINATION_ID)?.villageRestoration || null;
       return advanced;
     };
 
     system.__villageBellInstalled = true;
+    // UI checks the currently saved destination, refreshed on each state transition.
+    const baseNormalize = system.normalizeState.bind(system);
+    system.normalizeState = function normalizeWithVillageRestoration(input) {
+      const next = baseNormalize(input);
+      system.__villageBellRestoration = next.destinations.find((item) => item.id === DESTINATION_ID)?.villageRestoration || null;
+      return next;
+    };
     return true;
   }
 
