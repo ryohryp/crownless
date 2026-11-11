@@ -172,3 +172,41 @@ test("restored village preparation changes actual combat without permanent free 
   const noRestoration = engine.initialState();
   assert.equal(system.resolveExpedition(base, noRestoration).villagePreparation, undefined);
 });
+
+test("restoration unlocks one repeatable destination that survives reload", () => {
+  const engine = require("../src/expedition-system.js");
+  for (const approach of [village.RING, village.QUIET]) {
+    const current = engine.initialState();
+    const first = report();
+    village.decorateReport(first, expedition(approach));
+    const lead = village.unlockFollowup(current, first);
+    const returned = report();
+    returned.destinationId = lead.id;
+    const restored = village.restoreVillage(current, returned);
+    const routeId = returned.villageRestoration.routeId;
+    const route = current.destinations.find((item) => item.id === routeId);
+    assert.ok(restored);
+    assert.ok(route);
+    assert.ok(current.discoveredDestinationIds.includes(routeId));
+    assert.equal(route.villageRestoredRoute, approach === village.RING ? "watchfire" : "storehouse");
+    assert.equal(village.unlockRestoredRoute(current, route.villageRestoredRoute), route);
+    assert.equal(current.destinations.filter((item) => item.id === routeId).length, 1);
+    const reloaded = engine.normalizeState(JSON.parse(JSON.stringify(current)));
+    assert.ok(reloaded.destinations.some((item) => item.id === routeId));
+    const dispatched = engine.dispatchExpedition(reloaded, {
+      destinationId: routeId, companionIds: ["mira"], equipmentIds: [], policyId: "cautious",
+    }, 1000);
+    assert.equal(dispatched.activeExpedition.inputs.destinationId, routeId);
+  }
+});
+
+test("failed follow-up does not reveal restored route", () => {
+  const current = state();
+  const first = report();
+  village.decorateReport(first, expedition(village.RING));
+  const lead = village.unlockFollowup(current, first);
+  const failed = report("retreat");
+  failed.destinationId = lead.id;
+  assert.equal(village.restoreVillage(current, failed), null);
+  assert.equal(current.destinations.some((item) => item.villageRestoredRoute), false);
+});

@@ -127,6 +127,29 @@
     return destination;
   }
 
+  // Rebuilding a village reveals a distinct, repeatable expedition instead of a cosmetic flag.
+  function unlockRestoredRoute(state, stage) {
+    if (!state || !Array.isArray(state.destinations)) return null;
+    const watchfire = stage === "watchfire";
+    const id = watchfire ? "village-restored:watch-road" : "village-restored:ore-trail";
+    let route = state.destinations.find((item) => item && item.id === id);
+    if (!route) {
+      route = {
+        id,
+        name: watchfire ? "見張り火の巡回街道" : "復旧した鉱石運搬路",
+        family: watchfire ? "village" : "cave",
+        dangerTags: watchfire ? ["bandit", "unknown"] : ["dark", "fall"],
+        opportunityTags: watchfire ? ["survivor", "rumor", "contact"] : ["ore", "salvage", "passage"],
+        durationMs: watchfire ? 300000 : 360000,
+        villageRestoredRoute: stage,
+      };
+      state.destinations.push(route);
+    }
+    if (!Array.isArray(state.discoveredDestinationIds)) state.discoveredDestinationIds = [];
+    if (!state.discoveredDestinationIds.includes(id)) state.discoveredDestinationIds.push(id);
+    return route;
+  }
+
   // A successful return from a discovered lead permanently changes the original village.
   // The world change is stored on the existing destination, not a parallel timer or save.
   function restoreVillage(state, report, expedition) {
@@ -137,7 +160,7 @@
     const source = state.destinations.find((item) => item && item.id === lead.villageLead.sourceDestinationId);
     if (!source || source.id !== DESTINATION_ID) return null;
     const stage = lead.villageLead.approachId === RING ? "watchfire" : "storehouse";
-    if (source.villageRestoration === stage) return source;
+    if (source.villageRestoration === stage) { unlockRestoredRoute(state, stage); return source; }
     source.villageRestoration = stage;
     source.name = stage === "watchfire" ? "見張り火の灯る村" : "物資庫を取り戻した村";
     source.opportunityTags = Array.from(new Set([
@@ -146,7 +169,8 @@
     ]));
     source.dangerTags = (Array.isArray(source.dangerTags) ? source.dangerTags : [])
       .filter((tag) => tag !== (stage === "watchfire" ? "bandit" : "collapse"));
-    report.villageRestoration = { stage, destinationId: source.id, name: source.name };
+    const route = unlockRestoredRoute(state, stage);
+    report.villageRestoration = { stage, destinationId: source.id, name: source.name, routeId: route.id };
     if (!Array.isArray(report.log)) report.log = [];
     report.log.push({
       minute: 75, time: "", type: "village-restoration",
@@ -386,6 +410,7 @@
     decorateReport,
     unlockFollowup,
     restoreVillage,
+    unlockRestoredRoute,
     syncStoredReport,
     currentDestination,
     syncChoice,
