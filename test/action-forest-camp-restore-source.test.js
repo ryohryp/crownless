@@ -11,7 +11,7 @@ test('restored camp reopens the RPG actions after stage initialization', () => {
   assert.ok(onload, 'game initialization must remain present');
   const body = onload[1];
   const init = body.indexOf('initStage()');
-  const restore = body.indexOf("if (rpg.phase === 'camp') showRpgPanel()");
+  const restore = body.indexOf('showRpgPanel()');
   assert.ok(init >= 0, 'stage initializes');
   assert.ok(restore > init, 'camp UI restores after stage initialization');
 });

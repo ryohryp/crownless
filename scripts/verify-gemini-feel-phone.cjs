@@ -7,6 +7,44 @@ const fs = require('node:fs/promises');
 const path = require('node:path');
 const rpgRules = require('../src/gemini-rpg-loop.js');
 
+async function touchSavedCampDeparture(page) {
+  const camp=await page.evaluate(()=>window.CrownlessForestReadout());
+  assert.equal(camp.phase,'camp','a restored camp must wait for deliberate departure');
+  assert.equal(camp.enemies.length,0,'a restored camp must not spawn an unseen fight');
+  assert.equal(await page.locator('#rpgPanel').isVisible(),true,
+    'a saved living return must reopen the camp sheet');
+  const depart=page.locator('#rpgDepart');
+  assert.equal(await depart.isVisible(),true,
+    'a saved camp must offer a real re-expedition action');
+  await depart.scrollIntoViewIfNeeded();
+  // Preserve a visual proof of the restored camp before the real departure tap.
+  const width=page.viewportSize().width;
+  await page.screenshot({
+    path:path.resolve(__dirname,'../.qa/browser/restored-camp-'+width+'.png'),
+  });
+  const box=await depart.boundingBox();
+  const campViewport=await page.evaluate(() => ({
+    scrollWidth:document.documentElement.scrollWidth,
+    viewportWidth:window.innerWidth,
+  }));
+  assert(campViewport.scrollWidth<=campViewport.viewportWidth+1,
+    'restored camp must not cause horizontal phone overflow: '+JSON.stringify(campViewport));
+  assert(box && box.width>=44 && box.height>=44 && box.x>=0 && box.y>=0 &&
+    box.x+box.width<=page.viewportSize().width &&
+    box.y+box.height<=page.viewportSize().height,
+    'the re-expedition action must fit the phone viewport');
+  await page.touchscreen.tap(box.x+box.width/2,box.y+box.height/2);
+  const next=await page.evaluate(()=>window.CrownlessForestReadout());
+  assert.equal(next.phase,'fight');
+  assert(next.enemies.some(enemy=>enemy.hp>0 && enemy.state!=='DEAD'),
+    'real touch departure must start a live enemy encounter, not just change phase');
+  assert.equal(next.banked,camp.banked,'re-expedition must preserve previously secured materials');
+  assert.equal(next.unbanked,0,'a new fight must start with an empty provisional bag');
+  assert.equal(await page.locator('#rpgPanel').isVisible(),false,
+    'the camp sheet must close after an explicit departure');
+}
+
+
 function listen(server) {
   return new Promise((resolve, reject) => {
     let out = '';
@@ -35,7 +73,7 @@ async function main() {
     browser = await chromium.launch({ headless: true });
     await fs.mkdir(path.resolve(__dirname, '../.qa/browser'), { recursive: true });
 
-    for (const width of [360, 390]) {
+    for (const width of [360, 390, 430]) {
       const context = await browser.newContext({
         viewport: { width, height: width === 360 ? 800 : 844 },
         isMobile: true, hasTouch: true, deviceScaleFactor: 1,
@@ -84,8 +122,8 @@ async function main() {
           return !!canvas && canvas.width > 0 && window.__combatLabCanvasText.includes('旅人 [1P]');
         }, null, { timeout: 15000 });
 
-        assert.match(await page.locator('#forestExploreHint').innerText(), /森の音.*気になる地点は直接タップ/,
-          'start of combat should invite sensory exploration without spoiling place names');
+        assert.match(await page.locator('#forestExploreHint').innerText(), /戦闘中。敵を倒して探索へ戻ろう/,
+          'combat must not reveal or consume exploration clues before returning to exploration');
         assert.equal(await page.locator('#rpgOpenResults').isVisible(), false,
           'expedition choice stays hidden until enemies are defeated');
         assert.equal(await page.locator('#rpgKeepExploring').isVisible(), false,
@@ -259,14 +297,9 @@ async function main() {
         await page.reload({ waitUntil: 'domcontentloaded' });
         await page.waitForFunction(() => document.querySelector('#rpgStatusBadge')?.textContent.includes('倉庫 3'));
         assert.match(await page.locator('#rpgStatusBadge').innerText(), /未帰還 0.*倉庫 3.*初期装備/);
-        assert.equal(await page.locator('#rpgPanel').isVisible(), true,
-          'a safely returned camp must remain accessible after reload');
-        assert.equal(await page.locator('#rpgDepart').isVisible(), true,
-          'the restored camp must offer another expedition');
-        await page.locator('#rpgDepart').click();
-        assert.equal(await page.locator('#rpgPanel').isVisible(), false,
-          'departing must close the camp panel for combat');
-        assert.equal((await page.evaluate(() => window.CrownlessForestReadout())).phase, 'fight');
+        assert.equal((await page.evaluate(()=>window.CrownlessForestReadout())).phase,'camp',
+          'a saved living return must resume at camp rather than auto-fighting');
+        await touchSavedCampDeparture(page);
         await page.evaluate(() => {
           const r = window.CrownlessRpgLoop.create();
           r.phase = 'camp';
@@ -277,6 +310,8 @@ async function main() {
         await page.reload({ waitUntil: 'domcontentloaded' });
         await page.waitForFunction(() => document.querySelector('#rpgStatusBadge')?.textContent.includes('風裂きの剣'));
         assert.match(await page.locator('#rpgStatusBadge').innerText(), /未帰還 0.*倉庫 0.*風裂きの剣/);
+        assert.equal((await page.evaluate(()=>window.CrownlessForestReadout())).phase,'camp',
+          'saved crafted gear must keep the camp decision available');
         // The returned-fang upgrade must change actual fighter attack on reload,
         // not just a label or an isolated rules test. Use a valid camp save fixture.
         await page.evaluate(() => {
@@ -297,13 +332,43 @@ async function main() {
         assert.equal(tempered.unbanked,0,'reloading never restores unreturned fangs');
         assert.equal(tempered.player.punchPower,19,'tempered sword raises actual punch damage');
         assert.equal(tempered.player.kickPower,21,'tempered sword raises actual kick damage');
-        assert.equal(tempered.phase,'camp','saved upgrade restores the camp before departure');
-        assert.equal(await page.locator('#rpgDepart').isVisible(),true);
-        await page.locator('#rpgDepart').click();
-        assert.equal((await page.evaluate(() => window.CrownlessForestReadout())).phase,'fight');
+        assert.equal(tempered.phase,'camp','saved upgrade resumes at camp until the next departure');
+        assert.equal(await page.locator('#rpgDepart').isVisible(),true,
+          'tempered camp remains ready for another deliberate expedition');
         assert.equal(await page.evaluate(
           () => localStorage.getItem('crownless-expedition-v1-demo')), saveBefore,
           'lab visits and saved smith equipment must never mutate the actual RPG save');
+        // A conflicting save after reload must not turn an in-memory craft
+        // into a falsely banked reward. Exercise the real 360/390px camp UI.
+        await page.evaluate(() => {
+          const r=window.CrownlessRpgLoop.create();
+          r.phase='camp';
+          r.banked=window.CrownlessRpgLoop.COST;
+          localStorage.setItem('crownless-action-forest-v1-demo',window.CrownlessActionSave.encode(r));
+        });
+        await page.reload({ waitUntil:'domcontentloaded' });
+        await page.waitForFunction(() => window.CrownlessForestReadout?.().phase==='camp');
+        const competingSave=await page.evaluate(() => {
+          const r=window.CrownlessRpgLoop.create();
+          r.phase='camp';
+          r.banked=2;
+          const raw=window.CrownlessActionSave.encode(r);
+          localStorage.setItem('crownless-action-forest-v1-demo',raw);
+          return raw;
+        });
+        await page.locator('#rpgForge').click();
+        assert.match(await page.locator('#rpgStatusBadge').innerText(), /⚠ 未保存/,
+          'the phone HUD must not silently call an unsaved weapon durable');
+        assert.match(await page.locator('#rpgBank').innerText(), /未保存の成果あり/,
+          'the camp inventory must flag its unsaved in-memory state');
+        assert.match(await page.locator('#rpgTitle').innerText(), /保存できない/);
+        assert.equal(await page.locator('#rpgSaveWarning').isVisible(),true);
+        assert.equal(await page.evaluate(
+          () => localStorage.getItem('crownless-action-forest-v1-demo')),competingSave,
+          'a conflicting save must never be overwritten by smithing');
+        await page.screenshot({
+          path:path.resolve(__dirname,'../.qa/browser/unsaved-camp-'+width+'.png'),
+        });
         // Bad records are diagnosed rather than rewritten or called saved.
         await page.evaluate(() => localStorage.setItem('crownless-action-forest-v1-demo', '{"version":999}'));
         await page.reload({ waitUntil: 'domcontentloaded' });
@@ -339,13 +404,7 @@ async function main() {
         await page.waitForFunction(() => window.CrownlessForestReadout?.().player);
         assert.equal((await page.evaluate(() => window.CrownlessForestReadout())).crafted,
           width === 390,'390px must load the forged sword; 360px uses starter gear');
-        // A forged sword is saved at camp; depart through the real UI before walking.
-        // Otherwise movement is intentionally blocked and the shrine never enters view.
-        if ((await page.evaluate(() => window.CrownlessForestReadout())).phase === 'camp') {
-          await page.locator('#rpgDepart').click();
-          assert.equal((await page.evaluate(() => window.CrownlessForestReadout())).phase,'fight',
-            'departing the restored camp must enable exploration movement');
-        }
+        if (width === 390) await touchSavedCampDeparture(page);
         await page.keyboard.down('d');
         try {
           await page.waitForFunction(() => {
@@ -421,12 +480,17 @@ async function main() {
           'nearby shrine must show a sensory cue on the canvas');
         assert(beforeShrine.hint.length<=40,
           'nearby shrine clue must not cover the 360px phone scene');
-        assert.match(beforeShrine.hint,/冷たい風.*タップで調査/,
-          'the real phone shows a sensory clue and requires a deliberate tap');
-        assert.match(beforeShrine.hint,
-          beforeShrine.player.hp>=beforeShrine.player.maxHp
-            ? /牙を拾うか、回復の機会を残すか/ : /牙か回復か、一度だけ選べる/,
-          'real phone hint must invite an intentional trade-off');
+        if (beforeShrine.phase === 'fight') {
+          assert.match(beforeShrine.hint,/戦闘中。敵を倒して探索へ戻ろう/,
+            'combat must not reveal an undiscovered shrine or offer exploration choices');
+        } else {
+          assert.match(beforeShrine.hint,/冷たい風.*タップで調査/,
+            'the real phone shows a sensory clue and requires a deliberate tap');
+          assert.match(beforeShrine.hint,
+            beforeShrine.player.hp>=beforeShrine.player.maxHp
+              ? /牙を拾うか、回復の機会を残すか/ : /牙か回復か、一度だけ選べる/,
+            'real phone hint must invite an intentional trade-off');
+        }
         const readForestShrine=()=>page.evaluate(()=>window.CrownlessForestReadout());
         // The actor can collect a healing dango between the HUD snapshot
         // and the actual tap. Assert against HP at the decision point, not
@@ -589,7 +653,7 @@ async function main() {
         await context.close();
       }
     }
-    console.log('Gemini-feel fantasy baseline: 360px/390px, real hit + shop + companion toggle + isolated return/forge reload PASS');
+    console.log('Gemini-feel fantasy baseline: 360px/390px/430px, real hit + shop + companion toggle + isolated return/forge reload PASS');
   } finally {
     if (browser) await browser.close();
     server.kill();

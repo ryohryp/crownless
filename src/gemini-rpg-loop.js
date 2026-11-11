@@ -27,7 +27,7 @@
     return true;
   }
   function returnAlive(s, hp) {
-    if (s.phase !== 'return' || !(hp > 0)) return false;
+    if (s.phase !== 'return' || !Number.isFinite(hp) || hp <= 0) return false;
     s.banked += s.unbanked;
     s.unbanked = 0;
     s.phase = 'camp';

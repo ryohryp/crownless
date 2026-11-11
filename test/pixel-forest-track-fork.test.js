@@ -116,10 +116,11 @@ test('the live post-track HUD asks for observation, not a prescribed gate route'
     guardian: null,
     near: null,
     state: { forestFinds: new Set(['traces']) },
-    rpg: { crafted: false, phase: 'return', unbanked: 2 }
+    rpg: { crafted: false, phase: 'return', unbanked: 2 },
+    cue: null
   });
   assert.match(label, /二手に分かれ/);
-  assert.match(label, /負傷 -3/, 'earned footing bonus remains legible');
+  assert.match(label, /足場を見切った/, 'earned footing insight remains legible without crowding the phone HUD');
   assert.doesNotMatch(label, /石門|祠|右|左|茨を調べ|新しい剣/,
     'the HUD must not preselect the destination or spoil either branch');
 });
@@ -133,7 +134,8 @@ test('the field HUD keeps the unvisited fork visible after either first discover
     guardian: null,
     near: null,
     state: { forestFinds: new Set(ids) },
-    rpg: { crafted: false, phase: 'return', unbanked: 2 }
+    rpg: { crafted: false, phase: 'return', unbanked: 2 },
+    cue: null
   });
   const both = labelFor(['traces']);
   assert.match(both, /二手に分かれ/, 'both branches remain a player choice');
@@ -179,7 +181,7 @@ test('bridge is safe before atlas load and rebakes its stone grain after load', 
     canvases.push(canvas);
     return canvas;
   }
-  const window = {};
+  const window = { __phase: 'camp' };
   vm.runInNewContext(fs.readFileSync('src/pixel-forest.js', 'utf8'), {
     window, Image: FakeImage, document: { createElement: surface }
   });
@@ -233,14 +235,14 @@ test('restored camp reopens the real departure panel on page load', () => {
   const end = html.indexOf('\n  };', start);
   assert(start >= 0 && end > start, 'find the live page-load initializer');
   const events = [];
-  const window = {};
+  const window = { __phase: 'camp' };
   vm.runInNewContext(html.slice(start, end + 5), {
     window,
     rpg: { phase: 'camp' },
     applyCombatInputMode: () => events.push('input'),
     initStage: () => events.push('stage'),
     updateRpgStatus: () => events.push('status'),
-    showRpgPanel: () => events.push('panel'),
+    showRpgPanel: () => { if (window.__phase === 'camp') events.push('panel'); },
     requestAnimationFrame: () => events.push('frame'),
     gameLoop: () => {}
   });
@@ -248,13 +250,14 @@ test('restored camp reopens the real departure panel on page load', () => {
   assert.deepEqual(events, ['input', 'stage', 'status', 'panel', 'frame'],
     'camp reload restores the departure entry before the first frame');
   events.length = 0;
+  window.__phase = 'fight';
   vm.runInNewContext(html.slice(start, end + 5), {
     window,
     rpg: { phase: 'fight' },
     applyCombatInputMode: () => events.push('input'),
     initStage: () => events.push('stage'),
     updateRpgStatus: () => events.push('status'),
-    showRpgPanel: () => events.push('panel'),
+    showRpgPanel: () => { if (window.__phase === 'camp') events.push('panel'); },
     requestAnimationFrame: () => events.push('frame'),
     gameLoop: () => {}
   });

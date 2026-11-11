@@ -24,10 +24,16 @@
   // The forged sword still unlocks the two-fang salvage; sharpening makes
   // careful salvage wound-free, but never grants extra materials.
   const GATE_BAREHAND_DAMAGE=6;
-  function gateSalvageDamage(choice,tempered=false,crafted=true){
-    return choice==='cautious' ? (!crafted ? GATE_BAREHAND_DAMAGE :
-      tempered ? 0 : GATE_CAUTIOUS_DAMAGE) :
-      tempered ? 4 : GATE_SALVAGE_DAMAGE;
+  function gateSalvageDamage(choice,tempered=false,crafted=true,shrineFirst=false){
+    if(choice==='cautious'){
+      const base=!crafted ? GATE_BAREHAND_DAMAGE :
+        tempered ? 0 : GATE_CAUTIOUS_DAMAGE;
+      // Shrine-first explorers recognize the soft moss seam in the thorns.
+      // This saves HP on careful salvage, but cannot grant the gate-first
+      // guardian opening or make a wound-free tempered sword even stronger.
+      return Math.max(0,base-(shrineFirst?2:0));
+    }
+    return tempered ? 4 : GATE_SALVAGE_DAMAGE;
   }
   function near(player,found){
     if(!player) return null;
@@ -53,16 +59,41 @@
         screenY>=ground-108 && screenY<=ground+22;
     })||null;
   }
-  // Reading tracks sharpens distant sounds and cool air near both fork leads.
-  // This is only a sensory cue: interaction remains at RANGE,
-  // and no route, label, or walkability is revealed early.
+  // Tracks reveal distant signs at both forks. A deliberate gate scout
+  // lets the explorer recognize the shrine's cold breeze slightly sooner.
+  // This remains a non-directional sensory cue, not a tap range, path or reveal.
   function cueNear(player,found){
     if(!player) return null;
-    return spots.find(spot=>
-      !found.has(spot.id) &&
-      Math.hypot(player.x-spot.x,player.z-spot.z) <
-        ((spot.id==='hollow'||spot.id==='shrine') && found.has('traces') ? 90 : RANGE)
-    )||null;
+    // A site within actual inspection reach takes precedence over a distant
+    // scent from another site. Never let a remote cue obscure a nearby choice.
+    const inspectable=near(player,found);
+    if(inspectable) return inspectable;
+    // When several distant signs overlap, favor the closest one rather than
+    // whichever site happens to appear first in the catalogue. This gives a
+    // more useful sensory lead without revealing a direction or a path.
+    return spots.filter(spot=>!found.has(spot.id)).map(spot=>{
+      // Shrine-first explorers can smell damp soil before they find the tracks.
+      // This never changes the 54-unit inspection radius or reveals a route.
+      // After inspecting both the shrine and tracks, the gate's creak can be
+      // heard a little sooner. This is only a sound: no direction, tap range,
+      // walkability, hidden-path reveal or provisional loot is granted.
+      const range=spot.id==='hollow' && found.has('traces') && found.has('shrine') ? 135 :
+        spot.id==='traces' && found.has('shrine') ? 100 :
+        spot.id==='shrine' && found.has('traces') && found.has('hollow-scout')
+        ? 135 : (spot.id==='hollow'||spot.id==='shrine') && found.has('traces')
+        ? 100 : RANGE;
+      const distance=Math.hypot(player.x-spot.x,player.z-spot.z);
+      return {spot,distance,range};
+    }).filter(cue=>cue.distance<cue.range)
+      .sort((a,b)=>a.distance-b.distance)[0]?.spot||null;
+  }
+  // After finding both clues, approaching the gate earns a second, closer
+  // sound cue. It is feedback only: inspection still requires RANGE.
+  function gateCreakIntensifies(player,found){
+    if(!player || !found?.has('traces') || !found.has('shrine') || found.has('hollow')) return false;
+    const gate=spots.find(spot=>spot.id==='hollow');
+    const distance=Math.hypot(player.x-gate.x,player.z-gate.z);
+    return distance>=RANGE && distance<85;
   }
   function available(phase){
     return phase==='fight'||phase==='return';
@@ -338,7 +369,16 @@
   // A tempered smith-made blade also helps clear the shrine's thorned gap.
   // Scouted footing and sharpening reduce wounds, never the guardian fight.
   function shrineRiskDamage(found,crafted,tempered=false){
-    return (crafted?6:12)-(found.has('traces')?3:0)-(crafted && tempered?2:0);
+    const base=(crafted?6:12)-(found.has('traces')?3:0)-(crafted && tempered?2:0);
+    // Cautious gate scouting reveals a safer approach to the later deep search.
+    // Never remove the last HP of risk: the extra guardian still must be faced.
+    return found.has('traces') && found.has('hollow-scout') ? Math.max(1,base-1) : base;
+  }
+  // The gate-first observation earns a third *provisional* fang only by
+  // risking the shrine's deeper search and its mandatory guardian fight.
+  // Neither a forceful gate haul nor a shrine-first visit earns this payoff.
+  function shrineRiskMaterials(found){
+    return found.has('traces') && found.has('hollow-scout') ? 3 : 2;
   }
   function uncover(player,found,phase,hp,maxHp,crafted=false,shrineChoice='auto',tempered=false){
     if(!available(phase)) return {ok:false};
@@ -349,17 +389,21 @@
       if(!found.has('traces')) return {ok:false,reason:'trail',spot};
       // A sword is required for the two-fang haul. Bare hands may risk a
       // deeper wound for one fang, or use the accessible healing herbs.
-      if(!crafted && !['heal','cautious'].includes(shrineChoice))
+      if(!crafted && !['heal','cautious','scout'].includes(shrineChoice))
         return {ok:false,reason:'thorns',spot};
     }
     // A discovered stone gate offers a one-time choice: take its materials
     // home or use its herbs to survive. Never award both on the same visit.
-    if(spot.kind==='cache' && !['auto','material','heal','cautious'].includes(shrineChoice))
+    if(spot.kind==='cache' && !['auto','material','heal','cautious','scout'].includes(shrineChoice))
       return {ok:false,reason:'choice',spot};
+    // Studying the thorn movement without taking a fang is a low-HP alternative,
+    // but it cannot retroactively help an already explored shrine.
+    if(spot.kind==='cache' && shrineChoice==='scout' && found.has('shrine'))
+      return {ok:false,reason:'late',spot};
     if(spot.kind==='cache' && shrineChoice==='heal' && hp>=maxHp)
       return {ok:false,reason:'full',spot};
-    const gateDamage=gateSalvageDamage(shrineChoice,crafted && tempered,crafted);
-    if(spot.kind==='cache' && shrineChoice!=='heal' && hp<gateDamage+1)
+    const gateDamage=gateSalvageDamage(shrineChoice,crafted && tempered,crafted,found.has('shrine'));
+    if(spot.kind==='cache' && !['heal','scout'].includes(shrineChoice) && hp<gateDamage+1)
       return {ok:false,reason:'weak',spot};
     // The shrine offers a deliberate trade-off; a full-HP heal must not waste it.
     // 'auto' preserves existing direct rule callers; the scene passes an explicit choice.
@@ -382,15 +426,20 @@
     // Only a cautious gate detour BEFORE the shrine earns the guardian read.
     // Shrine-first exploration cannot retroactively change a finished encounter.
     // Forceful salvage earns one more fang instead; herbs preserve HP.
-    if(spot.kind==='cache' && shrineChoice==='cautious' && !found.has('shrine'))
+    if(spot.kind==='cache' && ['cautious','scout'].includes(shrineChoice) && !found.has('shrine'))
       found.add('hollow-scout');
+    // Reading tracks first reveals a richer herb patch at the shrine: a modest
+    // non-combat payoff for scouting, without minting loot or bypassing danger.
+    // Visiting the cool shrine first teaches where the gate's richer moss herbs grow.
+    // This is a healing-only alternative to gate-first scouting and extra fangs.
     const gateHeal=spot.kind==='cache' && shrineChoice==='heal';
-    const gateSalvage=spot.kind==='cache' && !gateHeal;
+    const gateScout=spot.kind==='cache' && shrineChoice==='scout';
+    const gateSalvage=spot.kind==='cache' && !gateHeal && !gateScout;
     const gateCautious=spot.kind==='cache' && shrineChoice==='cautious';
-    return {ok:true,spot,material:risky?2:scavenge?1:spot.kind==='cache'&&!gateHeal?(gateCautious?1:2):spot.kind==='material'?1:0,
+    return {ok:true,spot,material:risky?shrineRiskMaterials(found):scavenge?1:spot.kind==='cache'&&!gateHeal&&!gateScout?(gateCautious?1:2):spot.kind==='material'?1:0,
       damage:risky?riskDamage:gateSalvage?gateDamage:0,
-      heal:gateHeal?Math.min(45,Math.max(0,maxHp-hp)):
-        spot.kind==='healing' && !scavenge?Math.min(35,Math.max(0,maxHp-hp)):0};
+      heal:gateHeal?Math.min(found.has('shrine')?55:45,Math.max(0,maxHp-hp)):
+        spot.kind==='healing' && !scavenge?Math.min(found.has('traces')?40:35,Math.max(0,maxHp-hp)):0};
   }
-  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,GATE_BAREHAND_DAMAGE,gateSalvageDamage,near,cueNear,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,pauseGuardianCounter,guardianScoutStrikeBonus,guardianScoutAttackCueActive,guardianReadyForOpening,guardianBehindWarning,companionYieldsGuardianOpening,companionYieldsGuardianRecovery,companionYieldsGuardianFootsteps,guardianTargetsExplorer,guardianStrikeTell,guardianKeepsTellOnHit,guardianDodgeCueActive,guardianCounterStrikeBonus,claimGuardianCounter,claimGuardianCounterFang,shrineRiskDamage,uncover};
+  return {spots,RANGE,GATE_SALVAGE_DAMAGE,GATE_CAUTIOUS_DAMAGE,GATE_BAREHAND_DAMAGE,gateSalvageDamage,near,cueNear,gateCreakIntensifies,spotAtTap,available,canInspect,guardianApproachDistance,guardianOpeningSeconds,GUARDIAN_WARNING_RANGE,armGuardianOpening,pauseGuardianOpening,pauseGuardianCounter,guardianScoutStrikeBonus,guardianScoutAttackCueActive,guardianReadyForOpening,guardianBehindWarning,companionYieldsGuardianOpening,companionYieldsGuardianRecovery,companionYieldsGuardianFootsteps,guardianTargetsExplorer,guardianStrikeTell,guardianKeepsTellOnHit,guardianDodgeCueActive,guardianCounterStrikeBonus,claimGuardianCounter,claimGuardianCounterFang,shrineRiskDamage,shrineRiskMaterials,uncover};
 });

@@ -33,10 +33,12 @@ function showPanel(state) {
     '; return showRpgPanel; })()',
     { document, rpg, ginji: { hp: state.hp ?? 140, maxHp: 140 },
       state: { forestFinds: new Set(state.forestFinds || []) },
-      rpgRules: { COST: 3, TEMPER_COST: 5 }, location: { search: '' }, URLSearchParams },
+      rpgRules: { COST: 3, TEMPER_COST: 5 }, location: { search: '' }, URLSearchParams,
+      lastCampSaveSucceeded: state.lastCampSaveSucceeded ?? null },
     { timeout: 1000 });
   run();
-  return { info: elements.get('rpgInfo').textContent,
+  return { title: elements.get('rpgTitle').textContent,
+    info: elements.get('rpgInfo').textContent,
     keepExploring: elements.get('rpgKeepExploring').textContent,
     pushDeeper: elements.get('rpgPush').textContent,
     forgeDisabled: elements.get('rpgForge').disabled,
@@ -58,6 +60,20 @@ test('camp shows actual remaining fangs rather than falsely promising a sword', 
   assert.equal(ready.forgeDisabled, false);
 });
 
+test('camp title distinguishes an in-session return from durable saved loot', () => {
+  assert.equal(showPanel({ lastOutcome: 'returned', lastCampSaveSucceeded: true }).title,
+    '無事に生還！');
+  assert.equal(showPanel({ lastOutcome: 'returned', lastCampSaveSucceeded: false }).title,
+    '⚠ 保存できない（成果はこの画面限り）');
+  assert.equal(showPanel({ lastOutcome: 'crafted', lastCampSaveSucceeded: false }).title,
+    '⚠ 保存できない（成果はこの画面限り）');
+  assert.equal(showPanel({ lastOutcome: 'tempered', lastCampSaveSucceeded: false }).title,
+    '⚠ 保存できない（成果はこの画面限り）');
+  assert.equal(showPanel({ lastOutcome: '' }).title, 'キャンプで再開');
+  assert.equal(showPanel({ lastOutcome: 'defeated', lastCampSaveSucceeded: false }).title,
+    '敗北。素材を失った……');
+});
+
 test('crafted, defeated and return decisions retain their distinct messages', () => {
   const craftedCamp = showPanel({ crafted: true, lastOutcome: 'crafted' });
   assert.match(craftedCamp.info, /風裂きの剣を装備/);
@@ -70,11 +86,22 @@ test('crafted, defeated and return decisions retain their distinct messages', ()
   assert.match(risk.info, /今帰れば牙2個を確保/);
   assert.match(risk.info, /今帰れば鍛冶剣を作れる/);
   assert.match(risk.info, /敗北すると今回の牙2個を失う/);
-  assert.match(risk.info, /湿った土にまだ読めない筋がある/);
+  assert.match(risk.info, /森の奥に、まだ確かめていない気配がある/);
+  assert.doesNotMatch(risk.info, /湿った土|獣の痕跡/,
+    'the return decision must not spoil a scent that has not been earned');
   assert.match(risk.keepExploring, /気配を追って調べる/);
-  assert.match(risk.pushDeeper, /次の敵に挑む（HP 140\/140・未帰還の牙 2個）/);
+  assert.match(risk.pushDeeper, /次の陣・敵3体に挑む（HP 140\/140・未帰還の牙 2個／敗北で喪失）/);
+  // The next wave always spawns three enemies; show the real commitment without
+  // spoiling the later-wave ambush. Empty bags must not claim loot loss.
+  const html = fs.readFileSync('gemini-feel-lab.html', 'utf8');
+  assert.match(html, /function spawnEnemyWave\(waveNum, count=3, shrineGuardian=false\)/,
+    'the next-wave preview must agree with the actual default enemy count');
+  const emptyBag = showPanel({ phase: 'return', unbanked: 0 });
+  assert.match(emptyBag.pushDeeper, /次の陣・敵3体に挑む/);
+  assert.doesNotMatch(emptyBag.pushDeeper, /敗北で喪失/,
+    'an empty bag must not imply that unsecured materials can be lost');
   const wounded = showPanel({ phase: 'return', hp: 21, unbanked: 3 });
-  assert.match(wounded.pushDeeper, /次の敵に挑む（HP 21\/140・未帰還の牙 3個）/,
+  assert.match(wounded.pushDeeper, /次の陣・敵3体に挑む（HP 21\/140・未帰還の牙 3個／敗北で喪失）/,
     'the next-wave button must preview the current health and loot at risk');
   assert.match(wounded.keepExploring, /気配を追って調べる/,
     'inspecting this forest must remain a separate action from starting another wave');
@@ -134,4 +161,17 @@ test('shrine material-or-healing choice previews the real next smithing mileston
   assert.match(done, /牙の追加強化はまだない/);
   assert.doesNotMatch(done, /研ぎ直しまで牙あと|研ぎ直し素材は揃っている/,
     'do not promise a second temper after the one-time upgrade');
+});
+
+
+test('next-wave choice never rounds fractional remaining HP up', () => {
+  // Damage can leave fractional HP. Risk preview must not promise an extra point.
+  const injured = showPanel({ phase: 'return', hp: 12.5, unbanked: 3 });
+  assert.match(injured.pushDeeper,
+    /次の陣・敵3体に挑む（HP 12\/140・未帰還の牙 3個／敗北で喪失）/);
+  assert.doesNotMatch(injured.pushDeeper, /HP 13\/140/,
+    'do not overstate survivability when choosing another fight');
+  assert.match(showPanel({ phase: 'return', hp: 21, unbanked: 0 }).pushDeeper,
+    /HP 21\/140・未帰還の牙 0個/,
+    'integer HP and empty-bag preview remain unchanged');
 });

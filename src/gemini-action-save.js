@@ -20,16 +20,17 @@
       record.banked >= 0 && record.banked <= MAX_BANKED &&
       typeof record.crafted === 'boolean' &&
       (record.tempered === undefined || typeof record.tempered === 'boolean') &&
-      (!record.tempered || record.crafted) &&
-      (record.camp === undefined || typeof record.camp === 'boolean'));
+      (record.camp === undefined || typeof record.camp === 'boolean') &&
+      (!record.tempered || record.crafted));
   }
   function decode(raw) {
-    if (raw === null) return { version: VERSION, banked: 0, crafted: false, tempered: false, camp: false };
+    if (raw === null) return { version: VERSION, banked: 0, crafted: false, tempered: false };
     if (typeof raw !== 'string' || raw.length > 2000) return null;
     try {
       const value = JSON.parse(raw);
       return valid(value) ? { version: VERSION, banked: value.banked, crafted: value.crafted,
-        tempered: value.tempered === true, camp: value.camp === true } : null;
+        tempered: value.tempered === true,
+        ...(value.camp === true ? { camp: true } : {}) } : null;
     } catch { return null; }
   }
   function encode(state) {
@@ -44,7 +45,8 @@
     state.banked = record.banked;
     state.crafted = record.crafted;
     state.tempered = record.tempered === true;
-    // One fresh fight per page load. Interrupted, unreturned loot is not recoverable.
+    // A saved safe return resumes at camp; an interrupted fight starts fresh.
+    // Neither path restores provisional loot or field discoveries.
     state.unbanked = 0;
     state.phase = record.camp === true ? 'camp' : 'fight';
     return true;

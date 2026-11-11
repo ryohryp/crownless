@@ -53,13 +53,13 @@ test('stone-gate choice previews the earned later opening without spoiling an un
   const end=html.indexOf(';',start);
   assert(start>=0 && end>start,'evaluate the live gate decision sheet');
   const assignment=html.slice(start,end+1);
-  const render=(ids,cautiousDisabled=false)=>{
+  const render=(ids,cautiousDisabled=false,tempered=false)=>{
     const node={textContent:''};
     vm.runInNewContext(assignment,{
       document:{getElementById:()=>node},
       state:{forestFinds:new Set(ids)},
       ginji:{hp:90,maxHp:140},
-      rpg:{crafted:false,tempered:false,unbanked:4},
+      rpg:{crafted:tempered,tempered,unbanked:4},
       rpgRules:{},
       cautious:{disabled:cautiousDisabled},
       cautiousCost:6,cautiousWound:'HP -6',salvageCost:8,
@@ -68,8 +68,8 @@ test('stone-gate choice previews the earned later opening without spoiling an un
     return node.textContent;
   };
   const gateFirst=render(['traces']);
-  assert.match(gateFirst,/慎重な回収だけ先手の猶予 \+0\.6秒/,
-    'only cautious salvage earns the later tactical advantage');
+  assert.match(gateFirst,/観察か慎重な回収なら先手の猶予 \+0\.6秒/,
+    'a no-loot observation or cautious salvage can earn the later tactical advantage');
   assert.match(gateFirst,/強引な回収・薬草なら効果なし/,
     'the higher-loot and healing routes must not promise the cautious bonus');
   assert(gateFirst.includes('先手の猶予 +0.6秒'),
@@ -89,10 +89,15 @@ test('stone-gate choice previews the earned later opening without spoiling an un
     'compact stakes must retain the next-craft motivation');
   assert(!render(['traces','shrine']).includes('先手の猶予 +0.6秒'),
     'visiting the shrine first cannot promise a retrospective bonus');
-  assert(!render(['traces'],true).includes('先手の猶予 +0.6秒'),
-    'low-HP explorers must not be promised scouting from a disabled salvage choice');
+  assert(render(['traces'],true).includes('先手の猶予 +0.6秒'),
+    'low-HP explorers still have the no-wound, no-loot observation choice');
   assert.match(render(['traces'],false),/先手の猶予 \+0\.6秒/,
     'a usable cautious salvage choice retains its earned scouting preview');
+  const temperedPreview=render(['traces'],false,true);
+  assert.match(temperedPreview,/慎重な回収なら先手の猶予 \+0\.6秒/,
+    'tempered players still see the meaningful zero-wound one-fang tactical choice');
+  assert.doesNotMatch(temperedPreview,/観察か慎重な回収|観察は牙を持ち帰れない/,
+    'do not advertise the strictly worse no-loot route when a tempered blade is ready');
   assert.equal(D.guardianOpeningSeconds(new Set(['traces'])),1.8);
   assert.equal(D.guardianOpeningSeconds(new Set(['traces','hollow'])),1.8,
     'healing at the gate cannot silently grant the salvage scouting bonus');
@@ -127,6 +132,8 @@ test('phone gate choice itself shows the earned scouting payoff only when usable
   assert.equal(gateFirst.disabled,false);
   assert.match(gateFirst.textContent,/未帰還素材 \+1・先手猶予 \+0\.6秒/,
     'the benefit must be visible on the tappable choice, not buried in a paragraph');
+  assert.match(gateFirst.textContent,/後の深い調査で負傷 -1/,
+    'the choice previews the earned later injury reduction without naming the undiscovered site');
   assert.doesNotMatch(gateFirst.textContent,/祠|番人|右|左/,
     'the gate must not spoil the unvisited threat or its direction');
   assert.match(render(['traces'],90,true).textContent,/先手猶予 \+0\.6秒/,
@@ -146,11 +153,13 @@ test('earned gate scouting stays visible after the choice without naming an unvi
   assert(start>=0 && end>start,'evaluate the actual persistent forest exploration hint');
   const render=(ids,phase='return')=>vm.runInNewContext(
     html.slice(start,end)+'\nlabel',
-    {guardian:null,near:null,state:{forestFinds:new Set(ids)},
+    {guardian:null,near:null,cue:null,state:{forestFinds:new Set(ids)},
       rpg:{phase,unbanked:3},ginji:{},forestGuardianHint:()=>''}
   );
   const earned=render(['traces','hollow','hollow-scout']);
-  assert.match(earned,/苔の湿りが残る/,'the careful detour has a lasting visible consequence');
+  assert.match(earned,/苔の湿り/,'the careful detour has a lasting visible consequence');
+  assert.match(earned,/探索か帰還か.*牙3個未帰還/,
+    'the scouted route now shows the unsecured bag at the return-or-risk decision');
   assert.match(earned,/先手猶予 \+0\.6秒/,'the player can still weigh a deeper search against returning alive');
   assert.doesNotMatch(earned,/苔むす祠|苔祠の番人|右|左/,
     'the hint cannot disclose the identity or direction of the uninspected threat');
@@ -160,4 +169,35 @@ test('earned gate scouting stays visible after the choice without naming an unvi
     'visiting the shrine first cannot receive a retroactive bonus');
   assert.doesNotMatch(render(['traces','hollow','hollow-scout'],'fight'),/先手猶予/,
     'ordinary active combat must not promise a guardian-only opening');
+});
+
+test('safe-return action names the next earned smithing payoff without banking provisional fangs',()=>{
+  const html=fs.readFileSync('gemini-feel-lab.html','utf8');
+  const start=html.indexOf('    if (result) {\n      // The return decision becomes meaningful');
+  const end=html.indexOf('    const pushDeeper=',start);
+  assert(start>=0 && end>start,'evaluate the actual thumb-reachable return-button label');
+  const render=(changes={})=>{
+    const returnButton={textContent:''};
+    const rpg={crafted:false,tempered:false,banked:0,unbanked:0,...changes};
+    vm.runInNewContext(html.slice(start,end),{
+      result:true,rpg,rpgRules:{COST:3,TEMPER_COST:2},returnButton
+    });
+    return returnButton.textContent;
+  };
+  assert.match(render({banked:2,unbanked:1}),/牙1個を持ち帰る（剣を作れる）/,
+    'first sword remains the original payoff');
+  assert.match(render({crafted:true,banked:1,unbanked:1}),/牙1個を持ち帰る（剣を研ぎ直せる）/,
+    'the crafted sword has a distinct earned next-expedition benefit');
+  assert.match(render({crafted:true,banked:0,unbanked:2}),/剣を研ぎ直せる/,
+    'a complete unsecured haul must still require a living return');
+  assert.equal(render({crafted:true,banked:0,unbanked:1}),'🏕 牙1個を倉庫へ持ち帰る',
+    'do not promise sharpening with insufficient materials');
+  assert.equal(render({crafted:true,banked:2,unbanked:1}),'🏕 牙1個を倉庫へ持ち帰る',
+    'do not credit the unsecured bag for an already affordable upgrade');
+  assert.equal(render({crafted:true,tempered:true,banked:1,unbanked:1}),'🏕 牙1個を倉庫へ持ち帰る',
+    'do not promise a second sharpening to an already tempered sword');
+  assert.equal(render({crafted:true,banked:1,unbanked:0}),'🏕 無事に帰還する（素材なし）',
+    'an empty provisional bag cannot imply a material reward');
+  assert.match(html,/if \(!rpgRules\.returnAlive\(rpg, ginji && ginji\.hp\)\) return;/,
+    'the actual return action still requires a living return');
 });

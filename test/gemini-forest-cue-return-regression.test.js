@@ -1,0 +1,118 @@
+'use strict';
+const test = require('node:test');
+const assert = require('node:assert/strict');
+const D = require('../src/gemini-forest-discoveries.js');
+const R = require('../src/gemini-rpg-loop.js');
+
+test('a sensory lead never reveals or consumes a site, and its fang banks only after a living return', () => {
+  const found = new Set(['traces']);
+  const run = R.create();
+  assert.equal(R.clearWave(run), true);
+  const position = {x:850,z:270};
+  assert.equal(D.cueNear(position, found)?.id, 'hollow');
+  assert.equal(D.near(position, found), null, 'a distant sound cannot enable inspection');
+  assert.equal(found.has('hollow'), false, 'hearing a clue does not discover a hidden site');
+  assert.equal(R.claimMaterial(run), true);
+  assert.equal(run.unbanked, 1);
+  assert.equal(R.returnAlive(run, 1), true);
+  assert.equal(run.banked, 1, 'only a living return secures the fang');
+  assert.equal(run.unbanked, 0);
+  assert.equal(R.depart(run), true);
+  assert.equal(run.banked, 1, 'a new expedition preserves previously banked materials');
+  assert.equal(run.unbanked, 0);
+  assert.equal(R.claimMaterial(run), true);
+  assert.equal(R.loseExpedition(run), true);
+  assert.equal(run.banked, 1, 'defeat loses only the current expedition reward');
+  assert.equal(run.unbanked, 0);
+  assert.equal(found.has('hollow'), false, 'a hint cannot silently mark the gate discovered');
+});
+
+test('a nonliving return cannot bank provisional fangs or reopen a departed run', () => {
+  const run = R.create();
+  assert.equal(R.claimMaterial(run), true);
+  assert.equal(R.clearWave(run), true);
+  assert.equal(R.returnAlive(run, 0), false, 'zero HP is not a living return');
+  assert.equal(R.returnAlive(run, -1), false, 'negative HP is not a living return');
+  assert.equal(R.returnAlive(run, Infinity), false, 'infinite HP cannot secure loot');
+  assert.equal(R.returnAlive(run, NaN), false, 'invalid HP cannot secure loot');
+  assert.equal(run.phase, 'return', 'a rejected return must not enter camp');
+  assert.equal(run.banked, 0, 'a rejected return must not secure loot');
+  assert.equal(run.unbanked, 1, 'provisional loot remains at risk');
+  assert.equal(R.depart(run), false, 'cannot depart again before reaching camp');
+  assert.equal(R.loseExpedition(run), true);
+  assert.equal(run.phase, 'camp');
+  assert.equal(run.banked, 0);
+  assert.equal(run.unbanked, 0, 'defeat clears only provisional loot');
+});
+
+test('a shrine-first explorer senses tracks earlier but still must approach to discover them', () => {
+  const found = new Set(['shrine']);
+  const distant = {x:800,z:440}; // 75 units from tracks: cue-only, not inspectable.
+  assert.equal(D.cueNear(distant, found)?.id, 'traces');
+  assert.equal(D.near(distant, found), null);
+  assert.equal(found.has('traces'), false);
+  const close = {x:800,z:400}; // 35 units: deliberate inspection becomes possible.
+  assert.equal(D.near(close, found)?.id, 'traces');
+  assert.equal(found.has('traces'), false, 'proximity alone must not auto-discover tracks');
+});
+
+test('an inspectable discovery outranks a distant sensory lead without auto-revealing it', () => {
+  // The shrine is already found, so the tracks can be sensed from 90 units.
+  // Near the tracks, the player must still choose inspection explicitly.
+  const found = new Set(['shrine']);
+  const player = {x:800,z:400};
+  assert.equal(D.near(player, found)?.id, 'traces');
+  assert.equal(D.cueNear(player, found)?.id, 'traces');
+  assert.equal(found.has('traces'), false);
+  found.add('traces');
+  assert.notEqual(D.cueNear(player, found)?.id, 'traces',
+    'a completed discovery must not be offered as a new lead');
+});
+
+test('a returned haul becomes a forged tool for the next expedition, not a free drop', () => {
+  const run = R.create();
+  // Gathering in a cleared forest remains provisional until a living return.
+  for (let i = 0; i < R.COST; i++) assert.equal(R.claimMaterial(run), true);
+  assert.equal(R.forge(run), false, 'no crafting before returning to camp');
+  assert.equal(R.clearWave(run), true);
+  assert.equal(R.returnAlive(run, 1), true);
+  assert.equal(run.banked, R.COST);
+  assert.equal(R.forge(run), true);
+  assert.equal(run.crafted, true);
+  assert.equal(run.banked, 0, 'crafting spends the secured materials');
+  assert.equal(R.depart(run), true);
+  assert.equal(run.crafted, true, 'the crafted tool changes the next expedition');
+  assert.equal(R.claimMaterial(run), true);
+  assert.equal(R.loseExpedition(run), true);
+  assert.equal(run.crafted, true, 'defeat loses provisional loot, not crafted gear');
+  assert.equal(run.unbanked, 0);
+});
+
+test('shrine-first scouting reveals a distant track scent without granting inspection', () => {
+  const position = {x:800,z:460}; // 95 units from tracks, outside normal 54-unit reach.
+  const shrineFirst = new Set(['shrine']);
+  assert.equal(D.cueNear(position, shrineFirst)?.id, 'traces');
+  assert.equal(D.near(position, shrineFirst), null, 'the distant lead is not a discovery');
+  assert.equal(shrineFirst.has('traces'), false);
+  assert.equal(D.cueNear(position, new Set()), null, 'without shrine knowledge the lead stays hidden');
+});
+
+test('shrine-first scent stops at the 100-unit boundary without revealing tracks', () => {
+  const found = new Set(['shrine']);
+  const justInside = {x:800,z:464.9}; // 99.9 units from tracks.
+  const atBoundary = {x:800,z:465}; // exactly 100 units: no cue.
+  assert.equal(D.cueNear(justInside, found)?.id, 'traces');
+  assert.equal(D.near(justInside, found), null);
+  assert.equal(D.cueNear(atBoundary, found), null);
+  assert.equal(found.has('traces'), false);
+});
+
+
+test('track readers sense the thorn gate at 95 units without discovering or inspecting it', () => {
+  const found = new Set(['traces']);
+  const position = {x:910,z:330}; // 95 units from the gate, beyond 54-unit inspection.
+  assert.equal(D.cueNear(position, found)?.id, 'hollow');
+  assert.equal(D.near(position, found), null);
+  assert.equal(found.has('hollow'), false);
+  assert.equal(D.cueNear(position, new Set()), null);
+});
