@@ -34,6 +34,7 @@
     }),
   });
   let selectedApproach = QUIET;
+  let requestCrystalBeacon = false;
   let selectedPreparation = "scout";
   let requestForgePass = false;
   let selectedMineApproach = "safe";
@@ -229,6 +230,32 @@
     return route;
   }
 
+  // Deep crystal is a one-time construction resource, not a finished weapon drop.
+  // The beacon turns a previous mining success into a repeatable exploration route.
+  function buildCrystalBeacon(state) {
+    const village = state && Array.isArray(state.destinations)
+      && state.destinations.find(item => item && item.id === DESTINATION_ID);
+    if (!village || village.villageFacility !== "forge" || !Array.isArray(state.securedLoot)) return null;
+    const id = "village-forge:crystal-grotto";
+    const existing = state.destinations.find(item => item && item.id === id);
+    if (existing) return existing;
+    if (!state.destinations.some(item => item && item.id === "village-forge:sealed-mine")) return null;
+    const index = state.securedLoot.findIndex(item => item && item.id === "sealed-mine-deep-crystal");
+    if (index < 0) return null;
+    const destination = {
+      id, name: "深晶石の灯る隠し洞窟", family: "cave",
+      dangerTags: ["dark", "unknown", "guardian"],
+      opportunityTags: ["relic", "hidden-path", "crystal"],
+      durationMs: 540000, villageCrystalBeacon: true,
+    };
+    state.securedLoot.splice(index, 1);
+    state.destinations.push(destination);
+    if (!Array.isArray(state.discoveredDestinationIds)) state.discoveredDestinationIds = [];
+    if (!state.discoveredDestinationIds.includes(id)) state.discoveredDestinationIds.push(id);
+    village.villageCrystalBeacon = true;
+    return destination;
+  }
+
   function prepareMineDelve(state, expedition, approach) {
     if (!state || !expedition?.inputs || expedition.inputs.destinationId !== "village-forge:sealed-mine" || !["deep", "unstable", "shored"].includes(approach) || !Array.isArray(state.securedLoot)) return false;
     const index = state.securedLoot.findIndex(item => item?.id === (approach === "shored" ? "village-forged-parts" : "watch-road-medicine"));
@@ -350,6 +377,16 @@
         body.append(strong, small); label.append(input, body); fieldset.append(label);
       }
       if (root.CrownlessExpeditionSystem.__villageBellFacility === "forge") {
+        const beacon = document.createElement("label");
+        beacon.className = "expedition-choice__item";
+        const beaconInput = document.createElement("input");
+        beaconInput.type = "checkbox"; beaconInput.name = "village-crystal-beacon";
+        beaconInput.checked = requestCrystalBeacon;
+        beaconInput.addEventListener("change", () => { requestCrystalBeacon = beaconInput.checked; });
+        const beaconDescription = document.createElement("span");
+        beaconDescription.textContent = "深晶石1個で導光灯を建設し、隠し洞窟への再訪路を開く";
+        beacon.append(beaconInput, beaconDescription);
+        fieldset.append(beacon);
         const craft = document.createElement("label");
         craft.className = "expedition-choice__item";
         const input = document.createElement("input");
@@ -398,6 +435,11 @@
         if (opened) next.activeExpedition.inputs.forgedMinePass = opened.id;
       }
       requestForgePass = false;
+      if (requestCrystalBeacon && next.activeExpedition && next.activeExpedition.inputs.destinationId === DESTINATION_ID) {
+        const opened = buildCrystalBeacon(next);
+        if (opened) next.activeExpedition.inputs.crystalBeaconBuilt = opened.id;
+      }
+      requestCrystalBeacon = false;
       if (next.activeExpedition) prepareMineDelve(next, next.activeExpedition, selectedMineApproach);
       selectedMineApproach = "safe";
       const inputs = next && next.activeExpedition && next.activeExpedition.inputs;
@@ -575,6 +617,7 @@
     unlockRestoredRoute,
     upgradeVillageFromRoad,
     forgeMinePass,
+    buildCrystalBeacon,
     prepareMineDelve,
     rewardMineDelve,
     syncStoredReport,
