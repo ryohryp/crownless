@@ -25,7 +25,10 @@
   function composition(cameraX,viewportWidth){
     const width=Math.max(1,viewportWidth);
     return {
-      sky:{x:-width*.10-cameraX*FAR_PARALLAX,y:-10,width:width*1.23,height:226},
+      // Keep the painted castle's aspect ratio intact. The distant ruin is
+      // brought into view by *cropping* the wide panorama, never squashing it.
+      sky:{x:width*.68-(1210/1672)*WORLD_WIDTH-cameraX*FAR_PARALLAX,
+        y:-7,width:WORLD_WIDTH,height:350*WORLD_WIDTH/1672},
       road:{x:0,y:180,width:WORLD_WIDTH,height:248},
       cameraX
     };
