@@ -479,3 +479,33 @@ test("mirror chamber cannot be revealed without the grotto and prism", () => {
   assert.equal(village.revealMirrorChamber(current), null);
   assert.equal(current.destinations.some(item => item.villageMirrorChamber), false);
 });
+
+
+test("mirror chamber clue selects safe relic recovery versus dangerous direct beam", () => {
+  const expedition = { inputs: { destinationId: "village-forge:mirror-chamber", policyId: "standard" } };
+  assert.equal(village.prepareMirrorPath(expedition, "left"), true);
+  assert.equal(expedition.inputs.policyId, "standard");
+  const report = { outcome: "success", loot: [], log: [] };
+  assert.equal(village.rewardMirrorPath(report, expedition), true);
+  assert.equal(report.loot.filter(item => item.id === "mirror-chamber-relic").length, 1);
+  assert.equal(village.rewardMirrorPath(report, expedition), false);
+  assert.equal(report.loot.length, 1);
+
+  const danger = { inputs: { destinationId: "village-forge:mirror-chamber", policyId: "standard" } };
+  assert.equal(village.prepareMirrorPath(danger, "center"), true);
+  assert.equal(danger.inputs.policyId, "greedy");
+  const dangerReport = { outcome: "success", loot: [], log: [] };
+  village.rewardMirrorPath(dangerReport, danger);
+  assert.equal(dangerReport.loot.length, 0);
+});
+
+test("mirror relic requires safe return and never affects other destinations", () => {
+  const expedition = { inputs: { destinationId: "village-forge:mirror-chamber", policyId: "standard" } };
+  village.prepareMirrorPath(expedition, "left");
+  const retreat = { outcome: "retreat", loot: [], log: [] };
+  village.rewardMirrorPath(retreat, expedition);
+  assert.equal(retreat.loot.length, 0);
+  const other = { inputs: { destinationId: "hollow-village", policyId: "standard" } };
+  assert.equal(village.prepareMirrorPath(other, "left"), false);
+  assert.equal(village.rewardMirrorPath({ outcome: "success", loot: [], log: [] }, other), false);
+});
