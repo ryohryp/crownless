@@ -295,36 +295,38 @@
   // A visible inscription lets players reason about the reflection rather than guess.
   function prepareMirrorPath(expedition, path, state) {
     if (!expedition?.inputs || expedition.inputs.destinationId !== "village-forge:mirror-chamber") return false;
-    if (!["observe", "left", "center", "counter", "ward", "vault", "resonance"].includes(path)) return false;
+    if (!["observe", "left", "center", "counter", "ward", "vault", "resonance", "overload"].includes(path)) return false;
     if (["vault", "resonance"].includes(path) && state && !state.destinations?.some(item => item.id === "village-forge:mirror-chamber" && item.villageMirrorVault)) return false;
     if (path === "resonance") {
       const index = state?.securedLoot?.findIndex(item => item?.id === "mirror-chamber-relic") ?? -1;
       if (index < 0) return false;
       state.securedLoot.splice(index, 1);
     }
-    if (["left", "counter", "ward"].includes(path) && state && !state.destinations?.some(item => item.id === "village-forge:mirror-chamber" && item.villageMirrorInscription)) return false;
+    if (["left", "counter", "ward", "overload"].includes(path) && state && !state.destinations?.some(item => item.id === "village-forge:mirror-chamber" && item.villageMirrorInscription)) return false;
     expedition.inputs.villageMirrorPath = path;
-    if (path === "center" || path === "vault") expedition.inputs.policyId = "greedy";
+    if (path === "center" || path === "vault" || path === "overload") expedition.inputs.policyId = "greedy";
     return true;
   }
 
   function rewardMirrorPath(report, expedition) {
     if (!report || expedition?.inputs?.destinationId !== "village-forge:mirror-chamber") return false;
     const path = expedition.inputs.villageMirrorPath;
-    if (!["left", "center", "counter", "ward", "vault", "resonance"].includes(path)) return false;
+    if (!["left", "center", "counter", "ward", "vault", "resonance", "overload"].includes(path)) return false;
     if (!Array.isArray(report.log)) report.log = [];
     if (report.log.some(item => item?.type === "mirror-beam")) return false;
-    const solved = path === "left" && report.outcome === "success";
+    const solved = ["left", "overload"].includes(path) && report.outcome === "success";
     const vaultCleared = ["vault", "resonance"].includes(path) && report.outcome === "success";
     if (solved || vaultCleared) {
       if (!Array.isArray(report.loot)) report.loot = [];
       if (solved && !report.loot.some(item => item?.id === "mirror-chamber-relic")) {
         report.loot.push({ id: "mirror-chamber-relic", name: "鏡の間の反射核", tags: ["relic", "crystal", "craft"] });
       }
+      if (path === "overload" && solved && !report.loot.some(item => item?.id === "mirror-overload-shard")) report.loot.push({ id: "mirror-overload-shard", name: "過負荷の鏡片", tags: ["relic", "crystal", "craft"] });
       if (vaultCleared && !report.loot.some(item => item?.id === "mirror-vault-essence")) report.loot.push({ id: "mirror-vault-essence", name: "鏡奥の光髄", tags: ["relic", "light", "craft"] });
     }
     report.log.push({ minute: 108, time: "", type: "mirror-beam",
-      text: path === "resonance" ? vaultCleared ? "反射核を消費して封印の光を安定させ、連戦を避けて光髄を回収した。" : "反射核で封印を安定させたが、撤退して光髄を持ち帰れなかった。"
+      text: path === "overload" ? solved ? "鏡を過負荷にして守護者の連戦を突破し、反射核と過負荷の鏡片を回収した。" : "鏡を過負荷にしたが連戦から撤退し、希少素材を失った。"
+        : path === "resonance" ? vaultCleared ? "反射核を消費して封印の光を安定させ、連戦を避けて光髄を回収した。" : "反射核で封印を安定させたが、撤退して光髄を持ち帰れなかった。"
         : path === "vault" ? vaultCleared ? "反射核を共鳴させて鏡奥の封印を破り、光髄を持ち帰った。" : "鏡奥の封印を解いたが、守護者との連戦から撤退した。"
         : path === "counter" ? "刻印の反射角を利用して守護者の動きを読み、初撃を先制した。"
         : path === "ward" ? "反射光を治癒陣へ導き、戦闘中の負傷に備えた。"
@@ -451,6 +453,7 @@
         ["center", "正面の鏡を強引に照らす", "守護者を刺激して危険な連戦になる。"],
         ["counter", "鏡の反射で先制する", "刻印を利用して守護者の予兆を読み、戦闘の初撃を強化する。報酬は通常探索と同じ。"],
         ["ward", "反射光で治癒陣を張る", "初撃の先制を捨て、戦闘中に負傷を回復する。撤退リスクを下げて素材を守る。"],
+        ["overload", "鏡を過負荷にして希少鏡片を狙う", "刻印発見後のみ。危険な連戦を生還すると反射核と過負荷の鏡片を両方回収。撤退では両方失う。"],
         ["vault", "鏡奥の封印に挑む", "反射攻略後に発見した封印へ。危険な連戦を突破すると光髄を回収。"],
         ["resonance", "反射核で封印を安定させる", "反射核を1個消費して危険な連戦を避け、光髄を狙う。"],
       ]) {
@@ -458,7 +461,7 @@
         label.className = "expedition-choice__item";
         const input = document.createElement("input");
         input.type = "radio"; input.name = "village-mirror-path"; input.value = value;
-        input.disabled = (["left", "counter", "ward"].includes(value) && !root.CrownlessExpeditionSystem?.__villageMirrorInscription) || (["vault", "resonance"].includes(value) && !root.CrownlessExpeditionSystem?.__villageMirrorVault);
+        input.disabled = (["left", "counter", "ward", "overload"].includes(value) && !root.CrownlessExpeditionSystem?.__villageMirrorInscription) || (["vault", "resonance"].includes(value) && !root.CrownlessExpeditionSystem?.__villageMirrorVault);
         input.checked = value === selectedMirrorPath;
         input.addEventListener("change", () => { if (input.checked) selectedMirrorPath = value; });
         const body = document.createElement("span");
