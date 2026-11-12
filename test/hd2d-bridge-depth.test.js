@@ -33,10 +33,10 @@ test('site tap uses the same projection as its rendered sprite', () => {
 test('near parapet is depth sorted with people, and old forest remains default', () => {
   const html = fs.readFileSync(path.join(__dirname, '../gemini-feel-lab.html'), 'utf8');
   assert.match(html, /depthPreview = fxParams\.get\('art'\) === 'depth'/);
-  assert.match(html, /depthArt\.ground\(ctx,state\.cameraX,virtualW,getGroundHeightAt\)/);
-  assert.match(html, /depthArt\.nearScenery/);
+  assert.match(html, /activeDepthArt\.ground\(ctx,state\.cameraX,virtualW,getGroundHeightAt\)/);
+  assert.match(html, /activeDepthArt\.nearScenery/);
   assert.match(html, /drawList\.sort\(\(a, b\) => a\.z - b\.z\)/);
-  assert.match(html, /depthArt\.entity\(ctx,obj\.x,obj\.z,height/);
+  assert.match(html, /activeDepthArt\.entity\(ctx,obj\.x,obj\.z,height/);
   assert.match(html, /depthArt\.hitTestSite/);
   assert.match(html, /else forestArt\.foreground/);
   assert.ok(depth.nearScenery.some(o => o.type === 'frontRail' && o.z === depth.BRIDGE.front));
