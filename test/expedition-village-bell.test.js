@@ -509,3 +509,19 @@ test("mirror relic requires safe return and never affects other destinations", (
   assert.equal(village.prepareMirrorPath(other, "left"), false);
   assert.equal(village.rewardMirrorPath({ outcome: "success", loot: [], log: [] }, other), false);
 });
+
+test("mirror inscription needs a successful scouting visit and persists across reload", () => {
+  const engine = require("../src/expedition-system.js");
+  const current = engine.initialState();
+  current.destinations.push({ id: "village-forge:mirror-chamber", name: "鏡の間", family: "cave", dangerTags: [], opportunityTags: [] });
+  const mission = { inputs: { destinationId: "village-forge:mirror-chamber", policyId: "standard", villageMirrorPath: "observe" } };
+  const left = { inputs: { destinationId: "village-forge:mirror-chamber", policyId: "standard" } };
+  assert.equal(village.prepareMirrorPath(left, "left", current), false);
+  assert.equal(village.discoverMirrorInscription(current, { outcome: "retreat", log: [] }, mission), false);
+  const report = { outcome: "success", log: [] };
+  assert.equal(village.discoverMirrorInscription(current, report, mission), true);
+  assert.equal(village.discoverMirrorInscription(current, report, mission), false);
+  assert.ok(report.log.some(item => item.type === "mirror-inscription"));
+  const reloaded = engine.normalizeState(JSON.parse(JSON.stringify(current)));
+  assert.equal(village.prepareMirrorPath(left, "left", reloaded), true);
+});
