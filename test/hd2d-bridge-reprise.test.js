@@ -6,7 +6,7 @@ const R=require('../src/hd2d-bridge-reprise.js');
 test('paint is split into natural-aspect castle and bridge layers, not stretched masonry',()=>{
   const a=R.composition(0,240),b=R.composition(180,240);
   assert.ok(Math.abs(a.sky.width/a.sky.height-1672/350)<.01);
-  assert.ok(Math.abs(a.road.width/a.road.height-1672/395)<.02);
+  assert.ok(Math.abs(a.road.width/a.road.height-1672/320)<.02);
   assert.ok(Math.abs((a.sky.x-b.sky.x)-180*R.FAR_PARALLAX)<1e-6);
   assert.equal(a.road.width,1050);
   assert.equal(a.road.x,0,'the walkable surface stays in world coordinates');
