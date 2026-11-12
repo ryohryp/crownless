@@ -41,3 +41,20 @@ test('near parapet is depth sorted with people, and old forest remains default',
   assert.match(html, /else forestArt\.foreground/);
   assert.ok(depth.nearScenery.some(o => o.type === 'frontRail' && o.z === depth.BRIDGE.front));
 });
+
+test('stone texture maps to both triangles of a skewed bridge face without bounding-box stretch', () => {
+  const source=[[10,20],[110,20],[110,70],[10,70]];
+  const projected=[[30,40],[210,58],[195,137],[19,120]];
+  const point=(matrix,p)=>[matrix[0]*p[0]+matrix[2]*p[1]+matrix[4],
+    matrix[1]*p[0]+matrix[3]*p[1]+matrix[5]];
+  for(const indices of [[0,1,2],[0,2,3]]) {
+    const matrix=depth.affineTriangle(indices.map(i=>source[i]),indices.map(i=>projected[i]));
+    assert.ok(matrix?.every(Number.isFinite));
+    indices.forEach(i=>{
+      const actual=point(matrix,source[i]);
+      assert.ok(Math.abs(actual[0]-projected[i][0])<1e-7);
+      assert.ok(Math.abs(actual[1]-projected[i][1])<1e-7);
+    });
+  }
+  assert.equal(depth.affineTriangle([[0,0],[0,0],[1,1]],[[0,0],[1,0],[0,1]]),null);
+});
