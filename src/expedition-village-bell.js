@@ -295,28 +295,32 @@
   // A visible inscription lets players reason about the reflection rather than guess.
   function prepareMirrorPath(expedition, path, state) {
     if (!expedition?.inputs || expedition.inputs.destinationId !== "village-forge:mirror-chamber") return false;
-    if (!["observe", "left", "center"].includes(path)) return false;
+    if (!["observe", "left", "center", "vault"].includes(path)) return false;
+    if (path === "vault" && state && !state.destinations?.some(item => item.id === "village-forge:mirror-chamber" && item.villageMirrorVault)) return false;
     if (path === "left" && state && !state.destinations?.some(item => item.id === "village-forge:mirror-chamber" && item.villageMirrorInscription)) return false;
     expedition.inputs.villageMirrorPath = path;
-    if (path === "center") expedition.inputs.policyId = "greedy";
+    if (path === "center" || path === "vault") expedition.inputs.policyId = "greedy";
     return true;
   }
 
   function rewardMirrorPath(report, expedition) {
     if (!report || expedition?.inputs?.destinationId !== "village-forge:mirror-chamber") return false;
     const path = expedition.inputs.villageMirrorPath;
-    if (!["left", "center"].includes(path)) return false;
+    if (!["left", "center", "vault"].includes(path)) return false;
     if (!Array.isArray(report.log)) report.log = [];
     if (report.log.some(item => item?.type === "mirror-beam")) return false;
     const solved = path === "left" && report.outcome === "success";
-    if (solved) {
+    const vaultCleared = path === "vault" && report.outcome === "success";
+    if (solved || vaultCleared) {
       if (!Array.isArray(report.loot)) report.loot = [];
-      if (!report.loot.some(item => item?.id === "mirror-chamber-relic")) {
+      if (solved && !report.loot.some(item => item?.id === "mirror-chamber-relic")) {
         report.loot.push({ id: "mirror-chamber-relic", name: "鏡の間の反射核", tags: ["relic", "crystal", "craft"] });
       }
+      if (vaultCleared && !report.loot.some(item => item?.id === "mirror-vault-essence")) report.loot.push({ id: "mirror-vault-essence", name: "鏡奥の光髄", tags: ["relic", "light", "craft"] });
     }
     report.log.push({ minute: 108, time: "", type: "mirror-beam",
-      text: path === "left"
+      text: path === "vault" ? vaultCleared ? "反射核を共鳴させて鏡奥の封印を破り、光髄を持ち帰った。" : "鏡奥の封印を解いたが、守護者との連戦から撤退した。"
+        : path === "left"
         ? solved ? "刻印に従い左鏡から奥鏡へ光を反射させ、反射核を回収した。" : "左鏡を照らしたが、撤退のため反射核は持ち帰れなかった。"
         : "正面の鏡が光を跳ね返し、守護者を刺激した。危険な連戦となった。",
       causes: ["village-forge:mirror-chamber", "mirror-path:" + path] });
@@ -333,6 +337,16 @@
     report.log.push({ minute: 104, time: "", type: "mirror-inscription",
       text: "鏡の裏に刻まれた反射順序を記録した。次の遠征では左鏡から奥鏡へ光を導ける。",
       causes: ["mirror-inscription"] });
+    return true;
+  }
+
+  function discoverMirrorVault(state, report, expedition) {
+    if (!state?.destinations || report?.outcome !== "success" || expedition?.inputs?.destinationId !== "village-forge:mirror-chamber" || expedition.inputs.villageMirrorPath !== "left") return false;
+    const chamber = state.destinations.find(item => item.id === "village-forge:mirror-chamber");
+    if (!chamber || chamber.villageMirrorVault) return false;
+    chamber.villageMirrorVault = true;
+    if (!Array.isArray(report.log)) report.log = [];
+    report.log.push({ minute: 109, time: "", type: "mirror-vault-discovered", text: "反射核が共鳴し、鏡の奥に封印された部屋を発見した。次回は危険な守護者に挑める。", causes: ["mirror-vault"] });
     return true;
   }
 
@@ -427,12 +441,13 @@
         ["observe", "鏡を調べる", "危険を増やさず構造を確認する。"],
         ["left", "左鏡から奥鏡へ反射", "調査で記録した刻印を使い、反射核を回収。"],
         ["center", "正面の鏡を強引に照らす", "守護者を刺激して危険な連戦になる。"],
+        ["vault", "鏡奥の封印に挑む", "反射攻略後に発見した封印へ。危険な連戦を突破すると光髄を回収。"],
       ]) {
         const label = document.createElement("label");
         label.className = "expedition-choice__item";
         const input = document.createElement("input");
         input.type = "radio"; input.name = "village-mirror-path"; input.value = value;
-        input.disabled = value === "left" && !root.CrownlessExpeditionSystem?.__villageMirrorInscription;
+        input.disabled = (value === "left" && !root.CrownlessExpeditionSystem?.__villageMirrorInscription) || (value === "vault" && !root.CrownlessExpeditionSystem?.__villageMirrorVault);
         input.checked = value === selectedMirrorPath;
         input.addEventListener("change", () => { if (input.checked) selectedMirrorPath = value; });
         const body = document.createElement("span");
@@ -695,6 +710,7 @@
       const expedition = state && state.activeExpedition;
       const applied = baseApplyReport(state, report);
       discoverMirrorInscription(applied, report, expedition);
+      discoverMirrorVault(applied, report, expedition);
       unlockFollowup(applied, report);
       restoreVillage(applied, report);
       upgradeVillageFromRoad(applied, report);
@@ -715,9 +731,10 @@
         rewardGrottoDetour(advanced.report, expedition);
         rewardMirrorPath(advanced.report, expedition);
         discoverMirrorInscription(advanced.state, advanced.report, expedition);
+        discoverMirrorVault(advanced.state, advanced.report, expedition);
         // advance() has already banked the base report; bank sidecar road loot once.
         if (advanced.report.outcome === "success" && Array.isArray(advanced.state.securedLoot)) {
-          for (const routeLoot of advanced.report.loot.filter((item) => item && ["watch-road-medicine", "ore-trail-iron", "sealed-mine-star-ore", "sealed-mine-deep-crystal", "grotto-shadow-prism", "mirror-chamber-relic"].includes(item.id))) {
+          for (const routeLoot of advanced.report.loot.filter((item) => item && ["watch-road-medicine", "ore-trail-iron", "sealed-mine-star-ore", "sealed-mine-deep-crystal", "grotto-shadow-prism", "mirror-chamber-relic", "mirror-vault-essence"].includes(item.id))) {
             if (!advanced.state.securedLoot.some((item) => item.id === routeLoot.id && item.sourceExpeditionId === advanced.report.expeditionId)) {
               advanced.state.securedLoot.push({ ...routeLoot, sourceExpeditionId: advanced.report.expeditionId });
             }
@@ -744,6 +761,7 @@
       system.__villageBellRestoration = next.destinations.find((item) => item.id === DESTINATION_ID)?.villageRestoration || null;
       system.__villageBellFacility = next.destinations.find((item) => item.id === DESTINATION_ID)?.villageFacility || null;
       system.__villageMirrorInscription = Boolean(next.destinations.find(item => item.id === "village-forge:mirror-chamber")?.villageMirrorInscription);
+      system.__villageMirrorVault = Boolean(next.destinations.find(item => item.id === "village-forge:mirror-chamber")?.villageMirrorVault);
       return next;
     };
     return true;
@@ -803,6 +821,7 @@
     prepareMirrorPath,
     rewardMirrorPath,
     discoverMirrorInscription,
+    discoverMirrorVault,
     syncStoredReport,
     currentDestination,
     syncChoice,
