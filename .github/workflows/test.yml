@@ -61,6 +61,8 @@ jobs:
           # apt --with-deps here: slow Ubuntu font mirrors exhausted the 10m job
           # before any 360/390/430px browser assertions could run (#40406810398).
           npx playwright install chromium
+      - name: Opt-in castle vista depth and real movement smoke
+        run: node scripts/verify-castle-vista.cjs
       - name: Phone map, landmark and save smoke
         run: npm run playtest:smoke
       - name: Gemini-source combat baseline phone smoke
@@ -69,8 +71,6 @@ jobs:
         run: npm run playtest:pixel-forest
       - name: Approved protagonist walking and comparison phone smoke
         run: node scripts/verify-hero-still.cjs
-      - name: Opt-in castle vista depth and real movement smoke
-        run: node scripts/verify-castle-vista.cjs
       - name: Published Pages payload normal forest entry
         run: node scripts/verify-pages-forest.cjs
       - name: Visual candidate temporary placement smoke
