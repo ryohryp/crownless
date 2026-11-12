@@ -39,6 +39,7 @@
   let requestForgePass = false;
   let selectedMineApproach = "safe";
   let selectedGrottoApproach = "lit";
+  let selectedMirrorPath = "observe";
 
   function clone(value) {
     return value == null ? value : JSON.parse(JSON.stringify(value));
@@ -291,6 +292,36 @@
     return chamber;
   }
 
+  // A visible inscription lets players reason about the reflection rather than guess.
+  function prepareMirrorPath(expedition, path) {
+    if (!expedition?.inputs || expedition.inputs.destinationId !== "village-forge:mirror-chamber") return false;
+    if (!["observe", "left", "center"].includes(path)) return false;
+    expedition.inputs.villageMirrorPath = path;
+    if (path === "center") expedition.inputs.policyId = "greedy";
+    return true;
+  }
+
+  function rewardMirrorPath(report, expedition) {
+    if (!report || expedition?.inputs?.destinationId !== "village-forge:mirror-chamber") return false;
+    const path = expedition.inputs.villageMirrorPath;
+    if (!["left", "center"].includes(path)) return false;
+    if (!Array.isArray(report.log)) report.log = [];
+    if (report.log.some(item => item?.type === "mirror-beam")) return false;
+    const solved = path === "left" && report.outcome === "success";
+    if (solved) {
+      if (!Array.isArray(report.loot)) report.loot = [];
+      if (!report.loot.some(item => item?.id === "mirror-chamber-relic")) {
+        report.loot.push({ id: "mirror-chamber-relic", name: "鏡の間の反射核", tags: ["relic", "crystal", "craft"] });
+      }
+    }
+    report.log.push({ minute: 108, time: "", type: "mirror-beam",
+      text: path === "left"
+        ? solved ? "刻印に従い左鏡から奥鏡へ光を反射させ、反射核を回収した。" : "左鏡を照らしたが、撤退のため反射核は持ち帰れなかった。"
+        : "正面の鏡が光を跳ね返し、守護者を刺激した。危険な連戦となった。",
+      causes: ["village-forge:mirror-chamber", "mirror-path:" + path] });
+    return true;
+  }
+
   // An optional dark detour turns the grotto into a risk/reward decision.
   function prepareGrottoDetour(expedition, approach, state) {
     if (!expedition?.inputs || expedition.inputs.destinationId !== "village-forge:crystal-grotto") return false;
@@ -369,6 +400,36 @@
     const restored = root.CrownlessExpeditionSystem && root.CrownlessExpeditionSystem.__villageBellRestoration;
     const preparation = form.querySelector("[data-village-preparation]");
     const mineChoice = form.querySelector("[data-village-mine-choice]");
+    if (currentDestination(form) === "village-forge:mirror-chamber") {
+      for (const node of [existing, preparation, mineChoice, form.querySelector("[data-village-grotto-choice]")]) if (node) node.remove();
+      if (form.querySelector("[data-village-mirror-choice]")) return false;
+      const fieldset = document.createElement("fieldset");
+      fieldset.className = "expedition-choice expedition-choice--village";
+      fieldset.dataset.villageMirrorChoice = "true";
+      const legend = document.createElement("legend");
+      legend.textContent = "鏡の間：壁の刻印『左の鏡から奥へ光を渡せ』";
+      fieldset.appendChild(legend);
+      for (const [value, title, copy] of [
+        ["observe", "鏡を調べる", "危険を増やさず構造を確認する。"],
+        ["left", "左鏡から奥鏡へ反射", "刻印を手掛かりに反射核を回収。生還が必要。"],
+        ["center", "正面の鏡を強引に照らす", "守護者を刺激して危険な連戦になる。"],
+      ]) {
+        const label = document.createElement("label");
+        label.className = "expedition-choice__item";
+        const input = document.createElement("input");
+        input.type = "radio"; input.name = "village-mirror-path"; input.value = value;
+        input.checked = value === selectedMirrorPath;
+        input.addEventListener("change", () => { if (input.checked) selectedMirrorPath = value; });
+        const body = document.createElement("span");
+        const strong = document.createElement("strong"); strong.textContent = title;
+        const small = document.createElement("small"); small.textContent = copy;
+        body.append(strong, small); label.append(input, body); fieldset.append(label);
+      }
+      form.appendChild(fieldset);
+      return true;
+    }
+    const oldMirrorChoice = form.querySelector("[data-village-mirror-choice]");
+    if (oldMirrorChoice) oldMirrorChoice.remove();
     if (currentDestination(form) === "village-forge:crystal-grotto") {
       if (existing) existing.remove();
       if (preparation) preparation.remove();
@@ -533,6 +594,8 @@
       }
       if (next.activeExpedition) prepareGrottoDetour(next.activeExpedition, selectedGrottoApproach, next);
       selectedGrottoApproach = "lit";
+      if (next.activeExpedition) prepareMirrorPath(next.activeExpedition, selectedMirrorPath);
+      selectedMirrorPath = "observe";
       const inputs = next && next.activeExpedition && next.activeExpedition.inputs;
       if (inputs && inputs.destinationId === DESTINATION_ID) {
         const village = state && state.destinations && state.destinations.find((item) => item.id === DESTINATION_ID);
@@ -606,6 +669,7 @@
       rewardRestoredRoad(state, report);
       rewardMineDelve(report, expedition);
       rewardGrottoDetour(report, expedition);
+      rewardMirrorPath(report, expedition);
       return report;
     };
 
@@ -716,6 +780,8 @@
     rewardMineDelve,
     prepareGrottoDetour,
     rewardGrottoDetour,
+    prepareMirrorPath,
+    rewardMirrorPath,
     syncStoredReport,
     currentDestination,
     syncChoice,
