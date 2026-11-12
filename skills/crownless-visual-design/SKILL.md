@@ -24,6 +24,22 @@ Generate only the assets needed for the current playable slice. Evaluate visuals
 
 If the visual direction is undefined, establish the smallest useful direction and let real play decide what survives.
 
+## Castle-approach field-scene target (2026-11-12)
+
+The user shared a new target screenshot: a richly atmospheric sunset castle, a
+stone bridge over a misty waterfall, dense foreground woods, and a small
+pixel-like party. For **3/4-view field exploration** the 2026-11-12 target
+supersedes the earlier strict environment-only 16-bit/no-HD-2D prescription,
+but does not automatically replace approved player identities or every screen.
+See `docs/visual-canon.md` and `docs/visual/castle-bridge-reference-2026-11-12.md`.
+
+Treat the screenshot as a visual **goal, not a texture to paste into the game**:
+near/mid/far separation, actual walkable bridge geometry, camera parallax,
+cast-shadow grounding, parapet/actor overlap, and purposefully restrained phone UI
+must work during movement. First test on an opt-in comparison stage. Do not
+change default play, existing saves, GPS behavior or approved actor identities
+to match a standalone concept. Do not call a glossy single-plane mockup accepted.
+
 ## Classic pixel-art exploration-stage contract (2026-11-06)
 
 - Prioritize a recognizable, handcrafted **16-bit-era pixel-art** appearance: intentional pixel clusters, a limited coherent palette, crisp nearest-neighbor scaling, readable silhouettes, and restrained frame animation. Avoid blurry resampling, generic vector scenery, and HD-2D bloom as the target style.
