@@ -295,8 +295,13 @@
   // A visible inscription lets players reason about the reflection rather than guess.
   function prepareMirrorPath(expedition, path, state) {
     if (!expedition?.inputs || expedition.inputs.destinationId !== "village-forge:mirror-chamber") return false;
-    if (!["observe", "left", "center", "vault"].includes(path)) return false;
-    if (path === "vault" && state && !state.destinations?.some(item => item.id === "village-forge:mirror-chamber" && item.villageMirrorVault)) return false;
+    if (!["observe", "left", "center", "vault", "resonance"].includes(path)) return false;
+    if (["vault", "resonance"].includes(path) && state && !state.destinations?.some(item => item.id === "village-forge:mirror-chamber" && item.villageMirrorVault)) return false;
+    if (path === "resonance") {
+      const index = state?.securedLoot?.findIndex(item => item?.id === "mirror-chamber-relic") ?? -1;
+      if (index < 0) return false;
+      state.securedLoot.splice(index, 1);
+    }
     if (path === "left" && state && !state.destinations?.some(item => item.id === "village-forge:mirror-chamber" && item.villageMirrorInscription)) return false;
     expedition.inputs.villageMirrorPath = path;
     if (path === "center" || path === "vault") expedition.inputs.policyId = "greedy";
@@ -306,11 +311,11 @@
   function rewardMirrorPath(report, expedition) {
     if (!report || expedition?.inputs?.destinationId !== "village-forge:mirror-chamber") return false;
     const path = expedition.inputs.villageMirrorPath;
-    if (!["left", "center", "vault"].includes(path)) return false;
+    if (!["left", "center", "vault", "resonance"].includes(path)) return false;
     if (!Array.isArray(report.log)) report.log = [];
     if (report.log.some(item => item?.type === "mirror-beam")) return false;
     const solved = path === "left" && report.outcome === "success";
-    const vaultCleared = path === "vault" && report.outcome === "success";
+    const vaultCleared = ["vault", "resonance"].includes(path) && report.outcome === "success";
     if (solved || vaultCleared) {
       if (!Array.isArray(report.loot)) report.loot = [];
       if (solved && !report.loot.some(item => item?.id === "mirror-chamber-relic")) {
@@ -319,7 +324,8 @@
       if (vaultCleared && !report.loot.some(item => item?.id === "mirror-vault-essence")) report.loot.push({ id: "mirror-vault-essence", name: "鏡奥の光髄", tags: ["relic", "light", "craft"] });
     }
     report.log.push({ minute: 108, time: "", type: "mirror-beam",
-      text: path === "vault" ? vaultCleared ? "反射核を共鳴させて鏡奥の封印を破り、光髄を持ち帰った。" : "鏡奥の封印を解いたが、守護者との連戦から撤退した。"
+      text: path === "resonance" ? vaultCleared ? "反射核を消費して封印の光を安定させ、連戦を避けて光髄を回収した。" : "反射核で封印を安定させたが、撤退して光髄を持ち帰れなかった。"
+        : path === "vault" ? vaultCleared ? "反射核を共鳴させて鏡奥の封印を破り、光髄を持ち帰った。" : "鏡奥の封印を解いたが、守護者との連戦から撤退した。"
         : path === "left"
         ? solved ? "刻印に従い左鏡から奥鏡へ光を反射させ、反射核を回収した。" : "左鏡を照らしたが、撤退のため反射核は持ち帰れなかった。"
         : "正面の鏡が光を跳ね返し、守護者を刺激した。危険な連戦となった。",
@@ -442,12 +448,13 @@
         ["left", "左鏡から奥鏡へ反射", "調査で記録した刻印を使い、反射核を回収。"],
         ["center", "正面の鏡を強引に照らす", "守護者を刺激して危険な連戦になる。"],
         ["vault", "鏡奥の封印に挑む", "反射攻略後に発見した封印へ。危険な連戦を突破すると光髄を回収。"],
+        ["resonance", "反射核で封印を安定させる", "反射核を1個消費して危険な連戦を避け、光髄を狙う。"],
       ]) {
         const label = document.createElement("label");
         label.className = "expedition-choice__item";
         const input = document.createElement("input");
         input.type = "radio"; input.name = "village-mirror-path"; input.value = value;
-        input.disabled = (value === "left" && !root.CrownlessExpeditionSystem?.__villageMirrorInscription) || (value === "vault" && !root.CrownlessExpeditionSystem?.__villageMirrorVault);
+        input.disabled = (value === "left" && !root.CrownlessExpeditionSystem?.__villageMirrorInscription) || (["vault", "resonance"].includes(value) && !root.CrownlessExpeditionSystem?.__villageMirrorVault);
         input.checked = value === selectedMirrorPath;
         input.addEventListener("change", () => { if (input.checked) selectedMirrorPath = value; });
         const body = document.createElement("span");
