@@ -31,10 +31,10 @@ test('vista is opt-in; the old depth bridge and live interaction remain availabl
   assert.match(html,/src="src\/hd2d-bridge-vista\.js"/);
   assert.match(html,/const depthPreview = fxParams\.get\('art'\) === 'depth'/);
   assert.match(html,/const vistaPreview = fxParams\.get\('art'\) === 'vista'/);
-  assert.match(html,/const drawDepth=drawPixelArt && \(depthPreview \|\| vistaPreview\) && depthArt\.ready\(\)/);
+  assert.match(html,/const drawDepth=drawReprise \|\| \(drawPixelArt && \(depthPreview \|\| vistaPreview\) && depthArt\.ready\(\)\)/);
   assert.match(html,/if\(drawVista\) vistaArt\.background/);
   assert.match(html,/if\(drawVista\) vistaArt\.foreground/);
-  assert.match(html,/depthArt\.entity\(ctx,obj\.x,obj\.z,height/);
+  assert.match(html,/activeDepthArt\.entity\(ctx,obj\.x,obj\.z,height/);
   assert.match(html,/depthArt\.hitTestSite/);
   assert.match(html,/drawList\.sort\(\(a, b\) => a\.z - b\.z\)/);
 });
