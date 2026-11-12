@@ -69,10 +69,20 @@ jobs:
         run: npm run playtest:pixel-forest
       - name: Approved protagonist walking and comparison phone smoke
         run: node scripts/verify-hero-still.cjs
+      - name: Opt-in castle vista depth and real movement smoke
+        run: node scripts/verify-castle-vista.cjs
       - name: Published Pages payload normal forest entry
         run: node scripts/verify-pages-forest.cjs
       - name: Visual candidate temporary placement smoke
         run: node --test test/asset-quality-phone.test.js
+      - name: Upload opt-in castle vista phone comparisons
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: crownless-castle-vista-phone
+          path: .qa/browser/vista-*.png
+          if-no-files-found: warn
+          retention-days: 1
       - name: Upload camp-reload phone screenshots
         # Keep a short-lived visual proof of the camp re-entry flow even on green PR CI.
         # The broader QA artifact remains failure/manual-only to limit storage.
