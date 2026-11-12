@@ -267,6 +267,30 @@
     return true;
   }
 
+  // The recovered prism is a tool: angle it at the grotto wall to reveal a permanent chamber.
+  // This is a one-time material decision; repeated visits never spend another prism.
+  function revealMirrorChamber(state) {
+    if (!state || !Array.isArray(state.destinations) || !Array.isArray(state.securedLoot)) return null;
+    const grotto = state.destinations.find(item => item && item.id === "village-forge:crystal-grotto");
+    if (!grotto) return null;
+    const id = "village-forge:mirror-chamber";
+    const existing = state.destinations.find(item => item && item.id === id);
+    if (existing) return existing;
+    const index = state.securedLoot.findIndex(item => item && item.id === "grotto-shadow-prism");
+    if (index < 0) return null;
+    state.securedLoot.splice(index, 1);
+    const chamber = {
+      id, name: "影晶が映す鏡の間", family: "cave",
+      dangerTags: ["guardian", "reflection", "dark"],
+      opportunityTags: ["relic", "crystal", "hidden-cache"],
+      durationMs: 600000, villageMirrorChamber: true,
+    };
+    state.destinations.push(chamber);
+    if (!Array.isArray(state.discoveredDestinationIds)) state.discoveredDestinationIds = [];
+    if (!state.discoveredDestinationIds.includes(id)) state.discoveredDestinationIds.push(id);
+    return chamber;
+  }
+
   // An optional dark detour turns the grotto into a risk/reward decision.
   function prepareGrottoDetour(expedition, approach, state) {
     if (!expedition?.inputs || expedition.inputs.destinationId !== "village-forge:crystal-grotto") return false;
@@ -361,6 +385,7 @@
         ["lit", "導光灯の道を進む", "安全寄りの通常探索。素材を持ち帰ることを優先する。"],
         ["shadow", "光の届かない横穴へ", "強欲方針で二連戦。生還できれば希少な影晶プリズムを持ち帰る。"],
         ["mapped", "斥候地図で横穴を攻略", "見張り台の斥候地図を1枚消費。強欲方針を避けて影晶プリズムを狙う。"],
+        ["mirror", "影晶プリズムで壁を照らす", "持ち帰った影晶プリズムを1個使い、鏡の間への隠し通路を恒久開放する。"],
       ]) {
         const label = document.createElement("label");
         label.className = "expedition-choice__item";
@@ -502,6 +527,10 @@
       requestCrystalBeacon = false;
       if (next.activeExpedition) prepareMineDelve(next, next.activeExpedition, selectedMineApproach);
       selectedMineApproach = "safe";
+      if (next.activeExpedition && next.activeExpedition.inputs.destinationId === "village-forge:crystal-grotto" && selectedGrottoApproach === "mirror") {
+        const chamber = revealMirrorChamber(next);
+        if (chamber) next.activeExpedition.inputs.villageMirrorChamberOpened = chamber.id;
+      }
       if (next.activeExpedition) prepareGrottoDetour(next.activeExpedition, selectedGrottoApproach, next);
       selectedGrottoApproach = "lit";
       const inputs = next && next.activeExpedition && next.activeExpedition.inputs;
@@ -682,6 +711,7 @@
     upgradeVillageFromRoad,
     forgeMinePass,
     buildCrystalBeacon,
+    revealMirrorChamber,
     prepareMineDelve,
     rewardMineDelve,
     prepareGrottoDetour,

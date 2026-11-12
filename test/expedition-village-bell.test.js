@@ -451,3 +451,31 @@ test("mapped grotto rejects missing map and unrelated destinations without spend
   assert.equal(village.prepareGrottoDetour(mission, "mapped", current), false);
   assert.equal(current.securedLoot.length, 2);
 });
+
+test("shadow prism opens a persistent mirror chamber only once", () => {
+  const current = state();
+  current.destinations.push({ id: "village-forge:crystal-grotto", name: "隠し洞窟", family: "cave", dangerTags: [], opportunityTags: [] });
+  current.securedLoot = [{ id: "grotto-shadow-prism" }, { id: "grotto-shadow-prism" }];
+  const opened = village.revealMirrorChamber(current);
+  assert.equal(opened.id, "village-forge:mirror-chamber");
+  assert.equal(opened.villageMirrorChamber, true);
+  assert.equal(current.securedLoot.length, 1);
+  assert.ok(current.discoveredDestinationIds.includes(opened.id));
+  assert.equal(village.revealMirrorChamber(current).id, opened.id);
+  assert.equal(current.securedLoot.length, 1);
+  const engine = require("../src/expedition-system.js");
+  const restored = engine.normalizeState(JSON.parse(JSON.stringify(current)));
+  assert.ok(restored.destinations.some(item => item.id === opened.id));
+  assert.ok(restored.discoveredDestinationIds.includes(opened.id));
+});
+
+test("mirror chamber cannot be revealed without the grotto and prism", () => {
+  const current = state();
+  current.securedLoot = [{ id: "grotto-shadow-prism" }];
+  assert.equal(village.revealMirrorChamber(current), null);
+  assert.equal(current.securedLoot.length, 1);
+  current.destinations.push({ id: "village-forge:crystal-grotto", family: "cave" });
+  current.securedLoot = [];
+  assert.equal(village.revealMirrorChamber(current), null);
+  assert.equal(current.destinations.some(item => item.villageMirrorChamber), false);
+});
