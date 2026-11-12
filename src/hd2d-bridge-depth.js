@@ -26,6 +26,22 @@
     return sites.find(s=>{const p=project(s.x,s.z,heightAt(s.x,s.z),cameraX,width);
       return Math.abs(x-p.x)<=53*p.scale&&y>=p.y-110*p.scale&&y<=p.y+20*p.scale;})||null;
   }
+  // Map a source-texture triangle to the camera-projected surface.
+  // A box-stretched drawImage looks painted onto the screen instead of stone.
+  function affineTriangle(source,target){
+    const [[u0,v0],[u1,v1],[u2,v2]]=source;
+    const [[p0,p1],[q0,q1],[r0,r1]]=target;
+    const du1=u1-u0,dv1=v1-v0,du2=u2-u0,dv2=v2-v0;
+    const det=du1*dv2-du2*dv1;
+    if(!Number.isFinite(det)||Math.abs(det)<1e-6)return null;
+    const dx1=q0-p0,dy1=q1-p1,dx2=r0-p0,dy2=r1-p1;
+    const a=(dx1*dv2-dx2*dv1)/det;
+    const b=(dy1*dv2-dy2*dv1)/det;
+    const c=(dx2*du1-dx1*du2)/det;
+    const d=(dy2*du1-dy1*du2)/det;
+    const e=p0-a*u0-c*v0,f=p1-b*u0-d*v0;
+    return [a,b,c,d,e,f];
+  }
   function create(){
     const distant=typeof Image==='function'?new Image():null;
     if(distant)distant.src='assets/action-forest/bridge-hd2d-candidate-v1.webp';
@@ -41,15 +57,33 @@
     function face(ctx,cam,w,vertices,fill,line){poly(ctx,vertices.map(v=>pt(v[0],v[1],v[2],cam,w)),fill,line);}
     function texturedFace(ctx,cam,w,vertices,uv,fill){
       const ps=vertices.map(v=>pt(v[0],v[1],v[2],cam,w));
-      if(!ready()){poly(ctx,ps,fill);return;}
-      const minX=Math.min(...ps.map(p=>p.x)),minY=Math.min(...ps.map(p=>p.y));
-      const maxX=Math.max(...ps.map(p=>p.x)),maxY=Math.max(...ps.map(p=>p.y));
-      ctx.save();ctx.beginPath();ctx.moveTo(ps[0].x,ps[0].y);
-      for(let i=1;i<ps.length;i++)ctx.lineTo(ps[i].x,ps[i].y);
-      ctx.closePath();ctx.clip();
-      ctx.drawImage(distant,uv[0],uv[1],uv[2],uv[3],minX,minY,
-        Math.max(1,maxX-minX),Math.max(1,maxY-minY));
-      ctx.fillStyle='rgba(71,69,57,.12)';ctx.fillRect(minX,minY,maxX-minX,maxY-minY);
+      // Keep solid stone below the texels, including while the image loads.
+      poly(ctx,ps,fill);
+      if(!ready())return;
+      const [sx,sy,sw,sh]=uv;
+      if(!(sw>0&&sh>0))return;
+      const source=[[sx,sy],[sx+sw,sy],[sx+sw,sy+sh],[sx,sy+sh]];
+      // A projected quad is generally a trapezoid. An axis-aligned crop
+      // squashes its stones; two affine triangles instead track the surface.
+      for(const indices of [[0,1,2],[0,2,3]]){
+        const matrix=affineTriangle(
+          indices.map(i=>source[i]),
+          indices.map(i=>[ps[i].x,ps[i].y]));
+        if(!matrix)continue;
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(ps[indices[0]].x,ps[indices[0]].y);
+        for(const i of indices.slice(1))ctx.lineTo(ps[i].x,ps[i].y);
+        ctx.closePath();
+        ctx.clip();
+        // Compose with the caller's -cameraX transform; setTransform would
+        // lose it and make the texture slide independently of the player.
+        ctx.transform(...matrix);
+        ctx.drawImage(distant,sx,sy,sw,sh,sx,sy,sw,sh);
+        ctx.restore();
+      }
+      ctx.save();
+      poly(ctx,ps,'rgba(71,69,57,.12)');
       ctx.restore();
     }
     function background(ctx,w,cam,wave){
@@ -166,5 +200,5 @@
     }
     return {ready,background,ground,scenery,entity,shadow,foreground,project,hitTestSite,nearScenery};
   }
-  return {create,project,depthScale,hitTestSite,nearScenery,BRIDGE};
+  return {create,project,depthScale,hitTestSite,affineTriangle,nearScenery,BRIDGE};
 });
