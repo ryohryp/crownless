@@ -329,6 +329,7 @@
 <script src="src/pixel-forest.js"></script>
 <script src="src/hd2d-bridge-scene.js"></script>
 <script src="src/hd2d-bridge-depth.js"></script>
+<script src="src/hd2d-bridge-vista.js"></script>
 <script src="src/pixel-forest-effects.js"></script>
 <script src="src/pixel-actors.js"></script>
 <script src="src/hero-still-review.js"></script>
@@ -2050,7 +2051,7 @@
 
   function tryTapForestSite(clientX,clientY,allowNearby) {
     if (!ginji || !window.CrownlessForestDiscoveries.available(rpg.phase)) return false;
-    const site=depthPreview && pixelArt && depthArt.ready()
+    const site=(depthPreview || vistaPreview) && pixelArt && depthArt.ready()
       ? depthArt.hitTestSite({x:clientX,y:clientY},canvas.getBoundingClientRect(),virtualW,
         state.cameraX,getGroundHeightAt,window.CrownlessForestDiscoveries.spots)
       : window.CrownlessForestDiscoveries.spotAtTap(
@@ -2393,6 +2394,9 @@
   const bridgeArt = window.CrownlessBridgeScene.create();
   const depthPreview = fxParams.get('art') === 'depth';
   const depthArt = window.CrownlessBridgeDepth.create();
+  // Distinct parallax layers are an opt-in visual comparison on the same bridge.
+  const vistaPreview = fxParams.get('art') === 'vista';
+  const vistaArt = window.CrownlessBridgeVista.create();
   const reducedMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   const forestEffects = window.CrownlessForestEffects.create({enabled: fxParams.get('fx') !== 'off' && !reducedMotion});
   const atmosphereButton = document.getElementById('btnForestAtmosphere');
@@ -2406,7 +2410,7 @@
   let pixelArt = fxParams.get('art') !== 'classic';
   const artButton = document.getElementById('btnToggleArtPreview');
   function syncArtButton() {
-    artButton.textContent = pixelArt ? (depthPreview ? '景観: 奥行き石橋・比較版' : bridgePreview ? '景観: 石橋 HD-2D候補' : '景観: ピクセルの森') : '景観: 従来';
+    artButton.textContent = pixelArt ? (vistaPreview ? '景観: 古城への石橋・遠近比較' : depthPreview ? '景観: 奥行き石橋・比較版' : bridgePreview ? '景観: 石橋 HD-2D候補' : '景観: ピクセルの森') : '景観: 従来';
     artButton.setAttribute('aria-pressed',String(pixelArt));
   }
   syncArtButton();
@@ -2430,14 +2434,17 @@
   function renderScene() {
     const drawPixelArt=pixelArt && forestArt.ready();
     const drawBridge=drawPixelArt && bridgePreview && bridgeArt.ready();
-    const drawDepth=drawPixelArt && depthPreview && depthArt.ready();
+    const drawDepth=drawPixelArt && (depthPreview || vistaPreview) && depthArt.ready();
+    const drawVista=drawDepth && vistaPreview;
     ctx.setTransform(canvas.width/virtualW,0,0,canvas.height/VIRTUAL_H,0,0);
     ctx.clearRect(0, 0, virtualW, VIRTUAL_H);
 
     // 独自要素③：ウェーブに応じた時間帯・天候変化（夕暮れ → 宵闇 → 月夜月夜）
     const weatherPhase = (state.waveCount - 1) % 3;
     if (drawPixelArt) {
-      if(drawDepth) depthArt.background(ctx,virtualW,state.cameraX,state.waveCount);
+      if(drawVista) vistaArt.background(ctx,virtualW,state.cameraX,state.waveCount,
+        reducedMotion ? 0 : performance.now());
+      else if(drawDepth) depthArt.background(ctx,virtualW,state.cameraX,state.waveCount);
       else if(drawBridge) bridgeArt.background(ctx,virtualW,state.cameraX,state.waveCount);
       else {
         forestArt.background(ctx,virtualW,state.cameraX,state.waveCount);
@@ -2659,7 +2666,11 @@
     }
 
     if(drawPixelArt) {
-      if(drawDepth) depthArt.foreground(ctx,state.cameraX,virtualW,performance.now());
+      if(drawDepth) {
+        depthArt.foreground(ctx,state.cameraX,virtualW,performance.now());
+        if(drawVista) vistaArt.foreground(ctx,virtualW,state.cameraX,
+          reducedMotion ? 0 : performance.now());
+      }
       else if(drawBridge) bridgeArt.foreground(ctx,state.cameraX,virtualW,performance.now(),ginji);
       else forestArt.foreground(ctx,state.cameraX,virtualW,performance.now(),ginji);
       if(!drawDepth) forestEffects.overlay(ctx,state.cameraX,virtualW,performance.now(),ginji,state.forestFinds,rpg.crafted);
@@ -2766,7 +2777,7 @@
     const groundH = getGroundHeightAt(f.x, f.z);
     const zAlignedWithHero = ginji && f.team === 1 && Math.abs(f.z - ginji.z) <= 24;
 
-    ctx.fillStyle = depthPreview && pixelArt ? 'rgba(0,0,0,.12)' :
+    ctx.fillStyle = (depthPreview || vistaPreview) && pixelArt ? 'rgba(0,0,0,.12)' :
       zAlignedWithHero ? 'rgba(52, 211, 153, 0.55)' : 'rgba(0,0,0,0.42)';
     ctx.beginPath();
     ctx.ellipse(f.x, f.z - groundH, 16, 6, 0, 0, Math.PI * 2);
