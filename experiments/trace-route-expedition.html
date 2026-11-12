@@ -9,7 +9,7 @@ h1{font-size:1.1rem;margin:0}p{margin:0;line-height:1.4}#status{min-height:3em}#
 .tile:disabled{opacity:1;color:#b3bdbd}.tile.fog{background:#17252b;color:#66777a}.tile.wall{background:#384043}.tile.player{background:#997b3e;color:white}.tile:focus-visible{outline:3px solid white}
 #actions{margin-top:auto;display:grid;grid-template-columns:1fr 1fr;gap:8px}#actions button{min-height:48px;border-radius:9px;background:#41574d;border:1px solid #8d9c87;color:white;font:inherit;font-weight:600}#actions button:disabled{opacity:.4}small{color:#bac6c4}
 </style>
-<main><h1>痕跡の森 — 帰るまでが遠征</h1><p id="stats"></p><p id="status" role="status" aria-live="polite"></p><div id="board" aria-label="隣接する見えている道だけをタップして移動する7×7探索盤"></div><small>隣接する明るい道だけ移動可能。足跡を調べると隠し道が見つかる。蔓を持ち帰りロープを編むと次の遠征で崩れた橋を修復できる。橋の途中で足場を調べて固定するか、危険を承知で急いで渡ろう。橋の奥の崖際には、体力3と引き換えに希少鉱石4個を採れる危険な寄り道もある。採掘音で獣が追跡するため、鉱石2個を囮にするか帰路で戦うかを選べる。灯台跡では素材1個と引き換えに一度だけ体力2を回復できる。鉱石を4個持ち帰ると導きの灯を製作でき、次の遠征で灯台跡から封鎖路を開ける。敵の予兆を読んで防御/回避を使い分け、危険な奥地で希少素材を拾い、帰還地点まで生きて戻ろう。実ゲームのセーブ・倉庫・GPSには触れない。</small><div id="actions"><button id="search">足元を調べる</button><button id="fight">防御して反撃</button><button id="dodge">回避して側面攻撃</button><button id="decoy">鉱石2個を囮にする</button><button id="blessing">月光石1個を捧げて回復</button><button id="retreat">撤退（素材を失う）</button><button id="restart">次の遠征</button><button id="craft">蔓でロープを編む</button></div></main>
+<main><h1>痕跡の森 — 帰るまでが遠征</h1><p id="stats"></p><p id="status" role="status" aria-live="polite"></p><div id="board" aria-label="隣接する見えている道だけをタップして移動する7×7探索盤"></div><small>隣接する明るい道だけ移動可能。足跡を調べると隠し道が見つかる。蔓を持ち帰りロープを編むと次の遠征で崩れた橋を修復できる。橋の途中で足場を調べて固定するか、危険を承知で急いで渡ろう。橋の奥の崖際には、体力3と引き換えに希少鉱石4個を採れる危険な寄り道もある。採掘音で獣が追跡するため、鉱石2個を囮にするか帰路で戦うかを選べる。灯台跡では素材1個と引き換えに一度だけ体力2を回復できる。鉱石を4個持ち帰ると導きの灯を製作でき、次の遠征で灯台跡から封鎖路を開ける。敵の予兆を読んで防御/回避/側面移動を使い分け、危険な奥地で希少素材を拾い、帰還地点まで生きて戻ろう。実ゲームのセーブ・倉庫・GPSには触れない。</small><div id="actions"><button id="search">足元を調べる</button><button id="fight">防御して反撃</button><button id="dodge">回避して側面攻撃</button><button id="flank">側面へ移動（次の反撃強化）</button><button id="decoy">鉱石2個を囮にする</button><button id="blessing">月光石1個を捧げて回復</button><button id="retreat">撤退（素材を失う）</button><button id="restart">次の遠征</button><button id="craft">蔓でロープを編む</button></div></main>
 <script>
 'use strict';
 // Self-contained opt-in prototype. Local storage uses an experiment-specific key.
@@ -17,7 +17,7 @@ const STORE='crownless-trace-route-spike-v1', SIZE=7, HOME='0,6', CLUE='2,4', SE
 const walls=new Set(['1,1','1,2','1,3','3,1','3,2','4,4','5,4','5,5','2,2','6,3']);
 const key=(x,y)=>x+','+y, xy=s=>s.split(',').map(Number), near=(a,b)=>{const [x,y]=xy(a),[u,v]=xy(b);return Math.abs(x-u)+Math.abs(y-v)===1};
 const el=id=>document.getElementById(id);
-function fresh(){return {pos:HOME,hp:5,steps:0,found:false,opened:false,loot:0,warehouse:0,fiber:0,rope:false,bridge:false,braced:false,crossed:false,cacheTaken:false,veinTaken:false,pursuit:false,pursuitResolved:false,beacon:false,beaconBuilt:false,gateOpen:false,giftTaken:false,shrineUsed:false,guard:false,combat:false,enemyIntent:'',enemyHp:0,round:0,ended:false,seen:[HOME],message:'足跡を追って奥へ進もう。'};}
+function fresh(){return {pos:HOME,hp:5,steps:0,found:false,opened:false,loot:0,warehouse:0,fiber:0,rope:false,bridge:false,braced:false,crossed:false,cacheTaken:false,veinTaken:false,pursuit:false,pursuitResolved:false,beacon:false,beaconBuilt:false,gateOpen:false,giftTaken:false,shrineUsed:false,guard:false,combat:false,flanking:false,enemyIntent:'',enemyHp:0,round:0,ended:false,seen:[HOME],message:'足跡を追って奥へ進もう。'};}
 let s=fresh();try{const v=JSON.parse(localStorage.getItem(STORE));if(v&&typeof v.pos==='string'&&Array.isArray(v.seen)&&Number.isInteger(v.hp))s={...fresh(),...v};}catch{}
 function save(){try{localStorage.setItem(STORE,JSON.stringify(s));}catch{s.message+='（この環境では保存不可）';}}
 function visible(k){return s.seen.includes(k)||near(k,s.pos)||k===s.pos;}
@@ -43,7 +43,7 @@ function move(k){
 }
 function render(){
  el('stats').textContent='体力 '+s.hp+'/5 · 歩数 '+s.steps+' · 手持ち '+s.loot+' · 持ち帰り累計 '+s.warehouse+' · 蔓 '+s.fiber+' · ロープ '+(s.rope?'有':'無');
- el('status').textContent=s.message+(s.combat?' 【敵HP '+s.enemyHp+'】':'');
+ el('status').textContent=s.message+(s.combat?' 【敵HP '+s.enemyHp+' / '+(s.flanking?'側面確保':'正面')+'】':'');
  const board=el('board');board.replaceChildren();
  for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++){
  const k=key(x,y),vis=visible(k),wall=walls.has(k)&&!((k===BRIDGE||k===CROSSING||k===CACHE)&&s.bridge),hidden=k===SECRET&&!s.opened,can=!s.ended&&!s.combat&&near(k,s.pos)&&vis&&(!wall||(k===BRIDGE||k===CROSSING||k===CACHE)&&s.bridge)&&!hidden;
@@ -52,7 +52,7 @@ function render(){
  b.setAttribute('aria-label',k+' '+(can?'移動可能':vis?'移動不可':'未発見'));if(can)b.onclick=()=>move(k);board.append(b);
  }
  el('search').disabled=s.ended||s.combat||!(s.pos===CLUE&&!s.opened||s.pos==='4,3'&&s.rope&&!s.bridge||s.pos===BRIDGE&&s.bridge&&!s.braced||s.pos===VEIN&&!s.veinTaken||s.pos===SHRINE&&s.beacon&&!s.gateOpen);
- el('fight').disabled=!s.combat||s.ended;el('dodge').disabled=!s.combat||s.ended;
+ el('fight').disabled=!s.combat||s.ended;el('dodge').disabled=!s.combat||s.ended;el('flank').disabled=!s.combat||s.ended||s.flanking;
  el('blessing').disabled=s.ended||s.combat||s.pos!==SHRINE||s.shrineUsed||s.loot<1||s.hp>=5;
  el('decoy').disabled=s.ended||s.combat||!s.pursuit||s.pursuitResolved||s.pos!==VEIN||s.loot<2;
  el('retreat').disabled=s.ended;
@@ -64,15 +64,20 @@ function combatTurn(action){
  const intent=s.enemyIntent;
  // Telegraph alternates: defend the charge, dodge the sweeping strike.
  const correct=(intent==='突進'&&action==='defend')||(intent==='薙ぎ払い'&&action==='dodge');
- const damage=correct?0:2;
- s.hp-=damage;s.enemyHp-=correct?2:1;s.round++;
+ const shifting=action==='flank';
+ // Moving to the flank is safe against a sweep but exposed to a charge.
+ const damage=shifting?(intent==='薙ぎ払い'?0:2):(correct?0:2);
+ s.hp-=damage;
+ if(shifting){s.flanking=true;}else{s.enemyHp-=correct?(s.flanking?3:2):1;s.flanking=false;}
+ s.round++;
  if(s.hp<=0){end(false);return;}
- if(s.enemyHp<=0){s.guard=true;s.combat=false;s.message='予兆を読んで獣を撃退！ '+(damage?'負傷したが':'無傷で')+'探索へ復帰した。';}
- else{s.enemyIntent=intent==='突進'?'薙ぎ払い':'突進';s.message=(correct?'見切り成功！':'読み違えた！ 体力-'+damage+'。')+' 次の予兆は「'+s.enemyIntent+'」。';}
+ if(s.enemyHp<=0){s.guard=true;s.combat=false;s.flanking=false;s.message='予兆を読んで獣を撃退！ '+(damage?'負傷したが':'無傷で')+'探索へ復帰した。';}
+ else{s.enemyIntent=intent==='突進'?'薙ぎ払い':'突進';s.message=(shifting?(damage?'突進を受けたが側面を確保。体力-'+damage+'。':'薙ぎ払いを避けて側面を確保。次の正解反撃は3ダメージ。'):(correct?'見切り成功！'+(damage===0?'':''):'読み違えた！ 体力-'+damage+'。'))+' 次の予兆は「'+s.enemyIntent+'」。';}
  save();render();
 }
 el('fight').onclick=()=>combatTurn('defend');
 el('dodge').onclick=()=>combatTurn('dodge');
+el('flank').onclick=()=>combatTurn('flank');
 el('blessing').onclick=()=>{if(s.ended||s.combat||s.pos!==SHRINE||s.shrineUsed||s.loot<1||s.hp>=5)return;s.loot--;s.hp=Math.min(5,s.hp+2);s.shrineUsed=true;s.message='灯台跡に素材1個を捧げ、体力を2回復した。遠征中は再使用できない。';save();render();};
 el('decoy').onclick=()=>{if(s.ended||s.combat||!s.pursuit||s.pursuitResolved||s.pos!==VEIN||s.loot<2)return;s.loot-=2;s.pursuitResolved=true;s.message='鉱石2個を崖下に投げた。獣が音を追い、帰路の待ち伏せを回避できた。';save();render();};
 el('retreat').onclick=()=>{if(!s.ended)end(false);};
