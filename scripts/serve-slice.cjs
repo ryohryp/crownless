@@ -11,10 +11,15 @@ const isAllowed = name => !name.includes('..') && (
    'docs/assets/player-unarmed-approved-pixel-anchor-v1.png',
    'docs/assets/candidates/hero-walk-v1/walk.png',
    'assets/action-forest/terrain.png','assets/action-forest/objects.png',
-   'assets/action-forest/hero-idle.png','assets/action-forest/hero-walk.png'].includes(name) ||
+   'assets/action-forest/hero-idle.png','assets/action-forest/hero-walk.png',
+   // Explicit opt-in bridge comparison assets. Avoid opening arbitrary dirs.
+   'assets/action-forest/bridge-hd2d-candidate-v1.webp',
+   'assets/action-forest/vista-castle.svg',
+   'assets/action-forest/vista-canyon.svg',
+   'assets/action-forest/vista-canopy.svg'].includes(name) ||
   (name.startsWith('assets/') && name.endsWith('.svg') && name.indexOf('/', 7) === -1)
 );
-const types = {'.png':'image/png','.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml'};
+const types = {'.png':'image/png','.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml','.webp':'image/webp'};
 const server = http.createServer((req,res) => {
   const name = new URL(req.url,'http://localhost').pathname.slice(1) || 'index.html';
   if (!['GET','HEAD'].includes(req.method) || !isAllowed(name)) { res.writeHead(404); res.end('Not found'); return; }
