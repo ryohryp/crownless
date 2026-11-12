@@ -58,7 +58,8 @@ test('blocked real-site tap shows recovery cue but never spends a find or become
   const sandbox={
     ginji:player,rpg:{phase:'fight'},state:{cameraX:0,forestFinds:finds},
     canvas:{getBoundingClientRect:()=>({left:0,top:0,width:390,height:420})},
-    virtualW:390,VIRTUAL_H:420,getGroundHeightAt:()=>0,
+    // The extracted handler runs without the full page's opt-in art flags.
+    depthPreview:false,virtualW:390,VIRTUAL_H:420,getGroundHeightAt:()=>0,
     spawnPopup:(...args)=>popups.push(args),
     window:{CrownlessForestDiscoveries:{
       available:D.available,canInspect:D.canInspect,RANGE:D.RANGE,
