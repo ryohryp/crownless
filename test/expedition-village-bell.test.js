@@ -553,3 +553,38 @@ test("mirror vault rewards only safe returns, once per report", () => {
   assert.equal(village.rewardMirrorPath(success, mission), false);
   assert.equal(success.loot.length, 1);
 });
+
+test("mirror resonance consumes a recovered core to avoid forced battles", () => {
+  const engine = require("../src/expedition-system.js");
+  const current = engine.initialState();
+  current.destinations.push({ id: "village-forge:mirror-chamber", name: "鏡の間", family: "cave", dangerTags: [], opportunityTags: [], villageMirrorVault: true });
+  current.securedLoot.push({ id: "mirror-chamber-relic", name: "反射核" });
+  const mission = { inputs: { destinationId: "village-forge:mirror-chamber", policyId: "standard" } };
+  assert.equal(village.prepareMirrorPath(mission, "resonance", current), true);
+  assert.equal(mission.inputs.policyId, "standard");
+  assert.equal(current.securedLoot.some(item => item.id === "mirror-chamber-relic"), false);
+  assert.equal(village.prepareMirrorPath({ inputs: { destinationId: "village-forge:mirror-chamber", policyId: "standard" } }, "resonance", current), false);
+  const success = { outcome: "success", loot: [], log: [] };
+  assert.equal(village.rewardMirrorPath(success, mission), true);
+  assert.equal(success.loot.filter(item => item.id === "mirror-vault-essence").length, 1);
+  assert.equal(village.rewardMirrorPath(success, mission), false);
+  const restored = engine.normalizeState(JSON.parse(JSON.stringify(current)));
+  assert.equal(restored.securedLoot.some(item => item.id === "mirror-chamber-relic"), false);
+});
+
+test("mirror resonance cannot spend a core before vault discovery or on unrelated expeditions", () => {
+  const engine = require("../src/expedition-system.js");
+  const current = engine.initialState();
+  current.destinations.push({ id: "village-forge:mirror-chamber", name: "鏡の間", family: "cave", dangerTags: [], opportunityTags: [] });
+  current.securedLoot.push({ id: "mirror-chamber-relic" });
+  const mission = { inputs: { destinationId: "village-forge:mirror-chamber", policyId: "standard" } };
+  assert.equal(village.prepareMirrorPath(mission, "resonance", current), false);
+  assert.equal(current.securedLoot.length, 1);
+  const other = { inputs: { destinationId: "hollow-village", policyId: "standard" } };
+  assert.equal(village.prepareMirrorPath(other, "resonance", current), false);
+  assert.equal(current.securedLoot.length, 1);
+  const retreat = { outcome: "retreat", loot: [], log: [] };
+  mission.inputs.villageMirrorPath = "resonance";
+  village.rewardMirrorPath(retreat, mission);
+  assert.equal(retreat.loot.length, 0);
+});
