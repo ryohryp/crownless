@@ -588,3 +588,23 @@ test("mirror resonance cannot spend a core before vault discovery or on unrelate
   village.rewardMirrorPath(retreat, mission);
   assert.equal(retreat.loot.length, 0);
 });
+
+test("mirror countershot is inscription-gated and changes the first combat without granting gear", () => {
+  const engine = require("../src/expedition-system.js");
+  const system = { ...engine };
+  village.installSystemHooks({ CrownlessExpeditionSystem: system });
+  const current = engine.initialState();
+  current.destinations.push({ id: "village-forge:mirror-chamber", name: "鏡の間", family: "cave", dangerTags: ["guardian"], opportunityTags: [], villageMirrorInscription: true });
+  const mission = { id: "mirror-counter-test", seed: 31, startedAt: 1000,
+    inputs: { destinationId: "village-forge:mirror-chamber", companionIds: ["mira"], equipmentIds: [], policyId: "standard" } };
+  assert.equal(village.prepareMirrorPath(mission, "counter", current), true);
+  const plain = engine.resolveExpedition(mission, current);
+  const countered = system.resolveExpedition(mission, current);
+  assert.ok(countered.combat.encounters.some(combat => combat.rounds.some(round => round.events.includes("ranged-opener"))));
+  assert.ok(!plain.combat.encounters.some(combat => combat.rounds.some(round => round.events.includes("ranged-opener"))));
+  assert.equal(current.equipment.some(item => item.id === "mirror-countershot-temporary"), false);
+  const locked = engine.initialState();
+  locked.destinations.push({ id: "village-forge:mirror-chamber", name: "鏡の間", family: "cave", dangerTags: ["guardian"], opportunityTags: [] });
+  const attempt = { inputs: { destinationId: "village-forge:mirror-chamber", policyId: "standard" } };
+  assert.equal(village.prepareMirrorPath(attempt, "counter", locked), false);
+});

@@ -295,14 +295,14 @@
   // A visible inscription lets players reason about the reflection rather than guess.
   function prepareMirrorPath(expedition, path, state) {
     if (!expedition?.inputs || expedition.inputs.destinationId !== "village-forge:mirror-chamber") return false;
-    if (!["observe", "left", "center", "vault", "resonance"].includes(path)) return false;
+    if (!["observe", "left", "center", "counter", "vault", "resonance"].includes(path)) return false;
     if (["vault", "resonance"].includes(path) && state && !state.destinations?.some(item => item.id === "village-forge:mirror-chamber" && item.villageMirrorVault)) return false;
     if (path === "resonance") {
       const index = state?.securedLoot?.findIndex(item => item?.id === "mirror-chamber-relic") ?? -1;
       if (index < 0) return false;
       state.securedLoot.splice(index, 1);
     }
-    if (path === "left" && state && !state.destinations?.some(item => item.id === "village-forge:mirror-chamber" && item.villageMirrorInscription)) return false;
+    if (["left", "counter"].includes(path) && state && !state.destinations?.some(item => item.id === "village-forge:mirror-chamber" && item.villageMirrorInscription)) return false;
     expedition.inputs.villageMirrorPath = path;
     if (path === "center" || path === "vault") expedition.inputs.policyId = "greedy";
     return true;
@@ -311,7 +311,7 @@
   function rewardMirrorPath(report, expedition) {
     if (!report || expedition?.inputs?.destinationId !== "village-forge:mirror-chamber") return false;
     const path = expedition.inputs.villageMirrorPath;
-    if (!["left", "center", "vault", "resonance"].includes(path)) return false;
+    if (!["left", "center", "counter", "vault", "resonance"].includes(path)) return false;
     if (!Array.isArray(report.log)) report.log = [];
     if (report.log.some(item => item?.type === "mirror-beam")) return false;
     const solved = path === "left" && report.outcome === "success";
@@ -326,6 +326,7 @@
     report.log.push({ minute: 108, time: "", type: "mirror-beam",
       text: path === "resonance" ? vaultCleared ? "反射核を消費して封印の光を安定させ、連戦を避けて光髄を回収した。" : "反射核で封印を安定させたが、撤退して光髄を持ち帰れなかった。"
         : path === "vault" ? vaultCleared ? "反射核を共鳴させて鏡奥の封印を破り、光髄を持ち帰った。" : "鏡奥の封印を解いたが、守護者との連戦から撤退した。"
+        : path === "counter" ? "刻印の反射角を利用して守護者の動きを読み、初撃を先制した。"
         : path === "left"
         ? solved ? "刻印に従い左鏡から奥鏡へ光を反射させ、反射核を回収した。" : "左鏡を照らしたが、撤退のため反射核は持ち帰れなかった。"
         : "正面の鏡が光を跳ね返し、守護者を刺激した。危険な連戦となった。",
@@ -447,6 +448,7 @@
         ["observe", "鏡を調べる", "危険を増やさず構造を確認する。"],
         ["left", "左鏡から奥鏡へ反射", "調査で記録した刻印を使い、反射核を回収。"],
         ["center", "正面の鏡を強引に照らす", "守護者を刺激して危険な連戦になる。"],
+        ["counter", "鏡の反射で先制する", "刻印を利用して守護者の予兆を読み、戦闘の初撃を強化する。報酬は通常探索と同じ。"],
         ["vault", "鏡奥の封印に挑む", "反射攻略後に発見した封印へ。危険な連戦を突破すると光髄を回収。"],
         ["resonance", "反射核で封印を安定させる", "反射核を1個消費して危険な連戦を避け、光髄を狙う。"],
       ]) {
@@ -454,7 +456,7 @@
         label.className = "expedition-choice__item";
         const input = document.createElement("input");
         input.type = "radio"; input.name = "village-mirror-path"; input.value = value;
-        input.disabled = (value === "left" && !root.CrownlessExpeditionSystem?.__villageMirrorInscription) || (["vault", "resonance"].includes(value) && !root.CrownlessExpeditionSystem?.__villageMirrorVault);
+        input.disabled = (["left", "counter"].includes(value) && !root.CrownlessExpeditionSystem?.__villageMirrorInscription) || (["vault", "resonance"].includes(value) && !root.CrownlessExpeditionSystem?.__villageMirrorVault);
         input.checked = value === selectedMirrorPath;
         input.addEventListener("change", () => { if (input.checked) selectedMirrorPath = value; });
         const body = document.createElement("span");
@@ -696,6 +698,11 @@
         const gearId = "village-preparation-" + preparation;
         preparedState = { ...state, equipment: [...state.equipment, { id: gearId, name: "村の支援", tags: [tag] }] };
         preparedExpedition = { ...expedition, inputs: { ...expedition.inputs, equipmentIds: [...expedition.inputs.equipmentIds, gearId] } };
+      }
+      if (expedition?.inputs?.destinationId === "village-forge:mirror-chamber" && expedition.inputs.villageMirrorPath === "counter" && state?.destinations?.some(item => item.id === "village-forge:mirror-chamber" && item.villageMirrorInscription)) {
+        const gearId = "mirror-countershot-temporary";
+        preparedState = { ...preparedState, equipment: [...preparedState.equipment, { id: gearId, name: "反射による先制", tags: ["ranged"] }] };
+        preparedExpedition = { ...preparedExpedition, inputs: { ...preparedExpedition.inputs, equipmentIds: [...preparedExpedition.inputs.equipmentIds, gearId] } };
       }
       const report = decorateReport(baseResolve(preparedExpedition, preparedState), expedition);
       if (preparedExpedition !== expedition) {
