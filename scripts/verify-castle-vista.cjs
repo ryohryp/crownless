@@ -42,8 +42,23 @@ async function portOf(server){
         };
       });
       await page.goto(url,{waitUntil:'networkidle'});
-      await page.waitForFunction(()=>window.CrownlessForestReadout?.()?.player &&
-        window.__vistaLayers.castle>0 && window.__vistaLayers.canyon>0 && window.__vistaLayers.canopy>0,null,{timeout:20000});
+      try {
+        await page.waitForFunction(()=>window.CrownlessForestReadout?.()?.player &&
+          window.__vistaLayers.castle>0 && window.__vistaLayers.canyon>0 && window.__vistaLayers.canopy>0,null,{timeout:12000});
+      } catch(error) {
+        const diagnostic=await page.evaluate(()=>({
+          href:location.href,readout:typeof window.CrownlessForestReadout,
+          state:window.CrownlessForestReadout?.()||null,
+          layers:window.__vistaLayers||null,
+          scene:typeof window.CrownlessBridgeVista,
+          canvas:document.getElementById('gameCanvas')?.getBoundingClientRect().toJSON(),
+          assets:performance.getEntriesByType('resource').filter(e=>/vista-|bridge-hd2d|action-forest/.test(e.name))
+            .map(e=>({url:e.name.split('/').slice(-2).join('/'),status:e.responseStatus,bytes:e.transferSize})),
+        })).catch(e=>({probeError:String(e)}));
+        await page.screenshot({path:path.join(output,'vista-failed-'+width+'x'+height+'.png')}).catch(()=>{});
+        console.error('VISTA_DEBUG',JSON.stringify({width,height,errors,diagnostic}));
+        throw error;
+      }
       const before=await page.evaluate(()=>window.CrownlessForestReadout());
       const first=await page.evaluate(()=>window.CrownlessBridgeVista.placement(0,390));
       const second=await page.evaluate(()=>window.CrownlessBridgeVista.placement(200,390));
