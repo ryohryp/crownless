@@ -42,7 +42,7 @@ function render(){
  el('status').textContent=s.message+(s.combat?' 【敵HP '+s.enemyHp+'】':'');
  const board=el('board');board.replaceChildren();
  for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++){
- const k=key(x,y),vis=visible(k),wall=walls.has(k),hidden=k===SECRET&&!s.opened,can=!s.ended&&!s.combat&&near(k,s.pos)&&vis&&(!wall||(k===BRIDGE||k===CROSSING||k===CACHE)&&s.bridge)&&!hidden;
+ const k=key(x,y),vis=visible(k),wall=walls.has(k)&&!((k===BRIDGE||k===CROSSING||k===CACHE)&&s.bridge),hidden=k===SECRET&&!s.opened,can=!s.ended&&!s.combat&&near(k,s.pos)&&vis&&(!wall||(k===BRIDGE||k===CROSSING||k===CACHE)&&s.bridge)&&!hidden;
  const b=document.createElement('button');b.className='tile'+(!vis||hidden?' fog':wall?' wall':'')+(k===s.pos?' player':'');
  b.disabled=!can;b.textContent=k===s.pos?'●':!vis||hidden?'?':wall?'▦':k===HOME?'⌂':k===CLUE?'⌕':k===RELIC?'◆':k===FIBER?'♣':k===BRIDGE?'═':k===CROSSING?'≈':k===CACHE?'✦':k===FOE?'!':'·';
  b.setAttribute('aria-label',k+' '+(can?'移動可能':vis?'移動不可':'未発見'));if(can)b.onclick=()=>move(k);board.append(b);
