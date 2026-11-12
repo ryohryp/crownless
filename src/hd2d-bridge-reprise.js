@@ -29,7 +29,7 @@
       // brought into view by *cropping* the wide panorama, never squashing it.
       sky:{x:width*.68-(1210/1672)*WORLD_WIDTH-cameraX*FAR_PARALLAX,
         y:-7,width:WORLD_WIDTH,height:350*WORLD_WIDTH/1672},
-      road:{x:0,y:180,width:WORLD_WIDTH,height:248},
+      road:{x:0,y:225,width:WORLD_WIDTH,height:320*WORLD_WIDTH/1672},
       cameraX
     };
   }
@@ -72,7 +72,7 @@
       if(!ready())return;
       const p=composition(0,1).road;
       ctx.save();ctx.imageSmoothingEnabled=true;
-      ctx.drawImage(art,0,325,1672,395,p.x,p.y,p.width,p.height);
+      ctx.drawImage(art,0,400,1672,320,p.x,p.y,p.width,p.height);
       ctx.restore();
     }
     function background(ctx,width,cam,wave){
