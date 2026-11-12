@@ -42,8 +42,8 @@ async function portOf(server){
         };
       });
       await page.goto(url,{waitUntil:'networkidle'});
-      await page.waitForFunction(()=>window.CrownlessForestReadout?.().player &&
-        window.__vistaLayers.castle>0 && window.__vistaLayers.canyon>0 && window.__vistaLayers.canopy>0,{timeout:20000});
+      await page.waitForFunction(()=>window.CrownlessForestReadout?.()?.player &&
+        window.__vistaLayers.castle>0 && window.__vistaLayers.canyon>0 && window.__vistaLayers.canopy>0,null,{timeout:20000});
       const before=await page.evaluate(()=>window.CrownlessForestReadout());
       const first=await page.evaluate(()=>window.CrownlessBridgeVista.placement(0,390));
       const second=await page.evaluate(()=>window.CrownlessBridgeVista.placement(200,390));
