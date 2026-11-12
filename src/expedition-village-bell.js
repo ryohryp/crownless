@@ -293,9 +293,10 @@
   }
 
   // A visible inscription lets players reason about the reflection rather than guess.
-  function prepareMirrorPath(expedition, path) {
+  function prepareMirrorPath(expedition, path, state) {
     if (!expedition?.inputs || expedition.inputs.destinationId !== "village-forge:mirror-chamber") return false;
     if (!["observe", "left", "center"].includes(path)) return false;
+    if (path === "left" && state && !state.destinations?.some(item => item.id === "village-forge:mirror-chamber" && item.villageMirrorInscription)) return false;
     expedition.inputs.villageMirrorPath = path;
     if (path === "center") expedition.inputs.policyId = "greedy";
     return true;
@@ -319,6 +320,19 @@
         ? solved ? "刻印に従い左鏡から奥鏡へ光を反射させ、反射核を回収した。" : "左鏡を照らしたが、撤退のため反射核は持ち帰れなかった。"
         : "正面の鏡が光を跳ね返し、守護者を刺激した。危険な連戦となった。",
       causes: ["village-forge:mirror-chamber", "mirror-path:" + path] });
+    return true;
+  }
+
+  // Scouting the inscription is a first expedition stage; the solved route is a revisit.
+  function discoverMirrorInscription(state, report, expedition) {
+    if (!state?.destinations || report?.outcome !== "success" || expedition?.inputs?.destinationId !== "village-forge:mirror-chamber" || expedition.inputs.villageMirrorPath !== "observe") return false;
+    const chamber = state.destinations.find(item => item.id === "village-forge:mirror-chamber");
+    if (!chamber || chamber.villageMirrorInscription) return false;
+    chamber.villageMirrorInscription = true;
+    if (!Array.isArray(report.log)) report.log = [];
+    report.log.push({ minute: 104, time: "", type: "mirror-inscription",
+      text: "鏡の裏に刻まれた反射順序を記録した。次の遠征では左鏡から奥鏡へ光を導ける。",
+      causes: ["mirror-inscription"] });
     return true;
   }
 
@@ -407,17 +421,18 @@
       fieldset.className = "expedition-choice expedition-choice--village";
       fieldset.dataset.villageMirrorChoice = "true";
       const legend = document.createElement("legend");
-      legend.textContent = "鏡の間：壁の刻印『左の鏡から奥へ光を渡せ』";
+      legend.textContent = root.CrownlessExpeditionSystem?.__villageMirrorInscription ? "鏡の間：記録した刻印『左の鏡から奥へ』" : "鏡の間：まず鏡の裏の刻印を調査しよう";
       fieldset.appendChild(legend);
       for (const [value, title, copy] of [
         ["observe", "鏡を調べる", "危険を増やさず構造を確認する。"],
-        ["left", "左鏡から奥鏡へ反射", "刻印を手掛かりに反射核を回収。生還が必要。"],
+        ["left", "左鏡から奥鏡へ反射", "調査で記録した刻印を使い、反射核を回収。"],
         ["center", "正面の鏡を強引に照らす", "守護者を刺激して危険な連戦になる。"],
       ]) {
         const label = document.createElement("label");
         label.className = "expedition-choice__item";
         const input = document.createElement("input");
         input.type = "radio"; input.name = "village-mirror-path"; input.value = value;
+        input.disabled = value === "left" && !root.CrownlessExpeditionSystem?.__villageMirrorInscription;
         input.checked = value === selectedMirrorPath;
         input.addEventListener("change", () => { if (input.checked) selectedMirrorPath = value; });
         const body = document.createElement("span");
@@ -594,7 +609,7 @@
       }
       if (next.activeExpedition) prepareGrottoDetour(next.activeExpedition, selectedGrottoApproach, next);
       selectedGrottoApproach = "lit";
-      if (next.activeExpedition) prepareMirrorPath(next.activeExpedition, selectedMirrorPath);
+      if (next.activeExpedition) prepareMirrorPath(next.activeExpedition, selectedMirrorPath, next);
       selectedMirrorPath = "observe";
       const inputs = next && next.activeExpedition && next.activeExpedition.inputs;
       if (inputs && inputs.destinationId === DESTINATION_ID) {
@@ -677,7 +692,9 @@
     system.applyReport = function applyReportWithVillageChoice(state, report) {
       rewardRevisit(state, report);
       rewardRestoredRoad(state, report);
+      const expedition = state && state.activeExpedition;
       const applied = baseApplyReport(state, report);
+      discoverMirrorInscription(applied, report, expedition);
       unlockFollowup(applied, report);
       restoreVillage(applied, report);
       upgradeVillageFromRoad(applied, report);
@@ -696,9 +713,11 @@
         rewardRestoredRoad(state, advanced.report);
         rewardMineDelve(advanced.report, expedition);
         rewardGrottoDetour(advanced.report, expedition);
+        rewardMirrorPath(advanced.report, expedition);
+        discoverMirrorInscription(advanced.state, advanced.report, expedition);
         // advance() has already banked the base report; bank sidecar road loot once.
         if (advanced.report.outcome === "success" && Array.isArray(advanced.state.securedLoot)) {
-          for (const routeLoot of advanced.report.loot.filter((item) => item && ["watch-road-medicine", "ore-trail-iron", "sealed-mine-star-ore", "sealed-mine-deep-crystal", "grotto-shadow-prism"].includes(item.id))) {
+          for (const routeLoot of advanced.report.loot.filter((item) => item && ["watch-road-medicine", "ore-trail-iron", "sealed-mine-star-ore", "sealed-mine-deep-crystal", "grotto-shadow-prism", "mirror-chamber-relic"].includes(item.id))) {
             if (!advanced.state.securedLoot.some((item) => item.id === routeLoot.id && item.sourceExpeditionId === advanced.report.expeditionId)) {
               advanced.state.securedLoot.push({ ...routeLoot, sourceExpeditionId: advanced.report.expeditionId });
             }
@@ -724,6 +743,7 @@
       const next = baseNormalize(input);
       system.__villageBellRestoration = next.destinations.find((item) => item.id === DESTINATION_ID)?.villageRestoration || null;
       system.__villageBellFacility = next.destinations.find((item) => item.id === DESTINATION_ID)?.villageFacility || null;
+      system.__villageMirrorInscription = Boolean(next.destinations.find(item => item.id === "village-forge:mirror-chamber")?.villageMirrorInscription);
       return next;
     };
     return true;
@@ -782,6 +802,7 @@
     rewardGrottoDetour,
     prepareMirrorPath,
     rewardMirrorPath,
+    discoverMirrorInscription,
     syncStoredReport,
     currentDestination,
     syncChoice,
