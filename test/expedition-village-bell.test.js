@@ -627,3 +627,23 @@ test("mirror ward is inscription-gated and grants temporary healing without equi
   locked.destinations.push({ id: "village-forge:mirror-chamber", name: "鏡の間", family: "cave", dangerTags: ["guardian"], opportunityTags: [] });
   assert.equal(village.prepareMirrorPath({ inputs: { destinationId: "village-forge:mirror-chamber" } }, "ward", locked), false);
 });
+
+test("mirror overload requires inscription and trades a greedy gauntlet for two materials", () => {
+  const engine = require("../src/expedition-system.js");
+  const system = { ...engine };
+  village.installSystemHooks({ CrownlessExpeditionSystem: system });
+  const state = engine.initialState();
+  state.destinations.push({ id: "village-forge:mirror-chamber", name: "鏡の間", family: "cave", dangerTags: ["guardian"], opportunityTags: [], villageMirrorInscription: true });
+  const mission = { id: "overload-test", seed: 31, startedAt: 1000,
+    inputs: { destinationId: "village-forge:mirror-chamber", companionIds: ["mira"], equipmentIds: [], policyId: "standard" } };
+  assert.equal(village.prepareMirrorPath(mission, "overload", state), true);
+  assert.equal(mission.inputs.policyId, "greedy");
+  const result = system.resolveExpedition(mission, state);
+  const rewardIds = result.loot.map(item => item.id);
+  assert.equal(rewardIds.includes("mirror-overload-shard"), result.outcome === "success");
+  assert.equal(rewardIds.includes("mirror-chamber-relic"), result.outcome === "success");
+  assert.equal(result.log.some(item => item.type === "mirror-beam"), true);
+  const locked = engine.initialState();
+  locked.destinations.push({ id: "village-forge:mirror-chamber", name: "鏡の間", family: "cave", dangerTags: ["guardian"], opportunityTags: [] });
+  assert.equal(village.prepareMirrorPath({ inputs: { destinationId: "village-forge:mirror-chamber" } }, "overload", locked), false);
+});
