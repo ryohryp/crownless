@@ -716,6 +716,8 @@
       upgradeVillageFromRoad(applied, report);
       syncStoredReport(applied, report);
       system.__villageBellRestoration = applied.destinations.find((item) => item.id === DESTINATION_ID)?.villageRestoration || null;
+      system.__villageMirrorVault = Boolean(applied.destinations.find(item => item.id === "village-forge:mirror-chamber")?.villageMirrorVault);
+      system.__villageMirrorInscription = Boolean(applied.destinations.find(item => item.id === "village-forge:mirror-chamber")?.villageMirrorInscription);
       return applied;
     };
 
@@ -750,6 +752,8 @@
         syncStoredReport(advanced.state, advanced.report);
       }
       system.__villageBellRestoration = advanced.state?.destinations?.find((item) => item.id === DESTINATION_ID)?.villageRestoration || null;
+      system.__villageMirrorVault = Boolean(advanced.state?.destinations?.find(item => item.id === "village-forge:mirror-chamber")?.villageMirrorVault);
+      system.__villageMirrorInscription = Boolean(advanced.state?.destinations?.find(item => item.id === "village-forge:mirror-chamber")?.villageMirrorInscription);
       return advanced;
     };
 
