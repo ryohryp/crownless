@@ -525,3 +525,31 @@ test("mirror inscription needs a successful scouting visit and persists across r
   const reloaded = engine.normalizeState(JSON.parse(JSON.stringify(current)));
   assert.equal(village.prepareMirrorPath(left, "left", reloaded), true);
 });
+
+test("mirror vault unlocks only after safe reflection and persists", () => {
+  const engine = require("../src/expedition-system.js");
+  const current = engine.initialState();
+  current.destinations.push({ id: "village-forge:mirror-chamber", name: "鏡の間", family: "cave", dangerTags: [], opportunityTags: [], villageMirrorInscription: true });
+  const mission = { inputs: { destinationId: "village-forge:mirror-chamber", villageMirrorPath: "left", policyId: "standard" } };
+  const vault = { inputs: { destinationId: "village-forge:mirror-chamber", policyId: "standard" } };
+  assert.equal(village.prepareMirrorPath(vault, "vault", current), false);
+  assert.equal(village.discoverMirrorVault(current, { outcome: "retreat", log: [] }, mission), false);
+  const report = { outcome: "success", log: [] };
+  assert.equal(village.discoverMirrorVault(current, report, mission), true);
+  assert.equal(village.discoverMirrorVault(current, report, mission), false);
+  const restored = engine.normalizeState(JSON.parse(JSON.stringify(current)));
+  assert.equal(village.prepareMirrorPath(vault, "vault", restored), true);
+  assert.equal(vault.inputs.policyId, "greedy");
+});
+
+test("mirror vault rewards only safe returns, once per report", () => {
+  const mission = { inputs: { destinationId: "village-forge:mirror-chamber", villageMirrorPath: "vault" } };
+  const retreat = { outcome: "retreat", loot: [], log: [] };
+  assert.equal(village.rewardMirrorPath(retreat, mission), true);
+  assert.equal(retreat.loot.length, 0);
+  const success = { outcome: "success", loot: [], log: [] };
+  assert.equal(village.rewardMirrorPath(success, mission), true);
+  assert.equal(success.loot.filter(item => item.id === "mirror-vault-essence").length, 1);
+  assert.equal(village.rewardMirrorPath(success, mission), false);
+  assert.equal(success.loot.length, 1);
+});
