@@ -9,7 +9,7 @@ h1{font-size:1.1rem;margin:0}p{margin:0;line-height:1.4}#status{min-height:3em}#
 .tile:disabled{opacity:1;color:#b3bdbd}.tile.fog{background:#17252b;color:#66777a}.tile.wall{background:#384043}.tile.player{background:#997b3e;color:white}.tile:focus-visible{outline:3px solid white}
 #actions{margin-top:auto;display:grid;grid-template-columns:1fr 1fr;gap:8px}#actions button{min-height:48px;border-radius:9px;background:#41574d;border:1px solid #8d9c87;color:white;font:inherit;font-weight:600}#actions button:disabled{opacity:.4}small{color:#bac6c4}
 </style>
-<main><h1>痕跡の森 — 帰るまでが遠征</h1><p id="stats"></p><p id="status" role="status" aria-live="polite"></p><div id="board" aria-label="隣接する見えている道だけをタップして移動する7×7探索盤"></div><small>隣接する明るい道だけ移動可能。足跡を調べると隠し道が見つかる。蔓を持ち帰りロープを編むと次の遠征で崩れた橋を修復できる。橋の途中で足場を調べて固定するか、危険を承知で急いで渡ろう。月光石は調査→掘削の2段階で、体力を使って5個を採れる。橋の奥の崖際には、体力3と引き換えに希少鉱石4個を採れる危険な寄り道もある。採掘音で獣が追跡するため、鉱石2個を囮にするか帰路で戦うかを選べる。灯台跡では素材1個と引き換えに一度だけ体力2を回復できる。鉱石を4個持ち帰ると導きの灯を製作でき、次の遠征で灯台跡から封鎖路を開ける。敵の予兆を読んで防御/回避/側面移動を使い分け、危険な奥地で希少素材を拾い、帰還地点まで生きて戻ろう。野営地では体力1と引き換えに素材3個を隠せる。撤退しても備蓄は残り、次の遠征で回収できる。野営地では一度だけ野営して体力を2回復できるが、獣に襲われる危険がある。野営地で手持ち素材3個以上なら、素材2個を支払って即時生還するか、危険な帰路を歩いて全量を持ち帰るか選べる。実ゲームのセーブ・倉庫・GPSには触れない。</small><div id="actions"><button id="search">足元を調べる</button><button id="fight">防御して反撃</button><button id="dodge">回避して側面攻撃</button><button id="flank">側面へ移動（次の反撃強化）</button><button id="decoy">鉱石2個を囮にする</button><button id="blessing">月光石1個を捧げて回復</button><button id="stash">野営地に素材3個を隠す（体力-1）</button><button id="recover">隠した素材を回収</button><button id="rest">野営して回復（獣の奇襲リスク）</button><button id="extract">野営地から緊急帰還（素材2個を失う）</button><button id="retreat">撤退（素材を失う）</button><button id="restart">次の遠征</button><button id="craft">蔓でロープを編む</button></div></main>
+<main><h1>痕跡の森 — 帰るまでが遠征</h1><p id="stats"></p><p id="status" role="status" aria-live="polite"></p><div id="board" aria-label="隣接する見えている道だけをタップして移動する7×7探索盤"></div><small>隣接する明るい道だけ移動可能。足跡を調べると隠し道が見つかる。蔓を持ち帰りロープを編むと次の遠征で崩れた橋を修復できる。橋の途中で足場を調べて固定するか、危険を承知で急いで渡ろう。月光石は調査→掘削の2段階で、体力を使って5個を採れる。橋の奥の崖際には、体力3と引き換えに希少鉱石4個を採れる危険な寄り道もある。採掘音で獣が追跡するため、鉱石2個を囮にするか帰路で戦うかを選べる。灯台跡では素材1個と引き換えに一度だけ体力2を回復できる。鉱石を4個持ち帰ると導きの灯を製作でき、次の遠征で灯台跡から封鎖路を開ける。獣の縄張り手前で痕跡を偵察すると体力1を消費して次の戦闘で先制攻撃できる。敵の予兆を読んで防御/回避/側面移動を使い分け、危険な奥地で希少素材を拾い、帰還地点まで生きて戻ろう。野営地では体力1と引き換えに素材3個を隠せる。撤退しても備蓄は残り、次の遠征で回収できる。野営地では一度だけ野営して体力を2回復できるが、獣に襲われる危険がある。野営地で手持ち素材3個以上なら、素材2個を支払って即時生還するか、危険な帰路を歩いて全量を持ち帰るか選べる。実ゲームのセーブ・倉庫・GPSには触れない。</small><div id="actions"><button id="search">足元を調べる</button><button id="scout">獣の痕跡を偵察（体力-1）</button><button id="fight">防御して反撃</button><button id="dodge">回避して側面攻撃</button><button id="flank">側面へ移動（次の反撃強化）</button><button id="decoy">鉱石2個を囮にする</button><button id="blessing">月光石1個を捧げて回復</button><button id="stash">野営地に素材3個を隠す（体力-1）</button><button id="recover">隠した素材を回収</button><button id="rest">野営して回復（獣の奇襲リスク）</button><button id="extract">野営地から緊急帰還（素材2個を失う）</button><button id="retreat">撤退（素材を失う）</button><button id="restart">次の遠征</button><button id="craft">蔓でロープを編む</button></div></main>
 <script>
 'use strict';
 // Self-contained opt-in prototype. Local storage uses an experiment-specific key.
@@ -17,7 +17,7 @@ const STORE='crownless-trace-route-spike-v2', SIZE=7, HOME='0,6', CLUE='2,4', SE
 const walls=new Set(['1,1','1,2','1,3','3,1','3,2','4,4','5,4','5,5','2,2','6,3']);
 const key=(x,y)=>x+','+y, xy=s=>s.split(',').map(Number), near=(a,b)=>{const [x,y]=xy(a),[u,v]=xy(b);return Math.abs(x-u)+Math.abs(y-v)===1};
 const el=id=>document.getElementById(id);
-function fresh(){return {pos:HOME,hp:5,steps:0,found:false,opened:false,loot:0,warehouse:0,cache:0,cacheUsed:false,rested:false,fiber:0,rope:false,bridge:false,braced:false,crossed:false,cacheTaken:false,veinTaken:false,pursuit:false,pursuitResolved:false,beacon:false,beaconBuilt:false,gateOpen:false,giftTaken:false,shrineUsed:false,relicSurveyed:false,relicExcavated:false,guard:false,combat:false,flanking:false,enemyIntent:'',enemyHp:0,round:0,ended:false,seen:[HOME],message:'足跡を追って奥へ進もう。'};}
+function fresh(){return {pos:HOME,hp:5,steps:0,found:false,opened:false,loot:0,warehouse:0,cache:0,cacheUsed:false,rested:false,scouted:false,fiber:0,rope:false,bridge:false,braced:false,crossed:false,cacheTaken:false,veinTaken:false,pursuit:false,pursuitResolved:false,beacon:false,beaconBuilt:false,gateOpen:false,giftTaken:false,shrineUsed:false,relicSurveyed:false,relicExcavated:false,guard:false,combat:false,flanking:false,enemyIntent:'',enemyHp:0,round:0,ended:false,seen:[HOME],message:'足跡を追って奥へ進もう。'};}
 let s=fresh();try{const v=JSON.parse(localStorage.getItem(STORE));if(v&&typeof v.pos==='string'&&Array.isArray(v.seen)&&Number.isInteger(v.hp))s={...fresh(),...v};}catch{}
 function save(){try{localStorage.setItem(STORE,JSON.stringify(s));}catch{s.message+='（この環境では保存不可）';}}
 function visible(k){return s.seen.includes(k)||near(k,s.pos)||k===s.pos;}
@@ -28,7 +28,7 @@ function move(k){
  s.pos=k;s.steps++;if(!s.seen.includes(k))s.seen.push(k);
  if(k===CACHE&&s.pursuit&&!s.pursuitResolved){s.pursuitResolved=true;s.combat=true;s.enemyHp=4;s.round=0;s.enemyIntent='薙ぎ払い';s.message='採掘音を追った獣が帰路を塞いだ！ 囮を使わなければ戦うしかない。';}
  if(k===CROSSING&&!s.crossed){s.crossed=true;if(!s.braced){s.hp-=2;if(s.hp<=0){end(false);return;}s.message='足場が崩れ体力-2！ 橋の上で足場を固定すれば防げた。';}}
- if(k===FOE&&!s.guard){s.combat=true;s.enemyHp=3;s.round=0;s.enemyIntent='突進';s.message='獣が飛び出した！ 予兆は「突進」。防御か回避を選ぼう。';}
+ if(k===FOE&&!s.guard){s.combat=true;s.enemyHp=s.scouted?1:3;s.round=0;s.enemyIntent='突進';s.message=s.scouted?'痕跡から待ち伏せを予測！ 先制攻撃で敵HPを1まで削った。予兆は「突進」。':'獣が飛び出した！ 予兆は「突進」。防御か回避を選ぼう。';}
  else if(k===FIBER&&s.fiber===0&&!s.rope){s.fiber=1;s.message='丈夫な蔓を採集。生還してロープを編もう。';}
  else if(k===CROSSING){s.message=s.braced?'固定した足場を安全に渡った。':'足場が崩れた！ 体力を失ったが先へ進める。';}
  else if(k===CACHE&&!s.cacheTaken){s.cacheTaken=true;s.loot+=3;s.message='橋の先の隠し箱から古城の銀片を3個発見！ 生還まで失う危険がある。';}
@@ -52,6 +52,7 @@ function render(){
  b.setAttribute('aria-label',k+' '+(can?'移動可能':vis?'移動不可':'未発見'));if(can)b.onclick=()=>move(k);board.append(b);
  }
  el('search').disabled=s.ended||s.combat||!(s.pos===CLUE&&!s.opened||s.pos==='4,3'&&s.rope&&!s.bridge||s.pos===BRIDGE&&s.bridge&&!s.braced||s.pos===VEIN&&!s.veinTaken||s.pos===SHRINE&&s.beacon&&!s.gateOpen||s.pos===RELIC&&!s.relicExcavated);
+ el('scout').disabled=s.ended||s.combat||s.pos!=='4,3'||s.scouted||s.guard||s.hp<=1;
  el('fight').disabled=!s.combat||s.ended;el('dodge').disabled=!s.combat||s.ended;el('flank').disabled=!s.combat||s.ended||s.flanking;
  el('blessing').disabled=s.ended||s.combat||s.pos!==SHRINE||s.shrineUsed||s.loot<1||s.hp>=5;
  el('decoy').disabled=s.ended||s.combat||!s.pursuit||s.pursuitResolved||s.pos!==VEIN||s.loot<2;
@@ -79,6 +80,7 @@ function combatTurn(action){
  else{s.enemyIntent=intent==='突進'?'薙ぎ払い':'突進';s.message=(shifting?(damage?'突進を受けたが側面を確保。体力-'+damage+'。':'薙ぎ払いを避けて側面を確保。次の正解反撃は3ダメージ。'):(correct?'見切り成功！'+(damage===0?'':''):'読み違えた！ 体力-'+damage+'。'))+' 次の予兆は「'+s.enemyIntent+'」。';}
  save();render();
 }
+el('scout').onclick=()=>{if(s.ended||s.combat||s.pos!=='4,3'||s.scouted||s.guard||s.hp<=1)return;s.hp--;s.scouted=true;s.message='獣の爪痕と足跡を発見。体力1を使って待ち伏せ位置を特定した。次の獣戦で先制攻撃できる！';save();render();};
 el('fight').onclick=()=>combatTurn('defend');
 el('dodge').onclick=()=>combatTurn('dodge');
 el('flank').onclick=()=>combatTurn('flank');
