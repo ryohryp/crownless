@@ -58,6 +58,17 @@ const root=path.resolve(__dirname,'..'),out=path.join(root,'.qa/browser');
       assert(proof.overflow<=2,'no page-wide horizontal scroll');
       assert.match(proof.text,/石橋・再構築/);
       await page.screenshot({path:path.join(out,'reprise-'+width+'x'+height+'-start.png')});
+      // Tiny QA thumbnail in CI logs: inspect the ACTUAL rendered pixels,
+      // not only test result counters. Synthetic test session, no GPS/user data.
+      if(width===390){
+        const preview=await page.evaluate(()=>{
+          const source=document.getElementById('gameCanvas');
+          const c=document.createElement('canvas');c.width=180;c.height=320;
+          c.getContext('2d').drawImage(source,0,0,c.width,c.height);
+          return c.toDataURL('image/jpeg',.32).split(',')[1];
+        });
+        console.log('REPRISE_CANVAS_THUMB_BASE64 '+preview);
+      }
       const menu=page.locator('#visualSettingsToggle');
       await menu.click();
       assert.equal(await menu.getAttribute('aria-expanded'),'true');
