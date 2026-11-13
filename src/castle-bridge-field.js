@@ -221,17 +221,17 @@
     const g = off.ctx;
     const rng = makeRng(4207);
 
-    // Sculpted canyon cliff ridges dipping in valley saddles so castle skyline breathes
-    const cliffGrad = g.createLinearGradient(0, 45, 0, h);
-    cliffGrad.addColorStop(0, '#323e4a');
-    cliffGrad.addColorStop(0.45, '#26313c');
-    cliffGrad.addColorStop(1, '#1a232d');
+    // Lowered soft misty alpine cliff silhouettes (no bright vector triangles clashing with castle)
+    const cliffGrad = g.createLinearGradient(0, 80, 0, h);
+    cliffGrad.addColorStop(0, '#3a4654');
+    cliffGrad.addColorStop(0.45, '#2b3642');
+    cliffGrad.addColorStop(1, '#1c2630');
     g.fillStyle = cliffGrad;
     g.beginPath();
     g.moveTo(0, h);
     for (let x = 0; x <= w; x += 28) {
-      const saddle = Math.sin(x * 0.0055) * 22 + Math.cos(x * 0.014) * 14;
-      const ridge = 76 + saddle + (rng() - 0.5) * 7;
+      const saddle = Math.sin(x * 0.0055) * 18 + Math.cos(x * 0.014) * 12;
+      const ridge = 112 + saddle + (rng() - 0.5) * 6;
       g.lineTo(x, ridge);
     }
     g.lineTo(w, h);
@@ -240,9 +240,9 @@
 
     // Faceted slate cliff crags & warm golden dusk catch-lights on upper rock shelves
     for (let x = 12; x < w; x += 42) {
-      const saddle = Math.sin(x * 0.0055) * 22 + Math.cos(x * 0.014) * 14;
-      const topY = 80 + saddle;
-      g.fillStyle = 'rgba(182, 146, 106, 0.22)';
+      const saddle = Math.sin(x * 0.0055) * 18 + Math.cos(x * 0.014) * 12;
+      const topY = 116 + saddle;
+      g.fillStyle = 'rgba(182, 146, 106, 0.16)';
       g.beginPath();
       g.moveTo(x, topY);
       g.lineTo(x + 24, topY + 22);
@@ -261,14 +261,14 @@
       g.fill();
     }
 
-    // Painterly conifer silhouettes with feathered boughs & golden rim-light tips
+    // Muted atmospheric conifer silhouettes behind midground canyon wings
     function pine(px, py, ph, col, rimCol) {
-      g.fillStyle = '#232724';
+      g.fillStyle = '#252e33';
       g.fillRect(px - 1.5, py - ph * 0.35, 3, ph * 0.36);
       for (let tier = 0; tier < 5; tier++) {
         const ty = py - ph * (0.16 + tier * 0.165);
-        const tw = ph * (0.34 - tier * 0.052);
-        const tipY = ty - ph * 0.25;
+        const tw = ph * (0.32 - tier * 0.05);
+        const tipY = ty - ph * 0.24;
         g.fillStyle = col;
         g.beginPath();
         g.moveTo(px, tipY);
@@ -284,20 +284,20 @@
         g.fillStyle = rimCol;
         g.beginPath();
         g.moveTo(px, tipY);
-        g.lineTo(px + tw * 0.9, ty + 4);
+        g.lineTo(px + tw * 0.85, ty + 4);
         g.lineTo(px + tw * 0.25, ty + 2);
         g.closePath();
         g.fill();
       }
     }
 
-    for (let x = 6; x < w; x += 15) {
-      const saddle = Math.sin(x * 0.0055) * 22 + Math.cos(x * 0.014) * 14;
-      const base = 92 + saddle + (rng() - 0.5) * 12;
-      const height = 28 + rng() * 34;
+    for (let x = 6; x < w; x += 16) {
+      const saddle = Math.sin(x * 0.0055) * 18 + Math.cos(x * 0.014) * 12;
+      const base = 122 + saddle + (rng() - 0.5) * 10;
+      const height = 24 + rng() * 28;
       pine(x, base, height,
-        rng() > 0.4 ? '#1e2f2a' : '#283d33',
-        'rgba(186, 158, 98, 0.28)');
+        rng() > 0.4 ? '#2b393f' : '#35454b',
+        'rgba(210, 174, 128, 0.24)');
     }
 
     // Gorge pines standing deeper down inside the canyon abyss (visible through arch)
@@ -387,29 +387,36 @@
   }
 
   // Bake the walkable world foreground: sunlit oak-lined forest road, elevated
-  // vaulted stone bridge with sculpted limestone flagstones, crimson pier banners,
+  // vaulted stone bridge with painted limestone flagstones, crimson pier banners,
   // open canyon arch revealing 50%-parallax waterfall below, and castle gate path.
-  function bakeForegroundWorld(heightAt) {
+  function bakeForegroundWorld(heightAt, textures) {
     const off = makeOffscreen(WORLD_WIDTH, VIRTUAL_H);
     if (!off) return null;
     const g = off.ctx;
     const rng = makeRng(9103);
+    const tex = textures || {};
 
     // 1. West & East rocky cliff plateaus (leave chasm open beneath central bridge arch!)
     function paintPlateau(startX, endX) {
       const turfGrad = g.createLinearGradient(0, 200, 0, VIRTUAL_H);
-      turfGrad.addColorStop(0, '#3a4932');
-      turfGrad.addColorStop(0.55, '#48573a');
-      turfGrad.addColorStop(1, '#2b3228');
+      turfGrad.addColorStop(0, '#2a3724');
+      turfGrad.addColorStop(0.55, '#354229');
+      turfGrad.addColorStop(1, '#1a2018');
       g.fillStyle = turfGrad;
       g.fillRect(startX, 200, endX - startX, VIRTUAL_H - 200);
+      // Paint sunlit alpine cliff turf & mossy rock textures along upper road shoulder
+      if (tex.cliffCrag) {
+        for (let tx = startX - 18; tx < endX; tx += 72) {
+          g.drawImage(tex.cliffCrag, 24, 6, 260, 74, tx, 198, 92, 30);
+        }
+      }
     }
     paintPlateau(0, BRIDGE.left + 32);
     paintPlateau(BRIDGE.right - 32, WORLD_WIDTH);
 
     // Crisp rocky cliff drop-offs sloping steeply down into the central gorge chasm
     for (const [bx, dir] of [[BRIDGE.left + 30, -1], [BRIDGE.right - 30, 1]]) {
-      g.fillStyle = '#363b36';
+      g.fillStyle = '#2d3330';
       g.beginPath();
       g.moveTo(bx, 200);
       g.lineTo(bx + dir * 22, 345);
@@ -420,57 +427,82 @@
       g.fill();
     }
 
-    // Subtle organic mossy soil, fallen golden leaves & cliff grass flecks
-    for (let i = 0; i < 2600; i++) {
+    // Fine organic moss, grass blades & stone grit along road borders (never blocky squares)
+    for (let i = 0; i < 1600; i++) {
       const gx = rng() * WORLD_WIDTH;
       if (gx > BRIDGE.left + 12 && gx < BRIDGE.right - 12 && rng() > 0.25) continue;
       const gy = 202 + rng() * 214;
-      const pathCenter = 288 + Math.sin(gx / 170) * 14;
-      const onRoad = Math.abs(gy - pathCenter) < 58 || (gx >= 415 && gx <= 745 && gy >= 225 && gy <= 355);
-      g.fillStyle = onRoad
-        ? (rng() > 0.45 ? 'rgba(164, 148, 114, 0.34)' : 'rgba(98, 92, 74, 0.30)')
-        : (rng() > 0.65 ? 'rgba(136, 118, 56, 0.28)' : rng() > 0.4 ? 'rgba(54, 70, 44, 0.50)' : 'rgba(78, 92, 58, 0.38)');
-      g.fillRect(gx, gy, 2 + rng() * 5, 1.5 + rng() * 2.5);
+      if (gy > 228 && gy < 346) continue;
+      g.fillStyle = rng() > 0.68
+        ? 'rgba(148, 128, 62, 0.26)'
+        : (rng() > 0.4 ? 'rgba(38, 52, 32, 0.42)' : 'rgba(68, 86, 48, 0.32)');
+      g.fillRect(gx, gy, 1.5 + rng() * 2.5, 1 + rng() * 1.5);
     }
 
-    // 2. Painterly golden-lit limestone flagstone road (west & east approaches)
+    // 2. Painterly golden-lit limestone flagstone road (cross-faded horizontal overlap, zero seams)
     function drawApproachPaving(startX, endX) {
       g.save();
       g.beginPath();
-      g.rect(startX, 222, endX - startX, 134);
+      g.rect(startX, 224, endX - startX, 128);
       g.clip();
-      g.fillStyle = '#756c57';
-      g.fillRect(startX, 226, endX - startX, 124);
-
-      const stones = ['#baa882', '#ab9a78', '#c8b68f', '#9c8e70', '#b3a17d'];
-      for (let z = 230, row = 0; z < 348; z += 11.5, row++) {
-        for (let x = startX - (row % 2) * 14; x < endX;) {
-          const sw = 17 + Math.floor(rng() * 15);
-          const pad = 1.5;
-          const bx = x + pad;
-          const bw = sw - pad * 2;
-          g.fillStyle = stones[Math.floor(rng() * stones.length)];
-          g.fillRect(bx, z + 1, bw, 9.2);
-          // Sunlit warm bevel top, deep mortar crack bottom
-          g.fillStyle = 'rgba(246, 226, 174, 0.32)';
-          g.fillRect(bx, z + 1, bw, 1.6);
-          g.fillStyle = 'rgba(32, 34, 30, 0.34)';
-          g.fillRect(bx, z + 9.4, bw, 1.2);
-          // Occasional dappled leaf shadow or moss grain
-          if (rng() > 0.72) {
-            g.fillStyle = 'rgba(42, 54, 38, 0.22)';
-            g.fillRect(bx + rng() * bw * 0.4, z + 3, bw * 0.45, 5);
+      if (tex.stoneRoad) {
+        const tileW = 290;
+        const overlap = 42;
+        const stepW = tileW - overlap;
+        const tw = tex.stoneRoad.width;
+        const th = tex.stoneRoad.height;
+        const featherStrip = makeOffscreen(tileW, 128);
+        if (featherStrip) {
+          const fg = featherStrip.ctx;
+          fg.drawImage(tex.stoneRoad, 0, 0, tw, th, 0, 0, tileW, 128);
+          fg.save();
+          fg.globalCompositeOperation = 'destination-in';
+          const mask = fg.createLinearGradient(0, 0, tileW, 0);
+          mask.addColorStop(0, 'rgba(255,255,255,0)');
+          mask.addColorStop(overlap / tileW, 'rgba(255,255,255,1)');
+          mask.addColorStop(1, 'rgba(255,255,255,1)');
+          fg.fillStyle = mask;
+          fg.fillRect(0, 0, tileW, 128);
+          fg.restore();
+        }
+        // Base fill first tile cleanly, then step horizontally with smooth left feather
+        g.drawImage(tex.stoneRoad, 0, 0, tw, th, startX, 224, tileW, 128);
+        for (let tx = startX + stepW; tx < endX; tx += stepW) {
+          g.drawImage(featherStrip ? featherStrip.canvas : tex.stoneRoad, tx, 224, tileW, 128);
+        }
+        // Darken far/upper & lower curb edges gently so flagstones sit naturally in turf
+        const vergeFade = g.createLinearGradient(0, 224, 0, 240);
+        vergeFade.addColorStop(0, 'rgba(28, 38, 22, 0.48)');
+        vergeFade.addColorStop(1, 'rgba(28, 38, 22, 0)');
+        g.fillStyle = vergeFade;
+        g.fillRect(startX, 224, endX - startX, 18);
+      } else {
+        g.fillStyle = '#756c57';
+        g.fillRect(startX, 226, endX - startX, 124);
+        const stones = ['#baa882', '#ab9a78', '#c8b68f', '#9c8e70', '#b3a17d'];
+        for (let z = 230, row = 0; z < 348; z += 11.5, row++) {
+          for (let x = startX - (row % 2) * 14; x < endX;) {
+            const sw = 17 + Math.floor(rng() * 15);
+            const pad = 1.5;
+            const bx = x + pad;
+            const bw = sw - pad * 2;
+            g.fillStyle = stones[Math.floor(rng() * stones.length)];
+            g.fillRect(bx, z + 1, bw, 9.2);
+            g.fillStyle = 'rgba(246, 226, 174, 0.32)';
+            g.fillRect(bx, z + 1, bw, 1.6);
+            g.fillStyle = 'rgba(32, 34, 30, 0.34)';
+            g.fillRect(bx, z + 9.4, bw, 1.2);
+            x += sw;
           }
-          x += sw;
         }
       }
-      // Weathered stone curb edges + moss & wildflowers along road verges
-      for (let x = startX; x < endX; x += 22) {
-        g.fillStyle = rng() > 0.4 ? '#5a6848' : '#7b745f';
-        g.fillRect(x + 1, 223, 18, 6);
-        g.fillRect(x + 4, 344, 18, 6);
-        if (rng() > 0.55) {
-          g.fillStyle = rng() > 0.5 ? '#f5eed6' : '#f2c864';
+      // Weathered stone curb tufts & alpine wildflowers along road verges
+      for (let x = startX; x < endX; x += 18) {
+        g.fillStyle = rng() > 0.45 ? 'rgba(62, 76, 46, 0.85)' : 'rgba(84, 78, 62, 0.75)';
+        g.fillRect(x + 1, 223, 14, 5);
+        g.fillRect(x + 3, 346, 14, 5);
+        if (rng() > 0.50) {
+          g.fillStyle = rng() > 0.45 ? '#f5eed6' : '#f2c864';
           g.fillRect(x + rng() * 12, 220 + rng() * 5, 2.2, 2.2);
           g.fillRect(x + rng() * 12, 349 + rng() * 6, 2.2, 2.2);
         }
@@ -480,80 +512,80 @@
     drawApproachPaving(0, BRIDGE.left + 4);
     drawApproachPaving(BRIDGE.right - 4, WORLD_WIDTH);
 
-    // Warm golden sunlight pool streaming onto west road before bridge
-    const roadGlow = g.createRadialGradient(290, 290, 20, 290, 290, 155);
-    roadGlow.addColorStop(0, 'rgba(255, 222, 138, 0.22)');
-    roadGlow.addColorStop(0.55, 'rgba(246, 206, 122, 0.10)');
-    roadGlow.addColorStop(1, 'rgba(246, 206, 122, 0)');
+    // Oak branch dappled shadows & warm golden sunlight pool streaming onto west road
+    const roadGlow = g.createRadialGradient(290, 290, 20, 290, 290, 170);
+    roadGlow.addColorStop(0, 'rgba(255, 220, 134, 0.24)');
+    roadGlow.addColorStop(0.55, 'rgba(246, 204, 120, 0.10)');
+    roadGlow.addColorStop(1, 'rgba(246, 204, 120, 0)');
     g.fillStyle = roadGlow;
-    g.fillRect(120, 220, 340, 140);
-
-    // East ancient weathered stone retaining parapet & ascending castle steps cue
-    for (let x = 746; x < 1030; x += 34) {
-      const hWall = 15 + Math.floor(rng() * 10);
-      const yTop = 216 - hWall;
-      g.fillStyle = '#58574f';
+    g.fillRect(80, 220, 380, 140);
+    g.fillStyle = 'rgba(22, 28, 22, 0.22)';
+    for (const [sx, sy, rx, ry] of [[86, 258, 52, 16], [136, 298, 62, 18], [182, 266, 38, 12]]) {
       g.beginPath();
-      g.moveTo(x, 218);
-      g.lineTo(x + 2, yTop + 3);
-      g.lineTo(x + 14, yTop);
-      g.lineTo(x + 30, yTop + 2);
-      g.lineTo(x + 32, 218);
-      g.closePath();
+      g.ellipse(sx, sy, rx, ry, -0.22, 0, Math.PI * 2);
       g.fill();
-      g.fillStyle = '#a89a7e';
-      g.fillRect(x + 3, yTop + 1, 26, 3);
-      g.fillStyle = '#485e3e';
-      g.fillRect(x + 6, yTop + 4, 10, 5);
+    }
+
+    // East weathered stone retaining parapet wall leading toward castle gatehouse
+    if (tex.bridgeMasonry) {
+      g.save();
+      g.beginPath();
+      g.rect(746, 200, 286, 20);
+      g.clip();
+      g.drawImage(tex.bridgeMasonry, 742, 196, 295, 36);
+      g.fillStyle = 'rgba(246, 226, 174, 0.22)';
+      g.fillRect(746, 200, 286, 2.5);
+      g.restore();
+    } else {
+      for (let x = 746; x < 1030; x += 34) {
+        const hWall = 15 + Math.floor(rng() * 10);
+        const yTop = 216 - hWall;
+        g.fillStyle = '#58574f';
+        g.fillRect(x, yTop, 32, 218 - yTop);
+      }
     }
 
     // Shrine stone terrace behind north side of bridge (x = 615..735, z = 208..236)
-    g.fillStyle = '#6f6c5c';
+    g.fillStyle = '#5f5e50';
     g.fillRect(615, 210, 118, 28);
-    g.fillStyle = '#999079';
-    g.fillRect(622, 214, 104, 20);
+    if (tex.stoneRoad) {
+      g.drawImage(tex.stoneRoad, 0, 0, tex.stoneRoad.width * 0.45, tex.stoneRoad.height * 0.3, 620, 213, 108, 22);
+    }
 
-    // 3. Fore-edge Rocky Cliff Crags flanking left & right abutments (z = 352..420)
+    // 3. Fore-edge Rocky Cliff Crags framing chasm dropoffs & lower road rim (z = 342..420)
     // Open chasm sits cleanly between x = 468..692 so the midground gorge & waterfall show through!
-    function drawCliffCrag(cx, cy, cw, ch) {
-      g.fillStyle = '#3b4144';
-      g.beginPath();
-      g.moveTo(cx - cw * 0.5, cy + ch);
-      g.lineTo(cx - cw * 0.42, cy + ch * 0.25);
-      g.lineTo(cx - cw * 0.12, cy);
-      g.lineTo(cx + cw * 0.28, cy + ch * 0.14);
-      g.lineTo(cx + cw * 0.5, cy + ch);
-      g.closePath();
-      g.fill();
-      // Warm sunlit top rock plane
-      g.fillStyle = 'rgba(208, 178, 132, 0.34)';
-      g.beginPath();
-      g.moveTo(cx - cw * 0.12, cy);
-      g.lineTo(cx + cw * 0.28, cy + ch * 0.14);
-      g.lineTo(cx + cw * 0.14, cy + ch * 0.46);
-      g.lineTo(cx - cw * 0.26, cy + ch * 0.34);
-      g.closePath();
-      g.fill();
-    }
-    for (const [cx, cy, cw, ch] of [
-      [340, 354, 86, 66], [405, 348, 72, 72], [448, 356, 56, 64],
-      [714, 356, 58, 64], [768, 348, 78, 72], [835, 358, 84, 62]
-    ]) {
-      drawCliffCrag(cx, cy, cw, ch);
-    }
-
-    // Stone bridge abutment piers & buttresses
-    for (const [ax, dir] of [[BRIDGE.left, -1], [BRIDGE.right, 1]]) {
-      g.fillStyle = '#5c5a4f';
-      g.beginPath();
-      g.moveTo(ax - dir * 18, 344);
-      g.lineTo(ax + dir * 24, 344);
-      g.lineTo(ax + dir * 16, 420);
-      g.lineTo(ax - dir * 24, 420);
-      g.closePath();
-      g.fill();
-      g.fillStyle = 'rgba(222, 202, 162, 0.26)';
-      g.fillRect(ax - 12, 344, 24, 4);
+    if (tex.cliffCrag) {
+      for (const [cx, cy, cw, ch, flip] of [
+        [-8, 344, 112, 94, true],
+        [72, 346, 114, 92, false],
+        [152, 344, 116, 94, true],
+        [232, 342, 116, 94, false],
+        [312, 344, 114, 94, true],
+        [386, 352, 98, 84, false],
+        [818, 344, 114, 94, true],
+        [810, 346, 114, 92, false],
+        [900, 344, 116, 94, false],
+        [980, 344, 116, 94, false],
+        [1055, 346, 112, 92, true]
+      ]) {
+        g.save();
+        if (flip) {
+          g.translate(cx, cy);
+          g.scale(-1, 1);
+          g.drawImage(tex.cliffCrag, 0, 0, cw, ch);
+        } else {
+          g.drawImage(tex.cliffCrag, cx, cy, cw, ch);
+        }
+        g.restore();
+      }
+    } else {
+      for (const [cx, cy, cw, ch] of [
+        [340, 354, 86, 66], [405, 348, 72, 72], [448, 356, 56, 64],
+        [714, 356, 58, 64], [768, 348, 78, 72], [835, 358, 84, 62]
+      ]) {
+        g.fillStyle = '#3b4144';
+        g.fillRect(cx - cw * 0.4, cy, cw * 0.8, ch);
+      }
     }
 
     // 4. Elevated Stone Bridge Facade & Grand Open Vaulted Arch (x = 430..730)
@@ -577,20 +609,29 @@
     g.fillStyle = '#57554b';
     g.fill();
 
-    // Sculpted limestone masonry blocks on the bridge spandrel wall
+    // Paint weathered ashlar bridge stonework across the spandrel facade
     g.save();
     g.clip();
-    for (let y = 292; y < 420; y += 10) {
-      for (let x = BRIDGE.left - ((y / 10) % 2) * 11; x < BRIDGE.right; x += 22) {
-        g.fillStyle = rng() > 0.5 ? '#666356' : '#515147';
-        g.fillRect(x + 1, y + 1, 20, 8.2);
-        g.fillStyle = 'rgba(218, 198, 158, 0.16)';
-        g.fillRect(x + 1, y + 1, 20, 1.5);
+    if (tex.bridgeMasonry) {
+      g.drawImage(tex.bridgeMasonry, BRIDGE.left - 8, archCrownY - 36, BRIDGE.right - BRIDGE.left + 16, 422 - (archCrownY - 36));
+      // Cool chasm ambient shade darkening lower abutment bases
+      const archShade = g.createLinearGradient(0, archCrownY - 24, 0, 420);
+      archShade.addColorStop(0, 'rgba(30, 32, 34, 0.14)');
+      archShade.addColorStop(0.55, 'rgba(24, 30, 36, 0.28)');
+      archShade.addColorStop(1, 'rgba(18, 24, 30, 0.52)');
+      g.fillStyle = archShade;
+      g.fillRect(BRIDGE.left, archCrownY - 36, BRIDGE.right - BRIDGE.left, 200);
+    } else {
+      for (let y = 292; y < 420; y += 10) {
+        for (let x = BRIDGE.left - ((y / 10) % 2) * 11; x < BRIDGE.right; x += 22) {
+          g.fillStyle = rng() > 0.5 ? '#666356' : '#515147';
+          g.fillRect(x + 1, y + 1, 20, 8.2);
+        }
       }
     }
     // Deep arch soffit inner shadow rim
-    g.strokeStyle = 'rgba(20, 26, 30, 0.72)';
-    g.lineWidth = 10;
+    g.strokeStyle = 'rgba(18, 22, 26, 0.82)';
+    g.lineWidth = 11;
     g.beginPath();
     g.moveTo(ax0, 420);
     g.quadraticCurveTo(amid, archCrownY - 2, ax1, 420);
@@ -611,16 +652,15 @@
     const archSteps = 22;
     for (let i = 0; i < archSteps; i++) {
       const t0 = i / archSteps;
-      const t1 = (i + 0.85) / archSteps;
+      const t1 = (i + 0.88) / archSteps;
       const p0x = (1 - t0) * (1 - t0) * ax0 + 2 * (1 - t0) * t0 * amid + t0 * t0 * ax1;
       const p0y = (1 - t0) * (1 - t0) * 420 + 2 * (1 - t0) * t0 * archCrownY + t0 * t0 * 420;
       const p1x = (1 - t1) * (1 - t1) * ax0 + 2 * (1 - t1) * t1 * amid + t1 * t1 * ax1;
       const p1y = (1 - t1) * (1 - t1) * 420 + 2 * (1 - t1) * t1 * archCrownY + t1 * t1 * 420;
       const mx = (p0x + p1x) * 0.5;
-      const my = (p0y + p1y) * 0.5;
-      const nx = (mx - amid) * 0.06;
-      const ny = -8;
-      g.fillStyle = i % 2 === 0 ? '#918873' : '#7b7462';
+      const nx = (mx - amid) * 0.065;
+      const ny = -9;
+      g.fillStyle = i % 2 === 0 ? '#968c76' : '#7b7360';
       g.beginPath();
       g.moveTo(p0x, p0y);
       g.lineTo(p1x, p1y);
@@ -628,23 +668,23 @@
       g.lineTo(p0x + nx, p0y + ny);
       g.closePath();
       g.fill();
-      g.strokeStyle = 'rgba(28, 32, 28, 0.45)';
-      g.lineWidth = 0.9;
+      g.strokeStyle = 'rgba(24, 28, 24, 0.55)';
+      g.lineWidth = 1;
       g.stroke();
     }
 
     // Trailing mossy ivy vines hanging down over the stone spandrel wall
-    for (const [vx, vy, len] of [[448, 344, 34], [462, 336, 48], [488, 328, 28], [678, 330, 32], [704, 340, 44]]) {
-      g.strokeStyle = '#364d2b';
+    for (const [vx, vy, len] of [[448, 342, 38], [462, 334, 52], [488, 324, 30], [678, 326, 34], [704, 338, 46]]) {
+      g.strokeStyle = '#2d4423';
       g.lineWidth = 2.2;
       g.beginPath();
       g.moveTo(vx, vy);
       g.quadraticCurveTo(vx + 3, vy + len * 0.5, vx - 2, vy + len);
       g.stroke();
-      g.fillStyle = '#4e6c38';
-      for (let ly = 4; ly < len; ly += 6) {
+      g.fillStyle = '#4f6d37';
+      for (let ly = 4; ly < len; ly += 5.5) {
         g.beginPath();
-        g.ellipse(vx + (ly % 12 === 4 ? -3 : 3), vy + ly, 3.2, 1.8, 0.3, 0, Math.PI * 2);
+        g.ellipse(vx + (ly % 11 < 5.5 ? -3 : 3), vy + ly, 3.2, 1.8, 0.3, 0, Math.PI * 2);
         g.fill();
       }
     }
@@ -653,14 +693,13 @@
     for (const bx of [464, 694]) {
       const topY = BRIDGE.front - heightAt(bx, 290) + 4;
       const bw = 18;
-      const bh = 42;
-      // Soft banner shadow on stonework
-      g.fillStyle = 'rgba(18, 20, 18, 0.36)';
+      const bh = 44;
+      g.fillStyle = 'rgba(18, 20, 18, 0.42)';
       g.fillRect(bx - bw / 2 + 2, topY + 2, bw, bh);
-      // Crimson cloth body & notched swallowtail bottom
-      const banGrad = g.createLinearGradient(bx, topY, bx, topY + bh);
-      banGrad.addColorStop(0, '#9a2429');
-      banGrad.addColorStop(1, '#5e1418');
+      const banGrad = g.createLinearGradient(bx - bw / 2, topY, bx + bw / 2, topY + bh);
+      banGrad.addColorStop(0, '#9a2329');
+      banGrad.addColorStop(0.5, '#7c1a1f');
+      banGrad.addColorStop(1, '#551216');
       g.fillStyle = banGrad;
       g.beginPath();
       g.moveTo(bx - bw / 2, topY);
@@ -670,17 +709,16 @@
       g.lineTo(bx - bw / 2, topY + bh);
       g.closePath();
       g.fill();
-      // Gold trim & heraldic cross emblem
-      g.strokeStyle = '#d7ac56';
+      g.strokeStyle = '#d8ae58';
       g.lineWidth = 1.2;
       g.strokeRect(bx - bw / 2 + 2, topY + 2, bw - 4, bh - 12);
-      g.fillStyle = '#e7be62';
+      g.fillStyle = '#ecc56a';
       g.fillRect(bx - 1.3, topY + 7, 2.6, 15);
       g.fillRect(bx - 5, topY + 12, 10, 2.5);
     }
 
     // 5. Walkable Stone Bridge Deck (x = 430..730, z = 235..345)
-    // Every flagstone slab follows heightAt(x, z) so feet stay locked to stones.
+    // Every flagstone column follows exact heightAt(x, z) so feet stay locked to stones.
     g.beginPath();
     for (let x = BRIDGE.left; x <= BRIDGE.right; x += step) {
       const y = BRIDGE.back - heightAt(x, BRIDGE.back);
@@ -696,65 +734,65 @@
 
     g.save();
     g.clip();
-    const deckColors = ['#b7aa89', '#aa9c7b', '#c6b793', '#9d9072', '#b0a282'];
-    const rowDepth = 11;
-    for (let z = BRIDGE.back, row = 0; z < BRIDGE.front; z += rowDepth, row++) {
-      for (let x = BRIDGE.left - (row % 2) * 11; x < BRIDGE.right;) {
-        const wSlab = 16 + Math.floor(rng() * 14);
-        const x0 = Math.max(BRIDGE.left, x + 0.8);
-        const x1 = Math.min(BRIDGE.right, x + wSlab - 0.8);
-        if (x1 > x0 + 2) {
-          const h0 = heightAt(x0, z);
-          const h1 = heightAt(x1, z);
-          const zNext = Math.min(BRIDGE.front, z + rowDepth - 1.1);
-          g.beginPath();
-          g.moveTo(x0, z - h0);
-          g.lineTo(x1, z - h1);
-          g.lineTo(x1, zNext - h1);
-          g.lineTo(x0, zNext - h0);
-          g.closePath();
-          g.fillStyle = deckColors[Math.floor(rng() * deckColors.length)];
-          g.fill();
-
-          // Warm golden-hour sunlit rim along upper slab edge
-          g.strokeStyle = 'rgba(248, 232, 188, 0.38)';
-          g.lineWidth = 1.1;
-          g.beginPath();
-          g.moveTo(x0, z + 0.8 - h0);
-          g.lineTo(x1, z + 0.8 - h1);
-          g.stroke();
-
-          // Deep cool mortar shadow below
-          g.strokeStyle = 'rgba(32, 36, 32, 0.42)';
-          g.beginPath();
-          g.moveTo(x0, zNext - h0);
-          g.lineTo(x1, zNext - h1);
-          g.stroke();
+    if (tex.stoneRoad) {
+      const span = BRIDGE.right - BRIDGE.left;
+      const tw = tex.stoneRoad.width;
+      const th = tex.stoneRoad.height;
+      const deckH = BRIDGE.front - BRIDGE.back;
+      const colW = 2;
+      for (let x = BRIDGE.left; x < BRIDGE.right; x += colW) {
+        const u = (x - BRIDGE.left) / span;
+        const srcX = Math.min(tw - 2, Math.max(0, u * tw));
+        const srcW = Math.max(1, (colW / span) * tw);
+        const topY = BRIDGE.back - heightAt(x, 290);
+        g.drawImage(tex.stoneRoad, srcX, 0, srcW, th, x, topY, colW + 0.6, deckH + 1);
+      }
+    } else {
+      const deckColors = ['#b7aa89', '#aa9c7b', '#c6b793', '#9d9072', '#b0a282'];
+      const rowDepth = 11;
+      for (let z = BRIDGE.back, row = 0; z < BRIDGE.front; z += rowDepth, row++) {
+        for (let x = BRIDGE.left - (row % 2) * 11; x < BRIDGE.right;) {
+          const wSlab = 16 + Math.floor(rng() * 14);
+          const x0 = Math.max(BRIDGE.left, x + 0.8);
+          const x1 = Math.min(BRIDGE.right, x + wSlab - 0.8);
+          if (x1 > x0 + 2) {
+            const h0 = heightAt(x0, z);
+            const h1 = heightAt(x1, z);
+            const zNext = Math.min(BRIDGE.front, z + rowDepth - 1.1);
+            g.beginPath();
+            g.moveTo(x0, z - h0);
+            g.lineTo(x1, z - h1);
+            g.lineTo(x1, zNext - h1);
+            g.lineTo(x0, zNext - h0);
+            g.closePath();
+            g.fillStyle = deckColors[Math.floor(rng() * deckColors.length)];
+            g.fill();
+          }
+          x += wSlab;
         }
-        x += wSlab;
       }
     }
 
     // Soft golden sun pool & moss weathering along the arch bridge deck
-    const deckSun = g.createRadialGradient(545, 250, 18, 545, 250, 145);
+    const deckSun = g.createRadialGradient(545, 250, 18, 545, 250, 155);
     deckSun.addColorStop(0, 'rgba(255, 224, 144, 0.24)');
     deckSun.addColorStop(1, 'rgba(255, 224, 144, 0)');
     g.fillStyle = deckSun;
-    g.fillRect(BRIDGE.left, 200, BRIDGE.right - BRIDGE.left, 160);
+    g.fillRect(BRIDGE.left, 195, BRIDGE.right - BRIDGE.left, 165);
 
-    for (let i = 0; i < 240; i++) {
+    for (let i = 0; i < 220; i++) {
       const mx = BRIDGE.left + rng() * (BRIDGE.right - BRIDGE.left);
       const nearEdge = rng() > 0.5
-        ? BRIDGE.back + rng() * 11
-        : BRIDGE.front - rng() * 11;
+        ? BRIDGE.back + rng() * 10
+        : BRIDGE.front - rng() * 10;
       const mh = heightAt(mx, nearEdge);
-      g.fillStyle = rng() > 0.4 ? 'rgba(62, 88, 48, 0.44)' : 'rgba(38, 44, 34, 0.22)';
+      g.fillStyle = rng() > 0.4 ? 'rgba(62, 88, 48, 0.42)' : 'rgba(38, 44, 34, 0.22)';
       g.fillRect(mx, nearEdge - mh, 2 + rng() * 4, 1.5 + rng() * 2);
     }
     g.restore();
 
     // Crisp sunward coping edge along front edge of bridge deck
-    g.strokeStyle = 'rgba(235, 218, 176, 0.62)';
+    g.strokeStyle = 'rgba(235, 218, 176, 0.65)';
     g.lineWidth = 1.6;
     g.beginPath();
     for (let x = BRIDGE.left; x <= BRIDGE.right; x += step) {
@@ -773,8 +811,28 @@
     let foregroundSprite = null;
     let oakSprite = null;
     let skyCitadelPlate = null;
-    let skyCitadelLoading = false;
+    const tex = {
+      skyCitadelLoading: false,
+      started: false,
+      dirty: false,
+      midgroundGorge: null,
+      oakTree: null,
+      lanternPost: null,
+      stoneRoad: null,
+      bridgeMasonry: null,
+      shrinePillar: null,
+      hollowArch: null,
+      cliffCrag: null,
+      autumnFoliage: null
+    };
     let bakedHeightKey = '';
+
+    function loadAssetImage(src, onReady) {
+      if (typeof Image !== 'function') return;
+      const img = new Image();
+      img.onload = () => onReady(img);
+      img.src = src;
+    }
 
     const nearScenery = Object.freeze([
       { type: 'rearRail', z: BRIDGE.back },
@@ -784,26 +842,16 @@
       { type: 'fence', x: 158, z: 227, width: 92 },
       { type: 'fence', x: 342, z: 227, width: 108 },
       { type: 'fence', x: 356, z: 348, width: 88 },
-      { type: 'pine', x: 988, z: 220, size: 132 },
-      { type: 'rock', x: 118, z: 378, size: 22 },
-      { type: 'rock', x: 294, z: 222, size: 16 },
-      { type: 'rock', x: 392, z: 368, size: 18 },
-      { type: 'rock', x: 762, z: 378, size: 22 },
-      { type: 'rock', x: 866, z: 386, size: 17 },
-      { type: 'grass', x: 174, z: 368, size: 16 },
-      { type: 'grass', x: 356, z: 225, size: 15 },
-      { type: 'grass', x: 744, z: 226, size: 16 },
-      { type: 'grass', x: 842, z: 368, size: 18 }
+      { type: 'oak', x: 978, z: 218, size: 145, flip: true, scale: 0.78 }
     ]);
 
     function ensureAssets(heightAt) {
       if (!castleSprite) castleSprite = bakeCastleSprite();
       if (!midgroundSprite) midgroundSprite = bakeMidgroundBand();
       if (!oakSprite) oakSprite = bakeOakSprite();
-      if (!skyCitadelLoading && typeof Image === 'function' && typeof document !== 'undefined') {
-        skyCitadelLoading = true;
-        const img = new Image();
-        img.onload = () => {
+      if (!tex.started && typeof Image === 'function' && typeof document !== 'undefined') {
+        tex.started = true;
+        loadAssetImage('assets/castle-bridge/sky-citadel.png', (img) => {
           const pw = 480;
           const ph = 270;
           const off = makeOffscreen(pw, ph);
@@ -811,8 +859,6 @@
           const g = off.ctx;
           g.drawImage(img, 0, 0, pw, ph);
           // Feather horizontal & bottom boundaries cleanly into canvas sky/mist.
-          // Always draw destination-in across the FULL (0,0,pw,ph) rectangle so
-          // the upper citadel & sky are preserved at alpha=1.
           g.save();
           g.globalCompositeOperation = 'destination-in';
           const hMask = g.createLinearGradient(0, 0, pw, 0);
@@ -833,12 +879,21 @@
           g.fillRect(0, 0, pw, ph);
           g.restore();
           skyCitadelPlate = off.canvas;
-        };
-        img.src = 'assets/castle-bridge/sky-citadel.png';
+        });
+        loadAssetImage('assets/castle-bridge/midground-gorge.png', (img) => { tex.midgroundGorge = img; });
+        loadAssetImage('assets/castle-bridge/oak-tree.png', (img) => { tex.oakTree = img; });
+        loadAssetImage('assets/castle-bridge/lantern-post.png', (img) => { tex.lanternPost = img; });
+        loadAssetImage('assets/castle-bridge/shrine-pillar.png', (img) => { tex.shrinePillar = img; });
+        loadAssetImage('assets/castle-bridge/hollow-arch.png', (img) => { tex.hollowArch = img; });
+        loadAssetImage('assets/castle-bridge/autumn-foliage.png', (img) => { tex.autumnFoliage = img; });
+        loadAssetImage('assets/castle-bridge/stone-road.png', (img) => { tex.stoneRoad = img; tex.dirty = true; });
+        loadAssetImage('assets/castle-bridge/bridge-masonry.png', (img) => { tex.bridgeMasonry = img; tex.dirty = true; });
+        loadAssetImage('assets/castle-bridge/cliff-crag.png', (img) => { tex.cliffCrag = img; tex.dirty = true; });
       }
       const key = typeof heightAt === 'function' ? 'custom' : 'default';
-      if (!foregroundSprite || bakedHeightKey !== key) {
-        foregroundSprite = bakeForegroundWorld(typeof heightAt === 'function' ? heightAt : defaultHeightAt);
+      if (!foregroundSprite || bakedHeightKey !== key || tex.dirty) {
+        tex.dirty = false;
+        foregroundSprite = bakeForegroundWorld(typeof heightAt === 'function' ? heightAt : defaultHeightAt, tex);
         bakedHeightKey = key;
       }
     }
@@ -952,7 +1007,7 @@
       ctx.fillStyle = farMist;
       ctx.fillRect(0, 128, width, 104);
 
-      // 4. Midground Gorge Cliffs, Forest & Deep Chasm (50% parallax, y=85..425)
+      // 4. Midground Gorge Cliffs, Forest & Deep Chasm (50% parallax)
       if (midgroundSprite) {
         ctx.save();
         ctx.imageSmoothingEnabled = true;
@@ -964,66 +1019,44 @@
         ctx.restore();
       }
 
-      // 5. Midground Canyon Waterfall descending through chasm inside vaulted bridge arch (50% parallax)
+      // 5. Painted HD-2D Gorge Cliffs, Pines & Waterfall centered behind vaulted arch (50% parallax)
       const wfX = anchors.waterfallX;
-      if (wfX > -105 && wfX < width + 105) {
+      if (tex.midgroundGorge) {
         ctx.save();
-        // Wet shadowed basalt gorge recess starting below treeline (y=218..420)
-        const recessGrad = ctx.createLinearGradient(wfX, 215, wfX, VIRTUAL_H);
-        recessGrad.addColorStop(0, 'rgba(18, 26, 34, 0.56)');
-        recessGrad.addColorStop(0.55, 'rgba(14, 21, 28, 0.80)');
-        recessGrad.addColorStop(1, 'rgba(24, 34, 42, 0.25)');
-        ctx.fillStyle = recessGrad;
-        ctx.beginPath();
-        ctx.moveTo(wfX - 22, 218);
-        ctx.lineTo(wfX + 22, 218);
-        ctx.lineTo(wfX + 36, VIRTUAL_H);
-        ctx.lineTo(wfX - 36, VIRTUAL_H);
-        ctx.closePath();
-        ctx.fill();
-
-        // Twin tiered silver-white cliff waterfall cascading down into the abyss
-        const wfGrad = ctx.createLinearGradient(wfX, 218, wfX, VIRTUAL_H);
-        wfGrad.addColorStop(0, 'rgba(240, 249, 252, 0.84)');
-        wfGrad.addColorStop(0.45, 'rgba(220, 240, 245, 0.94)');
-        wfGrad.addColorStop(0.88, 'rgba(230, 244, 248, 0.68)');
-        wfGrad.addColorStop(1, 'rgba(230, 244, 248, 0)');
-        ctx.fillStyle = wfGrad;
-        for (const [ox, wTop, wBot] of [[-7, 4.5, 9.5], [1, 7.5, 13.5], [9, 4, 8.5]]) {
-          ctx.beginPath();
-          ctx.moveTo(wfX + ox - wTop * 0.5, 218);
-          ctx.quadraticCurveTo(wfX + ox - wBot * 0.35, 315, wfX + ox - wBot * 0.5, VIRTUAL_H);
-          ctx.lineTo(wfX + ox + wBot * 0.5, VIRTUAL_H);
-          ctx.quadraticCurveTo(wfX + ox + wTop * 0.65, 310, wfX + ox + wTop * 0.5, 218);
-          ctx.closePath();
-          ctx.fill();
+        ctx.imageSmoothingEnabled = true;
+        const gw = 760;
+        const gh = 372;
+        ctx.drawImage(tex.midgroundGorge, wfX - gw * 0.5, 82, gw, gh);
+        // Smooth mirrored left forest extension on ultra-wide viewports (keep right castle clear)
+        if (wfX - gw * 0.5 > 0) {
+          ctx.save();
+          ctx.translate(wfX - gw * 0.5 + 52, 82);
+          ctx.scale(-1, 1);
+          ctx.drawImage(tex.midgroundGorge, 0, 0, 220, tex.midgroundGorge.height, 0, 0, 180, gh);
+          ctx.restore();
         }
+        ctx.restore();
+      }
 
-        // Wet rock shelf deflecting water partway down the chasm
-        ctx.fillStyle = '#26333c';
-        ctx.beginPath();
-        ctx.ellipse(wfX + 4, 352, 13, 5, 0.12, 0, Math.PI * 2);
-        ctx.fill();
-
-        // Animated vertical foam streaks (visible cleanly inside open bridge arch)
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.90)';
-        ctx.lineWidth = 1.9;
+      // Animated subtle white waterfall foam shimmer & chasm mist clouds inside arch
+      if (wfX > -120 && wfX < width + 120) {
+        ctx.save();
+        ctx.strokeStyle = 'rgba(255, 255, 255, 0.52)';
+        ctx.lineWidth = 1.6;
         const shift = (t * 34) % 20;
         for (let i = -2; i <= 2; i++) {
           const rx = wfX + i * 4.5;
-          for (let ry = 224 + shift + (Math.abs(i) * 5) % 16; ry < VIRTUAL_H - 10; ry += 20) {
+          for (let ry = 224 + shift + (Math.abs(i) * 5) % 16; ry < VIRTUAL_H - 18; ry += 20) {
             ctx.beginPath();
             ctx.moveTo(rx, ry);
-            ctx.lineTo(rx + i * 0.3, ry + 9);
+            ctx.lineTo(rx + i * 0.25, ry + 8);
             ctx.stroke();
           }
         }
-
-        // Billowing silver-white waterfall mist clouds inside gorge base
         for (const [mx, my, mr, ma] of [
-          [wfX, 398, 64, 0.64],
-          [wfX - 28, 405, 48, 0.46],
-          [wfX + 28, 405, 48, 0.46]
+          [wfX, 398, 64, 0.44],
+          [wfX - 28, 405, 48, 0.32],
+          [wfX + 28, 405, 48, 0.32]
         ]) {
           const spray = ctx.createRadialGradient(mx, my, 4, mx, my, mr);
           spray.addColorStop(0, `rgba(226, 238, 242, ${ma})`);
@@ -1066,15 +1099,29 @@
       const railTop = isFront ? 17 : 15;
       const railThickness = 5;
 
-      // Semi-open stone balusters between posts
+      // Carved stone balusters & masonry blocks between posts
       for (let x = startX + 12; x < endX - 6; x += 15) {
         const h = heightAt(x, zPos);
         const p = worldToScreen(x, zPos, h, cameraX);
-        ctx.fillStyle = isFront ? '#847b65' : '#6c6858';
-        ctx.fillRect(p.x - 2, p.y - railTop + 4, 4, railTop - 4);
+        if (tex.bridgeMasonry) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(p.x - 2.5, p.y - railTop + 4, 5, railTop - 4);
+          ctx.clip();
+          ctx.drawImage(tex.bridgeMasonry, (x % 96), 0, 14, 48, p.x - 2.5, p.y - railTop + 4, 5, railTop - 4);
+          if (!isFront) {
+            ctx.fillStyle = 'rgba(20, 26, 28, 0.24)';
+            ctx.fillRect(p.x - 2.5, p.y - railTop + 4, 5, railTop - 4);
+          }
+          ctx.restore();
+        } else {
+          ctx.fillStyle = isFront ? '#847b65' : '#6c6858';
+          ctx.fillRect(p.x - 2, p.y - railTop + 4, 4, railTop - 4);
+        }
       }
 
-      // Continuous horizontal coping rail
+      // Continuous horizontal coping rail with masonry texture
+      ctx.save();
       ctx.beginPath();
       for (let x = startX; x <= endX; x += step) {
         const p = worldToScreen(x, zPos, heightAt(x, zPos), cameraX);
@@ -1088,9 +1135,21 @@
       ctx.closePath();
       ctx.fillStyle = isFront ? '#a89c82' : '#8a816c';
       ctx.fill();
-      ctx.strokeStyle = 'rgba(36, 40, 34, 0.58)';
+      if (tex.bridgeMasonry) {
+        ctx.save();
+        ctx.clip();
+        const lp = worldToScreen(startX, zPos, 0, cameraX);
+        ctx.drawImage(tex.bridgeMasonry, lp.x, lp.y - 78, BRIDGE.right - BRIDGE.left, 80);
+        if (!isFront) {
+          ctx.fillStyle = 'rgba(22, 26, 28, 0.22)';
+          ctx.fillRect(lp.x, lp.y - 80, BRIDGE.right - BRIDGE.left, 90);
+        }
+        ctx.restore();
+      }
+      ctx.strokeStyle = 'rgba(32, 36, 30, 0.65)';
       ctx.lineWidth = 1;
       ctx.stroke();
+      ctx.restore();
 
       // Sunlit golden rim on coping top edge
       ctx.beginPath();
@@ -1099,22 +1158,38 @@
         if (x === startX) ctx.moveTo(p.x, p.y - railTop + 0.5);
         else ctx.lineTo(p.x, p.y - railTop + 0.5);
       }
-      ctx.strokeStyle = 'rgba(250, 232, 186, 0.58)';
+      ctx.strokeStyle = 'rgba(252, 234, 188, 0.64)';
       ctx.lineWidth = 1.2;
       ctx.stroke();
 
-      // Carved stone posts every 60px with weathered cap & mossy accents
+      // Carved stone piers every 60px clothed in weathered ashlar masonry
       for (const px of [432, 492, 552, 612, 672, 728]) {
         const p = worldToScreen(px, zPos, heightAt(px, zPos), cameraX);
         const postH = isFront ? 22 : 20;
-        ctx.fillStyle = isFront ? '#8f856f' : '#746e5e';
-        ctx.fillRect(p.x - 5.5, p.y - postH, 11, postH);
-        ctx.fillStyle = isFront ? '#c2b597' : '#9c927a';
-        ctx.fillRect(p.x - 6.5, p.y - postH - 2, 13, 4);
-        ctx.fillStyle = 'rgba(54, 78, 44, 0.45)';
-        ctx.fillRect(p.x - 4, p.y - postH + 2, 4, 3);
+        if (tex.bridgeMasonry) {
+          ctx.save();
+          ctx.beginPath();
+          ctx.rect(p.x - 6, p.y - postH, 12, postH);
+          ctx.clip();
+          ctx.drawImage(tex.bridgeMasonry, (px * 1.7) % 300, 12, 44, 66, p.x - 6, p.y - postH, 12, postH);
+          if (!isFront) {
+            ctx.fillStyle = 'rgba(20, 26, 28, 0.22)';
+            ctx.fillRect(p.x - 6, p.y - postH, 12, postH);
+          }
+          ctx.restore();
+        } else {
+          ctx.fillStyle = isFront ? '#8f856f' : '#746e5e';
+          ctx.fillRect(p.x - 5.5, p.y - postH, 11, postH);
+        }
+        ctx.strokeStyle = 'rgba(26, 30, 26, 0.62)';
+        ctx.lineWidth = 0.8;
+        ctx.strokeRect(p.x - 6, p.y - postH, 12, postH);
+        ctx.fillStyle = isFront ? '#c5b797' : '#9c927a';
+        ctx.fillRect(p.x - 7, p.y - postH - 2, 14, 3.8);
+        ctx.fillStyle = 'rgba(255, 236, 188, 0.42)';
+        ctx.fillRect(p.x - 7, p.y - postH - 2, 14, 1.2);
         ctx.fillStyle = 'rgba(30, 34, 28, 0.45)';
-        ctx.fillRect(p.x - 5.5, p.y - 2, 11, 2);
+        ctx.fillRect(p.x - 6, p.y - 2, 12, 2);
       }
     }
 
@@ -1132,61 +1207,45 @@
       ctx.save();
       ctx.translate(p.x, p.y);
       if (item.type === 'oak') {
-        ctx.fillStyle = 'rgba(18, 22, 16, 0.36)';
+        const s = item.scale || 1;
+        ctx.fillStyle = 'rgba(18, 22, 16, 0.40)';
         ctx.beginPath();
-        ctx.ellipse(0, 2, 28, 7, 0, 0, Math.PI * 2);
+        ctx.ellipse(0, 3, 34 * s, 8 * s, 0, 0, Math.PI * 2);
         ctx.fill();
-        if (oakSprite) {
+        ctx.save();
+        if (item.flip) ctx.scale(-s, s);
+        else ctx.scale(s, s);
+        if (tex.oakTree) {
+          ctx.drawImage(tex.oakTree, -84, -188, 212, 192);
+        } else if (oakSprite) {
           ctx.drawImage(oakSprite, -98, -204, 220, 210);
         }
+        ctx.restore();
       } else if (item.type === 'lanternPost') {
-        // Wooden lantern signpost with glowing amber lamp & crimson heraldic pennant
-        ctx.fillStyle = 'rgba(18, 20, 18, 0.34)';
+        // Painted medieval lantern signpost with crimson banner & glowing warm amber aura
+        ctx.fillStyle = 'rgba(18, 20, 18, 0.36)';
         ctx.beginPath();
-        ctx.ellipse(0, 1, 10, 4, 0, 0, Math.PI * 2);
+        ctx.ellipse(0, 2, 11, 4, 0, 0, Math.PI * 2);
         ctx.fill();
-        // Timber upright + crossbeam
-        ctx.fillStyle = '#3f2e22';
-        ctx.fillRect(-3, -78, 6, 78);
-        ctx.fillRect(-20, -72, 44, 5);
-        ctx.fillStyle = '#5c4634';
-        ctx.fillRect(-1, -76, 2, 74);
-
-        // Hanging crimson banner with gold emblem on left crossarm
-        ctx.fillStyle = '#8d2025';
-        ctx.beginPath();
-        ctx.moveTo(-19, -67);
-        ctx.lineTo(-5, -67);
-        ctx.lineTo(-5, -36);
-        ctx.lineTo(-12, -41);
-        ctx.lineTo(-19, -36);
-        ctx.closePath();
-        ctx.fill();
-        ctx.fillStyle = '#e7be62';
-        ctx.fillRect(-13, -61, 2, 11);
-        ctx.fillRect(-16, -57, 8, 2);
-
-        // Wrought-iron lantern & glowing amber flame halo on right crossarm
-        const lx = 17;
-        const ly = -54;
-        const lampGlow = ctx.createRadialGradient(lx, ly, 2, lx, ly, 36);
-        lampGlow.addColorStop(0, 'rgba(255, 224, 128, 0.72)');
-        lampGlow.addColorStop(0.45, 'rgba(255, 180, 74, 0.26)');
-        lampGlow.addColorStop(1, 'rgba(255, 170, 60, 0)');
-        ctx.fillStyle = lampGlow;
-        ctx.fillRect(lx - 36, ly - 36, 72, 72);
-
-        ctx.strokeStyle = '#252629';
-        ctx.lineWidth = 1.6;
-        ctx.beginPath();
-        ctx.moveTo(lx, -67);
-        ctx.lineTo(lx, ly - 8);
-        ctx.stroke();
-        ctx.fillStyle = '#2c2b2e';
-        ctx.fillRect(lx - 5, ly - 9, 10, 3);
-        ctx.fillRect(lx - 4, ly + 4, 8, 3);
-        ctx.fillStyle = '#ffdfa0';
-        ctx.fillRect(lx - 3.5, ly - 6, 7, 10);
+        if (tex.lanternPost) {
+          const lx = 17;
+          const ly = -58;
+          const lampGlow = ctx.createRadialGradient(lx, ly, 3, lx, ly, 44);
+          lampGlow.addColorStop(0, 'rgba(255, 226, 134, 0.56)');
+          lampGlow.addColorStop(0.42, 'rgba(255, 184, 78, 0.22)');
+          lampGlow.addColorStop(1, 'rgba(255, 168, 60, 0)');
+          ctx.fillStyle = lampGlow;
+          ctx.fillRect(lx - 44, ly - 44, 88, 88);
+          ctx.drawImage(tex.lanternPost, -35, -98, 66, 100);
+        } else {
+          ctx.fillStyle = '#3f2e22';
+          ctx.fillRect(-3, -78, 6, 78);
+          ctx.fillRect(-20, -72, 44, 5);
+          ctx.fillStyle = '#8d2025';
+          ctx.fillRect(-19, -67, 14, 30);
+          ctx.fillStyle = '#ffdfa0';
+          ctx.fillRect(14, -60, 7, 10);
+        }
       } else if (item.type === 'fence') {
         const hw = (item.width || 90) * 0.5;
         ctx.fillStyle = '#4c3a2b';
@@ -1289,32 +1348,45 @@
       ctx.fill();
 
       if (spot.id === 'shrine') {
-        // Small mossy stone wayside shrine
-        ctx.fillStyle = '#7c7b6c';
-        ctx.fillRect(-13, -34, 26, 34);
-        ctx.fillStyle = '#9b947f';
-        ctx.fillRect(-17, -39, 34, 6);
-        ctx.fillStyle = '#5c7252';
-        ctx.fillRect(-12, -33, 9, 8);
-        ctx.fillStyle = found ? '#4f5550' : '#f2c879';
-        ctx.fillRect(-4, -23, 8, 12);
-      } else if (spot.id === 'hollow') {
-        // Thorn-covered ancient stone gate
-        ctx.fillStyle = '#68675b';
-        ctx.fillRect(-19, -46, 9, 46);
-        ctx.fillRect(10, -46, 9, 46);
-        ctx.fillRect(-23, -52, 46, 8);
-        ctx.fillStyle = '#252a27';
-        ctx.fillRect(-10, -44, 20, 44);
-        if (!found) {
-          ctx.strokeStyle = '#5c4b39';
-          ctx.lineWidth = 2.4;
-          for (let i = -2; i <= 2; i++) {
-            ctx.beginPath();
-            ctx.moveTo(-12, -10 - i * 7);
-            ctx.lineTo(12, -28 - i * 4);
-            ctx.stroke();
+        if (tex.shrinePillar) {
+          if (!found) {
+            const cGlow = ctx.createRadialGradient(0, -32, 2, 0, -32, 24);
+            cGlow.addColorStop(0, 'rgba(255, 212, 118, 0.42)');
+            cGlow.addColorStop(1, 'rgba(255, 212, 118, 0)');
+            ctx.fillStyle = cGlow;
+            ctx.fillRect(-24, -56, 48, 48);
           }
+          ctx.drawImage(tex.shrinePillar, -15, -62, 30, 64);
+        } else {
+          ctx.fillStyle = '#7c7b6c';
+          ctx.fillRect(-13, -34, 26, 34);
+          ctx.fillStyle = '#9b947f';
+          ctx.fillRect(-17, -39, 34, 6);
+          ctx.fillStyle = '#5c7252';
+          ctx.fillRect(-12, -33, 9, 8);
+          ctx.fillStyle = found ? '#4f5550' : '#f2c879';
+          ctx.fillRect(-4, -23, 8, 12);
+        }
+      } else if (spot.id === 'hollow') {
+        if (tex.hollowArch) {
+          ctx.drawImage(tex.hollowArch, -36, -68, 72, 70);
+          if (!found) {
+            ctx.strokeStyle = '#4e3e2f';
+            ctx.lineWidth = 2;
+            for (let i = -2; i <= 2; i++) {
+              ctx.beginPath();
+              ctx.moveTo(-13, -12 - i * 8);
+              ctx.lineTo(13, -28 - i * 5);
+              ctx.stroke();
+            }
+          }
+        } else {
+          ctx.fillStyle = '#68675b';
+          ctx.fillRect(-19, -46, 9, 46);
+          ctx.fillRect(10, -46, 9, 46);
+          ctx.fillRect(-23, -52, 46, 8);
+          ctx.fillStyle = '#252a27';
+          ctx.fillRect(-10, -44, 20, 44);
         }
       } else {
         // Animal tracks pressed into soil
@@ -1403,22 +1475,24 @@
         ctx.fillRect(fx - fr, VIRTUAL_H - 10 - fr, fr * 2, fr + 14);
       }
 
-      // Extreme bottom-left autumn leaf sprig framing chasm margin (non-occluding)
+      // Extreme bottom-left painted autumn foliage framing chasm corner (non-occluding)
       const cam = Number.isFinite(cameraX) ? cameraX : 0;
-      if (cam < 240) {
-        const leafShift = Math.max(0, 1 - cam / 240);
-        ctx.globalAlpha = 0.9 * leafShift;
-        for (const [lx, ly, lw, lh, rot, lc] of [
-          [10, VIRTUAL_H - 6, 9, 4.5, -0.35, '#8a2b1a'],
-          [22, VIRTUAL_H - 10, 8, 4, -0.15, '#b84620'],
-          [32, VIRTUAL_H - 4, 7, 3.8, 0.2, '#d4742a'],
-          [16, VIRTUAL_H - 14, 6.5, 3.2, -0.6, '#db8c36'],
-          [44, VIRTUAL_H - 8, 6, 3, -0.25, '#9d361d']
-        ]) {
-          ctx.fillStyle = lc;
-          ctx.beginPath();
-          ctx.ellipse(lx, ly, lw, lh, rot, 0, Math.PI * 2);
-          ctx.fill();
+      if (cam < 260) {
+        const leafShift = Math.max(0, 1 - cam / 260);
+        ctx.globalAlpha = 0.94 * leafShift;
+        if (tex.autumnFoliage) {
+          ctx.drawImage(tex.autumnFoliage, -12, VIRTUAL_H - 86, 94, 98);
+        } else {
+          for (const [lx, ly, lw, lh, rot, lc] of [
+            [10, VIRTUAL_H - 6, 9, 4.5, -0.35, '#8a2b1a'],
+            [22, VIRTUAL_H - 10, 8, 4, -0.15, '#b84620'],
+            [32, VIRTUAL_H - 4, 7, 3.8, 0.2, '#d4742a']
+          ]) {
+            ctx.fillStyle = lc;
+            ctx.beginPath();
+            ctx.ellipse(lx, ly, lw, lh, rot, 0, Math.PI * 2);
+            ctx.fill();
+          }
         }
       }
       ctx.restore();
