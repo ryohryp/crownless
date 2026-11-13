@@ -105,8 +105,32 @@
       ctx.fillStyle=fog;ctx.fillRect(width*.82-110,295,220,125);
       ctx.restore();
     }
+    function site(ctx,spot,found,near,groundHeight){
+      // A small world marker replaces always-on text over the panorama.
+      // Interaction uses unchanged hitTestSite bounds; this is visual only.
+      ctx.save();ctx.translate(spot.x,spot.z-groundHeight);
+      ctx.fillStyle='rgba(18,26,24,.32)';
+      ctx.beginPath();ctx.ellipse(0,0,17,5,0,0,Math.PI*2);ctx.fill();
+      if(!found){
+        ctx.strokeStyle=near?'#ffe4a1':'#dbb77a';
+        ctx.lineWidth=2;
+        ctx.beginPath();ctx.arc(0,-17,10,0,Math.PI*2);ctx.stroke();
+        ctx.fillStyle='#ffde9a';
+        ctx.beginPath();ctx.moveTo(0,-32);ctx.lineTo(5,-21);
+        ctx.lineTo(0,-10);ctx.lineTo(-5,-21);ctx.closePath();ctx.fill();
+        if(near){
+          ctx.font='bold 11px sans-serif';ctx.textAlign='center';
+          ctx.fillStyle='#fff4d9';ctx.strokeStyle='rgba(18,23,21,.75)';
+          ctx.lineWidth=3;ctx.strokeText('調べる',0,-41);
+          ctx.fillText('調べる',0,-41);
+        }
+      }else{
+        ctx.fillStyle='#91a29a';ctx.fillRect(-5,-16,10,9);
+      }
+      ctx.restore();
+    }
     function scenery(){}
-    return {ready,background,ground,entity,shadow,foreground,scenery,project,
+    return {ready,background,ground,entity,shadow,foreground,scenery,site,project,
       hitTestSite,nearScenery:[],composition};
   }
   return {SOURCE,HEIGHT,WORLD_WIDTH,ART_WIDTH,ART_HEIGHT,CASTLE_X,FAR_PARALLAX,
