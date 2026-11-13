@@ -2730,7 +2730,10 @@
       const drawEntry=()=>{
       if(entry.type==='site') {
         const spot=obj;
-        forestArt.site(ctx,{...spot,z:spot.z-getGroundHeightAt(spot.x,spot.z)},state.forestFinds.has(spot.id),
+        if(drawReprise) repriseArt.site(ctx,spot,state.forestFinds.has(spot.id),
+          !!(ginji&&Math.hypot(ginji.x-spot.x,ginji.z-spot.z)<110),
+          getGroundHeightAt(spot.x,spot.z));
+        else forestArt.site(ctx,{...spot,z:spot.z-getGroundHeightAt(spot.x,spot.z)},state.forestFinds.has(spot.id),
           rpg.crafted,state.forestFinds.has('traces'),ginji&&Math.hypot(ginji.x-spot.x,ginji.z-spot.z)<110,performance.now());
       }
       else if (entry.type === 'item') drawItem(obj);
@@ -2887,18 +2890,21 @@
 
     ctx.font = 'bold 11px "Noto Sans JP", sans-serif';
     ctx.textAlign = 'center';
-    const tag = f === ginji ? ' [1P]' : (f === sasuke ? (state.isPartnerAI ? ' [相棒AI]' : ' [2P]') : '');
-    ctx.fillStyle = f.team === 0 ? '#7dd3fc' : '#fca5a5';
-    const detailedActor = pixelArt && forestArt.ready();
-    ctx.fillText(f.name + tag, 0, detailedActor ? -78 : -60);
-
-    const barW = 32;
-    const hpRatio = Math.max(0, f.hp / f.maxHp);
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
-    const hpY = detailedActor ? -73 : -55;
-    ctx.fillRect(-barW / 2, hpY, barW, 4);
-    ctx.fillStyle = f.team === 0 ? '#34d399' : '#f43f5e';
-    ctx.fillRect(-barW / 2, hpY, Math.round(barW * hpRatio), 4);
+    // The field's two friendly party members already have a compact HUD.
+    // Floating cyan names and duplicated HP bars clutter the mobile scenery.
+    if(!reprisePreview || f.team!==0){
+      const tag = f === ginji ? ' [1P]' : (f === sasuke ? (state.isPartnerAI ? ' [相棒AI]' : ' [2P]') : '');
+      ctx.fillStyle = f.team === 0 ? '#7dd3fc' : '#fca5a5';
+      const detailedActor = pixelArt && forestArt.ready();
+      ctx.fillText(f.name + tag, 0, detailedActor ? -78 : -60);
+      const barW = 32;
+      const hpRatio = Math.max(0, f.hp / f.maxHp);
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+      const hpY = detailedActor ? -73 : -55;
+      ctx.fillRect(-barW / 2, hpY, barW, 4);
+      ctx.fillStyle = f.team === 0 ? '#34d399' : '#f43f5e';
+      ctx.fillRect(-barW / 2, hpY, Math.round(barW * hpRatio), 4);
+    }
 
     ctx.scale(f.facing, 1);
 
