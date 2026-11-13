@@ -17,7 +17,7 @@ const STORE='crownless-trace-route-spike-v2', SIZE=7, HOME='0,6', CLUE='2,4', SE
 const walls=new Set(['1,1','1,2','1,3','3,1','3,2','4,4','5,4','5,5','2,2','6,3']);
 const key=(x,y)=>x+','+y, xy=s=>s.split(',').map(Number), near=(a,b)=>{const [x,y]=xy(a),[u,v]=xy(b);return Math.abs(x-u)+Math.abs(y-v)===1};
 const el=id=>document.getElementById(id);
-function fresh(){return {pos:HOME,hp:5,steps:0,found:false,opened:false,loot:0,warehouse:0,cache:0,cacheUsed:false,trailMarked:false,trailSupplyTaken:false,rested:false,watchPrepared:false,scouted:false,trapDisarmed:false,trapTaken:false,thornsCleared:false,thornsHarvested:false,fiber:0,rope:false,bridge:false,braced:false,crossed:false,cacheTaken:false,veinTaken:false,pursuit:false,pursuitResolved:false,beacon:false,beaconBuilt:false,gateOpen:false,giftTaken:false,shrineUsed:false,relicSurveyed:false,relicExcavated:false,guard:false,combat:false,flanking:false,enemyIntent:'',enemyHp:0,round:0,ended:false,seen:[HOME],message:'足跡を追って奥へ進もう。'};}
+function fresh(){return {pos:HOME,hp:5,steps:0,found:false,opened:false,loot:0,warehouse:0,cache:0,cacheUsed:false,trailMarked:false,trailSupplyTaken:false,beastTotem:false,totemUsed:false,rested:false,watchPrepared:false,scouted:false,trapDisarmed:false,trapTaken:false,thornsCleared:false,thornsHarvested:false,fiber:0,rope:false,bridge:false,braced:false,crossed:false,cacheTaken:false,veinTaken:false,pursuit:false,pursuitResolved:false,beacon:false,beaconBuilt:false,gateOpen:false,giftTaken:false,shrineUsed:false,relicSurveyed:false,relicExcavated:false,guard:false,combat:false,flanking:false,enemyIntent:'',enemyHp:0,round:0,ended:false,seen:[HOME],message:'足跡を追って奥へ進もう。'};}
 let s=fresh();try{const v=JSON.parse(localStorage.getItem(STORE));if(v&&typeof v.pos==='string'&&Array.isArray(v.seen)&&Number.isInteger(v.hp))s={...fresh(),...v};}catch{}
 function save(){try{localStorage.setItem(STORE,JSON.stringify(s));}catch{s.message+='（この環境では保存不可）';}}
 function visible(k){return s.seen.includes(k)||near(k,s.pos)||k===s.pos;}
@@ -30,7 +30,7 @@ function move(k){
  if(k===SECRET&&!s.trapTaken){s.trapTaken=true;s.loot+=2;if(!s.trapDisarmed){s.hp-=2;if(s.hp<=0){end(false);return;}s.message='隠し道の罠が作動！ 体力-2。古い物資2個は拾えた。手前の岩場から解除できたかもしれない。';}else{s.message='解除済みの罠を越え、古い物資2個を安全に回収！';}}
  if(k===CACHE&&s.pursuit&&!s.pursuitResolved){s.pursuitResolved=true;s.combat=true;s.enemyHp=4;s.round=0;s.enemyIntent='薙ぎ払い';s.message='採掘音を追った獣が帰路を塞いだ！ 囮を使わなければ戦うしかない。';}
  if(k===CROSSING&&!s.crossed){s.crossed=true;if(!s.braced){s.hp-=2;if(s.hp<=0){end(false);return;}s.message='足場が崩れ体力-2！ 橋の上で足場を固定すれば防げた。';}}
- if(k===FOE&&!s.guard){s.combat=true;s.enemyHp=s.scouted?1:3;s.round=0;s.enemyIntent='突進';s.message=s.scouted?'痕跡から待ち伏せを予測！ 先制攻撃で敵HPを1まで削った。予兆は「突進」。':'獣が飛び出した！ 予兆は「突進」。防御か回避を選ぼう。';}
+ if(k===FOE&&!s.guard){s.combat=true;s.enemyHp=Math.max(1,(s.scouted?1:3)-(s.beastTotem&&!s.totemUsed?1:0));if(s.beastTotem)s.totemUsed=true;s.round=0;s.enemyIntent='突進';s.message=s.scouted?'痕跡から待ち伏せを予測！ 先制攻撃で敵HPを1まで削った。予兆は「突進」。':s.beastTotem?'獣の牙飾りが敵を怯ませた！ 敵HP-1。予兆は「突進」。':'獣が飛び出した！ 予兆は「突進」。防御か回避を選ぼう。';}
  else if(k===SECRET&&s.trapTaken){/* trap outcome already described above */}
  else if(k==='1,5'&&!s.thornsCleared&&!s.thornsHarvested){s.message='北の棘の茂みに薬草が見える。蔓1本で安全に切り払うか、体力2を賭けて突入できる。';}
  else if(k===TRAP_APPROACH&&s.opened&&!s.trapDisarmed&&!s.trapTaken){s.message='岩陰に罠の仕掛けが見える。ここで調べれば安全に解除できる。急いで隠し道へ進むこともできる。';}
@@ -48,7 +48,7 @@ function move(k){
  save();render();
 }
 function render(){
- el('stats').textContent='体力 '+s.hp+'/5 · 歩数 '+s.steps+' · 手持ち '+s.loot+' · 持ち帰り累計 '+s.warehouse+' · 野営地の備蓄 '+s.cache+' · 蔓 '+s.fiber+' · ロープ '+(s.rope?'有':'無');
+ el('stats').textContent='体力 '+s.hp+'/5 · 歩数 '+s.steps+' · 手持ち '+s.loot+' · 持ち帰り累計 '+s.warehouse+' · 野営地の備蓄 '+s.cache+' · 蔓 '+s.fiber+' · ロープ '+(s.rope?'有':'無')+' · 牙飾り '+(s.beastTotem?(s.totemUsed?'使用済':'初戦で有効'):'未獲得');
  el('status').textContent=s.message+(s.combat?' 【敵HP '+s.enemyHp+' / '+(s.flanking?'側面確保':'正面')+'】':'');
  const board=el('board');board.replaceChildren();
  for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++){
@@ -86,7 +86,7 @@ function combatTurn(action){
  if(shifting){s.flanking=true;}else{s.enemyHp-=correct?(s.flanking?3:2):1;s.flanking=false;}
  s.round++;
  if(s.hp<=0){end(false);return;}
- if(s.enemyHp<=0){s.guard=true;s.combat=false;s.flanking=false;s.message='予兆を読んで獣を撃退！ '+(damage?'負傷したが':'無傷で')+'探索へ復帰した。';}
+ if(s.enemyHp<=0){s.guard=true;s.combat=false;s.flanking=false;s.loot+=2;s.beastTotem=true;s.message='獣の牙を素材2個として獲得！ 牙飾りを残し、次の遠征の初戦で敵を怯ませられる。 '+(damage?'負傷したが':'無傷で')+'探索へ復帰した。';}
  else{s.enemyIntent=intent==='突進'?'薙ぎ払い':'突進';s.message=(shifting?(damage?'突進を受けたが側面を確保。体力-'+damage+'。':'薙ぎ払いを避けて側面を確保。次の正解反撃は3ダメージ。'):(correct?'見切り成功！'+(damage===0?'':''):'読み違えた！ 体力-'+damage+'。'))+' 次の予兆は「'+s.enemyIntent+'」。';}
  save();render();
 }
@@ -103,7 +103,7 @@ el('watch').onclick=()=>{if(s.ended||s.combat||s.pos!=='3,4'||s.rested||s.watchP
 el('rest').onclick=()=>{if(s.ended||s.combat||s.pos!=='3,4'||s.rested||s.hp>=5)return;s.rested=true;s.hp=Math.min(5,s.hp+2);if(!s.watchPrepared&&s.steps%2===0){s.combat=true;s.enemyHp=3;s.round=0;s.enemyIntent='薙ぎ払い';s.message='野営で体力を2回復したが、焚き火を嗅ぎつけた獣が奇襲！ 薙ぎ払いに備えよう。';}else{s.message=s.watchPrepared?'鳴子が獣を遠ざけた。体力を2回復し、夜警の備えを使い切った。':'野営に成功。体力を2回復した。焚き火の煙が獣を呼ぶかもしれない。';}save();render();};
 el('extract').onclick=()=>{if(s.ended||s.combat||s.pos!=='3,4'||s.loot<3)return;s.loot-=2;end(true);s.message='野営地から緊急帰還。運搬費として素材2個を失い、残り'+(s.warehouse)+'個を累計倉庫へ持ち帰った。';save();render();};
 el('retreat').onclick=()=>{if(!s.ended)end(false);};
-el('restart').onclick=()=>{if(!s.ended)return;const {warehouse,cache,rope,fiber,beacon,trailMarked}=s;s=fresh();s.warehouse=warehouse;s.cache=cache;s.rope=rope;s.fiber=fiber;s.beacon=beacon;s.trailMarked=trailMarked;save();render();};
+el('restart').onclick=()=>{if(!s.ended)return;const {warehouse,cache,rope,fiber,beacon,trailMarked,beastTotem}=s;s=fresh();s.warehouse=warehouse;s.cache=cache;s.rope=rope;s.fiber=fiber;s.beacon=beacon;s.trailMarked=trailMarked;s.beastTotem=beastTotem;save();render();};
 el('craft').onclick=()=>{if(!s.ended)return;if(s.fiber>0&&!s.rope){s.fiber=0;s.rope=true;s.message='ロープ完成。次の遠征で崩れた橋を修復できる。';}else if(s.warehouse>=4&&!s.beacon){s.warehouse-=4;s.beacon=true;s.message='導きの灯を製作！ 次の遠征で灯台跡から石門を開こう。';}else return;save();render();};
 render();
 </script></html>
