@@ -17,12 +17,12 @@ const STORE='crownless-trace-route-spike-v2', SIZE=7, HOME='0,6', CLUE='2,4', SE
 const walls=new Set(['1,1','1,2','1,3','3,1','3,2','4,4','5,4','5,5','2,2','6,3']);
 const key=(x,y)=>x+','+y, xy=s=>s.split(',').map(Number), near=(a,b)=>{const [x,y]=xy(a),[u,v]=xy(b);return Math.abs(x-u)+Math.abs(y-v)===1};
 const el=id=>document.getElementById(id);
-function fresh(){return {pos:HOME,hp:5,steps:0,found:false,opened:false,loot:0,warehouse:0,cache:0,cacheUsed:false,rested:false,scouted:false,trapDisarmed:false,trapTaken:false,fiber:0,rope:false,bridge:false,braced:false,crossed:false,cacheTaken:false,veinTaken:false,pursuit:false,pursuitResolved:false,beacon:false,beaconBuilt:false,gateOpen:false,giftTaken:false,shrineUsed:false,relicSurveyed:false,relicExcavated:false,guard:false,combat:false,flanking:false,enemyIntent:'',enemyHp:0,round:0,ended:false,seen:[HOME],message:'足跡を追って奥へ進もう。'};}
+function fresh(){return {pos:HOME,hp:5,steps:0,found:false,opened:false,loot:0,warehouse:0,cache:0,cacheUsed:false,trailMarked:false,trailSupplyTaken:false,rested:false,scouted:false,trapDisarmed:false,trapTaken:false,fiber:0,rope:false,bridge:false,braced:false,crossed:false,cacheTaken:false,veinTaken:false,pursuit:false,pursuitResolved:false,beacon:false,beaconBuilt:false,gateOpen:false,giftTaken:false,shrineUsed:false,relicSurveyed:false,relicExcavated:false,guard:false,combat:false,flanking:false,enemyIntent:'',enemyHp:0,round:0,ended:false,seen:[HOME],message:'足跡を追って奥へ進もう。'};}
 let s=fresh();try{const v=JSON.parse(localStorage.getItem(STORE));if(v&&typeof v.pos==='string'&&Array.isArray(v.seen)&&Number.isInteger(v.hp))s={...fresh(),...v};}catch{}
 function save(){try{localStorage.setItem(STORE,JSON.stringify(s));}catch{s.message+='（この環境では保存不可）';}}
 function visible(k){return s.seen.includes(k)||near(k,s.pos)||k===s.pos;}
 function walkable(k){return (k!==GATE||s.gateOpen)&&(!walls.has(k)||(k===BRIDGE||k===CROSSING||k===CACHE)&&s.bridge)&&(k!==SECRET||s.opened);}
-function end(success){s.ended=true;s.combat=false;if(success){s.warehouse+=s.loot;s.message='生還！ 素材'+s.loot+'個を倉庫へ持ち帰った。';}else{s.message='撤退。今回拾った素材'+s.loot+'個は失われた。';}if(!success)s.fiber=0;s.loot=0;save();render();}
+function end(success){s.ended=true;s.combat=false;if(success){if(s.found)s.trailMarked=true;s.warehouse+=s.loot;s.message='生還！ 素材'+s.loot+'個を倉庫へ持ち帰った。';}else{s.message='撤退。今回拾った素材'+s.loot+'個は失われた。';}if(!success)s.fiber=0;s.loot=0;save();render();}
 function move(k){
  if(s.ended||s.combat||!near(s.pos,k)||!visible(k)||!walkable(k))return;
  s.pos=k;s.steps++;if(!s.seen.includes(k))s.seen.push(k);
@@ -39,6 +39,7 @@ function move(k){
  else if(k===GIFT&&!s.giftTaken&&s.gateOpen){s.giftTaken=true;s.loot+=5;s.message='灯火が導いた遺構で星鉄5個を発見！ 帰還して持ち帰ろう。';}
  else if(k===SHRINE&&s.beacon&&!s.gateOpen){s.message='古い灯台跡に火を灯せる。「足元を調べる」で封鎖路が開く。';}
  else if(k===RELIC&&!s.relicExcavated){s.message=s.relicSurveyed?'地中に月光石の鉱床。もう一度調べて掘るか、危険を避けて帰ろう。':'月光石の痕跡を発見。足元を調べて埋蔵量を見極めよう。';}
+ else if(k===CLUE&&s.trailMarked&&!s.trailSupplyTaken){s.message='前の遠征で残した道標がある。足元を調べると再訪用の補給物資を探せる。';}
  else if(k===CLUE&&!s.found){s.message='地面に不自然な足跡。ここで「足元を調べる」を押そう。';}
  else if(k===HOME&&s.steps>0){end(true);return;}
  else{s.message='一歩進んだ。見えている隣接道のみ移動できる。';}
@@ -54,7 +55,7 @@ function render(){
  b.disabled=!can;b.textContent=k===s.pos?'●':!vis||hidden?'?':wall?'▦':k===HOME?'⌂':k===CLUE?'⌕':k===RELIC?'◆':k===FIBER?'♣':k===BRIDGE?'═':k===CROSSING?'≈':k===CACHE?'✦':k===VEIN?'◈':k===SHRINE?'♜':k===GATE?(s.gateOpen?'◇':'▦'):k===GIFT?'★':k===FOE?'!':'·';
  b.setAttribute('aria-label',k+' '+(can?'移動可能':vis?'移動不可':'未発見'));if(can)b.onclick=()=>move(k);board.append(b);
  }
- el('search').disabled=s.ended||s.combat||!(s.pos===CLUE&&!s.opened||s.pos===TRAP_APPROACH&&s.opened&&!s.trapDisarmed&&!s.trapTaken||s.pos==='4,3'&&s.rope&&!s.bridge||s.pos===BRIDGE&&s.bridge&&!s.braced||s.pos===VEIN&&!s.veinTaken||s.pos===SHRINE&&s.beacon&&!s.gateOpen||s.pos===RELIC&&!s.relicExcavated);
+ el('search').disabled=s.ended||s.combat||!(s.pos===CLUE&&s.trailMarked&&!s.trailSupplyTaken||s.pos===CLUE&&!s.opened||s.pos===TRAP_APPROACH&&s.opened&&!s.trapDisarmed&&!s.trapTaken||s.pos==='4,3'&&s.rope&&!s.bridge||s.pos===BRIDGE&&s.bridge&&!s.braced||s.pos===VEIN&&!s.veinTaken||s.pos===SHRINE&&s.beacon&&!s.gateOpen||s.pos===RELIC&&!s.relicExcavated);
  el('shallow').disabled=s.ended||s.combat||s.pos!==RELIC||!s.relicSurveyed||s.relicExcavated;
  el('scout').disabled=s.ended||s.combat||s.pos!=='4,3'||s.scouted||s.guard||s.hp<=1;
  el('fight').disabled=!s.combat||s.ended;el('dodge').disabled=!s.combat||s.ended;el('flank').disabled=!s.combat||s.ended||s.flanking;
@@ -68,7 +69,7 @@ function render(){
  el('restart').disabled=!s.ended;el('craft').disabled=!s.ended||!(s.fiber>0&&!s.rope||s.warehouse>=4&&!s.beacon);el('craft').textContent=s.fiber>0&&!s.rope?'蔓でロープを編む':s.warehouse>=4&&!s.beacon?'鉱石4個で導きの灯を製作':'製作素材を集める';
 }
 el('shallow').onclick=()=>{if(s.ended||s.combat||s.pos!==RELIC||!s.relicSurveyed||s.relicExcavated)return;s.relicExcavated=true;s.loot+=2;s.message='浅い層から月光石2個を無傷で回収。深い層の3個は残した。安全に帰るか、別の危険へ進もう。';save();render();};
-el('search').onclick=()=>{if(s.ended||s.combat)return;if(s.pos===RELIC&&!s.relicExcavated){if(!s.relicSurveyed){s.relicSurveyed=true;s.message='浅い層に月光石2個、深い層にさらに3個。浅掘りなら無傷で2個。もう一度「足元を調べる」と深掘りで5個採れるが体力1を消費する。';}else{s.hp--;if(s.hp<=0){end(false);return;}s.relicExcavated=true;s.loot+=5;s.message='月光石5個を採掘！ 体力-1。貴重な素材を持って帰還しよう。';}}else if(s.pos===CLUE&&!s.opened){s.found=true;s.opened=true;s.message='足跡の先に隠し道が現れた！ 近くの岩場から罠を調べられそうだ。';}else if(s.pos===TRAP_APPROACH&&s.opened&&!s.trapDisarmed&&!s.trapTaken){s.trapDisarmed=true;s.message='岩陰から罠の縄を切断！ 隠し道の物資を無傷で回収できる。';}else if(s.pos==='4,3'&&s.rope&&!s.bridge){s.bridge=true;s.message='ロープで崩れた橋を修復！ 橋上で足場を調べれば安全に渡れる。';}else if(s.pos===BRIDGE&&s.bridge&&!s.braced){s.braced=true;s.message='揺れる足場を固定した。対岸まで安全に進める。';}else if(s.pos===SHRINE&&s.beacon&&!s.gateOpen){s.gateOpen=true;s.message='導きの灯が古い石門を開いた！ 東の遺構へ進める。';}else if(s.pos===VEIN&&!s.veinTaken){s.veinTaken=true;s.hp-=3;if(s.hp<=0){end(false);return;}s.loot+=4;s.pursuit=true;s.message='採掘音で獣が近づく！ 鉱石2個を囮にして逃れるか、4個を守って帰路で戦うか選ぼう。';}else return;save();render();};
+el('search').onclick=()=>{if(s.ended||s.combat)return;if(s.pos===RELIC&&!s.relicExcavated){if(!s.relicSurveyed){s.relicSurveyed=true;s.message='浅い層に月光石2個、深い層にさらに3個。浅掘りなら無傷で2個。もう一度「足元を調べる」と深掘りで5個採れるが体力1を消費する。';}else{s.hp--;if(s.hp<=0){end(false);return;}s.relicExcavated=true;s.loot+=5;s.message='月光石5個を採掘！ 体力-1。貴重な素材を持って帰還しよう。';}}else if(s.pos===CLUE&&s.trailMarked&&!s.trailSupplyTaken){s.trailSupplyTaken=true;s.loot+=2;s.message='以前残した道標を頼りに補給袋を発見！ 素材2個を入手。生還して持ち帰ろう。';}else if(s.pos===CLUE&&!s.opened){s.found=true;s.opened=true;s.message='足跡の先に隠し道が現れた！ 近くの岩場から罠を調べられそうだ。';}else if(s.pos===TRAP_APPROACH&&s.opened&&!s.trapDisarmed&&!s.trapTaken){s.trapDisarmed=true;s.message='岩陰から罠の縄を切断！ 隠し道の物資を無傷で回収できる。';}else if(s.pos==='4,3'&&s.rope&&!s.bridge){s.bridge=true;s.message='ロープで崩れた橋を修復！ 橋上で足場を調べれば安全に渡れる。';}else if(s.pos===BRIDGE&&s.bridge&&!s.braced){s.braced=true;s.message='揺れる足場を固定した。対岸まで安全に進める。';}else if(s.pos===SHRINE&&s.beacon&&!s.gateOpen){s.gateOpen=true;s.message='導きの灯が古い石門を開いた！ 東の遺構へ進める。';}else if(s.pos===VEIN&&!s.veinTaken){s.veinTaken=true;s.hp-=3;if(s.hp<=0){end(false);return;}s.loot+=4;s.pursuit=true;s.message='採掘音で獣が近づく！ 鉱石2個を囮にして逃れるか、4個を守って帰路で戦うか選ぼう。';}else return;save();render();};
 function combatTurn(action){
  if(!s.combat||s.ended)return;
  const intent=s.enemyIntent;
@@ -96,7 +97,7 @@ el('recover').onclick=()=>{if(s.ended||s.combat||s.pos!=='3,4'||s.cache<1)return
 el('rest').onclick=()=>{if(s.ended||s.combat||s.pos!=='3,4'||s.rested||s.hp>=5)return;s.rested=true;s.hp=Math.min(5,s.hp+2);if(s.steps%2===0){s.combat=true;s.enemyHp=3;s.round=0;s.enemyIntent='薙ぎ払い';s.message='野営で体力を2回復したが、焚き火を嗅ぎつけた獣が奇襲！ 薙ぎ払いに備えよう。';}else{s.message='野営に成功。体力を2回復した。焚き火の煙が獣を呼ぶかもしれない。';}save();render();};
 el('extract').onclick=()=>{if(s.ended||s.combat||s.pos!=='3,4'||s.loot<3)return;s.loot-=2;end(true);s.message='野営地から緊急帰還。運搬費として素材2個を失い、残り'+(s.warehouse)+'個を累計倉庫へ持ち帰った。';save();render();};
 el('retreat').onclick=()=>{if(!s.ended)end(false);};
-el('restart').onclick=()=>{if(!s.ended)return;const {warehouse,cache,rope,fiber,beacon}=s;s=fresh();s.warehouse=warehouse;s.cache=cache;s.rope=rope;s.fiber=fiber;s.beacon=beacon;save();render();};
+el('restart').onclick=()=>{if(!s.ended)return;const {warehouse,cache,rope,fiber,beacon,trailMarked}=s;s=fresh();s.warehouse=warehouse;s.cache=cache;s.rope=rope;s.fiber=fiber;s.beacon=beacon;s.trailMarked=trailMarked;save();render();};
 el('craft').onclick=()=>{if(!s.ended)return;if(s.fiber>0&&!s.rope){s.fiber=0;s.rope=true;s.message='ロープ完成。次の遠征で崩れた橋を修復できる。';}else if(s.warehouse>=4&&!s.beacon){s.warehouse-=4;s.beacon=true;s.message='導きの灯を製作！ 次の遠征で灯台跡から石門を開こう。';}else return;save();render();};
 render();
 </script></html>
