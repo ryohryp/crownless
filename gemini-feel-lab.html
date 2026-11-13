@@ -2328,7 +2328,7 @@
 
   function tryTapForestSite(clientX,clientY,allowNearby) {
     if (!ginji || !window.CrownlessForestDiscoveries.available(rpg.phase)) return false;
-    const site=(castleBridgePreview && pixelArt && castleBridgeArt)
+    const site=(typeof castleBridgePreview!=='undefined' && castleBridgePreview && pixelArt && castleBridgeArt)
       ? castleBridgeArt.hitTestSite(
         {x:clientX,y:clientY},canvas.getBoundingClientRect(),virtualW,
         state.cameraX,getGroundHeightAt,window.CrownlessForestDiscoveries.spots)
