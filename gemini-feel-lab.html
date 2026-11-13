@@ -70,12 +70,71 @@
     outline-offset: 2px;
     box-shadow: 0 0 0 3px rgba(15,23,42,.85), 0 0 16px rgba(251,191,36,.65);
   }
+  /* A world-first visual comparison, without hiding combat accessibility.
+     Secondary lab actions live behind a real 44px menu, not above the scene. */
+  .reprise-brand,#visualSettingsToggle{display:none}
+  body.reprise-layout{--gold:#d6ba83;font-family:Georgia,'Noto Sans JP',serif}
+  body.reprise-layout>header{
+    flex-wrap:nowrap!important;align-items:center!important;justify-content:flex-start!important;
+    gap:8px!important;min-height:48px;max-height:48px;padding:4px 8px!important;
+    background:linear-gradient(90deg,#191d1c,#2a2a24)!important;
+    border-bottom:1px solid #756749!important;box-shadow:0 3px 14px #15130faa;
+  }
+  body.reprise-layout .reprise-brand{
+    display:inline-block;flex:none;color:#f2dfba;font:700 15px Georgia,serif;
+    letter-spacing:-.4px;white-space:nowrap;
+  }
+  body.reprise-layout>header>div:first-of-type{
+    display:flex;flex:1 1 auto;min-width:0;flex-wrap:nowrap;align-items:center;
+    gap:5px!important;overflow:hidden;
+  }
+  body.reprise-layout>header>div:first-of-type>div,
+  body.reprise-layout #btnKabukiBurst{
+    padding:5px 6px!important;border-color:#81745a77!important;background:#141916bd!important;
+    font-size:11px!important;border-radius:5px!important;white-space:nowrap;flex:none;
+  }
+  body.reprise-layout #wantedBadge{display:none!important}
+  body.reprise-layout #visualSettingsToggle{
+    display:inline-flex;align-items:center;justify-content:center;flex:none;
+    min-width:44px;min-height:44px;border:1px solid #9a8966;
+    border-radius:7px;background:#242722;color:#f4dfb9;font-size:19px;
+  }
+  body.reprise-layout>header>div:last-of-type{display:none!important}
+  body.reprise-layout[data-settings-open="true"]>header>div:last-of-type{
+    display:flex!important;position:absolute;top:48px;right:6px;z-index:70;
+    width:min(350px,calc(100vw - 12px));max-height:60dvh;overflow:auto;
+    flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:8px;
+    padding:14px;background:#202723f2;border:1px solid #b7a277;border-radius:8px;
+    box-shadow:0 8px 32px #000a;pointer-events:auto;
+  }
+  body.reprise-layout>header>div:last-of-type>button{min-height:44px}
+  body.reprise-layout>header+div{display:none!important}
+  body.reprise-layout #weatherBadge,body.reprise-layout #zAxisBadge{display:none!important}
+  body.reprise-layout #rpgStatusBadge{
+    max-width:min(66vw,275px);padding:5px 9px!important;background:#17221cba!important;
+    border:1px solid #bfa47499!important;color:#fff1d6!important;border-radius:5px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px!important;
+  }
+  body.reprise-layout #forestExploreHint{
+    max-width:min(69vw,310px);max-height:38px;overflow:hidden;
+    padding:5px 9px!important;border-radius:5px;background:#17221cb8!important;
+    border-color:#bfa47477!important;color:#f8e8ca!important;font-size:11px!important;
+  }
+  body.reprise-layout #btnForestAtmosphere{display:none!important}
+  body.reprise-layout #gestureHint{background:#14221eb5!important;border:1px solid #be9d6588}
+  @media(max-width:520px){
+    body.reprise-layout .reprise-brand{font-size:12px}
+    body.reprise-layout>header>div:first-of-type>div:nth-of-type(2){display:none!important}
+    body.reprise-layout #btnKabukiBurst{padding:5px!important}
+    body.reprise-layout>header>div:first-of-type>div:last-of-type{padding:3px 5px!important}
+  }
 </style>
 </head>
 <body class="flex flex-col w-full h-full bg-slate-950 text-white overflow-hidden" data-combat-origin="gemini-original-2_5d" data-combat-experiment="fantasy-reskin">
 
   <!-- 原作のボタン配置・タイミング・攻撃権トークン・相棒AI・コンボを保持した比較実験。 -->
   <header class="flex flex-wrap items-center justify-between gap-1.5 px-2.5 py-1.5 bg-slate-900/95 border-b border-amber-500/40 z-20 shrink-0">
+    <span class="reprise-brand" aria-hidden="true">Crownless</span>
     <!-- 左：旅人＆従者HP・闘志（義憤）ゲージ・所持金・脅威度 -->
     <div class="flex flex-wrap items-center gap-1.5 sm:gap-2.5 text-xs">
       <div class="flex items-center gap-1.5 bg-slate-800/95 px-2 py-1 rounded-md border border-sky-400/40">
@@ -138,6 +197,7 @@
         🔊 音ON
       </button>
     </div>
+    <button id="visualSettingsToggle" type="button" aria-label="比較版の設定を開く" aria-expanded="false">☰</button>
   </header>
 
   <!-- ステータス＆原作手触り維持ガイドバー -->
@@ -327,6 +387,10 @@
 <script src="src/gemini-hit-recovery.js"></script>
 <script src="src/gemini-forest-discoveries.js"></script>
 <script src="src/pixel-forest.js"></script>
+<script src="src/hd2d-bridge-scene.js"></script>
+<script src="src/hd2d-bridge-depth.js"></script>
+<script src="src/hd2d-bridge-vista.js"></script>
+<script src="src/hd2d-bridge-reprise.js"></script>
 <script src="src/pixel-forest-effects.js"></script>
 <script src="src/pixel-actors.js"></script>
 <script src="src/hero-still-review.js"></script>
@@ -2048,7 +2112,13 @@
 
   function tryTapForestSite(clientX,clientY,allowNearby) {
     if (!ginji || !window.CrownlessForestDiscoveries.available(rpg.phase)) return false;
-    const site=window.CrownlessForestDiscoveries.spotAtTap(
+    const site=reprisePreview && pixelArt && repriseArt.ready()
+      ? repriseArt.hitTestSite({x:clientX,y:clientY},canvas.getBoundingClientRect(),virtualW,
+        state.cameraX,getGroundHeightAt,window.CrownlessForestDiscoveries.spots)
+      : (depthPreview || vistaPreview) && pixelArt && depthArt.ready()
+      ? depthArt.hitTestSite({x:clientX,y:clientY},canvas.getBoundingClientRect(),virtualW,
+        state.cameraX,getGroundHeightAt,window.CrownlessForestDiscoveries.spots)
+      : window.CrownlessForestDiscoveries.spotAtTap(
       {x:clientX,y:clientY},canvas.getBoundingClientRect(),{width:virtualW,height:VIRTUAL_H},
       state.cameraX,getGroundHeightAt);
     // Only taps on a visible clue investigate it; ordinary attacks do not
@@ -2382,6 +2452,26 @@
   const ctx = canvas.getContext('2d');
   const forestArt = window.CrownlessPixelForest.create();
   const fxParams = new URLSearchParams(location.search);
+  // Quality gate only. The default and the existing classic/pixel comparison
+  // remain unchanged; ?art=bridge tests candidate art with real gameplay.
+  const bridgePreview = fxParams.get('art') === 'bridge';
+  const bridgeArt = window.CrownlessBridgeScene.create();
+  const depthPreview = fxParams.get('art') === 'depth';
+  const depthArt = window.CrownlessBridgeDepth.create();
+  // Distinct parallax layers are an opt-in visual comparison on the same bridge.
+  const reprisePreview = fxParams.get('art') === 'reprise';
+  const repriseArt = reprisePreview ? window.CrownlessBridgeReprise.create() : null;
+  if(reprisePreview) document.body.classList.add('reprise-layout');
+  const visualSettingsToggle=document.getElementById('visualSettingsToggle');
+  visualSettingsToggle.addEventListener('click',()=>{
+    const opening=document.body.dataset.settingsOpen!=='true';
+    document.body.dataset.settingsOpen=String(opening);
+    visualSettingsToggle.setAttribute('aria-expanded',String(opening));
+  });
+
+  const vistaPreview = fxParams.get('art') === 'vista';
+  // Default forest/depth sessions do not fetch the new scenic SVG assets.
+  const vistaArt = vistaPreview ? window.CrownlessBridgeVista.create() : null;
   const reducedMotion = typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
   const forestEffects = window.CrownlessForestEffects.create({enabled: fxParams.get('fx') !== 'off' && !reducedMotion});
   const atmosphereButton = document.getElementById('btnForestAtmosphere');
@@ -2392,10 +2482,10 @@
   }
   atmosphereButton.addEventListener('click', () => { forestEffects.setEnabled(!forestEffects.enabled()); syncAtmosphereButton(); });
   const heroStillReview = window.CrownlessHeroStill.create();
-  let pixelArt = new URLSearchParams(location.search).get('art') !== 'classic';
+  let pixelArt = fxParams.get('art') !== 'classic';
   const artButton = document.getElementById('btnToggleArtPreview');
   function syncArtButton() {
-    artButton.textContent = pixelArt ? '景観: ピクセルの森' : '景観: 従来';
+    artButton.textContent = pixelArt ? (reprisePreview ? '景観: 石橋・再構築' : vistaPreview ? '景観: 古城への石橋・遠近比較' : depthPreview ? '景観: 奥行き石橋・比較版' : bridgePreview ? '景観: 石橋 HD-2D候補' : '景観: ピクセルの森') : '景観: 従来';
     artButton.setAttribute('aria-pressed',String(pixelArt));
   }
   syncArtButton();
@@ -2418,14 +2508,26 @@
 
   function renderScene() {
     const drawPixelArt=pixelArt && forestArt.ready();
+    const drawBridge=drawPixelArt && bridgePreview && bridgeArt.ready();
+    const drawReprise=drawPixelArt && reprisePreview && repriseArt.ready();
+    const drawDepth=drawReprise || (drawPixelArt && (depthPreview || vistaPreview) && depthArt.ready());
+    const activeDepthArt=drawReprise ? repriseArt : depthArt;
+    const drawVista=drawDepth && vistaPreview;
     ctx.setTransform(canvas.width/virtualW,0,0,canvas.height/VIRTUAL_H,0,0);
     ctx.clearRect(0, 0, virtualW, VIRTUAL_H);
 
     // 独自要素③：ウェーブに応じた時間帯・天候変化（夕暮れ → 宵闇 → 月夜月夜）
     const weatherPhase = (state.waveCount - 1) % 3;
     if (drawPixelArt) {
-      forestArt.background(ctx,virtualW,state.cameraX,state.waveCount);
-      forestEffects.background(ctx,virtualW,state.cameraX,performance.now());
+      if(drawReprise) repriseArt.background(ctx,virtualW,state.cameraX,state.waveCount);
+      else if(drawVista) vistaArt.background(ctx,virtualW,state.cameraX,state.waveCount,
+        reducedMotion ? 0 : performance.now());
+      else if(drawDepth) depthArt.background(ctx,virtualW,state.cameraX,state.waveCount);
+      else if(drawBridge) bridgeArt.background(ctx,virtualW,state.cameraX,state.waveCount);
+      else {
+        forestArt.background(ctx,virtualW,state.cameraX,state.waveCount);
+        forestEffects.background(ctx,virtualW,state.cameraX,performance.now());
+      }
     }
     else {
     const skyGrad = ctx.createLinearGradient(0, 0, 0, 195);
@@ -2475,8 +2577,11 @@
     ctx.save();
     ctx.translate(-state.cameraX, 0);
     if (drawPixelArt) {
-      forestArt.ground(ctx,getGroundHeightAt);
-      forestArt.trail(ctx,state.forestFinds);
+      if(drawDepth) activeDepthArt.ground(ctx,state.cameraX,virtualW,getGroundHeightAt);
+      else {
+        if(!drawBridge) forestArt.ground(ctx,getGroundHeightAt);
+        forestArt.trail(ctx,state.forestFinds);
+      }
     } else {
 
     // Ancient forest and abandoned stone outposts (visual swap only).
@@ -2585,7 +2690,7 @@
     }
 
     // 旅人の足元Z軸（奥行き）ガイドライン
-    if (ginji && ginji.state !== 'DEAD') {
+    if (ginji && ginji.state !== 'DEAD' && !drawDepth) {
       const kGround = getGroundHeightAt(ginji.x, ginji.z);
       const lineY = ginji.z - kGround;
       ctx.strokeStyle = state.kabukiBurstTimer > 0 ? 'rgba(244, 63, 94, 0.55)' : 'rgba(56, 189, 248, 0.32)';
@@ -2611,23 +2716,45 @@
     // Zソート描画
     const drawList = [];
     if(drawPixelArt) for(const spot of window.CrownlessForestDiscoveries.spots) drawList.push({z:spot.z,type:'site',obj:spot});
+    if(drawDepth) for(const scenery of activeDepthArt.nearScenery) drawList.push({z:scenery.z,type:'scenery',obj:scenery});
     for (const it of state.items) drawList.push({ z: it.z, type: 'item', obj: it });
     for (const f of state.fighters) drawList.push({ z: f.z, type: 'fighter', obj: f });
     drawList.sort((a, b) => a.z - b.z);
 
     for (const entry of drawList) {
+      if(entry.type==='scenery') {
+        activeDepthArt.scenery(ctx,state.cameraX,virtualW,getGroundHeightAt,entry.obj);
+        continue;
+      }
+      const obj=entry.obj;
+      const drawEntry=()=>{
       if(entry.type==='site') {
-        const spot=entry.obj;
-        forestArt.site(ctx,{...spot,z:spot.z-getGroundHeightAt(spot.x,spot.z)},state.forestFinds.has(spot.id),
+        const spot=obj;
+        if(drawReprise) repriseArt.site(ctx,spot,state.forestFinds.has(spot.id),
+          !!(ginji&&Math.hypot(ginji.x-spot.x,ginji.z-spot.z)<110),
+          getGroundHeightAt(spot.x,spot.z));
+        else forestArt.site(ctx,{...spot,z:spot.z-getGroundHeightAt(spot.x,spot.z)},state.forestFinds.has(spot.id),
           rpg.crafted,state.forestFinds.has('traces'),ginji&&Math.hypot(ginji.x-spot.x,ginji.z-spot.z)<110,performance.now());
       }
-      else if (entry.type === 'item') drawItem(entry.obj);
-      else drawFighter(entry.obj);
+      else if (entry.type === 'item') drawItem(obj);
+      else drawFighter(obj);
+      };
+      if(drawDepth) {
+        const height=getGroundHeightAt(obj.x,obj.z);
+        if(entry.type==='fighter') activeDepthArt.shadow(ctx,obj.x,obj.z,height,state.cameraX,virtualW,obj.y-height);
+        activeDepthArt.entity(ctx,obj.x,obj.z,height,state.cameraX,virtualW,drawEntry);
+      } else drawEntry();
     }
 
     if(drawPixelArt) {
-      forestArt.foreground(ctx,state.cameraX,virtualW,performance.now(),ginji);
-      forestEffects.overlay(ctx,state.cameraX,virtualW,performance.now(),ginji,state.forestFinds,rpg.crafted);
+      if(drawDepth) {
+        activeDepthArt.foreground(ctx,state.cameraX,virtualW,performance.now());
+        if(drawVista) vistaArt.foreground(ctx,virtualW,state.cameraX,
+          reducedMotion ? 0 : performance.now());
+      }
+      else if(drawBridge) bridgeArt.foreground(ctx,state.cameraX,virtualW,performance.now(),ginji);
+      else forestArt.foreground(ctx,state.cameraX,virtualW,performance.now(),ginji);
+      if(!drawDepth) forestEffects.overlay(ctx,state.cameraX,virtualW,performance.now(),ginji,state.forestFinds,rpg.crafted);
     }
 
     // 双剣クロス斬撃エフェクト
@@ -2731,7 +2858,8 @@
     const groundH = getGroundHeightAt(f.x, f.z);
     const zAlignedWithHero = ginji && f.team === 1 && Math.abs(f.z - ginji.z) <= 24;
 
-    ctx.fillStyle = zAlignedWithHero ? 'rgba(52, 211, 153, 0.55)' : 'rgba(0,0,0,0.42)';
+    ctx.fillStyle = (depthPreview || vistaPreview || reprisePreview) && pixelArt ? 'rgba(0,0,0,.12)' :
+      zAlignedWithHero ? 'rgba(52, 211, 153, 0.55)' : 'rgba(0,0,0,0.42)';
     ctx.beginPath();
     ctx.ellipse(f.x, f.z - groundH, 16, 6, 0, 0, Math.PI * 2);
     ctx.fill();
@@ -2762,18 +2890,21 @@
 
     ctx.font = 'bold 11px "Noto Sans JP", sans-serif';
     ctx.textAlign = 'center';
-    const tag = f === ginji ? ' [1P]' : (f === sasuke ? (state.isPartnerAI ? ' [相棒AI]' : ' [2P]') : '');
-    ctx.fillStyle = f.team === 0 ? '#7dd3fc' : '#fca5a5';
-    const detailedActor = pixelArt && forestArt.ready();
-    ctx.fillText(f.name + tag, 0, detailedActor ? -78 : -60);
-
-    const barW = 32;
-    const hpRatio = Math.max(0, f.hp / f.maxHp);
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
-    const hpY = detailedActor ? -73 : -55;
-    ctx.fillRect(-barW / 2, hpY, barW, 4);
-    ctx.fillStyle = f.team === 0 ? '#34d399' : '#f43f5e';
-    ctx.fillRect(-barW / 2, hpY, Math.round(barW * hpRatio), 4);
+    // The field's two friendly party members already have a compact HUD.
+    // Floating cyan names and duplicated HP bars clutter the mobile scenery.
+    if(!reprisePreview || f.team!==0){
+      const tag = f === ginji ? ' [1P]' : (f === sasuke ? (state.isPartnerAI ? ' [相棒AI]' : ' [2P]') : '');
+      ctx.fillStyle = f.team === 0 ? '#7dd3fc' : '#fca5a5';
+      const detailedActor = pixelArt && forestArt.ready();
+      ctx.fillText(f.name + tag, 0, detailedActor ? -78 : -60);
+      const barW = 32;
+      const hpRatio = Math.max(0, f.hp / f.maxHp);
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+      const hpY = detailedActor ? -73 : -55;
+      ctx.fillRect(-barW / 2, hpY, barW, 4);
+      ctx.fillStyle = f.team === 0 ? '#34d399' : '#f43f5e';
+      ctx.fillRect(-barW / 2, hpY, Math.round(barW * hpRatio), 4);
+    }
 
     ctx.scale(f.facing, 1);
 
