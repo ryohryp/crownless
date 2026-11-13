@@ -55,6 +55,10 @@ test('reprise mode keeps real gestures, discoveries, HUD controls and default ga
   assert.match(html,/activeDepthArt\.shadow\(ctx,obj\.x/);
   assert.match(html,/activeDepthArt\.entity\(ctx,obj\.x/);
   assert.match(html,/repriseArt\.hitTestSite/);
+  assert.match(html,/if\(!reprisePreview \|\| f\.team!==0\)/,
+    'reprise hides redundant friendly party nameplates but not enemy labels');
+  assert.match(html,/if\(drawReprise\) repriseArt\.site\(ctx,spot/,
+    'world markers replace the floating site labels');
   assert.match(html,/id="gestureActionArea"/);
   assert.match(html,/id="visualSettingsToggle"/);
   assert.match(html,/id="forestGateChoice"/);
