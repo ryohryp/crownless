@@ -12,6 +12,7 @@ const isAllowed = name => !name.includes('..') && (
    'docs/assets/candidates/hero-walk-v1/walk.png',
    'assets/action-forest/terrain.png','assets/action-forest/objects.png',
    'assets/action-forest/hero-idle.png','assets/action-forest/hero-walk.png'].includes(name) ||
+  (name.startsWith('assets/castle-bridge/') && name.endsWith('.png') && name.indexOf('/', 21) === -1) ||
   (name.startsWith('assets/') && name.endsWith('.svg') && name.indexOf('/', 7) === -1)
 );
 const types = {'.png':'image/png','.html':'text/html; charset=utf-8','.css':'text/css; charset=utf-8','.js':'text/javascript; charset=utf-8','.svg':'image/svg+xml'};
