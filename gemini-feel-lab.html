@@ -70,12 +70,81 @@
     outline-offset: 2px;
     box-shadow: 0 0 0 3px rgba(15,23,42,.85), 0 0 16px rgba(251,191,36,.65);
   }
+  /* Unified ?art=castle-bridge mobile-first HUD: keeps the top bar compact
+     and secondary debug buttons tucked inside the 44px menu button. */
+  .castle-bridge-brand,#visualSettingsToggle{display:none}
+  body.castle-bridge-layout #gameCanvas{image-rendering:auto!important}
+  body.castle-bridge-layout>header{
+    flex-wrap:nowrap!important;align-items:center!important;justify-content:flex-start!important;
+    gap:6px!important;min-height:48px;max-height:48px;
+    padding:max(4px,env(safe-area-inset-top)) 8px 4px!important;
+    background:linear-gradient(90deg,#1a1f1e,#292923)!important;
+    border-bottom:1px solid #756749!important;box-shadow:0 3px 14px rgba(21,19,15,.68);
+  }
+  body.castle-bridge-layout .castle-bridge-brand{
+    display:inline-block;flex:none;color:#f2dfba;font:700 14px Georgia,serif;
+    letter-spacing:-.3px;white-space:nowrap;
+  }
+  body.castle-bridge-layout>header>div:first-of-type{
+    display:flex;flex:1 1 auto;min-width:0;flex-wrap:nowrap;align-items:center;
+    gap:4px!important;overflow:hidden;
+  }
+  body.castle-bridge-layout>header>div:first-of-type>div,
+  body.castle-bridge-layout #btnKabukiBurst{
+    padding:4px 6px!important;border-color:rgba(129,116,90,.48)!important;
+    background:rgba(20,25,22,.76)!important;font-size:11px!important;
+    border-radius:5px!important;white-space:nowrap;flex:none;
+  }
+  body.castle-bridge-layout #wantedBadge{display:none!important}
+  body.castle-bridge-layout #visualSettingsToggle{
+    display:inline-flex;align-items:center;justify-content:center;flex:none;
+    min-width:44px;min-height:44px;border:1px solid #9a8966;
+    border-radius:7px;background:#242722;color:#f4dfb9;font-size:18px;
+  }
+  body.castle-bridge-layout>header>div:last-of-type{display:none!important}
+  body.castle-bridge-layout[data-settings-open="true"]>header>div:last-of-type{
+    display:flex!important;position:absolute;top:48px;right:6px;z-index:70;
+    width:min(340px,calc(100vw - 12px));max-height:60dvh;overflow:auto;
+    flex-wrap:wrap;align-items:center;justify-content:flex-start;gap:8px;
+    padding:12px;background:rgba(32,39,35,.96);border:1px solid #b7a277;border-radius:8px;
+    box-shadow:0 8px 32px rgba(0,0,0,.68);pointer-events:auto;
+  }
+  body.castle-bridge-layout>header>div:last-of-type>button{min-height:44px}
+  body.castle-bridge-layout>header+div{display:none!important}
+  body.castle-bridge-layout #weatherBadge,
+  body.castle-bridge-layout #zAxisBadge,
+  body.castle-bridge-layout #btnForestAtmosphere{display:none!important}
+  body.castle-bridge-layout #rpgStatusBadge{
+    max-width:min(68vw,280px);padding:4px 8px!important;background:rgba(23,34,28,.78)!important;
+    border:1px solid rgba(191,164,116,.6)!important;color:#fff1d6!important;border-radius:5px;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px!important;
+  }
+  body.castle-bridge-layout #forestExploreHint{
+    max-width:min(72vw,300px);max-height:40px;overflow:hidden;
+    padding:4px 8px!important;border-radius:5px;background:rgba(23,34,28,.76)!important;
+    border-color:rgba(191,164,116,.48)!important;color:#f8e8ca!important;font-size:11px!important;
+  }
+  body.castle-bridge-layout #gestureHint{background:rgba(20,34,30,.72)!important;border:1px solid rgba(190,157,101,.5)}
+  body.castle-bridge-layout #rpgOpenResults{top:auto!important;bottom:38px!important;right:8px!important;min-height:40px!important}
+  body.castle-bridge-layout #touchControls>div.hidden{display:none!important}
+  @media(max-width:520px){
+    body.castle-bridge-layout .castle-bridge-brand{display:none}
+    body.castle-bridge-layout>header>div:first-of-type>div:nth-of-type(2){display:none!important}
+    body.castle-bridge-layout #btnKabukiBurst{padding:4px 5px!important;gap:4px!important}
+    body.castle-bridge-layout #btnKabukiBurst>div{width:26px!important}
+    body.castle-bridge-layout>header>div:first-of-type>div:first-of-type>div{width:34px!important}
+    body.castle-bridge-layout>header>div:first-of-type>div:last-of-type{padding:3px 5px!important}
+  }
+  @media(max-width:380px){
+    body.castle-bridge-layout>header>div:first-of-type>div:last-of-type>span:last-child{display:none}
+  }
 </style>
 </head>
 <body class="flex flex-col w-full h-full bg-slate-950 text-white overflow-hidden" data-combat-origin="gemini-original-2_5d" data-combat-experiment="fantasy-reskin">
 
   <!-- 原作のボタン配置・タイミング・攻撃権トークン・相棒AI・コンボを保持した比較実験。 -->
   <header class="flex flex-wrap items-center justify-between gap-1.5 px-2.5 py-1.5 bg-slate-900/95 border-b border-amber-500/40 z-20 shrink-0">
+    <span class="castle-bridge-brand" aria-hidden="true">Crownless</span>
     <!-- 左：旅人＆従者HP・闘志（義憤）ゲージ・所持金・脅威度 -->
     <div class="flex flex-wrap items-center gap-1.5 sm:gap-2.5 text-xs">
       <div class="flex items-center gap-1.5 bg-slate-800/95 px-2 py-1 rounded-md border border-sky-400/40">
@@ -138,6 +207,7 @@
         🔊 音ON
       </button>
     </div>
+    <button id="visualSettingsToggle" type="button" aria-label="比較版の設定を開く" aria-expanded="false">☰</button>
   </header>
 
   <!-- ステータス＆原作手触り維持ガイドバー -->
@@ -327,6 +397,7 @@
 <script src="src/gemini-hit-recovery.js"></script>
 <script src="src/gemini-forest-discoveries.js"></script>
 <script src="src/pixel-forest.js"></script>
+<script src="src/castle-bridge-field.js"></script>
 <script src="src/pixel-forest-effects.js"></script>
 <script src="src/pixel-actors.js"></script>
 <script src="src/hero-still-review.js"></script>
@@ -731,6 +802,9 @@
     // No found finished weapon: the stronger sword is crafted by the smith after a safe return.
     spawnItem('stone', 480, 290, 50);
     spawnItem('dango', 260, 255, 20, 45);
+    if (castleBridgePreview && ginji) {
+      state.cameraX = Math.max(0, Math.min(WORLD.maxX - virtualW + 40, ginji.x - virtualW * 0.38));
+    }
     updateUI();
   }
 
@@ -2048,9 +2122,13 @@
 
   function tryTapForestSite(clientX,clientY,allowNearby) {
     if (!ginji || !window.CrownlessForestDiscoveries.available(rpg.phase)) return false;
-    const site=window.CrownlessForestDiscoveries.spotAtTap(
-      {x:clientX,y:clientY},canvas.getBoundingClientRect(),{width:virtualW,height:VIRTUAL_H},
-      state.cameraX,getGroundHeightAt);
+    const site=(castleBridgePreview && pixelArt && castleBridgeArt)
+      ? castleBridgeArt.hitTestSite(
+        {x:clientX,y:clientY},canvas.getBoundingClientRect(),virtualW,
+        state.cameraX,getGroundHeightAt,window.CrownlessForestDiscoveries.spots)
+      : window.CrownlessForestDiscoveries.spotAtTap(
+        {x:clientX,y:clientY},canvas.getBoundingClientRect(),{width:virtualW,height:VIRTUAL_H},
+        state.cameraX,getGroundHeightAt);
     // Only taps on a visible clue investigate it; ordinary attacks do not
     // consume a one-time find simply because the player is nearby.
     if (!site && !allowNearby) return false;
@@ -2292,11 +2370,18 @@
       guardianCounterClaimed:!!f.guardianCounterClaimed})),
     nowSec:performance.now()/1000,
     crafted:rpg.crafted,tempered:rpg.tempered,unbanked:rpg.unbanked,banked:rpg.banked,
-    art:pixelArt?'pixel':'classic',assetsReady:forestArt.ready(),
+    art:castleBridgePreview && pixelArt ? 'castle-bridge' : pixelArt ? 'pixel' : 'classic',
+    assetsReady:castleBridgePreview ? castleBridgeArt.ready() : forestArt.ready(),
     forestEffects: forestEffects.readout(),
     heroAnimation:heroStillReview.status(),
     cameraX:state.cameraX,
     viewport:{width:virtualW,height:VIRTUAL_H,pixelRatio:canvas.width/virtualW},
+    castleBridge:castleBridgePreview ? {
+      heroScreen:ginji ? castleBridgeArt.worldToScreen(ginji.x,ginji.z,ginji.y,state.cameraX) : null,
+      shadowScreen:ginji ? castleBridgeArt.worldToScreen(ginji.x,ginji.z,getGroundHeightAt(ginji.x,ginji.z),state.cameraX) : null,
+      groundHeight:ginji ? getGroundHeightAt(ginji.x,ginji.z) : 0,
+      anchors:castleBridgeArt.layerAnchors(state.cameraX,virtualW)
+    } : undefined,
     found:[...state.forestFinds],
     phase:rpg.phase
   });
@@ -2392,10 +2477,23 @@
   }
   atmosphereButton.addEventListener('click', () => { forestEffects.setEnabled(!forestEffects.enabled()); syncAtmosphereButton(); });
   const heroStillReview = window.CrownlessHeroStill.create();
-  let pixelArt = new URLSearchParams(location.search).get('art') !== 'classic';
+  const castleBridgePreview = fxParams.get('art') === 'castle-bridge';
+  const castleBridgeArt = castleBridgePreview ? window.CrownlessCastleBridge.create() : null;
+  if (castleBridgePreview) document.body.classList.add('castle-bridge-layout');
+  const visualSettingsToggle = document.getElementById('visualSettingsToggle');
+  if (visualSettingsToggle) {
+    visualSettingsToggle.addEventListener('click', () => {
+      const opening = document.body.dataset.settingsOpen !== 'true';
+      document.body.dataset.settingsOpen = String(opening);
+      visualSettingsToggle.setAttribute('aria-expanded', String(opening));
+    });
+  }
+  let pixelArt = fxParams.get('art') !== 'classic';
   const artButton = document.getElementById('btnToggleArtPreview');
   function syncArtButton() {
-    artButton.textContent = pixelArt ? '景観: ピクセルの森' : '景観: 従来';
+    artButton.textContent = pixelArt
+      ? (castleBridgePreview ? '景観: 古城への石橋・統一比較' : '景観: ピクセルの森')
+      : '景観: 従来';
     artButton.setAttribute('aria-pressed',String(pixelArt));
   }
   syncArtButton();
@@ -2418,11 +2516,100 @@
 
   function renderScene() {
     const drawPixelArt=pixelArt && forestArt.ready();
+    const drawCastleBridge=pixelArt && castleBridgePreview && castleBridgeArt && castleBridgeArt.ready();
     ctx.setTransform(canvas.width/virtualW,0,0,canvas.height/VIRTUAL_H,0,0);
     ctx.clearRect(0, 0, virtualW, VIRTUAL_H);
 
     // 独自要素③：ウェーブに応じた時間帯・天候変化（夕暮れ → 宵闇 → 月夜月夜）
     const weatherPhase = (state.waveCount - 1) % 3;
+    if (drawCastleBridge) {
+      castleBridgeArt.background(ctx,virtualW,state.cameraX,state.waveCount,reducedMotion?0:performance.now()/1000);
+      castleBridgeArt.ground(ctx,virtualW,state.cameraX,getGroundHeightAt);
+
+      // Single unified world-to-screen Z-sort queue (no ctx.translate(-cameraX)).
+      const bridgeList = [];
+      for (const prop of castleBridgeArt.nearScenery) bridgeList.push({ z: prop.z, type: 'scenery', obj: prop });
+      for (const spot of window.CrownlessForestDiscoveries.spots) bridgeList.push({ z: spot.z, type: 'site', obj: spot });
+      for (const it of state.items) bridgeList.push({ z: it.z, type: 'item', obj: it });
+      for (const f of state.fighters) bridgeList.push({ z: f.z, type: 'fighter', obj: f });
+      bridgeList.sort((a, b) => a.z - b.z);
+
+      for (const entry of bridgeList) {
+        if (entry.type === 'scenery') {
+          castleBridgeArt.scenery(ctx, state.cameraX, getGroundHeightAt, entry.obj);
+        } else if (entry.type === 'site') {
+          const spot = entry.obj;
+          const near = !!(ginji && Math.hypot(ginji.x - spot.x, ginji.z - spot.z) < window.CrownlessForestDiscoveries.RANGE);
+          castleBridgeArt.site(
+            ctx, spot, state.forestFinds.has(spot.id), near,
+            getGroundHeightAt(spot.x, spot.z), state.cameraX,
+            reducedMotion ? 0 : performance.now()
+          );
+        } else if (entry.type === 'item') {
+          const it = entry.obj;
+          const gH = getGroundHeightAt(it.x, it.z);
+          castleBridgeArt.shadow(ctx, it.x, it.z, gH, state.cameraX, Math.max(0, it.y - gH));
+          castleBridgeArt.entity(ctx, it.x, it.z, it.y, state.cameraX, () => drawItem(it, { skipShadow: true, localOrigin: true }));
+        } else {
+          const f = entry.obj;
+          const gH = getGroundHeightAt(f.x, f.z);
+          castleBridgeArt.shadow(ctx, f.x, f.z, gH, state.cameraX, Math.max(0, f.y - gH));
+          castleBridgeArt.entity(ctx, f.x, f.z, f.y, state.cameraX, () => drawFighter(f, {
+            skipShadow: true,
+            localOrigin: true,
+            hideFriendlyLabel: f.team === 0
+          }));
+        }
+      }
+
+      castleBridgeArt.foreground(ctx, virtualW, state.cameraX, reducedMotion ? 0 : performance.now());
+
+      ctx.save();
+      ctx.translate(-Math.round(state.cameraX), 0);
+      for (const sl of state.slashLines) {
+        ctx.strokeStyle = '#fde047';
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(sl.x - 45, sl.y - 35);
+        ctx.lineTo(sl.x + 45, sl.y + 35);
+        ctx.moveTo(sl.x + 45, sl.y - 35);
+        ctx.lineTo(sl.x - 45, sl.y + 35);
+        ctx.stroke();
+      }
+      for (const sp of state.hitSparks) {
+        const sy = sp.z - sp.y;
+        ctx.fillStyle = sp.isSakura ? '#f43f5e' : '#fef08a';
+        ctx.beginPath();
+        ctx.arc(sp.x, sy, 12, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      for (const p of state.sakuraPetals) {
+        ctx.fillStyle = '#fbcfe8';
+        ctx.beginPath();
+        ctx.ellipse(p.x, p.y, p.size, p.size * 0.6, p.timer * 3, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.font = 'bold 12px "Noto Sans JP", sans-serif';
+      ctx.textAlign = 'center';
+      for (const p of state.popups) {
+        const lines = []; let line = '';
+        const limit = Math.min(250, virtualW - 24);
+        for (const char of p.text) {
+          if (ctx.measureText(line + char).width > limit) { lines.push(line); line = ''; }
+          line += char;
+        }
+        lines.push(line);
+        const widest = Math.max(...lines.map(l => ctx.measureText(l).width));
+        const x = Math.max(state.cameraX + 12 + widest / 2, Math.min(state.cameraX + virtualW - 12 - widest / 2, p.x));
+        lines.forEach((text, i) => {
+          const y = p.z - p.y - (lines.length - 1 - i) * 16;
+          ctx.fillStyle = '#182018'; ctx.fillText(text, x + 1, y + 1);
+          ctx.fillStyle = p.color; ctx.fillText(text, x, y);
+        });
+      }
+      ctx.restore();
+      return;
+    }
     if (drawPixelArt) {
       forestArt.background(ctx,virtualW,state.cameraX,state.waveCount);
       forestEffects.background(ctx,virtualW,state.cameraX,performance.now());
@@ -2681,18 +2868,20 @@
     ctx.restore();
   }
 
-  function drawItem(it) {
+  function drawItem(it, opts = {}) {
     const groundH = getGroundHeightAt(it.x, it.z);
     const isNearHero = ginji && Math.hypot(it.x - ginji.x, it.z - ginji.z) < 48;
 
-    ctx.fillStyle = isNearHero ? 'rgba(250, 204, 21, 0.55)' : 'rgba(0,0,0,0.35)';
-    ctx.beginPath();
-    ctx.ellipse(it.x, it.z - groundH, isNearHero ? 15 : 10, isNearHero ? 6 : 4, 0, 0, Math.PI * 2);
-    ctx.fill();
+    if (!opts.skipShadow) {
+      ctx.fillStyle = isNearHero ? 'rgba(250, 204, 21, 0.55)' : 'rgba(0,0,0,0.35)';
+      ctx.beginPath();
+      ctx.ellipse(it.x, it.z - groundH, isNearHero ? 15 : 10, isNearHero ? 6 : 4, 0, 0, Math.PI * 2);
+      ctx.fill();
+    }
 
     const sy = it.z - it.y;
     ctx.save();
-    ctx.translate(it.x, sy);
+    if (!opts.localOrigin) ctx.translate(it.x, sy);
     if (it.type === 'katana') {
       ctx.fillStyle = '#e2e8f0';
       ctx.fillRect(-14, -3, 28, 4);
@@ -2727,20 +2916,22 @@
     ctx.restore();
   }
 
-  function drawFighter(f) {
+  function drawFighter(f, opts = {}) {
     const groundH = getGroundHeightAt(f.x, f.z);
     const zAlignedWithHero = ginji && f.team === 1 && Math.abs(f.z - ginji.z) <= 24;
 
-    ctx.fillStyle = zAlignedWithHero ? 'rgba(52, 211, 153, 0.55)' : 'rgba(0,0,0,0.42)';
-    ctx.beginPath();
-    ctx.ellipse(f.x, f.z - groundH, 16, 6, 0, 0, Math.PI * 2);
-    ctx.fill();
-    if (zAlignedWithHero) {
-      ctx.strokeStyle = '#34d399';
-      ctx.lineWidth = 1.5;
+    if (!opts.skipShadow) {
+      ctx.fillStyle = zAlignedWithHero ? 'rgba(52, 211, 153, 0.55)' : 'rgba(0,0,0,0.42)';
       ctx.beginPath();
-      ctx.ellipse(f.x, f.z - groundH, 19, 8, 0, 0, Math.PI * 2);
-      ctx.stroke();
+      ctx.ellipse(f.x, f.z - groundH, 16, 6, 0, 0, Math.PI * 2);
+      ctx.fill();
+      if (zAlignedWithHero) {
+        ctx.strokeStyle = '#34d399';
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.ellipse(f.x, f.z - groundH, 19, 8, 0, 0, Math.PI * 2);
+        ctx.stroke();
+      }
     }
 
     const sy = f.z - f.y;
@@ -2749,7 +2940,7 @@
       // Gentle flicker communicates temporary immunity, unlike hidden damage.
       ctx.globalAlpha = Math.floor(f.hitGuardRemaining * 11) % 2 ? 0.65 : 1;
     }
-    ctx.translate(Math.round(f.x), Math.round(sy));
+    if (!opts.localOrigin) ctx.translate(Math.round(f.x), Math.round(sy));
 
     // 紋章・覚醒バースト中の紅白隈取オーラ描画
     if (f.team === 0 && state.kabukiBurstTimer > 0) {
@@ -2760,20 +2951,22 @@
       ctx.stroke();
     }
 
-    ctx.font = 'bold 11px "Noto Sans JP", sans-serif';
-    ctx.textAlign = 'center';
-    const tag = f === ginji ? ' [1P]' : (f === sasuke ? (state.isPartnerAI ? ' [相棒AI]' : ' [2P]') : '');
-    ctx.fillStyle = f.team === 0 ? '#7dd3fc' : '#fca5a5';
-    const detailedActor = pixelArt && forestArt.ready();
-    ctx.fillText(f.name + tag, 0, detailedActor ? -78 : -60);
+    const detailedActor = pixelArt && (castleBridgePreview || forestArt.ready());
+    if (!opts.hideFriendlyLabel) {
+      ctx.font = 'bold 11px "Noto Sans JP", sans-serif';
+      ctx.textAlign = 'center';
+      const tag = f === ginji ? ' [1P]' : (f === sasuke ? (state.isPartnerAI ? ' [相棒AI]' : ' [2P]') : '');
+      ctx.fillStyle = f.team === 0 ? '#7dd3fc' : '#fca5a5';
+      ctx.fillText(f.name + tag, 0, detailedActor ? -78 : -60);
 
-    const barW = 32;
-    const hpRatio = Math.max(0, f.hp / f.maxHp);
-    ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
-    const hpY = detailedActor ? -73 : -55;
-    ctx.fillRect(-barW / 2, hpY, barW, 4);
-    ctx.fillStyle = f.team === 0 ? '#34d399' : '#f43f5e';
-    ctx.fillRect(-barW / 2, hpY, Math.round(barW * hpRatio), 4);
+      const barW = 32;
+      const hpRatio = Math.max(0, f.hp / f.maxHp);
+      ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
+      const hpY = detailedActor ? -73 : -55;
+      ctx.fillRect(-barW / 2, hpY, barW, 4);
+      ctx.fillStyle = f.team === 0 ? '#34d399' : '#f43f5e';
+      ctx.fillRect(-barW / 2, hpY, Math.round(barW * hpRatio), 4);
+    }
 
     ctx.scale(f.facing, 1);
 
@@ -2795,7 +2988,7 @@
       return;
     }
 
-    if (pixelArt && forestArt.ready()) {
+    if (pixelArt && (castleBridgePreview || forestArt.ready())) {
       window.CrownlessPixelActors.draw(ctx,f,{
         role:f===ginji?'traveler':f===sasuke?'companion':'enemy',
         crafted:f===ginji&&rpg.crafted,
