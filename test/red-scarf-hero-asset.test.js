@@ -10,6 +10,6 @@ test('red-scarf atlas is a four-pose transparent PNG published with the game',()
   assert.equal(b.readUInt32BE(20),132);
   assert.equal(b.includes(Buffer.from('tRNS')),true,'sprite sheet must keep transparency');
   const code=fs.readFileSync(path.join(__dirname,'../src/hero-still-review.js'),'utf8');
-  assert.match(code,/hero-red-scarf-atlas\\.png/);
+  assert.ok(code.includes('hero-red-scarf-atlas.png'));
   assert.match(code,/FRAME_W=96, FRAME_H=132/);
 });
