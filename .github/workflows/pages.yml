@@ -93,12 +93,22 @@ jobs:
           NODE
           touch _site/.nojekyll
 
+      # GitHub's artifact index can lag immediately after upload. Give it time
+      # and scope the name to the run attempt: rerun jobs must not produce two
+      # artifacts with the same name in a single workflow run.
       - uses: actions/upload-pages-artifact@v3
         if: steps.pages.outputs.enabled == 'true'
         with:
           path: _site
+          name: "github-pages-${{ github.run_attempt }}"
+
+      - name: Wait for Pages artifact indexing
+        if: steps.pages.outputs.enabled == 'true'
+        run: sleep 12
 
       - name: Deploy to GitHub Pages
         if: steps.pages.outputs.enabled == 'true'
         id: deployment
         uses: actions/deploy-pages@v4
+        with:
+          artifact_name: "github-pages-${{ github.run_attempt }}"
