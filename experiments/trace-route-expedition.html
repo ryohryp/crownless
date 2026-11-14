@@ -26,6 +26,7 @@ function end(success){s.ended=true;s.combat=false;if(success){if(s.contractActiv
 function move(k){
  if(s.ended||s.combat||!near(s.pos,k)||!visible(k)||!walkable(k))return;
  s.pos=k;s.steps++;if(s.contractActive&&k===RELIC)s.contractReached=true;if(!s.seen.includes(k))s.seen.push(k);
+ if(k===CLUE&&s.pursuit&&!s.pursuitResolved){s.pursuitResolved=true;s.combat=true;s.enemyHp=4;s.enemyIntent='突進';s.round=0;s.flanking=false;s.message='共鳴鉱脈の採掘音を追った獣が足跡の帰路を塞いだ！ 希少素材を守って戦うか煙幕で逃げよう。';save();render();return;}
  if(k===CLUE&&s.contractActive&&s.contractReached&&!s.contractTrailHidden&&!s.contractAmbushed){s.contractAmbushed=true;s.combat=true;s.enemyHp=3;s.enemyIntent='突進';s.round=0;s.flanking=false;s.message='月光石を追う獣が帰路で待ち伏せ！ 突進の予兆。素材を守って倒すか煙幕で逃げよう。';save();render();return;}
  if(k===BRIDGE&&s.bridgeLegacy&&!s.bridgeSupplyTaken){s.bridgeSupplyTaken=true;s.loot+=2;s.message='前回修復した橋に旅人の補給箱が届いていた！ 素材2個を回収。橋は再訪しても通れる。';}
  if(k===THORNS&&!s.thornsHarvested){s.thornsHarvested=true;s.loot+=3;if(!s.thornsCleared&&!s.thornBoots){s.hp-=2;if(s.hp<=0){end(false);return;}s.message='棘の茂みを強行突破！ 体力-2。薬草素材3個を回収。蔓を使って先に棘を払えば無傷だった。';}else{s.message=s.thornBoots?'製作した革靴で棘を踏み分け、薬草素材3個を無傷で回収！':'切り払った茂みから薬草素材3個を無傷で回収！';}}
