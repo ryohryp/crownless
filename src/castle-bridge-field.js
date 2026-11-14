@@ -13,7 +13,7 @@
   const VIRTUAL_H = 420;
   const WORLD_WIDTH = 1050;
   const BRIDGE = Object.freeze({ left: 430, right: 730, back: 235, front: 305 });
-  const BRIDGE_LIFT = 38;
+  const BRIDGE_LIFT = 10;
   const PARALLAX = Object.freeze({
     sky: 0.08,
     mountainFar: 0.12,
