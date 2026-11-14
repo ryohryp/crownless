@@ -25,14 +25,17 @@ const root=path.resolve(__dirname,'..');
         window.__walkCells=[];
         const original=CanvasRenderingContext2D.prototype.drawImage;
         CanvasRenderingContext2D.prototype.drawImage=function(image,...args){
-          if(image.src?.includes('action-forest/hero-idle.png'))window.__heroReviewDraws++;
-          if(image.src?.includes('action-forest/hero-walk.png'))window.__walkCells.push(args[0]);
+          if(image.src?.includes('action-forest/hero-red-scarf-atlas.png')){
+            window.__heroReviewDraws++;
+            // All poses, including idle, come from the same atlas.
+            if(args.length===8)window.__walkCells.push(args[0]);
+          }
           return original.call(this,image,...args);
         };
       });
       const base='http://127.0.0.1:'+port+'/gemini-feel-lab.html';
       await page.goto('http://127.0.0.1:'+port+'/hero-art-review.html',{waitUntil:'networkidle'});
-      assert.equal(await page.locator('img').count(),2);
+      assert.equal(await page.locator('img').count(),1);
       assert(await page.evaluate(()=>[...document.images].every(image=>image.complete&&image.naturalWidth>0)));
       assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),'review page fits phone');
       await page.screenshot({path:path.join(folder,'hero-review-page-'+width+'.png'),fullPage:true});
@@ -54,6 +57,6 @@ const root=path.resolve(__dirname,'..');
       await page.screenshot({path:path.join(folder,'hero-still-'+width+'.png')});
       await context.close();
     }
-    console.log('PASS: approved idle, real movement temporal frames, stop-to-idle, classic/still comparison, 360/390/430px, no page errors/overflow');
+    console.log('PASS: red-scarf idle, real movement temporal frames, stop-to-idle, classic/still comparison, 360/390/430px, no page errors/overflow');
   } finally {if(browser)await browser.close();server.kill();}
 })().catch(error=>{console.error(error);process.exitCode=1;});
