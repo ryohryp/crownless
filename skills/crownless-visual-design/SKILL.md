@@ -28,7 +28,7 @@ If the visual direction is undefined, establish the smallest useful direction an
 
 - Prioritize a recognizable, handcrafted **16-bit-era pixel-art** appearance: intentional pixel clusters, a limited coherent palette, crisp nearest-neighbor scaling, readable silhouettes, and restrained frame animation. Avoid blurry resampling, generic vector scenery, and HD-2D bloom as the target style.
 - Improve the *actual playable forest* first: distinct trees, traversable ground, landmark silhouettes, readable depth layers, and environmental variation that makes the next area enticing. Do not substitute standalone concept art for an in-game result.
-- Preserve the approved pixel protagonist identity (`docs/assets/player-unarmed-approved-pixel-anchor-v1.png`); adapt environmental scale and palette to the actor rather than silently replacing the actor.
+- Use the **2026-11-14 user-approved red-scarf protagonist** for the playable forest (`assets/action-forest/hero-red-scarf-atlas.png` is the new runtime derivative); keep `docs/assets/player-unarmed-approved-pixel-anchor-v1.png` as the earlier approved reference for comparison. Do not silently replace identity on other screens.
 - Expand stage length only alongside meaningful discoveries and return-with-materials decisions; do not pad with empty walking distance.
 - Keep existing path/fog/hidden-route navigation, combat return, and current save/material behavior unchanged unless a separately tested gameplay change requires it.
 - Review a screenshot at 360/390/430 CSS px and compare against the previous playable stage. A green CI result does not establish excitement or visual quality.
