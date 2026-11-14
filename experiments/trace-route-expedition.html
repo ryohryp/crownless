@@ -70,7 +70,7 @@ function render(){
  el('echoRecover').disabled=s.ended||s.combat||s.pos!==SECRET||!s.echoReady||s.echoTaken;
  el('waterDiversion').disabled=s.ended||s.combat||s.pos!==AQUEDUCT||!s.aqueductSurveyed||!s.pursuit||s.pursuitResolved||s.loot<2;
  el('fillFlask').disabled=s.ended||s.combat||s.pos!==AQUEDUCT||!s.aqueductSurveyed||s.waterFlask;
- el('coolThorns').disabled=s.ended||s.combat||s.pos!==THORNS||!s.waterFlask||s.thornsCleared;
+ el('coolThorns').disabled=s.ended||s.combat||s.pos!==FIBER||!s.waterFlask||s.thornsCleared;
  el('splash').disabled=!s.combat||s.ended||!s.waterFlask||s.enemyIntent!=='突進';
  el('aqueductSafe').disabled=s.ended||s.combat||s.pos!==AQUEDUCT||!s.aqueductSurveyed||s.aqueductTaken;
  el('aqueductRisk').disabled=s.ended||s.combat||s.pos!==AQUEDUCT||!s.aqueductSurveyed||s.aqueductTaken||s.hp<=2;
@@ -118,7 +118,7 @@ el('echoMark').onclick=()=>{if(s.ended||s.combat||s.pos!==RELIC||!s.relicExcavat
 el('echoRecover').onclick=()=>{if(s.ended||s.combat||s.pos!==SECRET||!s.echoReady||s.echoTaken)return;s.loot+=5;s.echoTaken=true;s.echoReady=false;s.message='再訪した隠し道で残響鉱石5個を発見！ 生きて持ち帰ろう。';save();render();};
 el('waterDiversion').onclick=()=>{if(s.ended||s.combat||s.pos!==AQUEDUCT||!s.aqueductSurveyed||!s.pursuit||s.pursuitResolved||s.loot<2)return;s.loot-=2;s.pursuitResolved=true;s.message='水門に素材2個を投げ入れて水音を響かせた。追跡獣は水路へ向かい、帰路の待ち伏せを回避。素材を守って戦う選択もできた。';save();render();};
 el('fillFlask').onclick=()=>{if(s.ended||s.combat||s.pos!==AQUEDUCT||!s.aqueductSurveyed||s.waterFlask)return;s.waterFlask=true;s.message='水門の冷水を瓶に汲んだ。獣の突進を一度だけ妨害できる。遠征を終えると水は使えなくなる。';save();render();};
-el('coolThorns').onclick=()=>{if(s.ended||s.combat||s.pos!==THORNS||!s.waterFlask||s.thornsCleared)return;s.waterFlask=false;s.thornsCleared=true;s.message='水路の冷水で棘の茂みを鎮めた。負傷せず通れるが、獣の突進を止める冷水はもうない。';save();render();};
+el('coolThorns').onclick=()=>{if(s.ended||s.combat||s.pos!==FIBER||!s.waterFlask||s.thornsCleared)return;s.waterFlask=false;s.thornsCleared=true;s.message='水路の冷水で棘の茂みを鎮めた。負傷せず通れるが、獣の突進を止める冷水はもうない。';save();render();};
 el('splash').onclick=()=>{if(!s.combat||s.ended||!s.waterFlask||s.enemyIntent!=='突進')return;s.waterFlask=false;s.enemyHp--;s.round++;s.flanking=false;if(s.enemyHp<=0){s.guard=true;s.combat=false;s.loot+=2;s.beastTotem=true;s.message='冷水で獣の突進を止めて討伐！ 牙素材2個を得て探索に復帰。';}else{s.enemyIntent='薙ぎ払い';s.message='冷水で突進を妨害！ 無傷で敵HP-1。次は薙ぎ払いが来る。回避か側面移動を選ぼう。';}save();render();};
 el('aqueductSafe').onclick=()=>{if(s.ended||s.combat||s.pos!==AQUEDUCT||!s.aqueductSurveyed||s.aqueductTaken)return;s.aqueductTaken=true;s.loot+=2;s.message='浅瀬から古い物資2個を無傷で回収。水門の奥の収穫は諦めた。';save();render();};
 el('aqueductRisk').onclick=()=>{if(s.ended||s.combat||s.pos!==AQUEDUCT||!s.aqueductSurveyed||s.aqueductTaken||s.hp<=2)return;s.aqueductTaken=true;s.hp-=2;s.loot+=7;s.message='水門を開いた！ 激流で体力-2、古い物資7個を回収。帰路で倒れれば失う。';save();render();};
