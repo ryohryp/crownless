@@ -12,4 +12,6 @@ test('red-scarf atlas is a four-pose transparent PNG published with the game',()
   const code=fs.readFileSync(path.join(__dirname,'../src/hero-still-review.js'),'utf8');
   assert.ok(code.includes('hero-red-scarf-atlas.png'));
   assert.match(code,/FRAME_W=96, FRAME_H=132/);
+  const server=fs.readFileSync(path.join(__dirname,'../scripts/serve-slice.cjs'),'utf8');
+  assert.ok(server.includes("'assets/action-forest/hero-red-scarf-atlas.png'"),'development and browser smoke server must publish the new art');
 });
