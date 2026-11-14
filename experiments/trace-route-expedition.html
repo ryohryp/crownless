@@ -62,7 +62,7 @@ function render(){
  for(const button of el('actions').querySelectorAll('button'))button.hidden=false;
  const board=el('board');board.replaceChildren();
  for(let y=0;y<SIZE;y++)for(let x=0;x<SIZE;x++){
- const k=key(x,y),vis=visible(k),wall=walls.has(k)&&!((k===BRIDGE||k===CROSSING||k===CACHE)&&s.bridge)&&!(k===DRIFT&&s.sluiceBridge),hidden=k===SECRET&&!s.opened,can=!s.ended&&!s.combat&&near(k,s.pos)&&vis&&(!wall||(k===BRIDGE||k===CROSSING||k===CACHE)&&s.bridge)&&!hidden&&(k!==GATE||s.gateOpen);
+ const k=key(x,y),vis=visible(k),wall=walls.has(k)&&!((k===BRIDGE||k===CROSSING||k===CACHE)&&s.bridge)&&!(k===DRIFT&&s.sluiceBridge),hidden=k===SECRET&&!s.opened,can=!s.ended&&!s.combat&&near(k,s.pos)&&vis&&(!wall||(k===BRIDGE||k===CROSSING||k===CACHE)&&s.bridge||(k===DRIFT&&s.sluiceBridge))&&!hidden&&(k!==GATE||s.gateOpen);
  const b=document.createElement('button');b.className='tile'+(!vis||hidden?' fog':wall?' wall':'')+(k===s.pos?' player':'');
  b.disabled=!can;b.textContent=k===s.pos?'●':!vis||hidden?'?':wall?'▦':k===HOME?'⌂':k===AQUEDUCT?'≋':k===CLUE?'⌕':k===RELIC?'◆':k===FIBER?'♣':k===THORNS?'♧':k===BRIDGE?'═':k===CROSSING?'≈':k===CACHE?'✦':k===VEIN?'◈':k===SHRINE?'♜':k===GATE?(s.gateOpen?'◇':'▦'):k===GIFT?'★':k===FOE?'!':'·';
  b.setAttribute('aria-label',k+' '+(can?'移動可能':vis?'移動不可':'未発見'));if(can)b.onclick=()=>move(k);board.append(b);
