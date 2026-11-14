@@ -77,7 +77,14 @@ The formerly accepted v3 atlas (now removed from current runtime) was the source
 
 The approved base state is the unarmed expedition survivor. Equipment changes silhouette only in separately requested and reviewed states.
 
-## 素手の主人公（ピクセル版）
+## 素手の主人公（赤スカーフ・2026-11-14改訂）
+
+- On 2026-11-14 the user explicitly adopted a new full-body pixel-art hero design: tousled black hair, **bright red scarf**, warm charcoal/brown layered travel clothes, leather arm guards, belts/pouch, strapped boots and a young determined expression. This is the current identity for the playable action-forest protagonist and supersedes the October pixel look **for this one scene**.
+- A four-pose, isolated right-facing derivative is published at `assets/action-forest/hero-red-scarf-atlas.png` (384×132px, four 96×132px cells). Foot pivot within each cell is (48,124), with nearest-neighbor canvas rendering. The fourth pose doubles as the static idle pose.
+- The portrait was explicitly approved; the derived four-frame **animation remains a playtest candidate**, not an independently human-approved animation. Do not treat a directional flip or code puppet as a substitute for coherent temporal poses.
+- This change does not grant a weapon or override equipment and progression. Other character screens and the previously approved pixel v1 source remain unchanged for comparison; migrate them only with an actual screen review.
+
+## 素手の主人公（ピクセル版・旧）
 
 ### Approved Visual Anchor
 - `docs/assets/player-unarmed-approved-pixel-anchor-v1.png`

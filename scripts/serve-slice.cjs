@@ -11,7 +11,8 @@ const isAllowed = name => !name.includes('..') && (
    'docs/assets/player-unarmed-approved-pixel-anchor-v1.png',
    'docs/assets/candidates/hero-walk-v1/walk.png',
    'assets/action-forest/terrain.png','assets/action-forest/objects.png',
-   'assets/action-forest/hero-idle.png','assets/action-forest/hero-walk.png'].includes(name) ||
+   'assets/action-forest/hero-idle.png','assets/action-forest/hero-walk.png',
+   'assets/action-forest/hero-red-scarf-atlas.png'].includes(name) ||
   (name.startsWith('assets/castle-bridge/') && name.endsWith('.png') && name.indexOf('/', 21) === -1) ||
   (name.startsWith('assets/') && name.endsWith('.svg') && name.indexOf('/', 7) === -1)
 );

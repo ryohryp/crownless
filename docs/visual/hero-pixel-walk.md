@@ -1,5 +1,13 @@
 # Approved protagonist still and temporal walking
 
+## 2026-11-14 — 赤いスカーフの主人公へ更新
+
+The user approved a newly generated still portrait (black tousled hair, red scarf, dark brown leather gear) on 2026-11-14, explicitly replacing the protagonist design for the current forest. A separately generated four-pose, transparent pixel sheet was cut into coherent cells and reduced to a compact indexed PNG. Runtime: `assets/action-forest/hero-red-scarf-atlas.png` (384×132 RGBA-capable indexed PNG, 4×96×132, transparent, fixed foot pivot [48,124]). Original approved large portrait is retained in the conversation artifact; the checked-in atlas is a **derived small runtime asset, not the exact approved portrait bytes**.
+
+`src/hero-still-review.js` now uses the fourth sprite as idle and all four temporal frames for WALK/RUN, without changing fighter state, camera, input, equipment overlays, saves or location logic. `?actor=still` holds the idle sprite and `?actor=classic` retains the former code-rendered comparison. If the new atlas fails to load, the caller can fall back to its older pixel-actor drawing. The generated movement remains subject to phone-size human review. This note supersedes the older artwork as **current runtime appearance**; older source and approved identity anchors are retained as historical/reference material.
+
+
+
 On 2026-10-23 the user approved the presented protagonist still: “これでいいよ”. The exact Pixelorama-exported bytes are retained as `docs/assets/player-unarmed-approved-pixel-anchor-v1.png` (SHA256 `1248dc470d9e68afdae3d1b7c1ab5be9fb1a6ebc2c657eb3db63fd79b77cc928`). A byte-equality regression protects against substituting another candidate. The original v0.4 illustration is preserved.
 
 The hosted adoption tool expected an approved JSON manifest rather than a direct PNG, and the local Core initially rejected the null global reference and replacing an already registered anchor. No failed registration is claimed as successful. The repository-native Visual Director Core successfully registered the explicitly approved pixel variant under `player-unarmed-pixel`, preserving the original subject. It regenerated compiled Canon. The new actual approved image replaces the formerly absent concrete image reference; historical boards are still excluded. This is a scoped protagonist approval, not approval of other actors or of the new animation.
