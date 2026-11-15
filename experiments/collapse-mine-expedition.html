@@ -46,7 +46,7 @@ function render(){
   const k=x+','+y,visible=(k!==CACHE||s.cacheFound)&&(s.seen.includes(k)||near(s.pos,k)),can=!s.ended&&visible&&near(s.pos,k)&&walkable(k);
   const b=document.createElement('button');b.disabled=!can;b.textContent=k===s.pos?'●':!visible?'?':!path.has(k)?'▦':k===GATE&&!s.shored?'▦':k===CACHE?'✦':k===ORE?'◆':k===HOME?'⌂':'·';b.setAttribute('aria-label',k);b.onclick=()=>move(k);board.append(b);
  }
- const allowed={survey:!s.ended&&s.pos===SURVEY&&!s.surveyed,shore:!s.ended&&s.pos===SURVEY&&s.surveyed&&!s.shored&&s.loot>=2,mine:!s.ended&&s.pos===ORE&&!s.mined,deep:!s.ended&&s.pos===ORE&&!s.mined&&s.hp>2,brace:!s.ended&&s.pos===ORE&&s.rockfall&&!s.braced&&s.loot>=2,escape:!s.ended&&s.pos===ORE&&s.rockfall&&!s.escaped&&s.loot>=3,trace:!s.ended&&s.pos===TRACE&&s.expeditions>0&&!s.cacheFound,cache:!s.ended&&s.pos===CACHE&&!s.cacheLooted,retreat:!s.ended,again:s.ended};
+ const allowed={survey:!s.ended&&s.pos===SURVEY&&!s.surveyed,shore:!s.ended&&s.pos===SURVEY&&s.surveyed&&!s.shored&&s.loot>=2,mine:!s.ended&&s.pos===ORE&&!s.mined,deep:!s.ended&&s.pos===ORE&&!s.mined&&s.hp>2,brace:!s.ended&&s.pos===ORE&&s.rockfall&&!s.braced&&s.loot>=2,escape:!s.ended&&s.pos===ORE&&s.rockfall&&!s.escaped&&s.loot>=3,trace:!s.ended&&s.pos===TRACE&&s.expeditions>0&&!s.cacheFound,cache:!s.ended&&s.pos===CACHE&&!s.cacheLooted&&s.hp>1,retreat:!s.ended,again:s.ended};
  for(const [id,yes] of Object.entries(allowed))el(id).hidden=!yes;
 }
 function act(id,condition,change){el(id).onclick=()=>{if(!condition())return;change();save();render()}}
