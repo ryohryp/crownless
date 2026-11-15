@@ -61,7 +61,8 @@ function render(){
  for(const [id,yes] of Object.entries(allowed))el(id).hidden=!yes;
 }
 function act(id,condition,change){el(id).onclick=()=>{if(!condition())return;change();save();render()}}
-act('trap',()=>!s.ended&&s.pos===TRACE&&!s.trapReady&&!s.trapTriggered&&s.loot>=2,()=>{s.loot-=2;s.trapReady=true;s.message='素材2個で追跡獣の通り道に罠を設置。次の遠征で発動し、素材4個を回収できる。';});\nact('listen',()=>!s.ended&&s.pos==='3,2'&&s.stalker==='warning',()=>{s.stalker='ready';s.message='追跡獣が右の岩陰から飛び出す予兆！ 身をかわすか、先手を打って素材を奪うか。'});
+act('trap',()=>!s.ended&&s.pos===TRACE&&!s.trapReady&&!s.trapTriggered&&s.loot>=2,()=>{s.loot-=2;s.trapReady=true;s.message='素材2個で追跡獣の通り道に罠を設置。次の遠征で発動し、素材4個を回収できる。';});
+act('listen',()=>!s.ended&&s.pos==='3,2'&&s.stalker==='warning',()=>{s.stalker='ready';s.message='追跡獣が右の岩陰から飛び出す予兆！ 身をかわすか、先手を打って素材を奪うか。'});
 act('dodge',()=>!s.ended&&s.pos==='3,2'&&s.stalker==='ready'&&s.hp>1,()=>{s.hp--;s.stalker='avoided';s.message='岩陰へ滑り込み、獣をやり過ごした。HP-1。';});
 act('ambush',()=>!s.ended&&s.pos==='3,2'&&s.stalker==='ready'&&s.hp>2,()=>{s.hp-=2;s.loot+=5;s.stalker='defeated';s.message='岩を落として追跡獣を撃退！ HP-2、素材5個。生還して持ち帰ろう。';});
 act('survey',()=>s.pos===SURVEY&&!s.surveyed&&!s.ended,()=>{s.surveyed=true;s.loot+=2;s.message='亀裂の奥で木材2個を発見。支柱を組めば先へ進める。'});
