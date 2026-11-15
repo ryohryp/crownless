@@ -10,7 +10,7 @@ h1{font-size:1.1rem;margin:0}#map{display:grid;grid-template-columns:repeat(5,1f
 #actions button{min-height:48px;border-radius:9px;border:1px solid #82978a;background:#39554a;color:white;font:inherit}
 #actions button[hidden]{display:none}#status{min-height:3em;line-height:1.4}small{color:#b9c9c4}
 </style>
-<main><h1>崩落坑道 — 持ち帰るか、奥へ進むか</h1><div id="stats"></div><div id="status" role="status" aria-live="polite"></div><div id="map" aria-label="隣接した歩行可能な道だけ選べる坑道"></div><small>入口から鉱脈を調べ、支柱を組んで崩落路を開ける。深部の鉱石は重く、帰路に落石が起きる。採掘量を欲張るか、帰路を補強するか選ぼう。実ゲームのセーブには触れない独立実験。</small><div id="actions"><button id="survey">岩盤の亀裂を調べる</button><button id="shore">支柱を組む（素材2）</button><button id="mine">浅く採掘（素材3）</button><button id="deep">深く採掘（素材8・HP-2）</button><button id="brace">帰路を補強（素材2）</button><button id="escape">荷を捨てて落石を回避（素材3）</button><button id="trace">風の痕跡を追う（再遠征で解禁）</button><button id="cache">希少結晶を採集（素材6・HP-1）</button><button id="retreat">撤退（素材喪失）</button><button id="again">次の遠征</button></div></main>
+<main><h1>崩落坑道 — 持ち帰るか、奥へ進むか</h1><div id="stats"></div><div id="status" role="status" aria-live="polite"></div><div id="map" aria-label="隣接した歩行可能な道だけ選べる坑道"></div><small>入口から鉱脈を調べ、支柱を組んで崩落路を開ける。深部の鉱石は重く、帰路に落石が起きる。採掘量を欲張るか、帰路を補強するか選ぼう。実ゲームのセーブには触れない独立実験。</small><div id="actions"><button id="survey">岩盤の亀裂を調べる</button><button id="shore">支柱を組む（素材2）</button><button id="mine">浅く採掘（素材3）</button><button id="deep">深く採掘（素材8・HP-2）</button><button id="brace">帰路を補強（素材2）</button><button id="escape">荷を捨てて落石を回避（素材3）</button><button id="trace">風の痕跡を追う（再遠征で解禁）</button><button id="cache">希少結晶を採集（素材6・HP-1）</button><button id="retreat">撤退（素材喪失）</button><button id="reinforce">坑道を恒久補強（倉庫素材6）</button><button id="again">次の遠征</button></div></main>
 <script>
 'use strict';
 const KEY='crownless-collapse-expedition-v1';
@@ -19,10 +19,10 @@ const path=new Set(['0,4','1,4','1,3','2,3','2,2','3,2','3,1','4,1','4,0']);
 const xy=k=>k.split(',').map(Number);
 const near=(a,b)=>{const [x,y]=xy(a),[u,v]=xy(b);return Math.abs(x-u)+Math.abs(y-v)===1};
 const el=id=>document.getElementById(id);
-const fresh=()=>({pos:HOME,hp:5,loot:0,warehouse:0,expeditions:0,cacheFound:false,cacheLooted:false,surveyed:false,shored:false,mined:false,deep:false,braced:false,rockfall:false,escaped:false,ended:false,seen:[HOME],message:'坑道へ踏み込もう。'});
+const fresh=()=>({pos:HOME,hp:5,loot:0,warehouse:0,expeditions:0,reinforced:false,cacheFound:false,cacheLooted:false,surveyed:false,shored:false,mined:false,deep:false,braced:false,rockfall:false,escaped:false,ended:false,seen:[HOME],message:'坑道へ踏み込もう。'});
 let s=fresh();try{const stored=JSON.parse(localStorage.getItem(KEY));if(stored&&path.has(stored.pos)&&Array.isArray(stored.seen))s={...fresh(),...stored};}catch{}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(s))}catch{s.message+='（保存できません）'}}
-function walkable(k){return path.has(k)&&(k!==GATE||s.shored)&&(k!==CACHE||s.cacheFound)}
+function walkable(k){return path.has(k)&&(k!==GATE||s.shored||s.reinforced)&&(k!==CACHE||s.cacheFound)}
 function finish(win){s.ended=true;if(win){s.warehouse+=s.loot;s.expeditions++;s.message='生還！ 素材'+s.loot+'個を倉庫へ運んだ。次の遠征で支柱の跡を再発見できる。'}else{s.message='撤退。手持ち素材'+s.loot+'個を失った。'}s.loot=0;save();render()}
 function move(k){
  if(s.ended||!near(s.pos,k)||!walkable(k))return;
@@ -35,7 +35,7 @@ function move(k){
  else if(k===CACHE)s.message='隠し鉱室を発見。希少な結晶を持ち帰れる。';
  else if(k===SURVEY&&!s.surveyed)s.message='壁に亀裂がある。調査すれば崩落路の支柱を組める。';
  else s.message='坑道を一歩進んだ。';
- if(k===HOME&&s.mined){finish(true);return}
+ if(k===HOME&&s.loot>0){finish(true);return}
  save();render();
 }
 function render(){
@@ -44,21 +44,22 @@ function render(){
  const board=el('map');board.replaceChildren();
  for(let y=0;y<5;y++)for(let x=0;x<5;x++){
   const k=x+','+y,visible=(k!==CACHE||s.cacheFound)&&(s.seen.includes(k)||near(s.pos,k)),can=!s.ended&&visible&&near(s.pos,k)&&walkable(k);
-  const b=document.createElement('button');b.disabled=!can;b.textContent=k===s.pos?'●':!visible?'?':!path.has(k)?'▦':k===GATE&&!s.shored?'▦':k===CACHE?'✦':k===ORE?'◆':k===HOME?'⌂':'·';b.setAttribute('aria-label',k);b.onclick=()=>move(k);board.append(b);
+  const b=document.createElement('button');b.disabled=!can;b.textContent=k===s.pos?'●':!visible?'?':!path.has(k)?'▦':k===GATE&&!s.shored&&!s.reinforced?'▦':k===CACHE?'✦':k===ORE?'◆':k===HOME?'⌂':'·';b.setAttribute('aria-label',k);b.onclick=()=>move(k);board.append(b);
  }
- const allowed={survey:!s.ended&&s.pos===SURVEY&&!s.surveyed,shore:!s.ended&&s.pos===SURVEY&&s.surveyed&&!s.shored&&s.loot>=2,mine:!s.ended&&s.pos===ORE&&!s.mined,deep:!s.ended&&s.pos===ORE&&!s.mined&&s.hp>2,brace:!s.ended&&s.pos===ORE&&s.rockfall&&!s.braced&&s.loot>=2,escape:!s.ended&&s.pos===ORE&&s.rockfall&&!s.escaped&&s.loot>=3,trace:!s.ended&&s.pos===TRACE&&s.expeditions>0&&!s.cacheFound,cache:!s.ended&&s.pos===CACHE&&!s.cacheLooted&&s.hp>1,retreat:!s.ended,again:s.ended};
+ const allowed={survey:!s.ended&&s.pos===SURVEY&&!s.surveyed,shore:!s.ended&&s.pos===SURVEY&&s.surveyed&&!s.shored&&!s.reinforced&&s.loot>=2,mine:!s.ended&&s.pos===ORE&&!s.mined,deep:!s.ended&&s.pos===ORE&&!s.mined&&s.hp>2,brace:!s.ended&&s.pos===ORE&&s.rockfall&&!s.braced&&s.loot>=2,escape:!s.ended&&s.pos===ORE&&s.rockfall&&!s.escaped&&s.loot>=3,trace:!s.ended&&s.pos===TRACE&&s.expeditions>0&&!s.cacheFound,cache:!s.ended&&s.pos===CACHE&&!s.cacheLooted&&s.hp>1,retreat:!s.ended,reinforce:s.ended&&s.warehouse>=6&&!s.reinforced,again:s.ended};
  for(const [id,yes] of Object.entries(allowed))el(id).hidden=!yes;
 }
 function act(id,condition,change){el(id).onclick=()=>{if(!condition())return;change();save();render()}}
 act('survey',()=>s.pos===SURVEY&&!s.surveyed&&!s.ended,()=>{s.surveyed=true;s.loot+=2;s.message='亀裂の奥で木材2個を発見。支柱を組めば先へ進める。'});
-act('shore',()=>s.pos===SURVEY&&s.surveyed&&!s.shored&&s.loot>=2&&!s.ended,()=>{s.loot-=2;s.shored=true;s.message='支柱を固定。奥の崩落路が開いた。'});
+act('shore',()=>s.pos===SURVEY&&s.surveyed&&!s.shored&&!s.reinforced&&s.loot>=2&&!s.ended,()=>{s.loot-=2;s.shored=true;s.message='支柱を固定。奥の崩落路が開いた。'});
 act('mine',()=>s.pos===ORE&&!s.mined&&!s.ended,()=>{s.mined=true;s.loot+=3;s.message='浅い鉱脈から素材3個。帰ろう。'});
 act('deep',()=>s.pos===ORE&&!s.mined&&s.hp>2&&!s.ended,()=>{s.mined=true;s.deep=true;s.hp-=2;s.loot+=8;s.rockfall=true;s.message='深部から素材8個！ 落石が始まった。素材を使って帰路を補強するか、荷を捨てて回避するか、危険なまま戻るか。'});
 act('brace',()=>s.pos===ORE&&s.rockfall&&!s.braced&&s.loot>=2&&!s.ended,()=>{s.loot-=2;s.braced=true;s.message='素材2個で帰路を補強。落石の被害を避けられる。'});
 act('escape',()=>s.pos===ORE&&s.rockfall&&!s.escaped&&s.loot>=3&&!s.ended,()=>{s.loot-=3;s.escaped=true;s.message='荷物3個を置いて落石をやり過ごした。帰還しよう。'});
 act('trace',()=>s.pos===TRACE&&s.expeditions>0&&!s.cacheFound&&!s.ended,()=>{s.cacheFound=true;s.message='壁の隙間から隠し鉱室への通路を見つけた。北の一歩が開いた。'});
 act('cache',()=>s.pos===CACHE&&!s.cacheLooted&&!s.ended&&s.hp>1,()=>{s.cacheLooted=true;s.hp--;s.loot+=6;s.message='希少結晶6個を確保。HP-1。生還すれば倉庫に持ち帰れる。'});
+act('reinforce',()=>s.ended&&s.warehouse>=6&&!s.reinforced,()=>{s.warehouse-=6;s.reinforced=true;s.message='倉庫の素材6個で坑道の支柱を恒久補強。次回から調査・支柱作りなしで奥へ進める。'});
 el('retreat').onclick=()=>{if(!s.ended)finish(false)};
-el('again').onclick=()=>{if(!s.ended)return;const {warehouse,expeditions}=s;s=fresh();s.warehouse=warehouse;s.expeditions=expeditions;save();render()};
+el('again').onclick=()=>{if(!s.ended)return;const {warehouse,expeditions,reinforced}=s;s=fresh();s.warehouse=warehouse;s.expeditions=expeditions;s.reinforced=reinforced;save();render()};
 render();
 </script></html>
