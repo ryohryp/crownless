@@ -28,12 +28,14 @@ function walkable(k){return path.has(k)&&(k!=='2,4'||s.gapCrossed||s.gapBridge)&
 function finish(win){s.ended=true;if(win){const reward=s.contract==='cache'&&s.cacheLooted?6:s.contract==='relic'&&s.relicLooted?10:0;s.warehouse+=s.loot+reward;s.contractDone=reward>0;s.expeditions++;s.message='生還！ 素材'+s.loot+'個を倉庫へ運んだ。'+(reward?'依頼達成報酬+'+reward+'個。':'')+'次の遠征で支柱の跡を再発見できる。'}else{s.message='撤退。手持ち素材'+s.loot+'個を失った。'}s.loot=0;save();render()}
 function move(k){
  if(s.ended||s.carryStrain||!near(s.pos,k)||!walkable(k))return;
+ const from=s.pos;
  s.pos=k;if(!s.seen.includes(k))s.seen.push(k);
  if(k==='2,4'&&!s.gapBridge&&!s.gapLooted){s.gapLooted=true;s.loot+=4;s.message='危険な谷を越え、対岸の資材4個を発見！ 素材3個で恒久橋を架ければ次の遠征から安全に通れる。';save();render();return}
  if(k==='3,2'&&s.stalker==='unseen'&&s.trapReady){s.trapReady=false;s.trapTriggered=true;s.stalker='defeated';s.loot+=4;s.message='前回設置した罠が作動！ 追跡獣を退け、素材4個を確保。再訪の準備が報われた。';save();render();return}
  if(k==='3,2'&&s.stalker==='unseen'){s.stalker='warning';s.message='暗がりから足音。立ち止まって予兆を聞くか、先へ進むか。';save();render();return}
  if(s.stalker==='warning'&&k!=='3,2'){s.hp-=2;s.stalker='struck';s.message='追跡獣が背後から襲った！ HP-2。足音を調べれば奇襲を避けられた。';if(s.hp<=0){finish(false);return}save();render();return}
- if(k===ROCK&&s.loot>=12&&!s.carryResolved&&!s.safeLedge&&s.hp>2){s.carryStrain=true;s.message='重い戦利品が狭い帰路に引っかかった！ 素材5個を捨てるか、HP2を使って強行突破するか。決めるまで移動できない。';save();render();return}
+ if(k===ROCK&&s.loot>=12&&!s.carryResolved&&!s.safeLedge&&!(from==='2,4'&&s.gapBridge)&&s.hp>2){s.carryStrain=true;s.message='重い戦利品が狭い帰路に引っかかった！ 素材5個を捨てるか、HP2を使って強行突破するか。決めるまで移動できない。';save();render();return}
+ if(k===ROCK&&from==='2,4'&&s.gapBridge&&s.loot>=12&&!s.carryResolved){s.carryResolved=true;s.message='恒久橋から荷運び道へ回り込み、重い戦利品を失わずに狭い帰路を迂回した！';save();render();return}
  if(k===FLOOD&&s.floodSurge&&!s.valveSealed){s.hp-=2;s.floodSurge=false;s.message='開いた水門から濁流が噴き出した！ HP-2。';if(s.hp<=0){finish(false);return}save();render();return}
  if(k===ROCK&&s.rockfall&&!s.braced&&!s.escaped){
    if(s.sensorCharge){s.sensorCharge=false;s.rockfall=false;s.message='探知器が落石を予告！ 安全な岩陰へ退避してHPを守った。次の遠征で再充電される。';save();render();return}
