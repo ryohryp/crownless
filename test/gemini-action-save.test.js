@@ -257,15 +257,17 @@ test('next-wave phone button shows the actual unsecured loss at the moment of ch
   assert(start >= 0 && end > start, 'exercise the live next-wave action label');
   const live = html.slice(start, end);
   const render = (hp, unbanked, result = true) => {
-    const button = { textContent: '', classList: { toggle: () => {} } };
+    const buttons = Object.fromEntries(['rpgPush', 'rpgFieldMedicine', 'rpgLurePatrol']
+      .map(id => [id, { textContent: '', classList: { toggle: () => {} } }]));
     vm.runInNewContext(live, {
       document: { getElementById: id => {
-        assert.equal(id, 'rpgPush');
-        return button;
+        assert.ok(Object.hasOwn(buttons, id), 'unexpected next-wave action: ' + id);
+        return buttons[id];
       } },
-      result, ginji: { hp, maxHp: 140 }, rpg: { unbanked }
+      result, ginji: { hp, maxHp: 140 }, rpg: { unbanked },
+      rpgRules: { FIELD_MEDICINE_HEAL: 35 }
     });
-    return button.textContent;
+    return buttons.rpgPush.textContent;
   };
   assert.match(render(73.4, 2), /HP 73\/140・未帰還の牙 2個／敗北で喪失/,
     'the risk action itself must state the concrete provisional loss');
