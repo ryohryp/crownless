@@ -14,6 +14,19 @@
     s.unbanked++;
     return true;
   }
+  // Spend a provisional fang as field medicine instead of carrying it home.
+  // The player must have won the current wave and consciously accept another.
+  // Never touch the banked warehouse; a failed deeper wave loses the remainder.
+  const FIELD_MEDICINE_HEAL = 35;
+  function useFieldMedicine(s, hp, maxHp) {
+    if (s.phase !== 'return' || s.unbanked < 1 ||
+        !Number.isFinite(hp) || !Number.isFinite(maxHp) ||
+        maxHp <= 0 || hp <= 0 || hp >= maxHp) return null;
+    s.unbanked -= 1;
+    s.phase = 'fight';
+    s.lastOutcome = 'field-medicine';
+    return Math.min(maxHp, hp + FIELD_MEDICINE_HEAL);
+  }
   function clearWave(s) {
     if (s.phase !== 'fight') return false;
     s.phase = 'return';
@@ -64,7 +77,7 @@
     s.lastOutcome = 'departed';
     return true;
   }
-  const api = { COST, TEMPER_COST, create, claimMaterial, clearWave, pushDeeper,
+  const api = { COST, TEMPER_COST, FIELD_MEDICINE_HEAL, create, claimMaterial, useFieldMedicine, clearWave, pushDeeper,
     returnAlive, loseExpedition, forge, temper, depart };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.CrownlessRpgLoop = api;
