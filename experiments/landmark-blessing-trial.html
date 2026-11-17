@@ -40,7 +40,9 @@ button('何もせず帰る',()=>{s.phase='map';render()});
 const site=sites.find(x=>x.id===s.target);
 $('heading').textContent=site.name+'・隠し場所の痕跡';
 $('description').textContent='石の隙間に運搬跡が続いている。体力を消耗して隠し貯蔵を掘り出すか、危険を避けて浅い採集に戻るか。隠し貯蔵は地標ごとに一度だけ回収できる。';
-button('痕跡を追って発掘',()=>{const cost=s.kit?1:3;s.hp-=cost;if(s.hp<=0){s.loot=0;s.phase='map';note('発掘中に力尽きた。未帰還素材は失われた。')}else{s.loot+=8;s.pendingCache=site.id;s.pursuit=true;s.phase='return';note('隠し貯蔵から希少素材8個！HP-'+cost+'。生還しなければ素材は失う。');}render()});
+const clues={spring:{hint:'湿った苔の筋が水音のする北側へ続く。',correct:'north'},watch:{hint:'見張りの刻印は日没側の壁にだけ残る。',correct:'west'},mine:{hint:'荷車の車輪跡は低い南側の坑口に消える。',correct:'south'}};
+const clue=clues[site.id];$('description').textContent+=' 手掛かり：'+clue.hint+' 誤った入口を探すとHPを2失う。';
+for(const [dir,label] of [['north','北の入口'],['west','西の入口'],['south','南の入口']])button(label+'を調べる',()=>{if(dir!==clue.correct){s.hp-=2;if(s.hp<=0){s.phase='map';s.loot=0;s.pendingCache=null;note('誤った入口で罠にかかり、素材を失った。')}else note('行き止まりの罠！ HP-2。痕跡を読み直そう。');render();return;}const cost=s.kit?1:3;s.hp-=cost;if(s.hp<=0){s.loot=0;s.phase='map';note('発掘中に力尽きた。未帰還素材は失われた。')}else{s.loot+=8;s.pendingCache=site.id;s.pursuit=true;s.phase='return';note('痕跡を読み解き隠し貯蔵を発見！希少素材8個、HP-'+cost+'。生還で回収確定。')}render()});
 button('崩れた横穴を探る',()=>{const cost=s.kit?2:4;s.hp-=cost;if(s.hp<=0){s.loot=0;s.pendingCache=null;s.phase='map';note('横穴が崩落。素材を失って撤退した。')}else{s.loot+=4;s.pursuit=true;s.phase='return';note('横穴から素材4個を回収。HP-'+cost+'。隠し貯蔵は次回も探せる。')}render()});
 button('調査に戻る',()=>{s.phase='survey';render()});
 }else if(s.phase==='fight'){
