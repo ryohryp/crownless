@@ -54,6 +54,7 @@ button('強攻撃',()=>fight(false));button('防御して反撃',()=>fight(true)
 $('heading').textContent='帰路の追跡者 HP '+s.tracker;
 $('description').textContent='深部の採集音で追跡された。素材2個を囮にして帰還するか、HPを賭けて迎撃するか。撃破すると追跡は終わり、残りの素材を持ち帰れる。';
 button('素材2個を囮にして逃げる',()=>{const lost=Math.min(2,s.loot);s.loot-=lost;s.pursuit=false;s.phase='return';note('素材'+lost+'個を囮にして追跡者を振り切った。');render()});
+if(s.kit&&s.caches.includes(s.target))button('発見済みの抜け道で追跡をまく（HP-1）',()=>{s.hp-=1;if(s.hp<=0){s.phase='map';s.loot=0;s.pendingCache=null;s.pursuit=false;note('抜け道で力尽き、未帰還素材を失った。')}else{s.pursuit=false;s.phase='return';note('前回発見した隠し道で追跡者を回避。素材をすべて守った。')}render()});
 button('迎撃する（HP-3）',()=>{s.hp-=3;if(s.hp<=0){s.phase='map';s.loot=0;s.pendingCache=null;s.pursuit=false;note('追跡者に敗れ、未帰還素材をすべて失った。')}else{s.tracker-=2+(s.owned.includes('watch')?1:0);if(s.tracker<=0){s.pursuit=false;s.phase='return';note('追跡者を撃退。素材を守って帰還できる。')}else note('追跡者に反撃した。残りHP '+s.tracker)}render()});
 }else if(s.phase==='return'){
 $('heading').textContent=s.revisit?'再訪の採集成果':'守護者撃破！';$('description').textContent='素材を抱えて生還するか、追加採集で危険を冒すか。探索道具があれば消耗HPは1。敗北すると未帰還素材を失う。';
