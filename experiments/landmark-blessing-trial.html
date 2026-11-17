@@ -1,0 +1,72 @@
+<!doctype html>
+<html lang="ja"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Crownless | 地標の祝福 実験</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#101b22;color:#f2ead9;font:16px/1.5 system-ui}main{max-width:480px;margin:auto;min-height:100dvh;display:flex;flex-direction:column;padding:16px 16px calc(18px + env(safe-area-inset-bottom))}h1{font-size:1.35rem;margin:0 0 8px}h2{font-size:1.05rem}section{background:#21313b;border:1px solid #52636b;border-radius:12px;padding:12px;margin:8px 0}#actions{margin-top:auto;display:grid;grid-template-columns:1fr 1fr;gap:10px;padding-top:14px}button{min-height:52px;border-radius:10px;border:1px solid #b6b2a0;background:#334d56;color:white;font:inherit;padding:8px}button:disabled{opacity:.4}button:focus-visible{outline:3px solid gold}small{color:#c9c5b7}#log{max-height:26dvh;overflow:auto}strong{color:#f6d78a}
+</style>
+<main><h1>地標の祝福・遠征実験</h1><small>位置情報を使わない独立実験。地標の守護者を倒して生還したときだけ祝福を獲得。</small>
+<section id="status" aria-live="polite"></section><section><h2 id="heading"></h2><div id="description"></div></section><section id="log" aria-live="polite"></section><div id="actions"></div></main>
+<script>
+(() => {
+const sites=[
+{id:'spring',name:'癒しの泉',blessing:'遠征開始時HP +2',hp:2,guard:4},
+{id:'watch',name:'見張り塔',blessing:'戦闘ダメージ +1',attack:1,guard:6},
+{id:'mine',name:'古い鉱山',blessing:'生還時の素材 +2',loot:2,guard:5}
+];
+const key='crownless-landmark-trial-v2';
+let saved={};try{saved=JSON.parse(localStorage.getItem(key)||'{}')}catch{}
+let s={phase:'map',owned:Array.isArray(saved.owned)?saved.owned.filter(id=>sites.some(x=>x.id===id)):[],warehouse:Number.isInteger(saved.warehouse)&&saved.warehouse>=0?saved.warehouse:0,kit:!!saved.kit,caches:Array.isArray(saved.caches)?saved.caches.filter(id=>sites.some(x=>x.id===id)):[],target:null,hp:8,loot:0,guard:0,turn:0,revisit:false,pendingCache:null,pursuit:false,tracker:0,log:['地標を選び、守護者を倒して生還しよう。']};
+function persist(){try{localStorage.setItem(key,JSON.stringify({owned:s.owned,warehouse:s.warehouse,kit:s.kit,caches:s.caches}))}catch{note('保存できません。再読込で進捗が失われます。')}}
+const $=id=>document.getElementById(id);
+const note=t=>{s.log.unshift(t);s.log=s.log.slice(0,8)};
+function button(text,fn,disabled=false){const b=document.createElement('button');b.textContent=text;b.disabled=disabled;b.onclick=fn;$('actions').append(b)}
+function render(){
+$('actions').replaceChildren();
+$('status').textContent='HP '+s.hp+'/10 | 未帰還素材 '+s.loot+' | 倉庫 '+s.warehouse+' | 探索道具 '+(s.kit?'有':'無')+' | 確保 '+s.owned.length+'/3';
+$('log').replaceChildren(...s.log.map(t=>{let p=document.createElement('div');p.textContent=t;return p}));
+if(s.phase==='map'){
+$('heading').textContent='地標を選ぶ';$('description').textContent='祝福は所有している地標ごとに1回だけ適用。発見だけでは獲得できない。';
+if(!s.kit)button('素材5個で探索道具を製作',()=>{s.warehouse-=5;s.kit=true;note('探索道具完成！次回から追加採集の消耗HPが3→1。');persist();render()},s.warehouse<5);
+for(const site of sites)button(site.name+(s.owned.includes(site.id)?'（再訪）':''),()=>{s.target=site.id;s.revisit=s.owned.includes(site.id);s.guard=site.guard;s.hp=Math.min(10,8+(s.owned.includes('spring')?2:0));s.loot=0;s.pendingCache=null;s.pursuit=false;s.tracker=0;s.turn=0;s.phase=s.revisit?'survey':'fight';note(site.name+(s.revisit?'へ再訪。地形が変化している。':'へ遠征。守護者が現れた！'));render()});
+}else if(s.phase==='survey'){
+const site=sites.find(x=>x.id===s.target);
+$('heading').textContent=site.name+'・再訪調査';
+$('description').textContent='確保後の地標に新しい採集地点が出現。安全な調査で素材2個、危険な深部で素材6個を狙える。深部は探索道具があればHP消費が減る。帰還しなければ素材は倉庫に入らない。';
+button('浅い場所を調査',()=>{s.loot+=2;s.phase='return';note('安全な採集で素材2個を確保。');render()});
+if(!s.caches.includes(site.id))button('地形の痕跡を調べる',()=>{s.phase='trace';note(site.name+'の地面に不自然な痕跡を発見。');render()});
+button('深部に踏み込む',()=>{const cost=s.kit?2:5;s.hp-=cost;if(s.hp<=0){s.loot=0;s.phase='map';note('深部で力尽きた。素材を失った。')}else{s.loot+=6;s.pursuit=true;s.phase='return';note('深部から素材6個！ HP-'+cost+'。帰還判断へ。')}render()});
+button('何もせず帰る',()=>{s.phase='map';render()});
+}else if(s.phase==='trace'){
+const site=sites.find(x=>x.id===s.target);
+$('heading').textContent=site.name+'・隠し場所の痕跡';
+$('description').textContent='石の隙間に運搬跡が続いている。体力を消耗して隠し貯蔵を掘り出すか、危険を避けて浅い採集に戻るか。隠し貯蔵は地標ごとに一度だけ回収できる。';
+const clues={spring:{hint:'湿った苔の筋が水音のする北側へ続く。',correct:'north'},watch:{hint:'見張りの刻印は日没側の壁にだけ残る。',correct:'west'},mine:{hint:'荷車の車輪跡は低い南側の坑口に消える。',correct:'south'}};
+const clue=clues[site.id];$('description').textContent+=' 手掛かり：'+clue.hint+' 誤った入口を探すとHPを2失う。';
+for(const [dir,label] of [['north','北の入口'],['west','西の入口'],['south','南の入口']])button(label+'を調べる',()=>{if(dir!==clue.correct){s.hp-=2;if(s.hp<=0){s.phase='map';s.loot=0;s.pendingCache=null;note('誤った入口で罠にかかり、素材を失った。')}else note('行き止まりの罠！ HP-2。痕跡を読み直そう。');render();return;}const cost=s.kit?1:3;s.hp-=cost;if(s.hp<=0){s.loot=0;s.phase='map';note('発掘中に力尽きた。未帰還素材は失われた。')}else{s.loot+=8;s.pendingCache=site.id;s.pursuit=true;s.phase='return';note('痕跡を読み解き隠し貯蔵を発見！希少素材8個、HP-'+cost+'。生還で回収確定。')}render()});
+button('崩れた横穴を探る',()=>{const cost=s.kit?2:4;s.hp-=cost;if(s.hp<=0){s.loot=0;s.pendingCache=null;s.phase='map';note('横穴が崩落。素材を失って撤退した。')}else{s.loot+=4;s.pursuit=true;s.phase='return';note('横穴から素材4個を回収。HP-'+cost+'。隠し貯蔵は次回も探せる。')}render()});
+button('調査に戻る',()=>{s.phase='survey';render()});
+}else if(s.phase==='fight'){
+const site=sites.find(x=>x.id===s.target);
+$('heading').textContent=site.name+'の守護者 HP '+s.guard;
+$('description').textContent=(s.turn%2===0?'予兆：守護者が大振りを構えた。次の被害は4。':'予兆：守護者が息を整えている。次の被害は1。')+' 攻撃は3ダメージ、防御反撃は1ダメージ（見張り塔の祝福は両方+1）。大振りを防ぐか、隙に攻めるか選ぼう。側面攻撃は小休止に5ダメージ・被害2、大振り中は1ダメージ・被害5。';
+button('強攻撃',()=>fight(false));button('防御して反撃',()=>fight(true));button('側面へ回り込む',()=>flank());button('撤退（素材喪失）',()=>{s.phase='map';s.loot=0;s.pendingCache=null;note('撤退した。');render()});
+}else if(s.phase==='pursuit'){
+$('heading').textContent='帰路の追跡者 HP '+s.tracker;
+$('description').textContent='深部の採集音で追跡された。素材2個を囮にして帰還するか、HPを賭けて迎撃するか。撃破すると追跡は終わり、残りの素材を持ち帰れる。';
+button('素材2個を囮にして逃げる',()=>{const lost=Math.min(2,s.loot);s.loot-=lost;s.pursuit=false;s.phase='return';note('素材'+lost+'個を囮にして追跡者を振り切った。');render()});
+if(s.kit&&s.caches.includes(s.target))button('発見済みの抜け道で追跡をまく（HP-1）',()=>{s.hp-=1;if(s.hp<=0){s.phase='map';s.loot=0;s.pendingCache=null;s.pursuit=false;note('抜け道で力尽き、未帰還素材を失った。')}else{s.pursuit=false;s.phase='return';note('前回発見した隠し道で追跡者を回避。素材をすべて守った。')}render()});
+button('迎撃する（HP-3）',()=>{s.hp-=3;if(s.hp<=0){s.phase='map';s.loot=0;s.pendingCache=null;s.pursuit=false;note('追跡者に敗れ、未帰還素材をすべて失った。')}else{s.tracker-=2+(s.owned.includes('watch')?1:0);if(s.tracker<=0){s.pursuit=false;s.phase='return';note('追跡者を撃退。素材を守って帰還できる。')}else note('追跡者に反撃した。残りHP '+s.tracker)}render()});
+}else if(s.phase==='return'){
+$('heading').textContent=s.revisit?'再訪の採集成果':'守護者撃破！';$('description').textContent='素材を抱えて生還するか、追加採集で危険を冒すか。探索道具があれば消耗HPは1。敗北すると未帰還素材を失う。';
+button(s.pursuit?'帰路へ（追跡者に遭遇）':'安全に帰還',()=>{if(s.pursuit){s.tracker=4;s.phase='pursuit';note('物音を聞きつけた追跡者が帰路を塞いだ。素材を捨てて逃げるか、迎撃するか。');render();return;}const site=sites.find(x=>x.id===s.target);if(!s.owned.includes(site.id))s.owned.push(site.id);const reward=s.loot+(s.owned.includes('mine')?2:0);s.warehouse+=reward;if(s.pendingCache&&!s.caches.includes(s.pendingCache))s.caches.push(s.pendingCache);s.pendingCache=null;s.pursuit=false;persist();note((s.revisit?'再訪から生還！':site.name+'を確保！')+'素材'+reward+'を持ち帰った。祝福：'+site.blessing);s.phase='map';render()});
+button('危険な追加採集',()=>{s.loot+=2;s.hp-=s.kit?1:3;if(s.hp<=0){s.phase='map';s.loot=0;s.pendingCache=null;note('採集中に倒れた。素材も地標の権利も失った。')}else note('素材+2、HP-'+(s.kit?1:3)+'。帰還を選べる。');render()});
+}
+}
+function flank(){const heavy=s.turn%2===0;s.turn++;const dmg=(heavy?1:5)+(s.owned.includes('watch')?1:0);const incoming=heavy?5:2;s.guard-=dmg;if(s.guard<=0){s.loot=3;s.phase='return';note('側面から弱点を突き守護者を撃破！素材3個を確保。')}else{s.hp-=incoming;note('側面へ移動：'+dmg+'ダメージ、被害'+incoming+(heavy?'。大振りに巻き込まれた！':'。隙を突いた！'));if(s.hp<=0){s.phase='map';s.loot=0;s.pendingCache=null;note('側面への移動に失敗し敗北。')}}render()}
+function fight(defend){const heavy=s.turn%2===0;s.turn++;const dmg=(defend?1:3)+(s.owned.includes('watch')?1:0);s.guard-=dmg;
+if(s.guard<=0){s.loot=3;s.phase='return';note('守護者を倒した。素材3個を発見。まだ確保はしていない。')}
+else{const incoming=defend?1:(heavy?4:1);s.hp-=incoming;note((defend?'防御反撃':'強攻撃')+'：'+dmg+'ダメージ、被害'+incoming+(heavy?'（大振り）':'（小休止）'));if(s.hp<=0){s.phase='map';s.loot=0;s.pendingCache=null;note('敗北。地標は未確保のまま。')}}
+render()}
+render();
+})();
+</script></html>
