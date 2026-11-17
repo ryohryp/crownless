@@ -40,3 +40,28 @@ test('healing clamps to max and leaves remaining loot returnable', () => {
   assert.equal(rules.returnAlive(s, 140), true);
   assert.equal(s.banked, 1);
 });
+
+test('patrol diversion spends only unbanked loot and makes a new wave', () => {
+  const s = rules.create();
+  assert.equal(rules.lurePatrol(s), false);
+  rules.claimMaterial(s);
+  rules.claimMaterial(s);
+  rules.clearWave(s);
+  assert.equal(rules.lurePatrol(s), true);
+  assert.equal(s.phase, 'fight');
+  assert.equal(s.unbanked, 1);
+  assert.equal(rules.lurePatrol(s), false);
+  rules.loseExpedition(s);
+  assert.equal(s.unbanked, 0);
+  assert.equal(s.banked, 0);
+});
+
+test('diversion cannot spend warehouse loot', () => {
+  const s = rules.create();
+  rules.claimMaterial(s);
+  rules.clearWave(s);
+  rules.returnAlive(s, 50);
+  assert.equal(s.banked, 1);
+  assert.equal(rules.lurePatrol(s), false);
+  assert.equal(s.banked, 1);
+});
