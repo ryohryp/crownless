@@ -27,6 +27,15 @@
     s.lastOutcome = 'field-medicine';
     return Math.min(maxHp, hp + FIELD_MEDICINE_HEAL);
   }
+  // Lure one patrol away using unsecured loot. Fewer enemies, but less to bank.
+  // A second attempt is a fresh choice only after winning the next wave.
+  function lurePatrol(s) {
+    if (s.phase !== 'return' || s.unbanked < 1) return false;
+    s.unbanked -= 1;
+    s.phase = 'fight';
+    s.lastOutcome = 'lured-patrol';
+    return true;
+  }
   function clearWave(s) {
     if (s.phase !== 'fight') return false;
     s.phase = 'return';
@@ -77,7 +86,7 @@
     s.lastOutcome = 'departed';
     return true;
   }
-  const api = { COST, TEMPER_COST, FIELD_MEDICINE_HEAL, create, claimMaterial, useFieldMedicine, clearWave, pushDeeper,
+  const api = { COST, TEMPER_COST, FIELD_MEDICINE_HEAL, create, claimMaterial, useFieldMedicine, lurePatrol, clearWave, pushDeeper,
     returnAlive, loseExpedition, forge, temper, depart };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   root.CrownlessRpgLoop = api;
