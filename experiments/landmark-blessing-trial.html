@@ -15,8 +15,8 @@ const sites=[
 ];
 const key='crownless-landmark-trial-v2';
 let saved={};try{saved=JSON.parse(localStorage.getItem(key)||'{}')}catch{}
-let s={phase:'map',owned:Array.isArray(saved.owned)?saved.owned.filter(id=>sites.some(x=>x.id===id)):[],warehouse:Number.isInteger(saved.warehouse)&&saved.warehouse>=0?saved.warehouse:0,kit:!!saved.kit,target:null,hp:8,loot:0,guard:0,turn:0,revisit:false,log:['地標を選び、守護者を倒して生還しよう。']};
-function persist(){try{localStorage.setItem(key,JSON.stringify({owned:s.owned,warehouse:s.warehouse,kit:s.kit}))}catch{note('保存できません。再読込で進捗が失われます。')}}
+let s={phase:'map',owned:Array.isArray(saved.owned)?saved.owned.filter(id=>sites.some(x=>x.id===id)):[],warehouse:Number.isInteger(saved.warehouse)&&saved.warehouse>=0?saved.warehouse:0,kit:!!saved.kit,caches:Array.isArray(saved.caches)?saved.caches.filter(id=>sites.some(x=>x.id===id)):[],target:null,hp:8,loot:0,guard:0,turn:0,revisit:false,log:['地標を選び、守護者を倒して生還しよう。']};
+function persist(){try{localStorage.setItem(key,JSON.stringify({owned:s.owned,warehouse:s.warehouse,kit:s.kit,caches:s.caches}))}catch{note('保存できません。再読込で進捗が失われます。')}}
 const $=id=>document.getElementById(id);
 const note=t=>{s.log.unshift(t);s.log=s.log.slice(0,8)};
 function button(text,fn,disabled=false){const b=document.createElement('button');b.textContent=text;b.disabled=disabled;b.onclick=fn;$('actions').append(b)}
@@ -33,8 +33,15 @@ const site=sites.find(x=>x.id===s.target);
 $('heading').textContent=site.name+'・再訪調査';
 $('description').textContent='確保後の地標に新しい採集地点が出現。安全な調査で素材2個、危険な深部で素材6個を狙える。深部は探索道具があればHP消費が減る。帰還しなければ素材は倉庫に入らない。';
 button('浅い場所を調査',()=>{s.loot+=2;s.phase='return';note('安全な採集で素材2個を確保。');render()});
+if(!s.caches.includes(site.id))button('地形の痕跡を調べる',()=>{s.phase='trace';note(site.name+'の地面に不自然な痕跡を発見。');render()});
 button('深部に踏み込む',()=>{const cost=s.kit?2:5;s.hp-=cost;if(s.hp<=0){s.loot=0;s.phase='map';note('深部で力尽きた。素材を失った。')}else{s.loot+=6;s.phase='return';note('深部から素材6個！ HP-'+cost+'。帰還判断へ。')}render()});
 button('何もせず帰る',()=>{s.phase='map';render()});
+}else if(s.phase==='trace'){
+const site=sites.find(x=>x.id===s.target);
+$('heading').textContent=site.name+'・隠し場所の痕跡';
+$('description').textContent='石の隙間に運搬跡が続いている。体力を消耗して隠し貯蔵を掘り出すか、危険を避けて浅い採集に戻るか。隠し貯蔵は地標ごとに一度だけ回収できる。';
+button('痕跡を追って発掘',()=>{const cost=s.kit?1:3;s.hp-=cost;if(s.hp<=0){s.loot=0;s.phase='map';note('発掘中に力尽きた。未帰還素材は失われた。')}else{s.loot+=8;s.caches.push(site.id);s.phase='return';note('隠し貯蔵から希少素材8個！HP-'+cost+'。生還しなければ素材は失う。');}render()});
+button('調査に戻る',()=>{s.phase='survey';render()});
 }else if(s.phase==='fight'){
 const site=sites.find(x=>x.id===s.target);
 $('heading').textContent=site.name+'の守護者 HP '+s.guard;
