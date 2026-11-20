@@ -596,6 +596,16 @@
         x.log=['獣の足跡を追って棘の茂みに踏み込んだ。体力 −4。古い獣骨から狼牙 +1 を拾った。生還まで失う危険がある。'];
         return n;
       }
+      // A non-combat alternative: forage a single herb rather than risking HP
+      // for a fang or spending the crafted lantern on a clue. One choice per trip.
+      if(action==='forest-tracks-forage' && x.place==='wood' && x.depth===1 &&
+        x.room===0 && x.field?.pos===F.TRACKS && x.field.tracks &&
+        !x.field.tracksRisk && !x.field.lanternClue && x.potions<3){
+        x.potions++;
+        x.field.tracksRisk=true;
+        x.log=['獣骨を追わず、足跡の脇に生える薬草を慎重に採った。薬草 +1。狼牙と灯りの痕跡は今回は諦めた。'];
+        return n;
+      }
       // A voluntary listening action reveals a risk clue without moving or starting combat.
       if (action === 'tower-listen' && x.place === 'tower' && x.depth === 1 &&
           x.room === 0 && x.tower && x.tower.pos === 19 &&
