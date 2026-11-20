@@ -32,3 +32,9 @@ test('full herb pouch cannot forage; mobile choice shows the tradeoff',()=>{
   assert.match(app,/button\('forest-tracks-forage'/);
   assert.match(app,/disabled:x\.potions>=3/);
 });
+
+test('forest decision describes herb foraging rather than falsely claiming a fang',()=>{
+  const app=fs.readFileSync('src/slice-app.js','utf8');
+  assert.match(app,/x\.field\.tracksRisk\?\(x\.materials\?\.wolfFang>0\?/);
+  assert.match(app,/足跡の脇で薬草を採った。体力を回復して奥へ進むか/);
+});
