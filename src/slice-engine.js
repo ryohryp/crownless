@@ -608,8 +608,8 @@
           x.log=['棘の奥を諦め、今ある戦利品を守ることにした。帰還するか別の道を探そう。'];
           return n;
         }
-        if(action==='forest-forage-herbs' && stage===0){
-          const gained=Math.min(2,Math.max(0,3-x.potions));
+        if(action==='forest-forage-herbs' && stage===0 && x.potions<3){
+          const gained=Math.min(2,3-x.potions);
           x.potions+=gained; x.field.foragingDone=true;
           x.log=[`安全な茂みで薬草 +${gained}。奥の鉱脈は見送った。`];
           return n;
