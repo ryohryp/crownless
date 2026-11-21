@@ -586,10 +586,15 @@
       }
       // The discovered stone ring presents a one-time, player-controlled
       // choice: preserve the current expedition or risk health for smithing loot.
-      if ((action==='forest-glade-rest'||action==='forest-glade-excavate'||action==='forest-glade-barter') &&
+      if ((action==='forest-glade-rest'||action==='forest-glade-excavate'||action==='forest-glade-barter'||action==='forest-glade-omen') &&
           x.place==='wood' && x.depth===1 && x.room===0 &&
           x.field?.pos===F.GLADE && x.field.glade && !x.field.gladeChoice) {
-        if(action==='forest-glade-rest'){
+        if(action==='forest-glade-omen'){
+          if(x.scrap<2 || x.focus>=3)return s;
+          x.scrap-=2;
+          x.focus=3;
+          x.log=['石環に鉄片2個を供え、次の戦いに備えて敵の気配を読む。集中が3になった。遠征中の一度きりの選択だ。'];
+        }else if(action==='forest-glade-rest'){
           if(x.scrap<3 || x.hp>=maxHp(n))return s;
           x.scrap-=3;
           const healed=Math.min(12,maxHp(n)-x.hp);
