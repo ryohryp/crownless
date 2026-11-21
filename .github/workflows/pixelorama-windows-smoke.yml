@@ -1,0 +1,90 @@
+name: Pixelorama Windows export smoke
+
+on:
+  pull_request:
+    paths:
+      - .github/workflows/pixelorama-windows-smoke.yml
+      - scripts/pixelorama-export.cjs
+      - scripts/pixel-art-gate.cjs
+      - test/pixelorama-export.test.js
+
+permissions:
+  contents: read
+
+jobs:
+  pixelorama-windows:
+    runs-on: windows-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install image inspection dependency
+        run: npm install --package-lock=false --no-audit --no-fund
+      - name: Download official Pixelorama and a public sample project
+        shell: pwsh
+        run: |
+          $ProgressPreference = 'SilentlyContinue'
+          New-Item -ItemType Directory -Force '.qa/candidates' | Out-Null
+          $zipPath = Join-Path $env:RUNNER_TEMP 'Pixelorama-Windows-64bit.zip'
+          Invoke-WebRequest 'https://github.com/Orama-Interactive/Pixelorama/releases/download/v1.2.3/Pixelorama-Windows-64bit.zip' -OutFile $zipPath
+          $appDir = Join-Path $env:RUNNER_TEMP 'pixelorama-app'
+          Expand-Archive $zipPath -DestinationPath $appDir
+          $binary = Get-ChildItem $appDir -Filter 'Pixelorama.exe' -Recurse -File | Select-Object -First 1
+          if (-not $binary) { throw 'Pixelorama.exe was not found in the official archive' }
+          "PIXELORAMA_BIN=$($binary.FullName)" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+          Invoke-WebRequest 'https://raw.githubusercontent.com/Orama-Interactive/Pixelorama/v1.2.3/Misc/example_pxo_files/animated_layer_effect.pxo' -OutFile (Join-Path $env:RUNNER_TEMP 'official-example.pxo')
+      - name: Build a plain-pixel fixture without shader effects
+        shell: pwsh
+        run: |
+          # Source: Orama-Interactive/Pixelorama, Misc/example_pxo_files/animated_layer_effect.pxo
+          # License: CC-BY-4.0. Remove only shader effects for headless dummy rendering.
+          @'
+          import json
+          import os
+          import zipfile
+          from pathlib import Path
+
+          source = Path(os.environ['RUNNER_TEMP']) / 'official-example.pxo'
+          target = Path('.qa/candidates/pixelorama-windows-smoke.pxo')
+          with zipfile.ZipFile(source) as original, zipfile.ZipFile(target, 'w', zipfile.ZIP_DEFLATED) as flattened:
+              for member in original.infolist():
+                  data = original.read(member.filename)
+                  if member.filename == 'data.json':
+                      project = json.loads(data)
+                      for layer in project['layers']:
+                          layer['effects'] = []
+                      data = json.dumps(project, separators=(',', ':')).encode('utf-8')
+                  flattened.writestr(member, data)
+          '@ | python -
+      - name: Export both native and 2x sprite sheets with the actual Windows executable
+        shell: pwsh
+        run: |
+          node scripts/pixelorama-export.cjs --project .qa/candidates/pixelorama-windows-smoke.pxo --output .qa/candidates/pixelorama-windows-smoke.png
+          node scripts/pixelorama-export.cjs --project .qa/candidates/pixelorama-windows-smoke.pxo --output .qa/candidates/pixelorama-windows-smoke-2x.png --scale 2
+      - name: Verify PNG decoding, integer pixel grid, palette and alpha
+        shell: pwsh
+        run: |
+          @'
+          const sharp = require('sharp');
+          const {inspectPixelArt} = require('./scripts/pixel-art-gate.cjs');
+          (async () => {
+            for (const [filename, expectedWidth, expectedHeight, scale] of [
+              ['pixelorama-windows-smoke.png', 384, 64, 1],
+              ['pixelorama-windows-smoke-2x.png', 768, 128, 2],
+            ]) {
+              const {data, info} = await sharp(`.qa/candidates/${filename}`).ensureAlpha().raw().toBuffer({resolveWithObject: true});
+              const report = inspectPixelArt(data, info.width, info.height, {nativeSize: [384, 64], maxColors: 256, alphaMode: 'binary'});
+              let visible = 0;
+              for (let i = 3; i < data.length; i += 4) if (data[i]) visible++;
+              if (info.width !== expectedWidth || info.height !== expectedHeight || report.integerScale !== scale || report.problems.length || visible === 0) {
+                throw Error(`${filename}: ${JSON.stringify({info, visible, report})}`);
+              }
+              console.log(`${filename}: ${info.width}x${info.height}, ${visible} visible pixels, ${report.visibleColors} colors, passed`);
+            }
+          })().catch(error => {console.error(error); process.exitCode = 1;});
+          '@ | node -

@@ -2,6 +2,8 @@
 
 Authority: AGENTS.md; docs/visual-canon.md; docs/visual/GLOBAL_VISUAL_STYLE.md; docs/visual/CHARACTER_VISUAL_CANON.md; docs/visual/WORLD_DIRECTION.md; relevant approved character, location and asset references. The newer ADR-0014 map-specific directions take precedence where they differ from older map prescriptions. Old boards are not automatically current approved references.
 
+Pixel-art candidates can opt into a deterministic native-grid/palette/alpha preflight before Jev and phone review. See [Pixel-art candidate workflow](pixel-art-workflow.md). This is not a conversion filter or an automatic art approval; an unconfigured existing manifest behaves as before.
+
 ## Run only when an image changed
 
 1. Inspect the Canon and relevant approved asset first. Generate one needed PNG/JPEG asset using an asset-only generation prompt. Store the candidate under .qa/candidates/ or another unapproved location, not an adopted runtime path.
