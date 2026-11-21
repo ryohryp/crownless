@@ -623,6 +623,14 @@
           }else x.log=['棘を越えて鉱脈を見つけた。体力 −3。ここで掘るか、さらに奥へ進むか、引き返すか。'];
           return n;
         }
+        // Sacrifice one healing herb to pad the ore bag: a safer but costly extraction.
+        if(action==='forest-forage-pad' && stage===1 && x.potions>0){
+          x.potions-=1;
+          const gained=Math.min(5,Math.max(0,1000-x.scrap));
+          x.scrap+=gained; x.field.foragingDone=true;
+          x.log=[`薬草を緩衝材に使い、体力を減らさず鉄片 +${gained} を回収。薬草 −1。生還まで未確定。`];
+          return n;
+        }
         if(action==='forest-forage-extract' && stage===1){
           const gained=Math.min(3,Math.max(0,1000-x.scrap));
           x.scrap+=gained; x.field.foragingDone=true;
