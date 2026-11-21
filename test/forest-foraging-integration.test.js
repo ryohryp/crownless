@@ -15,3 +15,17 @@ test('forest starts with a fresh, valid staged encounter',()=>{
  assert.equal(f.foragingStage,0);
  assert.equal(f.foragingDone,false);
 });
+
+test('foraging at full herb capacity does not consume the one-time choice',()=>{
+ let s=E.start({...E.initial(),mode:'demo'},'wood');
+ for(const pos of [21,22,23,F.TRACKS])s=E.act(s,'field-step:'+pos);
+ assert.equal(s.expedition.field.tracks,true);
+ const full={...s,expedition:{...s.expedition,potions:3}};
+ assert.equal(E.act(full,'forest-forage-herbs'),full);
+ assert.equal(full.expedition.field.foragingDone,false);
+ const partial={...s,expedition:{...s.expedition,potions:2}};
+ const gathered=E.act(partial,'forest-forage-herbs');
+ assert.equal(gathered.expedition.potions,3);
+ assert.equal(gathered.expedition.field.foragingDone,true);
+ assert.equal(E.act(gathered,'forest-forage-herbs'),gathered);
+});
