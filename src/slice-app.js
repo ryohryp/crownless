@@ -278,6 +278,7 @@
             : button('forest-forage-herbs','安全な薬草を採る','薬草 +2まで · 鉱脈は諦める',{class:'primary'}))+
           button('forest-forage-press','棘の奥へ踏み込む','体力 −3 · さらに探索',{class:'secondary',disabled:x.hp<=3})+
           (state.ownedTools?.includes(E.SCOUT_LANTERN.id) ? button('lantern-examine','斥候の灯で痕跡を照らす','採集をせずに隠し道の手掛かりを探す',{class:'secondary'}) : '')+
+          button('forest-tracks-risk','獣骨の痕跡を追う','体力 −4 · 狼牙を探す',{class:'secondary',disabled:x.hp<=4})+
           button('forest-forage-retreat','この寄り道を諦める','戦利品を守って別の道へ',{class:'secondary'})+'</div>' : ''}
       ${x.field.lanternClue ? '<p class="scout-lantern-clue" role="status">✦ 灯りが映した痕跡：倒木の近くで霧が揺らいでいる。周囲を歩いて調べよう。</p>' : ''}
       ${trailSkillButton(x)}
@@ -954,6 +955,7 @@
     else if (action === 'field-step') { state=E.act(state,'field-step:'+value); }
     else if (action === 'lantern-examine') { state=E.act(state,'lantern-examine'); }
     else if (action === 'forest-tracks-risk') { state=E.act(state,'forest-tracks-risk'); }
+    else if (action.startsWith('forest-forage-')) { state=E.act(state,action); }
     else if (action === 'tower-step') { state=E.act(state,'tower-step:'+value); }
     else if (action === 'fen-step') { state=E.act(state,'fen-step:'+value); }
     else if (action === 'auto-fight') { state = E.resolveFight(state); }
