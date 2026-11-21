@@ -596,6 +596,48 @@
         x.log=['獣の足跡を追って棘の茂みに踏み込んだ。体力 −4。古い獣骨から狼牙 +1 を拾った。生還まで失う危険がある。'];
         return n;
       }
+      // The tracks offer a second-stage, optional expedition gamble. Rewards
+      // remain in the expedition bag and are only banked on safe return.
+      if (action.startsWith('forest-forage-') && x.place==='wood' && x.depth===1 &&
+          x.room===0 && x.field?.pos===F.TRACKS && x.field.tracks &&
+          !x.field.tracksRisk && !x.field.lanternClue &&
+          !x.field.foragingDone) {
+        const stage=x.field.foragingStage||0;
+        if(action==='forest-forage-retreat'){
+          x.field.foragingDone=true;
+          x.log=['棘の奥を諦め、今ある戦利品を守ることにした。帰還するか別の道を探そう。'];
+          return n;
+        }
+        if(action==='forest-forage-herbs' && stage===0 && x.potions<3){
+          const gained=Math.min(2,3-x.potions);
+          x.potions+=gained; x.field.foragingDone=true;
+          x.log=[`安全な茂みで薬草 +${gained}。奥の鉱脈は見送った。`];
+          return n;
+        }
+        if(action==='forest-forage-press' && x.hp>3 && stage<2){
+          x.hp-=3; x.field.foragingStage=stage+1;
+          if(stage===1){
+            const gained=Math.min(6,Math.max(0,1000-x.scrap));
+            x.scrap+=gained; x.field.foragingDone=true;
+            x.log=[`二度目の棘を越え、鉱脈から鉄片 +${gained}。体力 −3。生還まで未確定。`];
+          }else x.log=['棘を越えて鉱脈を見つけた。体力 −3。ここで掘るか、さらに奥へ進むか、引き返すか。'];
+          return n;
+        }
+        // Sacrifice one healing herb to pad the ore bag: a safer but costly extraction.
+        if(action==='forest-forage-pad' && stage===1 && x.potions>0){
+          x.potions-=1;
+          const gained=Math.min(5,Math.max(0,1000-x.scrap));
+          x.scrap+=gained; x.field.foragingDone=true;
+          x.log=[`薬草を緩衝材に使い、体力を減らさず鉄片 +${gained} を回収。薬草 −1。生還まで未確定。`];
+          return n;
+        }
+        if(action==='forest-forage-extract' && stage===1){
+          const gained=Math.min(3,Math.max(0,1000-x.scrap));
+          x.scrap+=gained; x.field.foragingDone=true;
+          x.log=[`浅い鉱脈から鉄片 +${gained}。生還すれば製作に使える。`];
+          return n;
+        }
+      }
       // A voluntary listening action reveals a risk clue without moving or starting combat.
       if (action === 'tower-listen' && x.place === 'tower' && x.depth === 1 &&
           x.room === 0 && x.tower && x.tower.pos === 19 &&
