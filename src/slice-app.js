@@ -959,6 +959,7 @@
     }
     else if (action === 'field-step') { state=E.act(state,'field-step:'+value); }
     else if (action === 'lantern-examine') { state=E.act(state,'lantern-examine'); }
+    else if (action === 'forest-glade-rest' || action === 'forest-glade-excavate') { state=E.act(state,action); }
     else if (action === 'forest-tracks-risk') { state=E.act(state,'forest-tracks-risk'); }
     else if (action.startsWith('forest-forage-')) { state=E.act(state,action); }
     else if (action === 'tower-step') { state=E.act(state,'tower-step:'+value); }
