@@ -44,11 +44,11 @@
   const nextSeen=(mask,pos)=>[pos,...neighbors(pos)].reduce((value,n)=>
     value+(Math.floor(value/(2**n))%2?0:2**n),mask);
   const initial=()=>({pos:START,seen:nextSeen(0,START),
-    cache:false,tracks:false,treasure:false,wolf:false,secret:false,shrine:false,glade:false,fox:false,foxCache:false,lanternClue:false,tracksRisk:false,foragingStage:0,foragingDone:false});
+    cache:false,tracks:false,treasure:false,wolf:false,secret:false,shrine:false,glade:false,fox:false,foxCache:false,lanternClue:false,tracksRisk:false,foragingStage:0,foragingDone:false,gladeChoice:false});
   const valid=f=>f&&typeof f==='object'&&!Array.isArray(f)&&
-    Object.keys(f).every(k=>['pos','seen','cache','tracks','treasure','wolf','secret','shrine','glade','fox','foxCache','lanternClue','tracksRisk','foragingStage','foragingDone'].includes(k))&&
+    Object.keys(f).every(k=>['pos','seen','cache','tracks','treasure','wolf','secret','shrine','glade','fox','foxCache','lanternClue','tracksRisk','foragingStage','foragingDone','gladeChoice'].includes(k))&&
     ['pos','seen','cache','tracks'].every(k=>Object.prototype.hasOwnProperty.call(f,k))&&
-    ['treasure','wolf','secret','shrine','glade','fox','foxCache','lanternClue','tracksRisk','foragingDone'].every(k=>f[k]===undefined||typeof f[k]==='boolean')&&
+    ['treasure','wolf','secret','shrine','glade','fox','foxCache','lanternClue','tracksRisk','foragingDone','gladeChoice'].every(k=>f[k]===undefined||typeof f[k]==='boolean')&&
     (f.foragingStage===undefined||Number.isInteger(f.foragingStage)&&f.foragingStage>=0&&f.foragingStage<=2)&&
     (f.pos!==SECRET||f.secret===true)&&
     inBounds(f.pos)&&!WALLS.includes(f.pos)&&
