@@ -277,6 +277,7 @@
             ? button('forest-forage-extract','ここで鉱石を掘る','鉄片 +3 · 生還で確定',{class:'primary'})
             : button('forest-forage-herbs','安全な薬草を採る','薬草 +2まで · 鉱脈は諦める',{class:'primary'}))+
           button('forest-forage-press','棘の奥へ踏み込む','体力 −3 · さらに探索',{class:'secondary',disabled:x.hp<=3})+
+          (state.ownedTools?.includes(E.SCOUT_LANTERN.id) ? button('lantern-examine','斥候の灯で痕跡を照らす','採集をせずに隠し道の手掛かりを探す',{class:'secondary'}) : '')+
           button('forest-forage-retreat','この寄り道を諦める','戦利品を守って別の道へ',{class:'secondary'})+'</div>' : ''}
       ${x.field.lanternClue ? '<p class="scout-lantern-clue" role="status">✦ 灯りが映した痕跡：倒木の近くで霧が揺らいでいる。周囲を歩いて調べよう。</p>' : ''}
       ${trailSkillButton(x)}
