@@ -271,6 +271,13 @@
         ? '<div class="forest-tracks-fork" role="group" aria-label="獣の足跡の分かれ道"><p>茂みの奥に獣骨の気配。棘を越えれば何か見つかるかもしれない。斥候の灯があれば安全に別の痕跡を調べられる。どちらも生還まで未確定。</p>'+
           (state.ownedTools?.includes(E.SCOUT_LANTERN.id) ? button('lantern-examine','斥候の灯で霧を照らす','体力消費なし · 手掛かりを探す',{class:'primary'}) : '')+
           button('forest-tracks-risk','棘の茂みへ踏み込む','体力 −4 · 獣骨を調べる（危険）',{class:'secondary',disabled:x.hp<=4||x.materials.wolfFang>=1000000})+'</div>' : ''}
+      ${x.field.pos===window.CrownlessField.TRACKS && x.field.tracks && !x.field.tracksRisk && !x.field.lanternClue && !x.field.foragingDone
+        ? '<div class="forest-tracks-fork" role="group" aria-label="棘の鉱脈を探索"><p>'+(x.field.foragingStage ? '棘の向こうに鉱脈を発見。ここで掘るか、さらに体力を賭けるか。' : '安全な薬草か、体力を賭けて鉱脈を探すか。')+'</p>'+
+          (x.field.foragingStage
+            ? button('forest-forage-extract','ここで鉱石を掘る','鉄片 +3 · 生還で確定',{class:'primary'})
+            : button('forest-forage-herbs','安全な薬草を採る','薬草 +2まで · 鉱脈は諦める',{class:'primary'}))+
+          button('forest-forage-press','棘の奥へ踏み込む','体力 −3 · さらに探索',{class:'secondary',disabled:x.hp<=3})+
+          button('forest-forage-retreat','この寄り道を諦める','戦利品を守って別の道へ',{class:'secondary'})+'</div>' : ''}
       ${x.field.lanternClue ? '<p class="scout-lantern-clue" role="status">✦ 灯りが映した痕跡：倒木の近くで霧が揺らいでいる。周囲を歩いて調べよう。</p>' : ''}
       ${trailSkillButton(x)}
       ${x.foundDesign==='fang_moon' ? '<p class="notice" role="status">✦ 月影の短剣の設計図を背嚢に入れた。生還するまで失う可能性がある。</p>' : ''}
