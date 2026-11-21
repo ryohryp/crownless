@@ -584,6 +584,26 @@
         x.log=[`斥候の灯で霧を照らすと、古い倒木の方から青白い反射が返った。根元に鉄片 +${scrap}。奥の道は自分の目で調べよう。生還まで背嚢の中だ。`];
         return n;
       }
+      // The discovered stone ring presents a one-time, player-controlled
+      // choice: preserve the current expedition or risk health for smithing loot.
+      if ((action==='forest-glade-rest'||action==='forest-glade-excavate') &&
+          x.place==='wood' && x.depth===1 && x.room===0 &&
+          x.field?.pos===F.GLADE && x.field.glade && !x.field.gladeChoice) {
+        if(action==='forest-glade-rest'){
+          if(x.scrap<3 || x.hp>=maxHp(n))return s;
+          x.scrap-=3;
+          const healed=Math.min(12,maxHp(n)-x.hp);
+          x.hp+=healed;
+          x.log=[`石環の苔に鉄片3個を供え、体力 +${healed}。深追いせず、生還の可能性を高めた。`];
+        }else{
+          if(x.hp<=5 || x.materials.wolfFang>=1000000)return s;
+          x.hp-=5;
+          x.materials.wolfFang++;
+          x.log=['石環の根を掘り起こし、古い狼牙 +1 を発見。体力 −5。生還できなければ失う。'];
+        }
+        x.field.gladeChoice=true;
+        return n;
+      }
       // ADR 0015: the thorn search and lantern investigation are exclusive.
       // Both rewards remain provisional until a genuine safe return.
       if(action==='forest-tracks-risk' && x.place==='wood' && x.depth===1 &&
