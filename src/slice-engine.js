@@ -586,7 +586,7 @@
       }
       // The discovered stone ring presents a one-time, player-controlled
       // choice: preserve the current expedition or risk health for smithing loot.
-      if ((action==='forest-glade-rest'||action==='forest-glade-excavate') &&
+      if ((action==='forest-glade-rest'||action==='forest-glade-excavate'||action==='forest-glade-barter') &&
           x.place==='wood' && x.depth===1 && x.room===0 &&
           x.field?.pos===F.GLADE && x.field.glade && !x.field.gladeChoice) {
         if(action==='forest-glade-rest'){
@@ -595,6 +595,11 @@
           const healed=Math.min(12,maxHp(n)-x.hp);
           x.hp+=healed;
           x.log=[`石環の苔に鉄片3個を供え、体力 +${healed}。深追いせず、生還の可能性を高めた。`];
+        }else if(action==='forest-glade-barter'){
+          if(x.materials.wolfFang<1 || x.scrap>994)return s;
+          x.materials.wolfFang--;
+          x.scrap+=5;
+          x.log=['石環の祭壇に狼牙を供え、埋もれた鉄片 +5 を得た。どちらの素材も生還までは背嚢の中だ。'];
         }else{
           if(x.hp<=5 || x.materials.wolfFang>=1000000)return s;
           x.hp-=5;
