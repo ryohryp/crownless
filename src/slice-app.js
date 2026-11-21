@@ -271,6 +271,10 @@
         ? '<div class="forest-tracks-fork" role="group" aria-label="獣の足跡の分かれ道"><p>茂みの奥に獣骨の気配。棘を越えれば何か見つかるかもしれない。斥候の灯があれば安全に別の痕跡を調べられる。どちらも生還まで未確定。</p>'+
           (state.ownedTools?.includes(E.SCOUT_LANTERN.id) ? button('lantern-examine','斥候の灯で霧を照らす','体力消費なし · 手掛かりを探す',{class:'primary'}) : '')+
           button('forest-tracks-risk','棘の茂みへ踏み込む','体力 −4 · 獣骨を調べる（危険）',{class:'secondary',disabled:x.hp<=4||x.materials.wolfFang>=1000000})+'</div>' : ''}
+      ${x.field.pos===window.CrownlessField.GLADE && x.field.glade && !x.field.gladeChoice
+        ? '<div class="forest-glade-choice" role="group" aria-label="古い石環の選択"><p>石環の下に埋もれた狼牙の気配。傷を負って掘るか、鉄片を供えて体力を回復するか。選べるのは一度だけ。</p>'+
+          button('forest-glade-rest','鉄片を供えて休む','鉄片 −3 · 体力 +12まで',{class:'primary',disabled:x.scrap<3||x.hp>=E.maxHp(state)})+
+          button('forest-glade-excavate','根を掘って狼牙を探す','体力 −5 · 狼牙 +1（生還で確定）',{class:'secondary',disabled:x.hp<=5||x.materials.wolfFang>=1000000})+'</div>' : ''}
       ${x.field.lanternClue ? '<p class="scout-lantern-clue" role="status">✦ 灯りが映した痕跡：倒木の近くで霧が揺らいでいる。周囲を歩いて調べよう。</p>' : ''}
       ${trailSkillButton(x)}
       ${x.foundDesign==='fang_moon' ? '<p class="notice" role="status">✦ 月影の短剣の設計図を背嚢に入れた。生還するまで失う可能性がある。</p>' : ''}
@@ -945,6 +949,7 @@
     }
     else if (action === 'field-step') { state=E.act(state,'field-step:'+value); }
     else if (action === 'lantern-examine') { state=E.act(state,'lantern-examine'); }
+    else if (action === 'forest-glade-rest' || action === 'forest-glade-excavate') { state=E.act(state,action); }
     else if (action === 'forest-tracks-risk') { state=E.act(state,'forest-tracks-risk'); }
     else if (action === 'tower-step') { state=E.act(state,'tower-step:'+value); }
     else if (action === 'fen-step') { state=E.act(state,'fen-step:'+value); }
