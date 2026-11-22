@@ -288,7 +288,7 @@
           button('forest-glade-rest','鉄片を供えて休む','鉄片 −3 · 体力 +12まで',{class:'primary',disabled:x.scrap<3||x.hp>=E.maxHp(state)})+
           button('forest-glade-excavate','根を掘って狼牙を探す','体力 −5 · 狼牙 +1（生還で確定）',{class:'secondary',disabled:x.hp<=5||x.materials.wolfFang>=1000000})+'</div>' : ''}
       ${x.field.pos===window.CrownlessField.LANTERN_PASS && !x.field.passageSalvaged
-        ? '<div class="forest-passage-choice" role="group" aria-label="北の抜け道の採集"><p>抜け道の根元に狼の古い骨。傷を負って掘るか、薬草を使って安全に回収するか。一度だけ選べる。</p>'+button('forest-passage-salvage','崩れた根を掘る','体力 −4 · 狼牙 +1（生還で確定）',{class:'secondary',disabled:x.hp<=4||x.materials.wolfFang>=1000000})+button('forest-passage-careful','薬草で傷を防いで掘る','薬草 −1 · 狼牙 +1（生還で確定）',{class:'primary',disabled:x.potions<=0||x.materials.wolfFang>=1000000})+'</div>' : ''}
+        ? '<div class="forest-passage-choice" role="group" aria-label="北の抜け道の採集"><p>抜け道の根元に狼の古い骨。傷を負って掘るか、薬草を使って安全に回収するか。一度だけ選べる。</p>'+button('forest-passage-salvage','崩れた根を掘る','体力 −4 · 古い獣骨を探す（生還で確定）',{class:'secondary',disabled:x.hp<=4||x.materials.wolfFang>=1000000})+button('forest-passage-careful','薬草で傷を防いで掘る','薬草 −1 · 狼牙 +1（生還で確定）',{class:'primary',disabled:x.potions<=0||x.materials.wolfFang>=1000000})+'</div>' : ''}
       ${x.field.lanternClue ? '<p class="scout-lantern-clue" role="status">✦ 灯りが映した痕跡：倒木の近くで霧が揺らいでいる。周囲を歩いて調べよう。</p>' : ''}
       ${trailSkillButton(x)}
       ${x.foundDesign==='fang_moon' ? '<p class="notice" role="status">✦ 月影の短剣の設計図を背嚢に入れた。生還するまで失う可能性がある。</p>' : ''}
