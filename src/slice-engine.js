@@ -663,10 +663,10 @@
         }else if(action==='forest-passage-spoor-cache'){
           // A risky detour with a distinct reward: recover a rare regional material
           // rather than converting iron and fangs again. Nothing is banked until return.
-          if(x.hp<=6 || x.materials.forestEssence>=1000000)return s;
+          if(x.hp<=6 || x.materials.marshFiber>=1000000)return s;
           x.hp-=6;
-          x.materials.forestEssence++;
-          x.log=['獣道を外れて苔の洞を探り、森の精髄 +1 を発見。体力 −6。生還まで失う危険がある。'];
+          x.materials.marshFiber++;
+          x.log=['獣道を外れて苔の洞を探り、霧葦 +1 を発見。体力 −6。生還まで失う危険がある。'];
         }else if(action==='forest-passage-spoor-scout'){
           if(x.focus<3 || x.materials.wolfFang>=1000000)return s;
           x.focus-=3;
