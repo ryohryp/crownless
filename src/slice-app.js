@@ -287,6 +287,8 @@
         ? '<div class="forest-glade-choice" role="group" aria-label="古い石環の選択"><p>石環の下に埋もれた狼牙の気配。傷を負って掘るか、鉄片を供えて体力を回復するか。選べるのは一度だけ。</p>'+
           button('forest-glade-rest','鉄片を供えて休む','鉄片 −3 · 体力 +12まで',{class:'primary',disabled:x.scrap<3||x.hp>=E.maxHp(state)})+
           button('forest-glade-excavate','根を掘って狼牙を探す','体力 −5 · 狼牙 +1（生還で確定）',{class:'secondary',disabled:x.hp<=5||x.materials.wolfFang>=1000000})+'</div>' : ''}
+      ${x.field.pos===window.CrownlessField.LANTERN_PASS && !x.field.passageSalvaged
+        ? '<div class="forest-passage-choice" role="group" aria-label="北の抜け道の採集"><p>抜け道の根元に狼の古い骨。掘り返せば傷を負うが、鍛冶素材になるかもしれない。</p>'+button('forest-passage-salvage','崩れた根を掘る','体力 −4 · 狼牙 +1（生還で確定）',{class:'secondary',disabled:x.hp<=4||x.materials.wolfFang>=1000000})+'</div>' : ''}
       ${x.field.lanternClue ? '<p class="scout-lantern-clue" role="status">✦ 灯りが映した痕跡：倒木の近くで霧が揺らいでいる。周囲を歩いて調べよう。</p>' : ''}
       ${trailSkillButton(x)}
       ${x.foundDesign==='fang_moon' ? '<p class="notice" role="status">✦ 月影の短剣の設計図を背嚢に入れた。生還するまで失う可能性がある。</p>' : ''}
