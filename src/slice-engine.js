@@ -586,13 +586,15 @@
       }
       // The new northern shortcut hides a one-time salvage choice. The bag is
       // still at risk until the explorer returns alive.
-      if(action==='forest-passage-salvage' && x.place==='wood' && x.depth===1 &&
+      if((action==='forest-passage-salvage'||action==='forest-passage-careful') && x.place==='wood' && x.depth===1 &&
         x.room===0 && x.field?.pos===F.LANTERN_PASS && x.field.lanternPassage &&
-        !x.field.passageSalvaged && x.hp>4 && x.materials.wolfFang<1000000){
-        x.hp-=4;
+        !x.field.passageSalvaged && x.materials.wolfFang<1000000 &&
+        (action==='forest-passage-careful' ? x.potions>0 : x.hp>4)){
+        if(action==='forest-passage-careful')x.potions--;
+        else x.hp-=4;
         x.materials.wolfFang+=1;
         x.field.passageSalvaged=true;
-        x.log=['北の抜け道の崩れた根を掘り返した。体力 −4、狼牙 +1。生還するまで背嚢の中だ。'];
+        x.log=[action==='forest-passage-careful' ? '薬草を使って傷を防ぎ、根元から狼牙 +1。薬草 −1。生還まで未確定。' : '北の抜け道の崩れた根を掘り返した。体力 −4、狼牙 +1。生還するまで背嚢の中だ。'];
         return n;
       }
       // The discovered stone ring presents a one-time, player-controlled
