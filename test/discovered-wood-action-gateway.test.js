@@ -34,7 +34,7 @@ test('forest map primary launches the canonical forest with foraging and ring; a
   assert.match(forest,/nearby-track-name">囁きの森<\/span>/);
   assert.match(forest,/<h2>囁きの森<\/h2>/);
   assert.match(forest,/西の木立/,'local district title remains available');
-  const actions=forest.match(/<div class="nearby-card-actions">([\\s\\S]*?)<\\/div>/)?.[1];
+  const actions=forest.match(/<div class="nearby-card-actions">([\s\S]*?)<\/div>/)?.[1];
   assert.ok(actions,'selected-land card must show its primary call-to-action');
   assert.match(actions,/data-action="depart" data-value="wood"[^>]*>囁きの森へ遠征/);
   assert.doesNotMatch(actions,/action-forest-lab/,'the experimental action mode must not replace the canonical forest');
@@ -43,7 +43,7 @@ test('forest map primary launches the canonical forest with foraging and ring; a
   assert.match(details,/既存の遠征セーブや倉庫には加算されません/);
   state=E.discoverDistrict(state,N.cell(400,0));
   const tower=scene(state,'map');
-  const towerActions=tower.match(/<div class="nearby-card-actions">([\\s\\S]*?)<\\/div>/)?.[1];
+  const towerActions=tower.match(/<div class="nearby-card-actions">([\s\S]*?)<\/div>/)?.[1];
   assert.match(towerActions,/data-action="depart"/);
   assert.doesNotMatch(towerActions,/action-forest-lab/);
 });
