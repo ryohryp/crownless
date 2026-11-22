@@ -3,6 +3,34 @@
 > **Status:** Active. User-approved visual direction on 2026-10-08.
 > **Authority:** AGENTS.md and accepted ADRs govern gameplay; this file governs the global visual language. Specialized character/runtime anchors govern their own anatomy, camera, and animation contracts.
 
+## Field-scene target update — 2026-11-12 (user-provided screenshot)
+
+For **3/4-view exploration and expedition field scenes**, the user supplied a new
+Crownless screen reference on 2026-11-12 and explicitly said to develop toward it.
+Its composition features a warm sunset, forest foreground, misty valley and waterfall,
+a weathered stone bridge, a distant castle, small crisp pixel-like party actors,
+and compact edge-aligned RPG navigation. The 1536×864 reference image is a
+**conversation attachment, not yet a repository asset**. The user approved it
+as a **development target**, not as an in-engine screenshot, production asset,
+character replacement, or verified playable implementation.
+
+This new request **takes precedence over the previous sumi-e/washi-only and
+strict 16-bit environment style constraints for this field-scene category**.
+Pursue an art-directed illustrated/HD-2D-like environment with clear 2.5D spatial
+depth, controlled warm light, atmospheric fog, grounded pixel actors and an
+unobstructed view. Do not claim that pixelated browser scaling, a single baked
+image, fake perspective decorations, or ornate gold UI alone meets the target.
+Preserve approved character identity and existing real-world discovery/privacy
+behavior. Map, town, combat and crafting style does **not** automatically change.
+
+The first useful bar is a **playable, opt-in stone-bridge approach scene**:
+walk toward the castle with distinct near/mid/far parallax; align character feet,
+shadow, bridge collision and near-parapet occlusion; make one discovery relevant to
+later revisit; inspect portrait and landscape phone viewports. See
+[2026-11-12 castle bridge target](visual/castle-bridge-reference-2026-11-12.md)
+and [Issue #1114](https://github.com/ryohryp/crownless/issues/1114).
+Do not merge rejected bridge experiments merely because the new target looks similar.
+
 ## Map-specific direction update — 2026-10-14
 
 The durable map presentation decision and gameplay/privacy boundaries are in

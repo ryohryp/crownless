@@ -2,6 +2,19 @@
 
 This is the Visual Director adapter to [the active Visual Canon](../visual-canon.md).
 
+## Scope note: newer user field-scene goal (2026-11-12)
+
+The user supplied a castle/stone-bridge scene reference and asked the team to
+develop toward it. **Only for the 3/4-view exploration/expedition field scene**,
+the new reference supersedes the existing sumi-e/washi look and the generic
+"avoid glossy fantasy" rule. It calls for detailed illustrated fantasy
+landscapes, atmospheric sunset lighting, genuine 2.5D depth, and compact
+pixel-like actors grounded on a traversable bridge. It does not license a flat
+screenshot backdrop, arbitrary UI decoration, or replacing previously approved
+player identities. Other scene categories retain the 2026-10-08 style
+until separately reviewed. See `docs/visual-canon.md` and
+`docs/visual/castle-bridge-reference-2026-11-12.md`.
+
 ## Current global calibration
 
 The user approved a **Western medieval fantasy × Japanese sumi-e** map/town/forge/event composite on 2026-10-08. That image is not yet archived in this repository. The former `docs/assets/crownless-visual-design-reference-v0.1.jpg` is **historical** where its woodcut/blue-green palette conflicts with the new approved direction. Do not identify the old board as the new reference.
