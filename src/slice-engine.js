@@ -621,13 +621,20 @@
         return n;
       }
       // Final optional gamble; rewards are unconfirmed until safe return.
-      if((action==='forest-passage-spoor'||action==='forest-passage-spoor-careful'||action==='forest-passage-spoor-scout'||action==='forest-passage-spoor-trap'||action==='forest-passage-spoor-leave') && x.place==='wood' && x.depth===1 && x.room===0 && x.field?.pos===F.LANTERN_PASS && x.field.passageFollowup && !x.field.passageSpoorDone){
+      if((action==='forest-passage-spoor'||action==='forest-passage-spoor-careful'||action==='forest-passage-spoor-scout'||action==='forest-passage-spoor-trap'||action==='forest-passage-spoor-bait'||action==='forest-passage-spoor-leave') && x.place==='wood' && x.depth===1 && x.room===0 && x.field?.pos===F.LANTERN_PASS && x.field.passageFollowup && !x.field.passageSpoorDone){
         if(action==='forest-passage-spoor-trap'){
           // Convert carried, still-at-risk iron into a snare rather than losing health.
           if(x.scrap<3 || x.materials.wolfFang>=1000000)return s;
           x.scrap-=3;
           x.materials.wolfFang++;
           x.log=['拾った鉄片3個で獣道に罠を仕掛け、落ちた狼牙を1個回収した。体力は温存。素材は生還まで未確定。'];
+        }else if(action==='forest-passage-spoor-bait'){
+          // Trade one unconfirmed fang for extra smithing iron: a genuine
+          // choice between weapon material and route-building material.
+          if(x.materials.wolfFang<1 || x.scrap>994)return s;
+          x.materials.wolfFang--;
+          x.scrap+=5;
+          x.log=['狼牙1個を囮にして獣を誘い出し、巣の鉄片5個を拾った。生還するまで素材は未確定。'];
         }else if(action==='forest-passage-spoor-scout'){
           if(x.focus<3 || x.materials.wolfFang>=1000000)return s;
           x.focus-=3;
