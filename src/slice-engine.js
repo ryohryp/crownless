@@ -584,6 +584,17 @@
         x.log=[`斥候の灯で霧を照らすと、古い倒木の方から青白い反射が返った。根元に鉄片 +${scrap}。奥の道は自分の目で調べよう。生還まで背嚢の中だ。`];
         return n;
       }
+      // The new northern shortcut hides a one-time salvage choice. The bag is
+      // still at risk until the explorer returns alive.
+      if(action==='forest-passage-salvage' && x.place==='wood' && x.depth===1 &&
+        x.room===0 && x.field?.pos===F.LANTERN_PASS && x.field.lanternPassage &&
+        !x.field.passageSalvaged && x.hp>4 && x.materials.wolfFang<1000000){
+        x.hp-=4;
+        x.materials.wolfFang+=1;
+        x.field.passageSalvaged=true;
+        x.log=['北の抜け道の崩れた根を掘り返した。体力 −4、狼牙 +1。生還するまで背嚢の中だ。'];
+        return n;
+      }
       // The discovered stone ring presents a one-time, player-controlled
       // choice: preserve the current expedition or risk health for smithing loot.
       if ((action==='forest-glade-rest'||action==='forest-glade-excavate') &&
