@@ -291,6 +291,7 @@
         ? '<div class="forest-passage-choice" role="group" aria-label="北の抜け道の採集"><p>抜け道の根元に狼の古い骨。傷を負って掘るか、薬草を使って安全に回収するか。一度だけ選べる。</p>'+button('forest-passage-salvage','崩れた根を掘る','体力 −4 · 古い獣骨を探す（生還で確定）',{class:'secondary',disabled:x.hp<=4||x.materials.wolfFang>=1000000})+button('forest-passage-careful','薬草で傷を防いで掘る','薬草 −1 · 狼牙 +1（生還で確定）',{class:'primary',disabled:x.potions<=0||x.materials.wolfFang>=1000000})+'</div>' : ''}
       ${x.field.pos===window.CrownlessField.LANTERN_PASS && x.field.passageSalvaged && !x.field.passageFollowup
         ? '<div class="forest-passage-choice" role="group" aria-label="北の抜け道の追加探索"><p>骨の下に鉄の光。さらに掘れば鉄片を拾えるが、帰還前の体力を失う。</p>'+button('forest-passage-deeper','さらに根の奥を探る','体力 −3 · 鉄片を最大4個回収',{class:'secondary',disabled:x.hp<=3})+button('forest-passage-leave','ここで切り上げる','戦利品を守って帰路へ',{class:'primary'})+'</div>' : ''}
+       ${x.field.pos===window.CrownlessField.LANTERN_PASS && x.field.passageFollowup && !x.field.passageSpoorDone ? '<div class="forest-passage-choice" role="group" aria-label="北の抜け道の獣道"><p>根の先に獣道。追うか、撤退するか。</p>'+button('forest-passage-spoor','獣道を追う','体力 −5 · 狼牙 +2（生還で確定）',{class:'secondary',disabled:x.hp<=5||x.materials.wolfFang>999997})+button('forest-passage-spoor-leave','獣道には入らない','損失なしで撤退',{class:'primary'})+'</div>' : ''}
       ${x.field.lanternClue ? '<p class="scout-lantern-clue" role="status">✦ 灯りが映した痕跡：倒木の近くで霧が揺らいでいる。周囲を歩いて調べよう。</p>' : ''}
       ${trailSkillButton(x)}
       ${x.foundDesign==='fang_moon' ? '<p class="notice" role="status">✦ 月影の短剣の設計図を背嚢に入れた。生還するまで失う可能性がある。</p>' : ''}
