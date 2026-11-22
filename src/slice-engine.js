@@ -621,7 +621,7 @@
         return n;
       }
       // Final optional gamble; rewards are unconfirmed until safe return.
-      if((action==='forest-passage-spoor'||action==='forest-passage-spoor-careful'||action==='forest-passage-spoor-scout'||action==='forest-passage-spoor-trap'||action==='forest-passage-spoor-bait'||action==='forest-passage-spoor-rest'||action==='forest-passage-spoor-leave') && x.place==='wood' && x.depth===1 && x.room===0 && x.field?.pos===F.LANTERN_PASS && x.field.passageFollowup && !x.field.passageSpoorDone){
+      if((action==='forest-passage-spoor'||action==='forest-passage-spoor-careful'||action==='forest-passage-spoor-scout'||action==='forest-passage-spoor-trap'||action==='forest-passage-spoor-bait'||action==='forest-passage-spoor-rest'||action==='forest-passage-spoor-herb'||action==='forest-passage-spoor-leave') && x.place==='wood' && x.depth===1 && x.room===0 && x.field?.pos===F.LANTERN_PASS && x.field.passageFollowup && !x.field.passageSpoorDone){
         if(action==='forest-passage-spoor-rest'){
           // Spend uncertain iron on a temporary shelter: survival now versus crafting later.
           if(x.scrap<4 || x.hp>=maxHp(s))return s;
@@ -629,6 +629,13 @@
           const healed=Math.min(8,maxHp(s)-x.hp);
           x.hp+=healed;
           x.log=[`鉄片4個で風除けを組み、体力を ${healed} 回復した。残りの素材は生還まで未確定。`];
+        }else if(action==='forest-passage-spoor-herb'){
+          // Spend a fang to retrieve medicinal plants: keep exploring or bank the fang.
+          if(x.materials.wolfFang<1 || x.potions>=3)return s;
+          x.materials.wolfFang--;
+          const found=Math.min(2,3-x.potions);
+          x.potions+=found;
+          x.log=[`狼牙を目印に獣道の薬草群生地を見つけた。狼牙 −1、薬草 +${found}。追跡はここで終了。`];
         }else if(action==='forest-passage-spoor-trap'){
           // Convert carried, still-at-risk iron into a snare rather than losing health.
           if(x.scrap<3 || x.materials.wolfFang>=1000000)return s;
