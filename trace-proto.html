@@ -1,0 +1,669 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#141615" />
+  <title>Crownless — 案C 痕跡プロトタイプ</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Cpath fill='%23d4a65a' d='M8 14h24v16H8z'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="trace-proto.css" />
+  <script src="src/trace-proto-engine.js" defer></script>
+</head>
+<body>
+  <div class="proto-shell" id="proto-shell">
+    <header class="proto-header">
+      <div class="area-pill">
+        <span class="area-dot" id="area-dot" style="color:#7ba6c7;background:#7ba6c7"></span>
+        <div class="area-title-wrap">
+          <span class="area-name" id="area-name">読み込み中…</span>
+          <span class="area-meta" id="area-meta">Day 1</span>
+        </div>
+      </div>
+      <div class="header-actions">
+        <button type="button" class="icon-btn" id="btn-check-gps" title="現在地を1回確認">📍 確認</button>
+        <button type="button" class="icon-btn" id="btn-open-settings" title="地点と実験設定">⚙ 設定</button>
+      </div>
+    </header>
+
+    <div class="toast" id="proto-toast" role="status"></div>
+
+    <main class="proto-main">
+      <!-- Screen 1: Outdoor (feelings only, zero numbers) -->
+      <section class="screen active" id="screen-outdoor" aria-label="屋外の場">
+        <div class="field-stage">
+          <div class="cache-card state-empty" id="field-card" tabindex="0" role="region" aria-label="場の置き荷">
+            <div class="cache-visual" id="cache-visual"></div>
+            <strong id="cache-title">まだ何もない</strong>
+            <div class="cache-badge-row" id="cache-cues"></div>
+            <div class="hold-progress" id="hold-progress" hidden>
+              <div class="hold-progress-fill" id="hold-progress-fill"></div>
+            </div>
+          </div>
+          <div class="sense-line" id="sense-line">長押しで重さを量る（数字は見えない）</div>
+        </div>
+        <div class="thumb-actions" id="outdoor-actions"></div>
+      </section>
+
+      <!-- Screen 2: Home (numbers + 4 effort settlement + aftermath 6 rows) -->
+      <section class="screen" id="screen-home" aria-label="自宅の精算">
+        <div class="home-status-bar">
+          <div>
+            <div class="inv-row" id="inv-summary"></div>
+            <div class="effort-dots" id="effort-dots">手間 ●●●● (4/4)</div>
+          </div>
+          <div class="home-top-btns">
+            <button type="button" class="mini-btn" id="btn-craft-greatbox">大箱 (12)</button>
+            <button type="button" class="mini-btn" id="btn-end-night">夜を終える</button>
+          </div>
+        </div>
+
+        <div class="carried-section">
+          <div class="section-label">
+            <span>持ち帰った荷（上スワイプ＝そっと / ダブルタップ＝こじ）</span>
+            <span id="carried-count">0件</span>
+          </div>
+          <div id="carried-list"></div>
+        </div>
+
+        <div class="aftermath-section">
+          <div class="section-label">
+            <span>痕跡のその後（直近6件）</span>
+            <span id="night-msg"></span>
+          </div>
+          <div class="aftermath-list" id="aftermath-list"></div>
+        </div>
+      </section>
+    </main>
+
+    <nav class="bottom-nav" aria-label="画面切替">
+      <button type="button" class="nav-tab active" id="tab-outdoor" data-tab="outdoor">屋外</button>
+      <button type="button" class="nav-tab" id="tab-home" data-tab="home">自宅</button>
+    </nav>
+  </div>
+
+  <!-- 0.5s blackout pause for immediate incident -->
+  <div class="blackout" id="incident-blackout" aria-hidden="true"></div>
+
+  <!-- Incident modal -->
+  <div class="modal-backdrop" id="incident-modal" role="dialog" aria-modal="true" aria-labelledby="incident-title">
+    <div class="sheet">
+      <div class="sheet-head">
+        <strong id="incident-title">今すぐ事件！</strong>
+      </div>
+      <p id="incident-text" style="margin:0;color:var(--muted);font-size:14px;"></p>
+      <div class="thumb-actions">
+        <button type="button" class="action-btn" id="btn-inc-release">逃がす<small>安全にやり過ごす</small></button>
+        <button type="button" class="action-btn primary" id="btn-inc-catch">捕まえる<small>素材+1 か 1個落とす</small></button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Settings / Location / Time Sim sheet -->
+  <div class="modal-backdrop" id="settings-modal" role="dialog" aria-modal="true" aria-labelledby="settings-title">
+    <div class="sheet">
+      <div class="sheet-head">
+        <strong id="settings-title">地点・実験設定（案C 3日テスト）</strong>
+        <button type="button" class="mini-btn" id="btn-close-settings">閉じる</button>
+      </div>
+
+      <div class="section-label"><span>モード切替（セーブ分離）</span><span id="mode-label"></span></div>
+      <div class="sheet-grid">
+        <button type="button" class="mini-btn" id="btn-mode-sim">屋内テスト（疑似エリア）</button>
+        <button type="button" class="mini-btn" id="btn-mode-walk">実機ウォーク（GPS）</button>
+      </div>
+
+      <div id="sim-controls">
+        <div class="section-label" style="margin-top:4px;"><span>疑似エリア移動＆時間経過</span></div>
+        <div class="sheet-grid" style="margin-top:6px;">
+          <button type="button" class="mini-btn" data-sim-area="home">自宅へ</button>
+          <button type="button" class="mini-btn" data-sim-area="station">最寄り駅へ</button>
+          <button type="button" class="mini-btn" data-sim-area="park">近くの公園へ</button>
+          <button type="button" class="mini-btn" data-sim-area="outside">エリア外へ</button>
+        </div>
+        <div class="sheet-grid" style="margin-top:8px;">
+          <button type="button" class="mini-btn glow" id="btn-tick-8h">+8時間（1ティック進める）</button>
+          <button type="button" class="mini-btn" id="btn-inject-real">検証用 real荷を配置</button>
+        </div>
+      </div>
+
+      <div id="walk-controls">
+        <div class="section-label" style="margin-top:4px;"><span>現在地を粗い格子（約100m）で登録</span></div>
+        <div class="sheet-grid" style="margin-top:6px;">
+          <button type="button" class="mini-btn" data-cal-area="home">現在地を自宅 (100m)</button>
+          <button type="button" class="mini-btn" data-cal-area="station">現在地を駅 (150m)</button>
+          <button type="button" class="mini-btn" data-cal-area="park">現在地を公園 (150m)</button>
+        </div>
+        <small style="color:var(--muted);display:block;margin-top:6px;">※生座標や移動軌跡は一切保存しません（約100m格子のみ保持）。</small>
+      </div>
+
+      <div class="section-label" style="margin-top:4px;"><span>リセット・リンク</span></div>
+      <div class="sheet-grid">
+        <button type="button" class="mini-btn" id="btn-reset-proto">このモードを初期化</button>
+        <a class="mini-btn" href="expedition.html" style="display:grid;place-items:center;text-decoration:none;">本編へ戻る</a>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  window.addEventListener('DOMContentLoaded', () => {
+    const P = window.CrownlessTraceProto;
+    let mode = localStorage.getItem('crownless-trace-proto-mode') === 'walk' ? 'walk' : 'sim';
+    let activeTab = 'outdoor';
+    let state = loadState(mode);
+    let audioCtx = null;
+    let toastTimer = null;
+    let holdTimer = null;
+    let holdAnim = null;
+    let holdStart = 0;
+    let gentleOpening = false;
+
+    const $ = id => document.getElementById(id);
+
+    function storageKey(m) {
+      return m === 'walk' ? P.STORAGE_KEYS.walk : P.STORAGE_KEYS.sim;
+    }
+
+    function loadState(m) {
+      const saved = P.parseSave(localStorage.getItem(storageKey(m)), m);
+      if (saved) {
+        return m === 'walk' ? P.advanceTime(saved, Date.now()) : saved;
+      }
+      return P.initialState(m, m === 'walk' ? Date.now() : 1763723400000);
+    }
+
+    function commit(nextState) {
+      state = nextState;
+      try {
+        localStorage.setItem(storageKey(mode), P.serializeSave(state));
+      } catch {
+        showToast('保存容量エラー');
+      }
+      render();
+    }
+
+    function showToast(msg) {
+      const el = $('proto-toast');
+      el.textContent = msg;
+      el.classList.add('active');
+      clearTimeout(toastTimer);
+      toastTimer = setTimeout(() => el.classList.remove('active'), 2400);
+    }
+
+    function playTone(kind) {
+      try {
+        const AC = window.AudioContext || window.webkitAudioContext;
+        if (!AC) return;
+        if (!audioCtx) audioCtx = new AC();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        const now = audioCtx.currentTime;
+        if (kind === 'heavy') {
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(110, now);
+          osc.frequency.exponentialRampToValueAtTime(52, now + 0.14);
+          gain.gain.setValueAtTime(0.18, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.16);
+        } else if (kind === 'pry') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(290, now);
+          osc.frequency.exponentialRampToValueAtTime(85, now + 0.09);
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+        } else {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(420, now);
+          osc.frequency.exponentialRampToValueAtTime(240, now + 0.08);
+          gain.gain.setValueAtTime(0.1, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.09);
+        }
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        osc.start(now);
+        osc.stop(now + 0.18);
+      } catch {}
+    }
+
+    function vibrate(pattern) {
+      try {
+        if (navigator.vibrate) navigator.vibrate(pattern);
+      } catch {}
+    }
+
+    function triggerJuice(tier) {
+      if (tier === 'heavy') {
+        vibrate([30, 50, 30, 50, 30]);
+        playTone('heavy');
+      } else if (tier === 'pry') {
+        vibrate(45);
+        playTone('pry');
+        const shell = $('proto-shell');
+        shell.classList.remove('shake-hit');
+        void shell.offsetWidth;
+        shell.classList.add('shake-hit');
+      } else {
+        vibrate(25);
+        playTone('light');
+      }
+    }
+
+    function svgForTrace(trace) {
+      if (!trace) {
+        return '<svg width="64" height="64" viewBox="0 0 64 64" fill="none"><rect x="12" y="16" width="40" height="32" rx="6" stroke="#4b504b" stroke-width="2" stroke-dasharray="5 5"/></svg>';
+      }
+      if (trace.state === 'ruined') {
+        return '<svg width="64" height="64" viewBox="0 0 64 64" fill="none"><rect x="12" y="16" width="40" height="32" rx="6" stroke="#6d5d5b" stroke-width="2" stroke-dasharray="4 4"/><path d="M22 24 L42 40 M42 24 L22 40" stroke="#7d6462" stroke-width="2"/></svg>';
+      }
+      const stroke = trace.state === 'bloomed' ? '#7eb89a' : trace.state === 'disturbed' ? '#d4756a' : '#c9b793';
+      const fragments = trace.state === 'bloomed'
+        ? '<circle cx="10" cy="14" r="3" fill="#7eb89a"/><circle cx="54" cy="48" r="2.5" fill="#7eb89a"/><circle cx="52" cy="15" r="2" fill="#d4a65a"/>'
+        : '';
+      const scratch = trace.state === 'disturbed'
+        ? '<path d="M16 14 L38 50 M26 12 L48 48" stroke="#d4756a" stroke-width="2.5" stroke-linecap="round"/>'
+        : '';
+      const boxW = trace.container === 'greatbox' ? 46 : 38;
+      const boxX = (64 - boxW) / 2;
+      return `<svg width="64" height="64" viewBox="0 0 64 64" fill="none">
+        ${fragments}
+        <rect x="${boxX}" y="18" width="${boxW}" height="28" rx="5" fill="#2c2921" stroke="${stroke}" stroke-width="2.5"/>
+        <path d="M${boxX} 29 H${boxX + boxW}" stroke="${stroke}" stroke-width="2"/>
+        <rect x="28" y="25" width="8" height="8" rx="2" fill="${stroke}"/>
+        ${scratch}
+      </svg>`;
+    }
+
+    function renderOutdoor() {
+      const area = P.findArea(state, state.currentAreaId);
+      const trace = area ? P.activeTraceInArea(state, area) : null;
+      const card = $('field-card');
+      const cues = $('cache-cues');
+      const actions = $('outdoor-actions');
+      const invTotal = P.itemTotal(state.inventory);
+
+      card.className = 'cache-card ' + (trace ? `state-${trace.state}` : 'state-empty') + (trace?.real ? ' is-real' : '');
+      $('cache-visual').innerHTML = svgForTrace(trace);
+      cues.innerHTML = '';
+
+      if (!area) {
+        $('cache-title').textContent = '登録エリア外';
+        cues.innerHTML = '<span class="cue-pill">仮の場に置き荷を1つ置ける</span>';
+        $('sense-line').textContent = state.senseFeedback?.text || 'エリア外：置き荷を置くと仮の場になる';
+        actions.className = 'thumb-actions single-col';
+        const cost = state.greatboxUnlocked ? P.PLACE_COST_GREATBOX : P.PLACE_COST_NORMAL;
+        actions.innerHTML = `<button type="button" class="action-btn primary" id="btn-place-cache" ${invTotal < cost ? 'disabled' : ''}>置き荷を置く<small>${state.greatboxUnlocked ? '大箱・素材4' : '素材2を賭ける'}</small></button>`;
+      } else if (!trace) {
+        $('cache-title').textContent = area.provisional ? '仮の場の置き荷なし' : '場には何もない';
+        cues.innerHTML = area.provisional ? '<span class="cue-pill">次に訪れれば正式な場に昇格</span>' : '<span class="cue-pill">自分の素材を賭けて置ける</span>';
+        $('sense-line').textContent = state.senseFeedback?.text || '今は静かだ。荷を伏せていける';
+        actions.className = 'thumb-actions single-col';
+        const cost = state.greatboxUnlocked ? P.PLACE_COST_GREATBOX : P.PLACE_COST_NORMAL;
+        actions.innerHTML = `<button type="button" class="action-btn primary" id="btn-place-cache" ${invTotal < cost ? 'disabled' : ''}>置き荷を置く<small>${state.greatboxUnlocked ? '大箱・素材4' : '素材2を賭ける'}</small></button>`;
+      } else {
+        const containerLabel = trace.container === 'greatbox' ? '大箱' : '置き荷';
+        const stateTitles = {
+          intact: `誰かの${containerLabel}`,
+          bloomed: `実りを帯びた${containerLabel}`,
+          disturbed: `荒らされた${containerLabel}`,
+          ruined: '消えた荷の跡',
+        };
+        if (trace.owner === 'player' && trace.state !== 'ruined') {
+          $('cache-title').textContent = `自分の${containerLabel}`;
+        } else {
+          $('cache-title').textContent = stateTitles[trace.state] || containerLabel;
+        }
+        if (trace.state === 'bloomed') cues.innerHTML += '<span class="cue-pill bloom">周囲に素材の欠片</span>';
+        if (trace.state === 'disturbed') cues.innerHTML += '<span class="cue-pill warn">傷跡あり（消滅の気配）</span>';
+        if (trace.staked) cues.innerHTML += '<span class="cue-pill">上乗せ済み</span>';
+        if (area.provisional) cues.innerHTML += '<span class="cue-pill">仮の場（再訪で拾える）</span>';
+
+        const fb = state.senseFeedback && state.senseFeedback.traceId === trace.id ? state.senseFeedback.text : null;
+        $('sense-line').textContent = fb || 'カードを長押しで重さを量る（数字は見せない）';
+
+        if (trace.state === 'ruined') {
+          actions.className = 'thumb-actions single-col';
+          actions.innerHTML = area.provisional
+            ? '<button type="button" class="action-btn" disabled>仮の場（再訪で処理可能）</button>'
+            : `<button type="button" class="action-btn" id="btn-pickup-cache">跡を片付ける<small>中身は消えている</small></button>`;
+        } else if (area.provisional) {
+          actions.className = 'thumb-actions single-col';
+          actions.innerHTML = '<button type="button" class="action-btn" disabled>仮の場：次の来訪まで置いておく</button>';
+        } else {
+          actions.className = 'thumb-actions';
+          actions.innerHTML = `
+            <button type="button" class="action-btn primary" id="btn-pickup-cache">持ち帰る<small>自宅の精算へ</small></button>
+            <button type="button" class="action-btn" id="btn-stake-cache" ${trace.staked || invTotal < 1 ? 'disabled' : ''}>${trace.staked ? '上乗せ済み' : '上乗せして置く'}<small>${trace.staked ? 'ずっしりと重みを増した' : '分厚く賭ける'}</small></button>
+          `;
+        }
+      }
+
+      const placeBtn = $('btn-place-cache');
+      if (placeBtn) {
+        placeBtn.onclick = () => commit(P.placeCache(state, { container: state.greatboxUnlocked ? 'greatbox' : 'normal' }, activeNow()));
+      }
+      const pickBtn = $('btn-pickup-cache');
+      if (pickBtn) {
+        pickBtn.onclick = () => {
+          triggerJuice('light');
+          commit(P.pickupCache(state, trace.id, activeNow()));
+        };
+      }
+      const stakeBtn = $('btn-stake-cache');
+      if (stakeBtn) {
+        stakeBtn.onclick = () => {
+          triggerJuice('heavy');
+          commit(P.stakeCache(state, trace.id, activeNow()));
+        };
+      }
+    }
+
+    function renderHome() {
+      const invTotal = P.itemTotal(state.inventory);
+      $('inv-summary').innerHTML = `<span>鉄片 <strong>${state.inventory.iron}</strong></span><span>狼牙 <strong>${state.inventory.fang}</strong></span><span>合計 <strong>${invTotal} / ${P.GREATBOX_COST}</strong></span>`;
+      const dots = '●'.repeat(state.effort) + '○'.repeat(Math.max(0, P.NIGHT_EFFORT - state.effort));
+      $('effort-dots').textContent = `手間 ${dots} (${state.effort}/${P.NIGHT_EFFORT})`;
+
+      const gbBtn = $('btn-craft-greatbox');
+      if (state.greatboxUnlocked) {
+        gbBtn.textContent = '大箱 製作済';
+        gbBtn.disabled = true;
+        gbBtn.classList.remove('glow');
+      } else {
+        gbBtn.textContent = `大箱 (${P.GREATBOX_COST})`;
+        gbBtn.disabled = invTotal < P.GREATBOX_COST;
+        gbBtn.classList.toggle('glow', invTotal >= P.GREATBOX_COST);
+      }
+
+      $('carried-count').textContent = `${state.carried.length}件`;
+      const carriedEl = $('carried-list');
+      if (state.carried.length === 0) {
+        carriedEl.innerHTML = '<div class="aftermath-row" style="grid-template-columns:1fr;color:var(--muted);font-size:12px;">持ち帰った荷はない。屋外で置き荷を持ち帰ろう。</div>';
+      } else {
+        carriedEl.innerHTML = state.carried.slice(0, 2).map(c => {
+          const total = P.itemTotal(c.items);
+          return `<div class="carry-card" data-carry-id="${c.carryId}">
+            <div class="carry-top">
+              <div class="carry-lid">
+                <span class="area-dot" style="color:${c.areaColor};background:${c.areaColor}"></span>
+                <span>${c.areaName}の荷（見込 ${total}個）</span>
+              </div>
+              <span class="cue-pill">${c.preserved ? '手入れ済' : '未処理'}</span>
+            </div>
+            <div class="carry-actions">
+              <button type="button" class="carry-btn gentle" data-open-gentle="${c.carryId}" ${state.effort < P.COST_GENTLE ? 'disabled' : ''}>そっと (${P.COST_GENTLE})</button>
+              <button type="button" class="carry-btn pry" data-open-pry="${c.carryId}" ${state.effort < P.COST_PRY ? 'disabled' : ''}>こじ (${P.COST_PRY})</button>
+              <button type="button" class="carry-btn" data-preserve="${c.carryId}" ${state.effort < P.COST_PRESERVE || c.preserved ? 'disabled' : ''}>手入れ (${P.COST_PRESERVE})</button>
+            </div>
+          </div>`;
+        }).join('') + (state.carried.length > 2 ? `<div style="font-size:11px;color:var(--muted);text-align:right;">他 ${state.carried.length - 2}件待機中</div>` : '');
+      }
+
+      carriedEl.querySelectorAll('[data-open-gentle]').forEach(btn => {
+        btn.onclick = () => runGentle(btn.getAttribute('data-open-gentle'), btn.closest('.carry-card'));
+      });
+      carriedEl.querySelectorAll('[data-open-pry]').forEach(btn => {
+        btn.onclick = () => runPry(btn.getAttribute('data-open-pry'));
+      });
+      carriedEl.querySelectorAll('[data-preserve]').forEach(btn => {
+        btn.onclick = () => {
+          triggerJuice('light');
+          commit(P.preserveCarry(state, btn.getAttribute('data-preserve')));
+        };
+      });
+
+      // Swipe up for gentle open & double-tap for pry
+      carriedEl.querySelectorAll('.carry-card').forEach(cardEl => {
+        const id = cardEl.getAttribute('data-carry-id');
+        let startY = null;
+        let lastTap = 0;
+        cardEl.addEventListener('pointerdown', e => {
+          if (e.target.closest('button')) return;
+          startY = e.clientY;
+        });
+        cardEl.addEventListener('pointerup', e => {
+          if (e.target.closest('button') || startY === null) return;
+          const dy = e.clientY - startY;
+          startY = null;
+          if (dy < -42) {
+            runGentle(id, cardEl);
+            return;
+          }
+          const now = Date.now();
+          if (now - lastTap < 320) {
+            runPry(id);
+            lastTap = 0;
+          } else {
+            lastTap = now;
+          }
+        });
+      });
+
+      const list = state.aftermath.slice(0, 6);
+      const icons = { intact: '○', bloomed: '◎', disturbed: '✕', ruined: '◌' };
+      $('aftermath-list').innerHTML = list.length === 0
+        ? '<div class="aftermath-row" style="grid-template-columns:1fr;color:var(--muted);font-size:12px;">まだ痕跡の記録はない</div>'
+        : list.map(row => {
+            const cls = row.delta > 0 ? 'pos' : row.delta < 0 ? 'neg' : 'zero';
+            const sign = row.delta > 0 ? `+${row.delta}` : String(row.delta);
+            return `<div class="aftermath-row">
+              <span class="aftermath-icon">${icons[row.state] || '○'}</span>
+              <span class="aftermath-mid">
+                <span class="area-dot" style="color:${row.areaColor};background:${row.areaColor}"></span>
+                <span>${row.dayAge}日経過</span>
+              </span>
+              <span class="aftermath-delta ${cls}">${sign}</span>
+            </div>`;
+          }).join('');
+    }
+
+    function runGentle(carryId, cardEl) {
+      if (gentleOpening) return;
+      if (state.effort < P.COST_GENTLE) return showToast('手間が足りない');
+      gentleOpening = true;
+      if (cardEl) {
+        cardEl.classList.add('gentle-opening');
+        cardEl.querySelectorAll('button').forEach(b => { b.disabled = true; });
+      }
+      playTone('light');
+      setTimeout(() => {
+        gentleOpening = false;
+        const res = P.openGentle(state, carryId);
+        if (res?.result) showToast(res.result.message);
+        commit(res?.state || state);
+      }, cardEl ? 450 : 0);
+    }
+
+    function runPry(carryId) {
+      if (gentleOpening) return;
+      if (state.effort < P.COST_PRY) return showToast('手間が足りない');
+      triggerJuice('pry');
+      const res = P.openPry(state, carryId);
+      if (res?.result) showToast(res.result.message);
+      commit(res?.state || state);
+    }
+
+    function activeNow() {
+      return mode === 'walk' ? Date.now() : state.nowMs;
+    }
+
+    function render() {
+      const area = P.findArea(state, state.currentAreaId);
+      $('area-name').textContent = area ? area.name : 'エリア外（仮の場）';
+      const color = area ? area.color : '#9c8a6b';
+      $('area-dot').style.color = color;
+      $('area-dot').style.background = color;
+      const modeBadge = mode === 'walk' ? '実機GPS' : '屋内テスト';
+      $('area-meta').textContent = `Day ${state.dayCount} · ${modeBadge}`;
+      $('mode-label').textContent = modeBadge;
+      $('sim-controls').hidden = mode !== 'sim';
+      $('walk-controls').hidden = mode !== 'walk';
+
+      $('screen-outdoor').classList.toggle('active', activeTab === 'outdoor');
+      $('screen-home').classList.toggle('active', activeTab === 'home');
+      $('tab-outdoor').classList.toggle('active', activeTab === 'outdoor');
+      $('tab-home').classList.toggle('active', activeTab === 'home');
+
+      if (state.pendingIncident) {
+        $('incident-text').textContent = state.pendingIncident.text;
+        $('incident-modal').classList.add('active');
+      } else {
+        $('incident-modal').classList.remove('active');
+      }
+
+      renderOutdoor();
+      renderHome();
+    }
+
+    // Long press to sense cache weight & trigger immediate incident
+    function startHold() {
+      const area = P.findArea(state, state.currentAreaId);
+      const trace = area ? P.activeTraceInArea(state, area) : null;
+      if (!trace || state.pendingIncident) return;
+      const card = $('field-card');
+      const bar = $('hold-progress');
+      const fill = $('hold-progress-fill');
+      card.classList.add('pressing');
+      bar.hidden = false;
+      fill.style.width = '0%';
+      holdStart = performance.now();
+      clearInterval(holdAnim);
+      clearTimeout(holdTimer);
+      holdAnim = setInterval(() => {
+        const p = Math.min(100, ((performance.now() - holdStart) / 550) * 100);
+        fill.style.width = `${p}%`;
+      }, 30);
+      holdTimer = setTimeout(() => {
+        cancelHold();
+        const next = P.senseCache(state, trace.id, activeNow());
+        triggerJuice(next.senseFeedback?.tier || 'light');
+        if (next.pendingIncident) {
+          const blackout = $('incident-blackout');
+          blackout.classList.add('active');
+          setTimeout(() => {
+            blackout.classList.remove('active');
+            commit(next);
+          }, 500);
+        } else {
+          commit(next);
+        }
+      }, 550);
+    }
+
+    function cancelHold() {
+      clearTimeout(holdTimer);
+      clearInterval(holdAnim);
+      $('field-card').classList.remove('pressing');
+      $('hold-progress').hidden = true;
+      $('hold-progress-fill').style.width = '0%';
+    }
+
+    const card = $('field-card');
+    card.addEventListener('pointerdown', startHold);
+    card.addEventListener('pointerup', cancelHold);
+    card.addEventListener('pointerleave', cancelHold);
+    card.addEventListener('pointercancel', cancelHold);
+
+    // Tabs
+    $('tab-outdoor').onclick = () => { activeTab = 'outdoor'; render(); };
+    $('tab-home').onclick = () => { activeTab = 'home'; render(); };
+
+    // Home actions
+    $('btn-craft-greatbox').onclick = () => {
+      const next = P.craftGreatbox(state);
+      if (next !== state) {
+        triggerJuice('heavy');
+        showToast('大箱を製作した！（実り倍率 1.6倍）');
+        commit(next);
+      }
+    };
+    $('btn-end-night').onclick = () => {
+      const res = P.endNight(state);
+      $('night-msg').textContent = res.reports[0] || `Day ${res.state.dayCount} の朝`;
+      showToast(res.reports[0] || '新しい朝が来た（手間 4 回復）');
+      commit(res.state);
+    };
+
+    // Incident actions
+    $('btn-inc-release').onclick = () => commit(P.resolveIncident(state, 'release'));
+    $('btn-inc-catch').onclick = () => {
+      triggerJuice('heavy');
+      commit(P.resolveIncident(state, 'catch'));
+    };
+
+    // Explicit GPS check (walk) or time refresh (sim)
+    $('btn-check-gps').onclick = () => {
+      if (mode === 'sim') {
+        showToast('屋内テスト：歯車⚙から場所・時間を操作');
+        return;
+      }
+      if (!navigator.geolocation) return showToast('このブラウザはGPS非対応です');
+      showToast('現在地を1回だけ確認中…');
+      navigator.geolocation.getCurrentPosition(pos => {
+        const next = P.detectLocation(state, pos.coords.latitude, pos.coords.longitude, Date.now());
+        if (next.lastPromotedAreaId) showToast('仮の場が正式な場に昇格！');
+        else showToast('現在地を更新しました');
+        commit(next);
+      }, () => showToast('位置情報の取得が許可されませんでした'), { enableHighAccuracy: false, timeout: 8000, maximumAge: 0 });
+    };
+
+    // Settings sheet
+    $('btn-open-settings').onclick = () => $('settings-modal').classList.add('active');
+    $('btn-close-settings').onclick = () => $('settings-modal').classList.remove('active');
+    $('btn-mode-sim').onclick = () => {
+      mode = 'sim';
+      localStorage.setItem('crownless-trace-proto-mode', 'sim');
+      state = loadState('sim');
+      render();
+    };
+    $('btn-mode-walk').onclick = () => {
+      mode = 'walk';
+      localStorage.setItem('crownless-trace-proto-mode', 'walk');
+      state = loadState('walk');
+      render();
+    };
+
+    document.querySelectorAll('[data-sim-area]').forEach(btn => {
+      btn.onclick = () => {
+        const areaId = btn.getAttribute('data-sim-area');
+        const next = P.setSimulatedArea(state, areaId, state.nowMs);
+        if (next.lastPromotedAreaId) showToast('仮の場が正式な場に昇格！');
+        commit(next);
+        $('settings-modal').classList.remove('active');
+      };
+    });
+
+    $('btn-tick-8h').onclick = () => {
+      const next = P.advanceTime(state, state.nowMs + P.TICK_MS);
+      showToast('+8時間経過（状態遷移を抽選）');
+      commit(next);
+      $('settings-modal').classList.remove('active');
+    };
+
+    $('btn-inject-real').onclick = () => {
+      commit(P.injectRealDemoTrace(state, activeNow()));
+      $('settings-modal').classList.remove('active');
+    };
+
+    document.querySelectorAll('[data-cal-area]').forEach(btn => {
+      btn.onclick = () => {
+        const areaId = btn.getAttribute('data-cal-area');
+        if (!navigator.geolocation) return showToast('GPS非対応です');
+        navigator.geolocation.getCurrentPosition(pos => {
+          const next = P.calibrateArea(state, areaId, pos.coords.latitude, pos.coords.longitude);
+          showToast('約100m格子として登録しました');
+          commit(next);
+        }, () => showToast('位置情報を取得できませんでした'), { enableHighAccuracy: false, timeout: 8000, maximumAge: 0 });
+      };
+    });
+
+    $('btn-reset-proto').onclick = () => {
+      localStorage.removeItem(storageKey(mode));
+      state = loadState(mode);
+      showToast('プロトタイプ状態を初期化しました');
+      render();
+      $('settings-modal').classList.remove('active');
+    };
+
+    render();
+  });
+  </script>
+</body>
+</html>
