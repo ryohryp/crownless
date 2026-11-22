@@ -615,8 +615,14 @@
         return n;
       }
       // Final optional gamble; rewards are unconfirmed until safe return.
-      if((action==='forest-passage-spoor'||action==='forest-passage-spoor-careful'||action==='forest-passage-spoor-scout'||action==='forest-passage-spoor-leave') && x.place==='wood' && x.depth===1 && x.room===0 && x.field?.pos===F.LANTERN_PASS && x.field.passageFollowup && !x.field.passageSpoorDone){
-        if(action==='forest-passage-spoor-scout'){
+      if((action==='forest-passage-spoor'||action==='forest-passage-spoor-careful'||action==='forest-passage-spoor-scout'||action==='forest-passage-spoor-trap'||action==='forest-passage-spoor-leave') && x.place==='wood' && x.depth===1 && x.room===0 && x.field?.pos===F.LANTERN_PASS && x.field.passageFollowup && !x.field.passageSpoorDone){
+        if(action==='forest-passage-spoor-trap'){
+          // Convert carried, still-at-risk iron into a snare rather than losing health.
+          if(x.scrap<3 || x.materials.wolfFang>=1000000)return s;
+          x.scrap-=3;
+          x.materials.wolfFang++;
+          x.log=['拾った鉄片3個で獣道に罠を仕掛け、落ちた狼牙を1個回収した。体力は温存。素材は生還まで未確定。'];
+        }else if(action==='forest-passage-spoor-scout'){
           if(x.focus<3 || x.materials.wolfFang>=1000000)return s;
           x.focus-=3;
           x.materials.wolfFang++;
