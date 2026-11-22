@@ -8,11 +8,11 @@
 })(typeof globalThis==='object'?globalThis:this,function(){
   'use strict';
   const SIZE=7, COUNT=49;
-  const START=20, EXIT=4, CACHE=16, TRACKS=18, DEN=8,
+  const START=20, EXIT=4, CACHE=16, TRACKS=18, LANTERN_PASS=11, DEN=8,
     TREASURE=17, SHRINE=7, SECRET=12, GLADE=40, FOX=5, FOX_NEST=0;
   // Dense, actually IMPASSABLE forest around the ordinary winding trails.
   // Shrine 7 is additionally enclosed by rock and reachable ONLY from 12.
-  const WALLS=Object.freeze([6,11,25,26,27,28,29,30,31,32,35,36,37,38,42,43,44,45,46]);
+  const WALLS=Object.freeze([6,25,26,27,28,29,30,31,32,35,36,37,38,42,43,44,45,46]);
   const MAX_SEEN=2**COUNT-1;
   const inBounds=n=>Number.isInteger(n)&&n>=0&&n<COUNT;
   const coords=n=>{
@@ -29,6 +29,7 @@
   // Dense rock and bramble banks stop the shrine from being reached
   // by circling around from the wolf den or the northern woodland.
   const connected=(a,b)=>{
+    if(a===LANTERN_PASS||b===LANTERN_PASS)return [CACHE,10].includes(a===LANTERN_PASS?b:a);
     if((a===SHRINE||b===SHRINE))return a===SECRET||b===SECRET;
     if((a===SECRET||b===SECRET))return a===TREASURE||b===TREASURE;
     return true;
@@ -40,22 +41,22 @@
   // operators: that would silently expose/hide cells past index 31.
   // The secret remains under fog until the vines are deliberately investigated.
   const visible=(f,n)=>Boolean(f&&inBounds(n)&&
-    (n!==SECRET||f.secret===true)&&Math.floor(f.seen/(2**n))%2);
+    (n!==SECRET||f.secret===true)&&(n!==LANTERN_PASS||f.lanternPassage===true)&&Math.floor(f.seen/(2**n))%2);
   const nextSeen=(mask,pos)=>[pos,...neighbors(pos)].reduce((value,n)=>
     value+(Math.floor(value/(2**n))%2?0:2**n),mask);
   const initial=()=>({pos:START,seen:nextSeen(0,START),
-    cache:false,tracks:false,treasure:false,wolf:false,secret:false,shrine:false,glade:false,fox:false,foxCache:false,lanternClue:false,tracksRisk:false,foragingStage:0,foragingDone:false,gladeChoice:false});
+    cache:false,tracks:false,treasure:false,wolf:false,secret:false,shrine:false,glade:false,fox:false,foxCache:false,lanternClue:false,tracksRisk:false,foragingStage:0,foragingDone:false,gladeChoice:false,lanternPassage:false});
   const valid=f=>f&&typeof f==='object'&&!Array.isArray(f)&&
-    Object.keys(f).every(k=>['pos','seen','cache','tracks','treasure','wolf','secret','shrine','glade','fox','foxCache','lanternClue','tracksRisk','foragingStage','foragingDone','gladeChoice'].includes(k))&&
+    Object.keys(f).every(k=>['pos','seen','cache','tracks','treasure','wolf','secret','shrine','glade','fox','foxCache','lanternClue','tracksRisk','foragingStage','foragingDone','gladeChoice','lanternPassage'].includes(k))&&
     ['pos','seen','cache','tracks'].every(k=>Object.prototype.hasOwnProperty.call(f,k))&&
-    ['treasure','wolf','secret','shrine','glade','fox','foxCache','lanternClue','tracksRisk','foragingDone','gladeChoice'].every(k=>f[k]===undefined||typeof f[k]==='boolean')&&
+    ['treasure','wolf','secret','shrine','glade','fox','foxCache','lanternClue','tracksRisk','foragingDone','gladeChoice','lanternPassage'].every(k=>f[k]===undefined||typeof f[k]==='boolean')&&
     (f.foragingStage===undefined||Number.isInteger(f.foragingStage)&&f.foragingStage>=0&&f.foragingStage<=2)&&
-    (f.pos!==SECRET||f.secret===true)&&
+    (f.pos!==SECRET||f.secret===true)&&(f.pos!==LANTERN_PASS||f.lanternPassage===true)&&
     inBounds(f.pos)&&!WALLS.includes(f.pos)&&
     Number.isSafeInteger(f.seen)&&f.seen>0&&f.seen<=MAX_SEEN&&
     visible(f,f.pos)&&typeof f.cache==='boolean'&&typeof f.tracks==='boolean';
   const canMove=(f,to)=>valid(f)&&inBounds(to)&&!WALLS.includes(to)&&
-    visible(f,to)&&adjacent(f.pos,to)&&(to!==SECRET||f.secret===true);
+    visible(f,to)&&adjacent(f.pos,to)&&(to!==SECRET||f.secret===true)&&(to!==LANTERN_PASS||f.lanternPassage===true);
   function move(f,to){
     if(!canMove(f,to))return null;
     return {...f,pos:to,seen:nextSeen(f.seen,to)};
@@ -67,6 +68,12 @@
       !adjacent(f.pos,to))return null;
     return {...f,secret:true,seen:nextSeen(f.seen,f.pos)};
   }
+  // The lantern reveals a distinct shortcut only after a deliberate clue and
+  // a second investigation from the fallen-tree cache; never auto-walk through fog.
+  function uncoverLanternPassage(f,to){
+    if(!valid(f)||to!==LANTERN_PASS||f.pos!==CACHE||!f.lanternClue||f.lanternPassage||!adjacent(f.pos,to))return null;
+    return {...f,lanternPassage:true,seen:nextSeen(f.seen,f.pos)};
+  }
   function wolfAwareness(f){
     if(!valid(f))return 'hidden';
     if(f.wolf===true)return 'defeated';
@@ -75,6 +82,7 @@
   }
   function landmark(n){
     if(WALLS.includes(n))return 'wall';
+    if(n===LANTERN_PASS)return 'lantern-pass';
     if(n===EXIT)return 'exit';
     if(n===CACHE)return 'cache';
     if(n===TRACKS)return 'tracks';
@@ -89,5 +97,5 @@
     return 'trail';
   }
   return {SIZE,COUNT,START,EXIT,CACHE,TRACKS,DEN,TREASURE,SHRINE,SECRET,GLADE,
-    FOX,FOX_NEST,WALLS,coords,initial,valid,move,uncover,canMove,visible,adjacent,neighbors,landmark,wolfAwareness};
+    FOX,FOX_NEST,LANTERN_PASS,WALLS,coords,initial,valid,move,uncover,uncoverLanternPassage,canMove,visible,adjacent,neighbors,landmark,wolfAwareness};
 });
