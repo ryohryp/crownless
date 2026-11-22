@@ -627,7 +627,7 @@
         return n;
       }
       // Final optional gamble; rewards are unconfirmed until safe return.
-      if((action==='forest-passage-spoor'||action==='forest-passage-spoor-careful'||action==='forest-passage-spoor-scout'||action==='forest-passage-spoor-trap'||action==='forest-passage-spoor-bait'||action==='forest-passage-spoor-rest'||action==='forest-passage-spoor-herb'||action==='forest-passage-spoor-ambush'||action==='forest-passage-spoor-leave') && x.place==='wood' && x.depth===1 && x.room===0 && x.field?.pos===F.LANTERN_PASS && x.field.passageFollowup && !x.field.passageSpoorDone){
+      if((action==='forest-passage-spoor'||action==='forest-passage-spoor-careful'||action==='forest-passage-spoor-scout'||action==='forest-passage-spoor-trap'||action==='forest-passage-spoor-bait'||action==='forest-passage-spoor-rest'||action==='forest-passage-spoor-herb'||action==='forest-passage-spoor-ambush'||action==='forest-passage-spoor-cache'||action==='forest-passage-spoor-leave') && x.place==='wood' && x.depth===1 && x.room===0 && x.field?.pos===F.LANTERN_PASS && x.field.passageFollowup && !x.field.passageSpoorDone){
         if(action==='forest-passage-spoor-rest'){
           // Spend uncertain iron on a temporary shelter: survival now versus crafting later.
           if(x.scrap<4 || x.hp>=maxHp(s))return s;
@@ -660,6 +660,13 @@
           if(x.hp<=3 || x.scrap<2 || x.materials.wolfFang>999997)return s;
           x.hp-=3; x.scrap-=2; x.materials.wolfFang+=2;
           x.log=['鉄片2個で音の出る罠を作り、獣が逸れた隙に狼牙2個を回収。体力 −3。生還まで未確定。'];
+        }else if(action==='forest-passage-spoor-cache'){
+          // A risky detour with a distinct reward: recover a rare regional material
+          // rather than converting iron and fangs again. Nothing is banked until return.
+          if(x.hp<=6 || x.materials.forestEssence>=1000000)return s;
+          x.hp-=6;
+          x.materials.forestEssence++;
+          x.log=['獣道を外れて苔の洞を探り、森の精髄 +1 を発見。体力 −6。生還まで失う危険がある。'];
         }else if(action==='forest-passage-spoor-scout'){
           if(x.focus<3 || x.materials.wolfFang>=1000000)return s;
           x.focus-=3;
