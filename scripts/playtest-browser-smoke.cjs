@@ -31,14 +31,14 @@ async function walkForestToWolf(page) {
   }
 }
 
-// The discovered forest's primary CTA now opens action combat. Existing
-// tactical/exploration smoke scenarios deliberately choose the preserved route.
+// The canonical forest is now the visible primary expedition. The action
+// experiment stays optional in details and has separate save/progression.
 async function departClassicForest(page) {
-  const legacy=page.locator('.action-forest-preview [data-action="depart"][data-value="wood"]');
-  if (!await legacy.count()) {
-    await page.locator('.nearby-card-actions [data-action="nearby-view"]').click();
-  }
-  await legacy.click();
+  const main=page.locator('.nearby-card-actions [data-action="depart"][data-value="wood"]');
+  if (await main.count()) {await main.click();return;}
+  const detail=page.locator('.action-forest-preview [data-action="depart"][data-value="wood"]');
+  if (!await detail.count()) await page.locator('.nearby-card-actions [data-action="nearby-view"]').click();
+  await detail.click();
 }
 
 async function main() {
@@ -159,11 +159,9 @@ async function main() {
         assert.equal(await page.locator(".nearby-paper-map").count(), 1, "travel tabs must return to map");
 
 
-        // The forest's main card now launches real-time action combat.
-        // The original walkable/tactical forest is still available by explicit
-        // choice from the details panel; verify that legacy path separately.
-        await page.locator('.nearby-card-actions [data-action="nearby-view"]').click();
-        await page.locator('.action-forest-preview [data-action="depart"][data-value="wood"]').click();
+        // The forest's main CTA launches the canonical walkable field where
+        // gathering, stone-ring choices and provisional loot can be playtested.
+        await departClassicForest(page);
         assert.equal(await page.locator(".expedition-layout.path-stage").count(), 0);
         assert.equal(await page.locator(".expedition-layout:not(.battle-layout)").count(), 1);
         const world = page.locator('.forest-field');
@@ -877,7 +875,7 @@ async function main() {
       try {
         await rolePage.goto(url);
         await rolePage.locator('[data-action="mode"][data-value="demo"]').click();
-        const defaultDepart=rolePage.locator('.nearby-card-actions [data-action="action-forest-lab"]');
+        const defaultDepart=rolePage.locator('.nearby-card-actions [data-action="depart"][data-value="wood"]');
         assert.equal(await defaultDepart.isEnabled(),true,'normal adventurer departure must remain enabled on '+width);
         const centerHit=async locator=>locator.evaluate(el=>{
           const r=el.getBoundingClientRect();
@@ -891,11 +889,10 @@ async function main() {
         const asSmith=await rolePage.evaluate(()=>JSON.parse(localStorage.getItem('crownless-expedition-v1-demo')));
         assert.equal(asSmith.activeCharacter,1,'smith role is the actual saved state');
         await rolePage.locator('.bottom-navigation [data-action="tab"][data-value="explore"]').click();
-        await rolePage.locator('.nearby-card-actions [data-action="nearby-view"]').click();
-        const readyDepart=rolePage.locator('.action-forest-preview [data-action="depart-as-adventurer"][data-value="wood"]');
+        const readyDepart=rolePage.locator('.nearby-card-actions [data-action="depart-as-adventurer"][data-value="wood"]');
         assert.equal(await readyDepart.count(),1,'smith can see the explicit role-switching departure');
         assert.equal(await readyDepart.isEnabled(),true,'smith departure must not be a dead disabled control');
-        assert.match(await readyDepart.innerText(),/従来の探索遠征（ターン制）/);
+        assert.match(await readyDepart.innerText(),/冒険者に交代して森へ遠征/);
         await readyDepart.scrollIntoViewIfNeeded();
         const smithHit=await centerHit(readyDepart);
         assert(smithHit.hit && smithHit.rect.top>=0 && smithHit.rect.bottom<=height+2,
