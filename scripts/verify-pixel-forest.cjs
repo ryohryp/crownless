@@ -731,10 +731,11 @@ async function main() {
         await page.goto('http://127.0.0.1:'+port+'/expedition.html',{waitUntil:'domcontentloaded'});
         await page.locator('[data-action="mode"][data-value="demo"]').click();
         const saveBefore=await page.evaluate(()=>localStorage.getItem('crownless-expedition-v1-demo'));
-        await page.locator('[data-action="action-forest-lab"]').first().click();
+        await page.locator('.nearby-card-actions [data-action="nearby-view"][data-value="detail"]').click();
+        await page.locator('.action-forest-preview [data-action="action-forest-lab"]').click();
         await page.waitForURL('**/gemini-feel-lab.html?from=discovered-wood');
         await page.waitForFunction(()=>window.CrownlessForestReadout?.().assetsReady,{timeout:20000});
-        assert.equal((await read(page)).art,'pixel','new forest renderer is the playable default');
+        assert.equal((await read(page)).art,'pixel','optional action forest remains a playable test mode');
         // Same real game and save; compare the optional atmosphere on the actual canvas.
         const fxToggle=page.locator('#btnForestAtmosphere');
         assert.equal(await fxToggle.isVisible(),true,'atmosphere comparison must be reachable');
@@ -1947,7 +1948,8 @@ async function main() {
             await barehandPage.goto('http://127.0.0.1:'+port+'/expedition.html',
               {waitUntil:'domcontentloaded'});
             await barehandPage.locator('[data-action="mode"][data-value="demo"]').click();
-            await barehandPage.locator('[data-action="action-forest-lab"]').first().click();
+            await barehandPage.locator('.nearby-card-actions [data-action="nearby-view"][data-value="detail"]').click();
+            await barehandPage.locator('.action-forest-preview [data-action="action-forest-lab"]').click();
             await barehandPage.waitForURL('**/gemini-feel-lab.html?from=discovered-wood');
             await barehandPage.waitForFunction(()=>window.CrownlessForestReadout?.().assetsReady,
               null,{timeout:20000});
@@ -2160,7 +2162,8 @@ async function main() {
             await scoutPage.goto('http://127.0.0.1:'+port+'/expedition.html',
               {waitUntil:'domcontentloaded'});
             await scoutPage.locator('[data-action="mode"][data-value="demo"]').click();
-            await scoutPage.locator('[data-action="action-forest-lab"]').first().click();
+            await scoutPage.locator('.nearby-card-actions [data-action="nearby-view"][data-value="detail"]').click();
+            await scoutPage.locator('.action-forest-preview [data-action="action-forest-lab"]').click();
             await scoutPage.waitForURL('**/gemini-feel-lab.html?from=discovered-wood');
             await scoutPage.waitForFunction(()=>window.CrownlessForestReadout?.().assetsReady,
               null,{timeout:20000});
