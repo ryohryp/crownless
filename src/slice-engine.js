@@ -599,7 +599,7 @@
       }
       // A second decision after salvaging: leave safely or spend health to
       // recover additional iron from the newly exposed roots.
-      if((action==='forest-passage-deeper'||action==='forest-passage-careful-iron'||action==='forest-passage-leave') &&
+      if((action==='forest-passage-deeper'||action==='forest-passage-careful-iron'||action==='forest-passage-herbal-iron'||action==='forest-passage-leave') &&
         x.place==='wood' && x.depth===1 && x.room===0 &&
         x.field?.pos===F.LANTERN_PASS && x.field.passageSalvaged &&
         !x.field.passageFollowup){
@@ -608,6 +608,12 @@
           x.hp-=3;
           x.scrap=Math.min(1000,x.scrap+4);
           x.log=['さらに根の奥へ手を伸ばした。体力 −3、鉄片を最大4個回収。生還まで未確定。'];
+        }else if(action==='forest-passage-herbal-iron'){
+          if(x.potions<1 || x.scrap>994)return s;
+          x.potions--;
+          const found=Math.min(6,1000-x.scrap);
+          x.scrap+=found;
+          x.log=[`薬草の香りで根元の虫を遠ざけ、鉄片 +${found} を回収。薬草 −1、体力消費なし。生還まで未確定。`];
         }else if(action==='forest-passage-careful-iron'){
           if(x.focus<2)return s;
           x.focus-=2;
