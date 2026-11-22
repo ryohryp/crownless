@@ -68,7 +68,7 @@ test('map pixel signs and expanded ink POI detail use the same canonical distric
   const first=elements['#game'].innerHTML;
   assert.equal((first.match(/class="nearby-track-tile[^"]*"/g)||[]).length,25);
   assert.match(first,/data-value="-1,0" aria-pressed="true"/,'selecting another discovered land recenters the camera');
-  assert.match(first,/aria-label="西の木立、✦ 異変"/);
+  assert.match(first,/aria-label="囁きの森（西の木立）、✦ 異変"/);
 });
 
 test('map POI stamps keep crisp bounds and minimum tappable map marker', () => {

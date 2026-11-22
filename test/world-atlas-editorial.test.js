@@ -24,7 +24,7 @@ test('first phone scene uses a visible world-atlas hierarchy backed by current s
   assert.match(html, /発見 <b>\d+<\/b>/);
   assert.match(html, /開拓 <b>\d+<\/b>/);
   assert.match(html, /SELECTED LAND \/ 01/);
-  assert.match(html, /アクション遠征へ/);
+  assert.match(html, /囁きの森へ遠征/);
   assert.match(html, /nearby-card-actions/);
   assert.match(html, /data-action="nearby-view" data-value="scout"/);
   assert.match(html, /data-action="settings"/);
@@ -37,11 +37,11 @@ test('existing real-world discovery and character-specific departures keep their
   state.mode = 'walk';
   let html=render(state);
   assert.match(html,/現実の散策モード/);
-  assert.match(html,/data-action="action-forest-lab"/);
+  assert.match(html,/data-action="depart" data-value="wood"/);
   state = E.switchCharacter(state,1);
   html=render(state);
-  assert.match(html,/data-action="action-forest-lab"[^>]*disabled/);
-  assert.match(html,/旅人に交代してアクション遠征/);
+  assert.match(html,/data-action="depart-as-adventurer" data-value="wood"/);
+  assert.match(html,/冒険者に交代して森へ遠征/);
 });
 
 test('stylesheet changes the actual landing atlas after the previous editorial theme', () => {
