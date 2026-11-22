@@ -849,6 +849,12 @@
         const to=Number(action.slice('field-step:'.length));
         // First investigate the vine-covered rock barrier; the explorer does
         // not walk through until the newly uncovered opening is tapped again.
+        const lanternOpening=F.uncoverLanternPassage(x.field,to);
+        if(lanternOpening){
+          x.field=lanternOpening;
+          x.log=['斥候の灯が示した霧の継ぎ目を、倒木の裏から調べた。木々の間に北への抜け道が開いた！ もう一度タップすると歩ける。'];
+          return n;
+        }
         const uncovered=F.uncover(x.field,to);
         if(uncovered){
           x.field=uncovered;
