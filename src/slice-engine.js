@@ -615,8 +615,13 @@
         return n;
       }
       // Final optional gamble; rewards are unconfirmed until safe return.
-      if((action==='forest-passage-spoor'||action==='forest-passage-spoor-careful'||action==='forest-passage-spoor-leave') && x.place==='wood' && x.depth===1 && x.room===0 && x.field?.pos===F.LANTERN_PASS && x.field.passageFollowup && !x.field.passageSpoorDone){
-        if(action==='forest-passage-spoor'||action==='forest-passage-spoor-careful'){
+      if((action==='forest-passage-spoor'||action==='forest-passage-spoor-careful'||action==='forest-passage-spoor-scout'||action==='forest-passage-spoor-leave') && x.place==='wood' && x.depth===1 && x.room===0 && x.field?.pos===F.LANTERN_PASS && x.field.passageFollowup && !x.field.passageSpoorDone){
+        if(action==='forest-passage-spoor-scout'){
+          if(x.focus<3 || x.materials.wolfFang>=1000000)return s;
+          x.focus-=3;
+          x.materials.wolfFang++;
+          x.log=['足跡の乱れを読み、獣に近づかず落ちた狼牙を回収した。集中 −3、狼牙 +1。生還まで未確定。'];
+        }else if(action==='forest-passage-spoor'||action==='forest-passage-spoor-careful'){
           const careful=action==='forest-passage-spoor-careful';
           if(x.hp<=(careful?2:5) || (careful&&x.potions<1) || x.materials.wolfFang>999997)return s;
           x.hp-=careful?2:5;
