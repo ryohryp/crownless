@@ -614,6 +614,15 @@
         x.field.passageFollowup=true;
         return n;
       }
+      // Final optional gamble; rewards are unconfirmed until safe return.
+      if((action==='forest-passage-spoor'||action==='forest-passage-spoor-leave') && x.place==='wood' && x.depth===1 && x.room===0 && x.field?.pos===F.LANTERN_PASS && x.field.passageFollowup && !x.field.passageSpoorDone){
+        if(action==='forest-passage-spoor'){
+          if(x.hp<=5 || x.materials.wolfFang>999997)return s;
+          x.hp-=5; x.materials.wolfFang+=2;
+          x.log=['獣道へ踏み込んだ。体力 −5、狼牙 +2。生還まで未確定。'];
+        }else x.log=['獣道を追わず、戦利品を守って引き返した。'];
+        x.field.passageSpoorDone=true; return n;
+      }
       // The discovered stone ring presents a one-time, player-controlled
       // choice: preserve the current expedition or risk health for smithing loot.
       if ((action==='forest-glade-rest'||action==='forest-glade-excavate') &&
