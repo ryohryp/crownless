@@ -37,6 +37,9 @@ const excluded=new Set(['.git','.github','.visual-director','.vscode','art-sourc
       page.on('pageerror',e=>errors.push(e.message));page.on('response',r=>{if(r.url().startsWith(base)&&r.status()>=400)missing.push(r.url());});
       await page.goto(base+'/',{waitUntil:'networkidle'});
       await page.locator('[data-action="mode"][data-value="demo"]').click();
+      const forestPin=page.locator('.district-pin.selected strong');
+      assert.equal((await forestPin.innerText()).trim(),'囁きの森','starting map pin must show the real expedition name');
+      assert.equal(await page.locator('.district-detail button[data-action="depart"]').isVisible(),true,'forest expedition action must exist on the main screen');
       await page.locator('[data-action="action-forest-lab"]').first().click();
       await page.waitForFunction(()=>window.CrownlessForestReadout?.().assetsReady&&window.CrownlessForestReadout().heroAnimation.walkReady);
       assert(!new URL(page.url()).searchParams.has('actor'),'normal game needs no preview flag');
