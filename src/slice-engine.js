@@ -597,6 +597,23 @@
         x.log=[action==='forest-passage-careful' ? '薬草を使って傷を防ぎ、根元から狼牙 +1。薬草 −1。生還まで未確定。' : '北の抜け道の崩れた根を掘り返した。体力 −4、狼牙 +1。生還するまで背嚢の中だ。'];
         return n;
       }
+      // A second decision after salvaging: leave safely or spend health to
+      // recover additional iron from the newly exposed roots.
+      if((action==='forest-passage-deeper'||action==='forest-passage-leave') &&
+        x.place==='wood' && x.depth===1 && x.room===0 &&
+        x.field?.pos===F.LANTERN_PASS && x.field.passageSalvaged &&
+        !x.field.passageFollowup){
+        if(action==='forest-passage-deeper'){
+          if(x.hp<=3)return s;
+          x.hp-=3;
+          x.scrap=Math.min(1000,x.scrap+4);
+          x.log=['さらに根の奥へ手を伸ばした。体力 −3、鉄片を最大4個回収。生還まで未確定。'];
+        }else{
+          x.log=['崩れた根をそれ以上掘らず、戦利品を守って引き返すことにした。'];
+        }
+        x.field.passageFollowup=true;
+        return n;
+      }
       // The discovered stone ring presents a one-time, player-controlled
       // choice: preserve the current expedition or risk health for smithing loot.
       if ((action==='forest-glade-rest'||action==='forest-glade-excavate') &&
