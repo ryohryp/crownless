@@ -10,7 +10,7 @@ function scene(state, view='detail') {
   return Nearby.render({
     state,N,E,A:{},view,
     button:(action,label,body='',options={})=>
-      '<button data-action="'+action+'"'+(options.disabled?' disabled':'')+'>'+label+'</button>',
+      '<button data-action="'+action+'"'+(options.value?' data-value="'+options.value+'"':'')+(options.disabled?' disabled':'')+'>'+label+'</button>',
     scouting:()=>'',landmarkFlagPreview:()=>'',notice:'',nav:''
   });
 }
@@ -28,19 +28,22 @@ test('only a discovered selected woodland advertises an optional action expediti
   assert.match(scene(state),/action-forest-lab/,'returning to discovered forest restores the optional action');
 });
 
-test('forest map primary launches real-time action while legacy exploration is explicit and separate',()=>{
+test('forest map primary launches the canonical forest with foraging and ring; action lab stays optional',()=>{
   let state=E.initial();state.mode='demo';
   const forest=scene(state,'map');
-  const actions=forest.match(/<div class="nearby-card-actions">([\s\S]*?)<\/div>/)?.[1];
+  assert.match(forest,/nearby-track-name">囁きの森<\/span>/);
+  assert.match(forest,/<h2>囁きの森<\/h2>/);
+  assert.match(forest,/西の木立/,'local district title remains available');
+  const actions=forest.match(/<div class="nearby-card-actions">([\\s\\S]*?)<\\/div>/)?.[1];
   assert.ok(actions,'selected-land card must show its primary call-to-action');
-  assert.match(actions,/data-action="action-forest-lab"[^>]*>.*アクション遠征へ/);
-  assert.doesNotMatch(actions,/data-action="depart"/, 'turn-based forest must not be the default');
+  assert.match(actions,/data-action="depart" data-value="wood"[^>]*>囁きの森へ遠征/);
+  assert.doesNotMatch(actions,/action-forest-lab/,'the experimental action mode must not replace the canonical forest');
   const details=scene(state,'detail');
-  assert.match(details,/従来の探索遠征（ターン制）/);
-  assert.match(details,/data-action="depart"/, 'legacy forest remains playable from details');
+  assert.match(details,/data-action="action-forest-lab"/,'the separate action experiment remains discoverable');
+  assert.match(details,/既存の遠征セーブや倉庫には加算されません/);
   state=E.discoverDistrict(state,N.cell(400,0));
   const tower=scene(state,'map');
-  const towerActions=tower.match(/<div class="nearby-card-actions">([\s\S]*?)<\/div>/)?.[1];
+  const towerActions=tower.match(/<div class="nearby-card-actions">([\\s\\S]*?)<\\/div>/)?.[1];
   assert.match(towerActions,/data-action="depart"/);
   assert.doesNotMatch(towerActions,/action-forest-lab/);
 });
@@ -49,7 +52,7 @@ test('smith and active standard expedition may not launch another action run',()
   let state=E.initial(); state.mode='demo';
   let smith={...state,activeCharacter:1};
   assert.match(scene(smith),/data-action="action-forest-lab" disabled/);
-  assert.match(scene(smith,'map'),/data-action="action-forest-lab" disabled/);
+  assert.match(scene(smith,'map'),/data-action="depart-as-adventurer" data-value="wood"/);
   const journey=E.start(state,'wood');
   assert.ok(journey.expedition);
   assert.match(scene(journey),/data-action="action-forest-lab" disabled/);
