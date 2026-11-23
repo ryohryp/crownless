@@ -176,7 +176,7 @@
     { id:'smith', name:'見習い鍛冶師', role:'smith', equipped:'rust', experience:0, skills:{} },
     { id:'merchant', name:'行商人', role:'merchant', equipped:'rust', experience:0, skills:{} }
   ];
-  const initial = () => ({ version: VERSION, mode: null, designs:{}, unlocked: ['wood'], cleared: [], owned: ['rust'], equipped: 'rust', qualities: emptyQualities(), scrap: 0, materials:emptyMaterials(), characters:startingCharacters(), activeCharacter:0, commission:emptyCommission(), level: 0, upgrades: emptyUpgrades(), runs: 0, victories: 0, grudge: null, maintenance: null, claimedLandmarks: [], ownedTools: [], expedition: null, report: null, neighborhood:N.initial() });
+  const initial = () => ({ version: VERSION, mode: null, designs:{}, unlocked: ['wood'], cleared: [], owned: ['rust'], equipped: 'rust', qualities: emptyQualities(), scrap: 0, materials:emptyMaterials(), characters:startingCharacters(), activeCharacter:0, commission:emptyCommission(), level: 0, upgrades: emptyUpgrades(), runs: 0, victories: 0, grudge: null, maintenance: null, claimedLandmarks: [], ownedTools: [], forestCache: false, expedition: null, report: null, neighborhood:N.initial() });
   const maxHp = s => 30 + (Number.isInteger(s.level) ? s.level : 0) * 5 + (s.owned.includes('crown') ? 6 : 0) + (s.neighborhood?.buildings.includes('lodge') ? 4 : 0);
   function weaponLevel(s, id = s.equipped) {
     const legacy = LEGACY_UPGRADEABLE.has(id) && Number.isInteger(s?.level)
@@ -308,6 +308,9 @@
     const n = copy(s); n.report = null; n.runs++;
     // Help earned through a past NPC commission is a one-expedition, same-region benefit.
     const supported = n.commission.support === id;
+    // A cache built on a previous safe expedition makes the forest feel changed on revisit.
+    const cached = id === 'wood' && n.forestCache === true;
+    if (cached) n.forestCache = false;
     if (supported) n.commission.support = null;
     n.commission.lastResult = null;
     n.neighborhood = N.begin(n.neighborhood || N.migrate(n),id);
@@ -320,8 +323,9 @@
       grudge ? `敗走の記憶が残っている。${ENEMIES[grudge.enemy].name}への一撃に執念を乗せられる。` : null,
       supported ? `${COMMISSIONS[id].requester}の支援で薬草 +1。鍛冶師の納品が帰ってきた。` : null,
       visitorGift ? `${visitorGift.name}（架空NPC）の補給袋を受け取った。薬草 +1。ここからの一度限りの支援。` : null,
+      cached ? '以前の遠征で隠した補給箱を回収。薬草 +1。森に残した痕跡が役立った。' : null,
     ].filter(Boolean).join(' ') || '火はここで待っている。まずは足跡をたどろう。';
-    n.expedition = { place: id, depth: 1, room: 0, hp: maxHp(s), stamina: 3, focus: 0, stagger: false, sharpened, sharpenedApplied: false, potions: (supported || visitorGift) ? 3 : 2, scrap: 0, materials:emptyMaterials(), gear: [], gearQuality: [], seals: [], grudge, enemy: null, stage: 'path', log: [intro], ...(id==='wood' ? {field:F.initial()} : id==='tower' ? {tower:T.initial()} : id==='fen' ? {fen:M.initial()} : {}) };
+    n.expedition = { place: id, depth: 1, room: 0, hp: maxHp(s), stamina: 3, focus: 0, stagger: false, sharpened, sharpenedApplied: false, potions: (supported || visitorGift || cached) ? 3 : 2, scrap: 0, materials:emptyMaterials(), gear: [], gearQuality: [], seals: [], grudge, enemy: null, stage: 'path', log: [intro], ...(id==='wood' ? {field:F.initial()} : id==='tower' ? {tower:T.initial()} : id==='fen' ? {fen:M.initial()} : {}) };
     return n;
   }
   // A landmark expedition is bound to one *discovered* fantasy place by the UI.
@@ -624,6 +628,16 @@
           x.log=['崩れた根をそれ以上掘らず、戦利品を守って引き返すことにした。'];
         }
         x.field.passageFollowup=true;
+        return n;
+      }
+      // Leave a tangible trace in the forest. The cache is consumed on the next
+      // forest departure, not on death or a reload at camp.
+      if(action==='forest-passage-build-cache' && x.place==='wood' && x.depth===1 &&
+        x.room===0 && x.stage==='path' && x.field?.pos===F.LANTERN_PASS &&
+        x.field.passageSpoorDone && !n.forestCache && x.scrap>=3){
+        x.scrap-=3;
+        n.forestCache=true;
+        x.log=['鉄片3個で北の抜け道に補給箱を隠した。次の森の遠征で薬草 +1。生還せずとも補給箱は残る。'];
         return n;
       }
       // Final optional gamble; rewards are unconfirmed until safe return.
