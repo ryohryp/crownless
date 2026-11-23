@@ -750,12 +750,12 @@
           const healed=Math.min(12,maxHp(n)-x.hp);
           x.hp+=healed;
           x.log=[`石環の苔に鉄片3個を供え、体力 +${healed}。深追いせず、生還の可能性を高めた。`];
-        }else{
+        }else if(action==='forest-glade-excavate'){
           if(x.hp<=5 || x.materials.wolfFang>=1000000)return s;
           x.hp-=5;
           x.materials.wolfFang++;
           x.log=['石環の根を掘り起こし、古い狼牙 +1 を発見。体力 −5。生還できなければ失う。'];
-        }
+        }else return s;
         x.field.gladeChoice=true;
         return n;
       }
