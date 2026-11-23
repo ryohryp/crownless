@@ -713,10 +713,16 @@
       }
       // The discovered stone ring presents a one-time, player-controlled
       // choice: preserve the current expedition or risk health for smithing loot.
-      if ((action==='forest-glade-rest'||action==='forest-glade-excavate'||action==='forest-glade-moss') &&
+      if ((action==='forest-glade-rest'||action==='forest-glade-excavate'||action==='forest-glade-moss'||action==='forest-glade-waymark') &&
           x.place==='wood' && x.depth===1 && x.room===0 &&
           x.field?.pos===F.GLADE && x.field.glade && !x.field.gladeChoice) {
-        if(action==='forest-glade-moss'){
+        if(action==='forest-glade-waymark'){
+          // A visible choice with a consequence on the next expedition, not another loot trade.
+          if(n.forestCache || x.scrap<4)return s;
+          x.scrap-=4;
+          n.forestCache='scout';
+          x.log=['石環に偵察の道標を残した。鉄片 −4。次の森への出発時に入口付近の通常道を先に見渡し、集中 +2。倒れても道標は残る。'];
+        }else if(action==='forest-glade-moss'){
           // A rare cross-region ingredient rewards returning alive rather than fighting.
           if(x.hp<=4 || x.materials.marshFiber>=1000000)return s;
           x.hp-=4;
