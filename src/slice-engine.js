@@ -176,7 +176,7 @@
     { id:'smith', name:'見習い鍛冶師', role:'smith', equipped:'rust', experience:0, skills:{} },
     { id:'merchant', name:'行商人', role:'merchant', equipped:'rust', experience:0, skills:{} }
   ];
-  const initial = () => ({ version: VERSION, mode: null, designs:{}, unlocked: ['wood'], cleared: [], owned: ['rust'], equipped: 'rust', qualities: emptyQualities(), scrap: 0, materials:emptyMaterials(), characters:startingCharacters(), activeCharacter:0, commission:emptyCommission(), level: 0, upgrades: emptyUpgrades(), runs: 0, victories: 0, grudge: null, maintenance: null, claimedLandmarks: [], ownedTools: [], expedition: null, report: null, neighborhood:N.initial() });
+  const initial = () => ({ version: VERSION, mode: null, designs:{}, unlocked: ['wood'], cleared: [], owned: ['rust'], equipped: 'rust', qualities: emptyQualities(), scrap: 0, materials:emptyMaterials(), characters:startingCharacters(), activeCharacter:0, commission:emptyCommission(), level: 0, upgrades: emptyUpgrades(), runs: 0, victories: 0, grudge: null, maintenance: null, claimedLandmarks: [], ownedTools: [], forestCache: false, expedition: null, report: null, neighborhood:N.initial() });
   const maxHp = s => 30 + (Number.isInteger(s.level) ? s.level : 0) * 5 + (s.owned.includes('crown') ? 6 : 0) + (s.neighborhood?.buildings.includes('lodge') ? 4 : 0);
   function weaponLevel(s, id = s.equipped) {
     const legacy = LEGACY_UPGRADEABLE.has(id) && Number.isInteger(s?.level)
@@ -308,6 +308,11 @@
     const n = copy(s); n.report = null; n.runs++;
     // Help earned through a past NPC commission is a one-expedition, same-region benefit.
     const supported = n.commission.support === id;
+    // A cache built on a previous safe expedition makes the forest feel changed on revisit.
+    const cached = id === 'wood' && Boolean(n.forestCache);
+    const cachedScout = cached && n.forestCache === 'scout';
+    const cachedTrail = cached && n.forestCache === 'trail';
+    if (cached) n.forestCache = false;
     if (supported) n.commission.support = null;
     n.commission.lastResult = null;
     n.neighborhood = N.begin(n.neighborhood || N.migrate(n),id);
@@ -320,8 +325,20 @@
       grudge ? `敗走の記憶が残っている。${ENEMIES[grudge.enemy].name}への一撃に執念を乗せられる。` : null,
       supported ? `${COMMISSIONS[id].requester}の支援で薬草 +1。鍛冶師の納品が帰ってきた。` : null,
       visitorGift ? `${visitorGift.name}（架空NPC）の補給袋を受け取った。薬草 +1。ここからの一度限りの支援。` : null,
+      cached ? (cachedScout ? '以前に残した偵察道具を回収。集中 +2。入口周辺の通常道を偵察済みにした。隠し道はまだ見えない。' : cachedTrail ? '以前に残した行軍食を回収。持久力 +2。今回は奥まで踏み込めそうだ。' : '以前の遠征で隠した補給箱を回収。薬草 +1。森に残した痕跡が役立った。') : null,
     ].filter(Boolean).join(' ') || '火はここで待っている。まずは足跡をたどろう。';
-    n.expedition = { place: id, depth: 1, room: 0, hp: maxHp(s), stamina: 3, focus: 0, stagger: false, sharpened, sharpenedApplied: false, potions: (supported || visitorGift) ? 3 : 2, scrap: 0, materials:emptyMaterials(), gear: [], gearQuality: [], seals: [], grudge, enemy: null, stage: 'path', log: [intro], ...(id==='wood' ? {field:F.initial()} : id==='tower' ? {tower:T.initial()} : id==='fen' ? {fen:M.initial()} : {}) };
+    // A recovered scout kit charts nearby ordinary trails before the first step.
+    // Walls and deliberately hidden routes stay blocked; this changes planning,
+    // not the field movement rules or secret discovery requirements.
+    const scoutField = id === 'wood' && cachedScout ? F.initial() : null;
+    if (scoutField) {
+      const nearby = F.neighbors(F.START).flatMap(cell => [cell, ...F.neighbors(cell)]);
+      for (const cell of nearby) {
+        if (F.WALLS.includes(cell) || cell === F.SECRET || cell === F.LANTERN_PASS) continue;
+        if (Math.floor(scoutField.seen / 2 ** cell) % 2 === 0) scoutField.seen += 2 ** cell;
+      }
+    }
+    n.expedition = { place: id, depth: 1, room: 0, hp: maxHp(s), stamina: cachedTrail ? 5 : 3, focus: cachedScout ? 2 : 0, stagger: false, sharpened, sharpenedApplied: false, potions: (supported || visitorGift || (cached && !cachedScout && !cachedTrail)) ? 3 : 2, scrap: 0, materials:emptyMaterials(), gear: [], gearQuality: [], seals: [], grudge, enemy: null, stage: 'path', log: [intro], ...(id==='wood' ? {field:scoutField || F.initial()} : id==='tower' ? {tower:T.initial()} : id==='fen' ? {fen:M.initial()} : {}) };
     return n;
   }
   // A landmark expedition is bound to one *discovered* fantasy place by the UI.
@@ -626,6 +643,18 @@
         x.field.passageFollowup=true;
         return n;
       }
+      // Leave a tangible trace in the forest. The cache is consumed on the next
+      // forest departure, not on death or a reload at camp.
+      if((action==='forest-passage-build-cache' || action==='forest-passage-build-scout-cache' || action==='forest-passage-build-trail-cache') && x.place==='wood' && x.depth===1 &&
+        x.room===0 && x.stage==='path' && x.field?.pos===F.LANTERN_PASS &&
+        x.field.passageSpoorDone && !n.forestCache && x.scrap >= (action==='forest-passage-build-trail-cache' ? 5 : action==='forest-passage-build-scout-cache' ? 4 : 3)){
+        const scout = action==='forest-passage-build-scout-cache';
+        const trail = action==='forest-passage-build-trail-cache';
+        x.scrap -= trail ? 5 : scout ? 4 : 3;
+        n.forestCache = trail ? 'trail' : scout ? 'scout' : true;
+        x.log=[trail ? '鉄片5個で行軍食を封じた。次の森の遠征で持久力 +2。生還せずとも残る。' : scout ? '鉄片4個で偵察道具を隠した。次の森の遠征で集中 +2。生還せずとも残る。' : '鉄片3個で北の抜け道に補給箱を隠した。次の森の遠征で薬草 +1。生還せずとも補給箱は残る。'];
+        return n;
+      }
       // Final optional gamble; rewards are unconfirmed until safe return.
       if((action==='forest-passage-spoor'||action==='forest-passage-spoor-careful'||action==='forest-passage-spoor-scout'||action==='forest-passage-spoor-trap'||action==='forest-passage-spoor-bait'||action==='forest-passage-spoor-rest'||action==='forest-passage-spoor-herb'||action==='forest-passage-spoor-ambush'||action==='forest-passage-spoor-cache'||action==='forest-passage-spoor-leave') && x.place==='wood' && x.depth===1 && x.room===0 && x.field?.pos===F.LANTERN_PASS && x.field.passageFollowup && !x.field.passageSpoorDone){
         if(action==='forest-passage-spoor-rest'){
@@ -684,22 +713,74 @@
       }
       // The discovered stone ring presents a one-time, player-controlled
       // choice: preserve the current expedition or risk health for smithing loot.
-      if ((action==='forest-glade-rest'||action==='forest-glade-excavate') &&
+      if ((action==='forest-glade-rest'||action==='forest-glade-excavate'||action==='forest-glade-moss'||action==='forest-glade-waymark'||action==='forest-glade-ritual'||action==='forest-glade-trial') &&
           x.place==='wood' && x.depth===1 && x.room===0 &&
           x.field?.pos===F.GLADE && x.field.glade && !x.field.gladeChoice) {
-        if(action==='forest-glade-rest'){
+        if(action==='forest-glade-trial'){
+          // A risky two-stage expedition choice: opening the sealed hollow
+          // commits this stone-ring visit, but the reward can still be declined.
+          if(x.hp<=3)return s;
+          x.hp-=3;
+          x.field.gladeTrial=true;
+          x.log=['石環の封印をこじ開けた。体力 −3。奥に鉄片が光る。さらに傷を負って回収するか、ここで諦めるか。'];
+          x.field.gladeChoice=true;
+          return n;
+        }else if(action==='forest-glade-ritual'){
+          // A one-time tactical trade: sacrifice a healing potion to prepare for the next fight.
+          if(x.potions<1 || (x.focus>=5 && x.stamina>=5))return s;
+          x.potions--;
+          x.focus=Math.min(5,x.focus+3);
+          x.stamina=Math.min(5,x.stamina+2);
+          x.log=['石環に薬草を捧げ、戦いに備えた。薬草 −1、集中 +3、持久力 +2。回復薬を残すか、次の戦闘に賭けるか。'];
+        }else if(action==='forest-glade-waymark'){
+          // A visible choice with a consequence on the next expedition, not another loot trade.
+          if(n.forestCache || x.scrap<4)return s;
+          x.scrap-=4;
+          n.forestCache='scout';
+          x.log=['石環に偵察の道標を残した。鉄片 −4。次の森への出発時に入口付近の通常道を先に見渡し、集中 +2。倒れても道標は残る。'];
+        }else if(action==='forest-glade-moss'){
+          // A rare cross-region ingredient rewards returning alive rather than fighting.
+          if(x.hp<=4 || x.materials.marshFiber>=1000000)return s;
+          x.hp-=4;
+          x.materials.marshFiber++;
+          x.log=['石環の裏にある湿った裂け目を調べ、霧葦 +1 を採集。体力 −4。生還できなければ失う。'];
+        }else if(action==='forest-glade-rest'){
           if(x.scrap<3 || x.hp>=maxHp(n))return s;
           x.scrap-=3;
           const healed=Math.min(12,maxHp(n)-x.hp);
           x.hp+=healed;
           x.log=[`石環の苔に鉄片3個を供え、体力 +${healed}。深追いせず、生還の可能性を高めた。`];
-        }else{
+        }else if(action==='forest-glade-excavate'){
           if(x.hp<=5 || x.materials.wolfFang>=1000000)return s;
           x.hp-=5;
           x.materials.wolfFang++;
           x.log=['石環の根を掘り起こし、古い狼牙 +1 を発見。体力 −5。生還できなければ失う。'];
-        }
+        }else return s;
         x.field.gladeChoice=true;
+        return n;
+      }
+      // The second step is optional: a player may cut losses and return alive.
+      if((action==='forest-glade-trial-claim'||action==='forest-glade-trial-herb'||action==='forest-glade-trial-focus'||action==='forest-glade-trial-leave') &&
+        x.place==='wood' && x.depth===1 && x.room===0 &&
+        x.field?.pos===F.GLADE && x.field.gladeTrial && !x.field.gladeTrialDone){
+        if(action==='forest-glade-trial-claim'){
+          if(x.hp<=4 || x.scrap>993)return s;
+          x.hp-=4;
+          x.scrap+=6;
+          x.log=['封印の奥から鉄片 +6 を回収。体力 −4。帰還できなければ失う。'];
+        }else if(action==='forest-glade-trial-herb'){
+          if(x.potions<1 || x.scrap>995)return s;
+          x.potions--;
+          x.scrap+=4;
+          x.log=['薬草で傷を防ぎながら封印の奥から鉄片 +4 を回収。薬草 −1。生還できなければ鉄片は失う。'];
+        }else if(action==='forest-glade-trial-focus'){
+          // Spend combat readiness rather than healing or health to salvage safely.
+          if(x.focus<2 || x.scrap>996)return s;
+          x.focus-=2;
+          x.scrap+=3;
+          x.log=['石の継ぎ目を見極め、集中 −2 で鉄片 +3 を安全に回収。次の戦闘の備えを失うが体力は守れた。生還で確定。'];
+        }else x.log=['石環の奥の鉄片を諦めた。残った体力で生還を目指す。'];
+        x.field.gladeTrialDone=true;
         return n;
       }
       // ADR 0015: the thorn search and lantern investigation are exclusive.
