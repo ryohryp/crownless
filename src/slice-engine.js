@@ -324,9 +324,20 @@
       grudge ? `敗走の記憶が残っている。${ENEMIES[grudge.enemy].name}への一撃に執念を乗せられる。` : null,
       supported ? `${COMMISSIONS[id].requester}の支援で薬草 +1。鍛冶師の納品が帰ってきた。` : null,
       visitorGift ? `${visitorGift.name}（架空NPC）の補給袋を受け取った。薬草 +1。ここからの一度限りの支援。` : null,
-      cached ? (cachedScout ? '以前に残した偵察道具を回収。集中 +2。森に残した痕跡が役立った。' : '以前の遠征で隠した補給箱を回収。薬草 +1。森に残した痕跡が役立った。') : null,
+      cached ? (cachedScout ? '以前に残した偵察道具を回収。集中 +2。入口周辺の通常道を偵察済みにした。隠し道はまだ見えない。' : '以前の遠征で隠した補給箱を回収。薬草 +1。森に残した痕跡が役立った。') : null,
     ].filter(Boolean).join(' ') || '火はここで待っている。まずは足跡をたどろう。';
-    n.expedition = { place: id, depth: 1, room: 0, hp: maxHp(s), stamina: 3, focus: cachedScout ? 2 : 0, stagger: false, sharpened, sharpenedApplied: false, potions: (supported || visitorGift || (cached && !cachedScout)) ? 3 : 2, scrap: 0, materials:emptyMaterials(), gear: [], gearQuality: [], seals: [], grudge, enemy: null, stage: 'path', log: [intro], ...(id==='wood' ? {field:F.initial()} : id==='tower' ? {tower:T.initial()} : id==='fen' ? {fen:M.initial()} : {}) };
+    // A recovered scout kit charts nearby ordinary trails before the first step.
+    // Walls and deliberately hidden routes stay blocked; this changes planning,
+    // not the field movement rules or secret discovery requirements.
+    const scoutField = id === 'wood' && cachedScout ? F.initial() : null;
+    if (scoutField) {
+      const nearby = F.neighbors(F.START).flatMap(cell => [cell, ...F.neighbors(cell)]);
+      for (const cell of nearby) {
+        if (F.WALLS.includes(cell) || cell === F.SECRET || cell === F.LANTERN_PASS) continue;
+        if (Math.floor(scoutField.seen / 2 ** cell) % 2 === 0) scoutField.seen += 2 ** cell;
+      }
+    }
+    n.expedition = { place: id, depth: 1, room: 0, hp: maxHp(s), stamina: 3, focus: cachedScout ? 2 : 0, stagger: false, sharpened, sharpenedApplied: false, potions: (supported || visitorGift || (cached && !cachedScout)) ? 3 : 2, scrap: 0, materials:emptyMaterials(), gear: [], gearQuality: [], seals: [], grudge, enemy: null, stage: 'path', log: [intro], ...(id==='wood' ? {field:scoutField || F.initial()} : id==='tower' ? {tower:T.initial()} : id==='fen' ? {fen:M.initial()} : {}) };
     return n;
   }
   // A landmark expedition is bound to one *discovered* fantasy place by the UI.
