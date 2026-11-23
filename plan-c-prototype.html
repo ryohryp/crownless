@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Crownless Plan C プロトタイプ</title>
+<style>
+  :root{
+    --bg:#14161c; --card:#1e222c; --card2:#262b38; --line:#333a4a;
+    --txt:#e8eaf0; --sub:#9aa3b5; --green:#4ade80; --red:#f87171;
+    --amber:#fbbf24; --blue:#60a5fa; --purple:#c084fc;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+  html,body{margin:0;padding:0;background:var(--bg);color:var(--txt);
+    font-family:-apple-system,"Hiragino Kaku Gothic ProN","Noto Sans JP",sans-serif;}
+  #app{max-width:430px;margin:0 auto;padding:12px 12px 40px;min-height:100vh;}
+  header{display:flex;justify-content:space-between;align-items:center;padding:6px 2px 10px;}
+  header .title{font-size:15px;font-weight:700;letter-spacing:.08em;}
+  header .clock{font-size:12px;color:var(--sub);}
+  .tabs{display:flex;gap:8px;margin-bottom:12px;}
+  .tabs button{flex:1;padding:12px 0;border-radius:12px;border:1px solid var(--line);
+    background:var(--card);color:var(--sub);font-size:15px;font-weight:700;}
+  .tabs button.on{background:var(--card2);color:var(--txt);border-color:var(--amber);}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:16px;
+    padding:16px;margin-bottom:12px;position:relative;overflow:hidden;}
+  .card .areaRow{display:flex;align-items:center;gap:8px;margin-bottom:8px;}
+  .dot{width:12px;height:12px;border-radius:50%;flex:none;}
+  .areaName{font-size:16px;font-weight:700;}
+  .areaKind{font-size:11px;color:var(--sub);border:1px solid var(--line);border-radius:6px;padding:1px 6px;}
+  .hint{font-size:12px;color:var(--sub);line-height:1.6;}
+  .bigBtn{display:block;width:100%;padding:16px 0;border-radius:14px;border:none;
+    font-size:16px;font-weight:700;margin-top:10px;background:var(--amber);color:#1a1405;}
+  .bigBtn.sub{background:var(--card2);color:var(--txt);border:1px solid var(--line);}
+  .bigBtn:disabled{opacity:.35;}
+  .rowBtns{display:flex;gap:8px;margin-top:10px;}
+  .rowBtns button{flex:1;padding:13px 0;border-radius:12px;border:1px solid var(--line);
+    background:var(--card2);color:var(--txt);font-size:14px;font-weight:700;}
+  .rowBtns button.warn{border-color:var(--red);color:var(--red);}
+  .cacheCard{touch-action:none;user-select:none;-webkit-user-select:none;cursor:pointer;}
+  .cacheCard .face{display:flex;align-items:center;gap:12px;}
+  .stateIcon{width:44px;height:44px;flex:none;display:flex;align-items:center;justify-content:center;
+    font-size:26px;border-radius:50%;border:2px solid var(--sub);color:var(--sub);}
+  .stateIcon.ripe{border-color:var(--green);color:var(--green);}
+  .stateIcon.dmg{border-color:var(--red);color:var(--red);}
+  .stateIcon.gone{border-style:dotted;opacity:.5;}
+  .cacheMeta{flex:1;}
+  .cacheMeta .l1{font-size:15px;font-weight:700;}
+  .cacheMeta .l2{font-size:12px;color:var(--sub);margin-top:2px;}
+  .debris{font-size:12px;color:var(--green);}
+  .scratch{font-size:12px;color:var(--red);}
+  .weighBar{height:6px;background:var(--line);border-radius:3px;margin-top:10px;overflow:hidden;}
+  .weighBar i{display:block;height:100%;width:0;background:var(--amber);transition:width .1s linear;}
+  .invRow{display:flex;gap:8px;}
+  .invItem{flex:1;background:var(--card2);border:1px solid var(--line);border-radius:12px;
+    padding:10px 6px;text-align:center;}
+  .invItem .n{font-size:20px;font-weight:800;}
+  .invItem .t{font-size:11px;color:var(--sub);}
+  .stepper{display:flex;align-items:center;justify-content:space-between;background:var(--card2);
+    border:1px solid var(--line);border-radius:12px;padding:6px 8px;margin-top:8px;}
+  .stepper .lbl{font-size:13px;}
+  .stepper .ctl{display:flex;align-items:center;gap:10px;}
+  .stepper button{width:34px;height:34px;border-radius:50%;border:1px solid var(--line);
+    background:var(--card);color:var(--txt);font-size:17px;}
+  .stepper .v{font-size:16px;font-weight:800;min-width:22px;text-align:center;}
+  .logRow{display:flex;align-items:center;gap:10px;height:56px;border-bottom:1px solid var(--line);}
+  .logRow:last-child{border-bottom:none;}
+  .logRow .ic{width:30px;text-align:center;font-size:18px;flex:none;}
+  .logRow .mid{flex:1;display:flex;align-items:center;gap:7px;font-size:13px;color:var(--sub);}
+  .logRow .delta{font-size:16px;font-weight:800;min-width:44px;text-align:right;}
+  .delta.plus{color:var(--green);} .delta.minus{color:var(--red);} .delta.zero{color:var(--sub);}
+  .temaRow{display:flex;gap:6px;margin:6px 0 2px;}
+  .temaPip{width:34px;height:12px;border-radius:6px;background:var(--line);}
+  .temaPip.on{background:var(--amber);}
+  .secTitle{font-size:13px;font-weight:700;color:var(--sub);letter-spacing:.06em;margin:16px 2px 8px;}
+  #blackout{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .05s;z-index:50;}
+  #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);
+    background:#000;border:1px solid var(--amber);color:var(--txt);padding:12px 18px;border-radius:12px;
+    font-size:14px;opacity:0;pointer-events:none;transition:all .25s;z-index:60;max-width:88vw;text-align:center;}
+  #toast.show{opacity:1;transform:translateX(-50%) translateY(0);}
+  .shake{animation:shk .18s linear 2;}
+  @keyframes shk{0%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}100%{transform:translateX(0)}}
+  .lidWrap{height:8px;background:var(--line);border-radius:4px;overflow:hidden;margin-top:10px;}
+  .lidWrap i{display:block;height:100%;width:0;background:var(--green);}
+  .small{font-size:11px;color:var(--sub);}
+  .goalBar{height:10px;background:var(--line);border-radius:5px;overflow:hidden;margin-top:8px;}
+  .goalBar i{display:block;height:100%;background:var(--purple);}
+  select{background:var(--card2);color:var(--txt);border:1px solid var(--line);border-radius:8px;padding:8px;font-size:14px;}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="title">CROWNLESS / C</div>
+    <div class="clock" id="clock"></div>
+  </header>
+
+  <div class="tabs">
+    <button id="tabField" class="on">そと</button>
+    <button id="tabHome">いえ（精算）</button>
+  </div>
+
+  <div id="viewField"></div>
+  <div id="viewHome" style="display:none"></div>
+</div>
+<div id="blackout"></div>
+<div id="toast"></div>
+
+<script>
+"use strict";
+/* ============ Crownless Plan C prototype (使い捨て検証用) ============
+   ルールは3つだけ: 置き荷 / 変化ルール(8hティック) / 精算(手間4点)
+   守る数値: 荒らされた荷の消滅率20% / 手間4点・そっと開ける3点       */
+const TICK_MS = 8 * 60 * 60 * 1000;
+const LS_KEY = "crownless_planc_v1";
+const MATS = [
+  {key:"iron",  name:"鉄片", icon:"⬢"},
+  {key:"fang",  name:"牙",   icon:"🦷"},
+  {key:"thorn", name:"棘",   icon:"✦"}
+];
+const TRANSITION = {           // [無傷のまま, 実る, 荒らされる, 消える]
+  // 2026-11-23 実測シミュレーション(40,000回)で調整:
+  // 24h 期待値 約1.11倍・消滅 約13% / 48h 期待値 約1.09倍・消滅 約28%
+  intact:   [0.64, 0.21, 0.12, 0.03],
+  ripe:     [0.66, 0.11, 0.20, 0.03],
+  disturbed:[0.55, 0.10, 0.15, 0.20]   // 荒らされた荷は消滅20%（守る数値）
+};
+const AREA_DEFS = [
+  {kind:"home",    name:"自宅",     radius:100, color:"#60a5fa"},
+  {kind:"station", name:"最寄り駅", radius:150, color:"#4ade80"},
+  {kind:"park",    name:"近くの公園", radius:150, color:"#fbbf24"}
+];
+
+/* ---------- 状態 ---------- */
+function freshState(){
+  return {
+    inv:{iron:6, fang:2, thorn:2},       // 初期の賭け金
+    totalGained:0,                        // 大箱の進捗（累計入手）
+    bigBox:false,
+    caches:[],                            // 置き荷（場にあるもの＋持ち帰り済み）
+    areas:[],                             // 登録された場
+    log:[],                               // 痕跡のその後
+    temaDay:"", tema:4,                   // 夜の手間
+    lastNightKey:"",
+    dummyDone:false,                      // ダミー事件（本物の印つき）を1回だけ
+    seq:1
+  };
+}
+let S = load();
+function load(){
+  try{ const raw = localStorage.getItem(LS_KEY); if(raw) return JSON.parse(raw); }catch(e){}
+  return freshState();
+}
+function save(){ try{ localStorage.setItem(LS_KEY, JSON.stringify(S)); }catch(e){} }
+function uid(){ return "t_" + (S.seq++).toString(36) + Math.floor(Math.random()*1296).toString(36); }
+function now(){ return Date.now(); }
+function totalItems(items){ return MATS.reduce((a,m)=>a+(items[m.key]||0),0); }
+function invTotal(){ return totalItems(S.inv); }
+
+/* ---------- seed つき決定的乱数（ティックごとに同じ運命を再現する） ---------- */
+function seededRand(seed, n){
+  let x = (seed ^ (n * 2654435761)) >>> 0;
+  x ^= x << 13; x ^= x >>> 17; x ^= x << 5; x >>>= 0;
+  return (x % 10000) / 10000;
+}
+
+/* ---------- 変化ルール：経過ティックぶん状態を進める ---------- */
+function advanceCache(c, atTime){
+  if(c.where !== "field") return;
+  const elapsed = Math.floor((atTime - c.lastTickAt) / TICK_MS);
+  for(let i = 0; i < elapsed; i++){
+    const tickIndex = Math.floor((c.lastTickAt - c.placedAt) / TICK_MS) + 1;
+    const r = seededRand(c.seed, tickIndex);
+    const row = TRANSITION[c.state] || TRANSITION.intact;
+    let next = "intact", acc = 0; const kinds = ["intact","ripe","disturbed","gone"];
+    for(let k = 0; k < 4; k++){ acc += row[k]; if(r < acc){ next = kinds[k]; break; } }
+    if(next === "gone"){
+      c.state = "gone"; c.goneAt = c.lastTickAt + TICK_MS;
+      pushLog(c, 0, -totalItems(c.items), "gone");
+      c.items = {iron:0, fang:0, thorn:0};
+      c.lastTickAt += TICK_MS;
+      return;
+    }
+    if(next === "ripe"){
+      const mult = (c.topped || S.bigBox && c.big) ? 1.6 : 1.4;
+      const before = totalItems(c.items);
+      MATS.forEach(m=>{ if(c.items[m.key]) c.items[m.key] = Math.ceil(c.items[m.key] * mult); });
+      // 分け前は別種の素材が混ざることがある
+      if(seededRand(c.seed, tickIndex * 7 + 3) < 0.35){
+        const extra = MATS[Math.floor(seededRand(c.seed, tickIndex * 13 + 1) * 3)];
+        c.items[extra.key] = (c.items[extra.key]||0) + 1;
+      }
+      pushLog(c, totalItems(c.items) - before, totalItems(c.items) - before, "ripe");
+      c.state = "ripe";
+    } else if(next === "disturbed"){
+      // 一番多い素材から3割減る
+      let top = MATS[0]; MATS.forEach(m=>{ if((c.items[m.key]||0) > (c.items[top.key]||0)) top = m; });
+      const loss = Math.floor((c.items[top.key]||0) * 0.3);
+      if(loss > 0){ c.items[top.key] -= loss; pushLog(c, -loss, -loss, "disturbed"); }
+      c.state = "disturbed";
+    } else {
+      c.state = (c.state === "ripe") ? "ripe" : "intact";
+    }
+    c.lastTickAt += TICK_MS;
+  }
+}
+function advanceAll(){ S.caches.forEach(c=>advanceCache(c, now())); }
+
+/* ---------- ログ（痕跡のその後） ---------- */
+function pushLog(c, delta, _d2, kind){
+  const area = S.areas.find(a=>a.id === c.areaId);
+  S.log.unshift({ at: now(), areaColor: area ? area.color : "#888",
+    days: Math.max(0, Math.floor((now() - c.placedAt) / 86400000)),
+    delta: delta, kind: kind, real: !!c.real });
+  if(S.log.length > 30) S.log.length = 30;
+}
+
+/* ---------- 音と振動（Juice） ---------- */
+let AC = null;
+function beep(freq, dur, type, gain){
+  try{
+    AC = AC || new (window.AudioContext || window.webkitAudioContext)();
+    const o = AC.createOscillator(), g = AC.createGain();
+    o.type = type || "sine"; o.frequency.value = freq;
+    g.gain.value = gain || 0.06;
+    o.connect(g); g.connect(AC.destination);
+    o.start(); g.gain.exponentialRampToValueAtTime(0.0001, AC.currentTime + dur);
+    o.stop(AC.currentTime + dur);
+  }catch(e){}
+}
+function thud(heavy){ beep(heavy ? 70 : 220, heavy ? 0.22 : 0.08, "triangle", 0.12); }
+function crackSound(){ beep(140, 0.06, "sawtooth", 0.1); setTimeout(()=>beep(90, 0.1, "sawtooth", 0.08), 60); }
+function vibrate(p){ try{ if(navigator.vibrate) navigator.vibrate(p); }catch(e){} }
+function toast(msg, ms){
+  const t = document.getElementById("toast");
+  t.textContent = msg; t.classList.add("show");
+  clearTimeout(t._h); t._h = setTimeout(()=>t.classList.remove("show"), ms || 2200);
+}
+function blackoutFlash(cb){
+  const b = document.getElementById("blackout");
+  b.style.opacity = "1";
+  setTimeout(()=>{ b.style.opacity = "0"; if(cb) cb(); }, 500);
+}
+
+/* ---------- GPS と場 ---------- */
+let currentPos = null;      // {lat,lng}
+let insideAreaId = null;    // ヒステリシス管理
+function distM(a, b){
+  const R = 6371000, rad = Math.PI / 180;
+  const dLa = (b.lat - a.lat) * rad, dLo = (b.lng - a.lng) * rad;
+  const h = Math.sin(dLa/2)**2 + Math.cos(a.lat*rad) * Math.cos(b.lat*rad) * Math.sin(dLo/2)**2;
+  return 2 * R * Math.asin(Math.sqrt(h));
+}
+function gridId(lat, lng){ return "grid_" + Math.round(lat*100) + "_" + Math.round(lng*100); }
+function refreshPosition(cb){
+  if(!navigator.geolocation){ if(cb) cb(false); return; }
+  navigator.geolocation.getCurrentPosition(
+    p => { currentPos = { lat: p.coords.latitude, lng: p.coords.longitude }; updateInside(); if(cb) cb(true); },
+    () => { if(cb) cb(false); },
+    { enableHighAccuracy: true, timeout: 8000, maximumAge: 30000 }
+  );
+}
+function updateInside(){
+  if(!currentPos) { insideAreaId = null; return; }
+  const cur = S.areas.find(a=>a.id === insideAreaId);
+  if(cur && distM(currentPos, cur) <= cur.radius * 1.5) return;   // 出る判定は1.5倍
+  insideAreaId = null;
+  for(const a of S.areas){ if(distM(currentPos, a) <= a.radius){ insideAreaId = a.id; break; } }
+}
+function currentArea(){ return S.areas.find(a=>a.id === insideAreaId) || null; }
+function registerArea(kind){
+  if(!currentPos){ toast("位置が取れていない"); return; }
+  const def = AREA_DEFS.find(d=>d.kind === kind);
+  S.areas.push({ id: uid(), kind: def.kind, name: def.name, radius: def.radius,
+    color: def.color, lat: Math.round(currentPos.lat*1000)/1000,
+    lng: Math.round(currentPos.lng*1000)/1000, grid: gridId(currentPos.lat, currentPos.lng),
+    visits: 1, formal: true });
+  insideAreaId = S.areas[S.areas.length-1].id;
+  seedFirstCache(S.areas[S.areas.length-1]);
+  save(); render();
+  toast(def.name + " を場に登録した");
+}
+/* 最初の場には「誰かの置き荷」を1つ置いておく（発見の体験を初日に担保する） */
+function seedFirstCache(area){
+  if(S.caches.some(c=>c.areaId === area.id)) return;
+  const c = { id: uid(), areaId: area.id, type: "cache", owner: "someone",
+    items: { iron: 2 + Math.floor(Math.random()*3), fang: Math.random()<0.5?1:0, thorn: 1 },
+    state: "intact", seed: Math.floor(Math.random()*99999), placedAt: now() - TICK_MS,
+    lastTickAt: now() - TICK_MS, where: "field", topped: false, big: false, real: false, carriedAt: 0 };
+  S.caches.push(c);
+}
+/* ダミー事件：本物の印つきの痕跡を1回だけ（検証用の明示的な実験） */
+function maybeDummyEvent(area){
+  if(S.dummyDone) return;
+  S.dummyDone = true;
+  const c = { id: uid(), areaId: area.id, type: "cache", owner: "someone",
+    items: { iron: 0, fang: 0, thorn: 0 }, state: "intact",
+    seed: Math.floor(Math.random()*99999), placedAt: now(), lastTickAt: now(),
+    where: "field", topped: false, big: false, real: true, dummyTrap: true, carriedAt: 0 };
+  S.caches.push(c);
+}
+
+/* ---------- 置く／上乗せ ---------- */
+let draft = { iron: 0, fang: 0, thorn: 0 };
+function placeCache(area){
+  if(totalItems(draft) === 0){ toast("賭ける素材を選んで"); return; }
+  MATS.forEach(m=>{ if(S.inv[m.key] < draft[m.key]) draft[m.key] = S.inv[m.key]; });
+  if(totalItems(draft) === 0){ toast("素材が足りない"); return; }
+  MATS.forEach(m=>{ S.inv[m.key] -= draft[m.key]; });
+  S.caches.push({ id: uid(), areaId: area.id, type: "cache", owner: "me",
+    items: { ...draft }, state: "intact", seed: Math.floor(Math.random()*99999),
+    placedAt: now(), lastTickAt: now(), where: "field",
+    topped: false, big: S.bigBox, real: false, carriedAt: 0 });
+  draft = { iron: 0, fang: 0, thorn: 0 };
+  thud(true); vibrate(60);
+  save(); render();
+  toast("置いた。あとは世界に任せる");
+}
+function topUpCache(c){
+  if(totalItems(draft) === 0){ toast("足す素材を選んで"); return; }
+  MATS.forEach(m=>{ const add = Math.min(draft[m.key], S.inv[m.key]); c.items[m.key] = (c.items[m.key]||0) + add; S.inv[m.key] -= add; });
+  c.topped = true;
+  draft = { iron: 0, fang: 0, thorn: 0 };
+  thud(true); vibrate([40, 40, 40]);
+  save(); render();
+  toast("上乗せした（実り倍率アップ）");
+}
+function pickupCache(c){
+  if(c.dummyTrap){
+    // ダミー事件：中身は空、自分の素材が1つこぼれる
+    const owned = MATS.filter(m=>S.inv[m.key] > 0);
+    blackoutFlash(()=>{
+      if(owned.length){ const m = owned[Math.floor(Math.random()*owned.length)]; S.inv[m.key]--; }
+      c.where = "gone"; pushLog(c, -1, -1, "disturbed");
+      save(); render();
+      toast("空だった。何かの余波で素材が1つこぼれた", 3000);
+    });
+    return;
+  }
+  c.where = "carried"; c.carriedAt = now();
+  beep(520, 0.08, "sine", 0.05);
+  save(); render();
+  toast("持ち帰った。夜に開けよう");
+}
+
+/* ---------- 量る（長押し） ---------- */
+let weighTimer = null;
+function startWeigh(el, c){
+  const bar = el.querySelector(".weighBar i");
+  const w = totalItems(c.items);
+  let p = 0;
+  weighTimer = setInterval(()=>{
+    p = Math.min(100, p + 4);
+    if(bar) bar.style.width = p + "%";
+    if(p === 30) { thud(w >= 6); vibrate(w >= 8 ? [60,50,60,50,60] : w >= 4 ? [50,50,50] : 40); }
+    if(p >= 100){
+      stopWeigh(el);
+      const feel = w >= 8 ? "ずっしり重い" : w >= 4 ? "ほどよく重い" : w >= 1 ? "軽い。中で何かが動いた気がする" : "空に近い";
+      toast(feel);
+      maybeInstantEvent(c);
+    }
+  }, 40);
+}
+function stopWeigh(el){
+  if(weighTimer){ clearInterval(weighTimer); weighTimer = null; }
+  const bar = el && el.querySelector(".weighBar i");
+  if(bar) setTimeout(()=>{ bar.style.width = "0"; }, 350);
+}
+/* 今すぐ事件（低確率）：獣が飛び出す */
+function maybeInstantEvent(c){
+  if(c.where !== "field" || c.state === "gone") return;
+  if(Math.random() > 0.12) return;
+  blackoutFlash(()=>{
+    if(confirm("中から獣が飛び出した！\n\nOK：捕まえる（牙が手に入る。ただし2割で自分の素材を1つ落とす）\nキャンセル：逃がす")){
+      if(Math.random() < 0.2){
+        const owned = MATS.filter(m=>S.inv[m.key] > 0);
+        if(owned.length) S.inv[owned[0].key]--;
+        toast("取り逃がした。素材を1つ落とした");
+      } else {
+        S.inv.fang++; S.totalGained++;
+        toast("捕まえた。牙＋1");
+      }
+      save(); render();
+    }
+  });
+}
+
+/* ---------- 夜の精算 ---------- */
+function nightKey(){ // 朝4時を日付の境界にする
+  const d = new Date(now() - 4 * 3600000);
+  return d.getFullYear() + "-" + (d.getMonth()+1) + "-" + d.getDate();
+}
+function rollNight(){
+  const key = nightKey();
+  if(S.lastNightKey === key) return;
+  const first = S.lastNightKey === "";
+  S.lastNightKey = key;
+  S.temaDay = key; S.tema = 4;
+  if(!first){
+    // 開けなかった持ち帰り荷は1割傷み、家の中でも荒らされ抽選の対象になる
+    S.caches.filter(c=>c.where === "carried").forEach(c=>{
+      if(c.cared){ c.cared = false; return; }   // 手入れした荷は免れる
+      let top = MATS[0]; MATS.forEach(m=>{ if((c.items[m.key]||0) > (c.items[top.key]||0)) top = m; });
+      const loss = Math.ceil((c.items[top.key]||0) * 0.1);
+      if(loss > 0){ c.items[top.key] -= loss; pushLog(c, -loss, -loss, "disturbed"); }
+      if(Math.random() < 0.30) c.state = "disturbed";
+    });
+  }
+  save();
+}
+function spendTema(n){ if(S.tema < n){ toast("手間が足りない"); return false; } S.tema -= n; return true; }
+function openGentle(c, el){
+  if(!spendTema(3)) return;
+  // 蓋がゆっくり開く演出（約1.2秒）
+  const lid = el && el.querySelector(".lidWrap i");
+  if(lid){ let p = 0; const iv = setInterval(()=>{ p += 8; lid.style.width = Math.min(100,p) + "%"; if(p >= 100) clearInterval(iv); }, 90); }
+  beep(300, 0.3, "sine", 0.04);
+  setTimeout(()=>{ settleCache(c, 0); }, 1250);
+}
+function openForce(c, el){
+  if(!spendTema(1)) return;
+  crackSound(); vibrate(80);
+  if(el){ el.classList.remove("shake"); void el.offsetWidth; el.classList.add("shake"); }
+  const r = Math.random();
+  if(r < 0.50){ settleCache(c, 0); toast("無事に開いた"); }
+  else if(r < 0.85){ settleCache(c, 0.30); toast("中身の3割が壊れた"); }
+  else {
+    // 仕掛け作動：全損＋在庫から1つこぼれる
+    const owned = MATS.filter(m=>S.inv[m.key] > 0);
+    if(owned.length) S.inv[owned[0].key]--;
+    pushLog(c, -totalItems(c.items), -totalItems(c.items), "gone");
+    c.where = "done"; save(); render();
+    toast("仕掛けが作動した…中身は全部消えた", 3000);
+  }
+}
+function careCache(c){ if(!spendTema(1)) return; c.cared = true; save(); render(); toast("手入れした。今夜は劣化しない"); }
+function settleCache(c, damageRate){
+  let gained = 0;
+  MATS.forEach(m=>{
+    let n = c.items[m.key] || 0;
+    if(damageRate > 0) n -= Math.floor(n * damageRate);
+    if(n > 0){ S.inv[m.key] += n; gained += n; }
+  });
+  S.totalGained += gained;
+  pushLog(c, gained, gained, "intact");
+  c.where = "done";
+  beep(660, 0.12, "sine", 0.05);
+  save(); render();
+  toast("素材 ＋" + gained);
+}
+/* 大箱：素材の累計12個で作れる唯一の受け皿 */
+function craftBigBox(){
+  if(S.bigBox || invTotal() < 12){ toast("素材が合計12個要る"); return; }
+  let need = 12;
+  for(const m of MATS){ const use = Math.min(need, S.inv[m.key]); S.inv[m.key] -= use; need -= use; if(!need) break; }
+  S.bigBox = true; save(); render();
+  toast("大箱ができた。置き荷の実り倍率が上がる");
+}
+
+/* ---------- 描画 ---------- */
+let view = "field";
+const $ = id => document.getElementById(id);
+function stateIcon(state){
+  if(state === "ripe") return '<div class="stateIcon ripe">◎</div>';
+  if(state === "disturbed") return '<div class="stateIcon dmg">✕</div>';
+  if(state === "gone") return '<div class="stateIcon gone">○</div>';
+  return '<div class="stateIcon">○</div>';
+}
+function areaColorDot(a){ return '<span class="dot" style="background:' + (a?a.color:"#888") + '"></span>'; }
+function cacheCardHTML(c){
+  const a = S.areas.find(x=>x.id === c.areaId);
+  const days = Math.floor((now() - c.placedAt) / 86400000);
+  const signs = c.state === "ripe" ? '<div class="debris">周りに素材の欠片が散っている</div>'
+    : c.state === "disturbed" ? '<div class="scratch">引っかき傷がある（次で消えるかも）</div>' : "";
+  const realMark = c.real ? '<span class="areaKind" style="border-color:var(--purple);color:var(--purple)">本物の気配</span>' : "";
+  const mine = c.owner === "me" ? '<span class="areaKind">自分の荷</span>' : '<span class="areaKind">誰かの荷</span>';
+  return '<div class="card cacheCard" data-cid="' + c.id + '">' +
+    '<div class="face">' + stateIcon(c.state) +
+    '<div class="cacheMeta"><div class="l1">' + (c.state === "gone" ? "消えた痕跡" : "置き荷") + '</div>' +
+    '<div class="l2">' + (a ? a.name : "") + ' ・ ' + (days > 0 ? days + "日目" : "今日") + '</div>' + signs + '</div>' +
+    '<div style="text-align:right">' + mine + '<br>' + realMark + '</div></div>' +
+    '<div class="weighBar"><i></i></div>' +
+    '<div class="hint" style="margin-top:6px">長押しで量る</div>' +
+    (c.state !== "gone" ?
+      '<div class="rowBtns"><button data-act="pickup">持ち帰る</button><button data-act="topup">上乗せ</button></div>'
+      : "") +
+    '</div>';
+}
+function draftHTML(){
+  let h = '<div class="card"><div class="hint">賭ける素材（在庫から出す）</div>';
+  MATS.forEach(m=>{
+    h += '<div class="stepper"><span class="lbl">' + m.icon + " " + m.name + '（在庫 ' + S.inv[m.key] + '）</span>' +
+      '<span class="ctl"><button data-step="' + m.key + ':-1">－</button><span class="v">' + draft[m.key] + '</span>' +
+      '<button data-step="' + m.key + ':1">＋</button></span></div>';
+  });
+  return h + "</div>";
+}
+function invHTML(){
+  let h = '<div class="invRow">';
+  MATS.forEach(m=>{ h += '<div class="invItem"><div class="n">' + S.inv[m.key] + '</div><div class="t">' + m.icon + " " + m.name + "</div></div>"; });
+  return h + "</div>";
+}
+function goalHTML(){
+  const pct = Math.min(100, Math.floor(invTotal() / 12 * 100));
+  return '<div class="card"><div class="hint">大箱まで（素材 合計12個）</div>' +
+    '<div class="goalBar"><i style="width:' + pct + '%"></i></div>' +
+    '<div class="hint" style="margin-top:6px">いま ' + invTotal() + " / 12" +
+    (S.bigBox ? " ・ 大箱あり" : "") + "</div>" +
+    (!S.bigBox && invTotal() >= 12 ? '<button class="bigBtn" id="btnBigBox">大箱を作る</button>' : "") + "</div>";
+}
+function renderField(){
+  const v = $("viewField");
+  let h = "";
+  const area = currentArea();
+  if(S.areas.length < 3){
+    h += '<div class="card"><div class="areaName">場の登録（' + S.areas.length + ' / 3）</div>' +
+      '<div class="hint">実際にその場所にいるときに登録する。自宅・駅・公園の順でなくてよい。開いた瞬間の1回だけ位置を見る（常時追跡なし）。</div>';
+    AREA_DEFS.filter(d=>!S.areas.some(a=>a.kind === d.kind)).forEach(d=>{
+      h += '<button class="bigBtn sub" data-reg="' + d.kind + '">現在地を「' + d.name + '」として登録</button>';
+    });
+    h += "</div>";
+  }
+  if(!currentPos){
+    h += '<div class="card"><div class="hint">位置がまだ取れていない。</div><button class="bigBtn" id="btnPos">現在地を確認</button></div>';
+    if(S.areas.length){
+      h += '<div class="card"><div class="hint">位置が使えない環境（ファイル直開きなど）では、仮想的に場へ移動して試せる。実機テストは HTTPS 上で開くのが本筋。</div>';
+      S.areas.forEach(a=>{ h += '<button class="bigBtn sub" data-virtual="' + a.id + '">仮想：「' + a.name + '」にいることにする</button>'; });
+      h += "</div>";
+    }
+  } else if(area){
+    if(area.formal === false){ area.visits = (area.visits||1) + 0; }
+    h += '<div class="card"><div class="areaRow">' + areaColorDot(area) +
+      '<span class="areaName">' + area.name + '</span><span class="areaKind">' +
+      (area.formal ? "場" : "仮の場") + '</span></div>' +
+      '<div class="hint">半径 ' + area.radius + 'm の中。外では数字は見えない。感触だけ。</div></div>';
+    const here = S.caches.filter(c=>c.areaId === area.id && c.where === "field");
+    here.forEach(c=>{ h += cacheCardHTML(c); });
+    if(!here.length) h += '<div class="card"><div class="hint">この場には何もない。</div></div>';
+    h += draftHTML();
+    h += '<button class="bigBtn" id="btnPlace">ここに置き荷を置く</button>';
+    if(area.kind !== "home") maybeDummyEvent(area);
+  } else {
+    h += '<div class="card"><div class="areaName">どの場でもない場所</div>' +
+      '<div class="hint">ここでは「置く」だけができる。置いた場所は仮の場になり、もう一度来ると正式な場になる。</div></div>';
+    h += draftHTML();
+    h += '<button class="bigBtn" id="btnPlaceWild">ここに置く（仮の場）</button>';
+  }
+  h += '<div class="secTitle">もちもの</div>' + invHTML() + goalHTML();
+  v.innerHTML = h;
+  bindField();
+}
+function bindField(){
+  const pos = $("btnPos"); if(pos) pos.onclick = ()=>refreshPosition(()=>{ updateInside(); save(); render(); });
+  document.querySelectorAll("[data-reg]").forEach(b=>{ b.onclick = ()=>{
+    if(!currentPos){ refreshPosition(()=>registerArea(b.dataset.reg)); } else registerArea(b.dataset.reg);
+  };});
+  document.querySelectorAll("[data-virtual]").forEach(b=>{ b.onclick = ()=>{
+    const a = S.areas.find(x=>x.id === b.dataset.virtual);
+    if(a){ currentPos = { lat: a.lat, lng: a.lng }; insideAreaId = a.id; render(); }
+  };});
+  const bp = $("btnPlace"); if(bp) bp.onclick = ()=>{ const a = currentArea(); if(a) placeCache(a); };
+  const bw = $("btnPlaceWild"); if(bw) bw.onclick = ()=>{
+    if(!currentPos){ toast("位置が取れていない"); return; }
+    if(totalItems(draft) === 0){ toast("賭ける素材を選んで"); return; }
+    let a = S.areas.find(x=>distM(currentPos, x) <= x.radius * 1.5);
+    if(!a){
+      a = { id: uid(), kind: "wild", name: "仮の場", radius: 150, color: "#c084fc",
+        lat: Math.round(currentPos.lat*1000)/1000, lng: Math.round(currentPos.lng*1000)/1000,
+        grid: gridId(currentPos.lat, currentPos.lng), visits: 1, formal: false };
+      S.areas.push(a);
+    } else if(!a.formal){ a.formal = true; a.name = "育った場"; }
+    insideAreaId = a.id;
+    placeCache(a);
+  };
+  const bb = $("btnBigBox"); if(bb) bb.onclick = craftBigBox;
+  document.querySelectorAll("[data-step]").forEach(b=>{ b.onclick = ()=>{
+    const [k, d] = b.dataset.step.split(":");
+    draft[k] = Math.max(0, Math.min(S.inv[k], draft[k] + parseInt(d, 10)));
+    render();
+  };});
+  document.querySelectorAll(".cacheCard").forEach(card=>{
+    const c = S.caches.find(x=>x.id === card.dataset.cid);
+    if(!c) return;
+    card.addEventListener("pointerdown", e=>{ if(e.target.tagName === "BUTTON") return; startWeigh(card, c); });
+    ["pointerup","pointerleave","pointercancel"].forEach(ev=>card.addEventListener(ev, ()=>stopWeigh(card)));
+    card.querySelectorAll("[data-act]").forEach(b=>{ b.onclick = e=>{
+      e.stopPropagation();
+      if(b.dataset.act === "pickup") pickupCache(c);
+      if(b.dataset.act === "topup") topUpCache(c);
+    };});
+  });
+}
+function renderHome(){
+  const v = $("viewHome");
+  let h = "";
+  h += '<div class="card"><div class="areaName">夜の精算</div>' +
+    '<div class="temaRow">' + [0,1,2,3].map(i=>'<span class="temaPip' + (i < S.tema ? " on" : "") + '"></span>').join("") + "</div>" +
+    '<div class="hint">手間 ' + S.tema + ' / 4（毎晩リセット）。そっと開ける 3 ・ こじ開ける 1 ・ 手入れ 1。開けない荷は翌晩1割傷む。</div></div>';
+  const carried = S.caches.filter(c=>c.where === "carried");
+  if(!carried.length) h += '<div class="card"><div class="hint">持ち帰った荷はない。</div></div>';
+  carried.forEach(c=>{
+    const a = S.areas.find(x=>x.id === c.areaId);
+    h += '<div class="card carriedCard" data-cid="' + c.id + '">' +
+      '<div class="face" style="display:flex;gap:12px;align-items:center">' + stateIcon(c.state) +
+      '<div class="cacheMeta"><div class="l1">置き荷（' + (a ? a.name : "") + '）</div>' +
+      '<div class="l2">中身 ' + totalItems(c.items) + " 個" + (c.cared ? " ・ 手入れ済み" : "") + "</div></div></div>" +
+      '<div class="lidWrap"><i></i></div>' +
+      '<div class="rowBtns"><button data-open="gentle">そっと開ける（手間3）</button>' +
+      '<button data-open="force" class="warn">こじ開ける（手間1）</button>' +
+      '<button data-open="care">手入れ（1）</button></div></div>';
+  });
+  h += '<div class="secTitle">もちもの</div>' + invHTML() + goalHTML();
+  h += '<div class="secTitle">痕跡のその後</div><div class="card">';
+  if(!S.log.length) h += '<div class="hint">まだ何も起きていない。</div>';
+  S.log.slice(0, 6).forEach(l=>{
+    const ic = l.kind === "ripe" ? "◎" : l.kind === "disturbed" ? "✕" : l.kind === "gone" ? "○" : "○";
+    const col = l.kind === "ripe" ? "var(--green)" : l.kind === "disturbed" || l.kind === "gone" ? "var(--red)" : "var(--sub)";
+    const dcls = l.delta > 0 ? "plus" : l.delta < 0 ? "minus" : "zero";
+    const dstr = l.delta > 0 ? "＋" + l.delta : l.delta < 0 ? "－" + Math.abs(l.delta) : "±0";
+    h += '<div class="logRow"><span class="ic" style="color:' + col + '">' + ic + '</span>' +
+      '<span class="mid"><span class="dot" style="background:' + l.areaColor + '"></span>' +
+      (l.days > 0 ? l.days + "日目" : "今日") + (l.real ? ' ・ <span style="color:var(--purple)">本物</span>' : "") + '</span>' +
+      '<span class="delta ' + dcls + '">' + dstr + "</span></div>";
+  });
+  h += "</div>";
+  h += '<div class="card"><div class="hint">検証用リセット（データはこの端末のブラウザにだけ保存される）</div>' +
+    '<button class="bigBtn sub" id="btnReset">全部消して最初から</button></div>';
+  v.innerHTML = h;
+  const bb = $("btnBigBox"); if(bb) bb.onclick = craftBigBox;
+  const rs = $("btnReset"); if(rs) rs.onclick = ()=>{ if(confirm("プロトタイプのデータを全部消しますか？")){ localStorage.removeItem(LS_KEY); S = freshState(); draft = {iron:0,fang:0,thorn:0}; save(); render(); } };
+  document.querySelectorAll(".carriedCard").forEach(card=>{
+    const c = S.caches.find(x=>x.id === card.dataset.cid);
+    if(!c) return;
+    card.querySelectorAll("[data-open]").forEach(b=>{ b.onclick = ()=>{
+      const act = b.dataset.open;
+      if(act === "gentle") openGentle(c, card);
+      if(act === "force") openForce(c, card);
+      if(act === "care") careCache(c);
+    };});
+  });
+}
+function render(){
+  $("clock").textContent = new Date().toLocaleString("ja-JP", { month:"numeric", day:"numeric", hour:"2-digit", minute:"2-digit" });
+  $("tabField").classList.toggle("on", view === "field");
+  $("tabHome").classList.toggle("on", view === "home");
+  $("viewField").style.display = view === "field" ? "" : "none";
+  $("viewHome").style.display = view === "home" ? "" : "none";
+  if(view === "field") renderField(); else renderHome();
+}
+$("tabField").onclick = ()=>{ view = "field"; render(); };
+$("tabHome").onclick = ()=>{ view = "home"; render(); };
+
+/* ---------- 起動 ---------- */
+rollNight();
+advanceAll();
+save();
+render();
+refreshPosition(()=>{ updateInside(); save(); render(); });
+setInterval(()=>{ advanceAll(); rollNight(); render(); }, 60000);
+</script>
+</body>
+</html>
