@@ -713,10 +713,19 @@
       }
       // The discovered stone ring presents a one-time, player-controlled
       // choice: preserve the current expedition or risk health for smithing loot.
-      if ((action==='forest-glade-rest'||action==='forest-glade-excavate'||action==='forest-glade-moss'||action==='forest-glade-waymark'||action==='forest-glade-ritual') &&
+      if ((action==='forest-glade-rest'||action==='forest-glade-excavate'||action==='forest-glade-moss'||action==='forest-glade-waymark'||action==='forest-glade-ritual'||action==='forest-glade-trial') &&
           x.place==='wood' && x.depth===1 && x.room===0 &&
           x.field?.pos===F.GLADE && x.field.glade && !x.field.gladeChoice) {
-        if(action==='forest-glade-ritual'){
+        if(action==='forest-glade-trial'){
+          // A risky two-stage expedition choice: opening the sealed hollow
+          // commits this stone-ring visit, but the reward can still be declined.
+          if(x.hp<=3)return s;
+          x.hp-=3;
+          x.field.gladeTrial=true;
+          x.log=['石環の封印をこじ開けた。体力 −3。奥に鉄片が光る。さらに傷を負って回収するか、ここで諦めるか。'];
+          x.field.gladeChoice=true;
+          return n;
+        }else if(action==='forest-glade-ritual'){
           // A one-time tactical trade: sacrifice a healing potion to prepare for the next fight.
           if(x.potions<1 || (x.focus>=5 && x.stamina>=5))return s;
           x.potions--;
@@ -748,6 +757,19 @@
           x.log=['石環の根を掘り起こし、古い狼牙 +1 を発見。体力 −5。生還できなければ失う。'];
         }
         x.field.gladeChoice=true;
+        return n;
+      }
+      // The second step is optional: a player may cut losses and return alive.
+      if((action==='forest-glade-trial-claim'||action==='forest-glade-trial-leave') &&
+        x.place==='wood' && x.depth===1 && x.room===0 &&
+        x.field?.pos===F.GLADE && x.field.gladeTrial && !x.field.gladeTrialDone){
+        if(action==='forest-glade-trial-claim'){
+          if(x.hp<=4 || x.scrap>993)return s;
+          x.hp-=4;
+          x.scrap+=6;
+          x.log=['封印の奥から鉄片 +6 を回収。体力 −4。帰還できなければ失う。'];
+        }else x.log=['石環の奥の鉄片を諦めた。残った体力で生還を目指す。'];
+        x.field.gladeTrialDone=true;
         return n;
       }
       // ADR 0015: the thorn search and lantern investigation are exclusive.
