@@ -760,7 +760,7 @@
         return n;
       }
       // The second step is optional: a player may cut losses and return alive.
-      if((action==='forest-glade-trial-claim'||action==='forest-glade-trial-leave') &&
+      if((action==='forest-glade-trial-claim'||action==='forest-glade-trial-herb'||action==='forest-glade-trial-leave') &&
         x.place==='wood' && x.depth===1 && x.room===0 &&
         x.field?.pos===F.GLADE && x.field.gladeTrial && !x.field.gladeTrialDone){
         if(action==='forest-glade-trial-claim'){
@@ -768,6 +768,11 @@
           x.hp-=4;
           x.scrap+=6;
           x.log=['封印の奥から鉄片 +6 を回収。体力 −4。帰還できなければ失う。'];
+        }else if(action==='forest-glade-trial-herb'){
+          if(x.potions<1 || x.scrap>995)return s;
+          x.potions--;
+          x.scrap+=4;
+          x.log=['薬草で傷を防ぎながら封印の奥から鉄片 +4 を回収。薬草 −1。生還できなければ鉄片は失う。'];
         }else x.log=['石環の奥の鉄片を諦めた。残った体力で生還を目指す。'];
         x.field.gladeTrialDone=true;
         return n;
