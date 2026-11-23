@@ -713,10 +713,16 @@
       }
       // The discovered stone ring presents a one-time, player-controlled
       // choice: preserve the current expedition or risk health for smithing loot.
-      if ((action==='forest-glade-rest'||action==='forest-glade-excavate') &&
+      if ((action==='forest-glade-rest'||action==='forest-glade-excavate'||action==='forest-glade-moss') &&
           x.place==='wood' && x.depth===1 && x.room===0 &&
           x.field?.pos===F.GLADE && x.field.glade && !x.field.gladeChoice) {
-        if(action==='forest-glade-rest'){
+        if(action==='forest-glade-moss'){
+          // A rare cross-region ingredient rewards returning alive rather than fighting.
+          if(x.hp<=4 || x.materials.marshFiber>=1000000)return s;
+          x.hp-=4;
+          x.materials.marshFiber++;
+          x.log=['石環の裏にある湿った裂け目を調べ、霧葦 +1 を採集。体力 −4。生還できなければ失う。'];
+        }else if(action==='forest-glade-rest'){
           if(x.scrap<3 || x.hp>=maxHp(n))return s;
           x.scrap-=3;
           const healed=Math.min(12,maxHp(n)-x.hp);
