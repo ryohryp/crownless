@@ -290,6 +290,7 @@
       ${x.field.pos===window.CrownlessField.GLADE && x.field.gladeTrial && !x.field.gladeTrialDone
         ? '<div class="forest-glade-choice" role="group" aria-label="石環の封印の奥"><p>封印の奥に鉄片が6個。ここから先は体力をさらに失う。回収するか撤退するか。</p>'+
           button('forest-glade-trial-claim','傷を負って鉄片を回収','体力 −4 · 鉄片 +6（生還で確定）',{class:'secondary',disabled:x.hp<=4||x.scrap>993})+
+          button('forest-glade-trial-herb','薬草で傷を防ぎ回収','薬草 −1 · 鉄片 +4（生還で確定）',{class:'secondary',disabled:x.potions<1||x.scrap>995})+
           button('forest-glade-trial-leave','危険を避けて引き返す','追加の体力消費なし',{class:'primary'})+'</div>' : ''}
       ${x.field.pos===window.CrownlessField.LANTERN_PASS && !x.field.passageSalvaged
         ? '<div class="forest-passage-choice" role="group" aria-label="北の抜け道の採集"><p>抜け道の根元に狼の古い骨。傷を負って掘るか、薬草を使って安全に回収するか。一度だけ選べる。</p>'+button('forest-passage-salvage','崩れた根を掘る','体力 −4 · 古い獣骨を探す（生還で確定）',{class:'secondary',disabled:x.hp<=4||x.materials.wolfFang>=1000000})+button('forest-passage-careful','薬草で傷を防いで掘る','薬草 −1 · 狼牙 +1（生還で確定）',{class:'primary',disabled:x.potions<=0||x.materials.wolfFang>=1000000})+'</div>' : ''}
