@@ -286,7 +286,7 @@
       ${x.field.pos===window.CrownlessField.GLADE && x.field.glade && !x.field.gladeChoice
         ? '<div class="forest-glade-choice" role="group" aria-label="古い石環の選択"><p>石環の下に埋もれた狼牙の気配。傷を負って掘るか、鉄片を供えて体力を回復するか。選べるのは一度だけ。</p>'+
           button('forest-glade-rest','鉄片を供えて休む','鉄片 −3 · 体力 +12まで',{class:'primary',disabled:x.scrap<3||x.hp>=E.maxHp(state)})+
-          button('forest-glade-excavate','根を掘って狼牙を探す','体力 −5 · 狼牙 +1（生還で確定）',{class:'secondary',disabled:x.hp<=5||x.materials.wolfFang>=1000000})+'</div>' : ''}
+          button('forest-glade-excavate','根を掘って狼牙を探す','体力 −5 · 狼牙 +1（生還で確定）',{class:'secondary',disabled:x.hp<=5||x.materials.wolfFang>=1000000})+button('forest-glade-moss','石環の裏の湿地を調べる','体力 −4 · 希少素材 霧葦 +1（生還で確定）',{class:'secondary',disabled:x.hp<=4||x.materials.marshFiber>=1000000})+'</div>' : ''}
       ${x.field.pos===window.CrownlessField.LANTERN_PASS && !x.field.passageSalvaged
         ? '<div class="forest-passage-choice" role="group" aria-label="北の抜け道の採集"><p>抜け道の根元に狼の古い骨。傷を負って掘るか、薬草を使って安全に回収するか。一度だけ選べる。</p>'+button('forest-passage-salvage','崩れた根を掘る','体力 −4 · 古い獣骨を探す（生還で確定）',{class:'secondary',disabled:x.hp<=4||x.materials.wolfFang>=1000000})+button('forest-passage-careful','薬草で傷を防いで掘る','薬草 −1 · 狼牙 +1（生還で確定）',{class:'primary',disabled:x.potions<=0||x.materials.wolfFang>=1000000})+'</div>' : ''}
       ${x.field.pos===window.CrownlessField.LANTERN_PASS && x.field.passageSalvaged && !x.field.passageFollowup
