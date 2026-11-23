@@ -713,10 +713,17 @@
       }
       // The discovered stone ring presents a one-time, player-controlled
       // choice: preserve the current expedition or risk health for smithing loot.
-      if ((action==='forest-glade-rest'||action==='forest-glade-excavate'||action==='forest-glade-moss'||action==='forest-glade-waymark') &&
+      if ((action==='forest-glade-rest'||action==='forest-glade-excavate'||action==='forest-glade-moss'||action==='forest-glade-waymark'||action==='forest-glade-ritual') &&
           x.place==='wood' && x.depth===1 && x.room===0 &&
           x.field?.pos===F.GLADE && x.field.glade && !x.field.gladeChoice) {
-        if(action==='forest-glade-waymark'){
+        if(action==='forest-glade-ritual'){
+          // A one-time tactical trade: sacrifice a healing potion to prepare for the next fight.
+          if(x.potions<1 || (x.focus>=5 && x.stamina>=5))return s;
+          x.potions--;
+          x.focus=Math.min(5,x.focus+3);
+          x.stamina=Math.min(5,x.stamina+2);
+          x.log=['石環に薬草を捧げ、戦いに備えた。薬草 −1、集中 +3、持久力 +2。回復薬を残すか、次の戦闘に賭けるか。'];
+        }else if(action==='forest-glade-waymark'){
           // A visible choice with a consequence on the next expedition, not another loot trade.
           if(n.forestCache || x.scrap<4)return s;
           x.scrap-=4;
