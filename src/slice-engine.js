@@ -309,7 +309,8 @@
     // Help earned through a past NPC commission is a one-expedition, same-region benefit.
     const supported = n.commission.support === id;
     // A cache built on a previous safe expedition makes the forest feel changed on revisit.
-    const cached = id === 'wood' && n.forestCache === true;
+    const cached = id === 'wood' && Boolean(n.forestCache);
+    const cachedScout = cached && n.forestCache === 'scout';
     if (cached) n.forestCache = false;
     if (supported) n.commission.support = null;
     n.commission.lastResult = null;
@@ -323,9 +324,9 @@
       grudge ? `敗走の記憶が残っている。${ENEMIES[grudge.enemy].name}への一撃に執念を乗せられる。` : null,
       supported ? `${COMMISSIONS[id].requester}の支援で薬草 +1。鍛冶師の納品が帰ってきた。` : null,
       visitorGift ? `${visitorGift.name}（架空NPC）の補給袋を受け取った。薬草 +1。ここからの一度限りの支援。` : null,
-      cached ? '以前の遠征で隠した補給箱を回収。薬草 +1。森に残した痕跡が役立った。' : null,
+      cached ? (cachedScout ? '以前に残した偵察道具を回収。集中 +2。森に残した痕跡が役立った。' : '以前の遠征で隠した補給箱を回収。薬草 +1。森に残した痕跡が役立った。') : null,
     ].filter(Boolean).join(' ') || '火はここで待っている。まずは足跡をたどろう。';
-    n.expedition = { place: id, depth: 1, room: 0, hp: maxHp(s), stamina: 3, focus: 0, stagger: false, sharpened, sharpenedApplied: false, potions: (supported || visitorGift || cached) ? 3 : 2, scrap: 0, materials:emptyMaterials(), gear: [], gearQuality: [], seals: [], grudge, enemy: null, stage: 'path', log: [intro], ...(id==='wood' ? {field:F.initial()} : id==='tower' ? {tower:T.initial()} : id==='fen' ? {fen:M.initial()} : {}) };
+    n.expedition = { place: id, depth: 1, room: 0, hp: maxHp(s), stamina: 3, focus: cachedScout ? 2 : 0, stagger: false, sharpened, sharpenedApplied: false, potions: (supported || visitorGift || (cached && !cachedScout)) ? 3 : 2, scrap: 0, materials:emptyMaterials(), gear: [], gearQuality: [], seals: [], grudge, enemy: null, stage: 'path', log: [intro], ...(id==='wood' ? {field:F.initial()} : id==='tower' ? {tower:T.initial()} : id==='fen' ? {fen:M.initial()} : {}) };
     return n;
   }
   // A landmark expedition is bound to one *discovered* fantasy place by the UI.
@@ -632,12 +633,13 @@
       }
       // Leave a tangible trace in the forest. The cache is consumed on the next
       // forest departure, not on death or a reload at camp.
-      if(action==='forest-passage-build-cache' && x.place==='wood' && x.depth===1 &&
+      if((action==='forest-passage-build-cache' || action==='forest-passage-build-scout-cache') && x.place==='wood' && x.depth===1 &&
         x.room===0 && x.stage==='path' && x.field?.pos===F.LANTERN_PASS &&
-        x.field.passageSpoorDone && !n.forestCache && x.scrap>=3){
-        x.scrap-=3;
-        n.forestCache=true;
-        x.log=['鉄片3個で北の抜け道に補給箱を隠した。次の森の遠征で薬草 +1。生還せずとも補給箱は残る。'];
+        x.field.passageSpoorDone && !n.forestCache && x.scrap >= (action==='forest-passage-build-scout-cache' ? 4 : 3)){
+        const scout = action==='forest-passage-build-scout-cache';
+        x.scrap -= scout ? 4 : 3;
+        n.forestCache = scout ? 'scout' : true;
+        x.log=[scout ? '鉄片4個で偵察道具を隠した。次の森の遠征で集中 +2。生還せずとも残る。' : '鉄片3個で北の抜け道に補給箱を隠した。次の森の遠征で薬草 +1。生還せずとも補給箱は残る。'];
         return n;
       }
       // Final optional gamble; rewards are unconfirmed until safe return.
