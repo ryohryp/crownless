@@ -250,6 +250,39 @@ test('return report compares newly banked variants and sends player to gear tab'
 });
 
 
+
+test('safe return with sufficient materials offers direct forge handoff without free crafting', () => {
+  const key='crownless-expedition-v1-demo';
+  const base=E.initial();
+  const report={died:false,place:'wood',depth:1,scrap:6,gear:[],newGear:[],duplicates:[],hp:24,cleared:[],materials:{...base.materials,wolfFang:1}};
+  const s={...base,mode:'demo',scrap:9,materials:{...base.materials,wolfFang:2},report};
+  const b=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(s)});
+  assert.match(b.html(),/data-action="report-forge"/);
+  assert.match(b.html(),/今すぐ鍛冶師に渡す/);
+  b.click('report-forge');
+  const saved=E.parse(b.store.get(key));
+  assert.equal(saved.report,null);
+  assert.equal(saved.activeCharacter,1);
+  assert.equal(saved.scrap,9,'handoff does not consume currency');
+  assert.equal(saved.materials.wolfFang,2,'handoff does not consume materials');
+  assert.equal(saved.owned.includes('forged_fang'),false,'smith crafting remains an explicit choice');
+  assert.match(b.html(),/鍛冶師が/);
+  assert.match(b.html(),/data-action="craft-item" data-value="forged_fang"/);
+  b.click('craft-item','forged_fang');
+  assert.equal(E.parse(b.store.get(key)).owned.includes('forged_fang'),true);
+});
+
+test('forge handoff never appears on failure or while duplicate loot is unresolved', () => {
+  const k='crownless-expedition-v1-demo',base=E.initial();
+  const report={died:true,place:'wood',depth:1,scrap:0,gear:[],newGear:[],duplicates:[],hp:0,cleared:[],materials:{...base.materials}};
+  const seed=s=>({'crownless-expedition-mode':'demo',[k]:E.serialize(s)});
+  let b=browser(seed({...base,mode:'demo',scrap:10,materials:{...base.materials,wolfFang:2},report}));
+  assert.doesNotMatch(b.html(),/data-action="report-forge"/);
+  const safe={...report,died:false,hp:22,duplicates:[{id:'rust',quality:0,decision:null}]};
+  b=browser(seed({...base,mode:'demo',scrap:10,materials:{...base.materials,wolfFang:2},report:safe}));
+  assert.doesNotMatch(b.html(),/data-action="report-forge"/);
+});
+
 test('camp home presents a persistent neighborhood and local expedition action', () => {
   const b=browser(); b.click('mode','demo');
   assert.match(b.html(),/living-map-home/);
