@@ -1413,6 +1413,7 @@ async function main() {
         assert.equal(s.expedition.enemy.kind,'knight');
         assert.match(await page.locator('.intent').innerText(),/耳に残る盾の音。初手は強撃が効きそうだ。/,
           'earned clue must be visible at the first actual attack choice on a phone');
+        await page.locator('.combat-manual > summary').click();
         await page.locator('[data-action="heavy"]').click();
         s=await saved();
         assert.match(s.expedition.log.join(' '),/耳で覚えた盾の音に合わせて強撃/,
