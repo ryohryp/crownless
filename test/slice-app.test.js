@@ -374,22 +374,22 @@ test('smith commission is accessible in the gear UI and saves as a single pendin
   assert.equal(saved.expedition.place,'wood');
 });
 
-test('combat opens with visible tactical choices, with auto-play and supplies secondary', () => {
+test('normal combat offers one-tap resolution first with optional tactical controls', () => {
   const b=browser();
   b.click('mode','demo');
   b.click('depart','wood');
   b.click('careful');
   assert.match(b.html(),/data-action="auto-fight"/);
-  assert.match(b.html(),/自動で決着する/);
+  assert.match(b.html(),/⚔ この戦闘を一気に決着/);
   assert.match(b.html(),/<section class="combat-situation">/);
-  assert.match(b.html(),/<details class="combat-manual" open><summary>どう戦う？ · 4つの行動から選ぶ<\/summary>/);
+  assert.match(b.html(),/<details class="combat-manual" ><summary>自分で戦う · 4つの行動から選ぶ<\/summary>/);
   assert.match(b.html(),/data-action="strike"/);
   assert.match(b.html(),/data-action="heavy"/);
   assert.match(b.html(),/data-action="guard"/);
   assert.match(b.html(),/data-action="dodge"/);
   assert.match(b.html(),/<details class="combat-support"><summary><span class="combat-support-closed">薬草・撤退・戦闘記録/);
   assert.match(b.html(),/data-action="flee"/,'retreat is still available via the supply/details panel');
-  assert(b.html().indexOf('data-action="strike"')<b.html().indexOf('data-action="auto-fight"'),'manual tactics precede one-click auto-play');
+  assert(b.html().indexOf('data-action="auto-fight"')<b.html().indexOf('data-action="strike"'),'one-click result is more prominent than manual tactics');
   b.click('auto-fight');
   assert.match(b.html(),/戦闘をまとめて決着/);
   assert.doesNotMatch(b.html(),/data-action="auto-fight"/);
