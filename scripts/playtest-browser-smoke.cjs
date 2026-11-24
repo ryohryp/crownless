@@ -674,7 +674,10 @@ async function main() {
       await poiPage.locator('.nearby-track-tile[data-value="-1,0"]').click();
       await departClassicForest(poiPage);
       await walkForestToWolf(poiPage);
-      assert.equal(await poiPage.locator('.combat-manual').getAttribute('open'),'','four choices should appear by default');
+      assert.equal(await poiPage.locator('.combat-fast-choice [data-action="auto-fight"]').isVisible(),true,
+        'a forged weapon does not bury the quick-combat option');
+      await poiPage.locator('.combat-manual > summary').click();
+      assert.equal(await poiPage.locator('.combat-manual').getAttribute('open'),'','manual tactics remain available on request');
       assert.match(await poiPage.locator('.combat-manual').innerText(),/反撃/,'new shield changes the available guard decision');
       await poiPage.screenshot({path:path.join(output,'crafted-shield-combat-390.png')});
     } finally {
