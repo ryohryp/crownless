@@ -526,7 +526,10 @@ async function main() {
         await page.screenshot({path:path.join(output,'map-production-'+width+'.png')});
         await departClassicForest(page);
         await walkForestToWolf(page);
-        assert.equal(await page.locator('.combat-choice-grid .choice').count(),4,'wide phones/desktop share the same tactical options');
+        assert.equal(await page.locator('.combat-fast-choice [data-action="auto-fight"]').isVisible(),true,
+          'normal battles show one-tap combat first');
+        await page.locator('.combat-manual > summary').click();
+        assert.equal(await page.locator('.combat-choice-grid .choice').count(),4,'wide phones/desktop preserve optional tactical choices');
         assert.equal(await page.locator('.combat-choice-grid [data-action="guard"]').isVisible(),true);
         await page.screenshot({path:path.join(output,'combat-production-'+width+'.png')});
         await page.locator('.combat-choice-grid [data-action="guard"]').click();
