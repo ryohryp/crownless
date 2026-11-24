@@ -271,6 +271,12 @@ async function main() {
         await page.screenshot({path:path.join(output,'forest-wolf-risk-no-waypoint-'+width+'.png')});
         await wolfGate.click();
         assert.equal(await page.locator(".battle-layout .combat-enemy-summary").count(), 1, "the wolf den must render exactly one actual battle");
+        const quick=page.locator('.combat-fast-choice [data-action="auto-fight"]');
+        assert.equal(await quick.isVisible(),true,'one-tap battle result must be immediately available');
+        assert.equal(await quick.isEnabled(),true,'quick battle button must be actionable');
+        assert.equal(await page.locator('.combat-choice-grid [data-action="strike"]').isVisible(),false,
+          'ordinary battles begin compact, not with four repetitive buttons');
+        await page.locator('.combat-manual > summary').click();
         const battleLayout=await page.evaluate(()=>{
           const names=['.combat-situation','.combat-decision','.combat-support'];
           const items=names.map(selector=>{
