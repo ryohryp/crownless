@@ -1546,6 +1546,7 @@ async function main() {
         assert.equal(s.expedition.enemy.kind,'wraith');
         assert.match(await page.locator('.combat-situation .intent small').innerText(),/水面で読んだ薙ぎ払い/,
           'only scouting earns the opening parry clue on the actual combat screen');
+        await page.locator('.combat-manual > summary').click();
         await page.locator('[data-action="guard"]').click();
         assert.match(await page.locator('.combat-clue-outcome').innerText(),/薙ぎ払いを受け流した/,
           'successful parry feedback is visible outside collapsed phone combat logs');
