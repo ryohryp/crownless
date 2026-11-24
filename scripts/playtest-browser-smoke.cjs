@@ -271,6 +271,12 @@ async function main() {
         await page.screenshot({path:path.join(output,'forest-wolf-risk-no-waypoint-'+width+'.png')});
         await wolfGate.click();
         assert.equal(await page.locator(".battle-layout .combat-enemy-summary").count(), 1, "the wolf den must render exactly one actual battle");
+        const quick=page.locator('.combat-fast-choice [data-action="auto-fight"]');
+        assert.equal(await quick.isVisible(),true,'one-tap battle result must be immediately available');
+        assert.equal(await quick.isEnabled(),true,'quick battle button must be actionable');
+        assert.equal(await page.locator('.combat-choice-grid [data-action="strike"]').isVisible(),false,
+          'ordinary battles begin compact, not with four repetitive buttons');
+        await page.locator('.combat-manual > summary').click();
         const battleLayout=await page.evaluate(()=>{
           const names=['.combat-situation','.combat-decision','.combat-support'];
           const items=names.map(selector=>{
@@ -520,7 +526,10 @@ async function main() {
         await page.screenshot({path:path.join(output,'map-production-'+width+'.png')});
         await departClassicForest(page);
         await walkForestToWolf(page);
-        assert.equal(await page.locator('.combat-choice-grid .choice').count(),4,'wide phones/desktop share the same tactical options');
+        assert.equal(await page.locator('.combat-fast-choice [data-action="auto-fight"]').isVisible(),true,
+          'normal battles show one-tap combat first');
+        await page.locator('.combat-manual > summary').click();
+        assert.equal(await page.locator('.combat-choice-grid .choice').count(),4,'wide phones/desktop preserve optional tactical choices');
         assert.equal(await page.locator('.combat-choice-grid [data-action="guard"]').isVisible(),true);
         await page.screenshot({path:path.join(output,'combat-production-'+width+'.png')});
         await page.locator('.combat-choice-grid [data-action="guard"]').click();
@@ -665,7 +674,10 @@ async function main() {
       await poiPage.locator('.nearby-track-tile[data-value="-1,0"]').click();
       await departClassicForest(poiPage);
       await walkForestToWolf(poiPage);
-      assert.equal(await poiPage.locator('.combat-manual').getAttribute('open'),'','four choices should appear by default');
+      assert.equal(await poiPage.locator('.combat-fast-choice [data-action="auto-fight"]').isVisible(),true,
+        'a forged weapon does not bury the quick-combat option');
+      await poiPage.locator('.combat-manual > summary').click();
+      assert.equal(await poiPage.locator('.combat-manual').getAttribute('open'),'','manual tactics remain available on request');
       assert.match(await poiPage.locator('.combat-manual').innerText(),/反撃/,'new shield changes the available guard decision');
       await poiPage.screenshot({path:path.join(output,'crafted-shield-combat-390.png')});
     } finally {
@@ -1401,6 +1413,7 @@ async function main() {
         assert.equal(s.expedition.enemy.kind,'knight');
         assert.match(await page.locator('.intent').innerText(),/耳に残る盾の音。初手は強撃が効きそうだ。/,
           'earned clue must be visible at the first actual attack choice on a phone');
+        await page.locator('.combat-manual > summary').click();
         await page.locator('[data-action="heavy"]').click();
         s=await saved();
         assert.match(s.expedition.log.join(' '),/耳で覚えた盾の音に合わせて強撃/,
@@ -1534,6 +1547,7 @@ async function main() {
         assert.equal(s.expedition.enemy.kind,'wraith');
         assert.match(await page.locator('.combat-situation .intent small').innerText(),/水面で読んだ薙ぎ払い/,
           'only scouting earns the opening parry clue on the actual combat screen');
+        await page.locator('.combat-manual > summary').click();
         await page.locator('[data-action="guard"]').click();
         assert.match(await page.locator('.combat-clue-outcome').innerText(),/薙ぎ払いを受け流した/,
           'successful parry feedback is visible outside collapsed phone combat logs');

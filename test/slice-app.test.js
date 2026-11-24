@@ -250,6 +250,39 @@ test('return report compares newly banked variants and sends player to gear tab'
 });
 
 
+
+test('safe return with sufficient materials offers direct forge handoff without free crafting', () => {
+  const key='crownless-expedition-v1-demo';
+  const base=E.initial();
+  const report={died:false,place:'wood',depth:1,scrap:6,gear:[],newGear:[],duplicates:[],hp:24,cleared:[],materials:{...base.materials,wolfFang:1}};
+  const s={...base,mode:'demo',scrap:9,materials:{...base.materials,wolfFang:2},report};
+  const b=browser({'crownless-expedition-mode':'demo',[key]:E.serialize(s)});
+  assert.match(b.html(),/data-action="report-forge"/);
+  assert.match(b.html(),/今すぐ鍛冶師に渡す/);
+  b.click('report-forge');
+  const saved=E.parse(b.store.get(key));
+  assert.equal(saved.report,null);
+  assert.equal(saved.activeCharacter,1);
+  assert.equal(saved.scrap,9,'handoff does not consume currency');
+  assert.equal(saved.materials.wolfFang,2,'handoff does not consume materials');
+  assert.equal(saved.owned.includes('forged_fang'),false,'smith crafting remains an explicit choice');
+  assert.match(b.html(),/鍛冶師が/);
+  assert.match(b.html(),/data-action="craft-item" data-value="forged_fang"/);
+  b.click('craft-item','forged_fang');
+  assert.equal(E.parse(b.store.get(key)).owned.includes('forged_fang'),true);
+});
+
+test('forge handoff never appears on failure or while duplicate loot is unresolved', () => {
+  const k='crownless-expedition-v1-demo',base=E.initial();
+  const report={died:true,place:'wood',depth:1,scrap:0,gear:[],newGear:[],duplicates:[],hp:0,cleared:[],materials:{...base.materials}};
+  const seed=s=>({'crownless-expedition-mode':'demo',[k]:E.serialize(s)});
+  let b=browser(seed({...base,mode:'demo',scrap:10,materials:{...base.materials,wolfFang:2},report}));
+  assert.doesNotMatch(b.html(),/data-action="report-forge"/);
+  const safe={...report,died:false,hp:22,duplicates:[{id:'rust',quality:0,decision:null}]};
+  b=browser(seed({...base,mode:'demo',scrap:10,materials:{...base.materials,wolfFang:2},report:safe}));
+  assert.doesNotMatch(b.html(),/data-action="report-forge"/);
+});
+
 test('camp home presents a persistent neighborhood and local expedition action', () => {
   const b=browser(); b.click('mode','demo');
   assert.match(b.html(),/living-map-home/);
@@ -374,22 +407,22 @@ test('smith commission is accessible in the gear UI and saves as a single pendin
   assert.equal(saved.expedition.place,'wood');
 });
 
-test('combat opens with visible tactical choices, with auto-play and supplies secondary', () => {
+test('normal combat offers one-tap resolution first with optional tactical controls', () => {
   const b=browser();
   b.click('mode','demo');
   b.click('depart','wood');
   b.click('careful');
   assert.match(b.html(),/data-action="auto-fight"/);
-  assert.match(b.html(),/自動で決着する/);
+  assert.match(b.html(),/⚔ この戦闘を一気に決着/);
   assert.match(b.html(),/<section class="combat-situation">/);
-  assert.match(b.html(),/<details class="combat-manual" open><summary>どう戦う？ · 4つの行動から選ぶ<\/summary>/);
+  assert.match(b.html(),/<details class="combat-manual" ><summary>自分で戦う · 4つの行動から選ぶ<\/summary>/);
   assert.match(b.html(),/data-action="strike"/);
   assert.match(b.html(),/data-action="heavy"/);
   assert.match(b.html(),/data-action="guard"/);
   assert.match(b.html(),/data-action="dodge"/);
   assert.match(b.html(),/<details class="combat-support"><summary><span class="combat-support-closed">薬草・撤退・戦闘記録/);
   assert.match(b.html(),/data-action="flee"/,'retreat is still available via the supply/details panel');
-  assert(b.html().indexOf('data-action="strike"')<b.html().indexOf('data-action="auto-fight"'),'manual tactics precede one-click auto-play');
+  assert(b.html().indexOf('data-action="auto-fight"')<b.html().indexOf('data-action="strike"'),'one-click result is more prominent than manual tactics');
   b.click('auto-fight');
   assert.match(b.html(),/戦闘をまとめて決着/);
   assert.doesNotMatch(b.html(),/data-action="auto-fight"/);
