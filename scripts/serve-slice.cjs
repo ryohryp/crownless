@@ -3,7 +3,7 @@ const http = require('node:http');
 const fs = require('node:fs');
 const path = require('node:path');
 const isAllowed = name => !name.includes('..') && (
-  ['index.html','expedition.html','architecture-lab.html','architecture-lab.js','gemini-feel-lab.html','hero-art-review.html'].includes(name) ||
+  ['index.html','expedition.html','trace-proto.html','architecture-lab.html','architecture-lab.js','gemini-feel-lab.html','hero-art-review.html'].includes(name) ||
   (name.endsWith('.css') && !name.includes('/')) ||
   (name.startsWith('src/') && name.endsWith('.js') && name.indexOf('/', 4) === -1) ||
   ['docs/assets/candidates/forest-hd2d-v0.2.png','docs/assets/candidates/forest-objects-v1.png',
