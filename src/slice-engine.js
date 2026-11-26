@@ -584,6 +584,104 @@
         x.log=[`斥候の灯で霧を照らすと、古い倒木の方から青白い反射が返った。根元に鉄片 +${scrap}。奥の道は自分の目で調べよう。生還まで背嚢の中だ。`];
         return n;
       }
+      // The new northern shortcut hides a one-time salvage choice. The bag is
+      // still at risk until the explorer returns alive.
+      if((action==='forest-passage-salvage'||action==='forest-passage-careful') && x.place==='wood' && x.depth===1 &&
+        x.room===0 && x.field?.pos===F.LANTERN_PASS && x.field.lanternPassage &&
+        !x.field.passageSalvaged && x.materials.wolfFang<1000000 &&
+        (action==='forest-passage-careful' ? x.potions>0 : x.hp>4)){
+        if(action==='forest-passage-careful')x.potions--;
+        else x.hp-=4;
+        x.materials.wolfFang+=1;
+        x.field.passageSalvaged=true;
+        x.log=[action==='forest-passage-careful' ? '薬草を使って傷を防ぎ、根元から狼牙 +1。薬草 −1。生還まで未確定。' : '北の抜け道の崩れた根を掘り返した。体力 −4、狼牙 +1。生還するまで背嚢の中だ。'];
+        return n;
+      }
+      // A second decision after salvaging: leave safely or spend health to
+      // recover additional iron from the newly exposed roots.
+      if((action==='forest-passage-deeper'||action==='forest-passage-careful-iron'||action==='forest-passage-herbal-iron'||action==='forest-passage-leave') &&
+        x.place==='wood' && x.depth===1 && x.room===0 &&
+        x.field?.pos===F.LANTERN_PASS && x.field.passageSalvaged &&
+        !x.field.passageFollowup){
+        if(action==='forest-passage-deeper'){
+          if(x.hp<=3)return s;
+          x.hp-=3;
+          x.scrap=Math.min(1000,x.scrap+4);
+          x.log=['さらに根の奥へ手を伸ばした。体力 −3、鉄片を最大4個回収。生還まで未確定。'];
+        }else if(action==='forest-passage-herbal-iron'){
+          if(x.potions<1 || x.scrap>994)return s;
+          x.potions--;
+          const found=Math.min(6,1000-x.scrap);
+          x.scrap+=found;
+          x.log=[`薬草の香りで根元の虫を遠ざけ、鉄片 +${found} を回収。薬草 −1、体力消費なし。生還まで未確定。`];
+        }else if(action==='forest-passage-careful-iron'){
+          if(x.focus<2)return s;
+          x.focus-=2;
+          const found=Math.min(2,1000-x.scrap);
+          x.scrap+=found;
+          x.log=[`集中して根の隙間から鉄片 +${found} を拾った。集中 −2、体力消費なし。生還まで未確定。`];
+        }else{
+          x.log=['崩れた根をそれ以上掘らず、戦利品を守って引き返すことにした。'];
+        }
+        x.field.passageFollowup=true;
+        return n;
+      }
+      // Final optional gamble; rewards are unconfirmed until safe return.
+      if((action==='forest-passage-spoor'||action==='forest-passage-spoor-careful'||action==='forest-passage-spoor-scout'||action==='forest-passage-spoor-trap'||action==='forest-passage-spoor-bait'||action==='forest-passage-spoor-rest'||action==='forest-passage-spoor-herb'||action==='forest-passage-spoor-ambush'||action==='forest-passage-spoor-cache'||action==='forest-passage-spoor-leave') && x.place==='wood' && x.depth===1 && x.room===0 && x.field?.pos===F.LANTERN_PASS && x.field.passageFollowup && !x.field.passageSpoorDone){
+        if(action==='forest-passage-spoor-rest'){
+          // Spend uncertain iron on a temporary shelter: survival now versus crafting later.
+          if(x.scrap<4 || x.hp>=maxHp(s))return s;
+          x.scrap-=4;
+          const healed=Math.min(8,maxHp(s)-x.hp);
+          x.hp+=healed;
+          x.log=[`鉄片4個で風除けを組み、体力を ${healed} 回復した。残りの素材は生還まで未確定。`];
+        }else if(action==='forest-passage-spoor-herb'){
+          // Spend a fang to retrieve medicinal plants: keep exploring or bank the fang.
+          if(x.materials.wolfFang<1 || x.potions>=3)return s;
+          x.materials.wolfFang--;
+          const found=Math.min(2,3-x.potions);
+          x.potions+=found;
+          x.log=[`狼牙を目印に獣道の薬草群生地を見つけた。狼牙 −1、薬草 +${found}。追跡はここで終了。`];
+        }else if(action==='forest-passage-spoor-trap'){
+          // Convert carried, still-at-risk iron into a snare rather than losing health.
+          if(x.scrap<3 || x.materials.wolfFang>=1000000)return s;
+          x.scrap-=3;
+          x.materials.wolfFang++;
+          x.log=['拾った鉄片3個で獣道に罠を仕掛け、落ちた狼牙を1個回収した。体力は温存。素材は生還まで未確定。'];
+        }else if(action==='forest-passage-spoor-bait'){
+          // Trade one unconfirmed fang for extra smithing iron: a genuine
+          // choice between weapon material and route-building material.
+          if(x.materials.wolfFang<1 || x.scrap>994)return s;
+          x.materials.wolfFang--;
+          x.scrap+=5;
+          x.log=['狼牙1個を囮にして獣を誘い出し、巣の鉄片5個を拾った。生還するまで素材は未確定。'];
+        }else if(action==='forest-passage-spoor-ambush'){
+          // A costly mixed-resource gamble: more fang for smithing, less iron and health for the return.
+          if(x.hp<=3 || x.scrap<2 || x.materials.wolfFang>999997)return s;
+          x.hp-=3; x.scrap-=2; x.materials.wolfFang+=2;
+          x.log=['鉄片2個で音の出る罠を作り、獣が逸れた隙に狼牙2個を回収。体力 −3。生還まで未確定。'];
+        }else if(action==='forest-passage-spoor-cache'){
+          // A risky detour with a distinct reward: recover a rare regional material
+          // rather than converting iron and fangs again. Nothing is banked until return.
+          if(x.hp<=6 || x.materials.marshFiber>=1000000)return s;
+          x.hp-=6;
+          x.materials.marshFiber++;
+          x.log=['獣道を外れて苔の洞を探り、霧葦 +1 を発見。体力 −6。生還まで失う危険がある。'];
+        }else if(action==='forest-passage-spoor-scout'){
+          if(x.focus<3 || x.materials.wolfFang>=1000000)return s;
+          x.focus-=3;
+          x.materials.wolfFang++;
+          x.log=['足跡の乱れを読み、獣に近づかず落ちた狼牙を回収した。集中 −3、狼牙 +1。生還まで未確定。'];
+        }else if(action==='forest-passage-spoor'||action==='forest-passage-spoor-careful'){
+          const careful=action==='forest-passage-spoor-careful';
+          if(x.hp<=(careful?2:5) || (careful&&x.potions<1) || x.materials.wolfFang>999997)return s;
+          x.hp-=careful?2:5;
+          if(careful)x.potions--;
+          x.materials.wolfFang+=2;
+          x.log=[careful?'薬草で獣の気配を消して獣道を追った。薬草 −1、体力 −2、狼牙 +2。生還まで未確定。':'獣道へ踏み込んだ。体力 −5、狼牙 +2。生還まで未確定。'];
+        }else x.log=['獣道を追わず、戦利品を守って引き返した。'];
+        x.field.passageSpoorDone=true; return n;
+      }
       // The discovered stone ring presents a one-time, player-controlled
       // choice: preserve the current expedition or risk health for smithing loot.
       if ((action==='forest-glade-rest'||action==='forest-glade-excavate') &&
@@ -849,6 +947,12 @@
         const to=Number(action.slice('field-step:'.length));
         // First investigate the vine-covered rock barrier; the explorer does
         // not walk through until the newly uncovered opening is tapped again.
+        const lanternOpening=F.uncoverLanternPassage(x.field,to);
+        if(lanternOpening){
+          x.field=lanternOpening;
+          x.log=['斥候の灯が示した霧の継ぎ目を、倒木の裏から調べた。木々の間に北への抜け道が開いた！ もう一度タップすると歩ける。'];
+          return n;
+        }
         const uncovered=F.uncover(x.field,to);
         if(uncovered){
           x.field=uncovered;

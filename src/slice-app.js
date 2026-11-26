@@ -60,26 +60,28 @@
   function forestField(x, title) {
     const F=window.CrownlessField, field=x.field;
     const wolfStatus=F.wolfAwareness(field);
-    const names={wall:'絡む木々',exit:'生還できる霧の石門',cache:'倒木の下の光',tracks:'獣の足跡',den:field.wolf?'空になった獣の巣穴':'獣の巣穴',treasure:field.treasure?'開いた宝箱':'まだ閉じた宝箱',glade:field.glade?'発見した古い石環':'苔むした石環',fox:field.fox?'狐が飛び出した茂み':'草の揺れる小道','fox-nest':field.foxCache?'空になった革袋':field.fox?'狐が逃げ込んだ倒木':'古い倒木',shrine:field.shrine?'光が消えた祠':'苔むした祠',secret:field.secret?'開けた隠し道':'揺れるツタ',camp:'遠征の起点',trail:'森の小道'};
-    const icons={wall:'♠',exit:'⛩',cache:'✦',tracks:'⌁',den:field.wolf?'✓':'⚔',treasure:field.treasure?'□':'✧',glade:field.glade?'◉':'◇',fox:field.fox?'⌁':'♧','fox-nest':field.foxCache?'□':'♧',shrine:field.shrine?'▤':'✴',secret:field.secret?'⌁':'♧',camp:'⌂',trail:'·'};
+    const names={wall:'絡む木々',exit:'生還できる霧の石門',cache:'倒木の下の光',tracks:'獣の足跡',den:field.wolf?'空になった獣の巣穴':'獣の巣穴',treasure:field.treasure?'開いた宝箱':'まだ閉じた宝箱',glade:field.glade?'発見した古い石環':'苔むした石環',fox:field.fox?'狐が飛び出した茂み':'草の揺れる小道','fox-nest':field.foxCache?'空になった革袋':field.fox?'狐が逃げ込んだ倒木':'古い倒木',shrine:field.shrine?'光が消えた祠':'苔むした祠',secret:field.secret?'開けた隠し道':'揺れるツタ','lantern-pass':field.lanternPassage?'灯りで開いた北の抜け道':'霧に埋もれた木々',camp:'遠征の起点',trail:'森の小道'};
+    const icons={wall:'♠',exit:'⛩',cache:'✦',tracks:'⌁',den:field.wolf?'✓':'⚔',treasure:field.treasure?'□':'✧',glade:field.glade?'◉':'◇',fox:field.fox?'⌁':'♧','fox-nest':field.foxCache?'□':'♧',shrine:field.shrine?'▤':'✴',secret:field.secret?'⌁':'♧','lantern-pass':'✧',camp:'⌂',trail:'·'};
     const cells=Array.from({length:F.COUNT},(_,i)=>{
       const kind=F.landmark(i), seen=F.visible(field,i), near=F.adjacent(field.pos,i);
       const [col,row]=F.coords(i);
-      const here=i===field.pos, known=seen&&!here, passable=near&&kind!=='wall';
+      const here=i===field.pos, known=seen&&!here;
+      const investigatePass=kind==='lantern-pass'&&near&&field.pos===F.CACHE&&field.lanternClue&&!field.lanternPassage;
+      const passable=(near&&kind!=='wall'&&(kind!=='lantern-pass'||field.lanternPassage))||investigatePass;
       // Navigation marks only ordinary, currently traversable adjacent land.
       // Secret vines are intentionally never marked, even after discovery.
       // A live wolf den is a combat choice, never a safe-path waypoint.
-      const guided=seen&&kind!=='secret'&&!(kind==='den'&&!field.wolf)&&F.canMove(field,i);
+      const guided=seen&&kind!=='secret'&&kind!=='lantern-pass'&&!(kind==='den'&&!field.wolf)&&F.canMove(field,i);
       const used=(kind==='cache'&&field.cache)||(kind==='tracks'&&field.tracks)||(kind==='treasure'&&field.treasure)||(kind==='den'&&field.wolf)||(kind==='shrine'&&field.shrine)||(kind==='secret'&&field.secret)||(kind==='glade'&&field.glade)||(kind==='fox'&&field.fox)||(kind==='fox-nest'&&field.foxCache);
       const icon=here?'<span class="field-hero" aria-hidden="true"><i></i></span>'
         : seen?(used?'✓':icons[kind]):'';
       const classes=['field-cell',seen?'revealed':'veiled',kind,here?'here':'',passable?'can-step':'',guided?'walk-nav':'',used?'spent':''].filter(Boolean).join(' ');
       const inspectVines=kind==='secret'&&near&&!field.secret;
-      const label=here?'旅人の現在地':inspectVines?'揺れるツタ':seen?names[kind]:'まだ見えない土地';
-      if(passable)return `<button type="button" class="${classes}" style="grid-column:${col+1};grid-row:${row+1}" data-action="field-step" data-value="${i}" aria-label="${label}${kind==='secret'&&!field.secret?'を調べる':'へ一歩進む'}">${icon}</button>`;
+      const label=here?'旅人の現在地':investigatePass?'斥候の灯が示す霧の継ぎ目':inspectVines?'揺れるツタ':seen?names[kind]:'まだ見えない土地';
+      if(passable)return `<button type="button" class="${classes}" style="grid-column:${col+1};grid-row:${row+1}" data-action="field-step" data-value="${i}" aria-label="${label}${(kind==='secret'&&!field.secret)||investigatePass?'を調べる':'へ一歩進む'}">${icon}</button>`;
       return `<span class="${classes}" style="grid-column:${col+1};grid-row:${row+1}" aria-label="${label}">${icon}</span>`;
     }).join('');
-    return `<section class="forest-field" data-field-pos="${field.pos}" data-field-seen="${field.seen}" data-field-cache="${field.cache}" data-field-tracks="${field.tracks}" data-field-treasure="${Boolean(field.treasure)}" data-field-wolf="${Boolean(field.wolf)}" data-field-secret="${Boolean(field.secret)}" data-field-shrine="${Boolean(field.shrine)}" data-field-glade="${Boolean(field.glade)}" data-field-fox="${Boolean(field.fox)}" data-field-fox-cache="${Boolean(field.foxCache)}" data-wolf-state="${wolfStatus}" aria-label="探索できる森のフィールド">
+    return `<section class="forest-field" data-field-pos="${field.pos}" data-field-seen="${field.seen}" data-field-cache="${field.cache}" data-field-tracks="${field.tracks}" data-field-treasure="${Boolean(field.treasure)}" data-field-wolf="${Boolean(field.wolf)}" data-field-secret="${Boolean(field.secret)}" data-field-lantern-passage="${Boolean(field.lanternPassage)}" data-field-shrine="${Boolean(field.shrine)}" data-field-glade="${Boolean(field.glade)}" data-field-fox="${Boolean(field.fox)}" data-field-fox-cache="${Boolean(field.foxCache)}" data-wolf-state="${wolfStatus}" aria-label="探索できる森のフィールド">
       <div class="forest-field-header"><span class="kicker">THE UNCHARTED WOOD · 霧の森</span><h2>${esc(title)}</h2>${wolfStatus==='alert'?'': '<small>行きたい方向の地面をタップして歩こう。</small>'}</div>
       ${wolfStatus==='alert' ? '<div class="forest-wolf-warning" role="status">⚠ 狼に気づかれた · 巣穴へ進むと戦闘</div>' : ''}
       <div class="field-terrain" role="group" aria-label="霧の森を歩く"><div class="field-worldspace"><canvas class="forest-world-canvas" width="840" height="840" aria-hidden="true"></canvas>${cells}</div></div>
@@ -285,6 +287,11 @@
         ? '<div class="forest-glade-choice" role="group" aria-label="古い石環の選択"><p>石環の下に埋もれた狼牙の気配。傷を負って掘るか、鉄片を供えて体力を回復するか。選べるのは一度だけ。</p>'+
           button('forest-glade-rest','鉄片を供えて休む','鉄片 −3 · 体力 +12まで',{class:'primary',disabled:x.scrap<3||x.hp>=E.maxHp(state)})+
           button('forest-glade-excavate','根を掘って狼牙を探す','体力 −5 · 狼牙 +1（生還で確定）',{class:'secondary',disabled:x.hp<=5||x.materials.wolfFang>=1000000})+'</div>' : ''}
+      ${x.field.pos===window.CrownlessField.LANTERN_PASS && !x.field.passageSalvaged
+        ? '<div class="forest-passage-choice" role="group" aria-label="北の抜け道の採集"><p>抜け道の根元に狼の古い骨。傷を負って掘るか、薬草を使って安全に回収するか。一度だけ選べる。</p>'+button('forest-passage-salvage','崩れた根を掘る','体力 −4 · 古い獣骨を探す（生還で確定）',{class:'secondary',disabled:x.hp<=4||x.materials.wolfFang>=1000000})+button('forest-passage-careful','薬草で傷を防いで掘る','薬草 −1 · 狼牙 +1（生還で確定）',{class:'primary',disabled:x.potions<=0||x.materials.wolfFang>=1000000})+'</div>' : ''}
+      ${x.field.pos===window.CrownlessField.LANTERN_PASS && x.field.passageSalvaged && !x.field.passageFollowup
+        ? '<div class="forest-passage-choice" role="group" aria-label="北の抜け道の追加探索"><p>骨の下に鉄の光。さらに掘れば鉄片を拾えるが、帰還前の体力を失う。</p>'+button('forest-passage-deeper','さらに根の奥を探る','体力 −3 · 鉄片を最大4個回収',{class:'secondary',disabled:x.hp<=3})+button('forest-passage-careful-iron','集中して鉄片を拾う','集中 −2 · 体力消費なし · 鉄片を最大2個回収',{class:'secondary',disabled:x.focus<2})+button('forest-passage-herbal-iron','薬草で虫を払い鉄片を探す','薬草 −1 · 体力消費なし · 鉄片を最大6個回収',{class:'secondary',disabled:x.potions<1||x.scrap>994})+button('forest-passage-leave','ここで切り上げる','戦利品を守って帰路へ',{class:'primary'})+'</div>' : ''}
+       ${x.field.pos===window.CrownlessField.LANTERN_PASS && x.field.passageFollowup && !x.field.passageSpoorDone ? '<div class="forest-passage-choice" role="group" aria-label="北の抜け道の獣道"><p>根の先に獣道。追うか、撤退するか。</p>'+button('forest-passage-spoor','獣道を追う','体力 −5 · 狼牙 +2（生還で確定）',{class:'secondary',disabled:x.hp<=5||x.materials.wolfFang>999997})+button('forest-passage-spoor-careful','薬草で気配を消して追う','薬草 −1 · 体力 −2 · 狼牙 +2（生還で確定）',{class:'secondary',disabled:x.potions<1||x.hp<=2||x.materials.wolfFang>999997})+button('forest-passage-spoor-scout','集中して足跡を読む','集中 −3 · 体力消費なし · 狼牙 +1（生還で確定）',{class:'secondary',disabled:x.focus<3||x.materials.wolfFang>=1000000})+button('forest-passage-spoor-trap','鉄片で罠を仕掛ける','鉄片 −3 · 体力消費なし · 狼牙 +1（生還で確定）',{class:'secondary',disabled:x.scrap<3||x.materials.wolfFang>=1000000})+button('forest-passage-spoor-bait','狼牙を囮にして鉄片を探す','狼牙 −1 · 鉄片 +5（生還で確定）',{class:'secondary',disabled:x.materials.wolfFang<1||x.scrap>994})+button('forest-passage-spoor-rest','鉄片で風除けを作って休む','鉄片 −4 · 体力 +8まで · 獣道の追跡は終了',{class:'secondary',disabled:x.scrap<4||x.hp>=E.maxHp(state)})+button('forest-passage-spoor-herb','狼牙を目印に薬草を探す','狼牙 −1 · 薬草 +2まで · 追跡終了',{class:'secondary',disabled:x.materials.wolfFang<1||x.potions>=3})+button('forest-passage-spoor-ambush','音の罠で獣を誘い出す','鉄片 −2 · 体力 −3 · 狼牙 +2（生還で確定）',{class:'secondary',disabled:x.scrap<2||x.hp<=3||x.materials.wolfFang>999997})+button('forest-passage-spoor-cache','苔の洞へ危険な寄り道','体力 −6 · 霧葦 +1（生還で確定）',{class:'secondary',disabled:x.hp<=6||x.materials.marshFiber>=1000000})+button('forest-passage-spoor-leave','獣道には入らない','損失なしで撤退',{class:'primary'})+'</div>' : ''}
       ${x.field.lanternClue ? '<p class="scout-lantern-clue" role="status">✦ 灯りが映した痕跡：倒木の近くで霧が揺らいでいる。周囲を歩いて調べよう。</p>' : ''}
       ${trailSkillButton(x)}
       ${x.foundDesign==='fang_moon' ? '<p class="notice" role="status">✦ 月影の短剣の設計図を背嚢に入れた。生還するまで失う可能性がある。</p>' : ''}
@@ -964,6 +971,7 @@
     else if (action === 'forest-glade-rest' || action === 'forest-glade-excavate') { state=E.act(state,action); }
     else if (action === 'forest-tracks-risk') { state=E.act(state,'forest-tracks-risk'); }
     else if (action.startsWith('forest-forage-')) { state=E.act(state,action); }
+    else if (action.startsWith('forest-passage-')) { state=E.act(state,action); }
     else if (action === 'tower-step') { state=E.act(state,'tower-step:'+value); }
     else if (action === 'fen-step') { state=E.act(state,'fen-step:'+value); }
     else if (action === 'auto-fight') { state = E.resolveFight(state); }

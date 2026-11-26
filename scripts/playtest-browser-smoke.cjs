@@ -216,8 +216,8 @@ async function main() {
         assert(!/宝箱.*未発見|森の秘密/.test(await page.locator('.forest-field-footer').innerText()),
           'unfound treasure or hidden discoveries must not be advertised in the footer');
         assert.equal(await page.locator('.forest-field .field-cell').count(),49,'larger woodland renders forty-nine real cells');
-        assert.equal(await page.locator('.forest-field .field-cell.wall').count(),19,
-          'impenetrable tree masses are part of the field, not decorative background');
+        assert.equal(await page.locator('.forest-field .field-cell.wall').count(),18,
+          'tree masses remain impassable; the lantern passage is a deliberate non-wall tile');
         assert((await page.locator('.forest-field .field-cell.veiled').count())>14,
           'most of the land must actually be hidden at the beginning');
         const fogObscuresWall=await page.evaluate(()=>{
